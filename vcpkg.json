@@ -1,0 +1,12 @@
+{
+  "name": "sparkle",
+  "version-string": "0.0.1",
+  "description": "A library for handling graphics rendering with OpenGL.",
+  "dependencies": [
+    "glew",
+    "opengl",
+	"stb",
+	"gtest"
+  ],
+  "builtin-baseline": "ded9717095600a356b624cab03326e44764afed4"
+}

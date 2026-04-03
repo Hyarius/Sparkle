@@ -1,0 +1,10 @@
+build
+CMakeCache.txt
+CMakeFiles
+settings.json
+.vscode/
+doxygen-error.log
+docs/build/
+default.profraw
+input.shad
+tests/TUs/resources/imageResults
