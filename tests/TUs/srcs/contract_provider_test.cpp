@@ -8,14 +8,14 @@
 
 TEST(ContractProviderTest, NewProviderStartsEmpty)
 {
-	spk::ContractProvider provider;
+	spk::ContractProvider<> provider;
 
 	EXPECT_EQ(provider.nbContracts(), 0u);
 }
 
 TEST(ContractProviderTest, SubscribeAddsValidContractAndIncreasesCount)
 {
-	spk::ContractProvider provider;
+	spk::ContractProvider<> provider;
 
 	auto contract = provider.subscribe([]() {});
 
@@ -25,7 +25,7 @@ TEST(ContractProviderTest, SubscribeAddsValidContractAndIncreasesCount)
 
 TEST(ContractProviderTest, TriggerCallsSingleSubscribedCallback)
 {
-	spk::ContractProvider provider;
+	spk::ContractProvider<> provider;
 	int callCount = 0;
 
 	auto contract = provider.subscribe([&callCount]()
@@ -43,7 +43,7 @@ TEST(ContractProviderTest, TriggerCallsSingleSubscribedCallback)
 
 TEST(ContractProviderTest, TriggerCallsAllSubscribedCallbacksInSubscriptionOrder)
 {
-	spk::ContractProvider provider;
+	spk::ContractProvider<> provider;
 	std::vector<int> callOrder;
 
 	auto first = provider.subscribe([&callOrder]()
@@ -73,7 +73,7 @@ TEST(ContractProviderTest, TriggerCallsAllSubscribedCallbacksInSubscriptionOrder
 
 TEST(ContractProviderTest, MultipleTriggersCallCallbacksMultipleTimes)
 {
-	spk::ContractProvider provider;
+	spk::ContractProvider<> provider;
 	int callCount = 0;
 
 	auto contract = provider.subscribe([&callCount]()
@@ -92,7 +92,7 @@ TEST(ContractProviderTest, MultipleTriggersCallCallbacksMultipleTimes)
 
 TEST(ContractProviderTest, ProviderBlockPreventsTriggerWhileTokenLives)
 {
-	spk::ContractProvider provider;
+	spk::ContractProvider<> provider;
 	int callCount = 0;
 
 	auto contract = provider.subscribe([&callCount]()
@@ -100,7 +100,7 @@ TEST(ContractProviderTest, ProviderBlockPreventsTriggerWhileTokenLives)
 		++callCount;
 	});
 
-	spk::ContractProvider::Blocker blocker = provider.block();
+	spk::ContractProvider<>::Blocker blocker = provider.block();
 
 	EXPECT_TRUE(provider.isBlocked());
 
@@ -118,7 +118,7 @@ TEST(ContractProviderTest, ProviderBlockPreventsTriggerWhileTokenLives)
 
 TEST(ContractProviderTest, NestedProviderBlocksRequireAllTokensReleased)
 {
-	spk::ContractProvider provider;
+	spk::ContractProvider<> provider;
 	int callCount = 0;
 
 	auto contract = provider.subscribe([&callCount]()
@@ -149,7 +149,7 @@ TEST(ContractProviderTest, NestedProviderBlocksRequireAllTokensReleased)
 
 TEST(ContractProviderTest, ContractBlockPreventsOnlyThatCallback)
 {
-	spk::ContractProvider provider;
+	spk::ContractProvider<> provider;
 	int firstCount = 0;
 	int secondCount = 0;
 
@@ -182,7 +182,7 @@ TEST(ContractProviderTest, ContractBlockPreventsOnlyThatCallback)
 
 TEST(ContractProviderTest, BlockingInvalidContractReturnsInvalidBlocker)
 {
-	spk::ContractProvider::Contract contract;
+	spk::ContractProvider<>::Contract contract;
 
 	auto blocker = contract.block();
 
@@ -191,7 +191,7 @@ TEST(ContractProviderTest, BlockingInvalidContractReturnsInvalidBlocker)
 
 TEST(ContractProviderTest, ContractResignInvalidatesContractAndRemovesCallbackOnCleanup)
 {
-	spk::ContractProvider provider;
+	spk::ContractProvider<> provider;
 	int callCount = 0;
 
 	auto contract = provider.subscribe([&callCount]()
@@ -214,7 +214,7 @@ TEST(ContractProviderTest, ContractResignInvalidatesContractAndRemovesCallbackOn
 
 TEST(ContractProviderTest, ContractDestructorResignsAutomatically)
 {
-	spk::ContractProvider provider;
+	spk::ContractProvider<> provider;
 	int callCount = 0;
 
 	{
@@ -235,7 +235,7 @@ TEST(ContractProviderTest, ContractDestructorResignsAutomatically)
 
 TEST(ContractProviderTest, RelinquishDetachesContractWithoutRemovingCallback)
 {
-	spk::ContractProvider provider;
+	spk::ContractProvider<> provider;
 	int callCount = 0;
 
 	auto contract = provider.subscribe([&callCount]()
@@ -259,7 +259,7 @@ TEST(ContractProviderTest, RelinquishDetachesContractWithoutRemovingCallback)
 
 TEST(ContractProviderTest, MovedContractTransfersOwnershipOfSubscription)
 {
-	spk::ContractProvider provider;
+	spk::ContractProvider<> provider;
 	int callCount = 0;
 
 	auto source = provider.subscribe([&callCount]()
@@ -269,7 +269,7 @@ TEST(ContractProviderTest, MovedContractTransfersOwnershipOfSubscription)
 
 	ASSERT_TRUE(source.isValid());
 
-	spk::ContractProvider::Contract destination(std::move(source));
+	spk::ContractProvider<>::Contract destination(std::move(source));
 
 	EXPECT_FALSE(source.isValid());
 	EXPECT_TRUE(destination.isValid());
@@ -287,7 +287,7 @@ TEST(ContractProviderTest, MovedContractTransfersOwnershipOfSubscription)
 
 TEST(ContractProviderTest, MoveAssignedContractTransfersOwnershipOfSubscription)
 {
-	spk::ContractProvider provider;
+	spk::ContractProvider<> provider;
 	int firstCount = 0;
 	int secondCount = 0;
 
@@ -319,7 +319,7 @@ TEST(ContractProviderTest, MoveAssignedContractTransfersOwnershipOfSubscription)
 
 TEST(ContractProviderTest, InvalidateAllContractsPreventsFurtherCalls)
 {
-	spk::ContractProvider provider;
+	spk::ContractProvider<> provider;
 	int firstCount = 0;
 	int secondCount = 0;
 	int thirdCount = 0;
@@ -357,11 +357,11 @@ TEST(ContractProviderTest, InvalidateAllContractsPreventsFurtherCalls)
 
 TEST(ContractProviderTest, CallbackCanResignItselfDuringTrigger)
 {
-	spk::ContractProvider provider;
+	spk::ContractProvider<> provider;
 	int selfCount = 0;
 	int otherCount = 0;
 
-	spk::ContractProvider::Contract selfContract;
+	spk::ContractProvider<>::Contract selfContract;
 	selfContract = provider.subscribe([&selfCount, &selfContract]()
 	{
 		++selfCount;
@@ -390,11 +390,11 @@ TEST(ContractProviderTest, CallbackCanResignItselfDuringTrigger)
 
 TEST(ContractProviderTest, CallbackCanResignAnotherContractBeforeItsTurn)
 {
-	spk::ContractProvider provider;
+	spk::ContractProvider<> provider;
 	int firstCount = 0;
 	int secondCount = 0;
 
-	spk::ContractProvider::Contract secondContract;
+	spk::ContractProvider<>::Contract secondContract;
 
 	auto firstContract = provider.subscribe([&firstCount, &secondContract]()
 	{
@@ -418,11 +418,11 @@ TEST(ContractProviderTest, CallbackCanResignAnotherContractBeforeItsTurn)
 
 TEST(ContractProviderTest, CallbackCanRelinquishAnotherContractWithoutRemovingIt)
 {
-	spk::ContractProvider provider;
+	spk::ContractProvider<> provider;
 	int firstCount = 0;
 	int secondCount = 0;
 
-	spk::ContractProvider::Contract secondContract;
+	spk::ContractProvider<>::Contract secondContract;
 
 	auto firstContract = provider.subscribe([&firstCount, &secondContract]()
 	{
@@ -452,10 +452,10 @@ TEST(ContractProviderTest, CallbackCanRelinquishAnotherContractWithoutRemovingIt
 
 TEST(ContractProviderTest, CallbackCanSubscribeNewCallbackDuringTriggerButNewOneDoesNotRunImmediately)
 {
-	spk::ContractProvider provider;
+	spk::ContractProvider<> provider;
 	std::vector<std::string> log;
 
-	spk::ContractProvider::Contract lateContract;
+	spk::ContractProvider<>::Contract lateContract;
 
 	auto first = provider.subscribe([&provider, &log, &lateContract]()
 	{
@@ -496,7 +496,7 @@ TEST(ContractProviderTest, CallbackCanSubscribeNewCallbackDuringTriggerButNewOne
 
 TEST(ContractProviderTest, ReentrantTriggerIsIgnored)
 {
-	spk::ContractProvider provider;
+	spk::ContractProvider<> provider;
 	int firstCount = 0;
 	int secondCount = 0;
 
@@ -521,7 +521,7 @@ TEST(ContractProviderTest, ReentrantTriggerIsIgnored)
 
 TEST(ContractProviderTest, CallbackCanBlockProviderTemporarilyInsideTrigger)
 {
-	spk::ContractProvider provider;
+	spk::ContractProvider<> provider;
 	int firstCount = 0;
 	int secondCount = 0;
 
@@ -546,12 +546,12 @@ TEST(ContractProviderTest, CallbackCanBlockProviderTemporarilyInsideTrigger)
 
 TEST(ContractProviderTest, CallbackCanBlockAnotherContractBeforeItsTurn)
 {
-	spk::ContractProvider provider;
+	spk::ContractProvider<> provider;
 	int firstCount = 0;
 	int secondCount = 0;
 	int thirdCount = 0;
 
-	spk::ContractProvider::Contract secondContract;
+	spk::ContractProvider<>::Contract secondContract;
 
 	auto firstContract = provider.subscribe([&firstCount, &secondContract]()
 	{
@@ -582,7 +582,7 @@ TEST(ContractProviderTest, CallbackCanBlockAnotherContractBeforeItsTurn)
 
 TEST(ContractProviderTest, PersistentlyBlockedContractRemainsSkippedAcrossTriggers)
 {
-	spk::ContractProvider provider;
+	spk::ContractProvider<> provider;
 	int blockedCount = 0;
 	int freeCount = 0;
 
@@ -615,7 +615,7 @@ TEST(ContractProviderTest, PersistentlyBlockedContractRemainsSkippedAcrossTrigge
 
 TEST(ContractProviderTest, NbContractsCountsOnlyValidContracts)
 {
-	spk::ContractProvider provider;
+	spk::ContractProvider<> provider;
 
 	auto first = provider.subscribe([]() {});
 	auto second = provider.subscribe([]() {});
@@ -639,10 +639,10 @@ TEST(ContractProviderTest, NbContractsCountsOnlyValidContracts)
 
 TEST(ContractProviderTest, EmptyCallbackObjectIsCountedButSkippedOnTrigger)
 {
-	spk::ContractProvider provider;
+	spk::ContractProvider<> provider;
 	int validCount = 0;
 
-	spk::ContractProvider::Callback emptyCallback;
+	spk::ContractProvider<>::Callback emptyCallback;
 	auto emptyContract = provider.subscribe(std::move(emptyCallback));
 	auto validContract = provider.subscribe([&validCount]()
 	{
@@ -661,7 +661,7 @@ TEST(ContractProviderTest, EmptyCallbackObjectIsCountedButSkippedOnTrigger)
 
 TEST(ContractProviderTest, ResignedEntriesAreCleanedAfterTrigger)
 {
-	spk::ContractProvider provider;
+	spk::ContractProvider<> provider;
 	int count = 0;
 
 	auto first = provider.subscribe([&count]()
@@ -698,7 +698,7 @@ TEST(ContractProviderTest, ResignedEntriesAreCleanedAfterTrigger)
 
 TEST(ContractProviderTest, InvalidateAllContractsIsSafeOnEmptyProvider)
 {
-	spk::ContractProvider provider;
+	spk::ContractProvider<> provider;
 
 	EXPECT_NO_THROW(provider.invalidateAllContracts());
 	EXPECT_EQ(provider.nbContracts(), 0u);
@@ -706,8 +706,279 @@ TEST(ContractProviderTest, InvalidateAllContractsIsSafeOnEmptyProvider)
 
 TEST(ContractProviderTest, TriggerIsSafeOnEmptyProvider)
 {
-	spk::ContractProvider provider;
+	spk::ContractProvider<> provider;
 
 	EXPECT_NO_THROW(provider.trigger());
 	EXPECT_EQ(provider.nbContracts(), 0u);
+}
+
+namespace
+{
+	class IntProvider : public spk::ContractProvider<int>
+	{
+	public:
+		void emit(int p_value)
+		{
+			trigger(p_value);
+		}
+	};
+
+	class PairProvider : public spk::ContractProvider<int, std::string>
+	{
+	public:
+		void emit(int p_firstValue, std::string p_secondValue)
+		{
+			trigger(p_firstValue, std::move(p_secondValue));
+		}
+	};
+
+	class ConstReferenceProvider : public spk::ContractProvider<const std::string&>
+	{
+	public:
+		void emit(const std::string& p_value)
+		{
+			trigger(p_value);
+		}
+	};
+
+	class MutableReferenceProvider : public spk::ContractProvider<int&>
+	{
+	public:
+		void emit(int& p_value)
+		{
+			trigger(p_value);
+		}
+	};
+
+	class MixedReferenceProvider : public spk::ContractProvider<const int&, std::string&>
+	{
+	public:
+		void emit(const int& p_firstValue, std::string& p_secondValue)
+		{
+			trigger(p_firstValue, p_secondValue);
+		}
+	};
+}
+
+TEST(ContractProviderTest, TriggerPassesSingleValueParameterToCallback)
+{
+	IntProvider provider;
+	int receivedValue = 0;
+
+	auto contract = provider.subscribe([&receivedValue](int p_value)
+	{
+		receivedValue = p_value;
+	});
+
+	ASSERT_TRUE(contract.isValid());
+
+	provider.emit(42);
+
+	EXPECT_EQ(receivedValue, 42);
+}
+
+TEST(ContractProviderTest, TriggerPassesSingleValueParameterToAllCallbacks)
+{
+	IntProvider provider;
+	int firstReceivedValue = 0;
+	int secondReceivedValue = 0;
+
+	auto first = provider.subscribe([&firstReceivedValue](int p_value)
+	{
+		firstReceivedValue = p_value;
+	});
+
+	auto second = provider.subscribe([&secondReceivedValue](int p_value)
+	{
+		secondReceivedValue = p_value;
+	});
+
+	ASSERT_TRUE(first.isValid());
+	ASSERT_TRUE(second.isValid());
+
+	provider.emit(123);
+
+	EXPECT_EQ(firstReceivedValue, 123);
+	EXPECT_EQ(secondReceivedValue, 123);
+}
+
+TEST(ContractProviderTest, TriggerPassesMultipleParametersInCorrectOrder)
+{
+	PairProvider provider;
+	int receivedFirstValue = 0;
+	std::string receivedSecondValue;
+
+	auto contract = provider.subscribe([&receivedFirstValue, &receivedSecondValue](int p_firstValue, std::string p_secondValue)
+	{
+		receivedFirstValue = p_firstValue;
+		receivedSecondValue = std::move(p_secondValue);
+	});
+
+	ASSERT_TRUE(contract.isValid());
+
+	provider.emit(7, "alpha");
+
+	EXPECT_EQ(receivedFirstValue, 7);
+	EXPECT_EQ(receivedSecondValue, "alpha");
+}
+
+TEST(ContractProviderTest, TriggerCanPassDifferentValuesAcrossMultipleCalls)
+{
+	PairProvider provider;
+	std::vector<std::string> receivedValues;
+
+	auto contract = provider.subscribe([&receivedValues](int p_firstValue, std::string p_secondValue)
+	{
+		receivedValues.push_back(std::to_string(p_firstValue) + ":" + p_secondValue);
+	});
+
+	ASSERT_TRUE(contract.isValid());
+
+	provider.emit(1, "one");
+	provider.emit(2, "two");
+	provider.emit(3, "three");
+
+	std::vector<std::string> expected = {"1:one", "2:two", "3:three"};
+	EXPECT_EQ(receivedValues, expected);
+}
+
+TEST(ContractProviderTest, TriggerPassesConstReferenceWithoutChangingReferencedObject)
+{
+	ConstReferenceProvider provider;
+	const std::string* receivedAddress = nullptr;
+	std::string receivedValue;
+
+	auto contract = provider.subscribe([&receivedAddress, &receivedValue](const std::string& p_value)
+	{
+		receivedAddress = &p_value;
+		receivedValue = p_value;
+	});
+
+	ASSERT_TRUE(contract.isValid());
+
+	std::string source = "shared-text";
+	provider.emit(source);
+
+	EXPECT_EQ(receivedValue, "shared-text");
+	EXPECT_EQ(receivedAddress, &source);
+	EXPECT_EQ(source, "shared-text");
+}
+
+TEST(ContractProviderTest, TriggerPassesMutableReferenceAllowingCallbackToModifyArgument)
+{
+	MutableReferenceProvider provider;
+
+	auto contract = provider.subscribe([](int& p_value)
+	{
+		p_value += 10;
+	});
+
+	ASSERT_TRUE(contract.isValid());
+
+	int source = 5;
+	provider.emit(source);
+
+	EXPECT_EQ(source, 15);
+}
+
+TEST(ContractProviderTest, TriggerPassesMutableReferenceThroughMultipleCallbacksSequentially)
+{
+	MutableReferenceProvider provider;
+
+	auto first = provider.subscribe([](int& p_value)
+	{
+		p_value += 2;
+	});
+
+	auto second = provider.subscribe([](int& p_value)
+	{
+		p_value *= 3;
+	});
+
+	ASSERT_TRUE(first.isValid());
+	ASSERT_TRUE(second.isValid());
+
+	int source = 4;
+	provider.emit(source);
+
+	EXPECT_EQ(source, 18);
+}
+
+TEST(ContractProviderTest, TriggerPassesMixedReferenceParametersCorrectly)
+{
+	MixedReferenceProvider provider;
+	const int* receivedFirstAddress = nullptr;
+	std::string* receivedSecondAddress = nullptr;
+
+	auto contract = provider.subscribe([&receivedFirstAddress, &receivedSecondAddress](const int& p_firstValue, std::string& p_secondValue)
+	{
+		receivedFirstAddress = &p_firstValue;
+		receivedSecondAddress = &p_secondValue;
+		p_secondValue += "_modified";
+	});
+
+	ASSERT_TRUE(contract.isValid());
+
+	int firstValue = 9;
+	std::string secondValue = "payload";
+
+	provider.emit(firstValue, secondValue);
+
+	EXPECT_EQ(receivedFirstAddress, &firstValue);
+	EXPECT_EQ(receivedSecondAddress, &secondValue);
+	EXPECT_EQ(secondValue, "payload_modified");
+}
+
+TEST(ContractProviderTest, BlockedTriggerDoesNotDeliverParameters)
+{
+	IntProvider provider;
+	int receivedValue = 0;
+
+	auto contract = provider.subscribe([&receivedValue](int p_value)
+	{
+		receivedValue = p_value;
+	});
+
+	auto blocker = provider.block();
+
+	provider.emit(999);
+
+	EXPECT_EQ(receivedValue, 0);
+
+	blocker.release();
+
+	provider.emit(111);
+
+	EXPECT_EQ(receivedValue, 111);
+}
+
+TEST(ContractProviderTest, BlockedContractDoesNotReceiveTriggeredParameters)
+{
+	IntProvider provider;
+	int blockedReceivedValue = 0;
+	int freeReceivedValue = 0;
+
+	auto blockedContract = provider.subscribe([&blockedReceivedValue](int p_value)
+	{
+		blockedReceivedValue = p_value;
+	});
+
+	auto freeContract = provider.subscribe([&freeReceivedValue](int p_value)
+	{
+		freeReceivedValue = p_value;
+	});
+
+	auto blocker = blockedContract.block();
+
+	provider.emit(50);
+
+	EXPECT_EQ(blockedReceivedValue, 0);
+	EXPECT_EQ(freeReceivedValue, 50);
+
+	blocker.release();
+
+	provider.emit(75);
+
+	EXPECT_EQ(blockedReceivedValue, 75);
+	EXPECT_EQ(freeReceivedValue, 75);
 }

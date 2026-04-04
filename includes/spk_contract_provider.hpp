@@ -9,10 +9,11 @@
 
 namespace spk
 {
+	template <typename... TArguments>
 	class ContractProvider : public BlockableTrait
 	{
 	public:
-		using Callback = std::function<void()>;
+		using Callback = std::function<void(TArguments...)>;
 		using Blocker = BlockableTrait::Blocker;
 
 	private:
@@ -155,7 +156,7 @@ namespace spk
 		ContractProvider(ContractProvider&&) noexcept = delete;
 		ContractProvider& operator=(ContractProvider&&) noexcept = delete;
 
-		Contract subscribe(Callback&& p_callback)
+		Contract subscribe(Callback p_callback)
 		{
 			std::shared_ptr<Link> newLink = std::make_shared<Link>();
 			newLink->function = std::move(p_callback);
@@ -165,7 +166,7 @@ namespace spk
 			return Contract(newLink);
 		}
 
-		void trigger()
+		void trigger(TArguments... p_arguments)
 		{
 			if (isBlocked() || _isTriggering)
 			{
@@ -188,7 +189,7 @@ namespace spk
 						continue;
 					}
 
-					element->function();
+					element->function(p_arguments...);
 				}
 			}
 
