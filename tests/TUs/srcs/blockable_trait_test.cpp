@@ -11,6 +11,30 @@ namespace
 	{
 	public:
 		using Blocker = spk::BlockableTrait::Blocker;
+		using Mode = spk::BlockableTrait::Mode;
+
+	private:
+		int _flushCount = 0;
+
+	protected:
+		void flushPending() override
+		{
+			++_flushCount;
+		}
+
+	public:
+		TestBlockable() = default;
+		~TestBlockable() = default;
+
+		void markPending()
+		{
+			setPending();
+		}
+
+		int flushCount() const
+		{
+			return _flushCount;
+		}
 	};
 }
 
@@ -21,308 +45,201 @@ TEST(BlockableTraitBlockerTest, DefaultConstructedBlockerIsInvalid)
 	EXPECT_FALSE(blocker.isValid());
 }
 
-TEST(BlockableTraitBlockerTest, ConstructingBlockerFromCounterIncrementsCounter)
+TEST(BlockableTraitTest, FreshObjectStartsFullyUnblocked)
 {
-	std::shared_ptr<size_t> counter = std::make_shared<size_t>(0);
+	TestBlockable object;
 
-	{
-		spk::BlockableTrait::Blocker blocker(counter);
-
-		ASSERT_NE(counter, nullptr);
-		EXPECT_EQ(*counter, 1u);
-		EXPECT_TRUE(blocker.isValid());
-	}
-
-	EXPECT_EQ(*counter, 0u);
+	EXPECT_FALSE(object.isBlocked());
+	EXPECT_FALSE(object.isIgnoreBlocked());
+	EXPECT_FALSE(object.isDelayBlocked());
+	EXPECT_EQ(object.flushCount(), 0);
 }
 
-TEST(BlockableTraitBlockerTest, MultipleBlockersStackOnSameCounter)
+TEST(BlockableTraitTest, DefaultBlockModeIsIgnore)
 {
-	std::shared_ptr<size_t> counter = std::make_shared<size_t>(0);
+	TestBlockable object;
 
-	{
-		spk::BlockableTrait::Blocker first(counter);
-		EXPECT_EQ(*counter, 1u);
+	auto blocker = object.block();
 
-		{
-			spk::BlockableTrait::Blocker second(counter);
-			EXPECT_EQ(*counter, 2u);
-
-			{
-				spk::BlockableTrait::Blocker third(counter);
-				EXPECT_EQ(*counter, 3u);
-			}
-
-			EXPECT_EQ(*counter, 2u);
-		}
-
-		EXPECT_EQ(*counter, 1u);
-	}
-
-	EXPECT_EQ(*counter, 0u);
+	EXPECT_TRUE(object.isBlocked());
+	EXPECT_TRUE(object.isIgnoreBlocked());
+	EXPECT_FALSE(object.isDelayBlocked());
+	EXPECT_TRUE(blocker.isValid());
 }
 
-TEST(BlockableTraitBlockerTest, ReleaseDecrementsCounterAndInvalidatesBlocker)
+TEST(BlockableTraitTest, ExplicitIgnoreBlockBlocksOnlyIgnoreState)
 {
-	std::shared_ptr<size_t> counter = std::make_shared<size_t>(0);
+	TestBlockable object;
 
-	spk::BlockableTrait::Blocker blocker(counter);
+	auto blocker = object.block(TestBlockable::Mode::Ignore);
 
-	ASSERT_TRUE(blocker.isValid());
-	ASSERT_EQ(*counter, 1u);
+	EXPECT_TRUE(object.isBlocked());
+	EXPECT_TRUE(object.isIgnoreBlocked());
+	EXPECT_FALSE(object.isDelayBlocked());
 
 	blocker.release();
 
-	EXPECT_EQ(*counter, 0u);
-	EXPECT_FALSE(blocker.isValid());
+	EXPECT_FALSE(object.isBlocked());
+	EXPECT_FALSE(object.isIgnoreBlocked());
+	EXPECT_FALSE(object.isDelayBlocked());
 }
 
-TEST(BlockableTraitBlockerTest, ReleasingTwiceIsSafeAndDoesNotUnderflowCounter)
+TEST(BlockableTraitTest, ExplicitDelayBlockBlocksOnlyDelayState)
 {
-	std::shared_ptr<size_t> counter = std::make_shared<size_t>(0);
+	TestBlockable object;
 
-	spk::BlockableTrait::Blocker blocker(counter);
+	auto blocker = object.block(TestBlockable::Mode::Delay);
 
-	ASSERT_EQ(*counter, 1u);
+	EXPECT_TRUE(object.isBlocked());
+	EXPECT_FALSE(object.isIgnoreBlocked());
+	EXPECT_TRUE(object.isDelayBlocked());
 
 	blocker.release();
-	EXPECT_EQ(*counter, 0u);
-	EXPECT_FALSE(blocker.isValid());
 
-	blocker.release();
-	EXPECT_EQ(*counter, 0u);
-	EXPECT_FALSE(blocker.isValid());
+	EXPECT_FALSE(object.isBlocked());
+	EXPECT_FALSE(object.isIgnoreBlocked());
+	EXPECT_FALSE(object.isDelayBlocked());
 }
 
-TEST(BlockableTraitBlockerTest, DestructorReleasesAutomatically)
+TEST(BlockableTraitTest, MultipleIgnoreBlocksStackCorrectly)
 {
-	std::shared_ptr<size_t> counter = std::make_shared<size_t>(0);
+	TestBlockable object;
 
-	{
-		spk::BlockableTrait::Blocker blocker(counter);
-		EXPECT_EQ(*counter, 1u);
-	}
+	auto first = object.block(TestBlockable::Mode::Ignore);
+	auto second = object.block(TestBlockable::Mode::Ignore);
+	auto third = object.block(TestBlockable::Mode::Ignore);
 
-	EXPECT_EQ(*counter, 0u);
-}
-
-TEST(BlockableTraitBlockerTest, MoveConstructionTransfersOwnership)
-{
-	std::shared_ptr<size_t> counter = std::make_shared<size_t>(0);
-
-	spk::BlockableTrait::Blocker source(counter);
-
-	ASSERT_EQ(*counter, 1u);
-	ASSERT_TRUE(source.isValid());
-
-	spk::BlockableTrait::Blocker destination(std::move(source));
-
-	EXPECT_EQ(*counter, 1u);
-	EXPECT_FALSE(source.isValid());
-	EXPECT_TRUE(destination.isValid());
-
-	destination.release();
-
-	EXPECT_EQ(*counter, 0u);
-	EXPECT_FALSE(destination.isValid());
-}
-
-TEST(BlockableTraitBlockerTest, MoveAssignmentTransfersOwnershipAndReleasesPreviousCounter)
-{
-	std::shared_ptr<size_t> firstCounter = std::make_shared<size_t>(0);
-	std::shared_ptr<size_t> secondCounter = std::make_shared<size_t>(0);
-
-	spk::BlockableTrait::Blocker first(firstCounter);
-	spk::BlockableTrait::Blocker second(secondCounter);
-
-	ASSERT_EQ(*firstCounter, 1u);
-	ASSERT_EQ(*secondCounter, 1u);
-
-	second = std::move(first);
-
-	EXPECT_EQ(*firstCounter, 1u);
-	EXPECT_EQ(*secondCounter, 0u);
-
-	EXPECT_FALSE(first.isValid());
-	EXPECT_TRUE(second.isValid());
+	EXPECT_TRUE(object.isBlocked());
+	EXPECT_TRUE(object.isIgnoreBlocked());
+	EXPECT_FALSE(object.isDelayBlocked());
 
 	second.release();
-
-	EXPECT_EQ(*firstCounter, 0u);
-	EXPECT_EQ(*secondCounter, 0u);
-}
-
-TEST(BlockableTraitBlockerTest, SelfMoveAssignmentDoesNotBreakBlocker)
-{
-	std::shared_ptr<size_t> counter = std::make_shared<size_t>(0);
-
-	spk::BlockableTrait::Blocker blocker(counter);
-
-	ASSERT_EQ(*counter, 1u);
-	ASSERT_TRUE(blocker.isValid());
-
-	blocker = std::move(blocker);
-
-	EXPECT_EQ(*counter, 1u);
-	EXPECT_TRUE(blocker.isValid());
-
-	blocker.release();
-
-	EXPECT_EQ(*counter, 0u);
-	EXPECT_FALSE(blocker.isValid());
-}
-
-TEST(BlockableTraitBlockerTest, ReleaseIsSafeWhenCounterExpired)
-{
-	spk::BlockableTrait::Blocker blocker;
-
-	{
-		std::shared_ptr<size_t> counter = std::make_shared<size_t>(0);
-		blocker = spk::BlockableTrait::Blocker(counter);
-
-		ASSERT_TRUE(blocker.isValid());
-		ASSERT_EQ(*counter, 1u);
-	}
-
-	EXPECT_FALSE(blocker.isValid());
-
-	EXPECT_NO_THROW(blocker.release());
-	EXPECT_FALSE(blocker.isValid());
-}
-
-TEST(BlockableTraitTest, FreshObjectIsNotBlocked)
-{
-	TestBlockable object;
-
-	EXPECT_FALSE(object.isBlocked());
-}
-
-TEST(BlockableTraitTest, SingleBlockBlocksObjectUntilBlockerReleased)
-{
-	TestBlockable object;
-
-	TestBlockable::Blocker blocker = object.block();
-
 	EXPECT_TRUE(object.isBlocked());
-	EXPECT_TRUE(blocker.isValid());
-
-	blocker.release();
-
-	EXPECT_FALSE(object.isBlocked());
-	EXPECT_FALSE(blocker.isValid());
-}
-
-TEST(BlockableTraitTest, BlockStateStacksWithMultipleBlockers)
-{
-	TestBlockable object;
-
-	TestBlockable::Blocker first = object.block();
-	EXPECT_TRUE(object.isBlocked());
-
-	TestBlockable::Blocker second = object.block();
-	EXPECT_TRUE(object.isBlocked());
+	EXPECT_TRUE(object.isIgnoreBlocked());
 
 	first.release();
 	EXPECT_TRUE(object.isBlocked());
-
-	second.release();
-	EXPECT_FALSE(object.isBlocked());
-}
-
-TEST(BlockableTraitTest, MoveConstructedBlockerStillBlocksOriginalObject)
-{
-	TestBlockable object;
-
-	TestBlockable::Blocker first = object.block();
-
-	ASSERT_TRUE(object.isBlocked());
-	ASSERT_TRUE(first.isValid());
-
-	TestBlockable::Blocker second(std::move(first));
-
-	EXPECT_FALSE(first.isValid());
-	EXPECT_TRUE(second.isValid());
-	EXPECT_TRUE(object.isBlocked());
-
-	second.release();
-
-	EXPECT_FALSE(object.isBlocked());
-}
-
-TEST(BlockableTraitTest, MoveAssignedBlockerStillBlocksOriginalObject)
-{
-	TestBlockable object;
-	TestBlockable otherObject;
-
-	TestBlockable::Blocker blockerOnFirst = object.block();
-	TestBlockable::Blocker blockerOnSecond = otherObject.block();
-
-	ASSERT_TRUE(object.isBlocked());
-	ASSERT_TRUE(otherObject.isBlocked());
-
-	blockerOnSecond = std::move(blockerOnFirst);
-
-	EXPECT_FALSE(blockerOnFirst.isValid());
-	EXPECT_TRUE(blockerOnSecond.isValid());
-
-	EXPECT_TRUE(object.isBlocked());
-	EXPECT_FALSE(otherObject.isBlocked());
-
-	blockerOnSecond.release();
-
-	EXPECT_FALSE(object.isBlocked());
-	EXPECT_FALSE(otherObject.isBlocked());
-}
-
-TEST(BlockableTraitTest, TemporaryBlockerOnlyBlocksForScopeDuration)
-{
-	TestBlockable object;
-
-	{
-		TestBlockable::Blocker blocker = object.block();
-		EXPECT_TRUE(object.isBlocked());
-	}
-
-	EXPECT_FALSE(object.isBlocked());
-}
-
-TEST(BlockableTraitTest, MultipleTemporaryBlockersUnblockInNaturalScopeOrder)
-{
-	TestBlockable object;
-
-	{
-		TestBlockable::Blocker first = object.block();
-		EXPECT_TRUE(object.isBlocked());
-
-		{
-			TestBlockable::Blocker second = object.block();
-			EXPECT_TRUE(object.isBlocked());
-		}
-
-		EXPECT_TRUE(object.isBlocked());
-	}
-
-	EXPECT_FALSE(object.isBlocked());
-}
-
-TEST(BlockableTraitTest, ReleasingOneOfSeveralBlockersKeepsObjectBlocked)
-{
-	TestBlockable object;
-
-	TestBlockable::Blocker first = object.block();
-	TestBlockable::Blocker second = object.block();
-	TestBlockable::Blocker third = object.block();
-
-	ASSERT_TRUE(object.isBlocked());
-
-	second.release();
-	EXPECT_TRUE(object.isBlocked());
-
-	first.release();
-	EXPECT_TRUE(object.isBlocked());
+	EXPECT_TRUE(object.isIgnoreBlocked());
 
 	third.release();
 	EXPECT_FALSE(object.isBlocked());
+	EXPECT_FALSE(object.isIgnoreBlocked());
+	EXPECT_FALSE(object.isDelayBlocked());
+}
+
+TEST(BlockableTraitTest, MultipleDelayBlocksStackCorrectly)
+{
+	TestBlockable object;
+
+	auto first = object.block(TestBlockable::Mode::Delay);
+	auto second = object.block(TestBlockable::Mode::Delay);
+	auto third = object.block(TestBlockable::Mode::Delay);
+
+	EXPECT_TRUE(object.isBlocked());
+	EXPECT_FALSE(object.isIgnoreBlocked());
+	EXPECT_TRUE(object.isDelayBlocked());
+
+	second.release();
+	EXPECT_TRUE(object.isBlocked());
+	EXPECT_TRUE(object.isDelayBlocked());
+
+	first.release();
+	EXPECT_TRUE(object.isBlocked());
+	EXPECT_TRUE(object.isDelayBlocked());
+
+	third.release();
+	EXPECT_FALSE(object.isBlocked());
+	EXPECT_FALSE(object.isIgnoreBlocked());
+	EXPECT_FALSE(object.isDelayBlocked());
+}
+
+TEST(BlockableTraitTest, MixedIgnoreAndDelayBlocksAreTrackedSeparately)
+{
+	TestBlockable object;
+
+	auto ignoreBlocker = object.block(TestBlockable::Mode::Ignore);
+	auto delayBlocker = object.block(TestBlockable::Mode::Delay);
+
+	EXPECT_TRUE(object.isBlocked());
+	EXPECT_TRUE(object.isIgnoreBlocked());
+	EXPECT_TRUE(object.isDelayBlocked());
+
+	ignoreBlocker.release();
+
+	EXPECT_TRUE(object.isBlocked());
+	EXPECT_FALSE(object.isIgnoreBlocked());
+	EXPECT_TRUE(object.isDelayBlocked());
+
+	delayBlocker.release();
+
+	EXPECT_FALSE(object.isBlocked());
+	EXPECT_FALSE(object.isIgnoreBlocked());
+	EXPECT_FALSE(object.isDelayBlocked());
+}
+
+TEST(BlockableTraitTest, MoveConstructedBlockerKeepsOriginalObjectBlocked)
+{
+	TestBlockable object;
+
+	auto source = object.block(TestBlockable::Mode::Delay);
+
+	ASSERT_TRUE(object.isBlocked());
+	ASSERT_TRUE(source.isValid());
+
+	TestBlockable::Blocker destination(std::move(source));
+
+	EXPECT_FALSE(source.isValid());
+	EXPECT_TRUE(destination.isValid());
+	EXPECT_TRUE(object.isBlocked());
+	EXPECT_TRUE(object.isDelayBlocked());
+
+	destination.release();
+
+	EXPECT_FALSE(object.isBlocked());
+	EXPECT_FALSE(object.isDelayBlocked());
+}
+
+TEST(BlockableTraitTest, MoveAssignedBlockerTransfersBlockingOwnership)
+{
+	TestBlockable firstObject;
+	TestBlockable secondObject;
+
+	auto firstBlocker = firstObject.block(TestBlockable::Mode::Delay);
+	auto secondBlocker = secondObject.block(TestBlockable::Mode::Ignore);
+
+	ASSERT_TRUE(firstObject.isBlocked());
+	ASSERT_TRUE(secondObject.isBlocked());
+
+	secondBlocker = std::move(firstBlocker);
+
+	EXPECT_FALSE(firstBlocker.isValid());
+	EXPECT_TRUE(secondBlocker.isValid());
+
+	EXPECT_TRUE(firstObject.isBlocked());
+	EXPECT_TRUE(firstObject.isDelayBlocked());
+
+	EXPECT_FALSE(secondObject.isBlocked());
+	EXPECT_FALSE(secondObject.isIgnoreBlocked());
+
+	secondBlocker.release();
+
+	EXPECT_FALSE(firstObject.isBlocked());
+	EXPECT_FALSE(secondObject.isBlocked());
+}
+
+TEST(BlockableTraitTest, TemporaryBlockerBlocksOnlyDuringItsLifetime)
+{
+	TestBlockable object;
+
+	{
+		auto blocker = object.block(TestBlockable::Mode::Ignore);
+		EXPECT_TRUE(object.isBlocked());
+		EXPECT_TRUE(object.isIgnoreBlocked());
+	}
+
+	EXPECT_FALSE(object.isBlocked());
+	EXPECT_FALSE(object.isIgnoreBlocked());
+	EXPECT_FALSE(object.isDelayBlocked());
 }
 
 TEST(BlockableTraitTest, DefaultConstructedBlockerDoesNotAffectObject)
@@ -335,6 +252,246 @@ TEST(BlockableTraitTest, DefaultConstructedBlockerDoesNotAffectObject)
 
 	blocker.release();
 
-	EXPECT_FALSE(object.isBlocked());
 	EXPECT_FALSE(blocker.isValid());
+	EXPECT_FALSE(object.isBlocked());
+	EXPECT_FALSE(object.isIgnoreBlocked());
+	EXPECT_FALSE(object.isDelayBlocked());
+}
+
+TEST(BlockableTraitTest, MarkPendingWithoutAnyBlockDoesNothing)
+{
+	TestBlockable object;
+
+	object.markPending();
+
+	EXPECT_FALSE(object.isBlocked());
+	EXPECT_EQ(object.flushCount(), 0);
+}
+
+TEST(BlockableTraitTest, MarkPendingDuringIgnoreBlockDoesNotFlushOnRelease)
+{
+	TestBlockable object;
+
+	auto blocker = object.block(TestBlockable::Mode::Ignore);
+
+	object.markPending();
+
+	EXPECT_EQ(object.flushCount(), 0);
+
+	blocker.release();
+
+	EXPECT_FALSE(object.isBlocked());
+	EXPECT_EQ(object.flushCount(), 0);
+}
+
+TEST(BlockableTraitTest, DelayBlockWithoutPendingDoesNotFlushOnRelease)
+{
+	TestBlockable object;
+
+	auto blocker = object.block(TestBlockable::Mode::Delay);
+
+	EXPECT_EQ(object.flushCount(), 0);
+
+	blocker.release();
+
+	EXPECT_FALSE(object.isBlocked());
+	EXPECT_EQ(object.flushCount(), 0);
+}
+
+TEST(BlockableTraitTest, DelayBlockFlushesPendingWhenReleased)
+{
+	TestBlockable object;
+
+	auto blocker = object.block(TestBlockable::Mode::Delay);
+
+	object.markPending();
+
+	EXPECT_EQ(object.flushCount(), 0);
+
+	blocker.release();
+
+	EXPECT_FALSE(object.isBlocked());
+	EXPECT_EQ(object.flushCount(), 1);
+}
+
+TEST(BlockableTraitTest, MultiplePendingMarksDuringSameDelayPeriodFlushOnlyOnce)
+{
+	TestBlockable object;
+
+	auto blocker = object.block(TestBlockable::Mode::Delay);
+
+	object.markPending();
+	object.markPending();
+	object.markPending();
+
+	EXPECT_EQ(object.flushCount(), 0);
+
+	blocker.release();
+
+	EXPECT_EQ(object.flushCount(), 1);
+	EXPECT_FALSE(object.isBlocked());
+}
+
+TEST(BlockableTraitTest, NestedDelayBlocksFlushOnlyWhenLastDelayBlockIsReleased)
+{
+	TestBlockable object;
+
+	auto first = object.block(TestBlockable::Mode::Delay);
+	auto second = object.block(TestBlockable::Mode::Delay);
+
+	object.markPending();
+
+	first.release();
+
+	EXPECT_TRUE(object.isBlocked());
+	EXPECT_TRUE(object.isDelayBlocked());
+	EXPECT_EQ(object.flushCount(), 0);
+
+	second.release();
+
+	EXPECT_FALSE(object.isBlocked());
+	EXPECT_EQ(object.flushCount(), 1);
+}
+
+TEST(BlockableTraitTest, MixedIgnoreAndDelayBlocksFlushOnlyAfterEverythingIsReleased)
+{
+	TestBlockable object;
+
+	auto ignoreBlocker = object.block(TestBlockable::Mode::Ignore);
+	auto delayBlocker = object.block(TestBlockable::Mode::Delay);
+
+	object.markPending();
+
+	delayBlocker.release();
+
+	EXPECT_TRUE(object.isBlocked());
+	EXPECT_TRUE(object.isIgnoreBlocked());
+	EXPECT_FALSE(object.isDelayBlocked());
+	EXPECT_EQ(object.flushCount(), 0);
+
+	ignoreBlocker.release();
+
+	EXPECT_FALSE(object.isBlocked());
+	EXPECT_EQ(object.flushCount(), 1);
+}
+
+TEST(BlockableTraitTest, PendingStateIsClearedAfterFlush)
+{
+	TestBlockable object;
+
+	{
+		auto blocker = object.block(TestBlockable::Mode::Delay);
+		object.markPending();
+	}
+
+	EXPECT_EQ(object.flushCount(), 1);
+
+	{
+		auto blocker = object.block(TestBlockable::Mode::Delay);
+	}
+
+	EXPECT_EQ(object.flushCount(), 1);
+}
+
+TEST(BlockableTraitTest, NewDelayPeriodCanFlushAgainAfterPreviousFlush)
+{
+	TestBlockable object;
+
+	{
+		auto blocker = object.block(TestBlockable::Mode::Delay);
+		object.markPending();
+	}
+
+	EXPECT_EQ(object.flushCount(), 1);
+
+	{
+		auto blocker = object.block(TestBlockable::Mode::Delay);
+		object.markPending();
+	}
+
+	EXPECT_EQ(object.flushCount(), 2);
+}
+
+TEST(BlockableTraitTest, MoveAssignedBlockerTransfersPendingDelayBlockWithoutFlushingIt)
+{
+	TestBlockable firstObject;
+	TestBlockable secondObject;
+
+	auto firstBlocker = firstObject.block(TestBlockable::Mode::Delay);
+	auto secondBlocker = secondObject.block(TestBlockable::Mode::Ignore);
+
+	firstObject.markPending();
+
+	EXPECT_EQ(firstObject.flushCount(), 0);
+	EXPECT_EQ(secondObject.flushCount(), 0);
+	
+	EXPECT_TRUE(firstObject.isBlocked());
+	EXPECT_TRUE(secondObject.isBlocked());
+
+	secondBlocker = std::move(firstBlocker);
+
+	EXPECT_EQ(firstObject.flushCount(), 0);
+	EXPECT_EQ(secondObject.flushCount(), 0);
+
+	EXPECT_TRUE(firstObject.isBlocked());
+	EXPECT_FALSE(secondObject.isBlocked());
+
+	secondBlocker.release();
+
+	EXPECT_FALSE(firstObject.isBlocked());
+	EXPECT_EQ(firstObject.flushCount(), 1);
+}
+
+TEST(BlockableTraitTest, ReleasingInvalidBlockerIsSafe)
+{
+	TestBlockable::Blocker blocker;
+
+	EXPECT_NO_THROW(blocker.release());
+	EXPECT_FALSE(blocker.isValid());
+}
+
+TEST(BlockableTraitTest, ReleasingBlockerAfterOwnerDestructionIsSafe)
+{
+	TestBlockable::Blocker blocker;
+
+	{
+		auto object = std::make_unique<TestBlockable>();
+		blocker = object->block(TestBlockable::Mode::Delay);
+		object->markPending();
+
+		ASSERT_TRUE(blocker.isValid());
+		ASSERT_TRUE(object->isBlocked());
+	}
+
+	EXPECT_FALSE(blocker.isValid());
+	EXPECT_NO_THROW(blocker.release());
+	EXPECT_FALSE(blocker.isValid());
+}
+
+TEST(BlockableTraitTest, DelayAndIgnoreFlagsReturnToFalseAfterAllBlocksReleased)
+{
+	TestBlockable object;
+
+	auto ignoreBlocker = object.block(TestBlockable::Mode::Ignore);
+	auto delayBlockerA = object.block(TestBlockable::Mode::Delay);
+	auto delayBlockerB = object.block(TestBlockable::Mode::Delay);
+
+	ASSERT_TRUE(object.isBlocked());
+	ASSERT_TRUE(object.isIgnoreBlocked());
+	ASSERT_TRUE(object.isDelayBlocked());
+
+	delayBlockerA.release();
+	EXPECT_TRUE(object.isBlocked());
+	EXPECT_TRUE(object.isIgnoreBlocked());
+	EXPECT_TRUE(object.isDelayBlocked());
+
+	ignoreBlocker.release();
+	EXPECT_TRUE(object.isBlocked());
+	EXPECT_FALSE(object.isIgnoreBlocked());
+	EXPECT_TRUE(object.isDelayBlocked());
+
+	delayBlockerB.release();
+	EXPECT_FALSE(object.isBlocked());
+	EXPECT_FALSE(object.isIgnoreBlocked());
+	EXPECT_FALSE(object.isDelayBlocked());
 }

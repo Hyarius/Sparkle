@@ -3,6 +3,9 @@
 #include <algorithm>
 #include <functional>
 #include <memory>
+#include <optional>
+#include <tuple>
+#include <utility>
 #include <vector>
 
 #include "spk_blockable_trait.hpp"
@@ -17,9 +20,17 @@ namespace spk
 		using Blocker = BlockableTrait::Blocker;
 
 	private:
+		using StoredArguments = std::tuple<std::decay_t<TArguments>...>;
+
+	private:
 		struct Link : public BlockableTrait
 		{
 			Callback function = nullptr;
+
+		protected:
+			void flushPending() override
+			{
+			}
 		};
 
 		class TriggerGuard
@@ -91,7 +102,7 @@ namespace spk
 					_link = std::move(p_other._link);
 				}
 
-				return (*this);
+				return *this;
 			}
 
 			void resign()
@@ -113,20 +124,21 @@ namespace spk
 				return (_link != nullptr && _link->function != nullptr);
 			}
 
-			Blocker block()
+			Blocker block(Mode p_mode = Mode::Ignore)
 			{
 				if (_link == nullptr)
 				{
 					return Blocker();
 				}
 
-				return _link->block();
+				return _link->block(p_mode);
 			}
 		};
 
 	private:
 		std::vector<std::shared_ptr<Link>> _links;
 		bool _isTriggering = false;
+		std::optional<StoredArguments> _lastTriggerArguments;
 
 		void cleanup()
 		{
@@ -144,6 +156,25 @@ namespace spk
 						return (p_link == nullptr || p_link->function == nullptr);
 					}),
 				_links.end());
+		}
+
+	protected:
+		void flushPending() override
+		{
+			if (_lastTriggerArguments.has_value() == false)
+			{
+				return;
+			}
+
+			StoredArguments arguments = std::move(*_lastTriggerArguments);
+			_lastTriggerArguments.reset();
+
+			std::apply(
+				[this](auto&&... p_arguments)
+				{
+					trigger(p_arguments...);
+				},
+				arguments);
 		}
 
 	public:
@@ -168,7 +199,14 @@ namespace spk
 
 		void trigger(TArguments... p_arguments)
 		{
-			if (isBlocked() || _isTriggering)
+			if (isBlocked())
+			{
+				_lastTriggerArguments.emplace(p_arguments...);
+				setPending();
+				return;
+			}
+
+			if (_isTriggering)
 			{
 				return;
 			}
