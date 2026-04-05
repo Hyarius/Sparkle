@@ -2,9 +2,9 @@
 
 #include <concepts>
 #include <functional>
-#include <mutex>
 #include <optional>
 #include <stdexcept>
+#include <type_traits>
 #include <utility>
 
 namespace spk
@@ -23,9 +23,8 @@ namespace spk
 		Destructor _destructor = nullptr;
 
 		mutable std::optional<TType> _data;
-		mutable std::mutex _mutex;
 
-		void _destroyDataLocked() const
+		void _destroyData() const
 		{
 			if (_data.has_value() == false)
 			{
@@ -40,7 +39,7 @@ namespace spk
 			_data.reset();
 		}
 
-		void _generateDataLocked() const
+		void _generateData() const
 		{
 			if (_data.has_value() == true)
 			{
@@ -77,15 +76,13 @@ namespace spk
 
 		TType& get()
 		{
-			std::scoped_lock lock(_mutex);
-			_generateDataLocked();
+			_generateData();
 			return _data.value();
 		}
 
 		const TType& get() const
 		{
-			std::scoped_lock lock(_mutex);
-			_generateDataLocked();
+			_generateData();
 			return _data.value();
 		}
 
@@ -111,36 +108,30 @@ namespace spk
 
 		void release() const
 		{
-			std::scoped_lock lock(_mutex);
-			_destroyDataLocked();
+			_destroyData();
 		}
 
 		void configure(Generator p_generator, Destructor p_destructor = nullptr)
 		{
-			std::scoped_lock lock(_mutex);
-			_destroyDataLocked();
+			_destroyData();
 			_generator = std::move(p_generator);
 			_destructor = std::move(p_destructor);
 		}
 
 		void set(const TType& p_value)
 		{
-			std::scoped_lock lock(_mutex);
-			_destroyDataLocked();
+			_destroyData();
 			_data = p_value;
 		}
 
 		void set(TType&& p_value)
 		{
-			std::scoped_lock lock(_mutex);
-			_destroyDataLocked();
+			_destroyData();
 			_data = std::move(p_value);
 		}
 
 		std::optional<TType> take()
 		{
-			std::scoped_lock lock(_mutex);
-
 			if (_data.has_value() == false)
 			{
 				return std::nullopt;
@@ -153,29 +144,25 @@ namespace spk
 
 		bool isCached() const
 		{
-			std::scoped_lock lock(_mutex);
 			return _data.has_value();
 		}
 
 		TType& refresh()
 		{
-			std::scoped_lock lock(_mutex);
-			_destroyDataLocked();
-			_generateDataLocked();
+			_destroyData();
+			_generateData();
 			return _data.value();
 		}
 
 		const TType& refresh() const
 		{
-			std::scoped_lock lock(_mutex);
-			_destroyDataLocked();
-			_generateDataLocked();
+			_destroyData();
+			_generateData();
 			return _data.value();
 		}
 
 		bool hasGenerator() const
 		{
-			std::scoped_lock lock(_mutex);
 			return (_generator != nullptr);
 		}
 	};
