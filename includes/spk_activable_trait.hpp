@@ -27,25 +27,7 @@ namespace spk
 		ActivableTrait() = default;
 		~ActivableTrait() = default;
 
-		void flushPending() override
-		{
-			if (_pendingActivationState.has_value() == false)
-			{
-				return;
-			}
-
-			const bool shouldActivate = *_pendingActivationState;
-			_pendingActivationState.reset();
-
-			if (shouldActivate == true)
-			{
-				activate();
-			}
-			else
-			{
-				deactivate();
-			}
-		}
+		void flushPending() override;
 
 	public:
 		ActivableTrait(const ActivableTrait&) = delete;
@@ -54,63 +36,12 @@ namespace spk
 		ActivableTrait(ActivableTrait&&) noexcept = delete;
 		ActivableTrait& operator=(ActivableTrait&&) noexcept = delete;
 
-		bool isActivated() const
-		{
-			return _isActivated;
-		}
+		bool isActivated() const;
+		void activate();
 
-		void activate()
-		{
-			if (_isActivated == true)
-			{
-				return;
-			}
+		void deactivate();
 
-			if (isBlocked() == true)
-			{
-				if (isDelayBlocked() == true)
-				{
-					_pendingActivationState = true;
-					setPending();
-				}
-
-				return;
-			}
-
-			_isActivated = true;
-			_activationProvider.trigger();
-		}
-
-		void deactivate()
-		{
-			if (_isActivated == false)
-			{
-				return;
-			}
-
-			if (isBlocked() == true)
-			{
-				if (isDelayBlocked() == true)
-				{
-					_pendingActivationState = false;
-					setPending();
-				}
-
-				return;
-			}
-
-			_isActivated = false;
-			_deactivationProvider.trigger();
-		}
-
-		Contract subscribeToActivation(Callback p_callback)
-		{
-			return _activationProvider.subscribe(std::move(p_callback));
-		}
-
-		Contract subscribeToDeactivation(Callback p_callback)
-		{
-			return _deactivationProvider.subscribe(std::move(p_callback));
-		}
+		Contract subscribeToActivation(Callback p_callback);
+		Contract subscribeToDeactivation(Callback p_callback);
 	};
 }

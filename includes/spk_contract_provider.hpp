@@ -179,7 +179,7 @@ namespace spk
 
 	public:
 		ContractProvider() = default;
-		~ContractProvider() = default;
+		~ContractProvider() override = default;
 
 		ContractProvider(const ContractProvider&) = delete;
 		ContractProvider& operator=(const ContractProvider&) = delete;

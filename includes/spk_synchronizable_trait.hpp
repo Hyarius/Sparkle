@@ -20,31 +20,9 @@ namespace spk
 		SynchronizableTrait(SynchronizableTrait&&) noexcept = delete;
 		SynchronizableTrait& operator=(SynchronizableTrait&&) noexcept = delete;
 
-		void requestSynchronization() noexcept
-		{
-			_needsSynchronization = true;
-		}
-
-		bool needsSynchronization() const noexcept
-		{
-			return _needsSynchronization;
-		}
-
-		void synchronize()
-		{
-			if (_needsSynchronization == false)
-			{
-				return;
-			}
-
-			_synchronize();
-			_needsSynchronization = false;
-		}
-
-		void forceSynchronization()
-		{
-			_synchronize();
-			_needsSynchronization = false;
-		}
+		void requestSynchronization() noexcept;
+		bool needsSynchronization() const noexcept;
+		void synchronize();
+		void forceSynchronization();
 	};
 }
