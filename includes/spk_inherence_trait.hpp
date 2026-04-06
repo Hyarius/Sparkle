@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <cstddef>
 #include <type_traits>
 #include <vector>
 
@@ -29,6 +30,10 @@ namespace spk
 			clearChildren();
 		}
 
+		virtual void onChildAdded(TType* p_child) {}
+		virtual void onChildRemoved(TType* p_child) {}
+		virtual void onParentChanged(TType* p_oldParent, TType* p_newParent) {}
+
 	public:
 		InherenceTrait(const InherenceTrait&) = delete;
 		InherenceTrait& operator=(const InherenceTrait&) = delete;
@@ -36,55 +41,123 @@ namespace spk
 		InherenceTrait(InherenceTrait&&) noexcept = delete;
 		InherenceTrait& operator=(InherenceTrait&&) noexcept = delete;
 
-		virtual void addChild(TType* p_child)
+		bool isRoot() const
 		{
-			if (p_child == nullptr || p_child == static_cast<TType*>(this))
-			{
-				return;
-			}
-
-			if (hasChild(p_child) == true)
-			{
-				return;
-			}
-
-			if (p_child->_parent != nullptr)
-			{
-				p_child->_parent->removeChild(p_child);
-			}
-
-			p_child->_parent = static_cast<TType*>(this);
-			_children.emplace_back(p_child);
+			return (_parent == nullptr);
 		}
 
-		virtual void removeChild(TType* p_child)
+		bool isLeaf() const
+		{
+			return (_children.empty() == true);
+		}
+
+		bool isAncestorOf(const TType* p_node) const
+		{
+			const TType* current = p_node;
+			while (current != nullptr)
+			{
+				if (current == static_cast<const TType*>(this))
+				{
+					return true;
+				}
+
+				current = current->parent();
+			}
+
+			return false;
+		}
+
+		bool isDescendantOf(const TType* p_node) const
+		{
+			if (p_node == nullptr)
+			{
+				return false;
+			}
+
+			return p_node->isAncestorOf(static_cast<const TType*>(this));
+		}
+
+		void setParent(TType* p_parent)
+		{
+			TType* self = static_cast<TType*>(this);
+
+			if (p_parent == self)
+			{
+				return;
+			}
+
+			if (_parent == p_parent)
+			{
+				return;
+			}
+
+			if (p_parent != nullptr && self->isAncestorOf(p_parent) == true)
+			{
+				return;
+			}
+
+			TType* oldParent = _parent;
+
+			if (_parent != nullptr)
+			{
+				auto oldIterator = std::find(_parent->_children.begin(), _parent->_children.end(), self);
+				if (oldIterator != _parent->_children.end())
+				{
+					_parent->_children.erase(oldIterator);
+					static_cast<InherenceTrait<TType>*>(_parent)->onChildRemoved(self);
+				}
+			}
+
+			_parent = nullptr;
+
+			if (p_parent != nullptr)
+			{
+				p_parent->_children.emplace_back(self);
+				_parent = p_parent;
+				static_cast<InherenceTrait<TType>*>(p_parent)->onChildAdded(self);
+			}
+
+			onParentChanged(oldParent, _parent);
+		}
+
+		void addChild(TType* p_child)
 		{
 			if (p_child == nullptr)
 			{
 				return;
 			}
 
-			auto iterator = std::find(_children.begin(), _children.end(), p_child);
-			if (iterator == _children.end())
+			p_child->setParent(static_cast<TType*>(this));
+		}
+
+		void removeChild(TType* p_child)
+		{
+			if (p_child == nullptr)
 			{
 				return;
 			}
 
-			_children.erase(iterator);
-			p_child->_parent = nullptr;
+			if (p_child->_parent != static_cast<TType*>(this))
+			{
+				return;
+			}
+
+			p_child->setParent(nullptr);
 		}
 
 		void clearChildren()
 		{
-			for (TType* child : _children)
+			while (_children.empty() == false)
 			{
-				if (child != nullptr)
+				TType* child = _children.back();
+				if (child == nullptr)
 				{
-					child->_parent = nullptr;
+					_children.pop_back();
+					continue;
 				}
-			}
 
-			_children.clear();
+				child->setParent(nullptr);
+			}
 		}
 
 		TType* parent() const
@@ -102,17 +175,12 @@ namespace spk
 			return (std::find(_children.begin(), _children.end(), p_child) != _children.end());
 		}
 
-		size_t nbChildren() const
+		std::size_t nbChildren() const
 		{
 			return _children.size();
 		}
 
-		virtual std::vector<TType*>& children()
-		{
-			return _children;
-		}
-
-		virtual const std::vector<TType*>& children() const
+		const std::vector<TType*>& children() const
 		{
 			return _children;
 		}
