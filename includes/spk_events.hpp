@@ -46,6 +46,9 @@ namespace spk
 	struct UpdatePayload
 	{
 		spk::Duration deltaTime;
+
+		spk::Mouse* mouse;
+		spk::Keyboard* keyboard;
 	};
 
 	struct MouseEnteredPayload

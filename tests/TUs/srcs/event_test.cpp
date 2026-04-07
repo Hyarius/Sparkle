@@ -210,6 +210,21 @@ TEST(Event_UpdatePayloadTest, UpdatePayloadStoresDeltaTime)
 	EXPECT_EQ(payload->deltaTime.nanoseconds(), 16000000LL);
 }
 
+TEST(Event_UpdatePayloadTest, UpdatePayloadStoresDevices)
+{
+	spk::Mouse mouse;
+	spk::Keyboard keyboard;
+
+	spk::Event event(spk::UpdatePayload{
+		.mouse = &mouse, .keyboard = &keyboard});
+
+	const spk::UpdatePayload *payload = event.getIf<spk::UpdatePayload>();
+	ASSERT_NE(payload, nullptr);
+
+	EXPECT_EQ(payload->mouse, &mouse);
+	EXPECT_EQ(payload->keyboard, &keyboard);
+}
+
 TEST(Event_MousePayloadTest, MouseEnteredPayloadStoresPosition)
 {
 	spk::Event event(spk::MouseEnteredPayload{
