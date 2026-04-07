@@ -82,6 +82,39 @@ TEST(Event_ConstructionTest, MetadataAndPayloadConstructorStoresBoth)
 	EXPECT_EQ(payload->glyph, U'K');
 }
 
+TEST(Event_ConstructionTest, CopyConstructionPreservesMetadataAndPayload)
+{
+	spk::Event source(
+		spk::EventMetadata(spk::Timestamp(321.0L, spk::TimeUnit::Millisecond)),
+		spk::MouseButtonPressedPayload{
+			.button = spk::Mouse::Middle});
+	source.metadata.isConsumed = true;
+
+	spk::Event copy(source);
+
+	EXPECT_TRUE(copy.metadata.isConsumed);
+	EXPECT_EQ(copy.metadata.timestamp, source.metadata.timestamp);
+	ASSERT_NE(copy.getIf<spk::MouseButtonPressedPayload>(), nullptr);
+	EXPECT_EQ(copy.getIf<spk::MouseButtonPressedPayload>()->button, spk::Mouse::Middle);
+}
+
+TEST(Event_ConstructionTest, MoveAssignmentTransfersMetadataAndPayload)
+{
+	spk::Event source(
+		spk::Timestamp(111.0L, spk::TimeUnit::Millisecond),
+		spk::KeyReleasedPayload{
+			.key = spk::Keyboard::Escape});
+	source.metadata.isConsumed = true;
+
+	spk::Event destination(spk::WindowHiddenPayload{});
+	destination = std::move(source);
+
+	EXPECT_TRUE(destination.metadata.isConsumed);
+	EXPECT_EQ(destination.metadata.timestamp, spk::Timestamp(111.0L, spk::TimeUnit::Millisecond));
+	ASSERT_NE(destination.getIf<spk::KeyReleasedPayload>(), nullptr);
+	EXPECT_EQ(destination.getIf<spk::KeyReleasedPayload>()->key, spk::Keyboard::Escape);
+}
+
 TEST(Event_HoldsTest, HoldsReturnsFalseForWrongPayloadType)
 {
 	spk::Event event(spk::WindowShownPayload{});
@@ -151,13 +184,6 @@ TEST(Event_TypeAliasTest, WindowResizedEventAliasMatchesExpectedViewType)
 				  spk::Event::View<spk::WindowResizedPayload>>);
 }
 
-TEST(Event_TypeAliasTest, UpdateEventAliasMatchesExpectedViewType)
-{
-	static_assert(std::is_same_v<
-				  spk::UpdateEvent,
-				  spk::Event::View<spk::UpdatePayload>>);
-}
-
 TEST(Event_TypeAliasTest, MouseMovedEventAliasMatchesExpectedDeviceViewType)
 {
 	static_assert(std::is_same_v<
@@ -196,33 +222,6 @@ TEST(Event_WindowPayloadTest, WindowResizedPayloadStoresRect)
 	EXPECT_EQ(payload->rect.anchor.y, 20);
 	EXPECT_EQ(payload->rect.size.x, 300u);
 	EXPECT_EQ(payload->rect.size.y, 400u);
-}
-
-TEST(Event_UpdatePayloadTest, UpdatePayloadStoresDeltaTime)
-{
-	spk::Event event(spk::UpdatePayload{
-		.deltaTime = spk::Duration(16.0L, spk::TimeUnit::Millisecond)});
-
-	const spk::UpdatePayload *payload = event.getIf<spk::UpdatePayload>();
-	ASSERT_NE(payload, nullptr);
-
-	EXPECT_EQ(payload->deltaTime.milliseconds(), 16LL);
-	EXPECT_EQ(payload->deltaTime.nanoseconds(), 16000000LL);
-}
-
-TEST(Event_UpdatePayloadTest, UpdatePayloadStoresDevices)
-{
-	spk::Mouse mouse;
-	spk::Keyboard keyboard;
-
-	spk::Event event(spk::UpdatePayload{
-		.mouse = &mouse, .keyboard = &keyboard});
-
-	const spk::UpdatePayload *payload = event.getIf<spk::UpdatePayload>();
-	ASSERT_NE(payload, nullptr);
-
-	EXPECT_EQ(payload->mouse, &mouse);
-	EXPECT_EQ(payload->keyboard, &keyboard);
 }
 
 TEST(Event_MousePayloadTest, MouseEnteredPayloadStoresPosition)

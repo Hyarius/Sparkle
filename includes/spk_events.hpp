@@ -43,14 +43,6 @@ namespace spk
 	{
 	};
 
-	struct UpdatePayload
-	{
-		spk::Duration deltaTime;
-
-		spk::Mouse* mouse;
-		spk::Keyboard* keyboard;
-	};
-
 	struct MouseEnteredPayload
 	{
 		spk::Vector2Int position;
@@ -111,7 +103,6 @@ namespace spk
 		WindowFocusLostPayload,
 		WindowShownPayload,
 		WindowHiddenPayload,
-		UpdatePayload,
 		MouseEnteredPayload,
 		MouseLeftPayload,
 		MouseMovedPayload,
@@ -238,8 +229,6 @@ namespace spk
 	using WindowFocusLostEvent = spk::Event::View<WindowFocusLostPayload>;
 	using WindowShownEvent = spk::Event::View<WindowShownPayload>;
 	using WindowHiddenEvent = spk::Event::View<WindowHiddenPayload>;
-
-	using UpdateEvent = spk::Event::View<UpdatePayload>;
 
 	using MouseEnteredEvent = spk::Event::DeviceView<MouseEnteredPayload, spk::Mouse>;
 	using MouseLeftEvent = spk::Event::DeviceView<MouseLeftPayload, spk::Mouse>;

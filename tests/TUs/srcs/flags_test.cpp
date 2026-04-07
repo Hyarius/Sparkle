@@ -44,7 +44,7 @@ namespace
 	};
 }
 
-TEST(spk_flags, defaultConstructor_ShouldBeEmpty)
+TEST(Flags, defaultConstructor_ShouldBeEmpty)
 {
 	spk::Flags<TestFlag32> flags;
 
@@ -54,7 +54,7 @@ TEST(spk_flags, defaultConstructor_ShouldBeEmpty)
 	EXPECT_EQ(flags.raw(), 0u);
 }
 
-TEST(spk_flags, enumConstructor_ShouldInitializeWithFlagMask)
+TEST(Flags, enumConstructor_ShouldInitializeWithFlagMask)
 {
 	spk::Flags<TestFlag32> flags(TestFlag32::B);
 
@@ -64,7 +64,7 @@ TEST(spk_flags, enumConstructor_ShouldInitializeWithFlagMask)
 	EXPECT_EQ(flags.raw(), static_cast<std::uint32_t>(TestFlag32::B));
 }
 
-TEST(spk_flags, rawConstructor_ShouldInitializeWithRawMask)
+TEST(Flags, rawConstructor_ShouldInitializeWithRawMask)
 {
 	spk::Flags<TestFlag32> flags(0b1011u);
 
@@ -75,7 +75,7 @@ TEST(spk_flags, rawConstructor_ShouldInitializeWithRawMask)
 	EXPECT_TRUE(flags.has(TestFlag32::D));
 }
 
-TEST(spk_flags, initializerListConstructor_ShouldCombineAllValues)
+TEST(Flags, initializerListConstructor_ShouldCombineAllValues)
 {
 	spk::Flags<TestFlag32> flags({TestFlag32::A, TestFlag32::C, TestFlag32::D});
 
@@ -86,7 +86,7 @@ TEST(spk_flags, initializerListConstructor_ShouldCombineAllValues)
 	EXPECT_TRUE(flags.has(TestFlag32::D));
 }
 
-TEST(spk_flags, clear_ShouldRemoveAllFlags)
+TEST(Flags, clear_ShouldRemoveAllFlags)
 {
 	spk::Flags<TestFlag32> flags({TestFlag32::A, TestFlag32::B, TestFlag32::C});
 
@@ -96,7 +96,7 @@ TEST(spk_flags, clear_ShouldRemoveAllFlags)
 	EXPECT_EQ(flags.raw(), 0u);
 }
 
-TEST(spk_flags, setEnum_ShouldAddFlag)
+TEST(Flags, setEnum_ShouldAddFlag)
 {
 	spk::Flags<TestFlag32> flags;
 
@@ -106,7 +106,7 @@ TEST(spk_flags, setEnum_ShouldAddFlag)
 	EXPECT_EQ(flags.raw(), static_cast<std::uint32_t>(TestFlag32::C));
 }
 
-TEST(spk_flags, setFlags_ShouldAddAllBitsFromOtherFlags)
+TEST(Flags, setFlags_ShouldAddAllBitsFromOtherFlags)
 {
 	spk::Flags<TestFlag32> flags(TestFlag32::A);
 	spk::Flags<TestFlag32> other({TestFlag32::B, TestFlag32::D});
@@ -119,7 +119,7 @@ TEST(spk_flags, setFlags_ShouldAddAllBitsFromOtherFlags)
 	EXPECT_TRUE(flags.has(TestFlag32::D));
 }
 
-TEST(spk_flags, unsetEnum_ShouldRemoveFlag)
+TEST(Flags, unsetEnum_ShouldRemoveFlag)
 {
 	spk::Flags<TestFlag32> flags({TestFlag32::A, TestFlag32::B, TestFlag32::C});
 
@@ -130,7 +130,7 @@ TEST(spk_flags, unsetEnum_ShouldRemoveFlag)
 	EXPECT_TRUE(flags.has(TestFlag32::C));
 }
 
-TEST(spk_flags, unsetFlags_ShouldRemoveAllBitsFromOtherFlags)
+TEST(Flags, unsetFlags_ShouldRemoveAllBitsFromOtherFlags)
 {
 	spk::Flags<TestFlag32> flags({TestFlag32::A, TestFlag32::B, TestFlag32::C, TestFlag32::D});
 	spk::Flags<TestFlag32> other({TestFlag32::B, TestFlag32::D});
@@ -143,7 +143,7 @@ TEST(spk_flags, unsetFlags_ShouldRemoveAllBitsFromOtherFlags)
 	EXPECT_FALSE(flags.has(TestFlag32::D));
 }
 
-TEST(spk_flags, resetEnum_ShouldBehaveLikeUnset)
+TEST(Flags, resetEnum_ShouldBehaveLikeUnset)
 {
 	spk::Flags<TestFlag32> flags({TestFlag32::A, TestFlag32::C});
 
@@ -153,7 +153,7 @@ TEST(spk_flags, resetEnum_ShouldBehaveLikeUnset)
 	EXPECT_TRUE(flags.has(TestFlag32::C));
 }
 
-TEST(spk_flags, resetFlags_ShouldBehaveLikeUnset)
+TEST(Flags, resetFlags_ShouldBehaveLikeUnset)
 {
 	spk::Flags<TestFlag32> flags({TestFlag32::A, TestFlag32::B, TestFlag32::D});
 	spk::Flags<TestFlag32> other({TestFlag32::A, TestFlag32::D});
@@ -165,7 +165,7 @@ TEST(spk_flags, resetFlags_ShouldBehaveLikeUnset)
 	EXPECT_FALSE(flags.has(TestFlag32::D));
 }
 
-TEST(spk_flags, toggleEnum_ShouldFlipPresenceOfFlag)
+TEST(Flags, toggleEnum_ShouldFlipPresenceOfFlag)
 {
 	spk::Flags<TestFlag32> flags({TestFlag32::A, TestFlag32::C});
 
@@ -177,7 +177,7 @@ TEST(spk_flags, toggleEnum_ShouldFlipPresenceOfFlag)
 	EXPECT_TRUE(flags.has(TestFlag32::C));
 }
 
-TEST(spk_flags, toggleFlags_ShouldFlipAllBitsFromOtherFlags)
+TEST(Flags, toggleFlags_ShouldFlipAllBitsFromOtherFlags)
 {
 	spk::Flags<TestFlag32> flags({TestFlag32::A, TestFlag32::B});
 	spk::Flags<TestFlag32> other({TestFlag32::B, TestFlag32::C});
@@ -189,7 +189,7 @@ TEST(spk_flags, toggleFlags_ShouldFlipAllBitsFromOtherFlags)
 	EXPECT_TRUE(flags.has(TestFlag32::C));
 }
 
-TEST(spk_flags, hasEnum_ShouldRequireAllBitsOfGivenMask)
+TEST(Flags, hasEnum_ShouldRequireAllBitsOfGivenMask)
 {
 	spk::Flags<TestFlag8> flags({TestFlag8::A, TestFlag8::B, TestFlag8::D});
 
@@ -199,7 +199,7 @@ TEST(spk_flags, hasEnum_ShouldRequireAllBitsOfGivenMask)
 	EXPECT_FALSE(flags.has(TestFlag8::C));
 }
 
-TEST(spk_flags, hasFlags_ShouldRequireAllBitsOfOtherFlags)
+TEST(Flags, hasFlags_ShouldRequireAllBitsOfOtherFlags)
 {
 	spk::Flags<TestFlag32> flags({TestFlag32::A, TestFlag32::B, TestFlag32::D});
 
@@ -207,7 +207,7 @@ TEST(spk_flags, hasFlags_ShouldRequireAllBitsOfOtherFlags)
 	EXPECT_FALSE(flags.has(spk::Flags<TestFlag32>({TestFlag32::A, TestFlag32::C})));
 }
 
-TEST(spk_flags, testAnyEnum_ShouldReturnTrueWhenAtLeastOneBitMatches)
+TEST(Flags, testAnyEnum_ShouldReturnTrueWhenAtLeastOneBitMatches)
 {
 	spk::Flags<TestFlag8> flags({TestFlag8::A, TestFlag8::D});
 
@@ -217,7 +217,7 @@ TEST(spk_flags, testAnyEnum_ShouldReturnTrueWhenAtLeastOneBitMatches)
 	EXPECT_FALSE(flags.testAny(TestFlag8::C));
 }
 
-TEST(spk_flags, testAnyFlags_ShouldReturnTrueWhenAtLeastOneBitMatches)
+TEST(Flags, testAnyFlags_ShouldReturnTrueWhenAtLeastOneBitMatches)
 {
 	spk::Flags<TestFlag32> flags({TestFlag32::A, TestFlag32::D});
 
@@ -226,7 +226,7 @@ TEST(spk_flags, testAnyFlags_ShouldReturnTrueWhenAtLeastOneBitMatches)
 	EXPECT_FALSE(flags.testAny(spk::Flags<TestFlag32>({TestFlag32::B, TestFlag32::C})));
 }
 
-TEST(spk_flags, boolOperator_ShouldReflectAnyState)
+TEST(Flags, boolOperator_ShouldReflectAnyState)
 {
 	spk::Flags<TestFlag32> emptyFlags;
 	spk::Flags<TestFlag32> filledFlags(TestFlag32::C);
@@ -235,7 +235,7 @@ TEST(spk_flags, boolOperator_ShouldReflectAnyState)
 	EXPECT_TRUE(static_cast<bool>(filledFlags));
 }
 
-TEST(spk_flags, orEqualsEnum_ShouldAddSingleFlag)
+TEST(Flags, orEqualsEnum_ShouldAddSingleFlag)
 {
 	spk::Flags<TestFlag32> flags(TestFlag32::A);
 
@@ -245,7 +245,7 @@ TEST(spk_flags, orEqualsEnum_ShouldAddSingleFlag)
 	EXPECT_TRUE(flags.has(TestFlag32::C));
 }
 
-TEST(spk_flags, andEqualsEnum_ShouldKeepOnlyBitsFromGivenMask)
+TEST(Flags, andEqualsEnum_ShouldKeepOnlyBitsFromGivenMask)
 {
 	spk::Flags<TestFlag8> flags({TestFlag8::A, TestFlag8::B, TestFlag8::D});
 
@@ -257,7 +257,7 @@ TEST(spk_flags, andEqualsEnum_ShouldKeepOnlyBitsFromGivenMask)
 	EXPECT_EQ(flags.raw(), static_cast<std::uint8_t>(TestFlag8::AB));
 }
 
-TEST(spk_flags, xorEqualsEnum_ShouldToggleSingleFlag)
+TEST(Flags, xorEqualsEnum_ShouldToggleSingleFlag)
 {
 	spk::Flags<TestFlag32> flags({TestFlag32::A, TestFlag32::B});
 
@@ -267,7 +267,7 @@ TEST(spk_flags, xorEqualsEnum_ShouldToggleSingleFlag)
 	EXPECT_FALSE(flags.has(TestFlag32::B));
 }
 
-TEST(spk_flags, orEqualsFlags_ShouldCombineMasks)
+TEST(Flags, orEqualsFlags_ShouldCombineMasks)
 {
 	spk::Flags<TestFlag32> left(TestFlag32::A);
 	spk::Flags<TestFlag32> right({TestFlag32::B, TestFlag32::D});
@@ -279,7 +279,7 @@ TEST(spk_flags, orEqualsFlags_ShouldCombineMasks)
 	EXPECT_TRUE(left.has(TestFlag32::D));
 }
 
-TEST(spk_flags, andEqualsFlags_ShouldKeepIntersection)
+TEST(Flags, andEqualsFlags_ShouldKeepIntersection)
 {
 	spk::Flags<TestFlag32> left({TestFlag32::A, TestFlag32::B, TestFlag32::D});
 	spk::Flags<TestFlag32> right({TestFlag32::B, TestFlag32::C, TestFlag32::D});
@@ -292,7 +292,7 @@ TEST(spk_flags, andEqualsFlags_ShouldKeepIntersection)
 	EXPECT_TRUE(left.has(TestFlag32::D));
 }
 
-TEST(spk_flags, xorEqualsFlags_ShouldToggleBitsFromOtherMask)
+TEST(Flags, xorEqualsFlags_ShouldToggleBitsFromOtherMask)
 {
 	spk::Flags<TestFlag32> left({TestFlag32::A, TestFlag32::B});
 	spk::Flags<TestFlag32> right({TestFlag32::B, TestFlag32::C});
@@ -304,7 +304,7 @@ TEST(spk_flags, xorEqualsFlags_ShouldToggleBitsFromOtherMask)
 	EXPECT_TRUE(left.has(TestFlag32::C));
 }
 
-TEST(spk_flags, binaryOrBetweenFlags_ShouldReturnCombinedCopy)
+TEST(Flags, binaryOrBetweenFlags_ShouldReturnCombinedCopy)
 {
 	const spk::Flags<TestFlag32> left(TestFlag32::A);
 	const spk::Flags<TestFlag32> right({TestFlag32::B, TestFlag32::D});
@@ -319,7 +319,7 @@ TEST(spk_flags, binaryOrBetweenFlags_ShouldReturnCombinedCopy)
 	EXPECT_FALSE(left.has(TestFlag32::B));
 }
 
-TEST(spk_flags, binaryAndBetweenFlags_ShouldReturnIntersectionCopy)
+TEST(Flags, binaryAndBetweenFlags_ShouldReturnIntersectionCopy)
 {
 	const spk::Flags<TestFlag32> left({TestFlag32::A, TestFlag32::B, TestFlag32::D});
 	const spk::Flags<TestFlag32> right({TestFlag32::B, TestFlag32::C, TestFlag32::D});
@@ -332,7 +332,7 @@ TEST(spk_flags, binaryAndBetweenFlags_ShouldReturnIntersectionCopy)
 	EXPECT_TRUE(result.has(TestFlag32::D));
 }
 
-TEST(spk_flags, binaryXorBetweenFlags_ShouldReturnToggledCopy)
+TEST(Flags, binaryXorBetweenFlags_ShouldReturnToggledCopy)
 {
 	const spk::Flags<TestFlag32> left({TestFlag32::A, TestFlag32::B});
 	const spk::Flags<TestFlag32> right({TestFlag32::B, TestFlag32::C});
@@ -344,7 +344,7 @@ TEST(spk_flags, binaryXorBetweenFlags_ShouldReturnToggledCopy)
 	EXPECT_TRUE(result.has(TestFlag32::C));
 }
 
-TEST(spk_flags, binaryNot_ShouldInvertStoredBits)
+TEST(Flags, binaryNot_ShouldInvertStoredBits)
 {
 	const spk::Flags<TestFlag8, std::uint8_t> flags(TestFlag8::A);
 
@@ -355,7 +355,7 @@ TEST(spk_flags, binaryNot_ShouldInvertStoredBits)
 		static_cast<std::uint8_t>(TestFlag8::InvA));
 }
 
-TEST(spk_flags, mixedOrOperators_ShouldSupportFlagAndFlagsBothWays)
+TEST(Flags, mixedOrOperators_ShouldSupportFlagAndFlagsBothWays)
 {
 	const spk::Flags<TestFlag32> flags(TestFlag32::A);
 
@@ -368,7 +368,7 @@ TEST(spk_flags, mixedOrOperators_ShouldSupportFlagAndFlagsBothWays)
 	EXPECT_TRUE(rightResult.has(TestFlag32::C));
 }
 
-TEST(spk_flags, mixedAndOperators_ShouldSupportFlagAndFlagsBothWays)
+TEST(Flags, mixedAndOperators_ShouldSupportFlagAndFlagsBothWays)
 {
 	const spk::Flags<TestFlag8> flags({TestFlag8::A, TestFlag8::B, TestFlag8::D});
 
@@ -379,7 +379,7 @@ TEST(spk_flags, mixedAndOperators_ShouldSupportFlagAndFlagsBothWays)
 	EXPECT_EQ(rightResult.raw(), static_cast<std::uint8_t>(TestFlag8::AB));
 }
 
-TEST(spk_flags, mixedXorOperators_ShouldSupportFlagAndFlagsBothWays)
+TEST(Flags, mixedXorOperators_ShouldSupportFlagAndFlagsBothWays)
 {
 	const spk::Flags<TestFlag32> flags({TestFlag32::A, TestFlag32::B});
 
@@ -393,7 +393,7 @@ TEST(spk_flags, mixedXorOperators_ShouldSupportFlagAndFlagsBothWays)
 	EXPECT_FALSE(rightResult.has(TestFlag32::B));
 }
 
-TEST(spk_flags, equalityBetweenFlags_ShouldCompareRawBits)
+TEST(Flags, equalityBetweenFlags_ShouldCompareRawBits)
 {
 	const spk::Flags<TestFlag32> left({TestFlag32::A, TestFlag32::C});
 	const spk::Flags<TestFlag32> same({TestFlag32::A, TestFlag32::C});
@@ -405,7 +405,7 @@ TEST(spk_flags, equalityBetweenFlags_ShouldCompareRawBits)
 	EXPECT_TRUE(left != different);
 }
 
-TEST(spk_flags, equalityBetweenFlagsAndEnum_ShouldCompareAgainstSingleMask)
+TEST(Flags, equalityBetweenFlagsAndEnum_ShouldCompareAgainstSingleMask)
 {
 	const spk::Flags<TestFlag32> onlyA(TestFlag32::A);
 	const spk::Flags<TestFlag32> aAndB({TestFlag32::A, TestFlag32::B});
@@ -420,7 +420,7 @@ TEST(spk_flags, equalityBetweenFlagsAndEnum_ShouldCompareAgainstSingleMask)
 	EXPECT_TRUE(TestFlag32::A != aAndB);
 }
 
-TEST(spk_flags, aliases_ShouldUseRequestedStorageType)
+TEST(Flags, aliases_ShouldUseRequestedStorageType)
 {
 	static_assert(std::is_same_v<typename spk::Flags8<TestFlag8>::MaskType, std::uint8_t>);
 	static_assert(std::is_same_v<typename spk::Flags16<TestFlag16>::MaskType, std::uint16_t>);
@@ -431,7 +431,7 @@ TEST(spk_flags, aliases_ShouldUseRequestedStorageType)
 	EXPECT_TRUE((std::is_same_v<typename spk::Flags32<TestFlag32>::MaskType, std::uint32_t>));
 }
 
-TEST(spk_flags, shouldSupportHighBitWithinStorage)
+TEST(Flags, shouldSupportHighBitWithinStorage)
 {
 	spk::Flags<TestFlag32> flags;
 
@@ -441,7 +441,7 @@ TEST(spk_flags, shouldSupportHighBitWithinStorage)
 	EXPECT_EQ(flags.raw(), 0x80000000u);
 }
 
-TEST(spk_flags, ostreamOperator_ShouldPrintHexValue)
+TEST(Flags, ostreamOperator_ShouldPrintHexValue)
 {
 	const spk::Flags<TestFlag32> flags({TestFlag32::A, TestFlag32::B});
 
@@ -451,7 +451,7 @@ TEST(spk_flags, ostreamOperator_ShouldPrintHexValue)
 	EXPECT_EQ(outputStream.str(), "0x3");
 }
 
-TEST(spk_flags, ostreamOperator_ShouldRestoreStreamFormattingFlags)
+TEST(Flags, ostreamOperator_ShouldRestoreStreamFormattingFlags)
 {
 	const spk::Flags<TestFlag32> flags({TestFlag32::A, TestFlag32::B});
 
@@ -461,7 +461,7 @@ TEST(spk_flags, ostreamOperator_ShouldRestoreStreamFormattingFlags)
 	EXPECT_EQ(outputStream.str(), "0x3 42");
 }
 
-TEST(spk_flags, wostreamOperator_ShouldPrintHexValue)
+TEST(Flags, wostreamOperator_ShouldPrintHexValue)
 {
 	const spk::Flags<TestFlag32> flags({TestFlag32::A, TestFlag32::C});
 
@@ -471,7 +471,7 @@ TEST(spk_flags, wostreamOperator_ShouldPrintHexValue)
 	EXPECT_EQ(outputStream.str(), L"0x5");
 }
 
-TEST(spk_flags, wostreamOperator_ShouldRestoreStreamFormattingFlags)
+TEST(Flags, wostreamOperator_ShouldRestoreStreamFormattingFlags)
 {
 	const spk::Flags<TestFlag32> flags({TestFlag32::A, TestFlag32::C});
 
@@ -481,7 +481,7 @@ TEST(spk_flags, wostreamOperator_ShouldRestoreStreamFormattingFlags)
 	EXPECT_EQ(outputStream.str(), L"0x5 42");
 }
 
-TEST(spk_flags, rawConstructorAndComparison_ShouldWorkWithZeroMask)
+TEST(Flags, rawConstructorAndComparison_ShouldWorkWithZeroMask)
 {
 	const spk::Flags<TestFlag32> flags(0u);
 
