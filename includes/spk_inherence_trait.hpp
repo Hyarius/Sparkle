@@ -20,6 +20,12 @@ namespace spk
 			static_assert(std::is_base_of_v<InherenceTrait<TType>, TType>, "TType must inherit from spk::InherenceTrait<TType>");
 		}
 
+		InherenceTrait(TType* p_parent) :
+			InherenceTrait()
+		{
+			setParent(p_parent);
+		}
+
 		~InherenceTrait()
 		{
 			if (_parent != nullptr)

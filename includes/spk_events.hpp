@@ -1,5 +1,6 @@
 #pragma once
 
+#include <concepts>
 #include <type_traits>
 #include <utility>
 #include <variant>
@@ -15,6 +16,12 @@ namespace spk
 {
 	struct WindowCloseRequestedPayload
 	{
+		//Event correspond to WM_CLOSE on WinAPI
+	};
+
+	struct WindowCloseValidatedPayload
+	{
+		//Event correspond to WM_DESTROY
 	};
 
 	struct WindowMovedPayload
@@ -97,6 +104,7 @@ namespace spk
 
 	using EventPayload = std::variant<
 		WindowCloseRequestedPayload,
+		WindowCloseValidatedPayload,
 		WindowMovedPayload,
 		WindowResizedPayload,
 		WindowFocusGainedPayload,
@@ -116,7 +124,7 @@ namespace spk
 
 	struct EventMetadata
 	{
-		bool isConsumed = false;
+		mutable bool isConsumed = false;
 		spk::Timestamp timestamp;
 
 		EventMetadata() = default;
@@ -166,8 +174,13 @@ namespace spk
 
 	public:
 		Event() = default;
+		Event(const Event&) = default;
+		Event(Event&&) noexcept = default;
+		Event& operator=(const Event&) = default;
+		Event& operator=(Event&&) noexcept = default;
 
 		template <typename TPayloadType>
+			requires (std::same_as<std::decay_t<TPayloadType>, Event> == false)
 		Event(TPayloadType&& p_payload) :
 			metadata(),
 			payload(std::forward<TPayloadType>(p_payload))
@@ -223,15 +236,16 @@ namespace spk
 	};
 
 	using WindowCloseRequestedEvent = spk::Event::View<WindowCloseRequestedPayload>;
+	using WindowCloseValidatedEvent = spk::Event::View<WindowCloseValidatedPayload>;
 	using WindowMovedEvent = spk::Event::View<WindowMovedPayload>;
 	using WindowResizedEvent = spk::Event::View<WindowResizedPayload>;
 	using WindowFocusGainedEvent = spk::Event::View<WindowFocusGainedPayload>;
 	using WindowFocusLostEvent = spk::Event::View<WindowFocusLostPayload>;
 	using WindowShownEvent = spk::Event::View<WindowShownPayload>;
 	using WindowHiddenEvent = spk::Event::View<WindowHiddenPayload>;
+	using MouseEnteredWindowEvent = spk::Event::DeviceView<MouseEnteredPayload, spk::Mouse>;
+	using MouseLeftWindowEvent = spk::Event::DeviceView<MouseLeftPayload, spk::Mouse>;
 
-	using MouseEnteredEvent = spk::Event::DeviceView<MouseEnteredPayload, spk::Mouse>;
-	using MouseLeftEvent = spk::Event::DeviceView<MouseLeftPayload, spk::Mouse>;
 	using MouseMovedEvent = spk::Event::DeviceView<MouseMovedPayload, spk::Mouse>;
 	using MouseWheelScrolledEvent = spk::Event::DeviceView<MouseWheelScrolledPayload, spk::Mouse>;
 	using MouseButtonPressedEvent = spk::Event::DeviceView<MouseButtonPressedPayload, spk::Mouse>;

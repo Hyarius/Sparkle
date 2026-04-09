@@ -6,11 +6,14 @@
 #include "spk_mouse.hpp"
 #include "spk_keyboard.hpp"
 
-struct UpdateTick
+namespace spk
 {
-	spk::Timestamp timestamp;
-	spk::Duration deltaTime;
+	struct UpdateTick
+	{
+		spk::Timestamp timestamp;
+		spk::Duration deltaTime;
 
-	spk::Mouse* mouse = nullptr;
-	spk::Keyboard* keyboard = nullptr;
-};
+		spk::Mouse *mouse = nullptr;
+		spk::Keyboard *keyboard = nullptr;
+	};
+}
