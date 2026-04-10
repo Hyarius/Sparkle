@@ -25,18 +25,18 @@ TEST(WindowRuntimeTest, PollEventsDrivesWindowModulesAndWidgetTree)
 	child.activate();
 
 	const spk::Rect2D resizedRect(0, 0, 500, 300);
-	bundle.frameBackend->queueFramePayload(spk::WindowResizedPayload{
+	bundle.platformRuntime->queueFramePayload(spk::WindowResizedPayload{
 		.rect = resizedRect});
-	bundle.frameBackend->queueMousePayload(spk::MouseMovedPayload{
+	bundle.platformRuntime->queueMousePayload(spk::MouseMovedPayload{
 		.position = spk::Vector2Int(7, 9),
 		.delta = spk::Vector2Int(2, 3)});
-	bundle.frameBackend->queueKeyboardPayload(spk::KeyPressedPayload{
+	bundle.platformRuntime->queueKeyboardPayload(spk::KeyPressedPayload{
 		.key = spk::Keyboard::C,
 		.isRepeated = false});
 
 	bundle.runtime->pollEvents();
 
-	EXPECT_EQ(bundle.frameBackend->pumpEventsCount, 1);
+	EXPECT_EQ(bundle.platformRuntime->pollEventsCount, 1);
 	EXPECT_EQ(bundle.runtime->mouse().position, spk::Vector2Int(7, 9));
 	EXPECT_EQ(bundle.runtime->mouse().deltaPosition, spk::Vector2Int(2, 3));
 	EXPECT_EQ(bundle.runtime->keyboard()[spk::Keyboard::C], spk::InputState::Down);
@@ -85,8 +85,8 @@ TEST(WindowRuntimeTest, RequestClosureDelegatesToManagedWindow)
 
 	bundle.runtime->requestClosure();
 
-	ASSERT_NE(bundle.frameBackend->createdFrame, nullptr);
-	EXPECT_EQ(bundle.frameBackend->createdFrame->requestClosureCount, 1);
+	ASSERT_NE(bundle.platformRuntime->createdFrame, nullptr);
+	EXPECT_EQ(bundle.platformRuntime->createdFrame->requestClosureCount, 1);
 }
 
 TEST(WindowRuntimeTest, ClosureSubscribersAreTriggeredByValidatedCloseEvents)
@@ -100,7 +100,7 @@ TEST(WindowRuntimeTest, ClosureSubscribersAreTriggeredByValidatedCloseEvents)
 		EXPECT_EQ(p_runtime, bundle.runtime.get());
 	});
 
-	bundle.frameBackend->queueFramePayload(spk::WindowCloseValidatedPayload{});
+	bundle.platformRuntime->queueFramePayload(spk::WindowCloseValidatedPayload{});
 	bundle.runtime->pollEvents();
 
 	EXPECT_EQ(closureCount, 1);
@@ -110,21 +110,21 @@ TEST(WindowRuntimeRegistryTest, CreateWindowRuntimeReturnsSharedRuntimeAndReject
 {
 	spk::WindowRuntimeRegistry registry;
 
-	auto frameBackend = std::make_unique<sparkle_test::TestFrameBackend>();
+	auto platformRuntime = std::make_shared<sparkle_test::TestPlatformRuntime>();
 	auto renderBackend = std::make_unique<sparkle_test::TestRenderContextBackend>();
 	std::shared_ptr<spk::WindowRuntime> runtime = registry.createWindowRuntime(
 		"main",
 		spk::Window::Configuration{
 			.rect = sparkle_test::defaultRect(),
 			.title = "Main",
-			.frameBackend = std::move(frameBackend),
+			.platformRuntime = std::move(platformRuntime),
 			.renderBackend = std::move(renderBackend)
 		});
 
 	ASSERT_NE(runtime, nullptr);
 	EXPECT_EQ(runtime->window().title(), "Main");
 
-	auto duplicateFrameBackend = std::make_unique<sparkle_test::TestFrameBackend>();
+	auto duplicatePlatformRuntime = std::make_shared<sparkle_test::TestPlatformRuntime>();
 	auto duplicateRenderBackend = std::make_unique<sparkle_test::TestRenderContextBackend>();
 
 	EXPECT_THROW(
@@ -133,7 +133,7 @@ TEST(WindowRuntimeRegistryTest, CreateWindowRuntimeReturnsSharedRuntimeAndReject
 			spk::Window::Configuration{
 				.rect = sparkle_test::defaultRect(),
 				.title = "MainDuplicate",
-				.frameBackend = std::move(duplicateFrameBackend),
+				.platformRuntime = std::move(duplicatePlatformRuntime),
 				.renderBackend = std::move(duplicateRenderBackend)
 			}),
 		std::runtime_error);
@@ -142,23 +142,23 @@ TEST(WindowRuntimeRegistryTest, CreateWindowRuntimeReturnsSharedRuntimeAndReject
 TEST(WindowRuntimeRegistryTest, RequestWindowClosingDelegatesToStoredRuntime)
 {
 	spk::WindowRuntimeRegistry registry;
-	auto frameBackend = std::make_unique<sparkle_test::TestFrameBackend>();
+	auto platformRuntime = std::make_shared<sparkle_test::TestPlatformRuntime>();
 	auto renderBackend = std::make_unique<sparkle_test::TestRenderContextBackend>();
-	auto* frameBackendPtr = frameBackend.get();
+	auto* platformRuntimePtr = platformRuntime.get();
 
 	std::shared_ptr<spk::WindowRuntime> runtime = registry.createWindowRuntime(
 		"main",
 		spk::Window::Configuration{
 			.rect = sparkle_test::defaultRect(),
 			.title = "Main",
-			.frameBackend = std::move(frameBackend),
+			.platformRuntime = std::move(platformRuntime),
 			.renderBackend = std::move(renderBackend)
 		});
 
 	registry.requestWindowClosing("main");
 
-	ASSERT_NE(frameBackendPtr->createdFrame, nullptr);
-	EXPECT_EQ(frameBackendPtr->createdFrame->requestClosureCount, 1);
+	ASSERT_NE(platformRuntimePtr->createdFrame, nullptr);
+	EXPECT_EQ(platformRuntimePtr->createdFrame->requestClosureCount, 1);
 }
 
 TEST(WindowRuntimeRegistryTest, RequestWindowClosingThrowsForUnknownRuntime)

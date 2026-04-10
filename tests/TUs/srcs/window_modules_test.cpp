@@ -32,17 +32,17 @@ TEST(MouseModuleTest, MouseEventsUpdateInternalStateAndDispatchToBoundWidget)
 	module.bind(&widget);
 	module.bindWindow(bundle.window.get());
 
-	bundle.frameBackend->queueMousePayload(spk::MouseMovedPayload{
+	bundle.platformRuntime->queueMousePayload(spk::MouseMovedPayload{
 		.position = spk::Vector2Int(40, 50),
 		.delta = spk::Vector2Int(4, 5)});
-	bundle.frameBackend->queueMousePayload(spk::MouseWheelScrolledPayload{
+	bundle.platformRuntime->queueMousePayload(spk::MouseWheelScrolledPayload{
 		.delta = spk::Vector2(0.0f, 1.5f)});
-	bundle.frameBackend->queueMousePayload(spk::MouseButtonPressedPayload{
+	bundle.platformRuntime->queueMousePayload(spk::MouseButtonPressedPayload{
 		.button = spk::Mouse::Left});
-	bundle.frameBackend->queueMousePayload(spk::MouseButtonReleasedPayload{
+	bundle.platformRuntime->queueMousePayload(spk::MouseButtonReleasedPayload{
 		.button = spk::Mouse::Left});
 
-	bundle.window->pumpEvents();
+	bundle.window->pollEvents();
 
 	EXPECT_EQ(module.mouse().position, spk::Vector2Int(40, 50));
 	EXPECT_EQ(module.mouse().deltaPosition, spk::Vector2Int(4, 5));
@@ -62,7 +62,7 @@ TEST(MouseModuleTest, BindingNullWindowResignsMouseSubscription)
 	module.bindWindow(bundle.window.get());
 	module.bindWindow(nullptr);
 
-	bundle.frameBackend->emitMousePayload(spk::MouseMovedPayload{
+	bundle.platformRuntime->emitMousePayload(spk::MouseMovedPayload{
 		.position = spk::Vector2Int(9, 9),
 		.delta = spk::Vector2Int(1, 1)});
 
@@ -80,15 +80,15 @@ TEST(KeyboardModuleTest, KeyboardEventsUpdateInternalStateAndDispatchToBoundWidg
 	module.bind(&widget);
 	module.bindWindow(bundle.window.get());
 
-	bundle.frameBackend->queueKeyboardPayload(spk::KeyPressedPayload{
+	bundle.platformRuntime->queueKeyboardPayload(spk::KeyPressedPayload{
 		.key = spk::Keyboard::Escape,
 		.isRepeated = false});
-	bundle.frameBackend->queueKeyboardPayload(spk::TextInputPayload{
+	bundle.platformRuntime->queueKeyboardPayload(spk::TextInputPayload{
 		.glyph = U'Q'});
-	bundle.frameBackend->queueKeyboardPayload(spk::KeyReleasedPayload{
+	bundle.platformRuntime->queueKeyboardPayload(spk::KeyReleasedPayload{
 		.key = spk::Keyboard::Escape});
 
-	bundle.window->pumpEvents();
+	bundle.window->pollEvents();
 
 	EXPECT_EQ(module.keyboard()[spk::Keyboard::Escape], spk::InputState::Up);
 	EXPECT_EQ(module.keyboard().glyph, U'Q');
@@ -106,7 +106,7 @@ TEST(KeyboardModuleTest, BindingNullWindowResignsKeyboardSubscription)
 	module.bindWindow(bundle.window.get());
 	module.bindWindow(nullptr);
 
-	bundle.frameBackend->emitKeyboardPayload(spk::KeyPressedPayload{
+	bundle.platformRuntime->emitKeyboardPayload(spk::KeyPressedPayload{
 		.key = spk::Keyboard::A,
 		.isRepeated = false});
 
@@ -125,10 +125,10 @@ TEST(FrameModuleTest, WindowResizeEventsNotifyRenderContextAndDispatchToWidget)
 	module.bindWindow(bundle.window.get());
 
 	const spk::Rect2D resizedRect(0, 0, 1920, 1080);
-	bundle.frameBackend->queueFramePayload(spk::WindowResizedPayload{
+	bundle.platformRuntime->queueFramePayload(spk::WindowResizedPayload{
 		.rect = resizedRect});
 
-	bundle.window->pumpEvents();
+	bundle.window->pollEvents();
 
 	ASSERT_NE(bundle.renderBackend->createdContext, nullptr);
 	EXPECT_EQ(bundle.renderBackend->createdContext->notifyResizeCount, 1);

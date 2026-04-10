@@ -2,12 +2,14 @@
 
 #include <functional>
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "spk_events.hpp"
 #include "spk_frame.hpp"
+#include "spk_platform_runtime.hpp"
 #include "spk_render_context.hpp"
 #include "spk_update_tick.hpp"
 #include "spk_widget.hpp"
@@ -53,8 +55,10 @@ namespace sparkle_test
 		int resizeCount = 0;
 		int setTitleCount = 0;
 		int requestClosureCount = 0;
+		int createRenderContextCount = 0;
 		std::vector<spk::Rect2D> resizeHistory;
 		std::vector<std::string> titleHistory;
+		spk::IRenderContext::Backend* lastRenderBackend = nullptr;
 
 	public:
 		TestFrame(const spk::Rect2D& p_rect, std::string p_title) :
@@ -82,6 +86,13 @@ namespace sparkle_test
 			++requestClosureCount;
 		}
 
+		std::unique_ptr<spk::IRenderContext> createRenderContext(spk::IRenderContext::Backend& p_backend) override
+		{
+			++createRenderContextCount;
+			lastRenderBackend = &p_backend;
+			return p_backend.createRenderContext(*this);
+		}
+
 		[[nodiscard]] spk::Rect2D rect() const override
 		{
 			return currentRect;
@@ -91,16 +102,54 @@ namespace sparkle_test
 		{
 			return currentTitle;
 		}
+
+		void emitMouseEvent(const spk::Event& p_event)
+		{
+			_emitMouseEvent(p_event);
+		}
+
+		void emitKeyboardEvent(const spk::Event& p_event)
+		{
+			_emitKeyboardEvent(p_event);
+		}
+
+		void emitFrameEvent(const spk::Event& p_event)
+		{
+			_emitFrameEvent(p_event);
+		}
 	};
 
-	class TestFrameBackend : public spk::IFrame::Backend
+	class TestPlatformRuntime : public spk::IPlatformRuntime
 	{
 	private:
-		std::vector<std::function<void()>> _pendingDispatches;
+		enum class PendingEventKind
+		{
+			Mouse,
+			Keyboard,
+			Frame
+		};
+
+		struct PendingEvent
+		{
+			PendingEventKind kind;
+			spk::Event event;
+		};
+
+		std::vector<PendingEvent> _pendingEvents;
+
+		TestFrame& _frame()
+		{
+			if (createdFrame == nullptr)
+			{
+				throw std::runtime_error("TestPlatformRuntime requires a created frame before dispatching events");
+			}
+
+			return *createdFrame;
+		}
 
 	public:
 		int createFrameCount = 0;
-		int pumpEventsCount = 0;
+		int pollEventsCount = 0;
 		bool returnNullFrame = false;
 		spk::Rect2D lastCreateRect;
 		std::string lastCreateTitle;
@@ -124,65 +173,73 @@ namespace sparkle_test
 			return result;
 		}
 
-		void pumpEvents() override
+		void pollEvents() override
 		{
-			++pumpEventsCount;
+			++pollEventsCount;
 
-			auto dispatches = std::move(_pendingDispatches);
-			_pendingDispatches.clear();
+			auto events = std::move(_pendingEvents);
+			_pendingEvents.clear();
 
-			for (auto& dispatch : dispatches)
+			for (auto& pendingEvent : events)
 			{
-				dispatch();
+				switch (pendingEvent.kind)
+				{
+				case PendingEventKind::Mouse:
+					_frame().emitMouseEvent(pendingEvent.event);
+					break;
+				case PendingEventKind::Keyboard:
+					_frame().emitKeyboardEvent(pendingEvent.event);
+					break;
+				case PendingEventKind::Frame:
+					_frame().emitFrameEvent(pendingEvent.event);
+					break;
+				}
 			}
 		}
 
 		template <typename TPayloadType>
 		void emitMousePayload(TPayloadType p_payload)
 		{
-			_emitMouseEvent(spk::Event(std::move(p_payload)));
+			_frame().emitMouseEvent(spk::Event(std::move(p_payload)));
 		}
 
 		template <typename TPayloadType>
 		void emitKeyboardPayload(TPayloadType p_payload)
 		{
-			_emitKeyboardEvent(spk::Event(std::move(p_payload)));
+			_frame().emitKeyboardEvent(spk::Event(std::move(p_payload)));
 		}
 
 		template <typename TPayloadType>
 		void emitFramePayload(TPayloadType p_payload)
 		{
-			_emitFrameEvent(spk::Event(std::move(p_payload)));
+			_frame().emitFrameEvent(spk::Event(std::move(p_payload)));
 		}
 
 		template <typename TPayloadType>
 		void queueMousePayload(TPayloadType p_payload)
 		{
-			_pendingDispatches.emplace_back(
-				[this, payload = std::move(p_payload)]() mutable
-				{
-					emitMousePayload(std::move(payload));
-				});
+			_pendingEvents.push_back(PendingEvent{
+				.kind = PendingEventKind::Mouse,
+				.event = spk::Event(std::move(p_payload))
+			});
 		}
 
 		template <typename TPayloadType>
 		void queueKeyboardPayload(TPayloadType p_payload)
 		{
-			_pendingDispatches.emplace_back(
-				[this, payload = std::move(p_payload)]() mutable
-				{
-					emitKeyboardPayload(std::move(payload));
-				});
+			_pendingEvents.push_back(PendingEvent{
+				.kind = PendingEventKind::Keyboard,
+				.event = spk::Event(std::move(p_payload))
+			});
 		}
 
 		template <typename TPayloadType>
 		void queueFramePayload(TPayloadType p_payload)
 		{
-			_pendingDispatches.emplace_back(
-				[this, payload = std::move(p_payload)]() mutable
-				{
-					emitFramePayload(std::move(payload));
-				});
+			_pendingEvents.push_back(PendingEvent{
+				.kind = PendingEventKind::Frame,
+				.event = spk::Event(std::move(p_payload))
+			});
 		}
 	};
 
@@ -364,23 +421,23 @@ namespace sparkle_test
 
 	struct WindowBundle
 	{
-		TestFrameBackend* frameBackend = nullptr;
+		TestPlatformRuntime* platformRuntime = nullptr;
 		TestRenderContextBackend* renderBackend = nullptr;
 		std::unique_ptr<spk::Window> window = nullptr;
 	};
 
 	inline WindowBundle createWindowBundle(const spk::Rect2D& p_rect = defaultRect(), const std::string& p_title = "TestWindow")
 	{
-		auto frameBackend = std::make_unique<TestFrameBackend>();
+		auto platformRuntime = std::make_shared<TestPlatformRuntime>();
 		auto renderBackend = std::make_unique<TestRenderContextBackend>();
 
 		WindowBundle result;
-		result.frameBackend = frameBackend.get();
+		result.platformRuntime = platformRuntime.get();
 		result.renderBackend = renderBackend.get();
 		result.window = std::make_unique<spk::Window>(spk::Window::Configuration{
 			.rect = p_rect,
 			.title = p_title,
-			.frameBackend = std::move(frameBackend),
+			.platformRuntime = std::move(platformRuntime),
 			.renderBackend = std::move(renderBackend)
 		});
 
@@ -389,23 +446,23 @@ namespace sparkle_test
 
 	struct RuntimeBundle
 	{
-		TestFrameBackend* frameBackend = nullptr;
+		TestPlatformRuntime* platformRuntime = nullptr;
 		TestRenderContextBackend* renderBackend = nullptr;
 		std::unique_ptr<spk::WindowRuntime> runtime = nullptr;
 	};
 
 	inline RuntimeBundle createRuntimeBundle(const spk::Rect2D& p_rect = defaultRect(), const std::string& p_title = "RuntimeWindow")
 	{
-		auto frameBackend = std::make_unique<TestFrameBackend>();
+		auto platformRuntime = std::make_shared<TestPlatformRuntime>();
 		auto renderBackend = std::make_unique<TestRenderContextBackend>();
 
 		RuntimeBundle result;
-		result.frameBackend = frameBackend.get();
+		result.platformRuntime = platformRuntime.get();
 		result.renderBackend = renderBackend.get();
 		result.runtime = std::make_unique<spk::WindowRuntime>(spk::Window::Configuration{
 			.rect = p_rect,
 			.title = p_title,
-			.frameBackend = std::move(frameBackend),
+			.platformRuntime = std::move(platformRuntime),
 			.renderBackend = std::move(renderBackend)
 		});
 

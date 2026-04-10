@@ -3,7 +3,7 @@
 #include <memory>
 #include <string>
 
-#include "spk_frame.hpp"
+#include "spk_platform_runtime.hpp"
 #include "spk_rect_2d.hpp"
 #include "spk_render_context.hpp"
 
@@ -16,18 +16,18 @@ namespace spk
 		{
 			spk::Rect2D rect;
 			std::string title;
-			std::unique_ptr<IFrame::Backend> frameBackend = nullptr;
+			std::shared_ptr<IPlatformRuntime> platformRuntime = nullptr;
 			std::unique_ptr<IRenderContext::Backend> renderBackend = nullptr;
 		};
 
 	private:
-		std::unique_ptr<IFrame::Backend> _frameBackend;
+		std::shared_ptr<IPlatformRuntime> _platformRuntime;
 		std::unique_ptr<IRenderContext::Backend> _renderBackend;
 		std::unique_ptr<IFrame> _frame;
 		std::unique_ptr<IRenderContext> _renderContext;
 
 	private:
-		static std::unique_ptr<IFrame::Backend> _createDefaultFrameBackend();
+		static std::shared_ptr<IPlatformRuntime> _createDefaultPlatformRuntime();
 		static std::unique_ptr<IRenderContext::Backend> _createDefaultRenderBackend();
 
 	public:
@@ -45,10 +45,10 @@ namespace spk
 		void makeCurrent();
 		void present();
 		void setVSync(bool p_enabled);
-		void pumpEvents();
+		void pollEvents();
 
-		IFrame::Backend::EventContract subscribeToMouseEvents(IFrame::Backend::EventCallback p_callback);
-		IFrame::Backend::EventContract subscribeToKeyboardEvents(IFrame::Backend::EventCallback p_callback);
-		IFrame::Backend::EventContract subscribeToFrameEvents(IFrame::Backend::EventCallback p_callback);
+		IFrame::EventContract subscribeToMouseEvents(IFrame::EventCallback p_callback);
+		IFrame::EventContract subscribeToKeyboardEvents(IFrame::EventCallback p_callback);
+		IFrame::EventContract subscribeToFrameEvents(IFrame::EventCallback p_callback);
 	};
 }

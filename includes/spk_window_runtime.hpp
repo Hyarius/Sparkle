@@ -26,7 +26,7 @@ namespace spk
 		UpdateModule _updateModule;
 		RenderModule _renderModule;
 
-		spk::IFrame::Backend::EventContract _onClosureRequestContract;
+		spk::IFrame::EventContract _onClosureRequestContract;
 		ClosureEventProvider _closureEventProvider;
 
 	private:

@@ -22,103 +22,131 @@ TEST(IFrameTest, TestFrameTracksResizeTitleAndClosureRequests)
 	EXPECT_EQ(frame.titleHistory[0], "Updated");
 }
 
-TEST(IFrameBackendTest, CreateFrameReceivesRequestedRectAndTitle)
+TEST(IFrameTest, FrameCanCreateRenderContextThroughBackend)
 {
-	sparkle_test::TestFrameBackend backend;
-	const spk::Rect2D rect(5, 6, 200, 100);
+	sparkle_test::TestFrame frame(sparkle_test::defaultRect(), "Frame");
+	sparkle_test::TestRenderContextBackend backend;
 
-	std::unique_ptr<spk::IFrame> frame = backend.createFrame(rect, "Window");
+	std::unique_ptr<spk::IRenderContext> context = frame.createRenderContext(backend);
 
-	ASSERT_NE(frame, nullptr);
-	ASSERT_NE(backend.createdFrame, nullptr);
-	EXPECT_EQ(backend.createFrameCount, 1);
-	EXPECT_EQ(backend.lastCreateRect, rect);
-	EXPECT_EQ(backend.lastCreateTitle, "Window");
-	EXPECT_EQ(backend.createdFrame->rect(), rect);
-	EXPECT_EQ(backend.createdFrame->title(), "Window");
+	ASSERT_NE(context, nullptr);
+	ASSERT_NE(backend.createdContext, nullptr);
+	EXPECT_EQ(frame.createRenderContextCount, 1);
+	EXPECT_EQ(frame.lastRenderBackend, &backend);
+	EXPECT_EQ(backend.createRenderContextCount, 1);
+	EXPECT_EQ(backend.lastFrame, &frame);
 }
 
-TEST(IFrameBackendTest, PumpEventsDispatchesQueuedMouseKeyboardAndFrameEvents)
+TEST(IPlatformRuntimeTest, CreateFrameReceivesRequestedRectAndTitle)
 {
-	sparkle_test::TestFrameBackend backend;
+	sparkle_test::TestPlatformRuntime runtime;
+	const spk::Rect2D rect(5, 6, 200, 100);
+
+	std::unique_ptr<spk::IFrame> frame = runtime.createFrame(rect, "Window");
+
+	ASSERT_NE(frame, nullptr);
+	ASSERT_NE(runtime.createdFrame, nullptr);
+	EXPECT_EQ(runtime.createFrameCount, 1);
+	EXPECT_EQ(runtime.lastCreateRect, rect);
+	EXPECT_EQ(runtime.lastCreateTitle, "Window");
+	EXPECT_EQ(runtime.createdFrame->rect(), rect);
+	EXPECT_EQ(runtime.createdFrame->title(), "Window");
+}
+
+TEST(IPlatformRuntimeTest, PollEventsDispatchesQueuedMouseKeyboardAndFrameEvents)
+{
+	sparkle_test::TestPlatformRuntime runtime;
+	std::unique_ptr<spk::IFrame> frame = runtime.createFrame(sparkle_test::defaultRect(), "Window");
 	int mouseCount = 0;
 	int keyboardCount = 0;
 	int frameCount = 0;
 
-	auto mouseContract = backend.subscribeToMouseEvents([&](const spk::Event& p_event)
+	auto mouseContract = runtime.createdFrame->subscribeToMouseEvents([&](const spk::Event& p_event)
 	{
 		++mouseCount;
 		EXPECT_TRUE(p_event.holds<spk::MouseMovedPayload>());
 	});
 
-	auto keyboardContract = backend.subscribeToKeyboardEvents([&](const spk::Event& p_event)
+	auto keyboardContract = runtime.createdFrame->subscribeToKeyboardEvents([&](const spk::Event& p_event)
 	{
 		++keyboardCount;
 		EXPECT_TRUE(p_event.holds<spk::KeyPressedPayload>());
 	});
 
-	auto frameContract = backend.subscribeToFrameEvents([&](const spk::Event& p_event)
+	auto frameContract = runtime.createdFrame->subscribeToFrameEvents([&](const spk::Event& p_event)
 	{
 		++frameCount;
 		EXPECT_TRUE(p_event.holds<spk::WindowShownPayload>());
 	});
 
-	backend.queueMousePayload(spk::MouseMovedPayload{
+	runtime.queueMousePayload(spk::MouseMovedPayload{
 		.position = spk::Vector2Int(10, 20),
 		.delta = spk::Vector2Int(1, 2)});
-	backend.queueKeyboardPayload(spk::KeyPressedPayload{
+	runtime.queueKeyboardPayload(spk::KeyPressedPayload{
 		.key = spk::Keyboard::A,
 		.isRepeated = false});
-	backend.queueFramePayload(spk::WindowShownPayload{});
+	runtime.queueFramePayload(spk::WindowShownPayload{});
 
-	backend.pumpEvents();
+	runtime.pollEvents();
 
-	EXPECT_EQ(backend.pumpEventsCount, 1);
+	EXPECT_EQ(runtime.pollEventsCount, 1);
 	EXPECT_EQ(mouseCount, 1);
 	EXPECT_EQ(keyboardCount, 1);
 	EXPECT_EQ(frameCount, 1);
 }
 
-TEST(IFrameBackendTest, ResignedContractStopsReceivingEvents)
+TEST(IPlatformRuntimeTest, RuntimeCanBeConfiguredToReturnNullFrame)
 {
-	sparkle_test::TestFrameBackend backend;
+	sparkle_test::TestPlatformRuntime runtime;
+	runtime.returnNullFrame = true;
+
+	std::unique_ptr<spk::IFrame> frame = runtime.createFrame(sparkle_test::defaultRect(), "NullFrame");
+
+	EXPECT_EQ(frame, nullptr);
+	EXPECT_EQ(runtime.createFrameCount, 1);
+	EXPECT_EQ(runtime.createdFrame, nullptr);
+}
+
+TEST(IFrameTest, ResignedContractStopsReceivingEvents)
+{
+	sparkle_test::TestFrame frame(sparkle_test::defaultRect(), "Frame");
 	int mouseCount = 0;
 
-	auto contract = backend.subscribeToMouseEvents([&](const spk::Event&)
+	auto contract = frame.subscribeToMouseEvents([&](const spk::Event&)
 	{
 		++mouseCount;
 	});
 
-	backend.emitMousePayload(spk::MouseMovedPayload{
+	frame.emitMouseEvent(spk::Event(spk::MouseMovedPayload{
 		.position = spk::Vector2Int(1, 1),
-		.delta = spk::Vector2Int(1, 1)});
+		.delta = spk::Vector2Int(1, 1)}));
 	ASSERT_EQ(mouseCount, 1);
 
 	contract.resign();
 
-	backend.emitMousePayload(spk::MouseMovedPayload{
+	frame.emitMouseEvent(spk::Event(spk::MouseMovedPayload{
 		.position = spk::Vector2Int(2, 2),
-		.delta = spk::Vector2Int(2, 2)});
+		.delta = spk::Vector2Int(2, 2)}));
 
 	EXPECT_EQ(mouseCount, 1);
 }
 
-TEST(IFrameBackendTest, MultipleSubscribersReceiveSameFrameEvent)
+TEST(IFrameTest, MultipleSubscribersReceiveSameFrameEvent)
 {
-	sparkle_test::TestFrameBackend backend;
+	sparkle_test::TestFrame frame(sparkle_test::defaultRect(), "Frame");
 	int firstCount = 0;
 	int secondCount = 0;
 
-	auto firstContract = backend.subscribeToFrameEvents([&](const spk::Event&)
+	auto firstContract = frame.subscribeToFrameEvents([&](const spk::Event&)
 	{
 		++firstCount;
 	});
-	auto secondContract = backend.subscribeToFrameEvents([&](const spk::Event&)
+	auto secondContract = frame.subscribeToFrameEvents([&](const spk::Event&)
 	{
 		++secondCount;
 	});
 
-	backend.emitFramePayload(spk::WindowHiddenPayload{});
+	frame.emitFrameEvent(spk::Event(spk::WindowHiddenPayload{}));
 
 	EXPECT_EQ(firstCount, 1);
 	EXPECT_EQ(secondCount, 1);

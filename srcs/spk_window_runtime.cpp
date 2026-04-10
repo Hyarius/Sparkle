@@ -75,7 +75,7 @@ namespace spk
 
 	void WindowRuntime::pollEvents()
 	{
-		_window.pumpEvents();
+		_window.pollEvents();
 	}
 
 	void WindowRuntime::update(const spk::UpdateTick& p_tick)

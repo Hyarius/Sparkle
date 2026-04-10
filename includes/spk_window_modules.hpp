@@ -25,7 +25,7 @@ namespace spk
 	{
 	private:
 		spk::Window* _window = nullptr;
-		spk::IFrame::Backend::EventContract _mouseEventContract;
+		spk::IFrame::EventContract _mouseEventContract;
 		spk::Mouse _mouse;
 
 	private:
@@ -44,7 +44,7 @@ namespace spk
 	{
 	private:
 		spk::Window* _window = nullptr;
-		spk::IFrame::Backend::EventContract _keyboardEventContract;
+		spk::IFrame::EventContract _keyboardEventContract;
 		spk::Keyboard _keyboard;
 
 	private:
@@ -62,7 +62,7 @@ namespace spk
 	class FrameModule : public IModule
 	{
 	private:
-		spk::IFrame::Backend::EventContract _frameEventContract;
+		spk::IFrame::EventContract _frameEventContract;
 		spk::Window* _window = nullptr;
 
 	private:

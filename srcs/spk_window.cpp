@@ -2,9 +2,9 @@
 
 namespace spk
 {
-	std::unique_ptr<IFrame::Backend> Window::_createDefaultFrameBackend()
+	std::shared_ptr<IPlatformRuntime> Window::_createDefaultPlatformRuntime()
 	{
-		throw std::runtime_error("No default spk::IFrame::Backend is implemented for this platform yet");
+		throw std::runtime_error("No default spk::IPlatformRuntime is implemented for this platform yet");
 	}
 
 	std::unique_ptr<IRenderContext::Backend> Window::_createDefaultRenderBackend()
@@ -13,17 +13,17 @@ namespace spk
 	}
 
 	Window::Window(Configuration p_configuration) :
-		_frameBackend(p_configuration.frameBackend != nullptr ? std::move(p_configuration.frameBackend) : _createDefaultFrameBackend()),
+		_platformRuntime(p_configuration.platformRuntime != nullptr ? std::move(p_configuration.platformRuntime) : _createDefaultPlatformRuntime()),
 		_renderBackend(p_configuration.renderBackend != nullptr ? std::move(p_configuration.renderBackend) : _createDefaultRenderBackend())
 	{
-		_frame = _frameBackend->createFrame(p_configuration.rect, p_configuration.title);
+		_frame = _platformRuntime->createFrame(p_configuration.rect, p_configuration.title);
 
 		if (_frame == nullptr)
 		{
 			throw std::runtime_error("spk::Window failed to create its frame");
 		}
 
-		_renderContext = _renderBackend->createRenderContext(*_frame);
+		_renderContext = _frame->createRenderContext(*_renderBackend);
 
 		if (_renderContext == nullptr)
 		{
@@ -78,23 +78,23 @@ namespace spk
 		_renderContext->setVSync(p_enabled);
 	}
 
-	void Window::pumpEvents()
+	void Window::pollEvents()
 	{
-		_frameBackend->pumpEvents();
+		_platformRuntime->pollEvents();
 	}
 
-	IFrame::Backend::EventContract Window::subscribeToMouseEvents(IFrame::Backend::EventCallback p_callback)
+	IFrame::EventContract Window::subscribeToMouseEvents(IFrame::EventCallback p_callback)
 	{
-		return _frameBackend->subscribeToMouseEvents(std::move(p_callback));
+		return _frame->subscribeToMouseEvents(std::move(p_callback));
 	}
 
-	IFrame::Backend::EventContract Window::subscribeToKeyboardEvents(IFrame::Backend::EventCallback p_callback)
+	IFrame::EventContract Window::subscribeToKeyboardEvents(IFrame::EventCallback p_callback)
 	{
-		return _frameBackend->subscribeToKeyboardEvents(std::move(p_callback));
+		return _frame->subscribeToKeyboardEvents(std::move(p_callback));
 	}
 
-	IFrame::Backend::EventContract Window::subscribeToFrameEvents(IFrame::Backend::EventCallback p_callback)
+	IFrame::EventContract Window::subscribeToFrameEvents(IFrame::EventCallback p_callback)
 	{
-		return _frameBackend->subscribeToFrameEvents(std::move(p_callback));
+		return _frame->subscribeToFrameEvents(std::move(p_callback));
 	}
 }

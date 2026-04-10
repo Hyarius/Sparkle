@@ -5,25 +5,27 @@
 
 #include "window_test_utils.hpp"
 
-TEST(WindowTest, ConstructionCreatesFrameAndRenderContextThroughBackends)
+TEST(WindowTest, ConstructionCreatesFrameAndRenderContextThroughPlatformRuntimeAndFrame)
 {
 	const spk::Rect2D rect(7, 8, 640, 360);
 	auto bundle = sparkle_test::createWindowBundle(rect, "MainWindow");
 
 	ASSERT_NE(bundle.window, nullptr);
-	ASSERT_NE(bundle.frameBackend, nullptr);
+	ASSERT_NE(bundle.platformRuntime, nullptr);
 	ASSERT_NE(bundle.renderBackend, nullptr);
-	ASSERT_NE(bundle.frameBackend->createdFrame, nullptr);
+	ASSERT_NE(bundle.platformRuntime->createdFrame, nullptr);
 	ASSERT_NE(bundle.renderBackend->createdContext, nullptr);
 
-	EXPECT_EQ(bundle.frameBackend->createFrameCount, 1);
-	EXPECT_EQ(bundle.frameBackend->lastCreateRect, rect);
-	EXPECT_EQ(bundle.frameBackend->lastCreateTitle, "MainWindow");
+	EXPECT_EQ(bundle.platformRuntime->createFrameCount, 1);
+	EXPECT_EQ(bundle.platformRuntime->lastCreateRect, rect);
+	EXPECT_EQ(bundle.platformRuntime->lastCreateTitle, "MainWindow");
+	EXPECT_EQ(bundle.platformRuntime->createdFrame->createRenderContextCount, 1);
+	EXPECT_EQ(bundle.platformRuntime->createdFrame->lastRenderBackend, bundle.renderBackend);
 	EXPECT_EQ(bundle.renderBackend->createRenderContextCount, 1);
-	EXPECT_EQ(bundle.renderBackend->lastFrame, bundle.frameBackend->createdFrame);
+	EXPECT_EQ(bundle.renderBackend->lastFrame, bundle.platformRuntime->createdFrame);
 }
 
-TEST(WindowTest, ConstructionWithoutExplicitBackendsThrows)
+TEST(WindowTest, ConstructionWithoutExplicitRuntimeOrBackendThrows)
 {
 	EXPECT_THROW(
 		{
@@ -35,18 +37,18 @@ TEST(WindowTest, ConstructionWithoutExplicitBackendsThrows)
 		std::runtime_error);
 }
 
-TEST(WindowTest, ConstructionRejectsNullFrameCreatedByBackend)
+TEST(WindowTest, ConstructionRejectsNullFrameCreatedByPlatformRuntime)
 {
-	auto frameBackend = std::make_unique<sparkle_test::TestFrameBackend>();
+	auto platformRuntime = std::make_shared<sparkle_test::TestPlatformRuntime>();
 	auto renderBackend = std::make_unique<sparkle_test::TestRenderContextBackend>();
-	frameBackend->returnNullFrame = true;
+	platformRuntime->returnNullFrame = true;
 
 	EXPECT_THROW(
 		{
 			spk::Window window(spk::Window::Configuration{
 				.rect = sparkle_test::defaultRect(),
 				.title = "NullFrame",
-				.frameBackend = std::move(frameBackend),
+				.platformRuntime = std::move(platformRuntime),
 				.renderBackend = std::move(renderBackend)
 			});
 		},
@@ -55,7 +57,7 @@ TEST(WindowTest, ConstructionRejectsNullFrameCreatedByBackend)
 
 TEST(WindowTest, ConstructionRejectsNullRenderContextCreatedByBackend)
 {
-	auto frameBackend = std::make_unique<sparkle_test::TestFrameBackend>();
+	auto platformRuntime = std::make_shared<sparkle_test::TestPlatformRuntime>();
 	auto renderBackend = std::make_unique<sparkle_test::TestRenderContextBackend>();
 	renderBackend->returnNullContext = true;
 
@@ -64,7 +66,7 @@ TEST(WindowTest, ConstructionRejectsNullRenderContextCreatedByBackend)
 			spk::Window window(spk::Window::Configuration{
 				.rect = sparkle_test::defaultRect(),
 				.title = "NullContext",
-				.frameBackend = std::move(frameBackend),
+				.platformRuntime = std::move(platformRuntime),
 				.renderBackend = std::move(renderBackend)
 			});
 		},
@@ -80,10 +82,10 @@ TEST(WindowTest, FrameOperationsDelegateToCreatedFrame)
 	bundle.window->setTitle("Renamed");
 	bundle.window->requestClosure();
 
-	ASSERT_NE(bundle.frameBackend->createdFrame, nullptr);
-	EXPECT_EQ(bundle.frameBackend->createdFrame->resizeCount, 1);
-	EXPECT_EQ(bundle.frameBackend->createdFrame->setTitleCount, 1);
-	EXPECT_EQ(bundle.frameBackend->createdFrame->requestClosureCount, 1);
+	ASSERT_NE(bundle.platformRuntime->createdFrame, nullptr);
+	EXPECT_EQ(bundle.platformRuntime->createdFrame->resizeCount, 1);
+	EXPECT_EQ(bundle.platformRuntime->createdFrame->setTitleCount, 1);
+	EXPECT_EQ(bundle.platformRuntime->createdFrame->requestClosureCount, 1);
 	EXPECT_EQ(bundle.window->rect(), resizedRect);
 	EXPECT_EQ(bundle.window->title(), "Renamed");
 }
@@ -107,7 +109,7 @@ TEST(WindowTest, RenderContextOperationsDelegateToCreatedContext)
 	EXPECT_EQ(bundle.renderBackend->createdContext->lastResizeRect, resizedRect);
 }
 
-TEST(WindowTest, PumpEventsDelegatesToBackendAndForwardsSubscriptions)
+TEST(WindowTest, PollEventsDelegatesToPlatformRuntimeAndForwardsSubscriptions)
 {
 	auto bundle = sparkle_test::createWindowBundle();
 	int mouseCount = 0;
@@ -130,18 +132,18 @@ TEST(WindowTest, PumpEventsDelegatesToBackendAndForwardsSubscriptions)
 		EXPECT_TRUE(p_event.holds<spk::WindowResizedPayload>());
 	});
 
-	bundle.frameBackend->queueMousePayload(spk::MouseMovedPayload{
+	bundle.platformRuntime->queueMousePayload(spk::MouseMovedPayload{
 		.position = spk::Vector2Int(2, 4),
 		.delta = spk::Vector2Int(1, 1)});
-	bundle.frameBackend->queueKeyboardPayload(spk::KeyPressedPayload{
+	bundle.platformRuntime->queueKeyboardPayload(spk::KeyPressedPayload{
 		.key = spk::Keyboard::B,
 		.isRepeated = true});
-	bundle.frameBackend->queueFramePayload(spk::WindowResizedPayload{
+	bundle.platformRuntime->queueFramePayload(spk::WindowResizedPayload{
 		.rect = spk::Rect2D(0, 0, 123, 456)});
 
-	bundle.window->pumpEvents();
+	bundle.window->pollEvents();
 
-	EXPECT_EQ(bundle.frameBackend->pumpEventsCount, 1);
+	EXPECT_EQ(bundle.platformRuntime->pollEventsCount, 1);
 	EXPECT_EQ(mouseCount, 1);
 	EXPECT_EQ(keyboardCount, 1);
 	EXPECT_EQ(frameCount, 1);
