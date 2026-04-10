@@ -29,23 +29,27 @@ TEST(WindowTest, PollEventsDrivesWindowModulesAndWidgetTree)
 	bundle.platformRuntime->queueFramePayload(spk::WindowResizedPayload{
 		.rect = resizedRect});
 	bundle.platformRuntime->queueMousePayload(spk::MouseMovedPayload{
+		.position = spk::Vector2Int(8, 10),
+		});
+	bundle.platformRuntime->queueMousePayload(spk::MouseMovedPayload{
 		.position = spk::Vector2Int(7, 9),
-		.delta = spk::Vector2Int(2, 3)});
+		});
 	bundle.platformRuntime->queueKeyboardPayload(spk::KeyPressedPayload{
 		.key = spk::Keyboard::C,
 		.isRepeated = false});
 
 	bundle.window->pollEvents();
+	bundle.window->update();
 
 	EXPECT_EQ(bundle.platformRuntime->pollEventsCount, 1);
 	EXPECT_EQ(bundle.window->mouse().position, spk::Vector2Int(7, 9));
-	EXPECT_EQ(bundle.window->mouse().deltaPosition, spk::Vector2Int(2, 3));
+	EXPECT_EQ(bundle.window->mouse().deltaPosition, spk::Vector2Int(-1, -1));
 	EXPECT_EQ(bundle.window->keyboard()[spk::Keyboard::C], spk::InputState::Down);
 	ASSERT_NE(bundle.renderBackend->createdContext, nullptr);
 	EXPECT_EQ(bundle.renderBackend->createdContext->notifyResizeCount, 1);
 	EXPECT_EQ(bundle.renderBackend->createdContext->lastResizeRect, resizedRect);
 	EXPECT_EQ(child.frameEventCount, 1);
-	EXPECT_EQ(child.mouseEventCount, 1);
+	EXPECT_EQ(child.mouseEventCount, 2);
 	EXPECT_EQ(child.keyboardEventCount, 1);
 }
 
@@ -55,11 +59,7 @@ TEST(WindowTest, UpdateDelegatesToRootWidgetTree)
 	sparkle_test::RecordingWidget child("Child", &bundle.window->rootWidget());
 	child.activate();
 
-	spk::UpdateTick tick;
-	tick.mouse = &bundle.window->mouse();
-	tick.keyboard = &bundle.window->keyboard();
-
-	bundle.window->update(tick);
+	bundle.window->update();
 
 	EXPECT_EQ(child.updateCount, 1);
 	EXPECT_EQ(child.lastTickMouse, &bundle.window->mouse());
@@ -103,6 +103,7 @@ TEST(WindowTest, ClosureSubscribersAreTriggeredByValidatedCloseEvents)
 
 	bundle.platformRuntime->queueFramePayload(spk::WindowCloseValidatedPayload{});
 	bundle.window->pollEvents();
+	bundle.window->update();
 
 	EXPECT_EQ(closureCount, 1);
 }

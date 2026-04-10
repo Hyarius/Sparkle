@@ -151,6 +151,7 @@ namespace sparkle_test
 		int createFrameCount = 0;
 		int pollEventsCount = 0;
 		bool returnNullFrame = false;
+		std::function<void(TestPlatformRuntime&)> onPollEvents = nullptr;
 		spk::Rect2D lastCreateRect;
 		std::string lastCreateTitle;
 		TestFrame* createdFrame = nullptr;
@@ -194,6 +195,11 @@ namespace sparkle_test
 					_frame().emitFrameEvent(pendingEvent.event);
 					break;
 				}
+			}
+
+			if (onPollEvents != nullptr)
+			{
+				onPollEvents(*this);
 			}
 		}
 
@@ -415,6 +421,32 @@ namespace sparkle_test
 			if (consumeKeyboardEvent == true)
 			{
 				p_event.metadata.isConsumed = true;
+			}
+		}
+	};
+
+	class CallbackWidget : public spk::Widget
+	{
+	public:
+		using spk::Widget::Widget;
+
+		std::function<void(const spk::UpdateTick&)> onUpdate = nullptr;
+		std::function<void()> onRender = nullptr;
+
+	protected:
+		void _onUpdate(const spk::UpdateTick& p_tick) override
+		{
+			if (onUpdate != nullptr)
+			{
+				onUpdate(p_tick);
+			}
+		}
+
+		void _onRender() override
+		{
+			if (onRender != nullptr)
+			{
+				onRender();
 			}
 		}
 	};

@@ -1,9 +1,11 @@
 #pragma once
 
+#include <optional>
+
 #include "spk_keyboard.hpp"
 #include "spk_mouse.hpp"
 #include "spk_widget.hpp"
-#include "spk_window_host.hpp"
+#include "spk_timestamp.hpp"
 
 namespace spk
 {
@@ -24,8 +26,6 @@ namespace spk
 	class MouseModule : public IModule
 	{
 	private:
-		spk::WindowHost* _windowHost = nullptr;
-		spk::IFrame::EventContract _mouseEventContract;
 		spk::Mouse _mouse;
 
 	private:
@@ -34,7 +34,7 @@ namespace spk
 	public:
 		MouseModule();
 
-		void bindWindowHost(spk::WindowHost* p_windowHost);
+		void pushEvent(const spk::Event& p_event);
 
 		[[nodiscard]] spk::Mouse& mouse();
 		[[nodiscard]] const spk::Mouse& mouse() const;
@@ -43,8 +43,6 @@ namespace spk
 	class KeyboardModule : public IModule
 	{
 	private:
-		spk::WindowHost* _windowHost = nullptr;
-		spk::IFrame::EventContract _keyboardEventContract;
 		spk::Keyboard _keyboard;
 
 	private:
@@ -53,7 +51,7 @@ namespace spk
 	public:
 		KeyboardModule();
 
-		void bindWindowHost(spk::WindowHost* p_windowHost);
+		void pushEvent(const spk::Event& p_event);
 
 		[[nodiscard]] spk::Keyboard& keyboard();
 		[[nodiscard]] const spk::Keyboard& keyboard() const;
@@ -62,24 +60,26 @@ namespace spk
 	class FrameModule : public IModule
 	{
 	private:
-		spk::IFrame::EventContract _frameEventContract;
-		spk::WindowHost* _windowHost = nullptr;
-
-	private:
 		void _treatEvent(const spk::Event& p_event);
 
 	public:
 		FrameModule();
 
-		void bindWindowHost(spk::WindowHost* p_windowHost);
+		void pushEvent(const spk::Event& p_event);
 	};
 
 	class UpdateModule : public IModule
 	{
+	private:
+		std::optional<spk::Timestamp> _lastTimestamp;
+		spk::Mouse* _mouse = nullptr;
+		spk::Keyboard* _keyboard = nullptr;
+
 	public:
 		UpdateModule();
 
-		void update(const spk::UpdateTick& p_tick);
+		void bindInputs(spk::Mouse* p_mouse, spk::Keyboard* p_keyboard);
+		void update();
 	};
 
 	class RenderModule : public IModule

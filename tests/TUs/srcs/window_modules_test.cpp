@@ -24,138 +24,137 @@ TEST(IModuleTest, BindStoresWidgetPointerAndAllowsNull)
 
 TEST(MouseModuleTest, MouseEventsUpdateInternalStateAndDispatchToBoundWidget)
 {
-	auto bundle = sparkle_test::createWindowHostBundle();
 	sparkle_test::RecordingWidget widget("MouseWidget");
 	widget.activate();
 
 	spk::MouseModule module;
 	module.bind(&widget);
-	module.bindWindowHost(bundle.windowHost.get());
 
-	bundle.platformRuntime->queueMousePayload(spk::MouseMovedPayload{
+	module.pushEvent(spk::Event(spk::MouseMovedPayload{
+		.position = spk::Vector2Int(36, 45),
+		.delta = spk::Vector2Int(4, 5)}));
+	module.pushEvent(spk::Event(spk::MouseMovedPayload{
 		.position = spk::Vector2Int(40, 50),
-		.delta = spk::Vector2Int(4, 5)});
-	bundle.platformRuntime->queueMousePayload(spk::MouseWheelScrolledPayload{
-		.delta = spk::Vector2(0.0f, 1.5f)});
-	bundle.platformRuntime->queueMousePayload(spk::MouseButtonPressedPayload{
-		.button = spk::Mouse::Left});
-	bundle.platformRuntime->queueMousePayload(spk::MouseButtonReleasedPayload{
-		.button = spk::Mouse::Left});
-
-	bundle.windowHost->pollEvents();
+		.delta = spk::Vector2Int(4, 5)}));
+	module.pushEvent(spk::Event(spk::MouseWheelScrolledPayload{
+		.delta = spk::Vector2(0.0f, 1.5f)}));
+	module.pushEvent(spk::Event(spk::MouseButtonPressedPayload{
+		.button = spk::Mouse::Left}));
+	module.pushEvent(spk::Event(spk::MouseButtonReleasedPayload{
+		.button = spk::Mouse::Left}));
 
 	EXPECT_EQ(module.mouse().position, spk::Vector2Int(40, 50));
 	EXPECT_EQ(module.mouse().deltaPosition, spk::Vector2Int(4, 5));
 	EXPECT_FLOAT_EQ(module.mouse().wheel, 1.5f);
 	EXPECT_EQ(module.mouse()[spk::Mouse::Left], spk::InputState::Up);
-	EXPECT_EQ(widget.mouseEventCount, 4);
+	EXPECT_EQ(widget.mouseEventCount, 5);
 }
 
-TEST(MouseModuleTest, BindingNullWindowResignsMouseSubscription)
+TEST(MouseModuleTest, PushEventIsSafeWhenUnbound)
 {
-	auto bundle = sparkle_test::createWindowHostBundle();
-	sparkle_test::RecordingWidget widget("MouseWidget");
-	widget.activate();
-
 	spk::MouseModule module;
-	module.bind(&widget);
-	module.bindWindowHost(bundle.windowHost.get());
-	module.bindWindowHost(nullptr);
 
-	bundle.platformRuntime->emitMousePayload(spk::MouseMovedPayload{
+	EXPECT_NO_THROW(module.pushEvent(spk::Event(spk::MouseMovedPayload{
 		.position = spk::Vector2Int(9, 9),
-		.delta = spk::Vector2Int(1, 1)});
+		.delta = spk::Vector2Int(1, 1)})));
 
 	EXPECT_EQ(module.mouse().position, spk::Vector2Int(0, 0));
-	EXPECT_EQ(widget.mouseEventCount, 0);
 }
 
 TEST(KeyboardModuleTest, KeyboardEventsUpdateInternalStateAndDispatchToBoundWidget)
 {
-	auto bundle = sparkle_test::createWindowHostBundle();
 	sparkle_test::RecordingWidget widget("KeyboardWidget");
 	widget.activate();
 
 	spk::KeyboardModule module;
 	module.bind(&widget);
-	module.bindWindowHost(bundle.windowHost.get());
 
-	bundle.platformRuntime->queueKeyboardPayload(spk::KeyPressedPayload{
+	module.pushEvent(spk::Event(spk::KeyPressedPayload{
 		.key = spk::Keyboard::Escape,
-		.isRepeated = false});
-	bundle.platformRuntime->queueKeyboardPayload(spk::TextInputPayload{
-		.glyph = U'Q'});
-	bundle.platformRuntime->queueKeyboardPayload(spk::KeyReleasedPayload{
-		.key = spk::Keyboard::Escape});
-
-	bundle.windowHost->pollEvents();
+		.isRepeated = false}));
+	module.pushEvent(spk::Event(spk::TextInputPayload{
+		.glyph = U'Q'}));
+	module.pushEvent(spk::Event(spk::KeyReleasedPayload{
+		.key = spk::Keyboard::Escape}));
 
 	EXPECT_EQ(module.keyboard()[spk::Keyboard::Escape], spk::InputState::Up);
 	EXPECT_EQ(module.keyboard().glyph, U'Q');
 	EXPECT_EQ(widget.keyboardEventCount, 3);
 }
 
-TEST(KeyboardModuleTest, BindingNullWindowResignsKeyboardSubscription)
+TEST(KeyboardModuleTest, PushEventIsSafeWhenUnbound)
 {
-	auto bundle = sparkle_test::createWindowHostBundle();
-	sparkle_test::RecordingWidget widget("KeyboardWidget");
-	widget.activate();
-
 	spk::KeyboardModule module;
-	module.bind(&widget);
-	module.bindWindowHost(bundle.windowHost.get());
-	module.bindWindowHost(nullptr);
 
-	bundle.platformRuntime->emitKeyboardPayload(spk::KeyPressedPayload{
+	EXPECT_NO_THROW(module.pushEvent(spk::Event(spk::KeyPressedPayload{
 		.key = spk::Keyboard::A,
-		.isRepeated = false});
+		.isRepeated = false})));
 
 	EXPECT_EQ(module.keyboard()[spk::Keyboard::A], spk::InputState::Up);
-	EXPECT_EQ(widget.keyboardEventCount, 0);
 }
 
-TEST(FrameModuleTest, WindowResizeEventsNotifyRenderContextAndDispatchToWidget)
+TEST(FrameModuleTest, FrameEventsDispatchToBoundWidget)
 {
-	auto bundle = sparkle_test::createWindowHostBundle();
 	sparkle_test::RecordingWidget widget("FrameWidget");
 	widget.activate();
 
 	spk::FrameModule module;
 	module.bind(&widget);
-	module.bindWindowHost(bundle.windowHost.get());
 
 	const spk::Rect2D resizedRect(0, 0, 1920, 1080);
-	bundle.platformRuntime->queueFramePayload(spk::WindowResizedPayload{
-		.rect = resizedRect});
+	module.pushEvent(spk::Event(spk::WindowResizedPayload{
+		.rect = resizedRect}));
 
-	bundle.windowHost->pollEvents();
-
-	ASSERT_NE(bundle.renderBackend->createdContext, nullptr);
-	EXPECT_EQ(bundle.renderBackend->createdContext->notifyResizeCount, 1);
-	EXPECT_EQ(bundle.renderBackend->createdContext->lastResizeRect, resizedRect);
 	EXPECT_EQ(widget.frameEventCount, 1);
 	ASSERT_EQ(widget.frameEventKinds.size(), 1u);
 	EXPECT_EQ(widget.frameEventKinds[0], "WindowResized");
 }
 
-TEST(UpdateModuleTest, UpdateForwardsTickToBoundWidgetAndIsSafeWhenUnbound)
+TEST(FrameModuleTest, PushEventIsSafeWhenUnbound)
+{
+	spk::FrameModule module;
+	const spk::Rect2D resizedRect(0, 0, 1920, 1080);
+
+	EXPECT_NO_THROW(module.pushEvent(spk::Event(spk::WindowResizedPayload{
+		.rect = resizedRect})));
+}
+
+TEST(UpdateModuleTest, UpdateIsSafeWhenUnbound)
 {
 	spk::UpdateModule module;
-	spk::UpdateTick tick;
 
-	EXPECT_NO_THROW(module.update(tick));
+	EXPECT_NO_THROW(module.update());
+}
 
+TEST(UpdateModuleTest, UpdateBuildsAndForwardsTickToBoundWidget)
+{
+	spk::UpdateModule module;
 	sparkle_test::RecordingWidget widget("UpdateWidget");
-	widget.activate();
-	tick.mouse = nullptr;
-	tick.keyboard = nullptr;
 
+	widget.activate();
 	module.bind(&widget);
-	module.update(tick);
+
+	module.update();
 
 	EXPECT_EQ(widget.updateCount, 1);
-	EXPECT_EQ(widget.lastTickMouse, nullptr);
-	EXPECT_EQ(widget.lastTickKeyboard, nullptr);
+}
+
+TEST(UpdateModuleTest, BoundInputsAreInjectedIntoConstructedTick)
+{
+	spk::UpdateModule module;
+	sparkle_test::RecordingWidget widget("UpdateWidget");
+	spk::Mouse mouse;
+	spk::Keyboard keyboard;
+
+	widget.activate();
+	module.bind(&widget);
+	module.bindInputs(&mouse, &keyboard);
+
+	module.update();
+
+	EXPECT_EQ(widget.updateCount, 1);
+	EXPECT_EQ(widget.lastTickMouse, &mouse);
+	EXPECT_EQ(widget.lastTickKeyboard, &keyboard);
 }
 
 TEST(RenderModuleTest, RenderCallsBoundWidgetAndIsSafeWhenUnbound)
