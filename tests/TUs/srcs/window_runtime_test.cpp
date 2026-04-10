@@ -11,30 +11,30 @@ TEST(WindowRegistryTest, CreateWindowReturnsSharedWindowAndRejectsDuplicateIds)
 	spk::WindowRegistry registry;
 
 	auto platformRuntime = std::make_shared<sparkle_test::TestPlatformRuntime>();
-	auto renderBackend = std::make_unique<sparkle_test::TestRenderContextBackend>();
+	auto gpuPlatformRuntime = std::make_shared<sparkle_test::TestGPUPlatformRuntime>();
 	std::shared_ptr<spk::Window> window = registry.createWindow(
 		"main",
-		spk::WindowHost::Configuration{
+		platformRuntime,
+		gpuPlatformRuntime,
+		spk::Window::Configuration{
 			.rect = sparkle_test::defaultRect(),
-			.title = "Main",
-			.platformRuntime = std::move(platformRuntime),
-			.renderBackend = std::move(renderBackend)
+			.title = "Main"
 		});
 
 	ASSERT_NE(window, nullptr);
 	EXPECT_EQ(window->host().title(), "Main");
 
 	auto duplicatePlatformRuntime = std::make_shared<sparkle_test::TestPlatformRuntime>();
-	auto duplicateRenderBackend = std::make_unique<sparkle_test::TestRenderContextBackend>();
+	auto duplicateGPUPlatformRuntime = std::make_shared<sparkle_test::TestGPUPlatformRuntime>();
 
 	EXPECT_THROW(
 		registry.createWindow(
 			"main",
-			spk::WindowHost::Configuration{
+			duplicatePlatformRuntime,
+			duplicateGPUPlatformRuntime,
+			spk::Window::Configuration{
 				.rect = sparkle_test::defaultRect(),
-				.title = "MainDuplicate",
-				.platformRuntime = std::move(duplicatePlatformRuntime),
-				.renderBackend = std::move(duplicateRenderBackend)
+				.title = "MainDuplicate"
 			}),
 		std::runtime_error);
 }
@@ -43,16 +43,16 @@ TEST(WindowRegistryTest, RequestWindowClosingDelegatesToStoredWindow)
 {
 	spk::WindowRegistry registry;
 	auto platformRuntime = std::make_shared<sparkle_test::TestPlatformRuntime>();
-	auto renderBackend = std::make_unique<sparkle_test::TestRenderContextBackend>();
+	auto gpuPlatformRuntime = std::make_shared<sparkle_test::TestGPUPlatformRuntime>();
 	auto* platformRuntimePtr = platformRuntime.get();
 
 	std::shared_ptr<spk::Window> window = registry.createWindow(
 		"main",
-		spk::WindowHost::Configuration{
+		platformRuntime,
+		gpuPlatformRuntime,
+		spk::Window::Configuration{
 			.rect = sparkle_test::defaultRect(),
-			.title = "Main",
-			.platformRuntime = std::move(platformRuntime),
-			.renderBackend = std::move(renderBackend)
+			.title = "Main"
 		});
 
 	registry.requestWindowClosing("main");

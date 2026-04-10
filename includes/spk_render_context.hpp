@@ -1,24 +1,11 @@
 #pragma once
 
-#include <memory>
-
 #include "spk_rect_2d.hpp"
 
 namespace spk
 {
-	class IFrame;
-
 	class IRenderContext
 	{
-	public:
-		class Backend
-		{
-		public:
-			virtual ~Backend();
-
-			virtual std::unique_ptr<IRenderContext> createRenderContext(IFrame& p_frame) = 0;
-		};
-
 	public:
 		virtual ~IRenderContext();
 

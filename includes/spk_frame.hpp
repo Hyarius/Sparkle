@@ -6,7 +6,6 @@
 #include "spk_contract_provider.hpp"
 #include "spk_events.hpp"
 #include "spk_rect_2d.hpp"
-#include "spk_render_context.hpp"
 
 namespace spk
 {
@@ -33,7 +32,6 @@ namespace spk
 		virtual void resize(const spk::Rect2D& p_rect) = 0;
 		virtual void setTitle(const std::string& p_title) = 0;
 		virtual void requestClosure() = 0;
-		virtual std::unique_ptr<IRenderContext> createRenderContext(IRenderContext::Backend& p_backend) = 0;
 
 		[[nodiscard]] virtual spk::Rect2D rect() const = 0;
 		[[nodiscard]] virtual std::string title() const = 0;

@@ -6,6 +6,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include "spk_gpu_platform_runtime.hpp"
+#include "spk_platform_runtime.hpp"
 #include "spk_window.hpp"
 
 namespace spk
@@ -29,7 +31,7 @@ namespace spk
 		void _removeWindow(spk::Window* p_window);
 
 	public:
-		std::shared_ptr<spk::Window> createWindow(const WindowID& p_id, spk::WindowHost::Configuration p_configuration);
+		std::shared_ptr<spk::Window> createWindow(const WindowID& p_id, std::shared_ptr<IPlatformRuntime> p_platformRuntime, std::shared_ptr<IGPUPlatformRuntime> p_gpuPlatformRuntime, spk::Window::Configuration p_configuration);
 		[[nodiscard]] std::shared_ptr<spk::Window> window(const WindowID& p_id) const;
 		[[nodiscard]] bool contains(const WindowID& p_id) const;
 		[[nodiscard]] size_t size() const;

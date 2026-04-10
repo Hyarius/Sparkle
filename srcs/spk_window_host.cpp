@@ -2,28 +2,20 @@
 
 namespace spk
 {
-	std::shared_ptr<IPlatformRuntime> WindowHost::_createDefaultPlatformRuntime()
+	WindowHost::WindowHost(std::unique_ptr<IFrame> p_frame, std::shared_ptr<IGPUPlatformRuntime> p_gpuPlatformRuntime) :
+		_frame(std::move(p_frame))
 	{
-		throw std::runtime_error("No default spk::IPlatformRuntime is implemented for this platform yet");
-	}
-
-	std::unique_ptr<IRenderContext::Backend> WindowHost::_createDefaultRenderBackend()
-	{
-		throw std::runtime_error("No default spk::IRenderContext::Backend is implemented yet");
-	}
-
-	WindowHost::WindowHost(Configuration p_configuration) :
-		_platformRuntime(p_configuration.platformRuntime != nullptr ? std::move(p_configuration.platformRuntime) : _createDefaultPlatformRuntime()),
-		_renderBackend(p_configuration.renderBackend != nullptr ? std::move(p_configuration.renderBackend) : _createDefaultRenderBackend())
-	{
-		_frame = _platformRuntime->createFrame(p_configuration.rect, p_configuration.title);
-
 		if (_frame == nullptr)
 		{
-			throw std::runtime_error("spk::WindowHost failed to create its frame");
+			throw std::runtime_error("spk::WindowHost requires a valid spk::IFrame");
 		}
 
-		_renderContext = _frame->createRenderContext(*_renderBackend);
+		if (p_gpuPlatformRuntime == nullptr)
+		{
+			throw std::runtime_error("spk::WindowHost requires a valid spk::IGPUPlatformRuntime");
+		}
+
+		_renderContext = p_gpuPlatformRuntime->createRenderContext(*_frame);
 
 		if (_renderContext == nullptr)
 		{
@@ -76,11 +68,6 @@ namespace spk
 	void WindowHost::setVSync(bool p_enabled)
 	{
 		_renderContext->setVSync(p_enabled);
-	}
-
-	void WindowHost::pollEvents()
-	{
-		_platformRuntime->pollEvents();
 	}
 
 	IFrame::EventContract WindowHost::subscribeToMouseEvents(IFrame::EventCallback p_callback)

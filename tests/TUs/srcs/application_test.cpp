@@ -8,43 +8,46 @@
 
 TEST(ApplicationTest, CreateWindowAndLookupReturnTheManagedWindow)
 {
-	spk::Application application;
-
 	auto platformRuntime = std::make_shared<sparkle_test::TestPlatformRuntime>();
-	auto renderBackend = std::make_unique<sparkle_test::TestRenderContextBackend>();
+	auto gpuPlatformRuntime = std::make_shared<sparkle_test::TestGPUPlatformRuntime>();
 	auto* platformRuntimePtr = platformRuntime.get();
+	spk::Application application(
+		spk::Application::Configuration{
+			.platformRuntime = platformRuntime,
+			.gpuPlatformRuntime = gpuPlatformRuntime
+		});
 
-	spk::Window& window = application.createWindow(
+	std::shared_ptr<spk::Window> window = application.createWindow(
 		"main",
-		spk::WindowHost::Configuration{
+		spk::Window::Configuration{
 			.rect = sparkle_test::defaultRect(),
-			.title = "Main",
-			.platformRuntime = std::move(platformRuntime),
-			.renderBackend = std::move(renderBackend)
+			.title = "Main"
 		});
 
 	EXPECT_TRUE(application.containsWindow("main"));
-	EXPECT_EQ(&application.window("main"), &window);
-	EXPECT_EQ(window.host().title(), "Main");
+	EXPECT_EQ(application.window("main"), window);
+	ASSERT_NE(window, nullptr);
+	EXPECT_EQ(window->host().title(), "Main");
 	ASSERT_NE(platformRuntimePtr->createdFrame, nullptr);
 	EXPECT_EQ(platformRuntimePtr->lastCreateTitle, "Main");
 }
 
 TEST(ApplicationTest, RequestWindowClosingDelegatesToTheManagedWindow)
 {
-	spk::Application application;
-
 	auto platformRuntime = std::make_shared<sparkle_test::TestPlatformRuntime>();
-	auto renderBackend = std::make_unique<sparkle_test::TestRenderContextBackend>();
+	auto gpuPlatformRuntime = std::make_shared<sparkle_test::TestGPUPlatformRuntime>();
 	auto* platformRuntimePtr = platformRuntime.get();
+	spk::Application application(
+		spk::Application::Configuration{
+			.platformRuntime = platformRuntime,
+			.gpuPlatformRuntime = gpuPlatformRuntime
+		});
 
 	application.createWindow(
 		"main",
-		spk::WindowHost::Configuration{
+		spk::Window::Configuration{
 			.rect = sparkle_test::defaultRect(),
-			.title = "Main",
-			.platformRuntime = std::move(platformRuntime),
-			.renderBackend = std::move(renderBackend)
+			.title = "Main"
 		});
 
 	application.requestWindowClosing("main");
@@ -56,33 +59,34 @@ TEST(ApplicationTest, RequestWindowClosingDelegatesToTheManagedWindow)
 TEST(ApplicationTest, RunExecutesEventUpdateAndRenderLoops)
 {
 	const spk::Duration step(1.0L, spk::TimeUnit::Millisecond);
+	auto platformRuntime = std::make_shared<sparkle_test::TestPlatformRuntime>();
+	auto gpuPlatformRuntime = std::make_shared<sparkle_test::TestGPUPlatformRuntime>();
 
 	spk::Application application(
 		spk::Application::Configuration{
+			.platformRuntime = platformRuntime,
+			.gpuPlatformRuntime = gpuPlatformRuntime,
 			.renderInterval = step,
 			.updateInterval = step,
 			.eventPollingInterval = step,
 			.stopWhenNoWindows = false
 		});
 
-	auto platformRuntime = std::make_shared<sparkle_test::TestPlatformRuntime>();
-	auto renderBackend = std::make_unique<sparkle_test::TestRenderContextBackend>();
 	auto* platformRuntimePtr = platformRuntime.get();
-	auto* renderBackendPtr = renderBackend.get();
+	auto* gpuPlatformRuntimePtr = gpuPlatformRuntime.get();
 
-	spk::Window& window = application.createWindow(
+	std::shared_ptr<spk::Window> window = application.createWindow(
 		"main",
-		spk::WindowHost::Configuration{
+		spk::Window::Configuration{
 			.rect = sparkle_test::defaultRect(),
-			.title = "Main",
-			.platformRuntime = std::move(platformRuntime),
-			.renderBackend = std::move(renderBackend)
+			.title = "Main"
 		});
 
 	std::atomic<int> updateCount = 0;
 	std::atomic<int> renderCount = 0;
 
-	sparkle_test::CallbackWidget probe("Probe", &window.rootWidget());
+	ASSERT_NE(window, nullptr);
+	sparkle_test::CallbackWidget probe("Probe", &window->rootWidget());
 	probe.activate();
 	probe.onUpdate = [&](const spk::UpdateTick& p_tick)
 	{
@@ -111,27 +115,105 @@ TEST(ApplicationTest, RunExecutesEventUpdateAndRenderLoops)
 	EXPECT_GT(platformRuntimePtr->pollEventsCount, 0);
 	EXPECT_GT(updateCount.load(), 0);
 	EXPECT_GT(renderCount.load(), 0);
-	EXPECT_EQ(window.mouse().position, spk::Vector2Int(11, 13));
-	ASSERT_NE(renderBackendPtr->createdContext, nullptr);
-	EXPECT_GT(renderBackendPtr->createdContext->makeCurrentCount, 0);
-	EXPECT_GT(renderBackendPtr->createdContext->presentCount, 0);
+	EXPECT_EQ(window->mouse().position, spk::Vector2Int(11, 13));
+	ASSERT_NE(gpuPlatformRuntimePtr->createdContext, nullptr);
+	EXPECT_GT(gpuPlatformRuntimePtr->createdContext->makeCurrentCount, 0);
+	EXPECT_GT(gpuPlatformRuntimePtr->createdContext->presentCount, 0);
+}
+
+TEST(ApplicationTest, RunRethrowsWorkerThreadFailuresOnTheCallerThread)
+{
+	const spk::Duration step(1.0L, spk::TimeUnit::Millisecond);
+	auto platformRuntime = std::make_shared<sparkle_test::TestPlatformRuntime>();
+	auto gpuPlatformRuntime = std::make_shared<sparkle_test::TestGPUPlatformRuntime>();
+
+	spk::Application application(
+		spk::Application::Configuration{
+			.platformRuntime = platformRuntime,
+			.gpuPlatformRuntime = gpuPlatformRuntime,
+			.renderInterval = step,
+			.updateInterval = step,
+			.eventPollingInterval = step,
+			.stopWhenNoWindows = false
+		});
+
+	std::shared_ptr<spk::Window> window = application.createWindow(
+		"main",
+		spk::Window::Configuration{
+			.rect = sparkle_test::defaultRect(),
+			.title = "Main"
+		});
+
+	ASSERT_NE(window, nullptr);
+
+	sparkle_test::CallbackWidget probe("Probe", &window->rootWidget());
+	probe.activate();
+	probe.onUpdate = [](const spk::UpdateTick&)
+	{
+		throw std::runtime_error("update failure");
+	};
+
+	EXPECT_THROW(application.run(), std::runtime_error);
+	EXPECT_FALSE(application.isRunning());
+}
+
+TEST(ApplicationTest, RunPollsTheSharedPlatformRuntimeOncePerIteration)
+{
+	const spk::Duration step(1.0L, spk::TimeUnit::Millisecond);
+	auto platformRuntime = std::make_shared<sparkle_test::TestPlatformRuntime>();
+	auto gpuPlatformRuntime = std::make_shared<sparkle_test::TestGPUPlatformRuntime>();
+	auto* platformRuntimePtr = platformRuntime.get();
+
+	spk::Application application(
+		spk::Application::Configuration{
+			.platformRuntime = platformRuntime,
+			.gpuPlatformRuntime = gpuPlatformRuntime,
+			.renderInterval = step,
+			.updateInterval = step,
+			.eventPollingInterval = step,
+			.stopWhenNoWindows = false
+		});
+
+	application.createWindow(
+		"first",
+		spk::Window::Configuration{
+			.rect = sparkle_test::defaultRect(),
+			.title = "First"
+		});
+
+	application.createWindow(
+		"second",
+		spk::Window::Configuration{
+			.rect = sparkle_test::defaultRect(),
+			.title = "Second"
+		});
+
+	platformRuntimePtr->onPollEvents = [&](sparkle_test::TestPlatformRuntime&)
+	{
+		application.stop();
+	};
+
+	application.run();
+
+	EXPECT_EQ(platformRuntimePtr->pollEventsCount, 1);
 }
 
 TEST(ApplicationTest, RunStopsWhenTheLastWindowCloses)
 {
-	spk::Application application;
-
 	auto platformRuntime = std::make_shared<sparkle_test::TestPlatformRuntime>();
-	auto renderBackend = std::make_unique<sparkle_test::TestRenderContextBackend>();
+	auto gpuPlatformRuntime = std::make_shared<sparkle_test::TestGPUPlatformRuntime>();
 	auto* platformRuntimePtr = platformRuntime.get();
+	spk::Application application(
+		spk::Application::Configuration{
+			.platformRuntime = platformRuntime,
+			.gpuPlatformRuntime = gpuPlatformRuntime
+		});
 
 	application.createWindow(
 		"main",
-		spk::WindowHost::Configuration{
+		spk::Window::Configuration{
 			.rect = sparkle_test::defaultRect(),
-			.title = "Main",
-			.platformRuntime = platformRuntime,
-			.renderBackend = std::move(renderBackend)
+			.title = "Main"
 		});
 
 	platformRuntimePtr->queueFramePayload(spk::WindowCloseValidatedPayload{});

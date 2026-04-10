@@ -21,7 +21,7 @@ namespace spk
 		}
 	}
 
-	std::shared_ptr<spk::Window> WindowRegistry::createWindow(const WindowID& p_id, spk::WindowHost::Configuration p_configuration)
+	std::shared_ptr<spk::Window> WindowRegistry::createWindow(const WindowID& p_id, std::shared_ptr<IPlatformRuntime> p_platformRuntime, std::shared_ptr<IGPUPlatformRuntime> p_gpuPlatformRuntime, spk::Window::Configuration p_configuration)
 	{
 		{
 			std::scoped_lock lock(_mutex);
@@ -31,7 +31,7 @@ namespace spk
 			}
 		}
 
-		std::shared_ptr<Window> newWindow = std::make_shared<Window>(std::move(p_configuration));
+		std::shared_ptr<Window> newWindow = std::make_shared<Window>(std::move(p_platformRuntime), std::move(p_gpuPlatformRuntime), std::move(p_configuration));
 		Window::ClosureContract newWindowClosureContract = newWindow->subscribeToClosure(
 			[this](spk::Window* p_window)
 			{

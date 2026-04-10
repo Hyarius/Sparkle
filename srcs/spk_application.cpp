@@ -4,25 +4,55 @@
 #include <stdexcept>
 #include <thread>
 
+#include "spk_chronometer.hpp"
 #include "spk_time_utils.hpp"
 
 namespace spk
 {
-	void Application::_sleep(const spk::Duration& p_duration)
+	std::shared_ptr<IPlatformRuntime> Application::_createDefaultPlatformRuntime()
 	{
-		if (p_duration.nanoseconds() <= 0)
+		throw std::runtime_error("No default spk::IPlatformRuntime is implemented for this platform yet");
+	}
+
+	std::shared_ptr<IGPUPlatformRuntime> Application::_createDefaultGPUPlatformRuntime()
+	{
+		throw std::runtime_error("No default spk::IGPUPlatformRuntime is implemented for this platform yet");
+	}
+
+	void Application::_recordFailure(std::exception_ptr p_failure)
+	{
+		std::scoped_lock lock(_failureMutex);
+
+		if (_failure == nullptr)
 		{
-			std::this_thread::yield();
-			return;
+			_failure = std::move(p_failure);
+		}
+	}
+
+	void Application::_rethrowFailureIfAny()
+	{
+		std::exception_ptr failure = nullptr;
+
+		{
+			std::scoped_lock lock(_failureMutex);
+			failure = _failure;
+			_failure = nullptr;
 		}
 
-		std::this_thread::sleep_for(std::chrono::nanoseconds(p_duration.nanoseconds()));
+		if (failure != nullptr)
+		{
+			std::rethrow_exception(failure);
+		}
 	}
 
 	void Application::_runRenderLoop()
 	{
+
 		while (_stopRequested.load() == false)
 		{
+			spk::Chronometer chronometer;
+			chronometer.start();
+
 			std::vector<std::shared_ptr<spk::Window>> windows = _windowRegistry.windows();
 
 			if (windows.empty() == true)
@@ -32,25 +62,30 @@ namespace spk
 					_stopRequested.store(true);
 					return;
 				}
-
-				_sleep(_configuration.renderInterval);
-				continue;
 			}
-
-			for (const auto& window : windows)
+			else
 			{
-				if (_stopRequested.load() == true)
+				for (const auto& window : windows)
 				{
-					return;
-				}
-
-				if (window != nullptr)
-				{
-					window->render();
+					if (_stopRequested.load() == true)
+					{
+						return;
+					}
+					
+					if (window != nullptr)
+					{
+						window->render();
+					}
 				}
 			}
 
-			_sleep(_configuration.renderInterval);
+			const spk::Duration elapsedTime = chronometer.elapsedTime();
+			const spk::Duration remainingTime = _configuration.renderInterval - elapsedTime;
+
+			if (remainingTime > 0_ns)
+			{
+				spk::TimeUtils::sleepFor(remainingTime);
+			}
 		}
 	}
 
@@ -58,6 +93,9 @@ namespace spk
 	{
 		while (_stopRequested.load() == false)
 		{
+			spk::Chronometer chronometer;
+			chronometer.start();
+
 			std::vector<std::shared_ptr<spk::Window>> windows = _windowRegistry.windows();
 
 			if (windows.empty() == true)
@@ -67,25 +105,30 @@ namespace spk
 					_stopRequested.store(true);
 					return;
 				}
-
-				_sleep(_configuration.updateInterval);
-				continue;
 			}
-
-			for (const auto& window : windows)
+			else
 			{
-				if (_stopRequested.load() == true)
+				for (const auto& window : windows)
 				{
-					return;
-				}
+					if (_stopRequested.load() == true)
+					{
+						return;
+					}
 
-				if (window != nullptr)
-				{
-					window->update();
-				}
+					if (window != nullptr)
+					{
+						window->update();
+					}
+				}	
 			}
 
-			_sleep(_configuration.updateInterval);
+			const spk::Duration elapsedTime = chronometer.elapsedTime();
+			const spk::Duration remainingTime = _configuration.updateInterval - elapsedTime;
+
+			if (remainingTime > 0_ns)
+			{
+				spk::TimeUtils::sleepFor(remainingTime);
+			}
 		}
 	}
 
@@ -93,9 +136,7 @@ namespace spk
 	{
 		while (_stopRequested.load() == false)
 		{
-			std::vector<std::shared_ptr<spk::Window>> windows = _windowRegistry.windows();
-
-			if (windows.empty() == true)
+			if (_windowRegistry.size() == 0)
 			{
 				if (_configuration.stopWhenNoWindows == true)
 				{
@@ -103,47 +144,48 @@ namespace spk
 					return;
 				}
 
-				_sleep(_configuration.eventPollingInterval);
+				spk::TimeUtils::sleepFor(_configuration.eventPollingInterval);
 				continue;
 			}
 
-			for (const auto& window : windows)
-			{
-				if (_stopRequested.load() == true)
-				{
-					return;
-				}
+			_platformRuntime->pollEvents();
 
-				if (window != nullptr)
-				{
-					window->pollEvents();
-				}
-			}
-
-			_sleep(_configuration.eventPollingInterval);
+			spk::TimeUtils::sleepFor(_configuration.eventPollingInterval);
 		}
 	}
 
 	Application::Application() = default;
 
 	Application::Application(Configuration p_configuration) :
-		_configuration(std::move(p_configuration))
+		_configuration(std::move(p_configuration)),
+		_platformRuntime(_configuration.platformRuntime),
+		_gpuPlatformRuntime(_configuration.gpuPlatformRuntime)
 	{
 	}
 
-	spk::Window& Application::createWindow(const WindowID& p_id, spk::WindowHost::Configuration p_configuration)
+	std::shared_ptr<spk::Window> Application::createWindow(const WindowID& p_id, spk::Window::Configuration p_configuration)
 	{
-		return *_windowRegistry.createWindow(p_id, std::move(p_configuration));
+		if (_platformRuntime == nullptr)
+		{
+			_platformRuntime = _createDefaultPlatformRuntime();
+		}
+
+		if (_gpuPlatformRuntime == nullptr)
+		{
+			_gpuPlatformRuntime = _createDefaultGPUPlatformRuntime();
+		}
+
+		return _windowRegistry.createWindow(p_id, _platformRuntime, _gpuPlatformRuntime, std::move(p_configuration));
 	}
 
-	spk::Window& Application::window(const WindowID& p_id)
+	std::shared_ptr<spk::Window> Application::window(const WindowID& p_id)
 	{
-		return *_windowRegistry.window(p_id);
+		return _windowRegistry.window(p_id);
 	}
 
-	const spk::Window& Application::window(const WindowID& p_id) const
+	std::shared_ptr<const spk::Window> Application::window(const WindowID& p_id) const
 	{
-		return *_windowRegistry.window(p_id);
+		return _windowRegistry.window(p_id);
 	}
 
 	bool Application::containsWindow(const WindowID& p_id) const
@@ -168,6 +210,16 @@ namespace spk
 
 	void Application::run()
 	{
+		if (_platformRuntime == nullptr && _windowRegistry.size() != 0)
+		{
+			_platformRuntime = _createDefaultPlatformRuntime();
+		}
+
+		if (_gpuPlatformRuntime == nullptr && _windowRegistry.size() != 0)
+		{
+			_gpuPlatformRuntime = _createDefaultGPUPlatformRuntime();
+		}
+
 		bool expectedValue = false;
 		if (_isRunning.compare_exchange_strong(expectedValue, true) == false)
 		{
@@ -175,35 +227,52 @@ namespace spk
 		}
 
 		_stopRequested.store(false);
+		_rethrowFailureIfAny();
 
-		try
+		std::jthread renderThread([this]()
 		{
-			std::jthread renderThread([this]()
+			try
 			{
 				_runRenderLoop();
-			});
+			}
+			catch (...)
+			{
+				_recordFailure(std::current_exception());
+				_stopRequested.store(true);
+			}
+		});
 
-			std::jthread updateThread([this]()
+		std::jthread updateThread([this]()
+		{
+			try
 			{
 				_runUpdateLoop();
-			});
+			}
+			catch (...)
+			{
+				_recordFailure(std::current_exception());
+				_stopRequested.store(true);
+			}
+		});
 
-			std::jthread eventThread([this]()
+		std::jthread eventThread([this]()
+		{
+			try
 			{
 				_runEventLoop();
-			});
+			}
+			catch (...)
+			{
+				_recordFailure(std::current_exception());
+				_stopRequested.store(true);
+			}
+		});
 
-			renderThread.join();
-			updateThread.join();
-			eventThread.join();
-		}
-		catch (...)
-		{
-			_stopRequested.store(true);
-			_isRunning.store(false);
-			throw;
-		}
+		renderThread.join();
+		updateThread.join();
+		eventThread.join();
 
 		_isRunning.store(false);
+		_rethrowFailureIfAny();
 	}
 }

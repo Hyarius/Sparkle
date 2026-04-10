@@ -2,9 +2,12 @@
 
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <vector>
 
 #include "spk_contract_provider.hpp"
+#include "spk_gpu_platform_runtime.hpp"
+#include "spk_platform_runtime.hpp"
 #include "spk_render_command_builder.hpp"
 #include "spk_window_host.hpp"
 #include "spk_window_modules.hpp"
@@ -18,6 +21,12 @@ namespace spk
 		using ClosureContract = ClosureEventProvider::Contract;
 		using ClosureCallback = ClosureEventProvider::Callback;
 
+		struct Configuration
+		{
+			spk::Rect2D rect;
+			std::string title;
+		};
+
 	private:
 		spk::Widget _rootWidget;
 		spk::WindowHost _host;
@@ -29,9 +38,10 @@ namespace spk
 		RenderModule _renderModule;
 
 		mutable std::mutex _pendingEventsMutex;
-		std::vector<spk::Event> _pendingFrameEvents;
-		std::vector<spk::Event> _pendingMouseEvents;
-		std::vector<spk::Event> _pendingKeyboardEvents;
+		std::vector<spk::Event> _pendingEvents;
+
+		mutable std::mutex _pendingFrameResizeMutex;
+		std::optional<spk::Rect2D> _pendingFrameResize;
 
 		mutable std::mutex _renderSnapshotMutex;
 		std::shared_ptr<spk::RenderCommandBuilder> _renderSnapshot;
@@ -43,23 +53,19 @@ namespace spk
 		ClosureEventProvider _closureEventProvider;
 
 	private:
-		void _enqueueFrameEvent(const spk::Event& p_event);
-		void _enqueueMouseEvent(const spk::Event& p_event);
-		void _enqueueKeyboardEvent(const spk::Event& p_event);
+		void _enqueueEvent(const spk::Event& p_event);
+		void _recordPendingFrameResize(const spk::Rect2D& p_rect);
 
-		[[nodiscard]] std::vector<spk::Event> _drainPendingFrameEvents();
-		[[nodiscard]] std::vector<spk::Event> _drainPendingMouseEvents();
-		[[nodiscard]] std::vector<spk::Event> _drainPendingKeyboardEvents();
+		[[nodiscard]] std::vector<spk::Event> _drainPendingEvents();
+		[[nodiscard]] std::optional<spk::Rect2D> _consumePendingFrameResize();
 
-		void _treatFrameEvent(const spk::Event& p_event);
-		void _treatMouseEvent(const spk::Event& p_event);
-		void _treatKeyboardEvent(const spk::Event& p_event);
+		void _treatEvent(const spk::Event& p_event);
 
 		void _rebuildRenderSnapshot();
 		[[nodiscard]] std::shared_ptr<spk::RenderCommandBuilder> _currentRenderSnapshot() const;
 
 	public:
-		explicit Window(spk::WindowHost::Configuration p_configuration);
+		Window(std::shared_ptr<IPlatformRuntime> p_platformRuntime, std::shared_ptr<IGPUPlatformRuntime> p_gpuPlatformRuntime, Configuration p_configuration);
 
 		[[nodiscard]] spk::WindowHost& host();
 		[[nodiscard]] const spk::WindowHost& host() const;
@@ -73,7 +79,6 @@ namespace spk
 		[[nodiscard]] spk::Widget& rootWidget();
 		[[nodiscard]] const spk::Widget& rootWidget() const;
 
-		void pollEvents();
 		void update();
 		void render();
 		void requestClosure();

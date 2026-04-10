@@ -22,29 +22,29 @@ TEST(IRenderContextTest, TestRenderContextTracksAllOperations)
 	EXPECT_EQ(context.resizeHistory[0], resizedRect);
 }
 
-TEST(IRenderContextBackendTest, CreateRenderContextReceivesFrameReference)
+TEST(IGPUPlatformRuntimeTest, CreateRenderContextReceivesFrameReference)
 {
-	sparkle_test::TestRenderContextBackend backend;
+	sparkle_test::TestGPUPlatformRuntime gpuPlatformRuntime;
 	sparkle_test::TestFrame frame(sparkle_test::defaultRect(), "Frame");
 
-	std::unique_ptr<spk::IRenderContext> context = backend.createRenderContext(frame);
+	std::unique_ptr<spk::IRenderContext> context = gpuPlatformRuntime.createRenderContext(frame);
 
 	ASSERT_NE(context, nullptr);
-	ASSERT_NE(backend.createdContext, nullptr);
-	EXPECT_EQ(backend.createRenderContextCount, 1);
-	EXPECT_EQ(backend.lastFrame, &frame);
+	ASSERT_NE(gpuPlatformRuntime.createdContext, nullptr);
+	EXPECT_EQ(gpuPlatformRuntime.createRenderContextCount, 1);
+	EXPECT_EQ(gpuPlatformRuntime.lastFrame, &frame);
 }
 
-TEST(IRenderContextBackendTest, BackendCanBeConfiguredToReturnNullContext)
+TEST(IGPUPlatformRuntimeTest, RuntimeCanBeConfiguredToReturnNullContext)
 {
-	sparkle_test::TestRenderContextBackend backend;
+	sparkle_test::TestGPUPlatformRuntime gpuPlatformRuntime;
 	sparkle_test::TestFrame frame(sparkle_test::defaultRect(), "Frame");
-	backend.returnNullContext = true;
+	gpuPlatformRuntime.returnNullContext = true;
 
-	std::unique_ptr<spk::IRenderContext> context = backend.createRenderContext(frame);
+	std::unique_ptr<spk::IRenderContext> context = gpuPlatformRuntime.createRenderContext(frame);
 
 	EXPECT_EQ(context, nullptr);
-	EXPECT_EQ(backend.createRenderContextCount, 1);
-	EXPECT_EQ(backend.lastFrame, &frame);
-	EXPECT_EQ(backend.createdContext, nullptr);
+	EXPECT_EQ(gpuPlatformRuntime.createRenderContextCount, 1);
+	EXPECT_EQ(gpuPlatformRuntime.lastFrame, &frame);
+	EXPECT_EQ(gpuPlatformRuntime.createdContext, nullptr);
 }

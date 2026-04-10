@@ -22,21 +22,6 @@ TEST(IFrameTest, TestFrameTracksResizeTitleAndClosureRequests)
 	EXPECT_EQ(frame.titleHistory[0], "Updated");
 }
 
-TEST(IFrameTest, FrameCanCreateRenderContextThroughBackend)
-{
-	sparkle_test::TestFrame frame(sparkle_test::defaultRect(), "Frame");
-	sparkle_test::TestRenderContextBackend backend;
-
-	std::unique_ptr<spk::IRenderContext> context = frame.createRenderContext(backend);
-
-	ASSERT_NE(context, nullptr);
-	ASSERT_NE(backend.createdContext, nullptr);
-	EXPECT_EQ(frame.createRenderContextCount, 1);
-	EXPECT_EQ(frame.lastRenderBackend, &backend);
-	EXPECT_EQ(backend.createRenderContextCount, 1);
-	EXPECT_EQ(backend.lastFrame, &frame);
-}
-
 TEST(IPlatformRuntimeTest, CreateFrameReceivesRequestedRectAndTitle)
 {
 	sparkle_test::TestPlatformRuntime runtime;

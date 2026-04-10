@@ -3,7 +3,8 @@
 #include <memory>
 #include <string>
 
-#include "spk_platform_runtime.hpp"
+#include "spk_frame.hpp"
+#include "spk_gpu_platform_runtime.hpp"
 #include "spk_rect_2d.hpp"
 #include "spk_render_context.hpp"
 
@@ -11,27 +12,12 @@ namespace spk
 {
 	class WindowHost
 	{
-	public:
-		struct Configuration
-		{
-			spk::Rect2D rect;
-			std::string title;
-			std::shared_ptr<IPlatformRuntime> platformRuntime = nullptr;
-			std::unique_ptr<IRenderContext::Backend> renderBackend = nullptr;
-		};
-
 	private:
-		std::shared_ptr<IPlatformRuntime> _platformRuntime;
-		std::unique_ptr<IRenderContext::Backend> _renderBackend;
 		std::unique_ptr<IFrame> _frame;
 		std::unique_ptr<IRenderContext> _renderContext;
 
-	private:
-		static std::shared_ptr<IPlatformRuntime> _createDefaultPlatformRuntime();
-		static std::unique_ptr<IRenderContext::Backend> _createDefaultRenderBackend();
-
 	public:
-		explicit WindowHost(Configuration p_configuration);
+		WindowHost(std::unique_ptr<IFrame> p_frame, std::shared_ptr<IGPUPlatformRuntime> p_gpuPlatformRuntime);
 		~WindowHost();
 
 		void resize(const spk::Rect2D& p_rect);
@@ -45,7 +31,6 @@ namespace spk
 		void makeCurrent();
 		void present();
 		void setVSync(bool p_enabled);
-		void pollEvents();
 
 		IFrame::EventContract subscribeToMouseEvents(IFrame::EventCallback p_callback);
 		IFrame::EventContract subscribeToKeyboardEvents(IFrame::EventCallback p_callback);

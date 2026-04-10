@@ -9,6 +9,7 @@
 
 #include "spk_events.hpp"
 #include "spk_frame.hpp"
+#include "spk_gpu_platform_runtime.hpp"
 #include "spk_platform_runtime.hpp"
 #include "spk_render_command.hpp"
 #include "spk_render_command_builder.hpp"
@@ -77,10 +78,8 @@ namespace sparkle_test
 		int resizeCount = 0;
 		int setTitleCount = 0;
 		int requestClosureCount = 0;
-		int createRenderContextCount = 0;
 		std::vector<spk::Rect2D> resizeHistory;
 		std::vector<std::string> titleHistory;
-		spk::IRenderContext::Backend* lastRenderBackend = nullptr;
 
 	public:
 		TestFrame(const spk::Rect2D& p_rect, std::string p_title) :
@@ -106,13 +105,6 @@ namespace sparkle_test
 		void requestClosure() override
 		{
 			++requestClosureCount;
-		}
-
-		std::unique_ptr<spk::IRenderContext> createRenderContext(spk::IRenderContext::Backend& p_backend) override
-		{
-			++createRenderContextCount;
-			lastRenderBackend = &p_backend;
-			return p_backend.createRenderContext(*this);
 		}
 
 		[[nodiscard]] spk::Rect2D rect() const override
@@ -307,7 +299,7 @@ namespace sparkle_test
 		}
 	};
 
-	class TestRenderContextBackend : public spk::IRenderContext::Backend
+	class TestGPUPlatformRuntime : public spk::IGPUPlatformRuntime
 	{
 	public:
 		int createRenderContextCount = 0;
@@ -493,50 +485,48 @@ namespace sparkle_test
 
 	struct WindowHostBundle
 	{
-		TestPlatformRuntime* platformRuntime = nullptr;
-		TestRenderContextBackend* renderBackend = nullptr;
+		std::shared_ptr<TestPlatformRuntime> platformRuntime = nullptr;
+		std::shared_ptr<TestGPUPlatformRuntime> gpuPlatformRuntime = nullptr;
 		std::unique_ptr<spk::WindowHost> windowHost = nullptr;
 	};
 
 	inline WindowHostBundle createWindowHostBundle(const spk::Rect2D& p_rect = defaultRect(), const std::string& p_title = "TestWindow")
 	{
 		auto platformRuntime = std::make_shared<TestPlatformRuntime>();
-		auto renderBackend = std::make_unique<TestRenderContextBackend>();
+		auto gpuPlatformRuntime = std::make_shared<TestGPUPlatformRuntime>();
 
 		WindowHostBundle result;
-		result.platformRuntime = platformRuntime.get();
-		result.renderBackend = renderBackend.get();
-		result.windowHost = std::make_unique<spk::WindowHost>(spk::WindowHost::Configuration{
-			.rect = p_rect,
-			.title = p_title,
-			.platformRuntime = std::move(platformRuntime),
-			.renderBackend = std::move(renderBackend)
-		});
+		result.platformRuntime = platformRuntime;
+		result.gpuPlatformRuntime = gpuPlatformRuntime;
+		result.windowHost = std::make_unique<spk::WindowHost>(
+			platformRuntime->createFrame(p_rect, p_title),
+			std::move(gpuPlatformRuntime));
 
 		return result;
 	}
 
 	struct WindowBundle
 	{
-		TestPlatformRuntime* platformRuntime = nullptr;
-		TestRenderContextBackend* renderBackend = nullptr;
+		std::shared_ptr<TestPlatformRuntime> platformRuntime = nullptr;
+		std::shared_ptr<TestGPUPlatformRuntime> gpuPlatformRuntime = nullptr;
 		std::unique_ptr<spk::Window> window = nullptr;
 	};
 
 	inline WindowBundle createWindowBundle(const spk::Rect2D& p_rect = defaultRect(), const std::string& p_title = "Window")
 	{
 		auto platformRuntime = std::make_shared<TestPlatformRuntime>();
-		auto renderBackend = std::make_unique<TestRenderContextBackend>();
+		auto gpuPlatformRuntime = std::make_shared<TestGPUPlatformRuntime>();
 
 		WindowBundle result;
-		result.platformRuntime = platformRuntime.get();
-		result.renderBackend = renderBackend.get();
-		result.window = std::make_unique<spk::Window>(spk::WindowHost::Configuration{
-			.rect = p_rect,
-			.title = p_title,
-			.platformRuntime = std::move(platformRuntime),
-			.renderBackend = std::move(renderBackend)
-		});
+		result.platformRuntime = platformRuntime;
+		result.gpuPlatformRuntime = gpuPlatformRuntime;
+		result.window = std::make_unique<spk::Window>(
+			platformRuntime,
+			gpuPlatformRuntime,
+			spk::Window::Configuration{
+				.rect = p_rect,
+				.title = p_title
+			});
 
 		return result;
 	}

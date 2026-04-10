@@ -36,19 +36,77 @@ TEST(WindowTest, PollEventsDrivesWindowModulesAndWidgetTree)
 		.key = spk::Keyboard::C,
 		.isRepeated = false});
 
-	bundle.window->pollEvents();
+	bundle.platformRuntime->pollEvents();
 	bundle.window->update();
 
 	EXPECT_EQ(bundle.platformRuntime->pollEventsCount, 1);
 	EXPECT_EQ(bundle.window->mouse().position, spk::Vector2Int(7, 9));
 	EXPECT_EQ(bundle.window->mouse().deltaPosition, spk::Vector2Int(-1, -1));
 	EXPECT_EQ(bundle.window->keyboard()[spk::Keyboard::C], spk::InputState::Down);
-	ASSERT_NE(bundle.renderBackend->createdContext, nullptr);
-	EXPECT_EQ(bundle.renderBackend->createdContext->notifyResizeCount, 1);
-	EXPECT_EQ(bundle.renderBackend->createdContext->lastResizeRect, resizedRect);
+	ASSERT_NE(bundle.gpuPlatformRuntime->createdContext, nullptr);
+	EXPECT_EQ(bundle.gpuPlatformRuntime->createdContext->notifyResizeCount, 0);
+	bundle.window->render();
+	EXPECT_EQ(bundle.gpuPlatformRuntime->createdContext->notifyResizeCount, 1);
+	EXPECT_EQ(bundle.gpuPlatformRuntime->createdContext->lastResizeRect, resizedRect);
 	EXPECT_EQ(child.frameEventCount, 1);
 	EXPECT_EQ(child.mouseEventCount, 2);
 	EXPECT_EQ(child.keyboardEventCount, 1);
+}
+
+TEST(WindowTest, UpdatePreservesCrossCategoryEventOrdering)
+{
+	auto bundle = sparkle_test::createWindowBundle();
+	sparkle_test::RecordingWidget child("Child", &bundle.window->rootWidget());
+	child.activate();
+
+	bundle.platformRuntime->queueMousePayload(spk::MouseMovedPayload{
+		.position = spk::Vector2Int(5, 7)});
+	bundle.platformRuntime->queueFramePayload(spk::WindowResizedPayload{
+		.rect = spk::Rect2D(1, 2, 300, 200)});
+	bundle.platformRuntime->queueKeyboardPayload(spk::KeyPressedPayload{
+		.key = spk::Keyboard::A,
+		.isRepeated = false});
+
+	bundle.platformRuntime->pollEvents();
+	bundle.window->update();
+
+	ASSERT_EQ(child.callLog.size(), 5u);
+	EXPECT_EQ(child.callLog[0], "Child:mouse:MouseMoved");
+	EXPECT_EQ(child.callLog[1], "Child:frame:WindowResized");
+	EXPECT_EQ(child.callLog[2], "Child:keyboard:KeyPressed");
+	EXPECT_EQ(child.callLog[3], "Child:update");
+	EXPECT_EQ(child.callLog[4], "Child:append_render");
+}
+
+TEST(WindowTest, RenderConsumesTheLatestPendingResizeAfterUpdate)
+{
+	auto bundle = sparkle_test::createWindowBundle();
+	sparkle_test::RecordingWidget child("Child", &bundle.window->rootWidget());
+	child.activate();
+
+	const spk::Rect2D firstRect(0, 0, 500, 300);
+	const spk::Rect2D secondRect(10, 20, 800, 600);
+
+	bundle.platformRuntime->queueFramePayload(spk::WindowResizedPayload{
+		.rect = firstRect});
+	bundle.platformRuntime->queueFramePayload(spk::WindowResizedPayload{
+		.rect = secondRect});
+
+	bundle.platformRuntime->pollEvents();
+	bundle.window->update();
+
+	ASSERT_NE(bundle.gpuPlatformRuntime->createdContext, nullptr);
+	EXPECT_EQ(bundle.gpuPlatformRuntime->createdContext->notifyResizeCount, 0);
+	EXPECT_EQ(child.frameEventCount, 2);
+
+	bundle.window->render();
+
+	EXPECT_EQ(bundle.gpuPlatformRuntime->createdContext->notifyResizeCount, 1);
+	EXPECT_EQ(bundle.gpuPlatformRuntime->createdContext->lastResizeRect, secondRect);
+
+	bundle.window->render();
+
+	EXPECT_EQ(bundle.gpuPlatformRuntime->createdContext->notifyResizeCount, 1);
 }
 
 TEST(WindowTest, UpdateDelegatesToRootWidgetTree)
@@ -73,9 +131,9 @@ TEST(WindowTest, RenderMakesContextCurrentExecutesSnapshotAndPresents)
 	bundle.window->update();
 	bundle.window->render();
 
-	ASSERT_NE(bundle.renderBackend->createdContext, nullptr);
-	EXPECT_EQ(bundle.renderBackend->createdContext->makeCurrentCount, 1);
-	EXPECT_EQ(bundle.renderBackend->createdContext->presentCount, 1);
+	ASSERT_NE(bundle.gpuPlatformRuntime->createdContext, nullptr);
+	EXPECT_EQ(bundle.gpuPlatformRuntime->createdContext->makeCurrentCount, 1);
+	EXPECT_EQ(bundle.gpuPlatformRuntime->createdContext->presentCount, 1);
 	EXPECT_EQ(child.renderCount, 1);
 }
 
@@ -101,7 +159,7 @@ TEST(WindowTest, ClosureSubscribersAreTriggeredByValidatedCloseEvents)
 	});
 
 	bundle.platformRuntime->queueFramePayload(spk::WindowCloseValidatedPayload{});
-	bundle.window->pollEvents();
+	bundle.platformRuntime->pollEvents();
 	bundle.window->update();
 
 	EXPECT_EQ(closureCount, 1);
