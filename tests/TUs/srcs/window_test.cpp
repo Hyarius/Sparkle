@@ -5,12 +5,12 @@
 
 #include "window_test_utils.hpp"
 
-TEST(WindowTest, ConstructionCreatesFrameAndRenderContextThroughPlatformRuntimeAndFrame)
+TEST(WindowHostTest, ConstructionCreatesFrameAndRenderContextThroughPlatformRuntimeAndFrame)
 {
 	const spk::Rect2D rect(7, 8, 640, 360);
-	auto bundle = sparkle_test::createWindowBundle(rect, "MainWindow");
+	auto bundle = sparkle_test::createWindowHostBundle(rect, "MainWindow");
 
-	ASSERT_NE(bundle.window, nullptr);
+	ASSERT_NE(bundle.windowHost, nullptr);
 	ASSERT_NE(bundle.platformRuntime, nullptr);
 	ASSERT_NE(bundle.renderBackend, nullptr);
 	ASSERT_NE(bundle.platformRuntime->createdFrame, nullptr);
@@ -25,11 +25,11 @@ TEST(WindowTest, ConstructionCreatesFrameAndRenderContextThroughPlatformRuntimeA
 	EXPECT_EQ(bundle.renderBackend->lastFrame, bundle.platformRuntime->createdFrame);
 }
 
-TEST(WindowTest, ConstructionWithoutExplicitRuntimeOrBackendThrows)
+TEST(WindowHostTest, ConstructionWithoutExplicitRuntimeOrBackendThrows)
 {
 	EXPECT_THROW(
 		{
-			spk::Window window(spk::Window::Configuration{
+			spk::WindowHost windowHost(spk::WindowHost::Configuration{
 				.rect = sparkle_test::defaultRect(),
 				.title = "NoBackends"
 			});
@@ -37,7 +37,7 @@ TEST(WindowTest, ConstructionWithoutExplicitRuntimeOrBackendThrows)
 		std::runtime_error);
 }
 
-TEST(WindowTest, ConstructionRejectsNullFrameCreatedByPlatformRuntime)
+TEST(WindowHostTest, ConstructionRejectsNullFrameCreatedByPlatformRuntime)
 {
 	auto platformRuntime = std::make_shared<sparkle_test::TestPlatformRuntime>();
 	auto renderBackend = std::make_unique<sparkle_test::TestRenderContextBackend>();
@@ -45,7 +45,7 @@ TEST(WindowTest, ConstructionRejectsNullFrameCreatedByPlatformRuntime)
 
 	EXPECT_THROW(
 		{
-			spk::Window window(spk::Window::Configuration{
+			spk::WindowHost windowHost(spk::WindowHost::Configuration{
 				.rect = sparkle_test::defaultRect(),
 				.title = "NullFrame",
 				.platformRuntime = std::move(platformRuntime),
@@ -55,7 +55,7 @@ TEST(WindowTest, ConstructionRejectsNullFrameCreatedByPlatformRuntime)
 		std::runtime_error);
 }
 
-TEST(WindowTest, ConstructionRejectsNullRenderContextCreatedByBackend)
+TEST(WindowHostTest, ConstructionRejectsNullRenderContextCreatedByBackend)
 {
 	auto platformRuntime = std::make_shared<sparkle_test::TestPlatformRuntime>();
 	auto renderBackend = std::make_unique<sparkle_test::TestRenderContextBackend>();
@@ -63,7 +63,7 @@ TEST(WindowTest, ConstructionRejectsNullRenderContextCreatedByBackend)
 
 	EXPECT_THROW(
 		{
-			spk::Window window(spk::Window::Configuration{
+			spk::WindowHost windowHost(spk::WindowHost::Configuration{
 				.rect = sparkle_test::defaultRect(),
 				.title = "NullContext",
 				.platformRuntime = std::move(platformRuntime),
@@ -73,32 +73,32 @@ TEST(WindowTest, ConstructionRejectsNullRenderContextCreatedByBackend)
 		std::runtime_error);
 }
 
-TEST(WindowTest, FrameOperationsDelegateToCreatedFrame)
+TEST(WindowHostTest, FrameOperationsDelegateToCreatedFrame)
 {
-	auto bundle = sparkle_test::createWindowBundle();
+	auto bundle = sparkle_test::createWindowHostBundle();
 	const spk::Rect2D resizedRect(100, 200, 800, 600);
 
-	bundle.window->resize(resizedRect);
-	bundle.window->setTitle("Renamed");
-	bundle.window->requestClosure();
+	bundle.windowHost->resize(resizedRect);
+	bundle.windowHost->setTitle("Renamed");
+	bundle.windowHost->requestClosure();
 
 	ASSERT_NE(bundle.platformRuntime->createdFrame, nullptr);
 	EXPECT_EQ(bundle.platformRuntime->createdFrame->resizeCount, 1);
 	EXPECT_EQ(bundle.platformRuntime->createdFrame->setTitleCount, 1);
 	EXPECT_EQ(bundle.platformRuntime->createdFrame->requestClosureCount, 1);
-	EXPECT_EQ(bundle.window->rect(), resizedRect);
-	EXPECT_EQ(bundle.window->title(), "Renamed");
+	EXPECT_EQ(bundle.windowHost->rect(), resizedRect);
+	EXPECT_EQ(bundle.windowHost->title(), "Renamed");
 }
 
-TEST(WindowTest, RenderContextOperationsDelegateToCreatedContext)
+TEST(WindowHostTest, RenderContextOperationsDelegateToCreatedContext)
 {
-	auto bundle = sparkle_test::createWindowBundle();
+	auto bundle = sparkle_test::createWindowHostBundle();
 	const spk::Rect2D resizedRect(2, 3, 400, 250);
 
-	bundle.window->makeCurrent();
-	bundle.window->present();
-	bundle.window->setVSync(true);
-	bundle.window->notifyFrameResized(resizedRect);
+	bundle.windowHost->makeCurrent();
+	bundle.windowHost->present();
+	bundle.windowHost->setVSync(true);
+	bundle.windowHost->notifyFrameResized(resizedRect);
 
 	ASSERT_NE(bundle.renderBackend->createdContext, nullptr);
 	EXPECT_EQ(bundle.renderBackend->createdContext->makeCurrentCount, 1);
@@ -109,24 +109,24 @@ TEST(WindowTest, RenderContextOperationsDelegateToCreatedContext)
 	EXPECT_EQ(bundle.renderBackend->createdContext->lastResizeRect, resizedRect);
 }
 
-TEST(WindowTest, PollEventsDelegatesToPlatformRuntimeAndForwardsSubscriptions)
+TEST(WindowHostTest, PollEventsDelegatesToPlatformRuntimeAndForwardsSubscriptions)
 {
-	auto bundle = sparkle_test::createWindowBundle();
+	auto bundle = sparkle_test::createWindowHostBundle();
 	int mouseCount = 0;
 	int keyboardCount = 0;
 	int frameCount = 0;
 
-	auto mouseContract = bundle.window->subscribeToMouseEvents([&](const spk::Event& p_event)
+	auto mouseContract = bundle.windowHost->subscribeToMouseEvents([&](const spk::Event& p_event)
 	{
 		++mouseCount;
 		EXPECT_TRUE(p_event.holds<spk::MouseMovedPayload>());
 	});
-	auto keyboardContract = bundle.window->subscribeToKeyboardEvents([&](const spk::Event& p_event)
+	auto keyboardContract = bundle.windowHost->subscribeToKeyboardEvents([&](const spk::Event& p_event)
 	{
 		++keyboardCount;
 		EXPECT_TRUE(p_event.holds<spk::KeyPressedPayload>());
 	});
-	auto frameContract = bundle.window->subscribeToFrameEvents([&](const spk::Event& p_event)
+	auto frameContract = bundle.windowHost->subscribeToFrameEvents([&](const spk::Event& p_event)
 	{
 		++frameCount;
 		EXPECT_TRUE(p_event.holds<spk::WindowResizedPayload>());
@@ -141,7 +141,7 @@ TEST(WindowTest, PollEventsDelegatesToPlatformRuntimeAndForwardsSubscriptions)
 	bundle.platformRuntime->queueFramePayload(spk::WindowResizedPayload{
 		.rect = spk::Rect2D(0, 0, 123, 456)});
 
-	bundle.window->pollEvents();
+	bundle.windowHost->pollEvents();
 
 	EXPECT_EQ(bundle.platformRuntime->pollEventsCount, 1);
 	EXPECT_EQ(mouseCount, 1);

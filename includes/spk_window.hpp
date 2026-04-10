@@ -1,54 +1,54 @@
 #pragma once
 
-#include <memory>
-#include <string>
-
-#include "spk_platform_runtime.hpp"
-#include "spk_rect_2d.hpp"
-#include "spk_render_context.hpp"
+#include "spk_contract_provider.hpp"
+#include "spk_window_host.hpp"
+#include "spk_window_modules.hpp"
 
 namespace spk
 {
 	class Window
 	{
 	public:
-		struct Configuration
-		{
-			spk::Rect2D rect;
-			std::string title;
-			std::shared_ptr<IPlatformRuntime> platformRuntime = nullptr;
-			std::unique_ptr<IRenderContext::Backend> renderBackend = nullptr;
-		};
+		using ClosureEventProvider = spk::ContractProvider<Window*>;
+		using ClosureContract = ClosureEventProvider::Contract;
+		using ClosureCallback = ClosureEventProvider::Callback;
 
 	private:
-		std::shared_ptr<IPlatformRuntime> _platformRuntime;
-		std::unique_ptr<IRenderContext::Backend> _renderBackend;
-		std::unique_ptr<IFrame> _frame;
-		std::unique_ptr<IRenderContext> _renderContext;
+		spk::Widget _rootWidget;
+		spk::WindowHost _host;
+
+		FrameModule _frameModule;
+		MouseModule _mouseModule;
+		KeyboardModule _keyboardModule;
+		UpdateModule _updateModule;
+		RenderModule _renderModule;
+
+		spk::IFrame::EventContract _onClosureRequestContract;
+		ClosureEventProvider _closureEventProvider;
 
 	private:
-		static std::shared_ptr<IPlatformRuntime> _createDefaultPlatformRuntime();
-		static std::unique_ptr<IRenderContext::Backend> _createDefaultRenderBackend();
+		void _treatEvent(const spk::Event& p_event);
 
 	public:
-		explicit Window(Configuration p_configuration);
-		~Window();
+		explicit Window(spk::WindowHost::Configuration p_configuration);
 
-		void resize(const spk::Rect2D& p_rect);
-		void notifyFrameResized(const spk::Rect2D& p_rect);
-		void setTitle(const std::string& p_title);
+		[[nodiscard]] spk::WindowHost& host();
+		[[nodiscard]] const spk::WindowHost& host() const;
+
+		[[nodiscard]] spk::Mouse& mouse();
+		[[nodiscard]] const spk::Mouse& mouse() const;
+
+		[[nodiscard]] spk::Keyboard& keyboard();
+		[[nodiscard]] const spk::Keyboard& keyboard() const;
+
+		[[nodiscard]] spk::Widget& rootWidget();
+		[[nodiscard]] const spk::Widget& rootWidget() const;
+
+		void pollEvents();
+		void update(const spk::UpdateTick& p_tick);
+		void render();
 		void requestClosure();
 
-		[[nodiscard]] spk::Rect2D rect() const;
-		[[nodiscard]] std::string title() const;
-
-		void makeCurrent();
-		void present();
-		void setVSync(bool p_enabled);
-		void pollEvents();
-
-		IFrame::EventContract subscribeToMouseEvents(IFrame::EventCallback p_callback);
-		IFrame::EventContract subscribeToKeyboardEvents(IFrame::EventCallback p_callback);
-		IFrame::EventContract subscribeToFrameEvents(IFrame::EventCallback p_callback);
+		ClosureContract subscribeToClosure(ClosureCallback p_callback);
 	};
 }

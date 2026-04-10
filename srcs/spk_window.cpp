@@ -2,99 +2,101 @@
 
 namespace spk
 {
-	std::shared_ptr<IPlatformRuntime> Window::_createDefaultPlatformRuntime()
+	void Window::_treatEvent(const spk::Event& p_event)
 	{
-		throw std::runtime_error("No default spk::IPlatformRuntime is implemented for this platform yet");
-	}
-
-	std::unique_ptr<IRenderContext::Backend> Window::_createDefaultRenderBackend()
-	{
-		throw std::runtime_error("No default spk::IRenderContext::Backend is implemented yet");
-	}
-
-	Window::Window(Configuration p_configuration) :
-		_platformRuntime(p_configuration.platformRuntime != nullptr ? std::move(p_configuration.platformRuntime) : _createDefaultPlatformRuntime()),
-		_renderBackend(p_configuration.renderBackend != nullptr ? std::move(p_configuration.renderBackend) : _createDefaultRenderBackend())
-	{
-		_frame = _platformRuntime->createFrame(p_configuration.rect, p_configuration.title);
-
-		if (_frame == nullptr)
+		if (std::holds_alternative<spk::WindowCloseValidatedPayload>(p_event.payload))
 		{
-			throw std::runtime_error("spk::Window failed to create its frame");
-		}
-
-		_renderContext = _frame->createRenderContext(*_renderBackend);
-
-		if (_renderContext == nullptr)
-		{
-			throw std::runtime_error("spk::Window failed to create its render context");
+			_closureEventProvider.trigger(this);
 		}
 	}
 
-	Window::~Window() = default;
-
-	void Window::resize(const spk::Rect2D& p_rect)
+	Window::Window(spk::WindowHost::Configuration p_configuration) :
+		_rootWidget(":/" + p_configuration.title + "/RootWidget", nullptr),
+		_host(std::move(p_configuration))
 	{
-		_frame->resize(p_rect);
+		_rootWidget.activate();
+
+		_frameModule.bind(&_rootWidget);
+		_mouseModule.bind(&_rootWidget);
+		_keyboardModule.bind(&_rootWidget);
+		_updateModule.bind(&_rootWidget);
+		_renderModule.bind(&_rootWidget);
+
+		_frameModule.bindWindowHost(&_host);
+		_mouseModule.bindWindowHost(&_host);
+		_keyboardModule.bindWindowHost(&_host);
+
+		_onClosureRequestContract = host().subscribeToFrameEvents(
+			[this](const spk::Event& p_event)
+			{
+				_treatEvent(p_event);
+			});
 	}
 
-	void Window::notifyFrameResized(const spk::Rect2D& p_rect)
+	spk::WindowHost& Window::host()
 	{
-		_renderContext->notifyResize(p_rect);
+		return _host;
 	}
 
-	void Window::setTitle(const std::string& p_title)
+	const spk::WindowHost& Window::host() const
 	{
-		_frame->setTitle(p_title);
+		return _host;
 	}
 
-	void Window::requestClosure()
+	spk::Mouse& Window::mouse()
 	{
-		_frame->requestClosure();
+		return _mouseModule.mouse();
 	}
 
-	spk::Rect2D Window::rect() const
+	const spk::Mouse& Window::mouse() const
 	{
-		return _frame->rect();
+		return _mouseModule.mouse();
 	}
 
-	std::string Window::title() const
+	spk::Keyboard& Window::keyboard()
 	{
-		return _frame->title();
+		return _keyboardModule.keyboard();
 	}
 
-	void Window::makeCurrent()
+	const spk::Keyboard& Window::keyboard() const
 	{
-		_renderContext->makeCurrent();
+		return _keyboardModule.keyboard();
 	}
 
-	void Window::present()
+	spk::Widget& Window::rootWidget()
 	{
-		_renderContext->present();
+		return _rootWidget;
 	}
 
-	void Window::setVSync(bool p_enabled)
+	const spk::Widget& Window::rootWidget() const
 	{
-		_renderContext->setVSync(p_enabled);
+		return _rootWidget;
 	}
 
 	void Window::pollEvents()
 	{
-		_platformRuntime->pollEvents();
+		_host.pollEvents();
 	}
 
-	IFrame::EventContract Window::subscribeToMouseEvents(IFrame::EventCallback p_callback)
+	void Window::update(const spk::UpdateTick& p_tick)
 	{
-		return _frame->subscribeToMouseEvents(std::move(p_callback));
+		_updateModule.update(p_tick);
 	}
 
-	IFrame::EventContract Window::subscribeToKeyboardEvents(IFrame::EventCallback p_callback)
+	void Window::render()
 	{
-		return _frame->subscribeToKeyboardEvents(std::move(p_callback));
+		_host.makeCurrent();
+		_renderModule.render();
+		_host.present();
 	}
 
-	IFrame::EventContract Window::subscribeToFrameEvents(IFrame::EventCallback p_callback)
+	void Window::requestClosure()
 	{
-		return _frame->subscribeToFrameEvents(std::move(p_callback));
+		_host.requestClosure();
+	}
+
+	Window::ClosureContract Window::subscribeToClosure(ClosureCallback p_callback)
+	{
+		return _closureEventProvider.subscribe(std::move(p_callback));
 	}
 }

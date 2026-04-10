@@ -24,13 +24,13 @@ TEST(IModuleTest, BindStoresWidgetPointerAndAllowsNull)
 
 TEST(MouseModuleTest, MouseEventsUpdateInternalStateAndDispatchToBoundWidget)
 {
-	auto bundle = sparkle_test::createWindowBundle();
+	auto bundle = sparkle_test::createWindowHostBundle();
 	sparkle_test::RecordingWidget widget("MouseWidget");
 	widget.activate();
 
 	spk::MouseModule module;
 	module.bind(&widget);
-	module.bindWindow(bundle.window.get());
+	module.bindWindowHost(bundle.windowHost.get());
 
 	bundle.platformRuntime->queueMousePayload(spk::MouseMovedPayload{
 		.position = spk::Vector2Int(40, 50),
@@ -42,7 +42,7 @@ TEST(MouseModuleTest, MouseEventsUpdateInternalStateAndDispatchToBoundWidget)
 	bundle.platformRuntime->queueMousePayload(spk::MouseButtonReleasedPayload{
 		.button = spk::Mouse::Left});
 
-	bundle.window->pollEvents();
+	bundle.windowHost->pollEvents();
 
 	EXPECT_EQ(module.mouse().position, spk::Vector2Int(40, 50));
 	EXPECT_EQ(module.mouse().deltaPosition, spk::Vector2Int(4, 5));
@@ -53,14 +53,14 @@ TEST(MouseModuleTest, MouseEventsUpdateInternalStateAndDispatchToBoundWidget)
 
 TEST(MouseModuleTest, BindingNullWindowResignsMouseSubscription)
 {
-	auto bundle = sparkle_test::createWindowBundle();
+	auto bundle = sparkle_test::createWindowHostBundle();
 	sparkle_test::RecordingWidget widget("MouseWidget");
 	widget.activate();
 
 	spk::MouseModule module;
 	module.bind(&widget);
-	module.bindWindow(bundle.window.get());
-	module.bindWindow(nullptr);
+	module.bindWindowHost(bundle.windowHost.get());
+	module.bindWindowHost(nullptr);
 
 	bundle.platformRuntime->emitMousePayload(spk::MouseMovedPayload{
 		.position = spk::Vector2Int(9, 9),
@@ -72,13 +72,13 @@ TEST(MouseModuleTest, BindingNullWindowResignsMouseSubscription)
 
 TEST(KeyboardModuleTest, KeyboardEventsUpdateInternalStateAndDispatchToBoundWidget)
 {
-	auto bundle = sparkle_test::createWindowBundle();
+	auto bundle = sparkle_test::createWindowHostBundle();
 	sparkle_test::RecordingWidget widget("KeyboardWidget");
 	widget.activate();
 
 	spk::KeyboardModule module;
 	module.bind(&widget);
-	module.bindWindow(bundle.window.get());
+	module.bindWindowHost(bundle.windowHost.get());
 
 	bundle.platformRuntime->queueKeyboardPayload(spk::KeyPressedPayload{
 		.key = spk::Keyboard::Escape,
@@ -88,7 +88,7 @@ TEST(KeyboardModuleTest, KeyboardEventsUpdateInternalStateAndDispatchToBoundWidg
 	bundle.platformRuntime->queueKeyboardPayload(spk::KeyReleasedPayload{
 		.key = spk::Keyboard::Escape});
 
-	bundle.window->pollEvents();
+	bundle.windowHost->pollEvents();
 
 	EXPECT_EQ(module.keyboard()[spk::Keyboard::Escape], spk::InputState::Up);
 	EXPECT_EQ(module.keyboard().glyph, U'Q');
@@ -97,14 +97,14 @@ TEST(KeyboardModuleTest, KeyboardEventsUpdateInternalStateAndDispatchToBoundWidg
 
 TEST(KeyboardModuleTest, BindingNullWindowResignsKeyboardSubscription)
 {
-	auto bundle = sparkle_test::createWindowBundle();
+	auto bundle = sparkle_test::createWindowHostBundle();
 	sparkle_test::RecordingWidget widget("KeyboardWidget");
 	widget.activate();
 
 	spk::KeyboardModule module;
 	module.bind(&widget);
-	module.bindWindow(bundle.window.get());
-	module.bindWindow(nullptr);
+	module.bindWindowHost(bundle.windowHost.get());
+	module.bindWindowHost(nullptr);
 
 	bundle.platformRuntime->emitKeyboardPayload(spk::KeyPressedPayload{
 		.key = spk::Keyboard::A,
@@ -116,19 +116,19 @@ TEST(KeyboardModuleTest, BindingNullWindowResignsKeyboardSubscription)
 
 TEST(FrameModuleTest, WindowResizeEventsNotifyRenderContextAndDispatchToWidget)
 {
-	auto bundle = sparkle_test::createWindowBundle();
+	auto bundle = sparkle_test::createWindowHostBundle();
 	sparkle_test::RecordingWidget widget("FrameWidget");
 	widget.activate();
 
 	spk::FrameModule module;
 	module.bind(&widget);
-	module.bindWindow(bundle.window.get());
+	module.bindWindowHost(bundle.windowHost.get());
 
 	const spk::Rect2D resizedRect(0, 0, 1920, 1080);
 	bundle.platformRuntime->queueFramePayload(spk::WindowResizedPayload{
 		.rect = resizedRect});
 
-	bundle.window->pollEvents();
+	bundle.windowHost->pollEvents();
 
 	ASSERT_NE(bundle.renderBackend->createdContext, nullptr);
 	EXPECT_EQ(bundle.renderBackend->createdContext->notifyResizeCount, 1);

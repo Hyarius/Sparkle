@@ -30,17 +30,17 @@ namespace spk
 		}
 	}
 
-	void MouseModule::bindWindow(spk::Window* p_window)
+	void MouseModule::bindWindowHost(spk::WindowHost* p_windowHost)
 	{
-		_window = p_window;
+		_windowHost = p_windowHost;
 
-		if (_window == nullptr)
+		if (_windowHost == nullptr)
 		{
 			_mouseEventContract.resign();
 			return;
 		}
 
-		_mouseEventContract = _window->subscribeToMouseEvents(
+		_mouseEventContract = _windowHost->subscribeToMouseEvents(
 			[this](const spk::Event& p_event)
 			{
 				_treatEvent(p_event);

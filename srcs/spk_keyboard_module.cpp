@@ -25,17 +25,17 @@ namespace spk
 		}
 	}
 
-	void KeyboardModule::bindWindow(spk::Window* p_window)
+	void KeyboardModule::bindWindowHost(spk::WindowHost* p_windowHost)
 	{
-		_window = p_window;
+		_windowHost = p_windowHost;
 
-		if (_window == nullptr)
+		if (_windowHost == nullptr)
 		{
 			_keyboardEventContract.resign();
 			return;
 		}
 
-		_keyboardEventContract = _window->subscribeToKeyboardEvents(
+		_keyboardEventContract = _windowHost->subscribeToKeyboardEvents(
 			[this](const spk::Event& p_event)
 			{
 				_treatEvent(p_event);

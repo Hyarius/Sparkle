@@ -3,25 +3,26 @@
 #include <memory>
 #include <stdexcept>
 
+#include "spk_window_registry.hpp"
 #include "window_test_utils.hpp"
 
-TEST(WindowRuntimeTest, ConstructionActivatesRootWidgetAndExposesAccessors)
+TEST(WindowTest, ConstructionActivatesRootWidgetAndExposesAccessors)
 {
-	auto bundle = sparkle_test::createRuntimeBundle(sparkle_test::defaultRect(), "Runtime");
+	auto bundle = sparkle_test::createWindowBundle(sparkle_test::defaultRect(), "Runtime");
 
-	ASSERT_NE(bundle.runtime, nullptr);
-	EXPECT_TRUE(bundle.runtime->rootWidget().isActivated());
-	EXPECT_EQ(bundle.runtime->rootWidget().name(), ":/Runtime/RootWidget");
-	EXPECT_EQ(bundle.runtime->window().title(), "Runtime");
-	EXPECT_EQ(bundle.runtime->window().rect(), sparkle_test::defaultRect());
-	EXPECT_EQ(bundle.runtime->mouse().position, spk::Vector2Int(0, 0));
-	EXPECT_EQ(bundle.runtime->keyboard().glyph, U'\0');
+	ASSERT_NE(bundle.window, nullptr);
+	EXPECT_TRUE(bundle.window->rootWidget().isActivated());
+	EXPECT_EQ(bundle.window->rootWidget().name(), ":/Runtime/RootWidget");
+	EXPECT_EQ(bundle.window->host().title(), "Runtime");
+	EXPECT_EQ(bundle.window->host().rect(), sparkle_test::defaultRect());
+	EXPECT_EQ(bundle.window->mouse().position, spk::Vector2Int(0, 0));
+	EXPECT_EQ(bundle.window->keyboard().glyph, U'\0');
 }
 
-TEST(WindowRuntimeTest, PollEventsDrivesWindowModulesAndWidgetTree)
+TEST(WindowTest, PollEventsDrivesWindowModulesAndWidgetTree)
 {
-	auto bundle = sparkle_test::createRuntimeBundle();
-	sparkle_test::RecordingWidget child("Child", &bundle.runtime->rootWidget());
+	auto bundle = sparkle_test::createWindowBundle();
+	sparkle_test::RecordingWidget child("Child", &bundle.window->rootWidget());
 	child.activate();
 
 	const spk::Rect2D resizedRect(0, 0, 500, 300);
@@ -34,12 +35,12 @@ TEST(WindowRuntimeTest, PollEventsDrivesWindowModulesAndWidgetTree)
 		.key = spk::Keyboard::C,
 		.isRepeated = false});
 
-	bundle.runtime->pollEvents();
+	bundle.window->pollEvents();
 
 	EXPECT_EQ(bundle.platformRuntime->pollEventsCount, 1);
-	EXPECT_EQ(bundle.runtime->mouse().position, spk::Vector2Int(7, 9));
-	EXPECT_EQ(bundle.runtime->mouse().deltaPosition, spk::Vector2Int(2, 3));
-	EXPECT_EQ(bundle.runtime->keyboard()[spk::Keyboard::C], spk::InputState::Down);
+	EXPECT_EQ(bundle.window->mouse().position, spk::Vector2Int(7, 9));
+	EXPECT_EQ(bundle.window->mouse().deltaPosition, spk::Vector2Int(2, 3));
+	EXPECT_EQ(bundle.window->keyboard()[spk::Keyboard::C], spk::InputState::Down);
 	ASSERT_NE(bundle.renderBackend->createdContext, nullptr);
 	EXPECT_EQ(bundle.renderBackend->createdContext->notifyResizeCount, 1);
 	EXPECT_EQ(bundle.renderBackend->createdContext->lastResizeRect, resizedRect);
@@ -48,30 +49,30 @@ TEST(WindowRuntimeTest, PollEventsDrivesWindowModulesAndWidgetTree)
 	EXPECT_EQ(child.keyboardEventCount, 1);
 }
 
-TEST(WindowRuntimeTest, UpdateDelegatesToRootWidgetTree)
+TEST(WindowTest, UpdateDelegatesToRootWidgetTree)
 {
-	auto bundle = sparkle_test::createRuntimeBundle();
-	sparkle_test::RecordingWidget child("Child", &bundle.runtime->rootWidget());
+	auto bundle = sparkle_test::createWindowBundle();
+	sparkle_test::RecordingWidget child("Child", &bundle.window->rootWidget());
 	child.activate();
 
 	spk::UpdateTick tick;
-	tick.mouse = &bundle.runtime->mouse();
-	tick.keyboard = &bundle.runtime->keyboard();
+	tick.mouse = &bundle.window->mouse();
+	tick.keyboard = &bundle.window->keyboard();
 
-	bundle.runtime->update(tick);
+	bundle.window->update(tick);
 
 	EXPECT_EQ(child.updateCount, 1);
-	EXPECT_EQ(child.lastTickMouse, &bundle.runtime->mouse());
-	EXPECT_EQ(child.lastTickKeyboard, &bundle.runtime->keyboard());
+	EXPECT_EQ(child.lastTickMouse, &bundle.window->mouse());
+	EXPECT_EQ(child.lastTickKeyboard, &bundle.window->keyboard());
 }
 
-TEST(WindowRuntimeTest, RenderMakesContextCurrentRendersTreeAndPresents)
+TEST(WindowTest, RenderMakesContextCurrentRendersTreeAndPresents)
 {
-	auto bundle = sparkle_test::createRuntimeBundle();
-	sparkle_test::RecordingWidget child("Child", &bundle.runtime->rootWidget());
+	auto bundle = sparkle_test::createWindowBundle();
+	sparkle_test::RecordingWidget child("Child", &bundle.window->rootWidget());
 	child.activate();
 
-	bundle.runtime->render();
+	bundle.window->render();
 
 	ASSERT_NE(bundle.renderBackend->createdContext, nullptr);
 	EXPECT_EQ(bundle.renderBackend->createdContext->makeCurrentCount, 1);
@@ -79,58 +80,58 @@ TEST(WindowRuntimeTest, RenderMakesContextCurrentRendersTreeAndPresents)
 	EXPECT_EQ(child.renderCount, 1);
 }
 
-TEST(WindowRuntimeTest, RequestClosureDelegatesToManagedWindow)
+TEST(WindowTest, RequestClosureDelegatesToManagedWindow)
 {
-	auto bundle = sparkle_test::createRuntimeBundle();
+	auto bundle = sparkle_test::createWindowBundle();
 
-	bundle.runtime->requestClosure();
+	bundle.window->requestClosure();
 
 	ASSERT_NE(bundle.platformRuntime->createdFrame, nullptr);
 	EXPECT_EQ(bundle.platformRuntime->createdFrame->requestClosureCount, 1);
 }
 
-TEST(WindowRuntimeTest, ClosureSubscribersAreTriggeredByValidatedCloseEvents)
+TEST(WindowTest, ClosureSubscribersAreTriggeredByValidatedCloseEvents)
 {
-	auto bundle = sparkle_test::createRuntimeBundle();
+	auto bundle = sparkle_test::createWindowBundle();
 	int closureCount = 0;
 
-	auto contract = bundle.runtime->subscribeToClosure([&](spk::WindowRuntime* p_runtime)
+	auto contract = bundle.window->subscribeToClosure([&](spk::Window* p_window)
 	{
 		++closureCount;
-		EXPECT_EQ(p_runtime, bundle.runtime.get());
+		EXPECT_EQ(p_window, bundle.window.get());
 	});
 
 	bundle.platformRuntime->queueFramePayload(spk::WindowCloseValidatedPayload{});
-	bundle.runtime->pollEvents();
+	bundle.window->pollEvents();
 
 	EXPECT_EQ(closureCount, 1);
 }
 
-TEST(WindowRuntimeRegistryTest, CreateWindowRuntimeReturnsSharedRuntimeAndRejectsDuplicateIds)
+TEST(WindowRegistryTest, CreateWindowReturnsSharedWindowAndRejectsDuplicateIds)
 {
-	spk::WindowRuntimeRegistry registry;
+	spk::WindowRegistry registry;
 
 	auto platformRuntime = std::make_shared<sparkle_test::TestPlatformRuntime>();
 	auto renderBackend = std::make_unique<sparkle_test::TestRenderContextBackend>();
-	std::shared_ptr<spk::WindowRuntime> runtime = registry.createWindowRuntime(
+	std::shared_ptr<spk::Window> window = registry.createWindow(
 		"main",
-		spk::Window::Configuration{
+		spk::WindowHost::Configuration{
 			.rect = sparkle_test::defaultRect(),
 			.title = "Main",
 			.platformRuntime = std::move(platformRuntime),
 			.renderBackend = std::move(renderBackend)
 		});
 
-	ASSERT_NE(runtime, nullptr);
-	EXPECT_EQ(runtime->window().title(), "Main");
+	ASSERT_NE(window, nullptr);
+	EXPECT_EQ(window->host().title(), "Main");
 
 	auto duplicatePlatformRuntime = std::make_shared<sparkle_test::TestPlatformRuntime>();
 	auto duplicateRenderBackend = std::make_unique<sparkle_test::TestRenderContextBackend>();
 
 	EXPECT_THROW(
-		registry.createWindowRuntime(
+		registry.createWindow(
 			"main",
-			spk::Window::Configuration{
+			spk::WindowHost::Configuration{
 				.rect = sparkle_test::defaultRect(),
 				.title = "MainDuplicate",
 				.platformRuntime = std::move(duplicatePlatformRuntime),
@@ -139,16 +140,16 @@ TEST(WindowRuntimeRegistryTest, CreateWindowRuntimeReturnsSharedRuntimeAndReject
 		std::runtime_error);
 }
 
-TEST(WindowRuntimeRegistryTest, RequestWindowClosingDelegatesToStoredRuntime)
+TEST(WindowRegistryTest, RequestWindowClosingDelegatesToStoredWindow)
 {
-	spk::WindowRuntimeRegistry registry;
+	spk::WindowRegistry registry;
 	auto platformRuntime = std::make_shared<sparkle_test::TestPlatformRuntime>();
 	auto renderBackend = std::make_unique<sparkle_test::TestRenderContextBackend>();
 	auto* platformRuntimePtr = platformRuntime.get();
 
-	std::shared_ptr<spk::WindowRuntime> runtime = registry.createWindowRuntime(
+	std::shared_ptr<spk::Window> window = registry.createWindow(
 		"main",
-		spk::Window::Configuration{
+		spk::WindowHost::Configuration{
 			.rect = sparkle_test::defaultRect(),
 			.title = "Main",
 			.platformRuntime = std::move(platformRuntime),
@@ -161,9 +162,9 @@ TEST(WindowRuntimeRegistryTest, RequestWindowClosingDelegatesToStoredRuntime)
 	EXPECT_EQ(platformRuntimePtr->createdFrame->requestClosureCount, 1);
 }
 
-TEST(WindowRuntimeRegistryTest, RequestWindowClosingThrowsForUnknownRuntime)
+TEST(WindowRegistryTest, RequestWindowClosingThrowsForUnknownWindow)
 {
-	spk::WindowRuntimeRegistry registry;
+	spk::WindowRegistry registry;
 
 	EXPECT_THROW(registry.requestWindowClosing("missing"), std::runtime_error);
 }

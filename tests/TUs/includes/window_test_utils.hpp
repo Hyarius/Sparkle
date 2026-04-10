@@ -13,8 +13,8 @@
 #include "spk_render_context.hpp"
 #include "spk_update_tick.hpp"
 #include "spk_widget.hpp"
+#include "spk_window_host.hpp"
 #include "spk_window.hpp"
-#include "spk_window_runtime.hpp"
 
 namespace sparkle_test
 {
@@ -419,22 +419,22 @@ namespace sparkle_test
 		}
 	};
 
-	struct WindowBundle
+	struct WindowHostBundle
 	{
 		TestPlatformRuntime* platformRuntime = nullptr;
 		TestRenderContextBackend* renderBackend = nullptr;
-		std::unique_ptr<spk::Window> window = nullptr;
+		std::unique_ptr<spk::WindowHost> windowHost = nullptr;
 	};
 
-	inline WindowBundle createWindowBundle(const spk::Rect2D& p_rect = defaultRect(), const std::string& p_title = "TestWindow")
+	inline WindowHostBundle createWindowHostBundle(const spk::Rect2D& p_rect = defaultRect(), const std::string& p_title = "TestWindow")
 	{
 		auto platformRuntime = std::make_shared<TestPlatformRuntime>();
 		auto renderBackend = std::make_unique<TestRenderContextBackend>();
 
-		WindowBundle result;
+		WindowHostBundle result;
 		result.platformRuntime = platformRuntime.get();
 		result.renderBackend = renderBackend.get();
-		result.window = std::make_unique<spk::Window>(spk::Window::Configuration{
+		result.windowHost = std::make_unique<spk::WindowHost>(spk::WindowHost::Configuration{
 			.rect = p_rect,
 			.title = p_title,
 			.platformRuntime = std::move(platformRuntime),
@@ -444,22 +444,22 @@ namespace sparkle_test
 		return result;
 	}
 
-	struct RuntimeBundle
+	struct WindowBundle
 	{
 		TestPlatformRuntime* platformRuntime = nullptr;
 		TestRenderContextBackend* renderBackend = nullptr;
-		std::unique_ptr<spk::WindowRuntime> runtime = nullptr;
+		std::unique_ptr<spk::Window> window = nullptr;
 	};
 
-	inline RuntimeBundle createRuntimeBundle(const spk::Rect2D& p_rect = defaultRect(), const std::string& p_title = "RuntimeWindow")
+	inline WindowBundle createWindowBundle(const spk::Rect2D& p_rect = defaultRect(), const std::string& p_title = "Window")
 	{
 		auto platformRuntime = std::make_shared<TestPlatformRuntime>();
 		auto renderBackend = std::make_unique<TestRenderContextBackend>();
 
-		RuntimeBundle result;
+		WindowBundle result;
 		result.platformRuntime = platformRuntime.get();
 		result.renderBackend = renderBackend.get();
-		result.runtime = std::make_unique<spk::WindowRuntime>(spk::Window::Configuration{
+		result.window = std::make_unique<spk::Window>(spk::WindowHost::Configuration{
 			.rect = p_rect,
 			.title = p_title,
 			.platformRuntime = std::move(platformRuntime),

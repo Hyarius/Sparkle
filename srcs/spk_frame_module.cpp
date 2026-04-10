@@ -6,11 +6,11 @@ namespace spk
 
 	void FrameModule::_treatEvent(const spk::Event& p_event)
 	{
-		if (_window != nullptr)
+		if (_windowHost != nullptr)
 		{
 			if (const auto* payload = p_event.getIf<spk::WindowResizedPayload>(); payload != nullptr)
 			{
-				_window->notifyFrameResized(payload->rect);
+				_windowHost->notifyFrameResized(payload->rect);
 			}
 		}
 
@@ -20,17 +20,17 @@ namespace spk
 		}
 	}
 
-	void FrameModule::bindWindow(spk::Window* p_window)
+	void FrameModule::bindWindowHost(spk::WindowHost* p_windowHost)
 	{
-		_window = p_window;
+		_windowHost = p_windowHost;
 
-		if (_window == nullptr)
+		if (_windowHost == nullptr)
 		{
 			_frameEventContract.resign();
 			return;
 		}
 
-		_frameEventContract = _window->subscribeToFrameEvents(
+		_frameEventContract = _windowHost->subscribeToFrameEvents(
 			[this](const spk::Event& p_event)
 			{
 				_treatEvent(p_event);
