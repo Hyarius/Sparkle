@@ -4,55 +4,58 @@
 
 namespace spk
 {
-	void Window::_enqueueEvent(const spk::Event& p_event)
+	void Window::_enqueueFrameEvent(const spk::Event& p_event)
 	{
 		std::scoped_lock lock(_pendingEventsMutex);
-		_pendingEvents.push_back(p_event);
+		_pendingFrameEvents.push_back(p_event);
 	}
 
-	std::vector<spk::Event> Window::_drainPendingEvents()
+	void Window::_enqueueMouseEvent(const spk::Event& p_event)
+	{
+		std::scoped_lock lock(_pendingEventsMutex);
+		_pendingMouseEvents.push_back(p_event);
+	}
+
+	void Window::_enqueueKeyboardEvent(const spk::Event& p_event)
+	{
+		std::scoped_lock lock(_pendingEventsMutex);
+		_pendingKeyboardEvents.push_back(p_event);
+	}
+
+	std::vector<spk::Event> Window::_drainPendingFrameEvents()
 	{
 		std::vector<spk::Event> result;
 
 		{
 			std::scoped_lock lock(_pendingEventsMutex);
-			result.swap(_pendingEvents);
+			result.swap(_pendingFrameEvents);
 		}
 
 		return result;
 	}
 
-	bool Window::_isFrameEvent(const spk::Event& p_event)
+	std::vector<spk::Event> Window::_drainPendingMouseEvents()
 	{
-		return (
-			p_event.holds<spk::WindowCloseRequestedPayload>() ||
-			p_event.holds<spk::WindowCloseValidatedPayload>() ||
-			p_event.holds<spk::WindowMovedPayload>() ||
-			p_event.holds<spk::WindowResizedPayload>() ||
-			p_event.holds<spk::WindowFocusGainedPayload>() ||
-			p_event.holds<spk::WindowFocusLostPayload>() ||
-			p_event.holds<spk::WindowShownPayload>() ||
-			p_event.holds<spk::WindowHiddenPayload>());
+		std::vector<spk::Event> result;
+
+		{
+			std::scoped_lock lock(_pendingEventsMutex);
+			result.swap(_pendingMouseEvents);
+		}
+
+		return result;
 	}
 
-	bool Window::_isMouseEvent(const spk::Event& p_event)
+	std::vector<spk::Event> Window::_drainPendingKeyboardEvents()
 	{
-		return (
-			p_event.holds<spk::MouseEnteredPayload>() ||
-			p_event.holds<spk::MouseLeftPayload>() ||
-			p_event.holds<spk::MouseMovedPayload>() ||
-			p_event.holds<spk::MouseWheelScrolledPayload>() ||
-			p_event.holds<spk::MouseButtonPressedPayload>() ||
-			p_event.holds<spk::MouseButtonReleasedPayload>() ||
-			p_event.holds<spk::MouseButtonDoubleClickedPayload>());
-	}
+		std::vector<spk::Event> result;
 
-	bool Window::_isKeyboardEvent(const spk::Event& p_event)
-	{
-		return (
-			p_event.holds<spk::KeyPressedPayload>() ||
-			p_event.holds<spk::KeyReleasedPayload>() ||
-			p_event.holds<spk::TextInputPayload>());
+		{
+			std::scoped_lock lock(_pendingEventsMutex);
+			result.swap(_pendingKeyboardEvents);
+		}
+
+		return result;
 	}
 
 	void Window::_treatFrameEvent(const spk::Event& p_event)
@@ -80,30 +83,25 @@ namespace spk
 		_keyboardModule.pushEvent(p_event);
 	}
 
-	void Window::_dispatchEvent(const spk::Event& p_event)
+	void Window::_rebuildRenderSnapshot()
 	{
-		if (_isFrameEvent(p_event))
-		{
-			_treatFrameEvent(p_event);
-			return;
-		}
+		std::shared_ptr<spk::RenderCommandBuilder> newSnapshot = std::make_shared<spk::RenderCommandBuilder>();
+		_rootWidget.appendRenderCommands(*newSnapshot);
 
-		if (_isMouseEvent(p_event))
-		{
-			_treatMouseEvent(p_event);
-			return;
-		}
+		std::scoped_lock lock(_renderSnapshotMutex);
+		_renderSnapshot = std::move(newSnapshot);
+	}
 
-		if (_isKeyboardEvent(p_event))
-		{
-			_treatKeyboardEvent(p_event);
-			return;
-		}
+	std::shared_ptr<spk::RenderCommandBuilder> Window::_currentRenderSnapshot() const
+	{
+		std::scoped_lock lock(_renderSnapshotMutex);
+		return _renderSnapshot;
 	}
 
 	Window::Window(spk::WindowHost::Configuration p_configuration) :
 		_rootWidget(":/" + p_configuration.title + "/RootWidget", nullptr),
-		_host(std::move(p_configuration))
+		_host(std::move(p_configuration)),
+		_renderSnapshot(std::make_shared<spk::RenderCommandBuilder>())
 	{
 		_rootWidget.activate();
 
@@ -112,25 +110,26 @@ namespace spk
 		_keyboardModule.bind(&_rootWidget);
 		_updateModule.bind(&_rootWidget);
 		_updateModule.bindInputs(&_mouseModule.mouse(), &_keyboardModule.keyboard());
-		_renderModule.bind(&_rootWidget);
 
 		_frameEventQueueContract = _host.subscribeToFrameEvents(
 			[this](const spk::Event& p_event)
 			{
-				_enqueueEvent(p_event);
+				_enqueueFrameEvent(p_event);
 			});
 
 		_mouseEventQueueContract = _host.subscribeToMouseEvents(
 			[this](const spk::Event& p_event)
 			{
-				_enqueueEvent(p_event);
+				_enqueueMouseEvent(p_event);
 			});
 
 		_keyboardEventQueueContract = _host.subscribeToKeyboardEvents(
 			[this](const spk::Event& p_event)
 			{
-				_enqueueEvent(p_event);
+				_enqueueKeyboardEvent(p_event);
 			});
+
+		_rebuildRenderSnapshot();
 	}
 
 	spk::WindowHost& Window::host()
@@ -180,20 +179,40 @@ namespace spk
 
 	void Window::update()
 	{
-		std::vector<spk::Event> pendingEvents = _drainPendingEvents();
+		std::vector<spk::Event> frameEvents = _drainPendingFrameEvents();
+		std::vector<spk::Event> mouseEvents = _drainPendingMouseEvents();
+		std::vector<spk::Event> keyboardEvents = _drainPendingKeyboardEvents();
 
-		for (const spk::Event& event : pendingEvents)
+		for (const spk::Event& event : frameEvents)
 		{
-			_dispatchEvent(event);
+			_treatFrameEvent(event);
+		}
+
+		for (const spk::Event& event : mouseEvents)
+		{
+			_treatMouseEvent(event);
+		}
+
+		for (const spk::Event& event : keyboardEvents)
+		{
+			_treatKeyboardEvent(event);
 		}
 
 		_updateModule.update();
+		_rebuildRenderSnapshot();
 	}
 
 	void Window::render()
 	{
+		std::shared_ptr<spk::RenderCommandBuilder> snapshot = _currentRenderSnapshot();
+
 		_host.makeCurrent();
-		_renderModule.render();
+
+		if (snapshot != nullptr)
+		{
+			_renderModule.render(*snapshot);
+		}
+
 		_host.present();
 	}
 

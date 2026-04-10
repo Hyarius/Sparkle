@@ -4,8 +4,9 @@
 
 #include "spk_keyboard.hpp"
 #include "spk_mouse.hpp"
-#include "spk_widget.hpp"
+#include "spk_render_command_builder.hpp"
 #include "spk_timestamp.hpp"
+#include "spk_widget.hpp"
 
 namespace spk
 {
@@ -82,11 +83,11 @@ namespace spk
 		void update();
 	};
 
-	class RenderModule : public IModule
+	class RenderModule
 	{
 	public:
 		RenderModule();
 
-		void render();
+		void render(const spk::RenderCommandBuilder& p_builder) const;
 	};
 }

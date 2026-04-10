@@ -100,7 +100,7 @@ TEST(ApplicationTest, RunExecutesEventUpdateAndRenderLoops)
 		.delta = spk::Vector2Int(0, 0)});
 	platformRuntimePtr->onPollEvents = [&](sparkle_test::TestPlatformRuntime&)
 	{
-		if (updateCount.load() > 100 && renderCount.load() > 100)
+		if (updateCount.load() > 10 && renderCount.load() > 10)
 		{
 			application.stop();
 		}

@@ -2,12 +2,9 @@
 
 namespace spk
 {
-	void Widget::_onGeometryUpdate()
+	void Widget::_appendRenderCommands(spk::RenderCommandBuilder& p_builder) const
 	{
-	}
-
-	void Widget::_onRender()
-	{
+		(void)p_builder;
 	}
 
 	void Widget::_onUpdate(const spk::UpdateTick& p_tick)
@@ -99,14 +96,6 @@ namespace spk
 		_onKeyboardEvent(p_event);
 	}
 
-	void Widget::_updateGeometry()
-	{
-		if (_geometryChangeRequested == true)
-		{
-			updateGeometry();
-		}
-	}
-
 	Widget::Widget(const std::string& p_name, spk::Widget* p_parent) :
 		spk::InherenceTrait<Widget>(p_parent),
 		_name(p_name)
@@ -117,7 +106,7 @@ namespace spk
 
 	const std::string& Widget::name() const
 	{
-		return _name;
+		return (_name);
 	}
 
 	void Widget::setGeometry(const spk::Rect2D& p_geometry)
@@ -128,40 +117,39 @@ namespace spk
 		}
 
 		_geometry = p_geometry;
-		_geometryChangeRequested = true;
+		_renderCommandsDirty = true;
 	}
 
-	void Widget::requireGeometryUpdate()
+	void Widget::requireRenderCommandRebuild()
 	{
-		_geometryChangeRequested = true;
-	}
-
-	void Widget::updateGeometry()
-	{
-		_onGeometryUpdate();
-		_geometryChangeRequested = false;
+		_renderCommandsDirty = true;
 	}
 
 	const spk::Rect2D& Widget::geometry() const
 	{
-		return _geometry;
+		return (_geometry);
 	}
 
-	void Widget::render()
+	bool Widget::isRenderCommandDirty() const
+	{
+		return (_renderCommandsDirty);
+	}
+
+	void Widget::appendRenderCommands(spk::RenderCommandBuilder& p_builder) const
 	{
 		if (isActivated() == false)
 		{
 			return;
 		}
 
-		_updateGeometry();
-		_onRender();
+		_appendRenderCommands(p_builder);
+		_renderCommandsDirty = false;
 
-		for (auto* child : children())
+		for (const auto* child : children())
 		{
 			if (child != nullptr)
 			{
-				child->render();
+				child->appendRenderCommands(p_builder);
 			}
 		}
 	}

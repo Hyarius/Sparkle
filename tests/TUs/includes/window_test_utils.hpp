@@ -10,11 +10,13 @@
 #include "spk_events.hpp"
 #include "spk_frame.hpp"
 #include "spk_platform_runtime.hpp"
+#include "spk_render_command.hpp"
+#include "spk_render_command_builder.hpp"
 #include "spk_render_context.hpp"
 #include "spk_update_tick.hpp"
 #include "spk_widget.hpp"
-#include "spk_window_host.hpp"
 #include "spk_window.hpp"
+#include "spk_window_host.hpp"
 
 namespace sparkle_test
 {
@@ -46,6 +48,26 @@ namespace sparkle_test
 
 		return "Unknown";
 	}
+
+	class CallbackRenderCommand : public spk::RenderCommand
+	{
+	private:
+		std::function<void()> _callback = nullptr;
+
+	public:
+		explicit CallbackRenderCommand(std::function<void()> p_callback) :
+			_callback(std::move(p_callback))
+		{
+		}
+
+		void execute() const override
+		{
+			if (_callback != nullptr)
+			{
+				_callback();
+			}
+		}
+	};
 
 	class TestFrame : public spk::IFrame
 	{
@@ -316,8 +338,9 @@ namespace sparkle_test
 	public:
 		using spk::Widget::Widget;
 
-		int geometryUpdateCount = 0;
-		int renderCount = 0;
+		mutable int geometryUpdateCount = 0;
+		mutable int appendRenderCommandCount = 0;
+		mutable int renderCount = 0;
 		int updateCount = 0;
 		int frameEventCount = 0;
 		int mouseEventCount = 0;
@@ -327,11 +350,11 @@ namespace sparkle_test
 		bool consumeMouseEvent = false;
 		bool consumeKeyboardEvent = false;
 
-		spk::Rect2D geometrySeenDuringUpdate;
+		mutable spk::Rect2D geometrySeenDuringUpdate;
 		const spk::Mouse* lastTickMouse = nullptr;
 		const spk::Keyboard* lastTickKeyboard = nullptr;
 		std::vector<std::string>* sharedCallLog = nullptr;
-		std::vector<std::string> callLog;
+		mutable std::vector<std::string> callLog;
 		std::vector<std::string> frameEventKinds;
 		std::vector<std::string> mouseEventKinds;
 		std::vector<std::string> keyboardEventKinds;
@@ -343,25 +366,31 @@ namespace sparkle_test
 		}
 
 	protected:
-		void _onGeometryUpdate() override
+		void _appendRenderCommands(spk::RenderCommandBuilder& p_builder) const override
 		{
-			++geometryUpdateCount;
-			geometrySeenDuringUpdate = geometry();
-			callLog.push_back(name() + ":geometry");
-			if (sharedCallLog != nullptr)
+			if (isRenderCommandDirty() == true)
 			{
-				sharedCallLog->push_back(name() + ":geometry");
+				++geometryUpdateCount;
+				geometrySeenDuringUpdate = geometry();
 			}
-		}
 
-		void _onRender() override
-		{
-			++renderCount;
-			callLog.push_back(name() + ":render");
+			++appendRenderCommandCount;
+			callLog.push_back(name() + ":append_render");
 			if (sharedCallLog != nullptr)
 			{
-				sharedCallLog->push_back(name() + ":render");
+				sharedCallLog->push_back(name() + ":append_render");
 			}
+
+			p_builder.emplace<CallbackRenderCommand>(
+				[this]()
+				{
+					++renderCount;
+					callLog.push_back(name() + ":render");
+					if (sharedCallLog != nullptr)
+					{
+						sharedCallLog->push_back(name() + ":render");
+					}
+				});
 		}
 
 		void _onUpdate(const spk::UpdateTick& p_tick) override
@@ -432,6 +461,8 @@ namespace sparkle_test
 
 		std::function<void(const spk::UpdateTick&)> onUpdate = nullptr;
 		std::function<void()> onRender = nullptr;
+		std::function<void()> onAppendRenderCommands = nullptr;
+		std::function<void()> onExecuteRenderCommand = nullptr;
 
 	protected:
 		void _onUpdate(const spk::UpdateTick& p_tick) override
@@ -442,11 +473,20 @@ namespace sparkle_test
 			}
 		}
 
-		void _onRender() override
+		void _appendRenderCommands(spk::RenderCommandBuilder& p_builder) const override
 		{
-			if (onRender != nullptr)
+			if (onAppendRenderCommands != nullptr)
 			{
-				onRender();
+				onAppendRenderCommands();
+			}
+
+			if (onExecuteRenderCommand != nullptr)
+			{
+				p_builder.emplace<CallbackRenderCommand>(onExecuteRenderCommand);
+			}
+			else if (onRender != nullptr)
+			{
+				p_builder.emplace<CallbackRenderCommand>(onRender);
 			}
 		}
 	};

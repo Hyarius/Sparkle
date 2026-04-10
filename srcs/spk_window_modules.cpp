@@ -1,6 +1,7 @@
 #include "spk_window_modules.hpp"
 
 #include <stdexcept>
+
 #include "spk_time_utils.hpp"
 
 namespace spk
@@ -168,7 +169,7 @@ namespace spk
 		_mouse = p_mouse;
 		_keyboard = p_keyboard;
 	}
-	
+
 	void UpdateModule::update()
 	{
 		if (widget() == nullptr)
@@ -191,13 +192,14 @@ namespace spk
 
 	RenderModule::RenderModule() = default;
 
-	void RenderModule::render()
+	void RenderModule::render(const spk::RenderCommandBuilder& p_builder) const
 	{
-		if (widget() == nullptr)
+		for (const std::unique_ptr<spk::RenderCommand>& command : p_builder.commands())
 		{
-			return;
+			if (command != nullptr)
+			{
+				command->execute();
+			}
 		}
-
-		widget()->render();
 	}
 }

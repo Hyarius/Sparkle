@@ -1,9 +1,11 @@
 #pragma once
 
+#include <memory>
 #include <mutex>
 #include <vector>
 
 #include "spk_contract_provider.hpp"
+#include "spk_render_command_builder.hpp"
 #include "spk_window_host.hpp"
 #include "spk_window_modules.hpp"
 
@@ -27,7 +29,12 @@ namespace spk
 		RenderModule _renderModule;
 
 		mutable std::mutex _pendingEventsMutex;
-		std::vector<spk::Event> _pendingEvents;
+		std::vector<spk::Event> _pendingFrameEvents;
+		std::vector<spk::Event> _pendingMouseEvents;
+		std::vector<spk::Event> _pendingKeyboardEvents;
+
+		mutable std::mutex _renderSnapshotMutex;
+		std::shared_ptr<spk::RenderCommandBuilder> _renderSnapshot;
 
 		spk::IFrame::EventContract _frameEventQueueContract;
 		spk::IFrame::EventContract _mouseEventQueueContract;
@@ -36,16 +43,20 @@ namespace spk
 		ClosureEventProvider _closureEventProvider;
 
 	private:
-		void _enqueueEvent(const spk::Event& p_event);
-		[[nodiscard]] std::vector<spk::Event> _drainPendingEvents();
-		void _dispatchEvent(const spk::Event& p_event);
+		void _enqueueFrameEvent(const spk::Event& p_event);
+		void _enqueueMouseEvent(const spk::Event& p_event);
+		void _enqueueKeyboardEvent(const spk::Event& p_event);
+
+		[[nodiscard]] std::vector<spk::Event> _drainPendingFrameEvents();
+		[[nodiscard]] std::vector<spk::Event> _drainPendingMouseEvents();
+		[[nodiscard]] std::vector<spk::Event> _drainPendingKeyboardEvents();
+
 		void _treatFrameEvent(const spk::Event& p_event);
 		void _treatMouseEvent(const spk::Event& p_event);
 		void _treatKeyboardEvent(const spk::Event& p_event);
 
-		[[nodiscard]] static bool _isFrameEvent(const spk::Event& p_event);
-		[[nodiscard]] static bool _isMouseEvent(const spk::Event& p_event);
-		[[nodiscard]] static bool _isKeyboardEvent(const spk::Event& p_event);
+		void _rebuildRenderSnapshot();
+		[[nodiscard]] std::shared_ptr<spk::RenderCommandBuilder> _currentRenderSnapshot() const;
 
 	public:
 		explicit Window(spk::WindowHost::Configuration p_configuration);

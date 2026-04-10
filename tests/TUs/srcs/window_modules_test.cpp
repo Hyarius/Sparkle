@@ -157,17 +157,19 @@ TEST(UpdateModuleTest, BoundInputsAreInjectedIntoConstructedTick)
 	EXPECT_EQ(widget.lastTickKeyboard, &keyboard);
 }
 
-TEST(RenderModuleTest, RenderCallsBoundWidgetAndIsSafeWhenUnbound)
+TEST(RenderModuleTest, RenderExecutesCommandsAndIsSafeWithEmptyBuilder)
 {
 	spk::RenderModule module;
+	spk::RenderCommandBuilder builder;
 
-	EXPECT_NO_THROW(module.render());
+	EXPECT_NO_THROW(module.render(builder));
 
 	sparkle_test::RecordingWidget widget("RenderWidget");
 	widget.activate();
 
-	module.bind(&widget);
-	module.render();
+	widget.appendRenderCommands(builder);
+	module.render(builder);
 
+	EXPECT_EQ(widget.appendRenderCommandCount, 1);
 	EXPECT_EQ(widget.renderCount, 1);
 }

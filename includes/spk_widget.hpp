@@ -6,6 +6,7 @@
 #include "spk_events.hpp"
 #include "spk_inherence_trait.hpp"
 #include "spk_rect_2d.hpp"
+#include "spk_render_command_builder.hpp"
 #include "spk_update_tick.hpp"
 
 namespace spk
@@ -14,12 +15,12 @@ namespace spk
 	{
 	private:
 		std::string _name;
-		bool _geometryChangeRequested = false;
+		mutable bool _renderCommandsDirty = true;
 		spk::Rect2D _geometry;
 
 	protected:
-		virtual void _onGeometryUpdate();
-		virtual void _onRender();
+		virtual void _appendRenderCommands(spk::RenderCommandBuilder& p_builder) const;
+
 		virtual void _onUpdate(const spk::UpdateTick& p_tick);
 		virtual void _onFrameEvent(const spk::Event& p_event);
 		virtual void _onMouseEvent(const spk::Event& p_event);
@@ -28,7 +29,6 @@ namespace spk
 		void _propagateFrameEvent(const spk::Event& p_event);
 		void _propagateMouseEvent(const spk::Event& p_event);
 		void _propagateKeyboardEvent(const spk::Event& p_event);
-		void _updateGeometry();
 
 	public:
 		explicit Widget(const std::string& p_name, spk::Widget* p_parent = nullptr);
@@ -37,12 +37,12 @@ namespace spk
 		[[nodiscard]] const std::string& name() const;
 
 		void setGeometry(const spk::Rect2D& p_geometry);
-		void requireGeometryUpdate();
-		void updateGeometry();
+		void requireRenderCommandRebuild();
 
 		[[nodiscard]] const spk::Rect2D& geometry() const;
+		[[nodiscard]] bool isRenderCommandDirty() const;
 
-		void render();
+		void appendRenderCommands(spk::RenderCommandBuilder& p_builder) const;
 		void update(const spk::UpdateTick& p_tick);
 
 		void dispatchFrameEvent(const spk::Event& p_event);

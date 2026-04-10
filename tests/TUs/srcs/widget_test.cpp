@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include "spk_window_modules.hpp"
 #include "window_test_utils.hpp"
 
 TEST(WidgetTest, ConstructionStoresNameAndOptionalParent)
@@ -14,64 +15,97 @@ TEST(WidgetTest, ConstructionStoresNameAndOptionalParent)
 	EXPECT_EQ(parent.children()[0], &child);
 }
 
-TEST(WidgetTest, SetGeometryTriggersGeometryUpdateOnNextRenderOnlyOnce)
+TEST(WidgetTest, SetGeometryMarksWidgetDirtyAndFirstAppendClearsIt)
 {
 	sparkle_test::RecordingWidget widget("Widget");
 	const spk::Rect2D rect(4, 5, 100, 60);
-	widget.activate();
+	spk::RenderCommandBuilder builder;
+	spk::RenderModule renderModule;
 
+	widget.activate();
 	widget.setGeometry(rect);
-	widget.render();
-	widget.render();
+
+	EXPECT_TRUE(widget.isRenderCommandDirty());
+
+	widget.appendRenderCommands(builder);
+	renderModule.render(builder);
 
 	EXPECT_EQ(widget.geometry(), rect);
 	EXPECT_EQ(widget.geometryUpdateCount, 1);
 	EXPECT_EQ(widget.geometrySeenDuringUpdate, rect);
-	EXPECT_EQ(widget.renderCount, 2);
+	EXPECT_EQ(widget.appendRenderCommandCount, 1);
+	EXPECT_EQ(widget.renderCount, 1);
+	EXPECT_FALSE(widget.isRenderCommandDirty());
 }
 
-TEST(WidgetTest, RequireGeometryUpdateTriggersGeometryRefreshOnNextRender)
+TEST(WidgetTest, RequireRenderCommandRebuildTriggersAnotherDirtyPass)
 {
 	sparkle_test::RecordingWidget widget("Widget");
+	spk::RenderCommandBuilder builder;
+	spk::RenderModule renderModule;
+
 	widget.activate();
 
-	widget.requireGeometryUpdate();
-	widget.render();
+	widget.appendRenderCommands(builder);
+	renderModule.render(builder);
+	ASSERT_EQ(widget.geometryUpdateCount, 1);
 
-	EXPECT_EQ(widget.geometryUpdateCount, 1);
-	EXPECT_EQ(widget.renderCount, 1);
+	builder.clear();
+	widget.requireRenderCommandRebuild();
+	EXPECT_TRUE(widget.isRenderCommandDirty());
+
+	widget.appendRenderCommands(builder);
+	renderModule.render(builder);
+
+	EXPECT_EQ(widget.geometryUpdateCount, 2);
+	EXPECT_EQ(widget.renderCount, 2);
+	EXPECT_FALSE(widget.isRenderCommandDirty());
 }
 
-TEST(WidgetTest, SettingSameGeometryDoesNotRequestAnotherGeometryUpdate)
+TEST(WidgetTest, SettingSameGeometryDoesNotRequestAnotherDirtyPass)
 {
 	sparkle_test::RecordingWidget widget("Widget");
 	const spk::Rect2D rect(1, 2, 30, 40);
+	spk::RenderCommandBuilder builder;
+	spk::RenderModule renderModule;
+
 	widget.activate();
 
 	widget.setGeometry(rect);
-	widget.render();
+	widget.appendRenderCommands(builder);
+	renderModule.render(builder);
 	ASSERT_EQ(widget.geometryUpdateCount, 1);
 
+	builder.clear();
 	widget.setGeometry(rect);
-	widget.render();
+	EXPECT_FALSE(widget.isRenderCommandDirty());
+
+	widget.appendRenderCommands(builder);
+	renderModule.render(builder);
 
 	EXPECT_EQ(widget.geometryUpdateCount, 1);
 	EXPECT_EQ(widget.renderCount, 2);
 }
 
-TEST(WidgetTest, RenderVisitsSelfBeforeChildren)
+TEST(WidgetTest, AppendRenderCommandsVisitsSelfBeforeChildrenAndRenderExecutesInThatOrder)
 {
 	sparkle_test::RecordingWidget parent("Parent");
 	sparkle_test::RecordingWidget child("Child", &parent);
+	spk::RenderCommandBuilder builder;
+	spk::RenderModule renderModule;
 	std::vector<std::string> callLog;
+
 	parent.bindSharedCallLog(&callLog);
 	child.bindSharedCallLog(&callLog);
 	parent.activate();
 	child.activate();
 
-	parent.render();
+	parent.appendRenderCommands(builder);
+	renderModule.render(builder);
 
 	std::vector<std::string> expected = {
+		"Parent:append_render",
+		"Child:append_render",
 		"Parent:render",
 		"Child:render"
 	};
@@ -84,6 +118,7 @@ TEST(WidgetTest, UpdateVisitsChildrenBeforeSelf)
 	sparkle_test::RecordingWidget parent("Parent");
 	sparkle_test::RecordingWidget child("Child", &parent);
 	std::vector<std::string> callLog;
+
 	parent.bindSharedCallLog(&callLog);
 	child.bindSharedCallLog(&callLog);
 	parent.activate();
@@ -105,6 +140,7 @@ TEST(WidgetTest, FrameEventsPropagateToChildrenBeforeParent)
 	sparkle_test::RecordingWidget parent("Parent");
 	sparkle_test::RecordingWidget child("Child", &parent);
 	std::vector<std::string> callLog;
+
 	parent.bindSharedCallLog(&callLog);
 	child.bindSharedCallLog(&callLog);
 	parent.activate();
@@ -126,6 +162,7 @@ TEST(WidgetTest, ConsumedFrameEventStopsPropagationToParent)
 {
 	sparkle_test::RecordingWidget parent("Parent");
 	sparkle_test::RecordingWidget child("Child", &parent);
+
 	parent.activate();
 	child.activate();
 	child.consumeFrameEvent = true;
@@ -155,13 +192,17 @@ TEST(WidgetTest, MouseAndKeyboardDispatchReachDedicatedHandlers)
 	EXPECT_EQ(widget.keyboardEventKinds[0], "KeyPressed");
 }
 
-TEST(WidgetTest, DeactivatedWidgetSkipsRenderUpdateAndEventDispatch)
+TEST(WidgetTest, DeactivatedWidgetSkipsRenderCommandAppendUpdateAndEventDispatch)
 {
 	sparkle_test::RecordingWidget widget("Widget");
+	spk::RenderCommandBuilder builder;
+	spk::RenderModule renderModule;
+	spk::UpdateTick tick;
+
 	widget.setGeometry(spk::Rect2D(1, 1, 10, 10));
 
-	spk::UpdateTick tick;
-	widget.render();
+	widget.appendRenderCommands(builder);
+	renderModule.render(builder);
 	widget.update(tick);
 	widget.dispatchFrameEvent(spk::Event(spk::WindowShownPayload{}));
 	widget.dispatchMouseEvent(spk::Event(spk::MouseMovedPayload{
@@ -171,6 +212,7 @@ TEST(WidgetTest, DeactivatedWidgetSkipsRenderUpdateAndEventDispatch)
 		.glyph = U'X'}));
 
 	EXPECT_EQ(widget.geometryUpdateCount, 0);
+	EXPECT_EQ(widget.appendRenderCommandCount, 0);
 	EXPECT_EQ(widget.renderCount, 0);
 	EXPECT_EQ(widget.updateCount, 0);
 	EXPECT_EQ(widget.frameEventCount, 0);
