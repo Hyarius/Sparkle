@@ -24,6 +24,7 @@ namespace spk
 		void notifyFrameResized(const spk::Rect2D& p_rect);
 		void setTitle(const std::string& p_title);
 		void requestClosure();
+		void validateClosure();
 
 		[[nodiscard]] spk::Rect2D rect() const;
 		[[nodiscard]] std::string title() const;

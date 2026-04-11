@@ -255,22 +255,18 @@ namespace spk
 			}
 		});
 
-		std::jthread eventThread([this]()
+		try
 		{
-			try
-			{
-				_runEventLoop();
-			}
-			catch (...)
-			{
-				_recordFailure(std::current_exception());
-				_stopRequested.store(true);
-			}
-		});
+			_runEventLoop();
+		}
+		catch (...)
+		{
+			_recordFailure(std::current_exception());
+			_stopRequested.store(true);
+		}
 
 		renderThread.join();
 		updateThread.join();
-		eventThread.join();
 
 		_isRunning.store(false);
 		_rethrowFailureIfAny();

@@ -10,12 +10,14 @@ TEST(IFrameTest, TestFrameTracksResizeTitleAndClosureRequests)
 	frame.resize(resizedRect);
 	frame.setTitle("Updated");
 	frame.requestClosure();
+	frame.validateClosure();
 
 	EXPECT_EQ(frame.rect(), resizedRect);
 	EXPECT_EQ(frame.title(), "Updated");
 	EXPECT_EQ(frame.resizeCount, 1);
 	EXPECT_EQ(frame.setTitleCount, 1);
 	EXPECT_EQ(frame.requestClosureCount, 1);
+	EXPECT_EQ(frame.validateClosureCount, 1);
 	ASSERT_EQ(frame.resizeHistory.size(), 1u);
 	EXPECT_EQ(frame.resizeHistory[0], resizedRect);
 	ASSERT_EQ(frame.titleHistory.size(), 1u);

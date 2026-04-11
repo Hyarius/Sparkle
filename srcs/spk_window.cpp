@@ -107,6 +107,15 @@ namespace spk
 		{
 			_frameModule.pushEvent(p_event);
 
+			if (p_event.holds<spk::WindowCloseRequestedPayload>())
+			{
+				if (p_event.metadata.isConsumed == false)
+				{
+					_host.validateClosure();
+				}
+				return;
+			}
+
 			if (const auto* payload = p_event.getIf<spk::WindowResizedPayload>(); payload != nullptr)
 			{
 				_recordPendingFrameResize(payload->rect);

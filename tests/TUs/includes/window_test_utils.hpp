@@ -78,6 +78,7 @@ namespace sparkle_test
 		int resizeCount = 0;
 		int setTitleCount = 0;
 		int requestClosureCount = 0;
+		int validateClosureCount = 0;
 		std::vector<spk::Rect2D> resizeHistory;
 		std::vector<std::string> titleHistory;
 
@@ -105,6 +106,11 @@ namespace sparkle_test
 		void requestClosure() override
 		{
 			++requestClosureCount;
+		}
+
+		void validateClosure() override
+		{
+			++validateClosureCount;
 		}
 
 		[[nodiscard]] spk::Rect2D rect() const override

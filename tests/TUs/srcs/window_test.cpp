@@ -147,6 +147,38 @@ TEST(WindowTest, RequestClosureDelegatesToManagedWindow)
 	EXPECT_EQ(bundle.platformRuntime->createdFrame->requestClosureCount, 1);
 }
 
+TEST(WindowTest, UnconsumedCloseRequestValidatesClosure)
+{
+	auto bundle = sparkle_test::createWindowBundle();
+	sparkle_test::RecordingWidget child("Child", &bundle.window->rootWidget());
+	child.activate();
+
+	bundle.platformRuntime->queueFramePayload(spk::WindowCloseRequestedPayload{});
+	bundle.platformRuntime->pollEvents();
+	bundle.window->update();
+
+	ASSERT_NE(bundle.platformRuntime->createdFrame, nullptr);
+	EXPECT_EQ(bundle.platformRuntime->createdFrame->validateClosureCount, 1);
+	ASSERT_EQ(child.frameEventKinds.size(), 1u);
+	EXPECT_EQ(child.frameEventKinds[0], "WindowCloseRequested");
+}
+
+TEST(WindowTest, ConsumedCloseRequestDoesNotValidateClosure)
+{
+	auto bundle = sparkle_test::createWindowBundle();
+	sparkle_test::RecordingWidget child("Child", &bundle.window->rootWidget());
+	child.activate();
+	child.consumeFrameEvent = true;
+
+	bundle.platformRuntime->queueFramePayload(spk::WindowCloseRequestedPayload{});
+	bundle.platformRuntime->pollEvents();
+	bundle.window->update();
+
+	ASSERT_NE(bundle.platformRuntime->createdFrame, nullptr);
+	EXPECT_EQ(bundle.platformRuntime->createdFrame->validateClosureCount, 0);
+	EXPECT_EQ(child.frameEventCount, 1);
+}
+
 TEST(WindowTest, ClosureSubscribersAreTriggeredByValidatedCloseEvents)
 {
 	auto bundle = sparkle_test::createWindowBundle();

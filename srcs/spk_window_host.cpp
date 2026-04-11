@@ -45,6 +45,11 @@ namespace spk
 		_frame->requestClosure();
 	}
 
+	void WindowHost::validateClosure()
+	{
+		_frame->validateClosure();
+	}
+
 	spk::Rect2D WindowHost::rect() const
 	{
 		return _frame->rect();
