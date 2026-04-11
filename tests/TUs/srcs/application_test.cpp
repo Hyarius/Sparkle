@@ -223,3 +223,72 @@ TEST(ApplicationTest, RunStopsWhenTheLastWindowCloses)
 	EXPECT_FALSE(application.containsWindow("main"));
 	EXPECT_GT(platformRuntimePtr->pollEventsCount, 0);
 }
+
+TEST(ApplicationTest, RunThrowsWhenCalledFromDifferentThreadThanApplicationConstruction)
+{
+	auto platformRuntime = std::make_shared<sparkle_test::TestPlatformRuntime>();
+	auto gpuPlatformRuntime = std::make_shared<sparkle_test::TestGPUPlatformRuntime>();
+	spk::Application application(
+		spk::Application::Configuration{
+			.platformRuntime = platformRuntime,
+			.gpuPlatformRuntime = gpuPlatformRuntime
+		});
+
+	application.createWindow(
+		"main",
+		spk::Window::Configuration{
+			.rect = sparkle_test::defaultRect(),
+			.title = "Main"
+		});
+
+	std::exception_ptr failure = nullptr;
+	std::jthread worker([&]()
+	{
+		try
+		{
+			application.run();
+		}
+		catch (...)
+		{
+			failure = std::current_exception();
+		}
+	});
+	worker.join();
+
+	ASSERT_NE(failure, nullptr);
+	EXPECT_THROW(std::rethrow_exception(failure), std::runtime_error);
+}
+
+TEST(ApplicationTest, CreateWindowThrowsWhenCalledFromDifferentThreadThanApplicationConstruction)
+{
+	auto platformRuntime = std::make_shared<sparkle_test::TestPlatformRuntime>();
+	auto gpuPlatformRuntime = std::make_shared<sparkle_test::TestGPUPlatformRuntime>();
+	spk::Application application(
+		spk::Application::Configuration{
+			.platformRuntime = platformRuntime,
+			.gpuPlatformRuntime = gpuPlatformRuntime
+		});
+
+	std::exception_ptr failure = nullptr;
+	std::jthread worker([&]()
+	{
+		try
+		{
+			application.createWindow(
+				"main",
+				spk::Window::Configuration{
+					.rect = sparkle_test::defaultRect(),
+					.title = "Main"
+				});
+		}
+		catch (...)
+		{
+			failure = std::current_exception();
+		}
+	});
+	worker.join();
+
+	ASSERT_NE(failure, nullptr);
+	EXPECT_THROW(std::rethrow_exception(failure), std::runtime_error);
+	EXPECT_FALSE(application.containsWindow("main"));
+}

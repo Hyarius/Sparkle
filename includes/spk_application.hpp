@@ -4,6 +4,7 @@
 #include <exception>
 #include <memory>
 #include <mutex>
+#include <thread>
 
 #include "spk_duration.hpp"
 #include "spk_gpu_platform_runtime.hpp"
@@ -32,6 +33,7 @@ namespace spk
 		std::shared_ptr<IPlatformRuntime> _platformRuntime;
 		std::shared_ptr<IGPUPlatformRuntime> _gpuPlatformRuntime;
 		spk::WindowRegistry _windowRegistry;
+		std::thread::id _ownerThreadID;
 		std::atomic<bool> _isRunning = false;
 		std::atomic<bool> _stopRequested = false;
 		std::mutex _failureMutex;
@@ -40,6 +42,7 @@ namespace spk
 	private:
 		static std::shared_ptr<IPlatformRuntime> _createDefaultPlatformRuntime();
 		static std::shared_ptr<IGPUPlatformRuntime> _createDefaultGPUPlatformRuntime();
+		void _bindOrValidateOwnerThread(const char* p_operation);
 		void _recordFailure(std::exception_ptr p_failure);
 		void _rethrowFailureIfAny();
 

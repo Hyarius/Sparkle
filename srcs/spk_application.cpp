@@ -19,6 +19,18 @@ namespace spk
 		throw std::runtime_error("No default spk::IGPUPlatformRuntime is implemented for this platform yet");
 	}
 
+	void Application::_bindOrValidateOwnerThread(const char* p_operation)
+	{
+		const std::thread::id currentThreadID = std::this_thread::get_id();
+
+		if (_ownerThreadID != currentThreadID)
+		{
+			throw std::runtime_error(
+				"Application::" + std::string(p_operation) +
+				" must be called from the application construction thread");
+		}
+	}
+
 	void Application::_recordFailure(std::exception_ptr p_failure)
 	{
 		std::scoped_lock lock(_failureMutex);
@@ -154,17 +166,23 @@ namespace spk
 		}
 	}
 
-	Application::Application() = default;
+	Application::Application() :
+		_ownerThreadID(std::this_thread::get_id())
+	{
+	}
 
 	Application::Application(Configuration p_configuration) :
 		_configuration(std::move(p_configuration)),
 		_platformRuntime(_configuration.platformRuntime),
-		_gpuPlatformRuntime(_configuration.gpuPlatformRuntime)
+		_gpuPlatformRuntime(_configuration.gpuPlatformRuntime),
+		_ownerThreadID(std::this_thread::get_id())
 	{
 	}
 
 	std::shared_ptr<spk::Window> Application::createWindow(const WindowID& p_id, spk::Window::Configuration p_configuration)
 	{
+		_bindOrValidateOwnerThread(__FUNCTION__);
+
 		if (_platformRuntime == nullptr)
 		{
 			_platformRuntime = _createDefaultPlatformRuntime();
@@ -210,6 +228,8 @@ namespace spk
 
 	void Application::run()
 	{
+		_bindOrValidateOwnerThread(__FUNCTION__);
+
 		if (_platformRuntime == nullptr && _windowRegistry.size() != 0)
 		{
 			_platformRuntime = _createDefaultPlatformRuntime();
