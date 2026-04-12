@@ -177,6 +177,29 @@ TEST(IFrameTest, MultipleSubscribersReceiveSameFrameEvent)
 	EXPECT_EQ(secondCount, 1);
 }
 
+TEST(IFrameTest, DestroyedFrameEventInvalidatesSurfaceStateBeforeSubscribersAreNotified)
+{
+	sparkle_test::TestFrame frame(sparkle_test::defaultRect(), "Frame");
+	std::shared_ptr<spk::ISurfaceState> surfaceState = frame.surfaceState();
+	bool surfaceWasInvalidInsideCallback = false;
+
+	ASSERT_NE(surfaceState, nullptr);
+	EXPECT_TRUE(surfaceState->isValid());
+
+	auto contract = frame.subscribeToFrameEvents([&](const spk::Event& p_event)
+	{
+		if (p_event.holds<spk::WindowDestroyedPayload>())
+		{
+			surfaceWasInvalidInsideCallback = (surfaceState->isValid() == false);
+		}
+	});
+
+	frame.emitFrameEvent(spk::Event(spk::WindowDestroyedPayload{}));
+
+	EXPECT_TRUE(surfaceWasInvalidInsideCallback);
+	EXPECT_FALSE(surfaceState->isValid());
+}
+
 TEST(IFrameTest, ConstructingFrameWithoutSurfaceStateThrows)
 {
 	EXPECT_THROW(NullSurfaceStateFrame(), std::invalid_argument);

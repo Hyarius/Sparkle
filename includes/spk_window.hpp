@@ -80,6 +80,7 @@ namespace spk
 		std::shared_ptr<spk::RenderCommandBuilder> _renderSnapshot;
 
 		std::atomic<bool> _isClosed = false;
+		std::atomic<bool> _closureRequested = false;
 		std::atomic<bool> _closureNotificationPending = false;
 		std::atomic<bool> _renderResourcesReleased = false;
 		std::atomic<bool> _platformResourcesReleased = false;

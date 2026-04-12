@@ -154,6 +154,11 @@ namespace spk
 			return;
 		}
 
+		if (const auto* payload = p_event.getIf<spk::WindowResizedPayload>(); payload != nullptr)
+		{
+			widget()->setGeometry(payload->rect.atOrigin());
+		}
+
 		widget()->dispatchFrameEvent(p_event);
 	}
 

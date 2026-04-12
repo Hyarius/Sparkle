@@ -22,6 +22,8 @@ namespace spk
 	struct WindowDestroyedPayload
 	{
 		//Event correspond to the point where the native window runtime is effectively destroyed.
+		//Emitting this payload invalidates the frame surface immediately, before subscribers are
+		//notified. After that point, render-context creation and presentation are no longer allowed.
 		//The application can use it to release its higher-level window object afterwards.
 	};
 

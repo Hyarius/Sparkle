@@ -59,7 +59,6 @@ namespace spk
 
 	void Application::_runRenderLoop()
 	{
-
 		while (_stopRequested.load() == false)
 		{
 			spk::Chronometer chronometer;
@@ -69,9 +68,9 @@ namespace spk
 
 			if (windows.empty() == true)
 			{
-				if (_configuration.stopWhenNoWindows == true)
+				if (_shutdownRequested.load() == true ||
+					_configuration.stopWhenNoWindows == true)
 				{
-					_stopRequested.store(true);
 					return;
 				}
 			}
@@ -112,9 +111,9 @@ namespace spk
 
 			if (windows.empty() == true)
 			{
-				if (_configuration.stopWhenNoWindows == true)
+				if (_shutdownRequested.load() == true ||
+					_configuration.stopWhenNoWindows == true)
 				{
-					_stopRequested.store(true);
 					return;
 				}
 			}
@@ -148,11 +147,23 @@ namespace spk
 	{
 		while (_stopRequested.load() == false)
 		{
+			if (_shutdownRequested.load() == true)
+			{
+				std::vector<std::shared_ptr<spk::Window>> windows = _windowRegistry.windows();
+				for (const auto& window : windows)
+				{
+					if (window != nullptr)
+					{
+						window->requestClosure();
+					}
+				}
+			}
+
 			if (_windowRegistry.size() == 0)
 			{
-				if (_configuration.stopWhenNoWindows == true)
+				if (_shutdownRequested.load() == true ||
+					_configuration.stopWhenNoWindows == true)
 				{
-					_stopRequested.store(true);
 					return;
 				}
 
@@ -172,6 +183,12 @@ namespace spk
 			}
 
 			_windowRegistry.removeClosedWindows();
+
+			if (_windowRegistry.size() == 0 &&
+				(_shutdownRequested.load() == true || _configuration.stopWhenNoWindows == true))
+			{
+				return;
+			}
 
 			spk::TimeUtils::sleepFor(_configuration.eventPollingInterval);
 		}
@@ -234,7 +251,7 @@ namespace spk
 
 	void Application::stop()
 	{
-		_stopRequested.store(true);
+		_shutdownRequested.store(true);
 	}
 
 	void Application::run()
@@ -258,6 +275,7 @@ namespace spk
 		}
 
 		_stopRequested.store(false);
+		_shutdownRequested.store(false);
 		_rethrowFailureIfAny();
 
 		std::jthread renderThread([this]()

@@ -30,6 +30,11 @@ namespace spk
 
 	void IFrame::_emitFrameEvent(const spk::Event& p_event)
 	{
+		if (p_event.holds<spk::WindowDestroyedPayload>())
+		{
+			_invalidateSurfaceState();
+		}
+
 		_frameEventContractProvider.trigger(p_event);
 	}
 

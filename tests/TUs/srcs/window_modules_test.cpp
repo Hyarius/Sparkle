@@ -105,6 +105,7 @@ TEST(FrameModuleTest, FrameEventsDispatchToBoundWidget)
 	module.pushEvent(spk::Event(spk::WindowResizedPayload{
 		.rect = resizedRect}));
 
+	EXPECT_EQ(widget.geometry(), resizedRect.atOrigin());
 	EXPECT_EQ(widget.frameEventCount, 1);
 	ASSERT_EQ(widget.frameEventKinds.size(), 1u);
 	EXPECT_EQ(widget.frameEventKinds[0], "WindowResized");

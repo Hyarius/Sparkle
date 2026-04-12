@@ -13,6 +13,7 @@ TEST(WindowTest, ConstructionActivatesRootWidgetAndExposesAccessors)
 	ASSERT_NE(bundle.window, nullptr);
 	EXPECT_TRUE(bundle.window->rootWidget().isActivated());
 	EXPECT_EQ(bundle.window->rootWidget().name(), ":/Runtime/RootWidget");
+	EXPECT_EQ(bundle.window->rootWidget().geometry(), sparkle_test::defaultRect().atOrigin());
 	EXPECT_EQ(bundle.window->host().title(), "Runtime");
 	EXPECT_EQ(bundle.window->host().rect(), sparkle_test::defaultRect());
 	EXPECT_EQ(bundle.window->mouse().position, spk::Vector2Int(0, 0));
@@ -40,6 +41,7 @@ TEST(WindowTest, PollEventsDrivesWindowModulesAndWidgetTree)
 	bundle.window->update();
 
 	EXPECT_EQ(bundle.platformRuntime->pollEventsCount, 1);
+	EXPECT_EQ(bundle.window->rootWidget().geometry(), resizedRect.atOrigin());
 	EXPECT_EQ(bundle.window->mouse().position, spk::Vector2Int(7, 9));
 	EXPECT_EQ(bundle.window->mouse().deltaPosition, spk::Vector2Int(-1, -1));
 	EXPECT_EQ(bundle.window->keyboard()[spk::Keyboard::C], spk::InputState::Down);

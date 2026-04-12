@@ -49,13 +49,13 @@ namespace spk
 		}
 	}
 
-	void WindowHost::_ensureRenderContextLocked()
+	bool WindowHost::_ensureRenderContextLocked()
 	{
 		_bindOrValidateRenderThreadLocked(__FUNCTION__);
 
 		if (_renderContext != nullptr)
 		{
-			return;
+			return true;
 		}
 
 		if (_frame == nullptr)
@@ -63,11 +63,19 @@ namespace spk
 			throw std::runtime_error("spk::WindowHost can't create a render context after its frame has been released");
 		}
 
+		std::shared_ptr<ISurfaceState> surfaceState = _frame->surfaceState();
+		if (surfaceState == nullptr || surfaceState->isValid() == false)
+		{
+			return false;
+		}
+
 		_renderContext = _gpuPlatformRuntime->createRenderContext(*_frame);
 		if (_renderContext == nullptr)
 		{
 			throw std::runtime_error("spk::WindowHost failed to create its render context");
 		}
+
+		return true;
 	}
 
 	bool WindowHost::isPlatformThread() const
@@ -96,7 +104,11 @@ namespace spk
 	void WindowHost::notifyFrameResized(const spk::Rect2D& p_rect)
 	{
 		std::scoped_lock lock(_renderThreadMutex);
-		_ensureRenderContextLocked();
+		if (_ensureRenderContextLocked() == false)
+		{
+			return;
+		}
+
 		if (_renderContext->isValid() == false)
 		{
 			return;
@@ -188,7 +200,11 @@ namespace spk
 	bool WindowHost::makeCurrent()
 	{
 		std::scoped_lock lock(_renderThreadMutex);
-		_ensureRenderContextLocked();
+		if (_ensureRenderContextLocked() == false)
+		{
+			return false;
+		}
+
 		if (_renderContext->isValid() == false)
 		{
 			return false;
@@ -201,7 +217,11 @@ namespace spk
 	void WindowHost::present()
 	{
 		std::scoped_lock lock(_renderThreadMutex);
-		_ensureRenderContextLocked();
+		if (_ensureRenderContextLocked() == false)
+		{
+			return;
+		}
+
 		if (_renderContext->isValid() == false)
 		{
 			return;
@@ -213,7 +233,11 @@ namespace spk
 	void WindowHost::setVSync(bool p_enabled)
 	{
 		std::scoped_lock lock(_renderThreadMutex);
-		_ensureRenderContextLocked();
+		if (_ensureRenderContextLocked() == false)
+		{
+			return;
+		}
+
 		if (_renderContext->isValid() == false)
 		{
 			return;

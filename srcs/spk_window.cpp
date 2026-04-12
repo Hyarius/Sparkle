@@ -170,6 +170,10 @@ namespace spk
 						.type = PlatformActionType::ValidateClosure
 					});
 				}
+				else
+				{
+					_closureRequested.store(false);
+				}
 				return;
 			}
 
@@ -226,6 +230,7 @@ namespace spk
 			std::move(p_gpuPlatformRuntime)),
 		_renderSnapshot(std::make_shared<spk::RenderCommandBuilder>())
 	{
+		_rootWidget.setGeometry(p_configuration.rect.atOrigin());
 		_rootWidget.activate();
 
 		_frameModule.bind(&_rootWidget);
@@ -408,6 +413,16 @@ namespace spk
 
 	void Window::requestClosure()
 	{
+		if (_isClosed.load() == true)
+		{
+			return;
+		}
+
+		if (_closureRequested.exchange(true) == true)
+		{
+			return;
+		}
+
 		_enqueuePlatformAction(PlatformAction{
 			.type = PlatformActionType::RequestClosure
 		});

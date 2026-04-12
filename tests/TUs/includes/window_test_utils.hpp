@@ -77,8 +77,28 @@ namespace sparkle_test
 
 	};
 
+	struct TestFrameStats
+	{
+		spk::Rect2D currentRect;
+		std::string currentTitle;
+		int resizeCount = 0;
+		int setTitleCount = 0;
+		int requestClosureCount = 0;
+		int validateClosureCount = 0;
+		std::vector<spk::Rect2D> resizeHistory;
+		std::vector<std::string> titleHistory;
+		std::thread::id lastResizeThreadID;
+		std::thread::id lastSetTitleThreadID;
+		std::thread::id lastRequestClosureThreadID;
+		std::thread::id lastValidateClosureThreadID;
+		bool destroyed = false;
+	};
+
 	class TestFrame : public spk::IFrame
 	{
+	private:
+		std::shared_ptr<TestFrameStats> _stats;
+
 	public:
 		spk::Rect2D currentRect;
 		std::string currentTitle;
@@ -94,11 +114,25 @@ namespace sparkle_test
 		std::thread::id lastValidateClosureThreadID;
 
 	public:
-		TestFrame(const spk::Rect2D& p_rect, std::string p_title) :
+		TestFrame(const spk::Rect2D& p_rect, std::string p_title, std::shared_ptr<TestFrameStats> p_stats = std::make_shared<TestFrameStats>()) :
 			spk::IFrame(std::make_shared<TestSurfaceState>()),
+			_stats(std::move(p_stats)),
 			currentRect(p_rect),
 			currentTitle(std::move(p_title))
 		{
+			if (_stats != nullptr)
+			{
+				_stats->currentRect = currentRect;
+				_stats->currentTitle = currentTitle;
+			}
+		}
+
+		~TestFrame() override
+		{
+			if (_stats != nullptr)
+			{
+				_stats->destroyed = true;
+			}
 		}
 
 		void resize(const spk::Rect2D& p_rect) override
@@ -107,6 +141,14 @@ namespace sparkle_test
 			++resizeCount;
 			resizeHistory.push_back(p_rect);
 			lastResizeThreadID = std::this_thread::get_id();
+
+			if (_stats != nullptr)
+			{
+				_stats->currentRect = currentRect;
+				++_stats->resizeCount;
+				_stats->resizeHistory.push_back(p_rect);
+				_stats->lastResizeThreadID = lastResizeThreadID;
+			}
 		}
 
 		void setTitle(const std::string& p_title) override
@@ -115,18 +157,38 @@ namespace sparkle_test
 			++setTitleCount;
 			titleHistory.push_back(p_title);
 			lastSetTitleThreadID = std::this_thread::get_id();
+
+			if (_stats != nullptr)
+			{
+				_stats->currentTitle = currentTitle;
+				++_stats->setTitleCount;
+				_stats->titleHistory.push_back(p_title);
+				_stats->lastSetTitleThreadID = lastSetTitleThreadID;
+			}
 		}
 
 		void requestClosure() override
 		{
 			++requestClosureCount;
 			lastRequestClosureThreadID = std::this_thread::get_id();
+
+			if (_stats != nullptr)
+			{
+				++_stats->requestClosureCount;
+				_stats->lastRequestClosureThreadID = lastRequestClosureThreadID;
+			}
 		}
 
 		void validateClosure() override
 		{
 			++validateClosureCount;
 			lastValidateClosureThreadID = std::this_thread::get_id();
+
+			if (_stats != nullptr)
+			{
+				++_stats->validateClosureCount;
+				_stats->lastValidateClosureThreadID = lastValidateClosureThreadID;
+			}
 		}
 
 		[[nodiscard]] spk::Rect2D rect() const override
@@ -188,6 +250,7 @@ namespace sparkle_test
 		int pollEventsCount = 0;
 		bool returnNullFrame = false;
 		std::function<void(TestPlatformRuntime&)> onPollEvents = nullptr;
+		std::shared_ptr<TestFrameStats> frameStats = std::make_shared<TestFrameStats>();
 		spk::Rect2D lastCreateRect;
 		std::string lastCreateTitle;
 		TestFrame* createdFrame = nullptr;
@@ -202,10 +265,12 @@ namespace sparkle_test
 			if (returnNullFrame == true)
 			{
 				createdFrame = nullptr;
+				frameStats = std::make_shared<TestFrameStats>();
 				return nullptr;
 			}
 
-			auto result = std::make_unique<TestFrame>(p_rect, p_title);
+			frameStats = std::make_shared<TestFrameStats>();
+			auto result = std::make_unique<TestFrame>(p_rect, p_title, frameStats);
 			createdFrame = result.get();
 			return result;
 		}
@@ -285,8 +350,30 @@ namespace sparkle_test
 		}
 	};
 
+	struct TestRenderContextStats
+	{
+		int invalidateCount = 0;
+		int makeCurrentCount = 0;
+		int presentCount = 0;
+		int setVSyncCount = 0;
+		int notifyResizeCount = 0;
+		bool lastVSync = false;
+		spk::Rect2D lastResizeRect;
+		std::vector<spk::Rect2D> resizeHistory;
+		std::thread::id creationThreadID;
+		std::thread::id lastMakeCurrentThreadID;
+		std::thread::id lastPresentThreadID;
+		std::thread::id lastSetVSyncThreadID;
+		std::thread::id lastNotifyResizeThreadID;
+		std::thread::id lastInvalidateThreadID;
+		bool destroyed = false;
+	};
+
 	class TestRenderContext : public spk::IRenderContext
 	{
+	private:
+		std::shared_ptr<TestRenderContextStats> _stats;
+
 	public:
 		int invalidateCount = 0;
 		int makeCurrentCount = 0;
@@ -304,15 +391,29 @@ namespace sparkle_test
 		std::thread::id lastInvalidateThreadID;
 
 	public:
-		explicit TestRenderContext(std::shared_ptr<spk::ISurfaceState> p_surfaceState) :
-			spk::IRenderContext(std::move(p_surfaceState))
+		explicit TestRenderContext(std::shared_ptr<spk::ISurfaceState> p_surfaceState, std::shared_ptr<TestRenderContextStats> p_stats = std::make_shared<TestRenderContextStats>()) :
+			spk::IRenderContext(std::move(p_surfaceState)),
+			_stats(std::move(p_stats))
 		{
+		}
+
+		~TestRenderContext() override
+		{
+			if (_stats != nullptr)
+			{
+				_stats->destroyed = true;
+			}
 		}
 
 		void invalidate() override
 		{
 			++invalidateCount;
 			lastInvalidateThreadID = std::this_thread::get_id();
+			if (_stats != nullptr)
+			{
+				++_stats->invalidateCount;
+				_stats->lastInvalidateThreadID = lastInvalidateThreadID;
+			}
 			spk::IRenderContext::invalidate();
 		}
 
@@ -325,12 +426,22 @@ namespace sparkle_test
 		{
 			++makeCurrentCount;
 			lastMakeCurrentThreadID = std::this_thread::get_id();
+			if (_stats != nullptr)
+			{
+				++_stats->makeCurrentCount;
+				_stats->lastMakeCurrentThreadID = lastMakeCurrentThreadID;
+			}
 		}
 
 		void present() override
 		{
 			++presentCount;
 			lastPresentThreadID = std::this_thread::get_id();
+			if (_stats != nullptr)
+			{
+				++_stats->presentCount;
+				_stats->lastPresentThreadID = lastPresentThreadID;
+			}
 		}
 
 		void setVSync(bool p_enabled) override
@@ -338,6 +449,12 @@ namespace sparkle_test
 			++setVSyncCount;
 			lastVSync = p_enabled;
 			lastSetVSyncThreadID = std::this_thread::get_id();
+			if (_stats != nullptr)
+			{
+				++_stats->setVSyncCount;
+				_stats->lastVSync = p_enabled;
+				_stats->lastSetVSyncThreadID = lastSetVSyncThreadID;
+			}
 		}
 
 		void notifyResize(const spk::Rect2D& p_rect) override
@@ -346,6 +463,13 @@ namespace sparkle_test
 			lastResizeRect = p_rect;
 			resizeHistory.push_back(p_rect);
 			lastNotifyResizeThreadID = std::this_thread::get_id();
+			if (_stats != nullptr)
+			{
+				++_stats->notifyResizeCount;
+				_stats->lastResizeRect = lastResizeRect;
+				_stats->resizeHistory.push_back(p_rect);
+				_stats->lastNotifyResizeThreadID = lastNotifyResizeThreadID;
+			}
 		}
 	};
 
@@ -354,6 +478,7 @@ namespace sparkle_test
 	public:
 		int createRenderContextCount = 0;
 		bool returnNullContext = false;
+		std::shared_ptr<TestRenderContextStats> contextStats = std::make_shared<TestRenderContextStats>();
 		spk::IFrame* lastFrame = nullptr;
 		TestRenderContext* createdContext = nullptr;
 		std::thread::id lastCreateRenderContextThreadID;
@@ -368,11 +493,14 @@ namespace sparkle_test
 			if (returnNullContext == true)
 			{
 				createdContext = nullptr;
+				contextStats = std::make_shared<TestRenderContextStats>();
 				return nullptr;
 			}
 
-			auto result = std::make_unique<TestRenderContext>(p_frame.surfaceState());
+			contextStats = std::make_shared<TestRenderContextStats>();
+			auto result = std::make_unique<TestRenderContext>(p_frame.surfaceState(), contextStats);
 			result->creationThreadID = std::this_thread::get_id();
+			contextStats->creationThreadID = result->creationThreadID;
 			createdContext = result.get();
 			return result;
 		}

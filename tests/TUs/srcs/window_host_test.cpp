@@ -64,3 +64,19 @@ TEST(WindowHostTest, ReleasingFrameInvalidatesTheExistingRenderContext)
 	allowRelease.store(true);
 	renderThread.join();
 }
+
+TEST(WindowHostTest, DestroyedFrameEventPreventsLateRenderContextCreation)
+{
+	auto bundle = sparkle_test::createWindowHostBundle();
+
+	ASSERT_NE(bundle.platformRuntime->createdFrame, nullptr);
+	EXPECT_EQ(bundle.gpuPlatformRuntime->createRenderContextCount, 0);
+	EXPECT_TRUE(bundle.platformRuntime->createdFrame->surfaceState()->isValid());
+
+	bundle.platformRuntime->createdFrame->emitFrameEvent(spk::Event(spk::WindowDestroyedPayload{}));
+
+	EXPECT_FALSE(bundle.platformRuntime->createdFrame->surfaceState()->isValid());
+	EXPECT_FALSE(bundle.windowHost->makeCurrent());
+	EXPECT_EQ(bundle.gpuPlatformRuntime->createRenderContextCount, 0);
+	EXPECT_EQ(bundle.gpuPlatformRuntime->createdContext, nullptr);
+}

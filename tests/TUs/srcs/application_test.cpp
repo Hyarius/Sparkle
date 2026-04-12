@@ -70,7 +70,7 @@ TEST(ApplicationTest, RunExecutesEventUpdateAndRenderLoops)
 			.renderInterval = step,
 			.updateInterval = step,
 			.eventPollingInterval = step,
-			.stopWhenNoWindows = false
+			.stopWhenNoWindows = true
 		});
 
 	auto* platformRuntimePtr = platformRuntime.get();
@@ -85,6 +85,7 @@ TEST(ApplicationTest, RunExecutesEventUpdateAndRenderLoops)
 
 	std::atomic<int> updateCount = 0;
 	std::atomic<int> renderCount = 0;
+	std::atomic<bool> destroyQueued = false;
 
 	ASSERT_NE(window, nullptr);
 	sparkle_test::CallbackWidget probe("Probe", &window->rootWidget());
@@ -105,9 +106,12 @@ TEST(ApplicationTest, RunExecutesEventUpdateAndRenderLoops)
 		.delta = spk::Vector2Int(0, 0)});
 	platformRuntimePtr->onPollEvents = [&](sparkle_test::TestPlatformRuntime&)
 	{
-		if (updateCount.load() > 10 && renderCount.load() > 10)
+		if (destroyQueued.load() == false &&
+			updateCount.load() > 10 &&
+			renderCount.load() > 10)
 		{
-			application.stop();
+			destroyQueued.store(true);
+			platformRuntimePtr->queueFramePayload(spk::WindowDestroyedPayload{});
 		}
 	};
 
@@ -117,12 +121,13 @@ TEST(ApplicationTest, RunExecutesEventUpdateAndRenderLoops)
 	EXPECT_GT(updateCount.load(), 0);
 	EXPECT_GT(renderCount.load(), 0);
 	EXPECT_EQ(window->mouse().position, spk::Vector2Int(11, 13));
-	ASSERT_NE(gpuPlatformRuntimePtr->createdContext, nullptr);
-	EXPECT_GT(gpuPlatformRuntimePtr->createdContext->makeCurrentCount, 0);
-	EXPECT_GT(gpuPlatformRuntimePtr->createdContext->presentCount, 0);
-	EXPECT_EQ(gpuPlatformRuntimePtr->createdContext->creationThreadID, gpuPlatformRuntimePtr->lastCreateRenderContextThreadID);
-	EXPECT_EQ(gpuPlatformRuntimePtr->createdContext->lastMakeCurrentThreadID, gpuPlatformRuntimePtr->createdContext->lastPresentThreadID);
+	ASSERT_NE(gpuPlatformRuntimePtr->contextStats, nullptr);
+	EXPECT_GT(gpuPlatformRuntimePtr->contextStats->makeCurrentCount, 0);
+	EXPECT_GT(gpuPlatformRuntimePtr->contextStats->presentCount, 0);
+	EXPECT_EQ(gpuPlatformRuntimePtr->contextStats->creationThreadID, gpuPlatformRuntimePtr->lastCreateRenderContextThreadID);
+	EXPECT_EQ(gpuPlatformRuntimePtr->contextStats->lastMakeCurrentThreadID, gpuPlatformRuntimePtr->contextStats->lastPresentThreadID);
 	EXPECT_NE(gpuPlatformRuntimePtr->lastCreateRenderContextThreadID, ownerThreadID);
+	EXPECT_FALSE(application.containsWindow("main"));
 }
 
 TEST(ApplicationTest, RunExecutesDeferredFrameValidationOnTheOwnerThread)
@@ -132,6 +137,7 @@ TEST(ApplicationTest, RunExecutesDeferredFrameValidationOnTheOwnerThread)
 	auto gpuPlatformRuntime = std::make_shared<sparkle_test::TestGPUPlatformRuntime>();
 	auto* platformRuntimePtr = platformRuntime.get();
 	const std::thread::id ownerThreadID = std::this_thread::get_id();
+	std::atomic<bool> destroyQueued = false;
 
 	spk::Application application(
 		spk::Application::Configuration{
@@ -140,7 +146,7 @@ TEST(ApplicationTest, RunExecutesDeferredFrameValidationOnTheOwnerThread)
 			.renderInterval = step,
 			.updateInterval = step,
 			.eventPollingInterval = step,
-			.stopWhenNoWindows = false
+			.stopWhenNoWindows = true
 		});
 
 	application.createWindow(
@@ -154,17 +160,19 @@ TEST(ApplicationTest, RunExecutesDeferredFrameValidationOnTheOwnerThread)
 	platformRuntimePtr->onPollEvents = [&](sparkle_test::TestPlatformRuntime&)
 	{
 		if (platformRuntimePtr->createdFrame != nullptr &&
-			platformRuntimePtr->createdFrame->validateClosureCount > 0)
+			platformRuntimePtr->createdFrame->validateClosureCount > 0 &&
+			destroyQueued.load() == false)
 		{
-			application.stop();
+			destroyQueued.store(true);
+			platformRuntimePtr->queueFramePayload(spk::WindowDestroyedPayload{});
 		}
 	};
 
 	application.run();
 
-	ASSERT_NE(platformRuntimePtr->createdFrame, nullptr);
-	EXPECT_EQ(platformRuntimePtr->createdFrame->validateClosureCount, 1);
-	EXPECT_EQ(platformRuntimePtr->createdFrame->lastValidateClosureThreadID, ownerThreadID);
+	ASSERT_NE(platformRuntimePtr->frameStats, nullptr);
+	EXPECT_EQ(platformRuntimePtr->frameStats->validateClosureCount, 1);
+	EXPECT_EQ(platformRuntimePtr->frameStats->lastValidateClosureThreadID, ownerThreadID);
 }
 
 TEST(ApplicationTest, RunRethrowsWorkerThreadFailuresOnTheCallerThread)
@@ -203,12 +211,15 @@ TEST(ApplicationTest, RunRethrowsWorkerThreadFailuresOnTheCallerThread)
 	EXPECT_FALSE(application.isRunning());
 }
 
-TEST(ApplicationTest, RunPollsTheSharedPlatformRuntimeOncePerIteration)
+TEST(ApplicationTest, StopRequestsClosureAndWaitsForWindowDisposal)
 {
 	const spk::Duration step(1.0L, spk::TimeUnit::Millisecond);
 	auto platformRuntime = std::make_shared<sparkle_test::TestPlatformRuntime>();
 	auto gpuPlatformRuntime = std::make_shared<sparkle_test::TestGPUPlatformRuntime>();
 	auto* platformRuntimePtr = platformRuntime.get();
+	std::atomic<bool> stopIssued = false;
+	std::atomic<bool> sawClosureRequest = false;
+	std::atomic<bool> destroyQueued = false;
 
 	spk::Application application(
 		spk::Application::Configuration{
@@ -221,27 +232,36 @@ TEST(ApplicationTest, RunPollsTheSharedPlatformRuntimeOncePerIteration)
 		});
 
 	application.createWindow(
-		"first",
+		"main",
 		spk::Window::Configuration{
 			.rect = sparkle_test::defaultRect(),
-			.title = "First"
-		});
-
-	application.createWindow(
-		"second",
-		spk::Window::Configuration{
-			.rect = sparkle_test::defaultRect(),
-			.title = "Second"
+			.title = "Main"
 		});
 
 	platformRuntimePtr->onPollEvents = [&](sparkle_test::TestPlatformRuntime&)
 	{
-		application.stop();
+		if (stopIssued.load() == false)
+		{
+			stopIssued.store(true);
+			application.stop();
+			return;
+		}
+
+		if (destroyQueued.load() == false &&
+			platformRuntimePtr->createdFrame != nullptr &&
+			platformRuntimePtr->createdFrame->requestClosureCount > 0)
+		{
+			sawClosureRequest.store(true);
+			destroyQueued.store(true);
+			platformRuntimePtr->queueFramePayload(spk::WindowDestroyedPayload{});
+		}
 	};
 
 	application.run();
 
-	EXPECT_EQ(platformRuntimePtr->pollEventsCount, 1);
+	EXPECT_TRUE(stopIssued.load());
+	EXPECT_TRUE(sawClosureRequest.load());
+	EXPECT_FALSE(application.containsWindow("main"));
 }
 
 TEST(ApplicationTest, RunStopsWhenTheLastWindowCloses)

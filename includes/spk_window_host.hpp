@@ -26,7 +26,7 @@ namespace spk
 	private:
 		void _bindOrValidatePlatformThread(const char* p_operation) const;
 		void _bindOrValidateRenderThreadLocked(const char* p_operation);
-		void _ensureRenderContextLocked();
+		[[nodiscard]] bool _ensureRenderContextLocked();
 
 	public:
 		WindowHost(std::unique_ptr<IFrame> p_frame, std::shared_ptr<IGPUPlatformRuntime> p_gpuPlatformRuntime);

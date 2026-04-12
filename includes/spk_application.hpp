@@ -35,6 +35,7 @@ namespace spk
 		spk::WindowRegistry _windowRegistry;
 		std::thread::id _ownerThreadID;
 		std::atomic<bool> _isRunning = false;
+		std::atomic<bool> _shutdownRequested = false;
 		std::atomic<bool> _stopRequested = false;
 		std::mutex _failureMutex;
 		std::exception_ptr _failure = nullptr;
