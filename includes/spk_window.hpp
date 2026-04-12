@@ -1,8 +1,10 @@
 #pragma once
 
+#include <atomic>
 #include <memory>
 #include <mutex>
 #include <optional>
+#include <string>
 #include <vector>
 
 #include "spk_contract_provider.hpp"
@@ -20,6 +22,34 @@ namespace spk
 		using ClosureEventProvider = spk::ContractProvider<Window*>;
 		using ClosureContract = ClosureEventProvider::Contract;
 		using ClosureCallback = ClosureEventProvider::Callback;
+
+		enum class PlatformActionType
+		{
+			RequestClosure,
+			ValidateClosure,
+			SetTitle,
+			ResizeFrame
+		};
+
+		struct PlatformAction
+		{
+			PlatformActionType type;
+			std::optional<spk::Rect2D> rect = std::nullopt;
+			std::optional<std::string> title = std::nullopt;
+		};
+
+		enum class RenderActionType
+		{
+			NotifyResize,
+			SetVSync
+		};
+
+		struct RenderAction
+		{
+			RenderActionType type;
+			std::optional<spk::Rect2D> rect = std::nullopt;
+			std::optional<bool> vSyncEnabled = std::nullopt;
+		};
 
 		struct Configuration
 		{
@@ -40,11 +70,19 @@ namespace spk
 		mutable std::mutex _pendingEventsMutex;
 		std::vector<spk::Event> _pendingEvents;
 
-		mutable std::mutex _pendingFrameResizeMutex;
-		std::optional<spk::Rect2D> _pendingFrameResize;
+		mutable std::mutex _pendingPlatformActionsMutex;
+		std::vector<PlatformAction> _pendingPlatformActions;
+
+		mutable std::mutex _pendingRenderActionsMutex;
+		std::vector<RenderAction> _pendingRenderActions;
 
 		mutable std::mutex _renderSnapshotMutex;
 		std::shared_ptr<spk::RenderCommandBuilder> _renderSnapshot;
+
+		std::atomic<bool> _isClosed = false;
+		std::atomic<bool> _closureNotificationPending = false;
+		std::atomic<bool> _renderResourcesReleased = false;
+		std::atomic<bool> _platformResourcesReleased = false;
 
 		spk::IFrame::EventContract _frameEventQueueContract;
 		spk::IFrame::EventContract _mouseEventQueueContract;
@@ -54,10 +92,12 @@ namespace spk
 
 	private:
 		void _enqueueEvent(const spk::Event& p_event);
-		void _recordPendingFrameResize(const spk::Rect2D& p_rect);
+		void _enqueuePlatformAction(PlatformAction p_action);
+		void _enqueueRenderAction(RenderAction p_action);
 
 		[[nodiscard]] std::vector<spk::Event> _drainPendingEvents();
-		[[nodiscard]] std::optional<spk::Rect2D> _consumePendingFrameResize();
+		[[nodiscard]] std::vector<PlatformAction> _drainPendingPlatformActions();
+		[[nodiscard]] std::vector<RenderAction> _drainPendingRenderActions();
 
 		void _treatEvent(const spk::Event& p_event);
 
@@ -79,9 +119,12 @@ namespace spk
 		[[nodiscard]] spk::Widget& rootWidget();
 		[[nodiscard]] const spk::Widget& rootWidget() const;
 
+		void executePendingPlatformActions();
 		void update();
 		void render();
 		void requestClosure();
+		[[nodiscard]] bool isClosed() const;
+		[[nodiscard]] bool isReadyForDisposal() const;
 
 		ClosureContract subscribeToClosure(ClosureCallback p_callback);
 	};

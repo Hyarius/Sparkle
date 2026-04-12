@@ -1,0 +1,66 @@
+#include <gtest/gtest.h>
+
+#include <atomic>
+#include <thread>
+
+#include "window_test_utils.hpp"
+
+TEST(WindowHostTest, ReleasingFrameInvalidatesTheExistingRenderContext)
+{
+	auto bundle = sparkle_test::createWindowHostBundle();
+	std::atomic<bool> contextCreated = false;
+	std::atomic<bool> allowPresent = false;
+	std::atomic<bool> presentAttemptFinished = false;
+	std::atomic<bool> allowRelease = false;
+
+	std::jthread renderThread([&]()
+	{
+		EXPECT_TRUE(bundle.windowHost->makeCurrent());
+		contextCreated.store(true);
+
+		while (allowPresent.load() == false)
+		{
+			std::this_thread::yield();
+		}
+
+		bundle.windowHost->present();
+		presentAttemptFinished.store(true);
+
+		while (allowRelease.load() == false)
+		{
+			std::this_thread::yield();
+		}
+
+		bundle.windowHost->releaseRenderContext();
+	});
+
+	while (contextCreated.load() == false)
+	{
+		std::this_thread::yield();
+	}
+
+	std::shared_ptr<spk::ISurfaceState> surfaceState = bundle.platformRuntime->createdFrame->surfaceState();
+	ASSERT_NE(bundle.gpuPlatformRuntime->createdContext, nullptr);
+	EXPECT_TRUE(bundle.gpuPlatformRuntime->createdContext->isValid());
+	EXPECT_EQ(bundle.gpuPlatformRuntime->createdContext->makeCurrentCount, 1);
+	EXPECT_EQ(bundle.gpuPlatformRuntime->createdContext->surfaceState(), bundle.platformRuntime->createdFrame->surfaceState());
+
+	bundle.windowHost->releaseFrame();
+
+	EXPECT_FALSE(bundle.gpuPlatformRuntime->createdContext->isValid());
+	ASSERT_NE(surfaceState, nullptr);
+	EXPECT_FALSE(surfaceState->isValid());
+
+	const int presentCountBeforeInvalidPresent = bundle.gpuPlatformRuntime->createdContext->presentCount;
+	allowPresent.store(true);
+
+	while (presentAttemptFinished.load() == false)
+	{
+		std::this_thread::yield();
+	}
+
+	EXPECT_EQ(bundle.gpuPlatformRuntime->createdContext->presentCount, presentCountBeforeInvalidPresent);
+
+	allowRelease.store(true);
+	renderThread.join();
+}

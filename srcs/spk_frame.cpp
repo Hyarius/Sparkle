@@ -1,8 +1,22 @@
 #include "spk_frame.hpp"
 
+#include <stdexcept>
+
 namespace spk
 {
-	IFrame::~IFrame() = default;
+	IFrame::IFrame(std::shared_ptr<ISurfaceState> p_surfaceState) :
+		_surfaceState(std::move(p_surfaceState))
+	{
+		if (_surfaceState == nullptr)
+		{
+			throw std::invalid_argument("IFrame requires a valid surface state");
+		}
+	}
+
+	IFrame::~IFrame()
+	{
+		_invalidateSurfaceState();
+	}
 
 	void IFrame::_emitMouseEvent(const spk::Event& p_event)
 	{
@@ -17,6 +31,19 @@ namespace spk
 	void IFrame::_emitFrameEvent(const spk::Event& p_event)
 	{
 		_frameEventContractProvider.trigger(p_event);
+	}
+
+	void IFrame::_invalidateSurfaceState()
+	{
+		if (_surfaceState != nullptr)
+		{
+			_surfaceState->invalidate();
+		}
+	}
+
+	std::shared_ptr<ISurfaceState> IFrame::surfaceState() const
+	{
+		return _surfaceState;
 	}
 
 	IFrame::EventContract IFrame::subscribeToMouseEvents(EventCallback p_callback)

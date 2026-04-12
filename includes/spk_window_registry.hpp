@@ -23,12 +23,9 @@ namespace spk
 		struct Entry
 		{
 			std::shared_ptr<spk::Window> window;
-			spk::Window::ClosureContract closureContract;
 		};
 
 		std::unordered_map<WindowID, Entry> _windows;
-
-		void _removeWindow(spk::Window* p_window);
 
 	public:
 		std::shared_ptr<spk::Window> createWindow(const WindowID& p_id, std::shared_ptr<IPlatformRuntime> p_platformRuntime, std::shared_ptr<IGPUPlatformRuntime> p_gpuPlatformRuntime, spk::Window::Configuration p_configuration);
@@ -36,6 +33,7 @@ namespace spk
 		[[nodiscard]] bool contains(const WindowID& p_id) const;
 		[[nodiscard]] size_t size() const;
 		[[nodiscard]] std::vector<std::shared_ptr<spk::Window>> windows() const;
+		void removeClosedWindows();
 		void requestWindowClosing(const WindowID& p_id);
 	};
 }

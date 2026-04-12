@@ -34,7 +34,7 @@ namespace spk
 		{
 			return _holdsAny<
 				spk::WindowCloseRequestedPayload,
-				spk::WindowCloseValidatedPayload,
+				spk::WindowDestroyedPayload,
 				spk::WindowMovedPayload,
 				spk::WindowResizedPayload,
 				spk::WindowFocusGainedPayload,
@@ -70,10 +70,28 @@ namespace spk
 		_pendingEvents.push_back(p_event);
 	}
 
-	void Window::_recordPendingFrameResize(const spk::Rect2D& p_rect)
+	void Window::_enqueuePlatformAction(PlatformAction p_action)
 	{
-		std::scoped_lock lock(_pendingFrameResizeMutex);
-		_pendingFrameResize = p_rect;
+		std::scoped_lock lock(_pendingPlatformActionsMutex);
+		_pendingPlatformActions.push_back(std::move(p_action));
+	}
+
+	void Window::_enqueueRenderAction(RenderAction p_action)
+	{
+		std::scoped_lock lock(_pendingRenderActionsMutex);
+
+		for (RenderAction& pendingAction : _pendingRenderActions)
+		{
+			if (pendingAction.type != p_action.type)
+			{
+				continue;
+			}
+
+			pendingAction = std::move(p_action);
+			return;
+		}
+
+		_pendingRenderActions.push_back(std::move(p_action));
 	}
 
 	std::vector<spk::Event> Window::_drainPendingEvents()
@@ -88,17 +106,54 @@ namespace spk
 		return result;
 	}
 
-	std::optional<spk::Rect2D> Window::_consumePendingFrameResize()
+	std::vector<Window::PlatformAction> Window::_drainPendingPlatformActions()
 	{
-		std::optional<spk::Rect2D> result;
+		std::vector<PlatformAction> result;
 
 		{
-			std::scoped_lock lock(_pendingFrameResizeMutex);
-			result = _pendingFrameResize;
-			_pendingFrameResize.reset();
+			std::scoped_lock lock(_pendingPlatformActionsMutex);
+			result.swap(_pendingPlatformActions);
 		}
 
 		return result;
+	}
+
+	std::vector<Window::RenderAction> Window::_drainPendingRenderActions()
+	{
+		std::vector<RenderAction> result;
+
+		{
+			std::scoped_lock lock(_pendingRenderActionsMutex);
+			result.swap(_pendingRenderActions);
+		}
+
+		std::optional<RenderAction> latestResizeAction;
+		std::optional<RenderAction> latestVSyncAction;
+
+		for (RenderAction& action : result)
+		{
+			switch (action.type)
+			{
+			case RenderActionType::NotifyResize:
+				latestResizeAction = std::move(action);
+				break;
+			case RenderActionType::SetVSync:
+				latestVSyncAction = std::move(action);
+				break;
+			}
+		}
+
+		std::vector<RenderAction> coalescedActions;
+		if (latestResizeAction.has_value() == true)
+		{
+			coalescedActions.push_back(std::move(latestResizeAction.value()));
+		}
+		if (latestVSyncAction.has_value() == true)
+		{
+			coalescedActions.push_back(std::move(latestVSyncAction.value()));
+		}
+
+		return coalescedActions;
 	}
 
 	void Window::_treatEvent(const spk::Event& p_event)
@@ -111,19 +166,25 @@ namespace spk
 			{
 				if (p_event.metadata.isConsumed == false)
 				{
-					_host.validateClosure();
+					_enqueuePlatformAction(PlatformAction{
+						.type = PlatformActionType::ValidateClosure
+					});
 				}
 				return;
 			}
 
 			if (const auto* payload = p_event.getIf<spk::WindowResizedPayload>(); payload != nullptr)
 			{
-				_recordPendingFrameResize(payload->rect);
+				_enqueueRenderAction(RenderAction{
+					.type = RenderActionType::NotifyResize,
+					.rect = payload->rect
+				});
 			}
 
-			if (p_event.holds<spk::WindowCloseValidatedPayload>())
+			if (p_event.holds<spk::WindowDestroyedPayload>())
 			{
-				_closureEventProvider.trigger(this);
+				_isClosed.store(true);
+				_closureNotificationPending.store(true);
 			}
 			return;
 		}
@@ -234,13 +295,65 @@ namespace spk
 		return _rootWidget;
 	}
 
+	void Window::executePendingPlatformActions()
+	{
+		std::vector<PlatformAction> actions = _drainPendingPlatformActions();
+
+		for (const PlatformAction& action : actions)
+		{
+			switch (action.type)
+			{
+			case PlatformActionType::RequestClosure:
+				_host.requestClosure();
+				break;
+			case PlatformActionType::ValidateClosure:
+				_host.validateClosure();
+				break;
+			case PlatformActionType::SetTitle:
+				if (action.title.has_value() == true)
+				{
+					_host.setTitle(action.title.value());
+				}
+				break;
+			case PlatformActionType::ResizeFrame:
+				if (action.rect.has_value() == true)
+				{
+					_host.resize(action.rect.value());
+				}
+				break;
+			}
+		}
+
+		if (_closureNotificationPending.exchange(false) == true)
+		{
+			_closureEventProvider.trigger(this);
+		}
+
+		if (_isClosed.load() == true &&
+			_renderResourcesReleased.load() == true &&
+			_platformResourcesReleased.exchange(true) == false)
+		{
+			_host.releaseFrame();
+		}
+	}
+
 	void Window::update()
 	{
+		if (_isClosed.load() == true)
+		{
+			return;
+		}
+
 		std::vector<spk::Event> events = _drainPendingEvents();
 
 		for (const spk::Event& event : events)
 		{
 			_treatEvent(event);
+
+			if (_isClosed.load() == true)
+			{
+				return;
+			}
 		}
 
 		_updateModule.update();
@@ -249,14 +362,40 @@ namespace spk
 
 	void Window::render()
 	{
-		std::shared_ptr<spk::RenderCommandBuilder> snapshot = _currentRenderSnapshot();
-		std::optional<spk::Rect2D> pendingFrameResize = _consumePendingFrameResize();
-
-		_host.makeCurrent();
-
-		if (pendingFrameResize.has_value() == true)
+		if (_isClosed.load() == true)
 		{
-			_host.notifyFrameResized(pendingFrameResize.value());
+			if (_renderResourcesReleased.exchange(true) == false)
+			{
+				_host.releaseRenderContext();
+			}
+			return;
+		}
+
+		std::shared_ptr<spk::RenderCommandBuilder> snapshot = _currentRenderSnapshot();
+		std::vector<RenderAction> renderActions = _drainPendingRenderActions();
+
+		if (_host.makeCurrent() == false)
+		{
+			return;
+		}
+
+		for (const RenderAction& action : renderActions)
+		{
+			switch (action.type)
+			{
+			case RenderActionType::NotifyResize:
+				if (action.rect.has_value() == true)
+				{
+					_host.notifyFrameResized(action.rect.value());
+				}
+				break;
+			case RenderActionType::SetVSync:
+				if (action.vSyncEnabled.has_value() == true)
+				{
+					_host.setVSync(action.vSyncEnabled.value());
+				}
+				break;
+			}
 		}
 
 		if (snapshot != nullptr)
@@ -269,7 +408,27 @@ namespace spk
 
 	void Window::requestClosure()
 	{
-		_host.requestClosure();
+		_enqueuePlatformAction(PlatformAction{
+			.type = PlatformActionType::RequestClosure
+		});
+
+		if (_host.isPlatformThread() == true)
+		{
+			executePendingPlatformActions();
+		}
+	}
+
+	bool Window::isClosed() const
+	{
+		return _isClosed.load();
+	}
+
+	bool Window::isReadyForDisposal() const
+	{
+		return (
+			_isClosed.load() == true &&
+			_renderResourcesReleased.load() == true &&
+			_platformResourcesReleased.load() == true);
 	}
 
 	Window::ClosureContract Window::subscribeToClosure(ClosureCallback p_callback)

@@ -2,9 +2,37 @@
 
 #include "window_test_utils.hpp"
 
+namespace
+{
+	class NullSurfaceStateRenderContext : public spk::IRenderContext
+	{
+	public:
+		NullSurfaceStateRenderContext() :
+			spk::IRenderContext(nullptr)
+		{
+		}
+
+		void makeCurrent() override
+		{
+		}
+
+		void present() override
+		{
+		}
+
+		void setVSync(bool) override
+		{
+		}
+
+		void notifyResize(const spk::Rect2D&) override
+		{
+		}
+	};
+}
+
 TEST(IRenderContextTest, TestRenderContextTracksAllOperations)
 {
-	sparkle_test::TestRenderContext context;
+	sparkle_test::TestRenderContext context(std::make_shared<sparkle_test::TestSurfaceState>());
 	const spk::Rect2D resizedRect(3, 4, 1280, 720);
 
 	context.makeCurrent();
@@ -22,6 +50,36 @@ TEST(IRenderContextTest, TestRenderContextTracksAllOperations)
 	EXPECT_EQ(context.resizeHistory[0], resizedRect);
 }
 
+TEST(IRenderContextTest, InvalidateMarksContextAsInvalid)
+{
+	sparkle_test::TestRenderContext context(std::make_shared<sparkle_test::TestSurfaceState>());
+
+	EXPECT_TRUE(context.isValid());
+
+	context.invalidate();
+
+	EXPECT_FALSE(context.isValid());
+	EXPECT_EQ(context.invalidateCount, 1);
+}
+
+TEST(IRenderContextTest, ConstructingRenderContextWithoutSurfaceStateThrows)
+{
+	EXPECT_THROW(NullSurfaceStateRenderContext(), std::invalid_argument);
+}
+
+TEST(IRenderContextTest, ConstructingWithSurfaceStateSharesValidityWithTheSurface)
+{
+	auto surfaceState = std::make_shared<sparkle_test::TestSurfaceState>();
+	sparkle_test::TestRenderContext context(surfaceState);
+
+	EXPECT_EQ(context.surfaceState(), surfaceState);
+	EXPECT_TRUE(context.isValid());
+
+	surfaceState->invalidate();
+
+	EXPECT_FALSE(context.isValid());
+}
+
 TEST(IGPUPlatformRuntimeTest, CreateRenderContextReceivesFrameReference)
 {
 	sparkle_test::TestGPUPlatformRuntime gpuPlatformRuntime;
@@ -33,6 +91,7 @@ TEST(IGPUPlatformRuntimeTest, CreateRenderContextReceivesFrameReference)
 	ASSERT_NE(gpuPlatformRuntime.createdContext, nullptr);
 	EXPECT_EQ(gpuPlatformRuntime.createRenderContextCount, 1);
 	EXPECT_EQ(gpuPlatformRuntime.lastFrame, &frame);
+	EXPECT_TRUE(context->surfaceState() != nullptr);
 }
 
 TEST(IGPUPlatformRuntimeTest, RuntimeCanBeConfiguredToReturnNullContext)

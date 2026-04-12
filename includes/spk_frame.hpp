@@ -6,6 +6,7 @@
 #include "spk_contract_provider.hpp"
 #include "spk_events.hpp"
 #include "spk_rect_2d.hpp"
+#include "spk_surface_state.hpp"
 
 namespace spk
 {
@@ -20,11 +21,15 @@ namespace spk
 		EventContractProvider _mouseEventContractProvider;
 		EventContractProvider _keyboardEventContractProvider;
 		EventContractProvider _frameEventContractProvider;
+		std::shared_ptr<ISurfaceState> _surfaceState;
 
 	protected:
+		explicit IFrame(std::shared_ptr<ISurfaceState> p_surfaceState);
+
 		void _emitMouseEvent(const spk::Event& p_event);
 		void _emitKeyboardEvent(const spk::Event& p_event);
 		void _emitFrameEvent(const spk::Event& p_event);
+		void _invalidateSurfaceState();
 
 	public:
 		virtual ~IFrame();
@@ -36,6 +41,7 @@ namespace spk
 
 		[[nodiscard]] virtual spk::Rect2D rect() const = 0;
 		[[nodiscard]] virtual std::string title() const = 0;
+		[[nodiscard]] std::shared_ptr<ISurfaceState> surfaceState() const;
 
 		EventContract subscribeToMouseEvents(EventCallback p_callback);
 		EventContract subscribeToKeyboardEvents(EventCallback p_callback);

@@ -61,6 +61,7 @@ TEST(ApplicationTest, RunExecutesEventUpdateAndRenderLoops)
 	const spk::Duration step(1.0L, spk::TimeUnit::Millisecond);
 	auto platformRuntime = std::make_shared<sparkle_test::TestPlatformRuntime>();
 	auto gpuPlatformRuntime = std::make_shared<sparkle_test::TestGPUPlatformRuntime>();
+	const std::thread::id ownerThreadID = std::this_thread::get_id();
 
 	spk::Application application(
 		spk::Application::Configuration{
@@ -119,6 +120,51 @@ TEST(ApplicationTest, RunExecutesEventUpdateAndRenderLoops)
 	ASSERT_NE(gpuPlatformRuntimePtr->createdContext, nullptr);
 	EXPECT_GT(gpuPlatformRuntimePtr->createdContext->makeCurrentCount, 0);
 	EXPECT_GT(gpuPlatformRuntimePtr->createdContext->presentCount, 0);
+	EXPECT_EQ(gpuPlatformRuntimePtr->createdContext->creationThreadID, gpuPlatformRuntimePtr->lastCreateRenderContextThreadID);
+	EXPECT_EQ(gpuPlatformRuntimePtr->createdContext->lastMakeCurrentThreadID, gpuPlatformRuntimePtr->createdContext->lastPresentThreadID);
+	EXPECT_NE(gpuPlatformRuntimePtr->lastCreateRenderContextThreadID, ownerThreadID);
+}
+
+TEST(ApplicationTest, RunExecutesDeferredFrameValidationOnTheOwnerThread)
+{
+	const spk::Duration step(1.0L, spk::TimeUnit::Millisecond);
+	auto platformRuntime = std::make_shared<sparkle_test::TestPlatformRuntime>();
+	auto gpuPlatformRuntime = std::make_shared<sparkle_test::TestGPUPlatformRuntime>();
+	auto* platformRuntimePtr = platformRuntime.get();
+	const std::thread::id ownerThreadID = std::this_thread::get_id();
+
+	spk::Application application(
+		spk::Application::Configuration{
+			.platformRuntime = platformRuntime,
+			.gpuPlatformRuntime = gpuPlatformRuntime,
+			.renderInterval = step,
+			.updateInterval = step,
+			.eventPollingInterval = step,
+			.stopWhenNoWindows = false
+		});
+
+	application.createWindow(
+		"main",
+		spk::Window::Configuration{
+			.rect = sparkle_test::defaultRect(),
+			.title = "Main"
+		});
+
+	platformRuntimePtr->queueFramePayload(spk::WindowCloseRequestedPayload{});
+	platformRuntimePtr->onPollEvents = [&](sparkle_test::TestPlatformRuntime&)
+	{
+		if (platformRuntimePtr->createdFrame != nullptr &&
+			platformRuntimePtr->createdFrame->validateClosureCount > 0)
+		{
+			application.stop();
+		}
+	};
+
+	application.run();
+
+	ASSERT_NE(platformRuntimePtr->createdFrame, nullptr);
+	EXPECT_EQ(platformRuntimePtr->createdFrame->validateClosureCount, 1);
+	EXPECT_EQ(platformRuntimePtr->createdFrame->lastValidateClosureThreadID, ownerThreadID);
 }
 
 TEST(ApplicationTest, RunRethrowsWorkerThreadFailuresOnTheCallerThread)
@@ -216,7 +262,7 @@ TEST(ApplicationTest, RunStopsWhenTheLastWindowCloses)
 			.title = "Main"
 		});
 
-	platformRuntimePtr->queueFramePayload(spk::WindowCloseValidatedPayload{});
+	platformRuntimePtr->queueFramePayload(spk::WindowDestroyedPayload{});
 
 	application.run();
 

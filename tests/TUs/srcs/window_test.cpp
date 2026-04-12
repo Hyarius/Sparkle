@@ -43,9 +43,11 @@ TEST(WindowTest, PollEventsDrivesWindowModulesAndWidgetTree)
 	EXPECT_EQ(bundle.window->mouse().position, spk::Vector2Int(7, 9));
 	EXPECT_EQ(bundle.window->mouse().deltaPosition, spk::Vector2Int(-1, -1));
 	EXPECT_EQ(bundle.window->keyboard()[spk::Keyboard::C], spk::InputState::Down);
-	ASSERT_NE(bundle.gpuPlatformRuntime->createdContext, nullptr);
-	EXPECT_EQ(bundle.gpuPlatformRuntime->createdContext->notifyResizeCount, 0);
+	EXPECT_EQ(bundle.gpuPlatformRuntime->createdContext, nullptr);
+	EXPECT_EQ(bundle.gpuPlatformRuntime->createRenderContextCount, 0);
 	bundle.window->render();
+	EXPECT_EQ(bundle.gpuPlatformRuntime->createRenderContextCount, 1);
+	ASSERT_NE(bundle.gpuPlatformRuntime->createdContext, nullptr);
 	EXPECT_EQ(bundle.gpuPlatformRuntime->createdContext->notifyResizeCount, 1);
 	EXPECT_EQ(bundle.gpuPlatformRuntime->createdContext->lastResizeRect, resizedRect);
 	EXPECT_EQ(child.frameEventCount, 1);
@@ -95,12 +97,14 @@ TEST(WindowTest, RenderConsumesTheLatestPendingResizeAfterUpdate)
 	bundle.platformRuntime->pollEvents();
 	bundle.window->update();
 
-	ASSERT_NE(bundle.gpuPlatformRuntime->createdContext, nullptr);
-	EXPECT_EQ(bundle.gpuPlatformRuntime->createdContext->notifyResizeCount, 0);
+	EXPECT_EQ(bundle.gpuPlatformRuntime->createdContext, nullptr);
+	EXPECT_EQ(bundle.gpuPlatformRuntime->createRenderContextCount, 0);
 	EXPECT_EQ(child.frameEventCount, 2);
 
 	bundle.window->render();
 
+	EXPECT_EQ(bundle.gpuPlatformRuntime->createRenderContextCount, 1);
+	ASSERT_NE(bundle.gpuPlatformRuntime->createdContext, nullptr);
 	EXPECT_EQ(bundle.gpuPlatformRuntime->createdContext->notifyResizeCount, 1);
 	EXPECT_EQ(bundle.gpuPlatformRuntime->createdContext->lastResizeRect, secondRect);
 
@@ -156,6 +160,7 @@ TEST(WindowTest, UnconsumedCloseRequestValidatesClosure)
 	bundle.platformRuntime->queueFramePayload(spk::WindowCloseRequestedPayload{});
 	bundle.platformRuntime->pollEvents();
 	bundle.window->update();
+	bundle.window->executePendingPlatformActions();
 
 	ASSERT_NE(bundle.platformRuntime->createdFrame, nullptr);
 	EXPECT_EQ(bundle.platformRuntime->createdFrame->validateClosureCount, 1);
@@ -173,13 +178,14 @@ TEST(WindowTest, ConsumedCloseRequestDoesNotValidateClosure)
 	bundle.platformRuntime->queueFramePayload(spk::WindowCloseRequestedPayload{});
 	bundle.platformRuntime->pollEvents();
 	bundle.window->update();
+	bundle.window->executePendingPlatformActions();
 
 	ASSERT_NE(bundle.platformRuntime->createdFrame, nullptr);
 	EXPECT_EQ(bundle.platformRuntime->createdFrame->validateClosureCount, 0);
 	EXPECT_EQ(child.frameEventCount, 1);
 }
 
-TEST(WindowTest, ClosureSubscribersAreTriggeredByValidatedCloseEvents)
+TEST(WindowTest, ClosureSubscribersAreTriggeredByDestroyedEvents)
 {
 	auto bundle = sparkle_test::createWindowBundle();
 	int closureCount = 0;
@@ -190,9 +196,10 @@ TEST(WindowTest, ClosureSubscribersAreTriggeredByValidatedCloseEvents)
 		EXPECT_EQ(p_window, bundle.window.get());
 	});
 
-	bundle.platformRuntime->queueFramePayload(spk::WindowCloseValidatedPayload{});
+	bundle.platformRuntime->queueFramePayload(spk::WindowDestroyedPayload{});
 	bundle.platformRuntime->pollEvents();
 	bundle.window->update();
+	bundle.window->executePendingPlatformActions();
 
 	EXPECT_EQ(closureCount, 1);
 }

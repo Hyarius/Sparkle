@@ -2,6 +2,44 @@
 
 #include "window_test_utils.hpp"
 
+namespace
+{
+	class NullSurfaceStateFrame : public spk::IFrame
+	{
+	public:
+		NullSurfaceStateFrame() :
+			spk::IFrame(nullptr)
+		{
+		}
+
+		void resize(const spk::Rect2D&) override
+		{
+		}
+
+		void setTitle(const std::string&) override
+		{
+		}
+
+		void requestClosure() override
+		{
+		}
+
+		void validateClosure() override
+		{
+		}
+
+		[[nodiscard]] spk::Rect2D rect() const override
+		{
+			return {};
+		}
+
+		[[nodiscard]] std::string title() const override
+		{
+			return {};
+		}
+	};
+}
+
 TEST(IFrameTest, TestFrameTracksResizeTitleAndClosureRequests)
 {
 	sparkle_test::TestFrame frame(sparkle_test::defaultRect(), "Initial");
@@ -137,4 +175,25 @@ TEST(IFrameTest, MultipleSubscribersReceiveSameFrameEvent)
 
 	EXPECT_EQ(firstCount, 1);
 	EXPECT_EQ(secondCount, 1);
+}
+
+TEST(IFrameTest, ConstructingFrameWithoutSurfaceStateThrows)
+{
+	EXPECT_THROW(NullSurfaceStateFrame(), std::invalid_argument);
+}
+
+TEST(IFrameTest, DestroyingFrameInvalidatesItsSurfaceState)
+{
+	std::shared_ptr<spk::ISurfaceState> surfaceState;
+
+	{
+		sparkle_test::TestFrame frame(sparkle_test::defaultRect(), "Frame");
+		surfaceState = frame.surfaceState();
+
+		ASSERT_NE(surfaceState, nullptr);
+		EXPECT_TRUE(surfaceState->isValid());
+	}
+
+	ASSERT_NE(surfaceState, nullptr);
+	EXPECT_FALSE(surfaceState->isValid());
 }

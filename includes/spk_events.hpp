@@ -19,9 +19,10 @@ namespace spk
 		//Event correspond to WM_CLOSE on WinAPI
 	};
 
-	struct WindowCloseValidatedPayload
+	struct WindowDestroyedPayload
 	{
-		//Event correspond to WM_DESTROY
+		//Event correspond to the point where the native window runtime is effectively destroyed.
+		//The application can use it to release its higher-level window object afterwards.
 	};
 
 	struct WindowMovedPayload
@@ -104,7 +105,7 @@ namespace spk
 
 	using EventPayload = std::variant<
 		WindowCloseRequestedPayload,
-		WindowCloseValidatedPayload,
+		WindowDestroyedPayload,
 		WindowMovedPayload,
 		WindowResizedPayload,
 		WindowFocusGainedPayload,
@@ -236,7 +237,7 @@ namespace spk
 	};
 
 	using WindowCloseRequestedEvent = spk::Event::View<WindowCloseRequestedPayload>;
-	using WindowCloseValidatedEvent = spk::Event::View<WindowCloseValidatedPayload>;
+	using WindowDestroyedEvent = spk::Event::View<WindowDestroyedPayload>;
 	using WindowMovedEvent = spk::Event::View<WindowMovedPayload>;
 	using WindowResizedEvent = spk::Event::View<WindowResizedPayload>;
 	using WindowFocusGainedEvent = spk::Event::View<WindowFocusGainedPayload>;

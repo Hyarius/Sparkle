@@ -162,6 +162,17 @@ namespace spk
 
 			_platformRuntime->pollEvents();
 
+			std::vector<std::shared_ptr<spk::Window>> windows = _windowRegistry.windows();
+			for (const auto& window : windows)
+			{
+				if (window != nullptr)
+				{
+					window->executePendingPlatformActions();
+				}
+			}
+
+			_windowRegistry.removeClosedWindows();
+
 			spk::TimeUtils::sleepFor(_configuration.eventPollingInterval);
 		}
 	}
