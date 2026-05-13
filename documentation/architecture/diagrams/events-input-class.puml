@@ -1,0 +1,119 @@
+@startuml
+title Events and Input - Class View
+
+skinparam classAttributeIconSize 0
+
+namespace spk {
+	enum InputState {
+		Down
+		Up
+	}
+
+	struct Mouse {
+		+ array<InputState, 3> buttons
+		+ Vector2Int position
+		+ Vector2Int deltaPosition
+		+ float wheel
+		+ operator[](button) : InputState&
+	}
+
+	struct Keyboard {
+		+ array<InputState, 255> keys
+		+ char32_t glyph
+		+ operator[](key) : InputState&
+	}
+
+	struct EventRecord {
+		+ Timestamp timestamp
+		+ uint64 sequence
+	}
+
+	struct WindowMovedRecord {
+		+ Vector2Int position
+	}
+
+	struct WindowResizedRecord {
+		+ Rect2D rect
+	}
+
+	struct MouseMovedRecord {
+		+ Vector2Int position
+		+ Vector2Int delta
+	}
+
+	struct KeyPressedRecord {
+		+ Keyboard::Key key
+		+ bool isRepeated
+	}
+
+	class "EventView<TRecord>" as EventView {
+		- bool _isConsumed
+		- TRecord* _record
+		+ record() : TRecord&
+		+ data() : TRecord&
+		+ operator->() : TRecord*
+		+ consume()
+		+ isConsumed() : bool
+		+ timestamp() : Timestamp
+	}
+
+	class "DeviceEventView<TRecord,TDevice>" as DeviceEventView {
+		- TDevice* _device
+		+ device() : TDevice&
+	}
+
+	class "variant FrameEventRecord" as FrameEventRecord {
+		WindowCloseRequestedRecord
+		WindowDestroyedRecord
+		WindowMovedRecord
+		WindowResizedRecord
+		WindowFocusGainedRecord
+		WindowFocusLostRecord
+		WindowShownRecord
+		WindowHiddenRecord
+	}
+
+	class "variant MouseEventRecord" as MouseEventRecord {
+		MouseEnteredRecord
+		MouseLeftRecord
+		MouseMovedRecord
+		MouseWheelScrolledRecord
+		MouseButtonPressedRecord
+		MouseButtonReleasedRecord
+		MouseButtonDoubleClickedRecord
+	}
+
+	class "variant KeyboardEventRecord" as KeyboardEventRecord {
+		KeyPressedRecord
+		KeyReleasedRecord
+		TextInputRecord
+	}
+}
+
+spk.Mouse *-- spk.InputState
+spk.Keyboard *-- spk.InputState
+spk.WindowMovedRecord --|> spk.EventRecord
+spk.WindowResizedRecord --|> spk.EventRecord
+spk.MouseMovedRecord --|> spk.EventRecord
+spk.KeyPressedRecord --|> spk.EventRecord
+spk.EventView --> spk.EventRecord
+spk.DeviceEventView --|> spk.EventView
+spk.DeviceEventView --> spk.Mouse
+spk.DeviceEventView --> spk.Keyboard
+spk.FrameEventRecord *-- spk.EventRecord
+spk.MouseEventRecord *-- spk.EventRecord
+spk.KeyboardEventRecord *-- spk.EventRecord
+
+note right of spk.EventRecord
+Records are the stored queue entries.
+timestamp is captured at reception time.
+sequence is internal ordering metadata.
+end note
+
+note right of spk.EventView
+Views are created only while dispatching.
+They expose immutable record data and
+own the temporary consumed flag.
+end note
+
+@enduml

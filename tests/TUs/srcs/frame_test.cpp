@@ -86,31 +86,31 @@ TEST(IPlatformRuntimeTest, PollEventsDispatchesQueuedMouseKeyboardAndFrameEvents
 	int keyboardCount = 0;
 	int frameCount = 0;
 
-	auto mouseContract = runtime.createdFrame->subscribeToMouseEvents([&](const spk::Event& p_event)
+	auto mouseContract = runtime.createdFrame->subscribeToMouseEvents([&](const spk::MouseEventRecord& p_event)
 	{
 		++mouseCount;
-		EXPECT_TRUE(p_event.holds<spk::MouseMovedPayload>());
+		EXPECT_TRUE(spk::holds<spk::MouseMovedRecord>(p_event));
 	});
 
-	auto keyboardContract = runtime.createdFrame->subscribeToKeyboardEvents([&](const spk::Event& p_event)
+	auto keyboardContract = runtime.createdFrame->subscribeToKeyboardEvents([&](const spk::KeyboardEventRecord& p_event)
 	{
 		++keyboardCount;
-		EXPECT_TRUE(p_event.holds<spk::KeyPressedPayload>());
+		EXPECT_TRUE(spk::holds<spk::KeyPressedRecord>(p_event));
 	});
 
-	auto frameContract = runtime.createdFrame->subscribeToFrameEvents([&](const spk::Event& p_event)
+	auto frameContract = runtime.createdFrame->subscribeToFrameEvents([&](const spk::FrameEventRecord& p_event)
 	{
 		++frameCount;
-		EXPECT_TRUE(p_event.holds<spk::WindowShownPayload>());
+		EXPECT_TRUE(spk::holds<spk::WindowShownRecord>(p_event));
 	});
 
-	runtime.queueMousePayload(spk::MouseMovedPayload{
+	runtime.queueMouseEvent(spk::MouseMovedRecord{
 		.position = spk::Vector2Int(10, 20),
 		.delta = spk::Vector2Int(1, 2)});
-	runtime.queueKeyboardPayload(spk::KeyPressedPayload{
+	runtime.queueKeyboardEvent(spk::KeyPressedRecord{
 		.key = spk::Keyboard::A,
 		.isRepeated = false});
-	runtime.queueFramePayload(spk::WindowShownPayload{});
+	runtime.queueFrameEvent(spk::WindowShownRecord{});
 
 	runtime.pollEvents();
 
@@ -137,21 +137,21 @@ TEST(IFrameTest, ResignedContractStopsReceivingEvents)
 	sparkle_test::TestFrame frame(sparkle_test::defaultRect(), "Frame");
 	int mouseCount = 0;
 
-	auto contract = frame.subscribeToMouseEvents([&](const spk::Event&)
+	auto contract = frame.subscribeToMouseEvents([&](const spk::MouseEventRecord&)
 	{
 		++mouseCount;
 	});
 
-	frame.emitMouseEvent(spk::Event(spk::MouseMovedPayload{
+	frame.emitMouseEvent(spk::MouseEventRecord(spk::makeEventRecord(spk::MouseMovedRecord{
 		.position = spk::Vector2Int(1, 1),
-		.delta = spk::Vector2Int(1, 1)}));
+		.delta = spk::Vector2Int(1, 1)})));
 	ASSERT_EQ(mouseCount, 1);
 
 	contract.resign();
 
-	frame.emitMouseEvent(spk::Event(spk::MouseMovedPayload{
+	frame.emitMouseEvent(spk::MouseEventRecord(spk::makeEventRecord(spk::MouseMovedRecord{
 		.position = spk::Vector2Int(2, 2),
-		.delta = spk::Vector2Int(2, 2)}));
+		.delta = spk::Vector2Int(2, 2)})));
 
 	EXPECT_EQ(mouseCount, 1);
 }
@@ -162,16 +162,16 @@ TEST(IFrameTest, MultipleSubscribersReceiveSameFrameEvent)
 	int firstCount = 0;
 	int secondCount = 0;
 
-	auto firstContract = frame.subscribeToFrameEvents([&](const spk::Event&)
+	auto firstContract = frame.subscribeToFrameEvents([&](const spk::FrameEventRecord&)
 	{
 		++firstCount;
 	});
-	auto secondContract = frame.subscribeToFrameEvents([&](const spk::Event&)
+	auto secondContract = frame.subscribeToFrameEvents([&](const spk::FrameEventRecord&)
 	{
 		++secondCount;
 	});
 
-	frame.emitFrameEvent(spk::Event(spk::WindowHiddenPayload{}));
+	frame.emitFrameEvent(spk::FrameEventRecord(spk::makeEventRecord(spk::WindowHiddenRecord{})));
 
 	EXPECT_EQ(firstCount, 1);
 	EXPECT_EQ(secondCount, 1);
@@ -186,15 +186,15 @@ TEST(IFrameTest, DestroyedFrameEventInvalidatesSurfaceStateBeforeSubscribersAreN
 	ASSERT_NE(surfaceState, nullptr);
 	EXPECT_TRUE(surfaceState->isValid());
 
-	auto contract = frame.subscribeToFrameEvents([&](const spk::Event& p_event)
+	auto contract = frame.subscribeToFrameEvents([&](const spk::FrameEventRecord& p_event)
 	{
-		if (p_event.holds<spk::WindowDestroyedPayload>())
+		if (spk::holds<spk::WindowDestroyedRecord>(p_event))
 		{
 			surfaceWasInvalidInsideCallback = (surfaceState->isValid() == false);
 		}
 	});
 
-	frame.emitFrameEvent(spk::Event(spk::WindowDestroyedPayload{}));
+	frame.emitFrameEvent(spk::FrameEventRecord(spk::makeEventRecord(spk::WindowDestroyedRecord{})));
 
 	EXPECT_TRUE(surfaceWasInvalidInsideCallback);
 	EXPECT_FALSE(surfaceState->isValid());

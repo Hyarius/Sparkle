@@ -1,0 +1,91 @@
+@startuml
+title Window Modules - Class View
+
+skinparam classAttributeIconSize 0
+
+namespace spk {
+	abstract class IModule {
+		- Widget* _widget
+		+ bind(widget)
+		+ widget() : Widget*
+	}
+
+	class FrameModule {
+		+ pushEvent(FrameEventRecord)
+		- _treatEvent(FrameEventRecord)
+	}
+
+	class MouseModule {
+		- Mouse _mouse
+		+ pushEvent(MouseEventRecord)
+		+ mouse() : Mouse&
+		- _treatEvent(MouseEventRecord)
+	}
+
+	class KeyboardModule {
+		- Keyboard _keyboard
+		+ pushEvent(KeyboardEventRecord)
+		+ keyboard() : Keyboard&
+		- _treatEvent(KeyboardEventRecord)
+	}
+
+	class UpdateModule {
+		- optional<Timestamp> _lastTimestamp
+		- Mouse* _mouse
+		- Keyboard* _keyboard
+		+ bindInputs(mouse, keyboard)
+		+ update()
+	}
+
+	class RenderModule {
+		+ render(builder)
+	}
+
+	class Window {
+		- FrameModule _frameModule
+		- MouseModule _mouseModule
+		- KeyboardModule _keyboardModule
+		- UpdateModule _updateModule
+		- RenderModule _renderModule
+	}
+
+	class Widget {
+		+ dispatchFrameEventRecord(FrameEventRecord)
+		+ dispatchMouseEventRecord(MouseEventRecord, Mouse)
+		+ dispatchKeyboardEventRecord(KeyboardEventRecord, Keyboard)
+		# _onWindowResizedEvent(WindowResizedEvent)
+		# _onMouseMovedEvent(MouseMovedEvent)
+		# _onKeyPressedEvent(KeyPressedEvent)
+		+ update(tick)
+		+ appendRenderCommands(builder)
+	}
+}
+
+spk.IModule <|-- spk.FrameModule
+spk.IModule <|-- spk.MouseModule
+spk.IModule <|-- spk.KeyboardModule
+spk.IModule <|-- spk.UpdateModule
+
+spk.Window *-- spk.FrameModule
+spk.Window *-- spk.MouseModule
+spk.Window *-- spk.KeyboardModule
+spk.Window *-- spk.UpdateModule
+spk.Window *-- spk.RenderModule
+
+spk.IModule --> spk.Widget : bound root
+spk.UpdateModule --> spk.Mouse
+spk.UpdateModule --> spk.Keyboard
+spk.RenderModule --> spk.RenderCommandBuilder
+
+note bottom of spk.MouseModule
+MouseModule updates Mouse state before
+dispatching the event into the widget tree.
+end note
+
+note bottom of spk.FrameModule
+Modules consume already separated event
+families. They do not reclassify a generic
+payload event.
+end note
+
+@enduml

@@ -1,0 +1,55 @@
+@startuml
+title Window Render Flow
+
+skinparam ParticipantPadding 8
+
+participant "Render loop" as RenderLoop
+participant "Window" as Window
+participant "WindowHost" as Host
+participant "IGPUPlatformRuntime" as GPURuntime
+participant "IRenderContext" as Context
+participant "RenderModule" as RenderModule
+participant "RenderCommandBuilder" as Builder
+participant "RenderCommand" as Command
+
+RenderLoop -> Window : render()
+activate Window
+
+alt window is closed
+	Window -> Host : releaseRenderContext()
+	Window --> RenderLoop
+else window is open
+	Window -> Window : _currentRenderSnapshot()
+	Window -> Window : _drainPendingRenderActions()
+	Window -> Host : makeCurrent()
+	activate Host
+	alt render context missing and surface valid
+		Host -> GPURuntime : createRenderContext(frame)
+		GPURuntime --> Host : unique_ptr<IRenderContext>
+	end
+	Host -> Context : makeCurrent()
+	Host --> Window : true
+	deactivate Host
+
+	loop render actions
+		alt NotifyResize
+			Window -> Host : notifyFrameResized(rect)
+			Host -> Context : notifyResize(rect)
+		else SetVSync
+			Window -> Host : setVSync(enabled)
+			Host -> Context : setVSync(enabled)
+		end
+	end
+
+	Window -> RenderModule : render(snapshot)
+	loop each command
+		RenderModule -> Builder : commands()
+		RenderModule -> Command : execute()
+	end
+	Window -> Host : present()
+	Host -> Context : present()
+end
+
+deactivate Window
+
+@enduml

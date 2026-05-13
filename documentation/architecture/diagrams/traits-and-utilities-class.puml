@@ -1,0 +1,85 @@
+@startuml
+title Traits and Utility Templates - Class View
+
+skinparam classAttributeIconSize 0
+
+namespace spk {
+	abstract class BlockableTrait {
+		+ block(mode) : Blocker
+		+ isBlocked() : bool
+		# setPending()
+		# flushPending()
+	}
+
+	class "BlockableTrait::Blocker" as Blocker {
+		+ release()
+		+ isValid() : bool
+	}
+
+	class "ContractProvider<TArguments...>" as ContractProvider {
+		- vector<shared_ptr<Link>> _links
+		- bool _isTriggering
+		- optional<StoredArguments> _lastTriggerArguments
+		+ subscribe(callback) : Contract
+		+ trigger(arguments...)
+		+ invalidateAllContracts()
+		# flushPending()
+	}
+
+	class "ContractProvider::Contract" as Contract {
+		+ resign()
+		+ relinquish()
+		+ isValid() : bool
+		+ block(mode) : Blocker
+	}
+
+	class ActivableTrait {
+		- bool _isActivated
+		- ContractProvider<> _activationProvider
+		- ContractProvider<> _deactivationProvider
+		+ activate()
+		+ deactivate()
+	}
+
+	class "ObservableValue<T>" as ObservableValue {
+		- T _value
+		+ set(value)
+		+ value() : T&
+	}
+
+	class "CachedData<T>" as CachedData {
+		- optional<T> _data
+		- Generator _generator
+		- Destructor _destructor
+		+ get() : T&
+		+ release()
+		+ refresh() : T&
+	}
+
+	class "ObjectPool<T>" as ObjectPool {
+		+ configure(generator, cleaner, realDestructor)
+		+ reserve(count)
+		+ obtain() : Handle
+		+ release()
+		+ close()
+	}
+
+	class "Flags<TEnum,TStorage>" as Flags {
+		- MaskType _bits
+		+ set(flag)
+		+ unset(flag)
+		+ toggle(flag)
+		+ has(flag) : bool
+		+ raw() : MaskType
+	}
+}
+
+spk.BlockableTrait <|-- spk.ContractProvider
+spk.BlockableTrait <|-- spk.ActivableTrait
+spk.ContractProvider <|-- spk.ObservableValue
+spk.BlockableTrait o-- spk.Blocker
+spk.ContractProvider o-- spk.Contract
+spk.Contract --> spk.Blocker
+spk.ActivableTrait *-- spk.ContractProvider
+
+@enduml

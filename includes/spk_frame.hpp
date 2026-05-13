@@ -13,22 +13,30 @@ namespace spk
 	class IFrame
 	{
 	public:
-		using EventContractProvider = spk::ContractProvider<const spk::Event&>;
-		using EventContract = EventContractProvider::Contract;
-		using EventCallback = EventContractProvider::Callback;
+		using MouseEventContractProvider = spk::ContractProvider<const spk::MouseEventRecord&>;
+		using MouseEventContract = MouseEventContractProvider::Contract;
+		using MouseEventCallback = MouseEventContractProvider::Callback;
+
+		using KeyboardEventContractProvider = spk::ContractProvider<const spk::KeyboardEventRecord&>;
+		using KeyboardEventContract = KeyboardEventContractProvider::Contract;
+		using KeyboardEventCallback = KeyboardEventContractProvider::Callback;
+
+		using FrameEventContractProvider = spk::ContractProvider<const spk::FrameEventRecord&>;
+		using FrameEventContract = FrameEventContractProvider::Contract;
+		using FrameEventCallback = FrameEventContractProvider::Callback;
 
 	private:
-		EventContractProvider _mouseEventContractProvider;
-		EventContractProvider _keyboardEventContractProvider;
-		EventContractProvider _frameEventContractProvider;
+		MouseEventContractProvider _mouseEventContractProvider;
+		KeyboardEventContractProvider _keyboardEventContractProvider;
+		FrameEventContractProvider _frameEventContractProvider;
 		std::shared_ptr<ISurfaceState> _surfaceState;
 
 	protected:
 		explicit IFrame(std::shared_ptr<ISurfaceState> p_surfaceState);
 
-		void _emitMouseEvent(const spk::Event& p_event);
-		void _emitKeyboardEvent(const spk::Event& p_event);
-		void _emitFrameEvent(const spk::Event& p_event);
+		void _emitMouseEvent(const spk::MouseEventRecord& p_event);
+		void _emitKeyboardEvent(const spk::KeyboardEventRecord& p_event);
+		void _emitFrameEvent(const spk::FrameEventRecord& p_event);
 		void _invalidateSurfaceState();
 
 	public:
@@ -43,8 +51,8 @@ namespace spk
 		[[nodiscard]] virtual std::string title() const = 0;
 		[[nodiscard]] std::shared_ptr<ISurfaceState> surfaceState() const;
 
-		EventContract subscribeToMouseEvents(EventCallback p_callback);
-		EventContract subscribeToKeyboardEvents(EventCallback p_callback);
-		EventContract subscribeToFrameEvents(EventCallback p_callback);
+		MouseEventContract subscribeToMouseEvents(MouseEventCallback p_callback);
+		KeyboardEventContract subscribeToKeyboardEvents(KeyboardEventCallback p_callback);
+		FrameEventContract subscribeToFrameEvents(FrameEventCallback p_callback);
 	};
 }

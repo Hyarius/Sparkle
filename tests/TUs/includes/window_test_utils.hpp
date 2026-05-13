@@ -3,10 +3,13 @@
 #include <atomic>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <thread>
+#include <type_traits>
 #include <utility>
+#include <variant>
 #include <vector>
 
 #include "spk_events.hpp"
@@ -28,28 +31,35 @@ namespace sparkle_test
 		return spk::Rect2D(10, 20, 300, 400);
 	}
 
-	inline std::string eventKind(const spk::Event& p_event)
+	template <typename TEventData>
+	inline std::string eventKind()
 	{
-		if (p_event.holds<spk::WindowCloseRequestedPayload>()) return "WindowCloseRequested";
-		if (p_event.holds<spk::WindowDestroyedPayload>()) return "WindowDestroyed";
-		if (p_event.holds<spk::WindowMovedPayload>()) return "WindowMoved";
-		if (p_event.holds<spk::WindowResizedPayload>()) return "WindowResized";
-		if (p_event.holds<spk::WindowFocusGainedPayload>()) return "WindowFocusGained";
-		if (p_event.holds<spk::WindowFocusLostPayload>()) return "WindowFocusLost";
-		if (p_event.holds<spk::WindowShownPayload>()) return "WindowShown";
-		if (p_event.holds<spk::WindowHiddenPayload>()) return "WindowHidden";
-		if (p_event.holds<spk::MouseEnteredPayload>()) return "MouseEntered";
-		if (p_event.holds<spk::MouseLeftPayload>()) return "MouseLeft";
-		if (p_event.holds<spk::MouseMovedPayload>()) return "MouseMoved";
-		if (p_event.holds<spk::MouseWheelScrolledPayload>()) return "MouseWheelScrolled";
-		if (p_event.holds<spk::MouseButtonPressedPayload>()) return "MouseButtonPressed";
-		if (p_event.holds<spk::MouseButtonReleasedPayload>()) return "MouseButtonReleased";
-		if (p_event.holds<spk::MouseButtonDoubleClickedPayload>()) return "MouseButtonDoubleClicked";
-		if (p_event.holds<spk::KeyPressedPayload>()) return "KeyPressed";
-		if (p_event.holds<spk::KeyReleasedPayload>()) return "KeyReleased";
-		if (p_event.holds<spk::TextInputPayload>()) return "TextInput";
+		if constexpr (std::is_same_v<TEventData, spk::WindowCloseRequestedRecord>) return "WindowCloseRequested";
+		if constexpr (std::is_same_v<TEventData, spk::WindowDestroyedRecord>) return "WindowDestroyed";
+		if constexpr (std::is_same_v<TEventData, spk::WindowMovedRecord>) return "WindowMoved";
+		if constexpr (std::is_same_v<TEventData, spk::WindowResizedRecord>) return "WindowResized";
+		if constexpr (std::is_same_v<TEventData, spk::WindowFocusGainedRecord>) return "WindowFocusGained";
+		if constexpr (std::is_same_v<TEventData, spk::WindowFocusLostRecord>) return "WindowFocusLost";
+		if constexpr (std::is_same_v<TEventData, spk::WindowShownRecord>) return "WindowShown";
+		if constexpr (std::is_same_v<TEventData, spk::WindowHiddenRecord>) return "WindowHidden";
+		if constexpr (std::is_same_v<TEventData, spk::MouseEnteredRecord>) return "MouseEntered";
+		if constexpr (std::is_same_v<TEventData, spk::MouseLeftRecord>) return "MouseLeft";
+		if constexpr (std::is_same_v<TEventData, spk::MouseMovedRecord>) return "MouseMoved";
+		if constexpr (std::is_same_v<TEventData, spk::MouseWheelScrolledRecord>) return "MouseWheelScrolled";
+		if constexpr (std::is_same_v<TEventData, spk::MouseButtonPressedRecord>) return "MouseButtonPressed";
+		if constexpr (std::is_same_v<TEventData, spk::MouseButtonReleasedRecord>) return "MouseButtonReleased";
+		if constexpr (std::is_same_v<TEventData, spk::MouseButtonDoubleClickedRecord>) return "MouseButtonDoubleClicked";
+		if constexpr (std::is_same_v<TEventData, spk::KeyPressedRecord>) return "KeyPressed";
+		if constexpr (std::is_same_v<TEventData, spk::KeyReleasedRecord>) return "KeyReleased";
+		if constexpr (std::is_same_v<TEventData, spk::TextInputRecord>) return "TextInput";
 
 		return "Unknown";
+	}
+
+	template <typename TEventData>
+	inline std::string eventKind(const spk::EventView<TEventData>&)
+	{
+		return eventKind<TEventData>();
 	}
 
 	class CallbackRenderCommand : public spk::RenderCommand
@@ -201,17 +211,17 @@ namespace sparkle_test
 			return currentTitle;
 		}
 
-		void emitMouseEvent(const spk::Event& p_event)
+		void emitMouseEvent(const spk::MouseEventRecord& p_event)
 		{
 			_emitMouseEvent(p_event);
 		}
 
-		void emitKeyboardEvent(const spk::Event& p_event)
+		void emitKeyboardEvent(const spk::KeyboardEventRecord& p_event)
 		{
 			_emitKeyboardEvent(p_event);
 		}
 
-		void emitFrameEvent(const spk::Event& p_event)
+		void emitFrameEvent(const spk::FrameEventRecord& p_event)
 		{
 			_emitFrameEvent(p_event);
 		}
@@ -230,7 +240,7 @@ namespace sparkle_test
 		struct PendingEvent
 		{
 			PendingEventKind kind;
-			spk::Event event;
+			std::variant<spk::MouseEventRecord, spk::KeyboardEventRecord, spk::FrameEventRecord> event;
 		};
 
 		std::vector<PendingEvent> _pendingEvents;
@@ -287,13 +297,13 @@ namespace sparkle_test
 				switch (pendingEvent.kind)
 				{
 				case PendingEventKind::Mouse:
-					_frame().emitMouseEvent(pendingEvent.event);
+					_frame().emitMouseEvent(std::get<spk::MouseEventRecord>(pendingEvent.event));
 					break;
 				case PendingEventKind::Keyboard:
-					_frame().emitKeyboardEvent(pendingEvent.event);
+					_frame().emitKeyboardEvent(std::get<spk::KeyboardEventRecord>(pendingEvent.event));
 					break;
 				case PendingEventKind::Frame:
-					_frame().emitFrameEvent(pendingEvent.event);
+					_frame().emitFrameEvent(std::get<spk::FrameEventRecord>(pendingEvent.event));
 					break;
 				}
 			}
@@ -304,48 +314,48 @@ namespace sparkle_test
 			}
 		}
 
-		template <typename TPayloadType>
-		void emitMousePayload(TPayloadType p_payload)
+		template <typename TEventData>
+		void emitMouseEventRecord(TEventData p_data)
 		{
-			_frame().emitMouseEvent(spk::Event(std::move(p_payload)));
+			_frame().emitMouseEvent(spk::MouseEventRecord(spk::makeEventRecord(std::move(p_data))));
 		}
 
-		template <typename TPayloadType>
-		void emitKeyboardPayload(TPayloadType p_payload)
+		template <typename TEventData>
+		void emitKeyboardEventRecord(TEventData p_data)
 		{
-			_frame().emitKeyboardEvent(spk::Event(std::move(p_payload)));
+			_frame().emitKeyboardEvent(spk::KeyboardEventRecord(spk::makeEventRecord(std::move(p_data))));
 		}
 
-		template <typename TPayloadType>
-		void emitFramePayload(TPayloadType p_payload)
+		template <typename TEventData>
+		void emitFrameEventRecord(TEventData p_data)
 		{
-			_frame().emitFrameEvent(spk::Event(std::move(p_payload)));
+			_frame().emitFrameEvent(spk::FrameEventRecord(spk::makeEventRecord(std::move(p_data))));
 		}
 
-		template <typename TPayloadType>
-		void queueMousePayload(TPayloadType p_payload)
+		template <typename TEventData>
+		void queueMouseEvent(TEventData p_data)
 		{
 			_pendingEvents.push_back(PendingEvent{
 				.kind = PendingEventKind::Mouse,
-				.event = spk::Event(std::move(p_payload))
+				.event = spk::MouseEventRecord(spk::makeEventRecord(std::move(p_data)))
 			});
 		}
 
-		template <typename TPayloadType>
-		void queueKeyboardPayload(TPayloadType p_payload)
+		template <typename TEventData>
+		void queueKeyboardEvent(TEventData p_data)
 		{
 			_pendingEvents.push_back(PendingEvent{
 				.kind = PendingEventKind::Keyboard,
-				.event = spk::Event(std::move(p_payload))
+				.event = spk::KeyboardEventRecord(spk::makeEventRecord(std::move(p_data)))
 			});
 		}
 
-		template <typename TPayloadType>
-		void queueFramePayload(TPayloadType p_payload)
+		template <typename TEventData>
+		void queueFrameEvent(TEventData p_data)
 		{
 			_pendingEvents.push_back(PendingEvent{
 				.kind = PendingEventKind::Frame,
-				.event = spk::Event(std::move(p_payload))
+				.event = spk::FrameEventRecord(spk::makeEventRecord(std::move(p_data)))
 			});
 		}
 	};
@@ -578,7 +588,8 @@ namespace sparkle_test
 			}
 		}
 
-		void _onFrameEvent(const spk::Event& p_event) override
+		template <typename TEventData>
+		void _recordFrameEvent(spk::EventView<TEventData>& p_event)
 		{
 			++frameEventCount;
 			frameEventKinds.push_back(eventKind(p_event));
@@ -590,11 +601,12 @@ namespace sparkle_test
 
 			if (consumeFrameEvent == true)
 			{
-				p_event.metadata.isConsumed = true;
+				p_event.consume();
 			}
 		}
 
-		void _onMouseEvent(const spk::Event& p_event) override
+		template <typename TEventData>
+		void _recordMouseEvent(spk::EventView<TEventData>& p_event)
 		{
 			++mouseEventCount;
 			mouseEventKinds.push_back(eventKind(p_event));
@@ -606,11 +618,12 @@ namespace sparkle_test
 
 			if (consumeMouseEvent == true)
 			{
-				p_event.metadata.isConsumed = true;
+				p_event.consume();
 			}
 		}
 
-		void _onKeyboardEvent(const spk::Event& p_event) override
+		template <typename TEventData>
+		void _recordKeyboardEvent(spk::EventView<TEventData>& p_event)
 		{
 			++keyboardEventCount;
 			keyboardEventKinds.push_back(eventKind(p_event));
@@ -622,9 +635,30 @@ namespace sparkle_test
 
 			if (consumeKeyboardEvent == true)
 			{
-				p_event.metadata.isConsumed = true;
+				p_event.consume();
 			}
 		}
+
+		void _onWindowCloseRequestedEvent(spk::WindowCloseRequestedEvent& p_event) override { _recordFrameEvent(p_event); }
+		void _onWindowDestroyedEvent(spk::WindowDestroyedEvent& p_event) override { _recordFrameEvent(p_event); }
+		void _onWindowMovedEvent(spk::WindowMovedEvent& p_event) override { _recordFrameEvent(p_event); }
+		void _onWindowResizedEvent(spk::WindowResizedEvent& p_event) override { _recordFrameEvent(p_event); }
+		void _onWindowFocusGainedEvent(spk::WindowFocusGainedEvent& p_event) override { _recordFrameEvent(p_event); }
+		void _onWindowFocusLostEvent(spk::WindowFocusLostEvent& p_event) override { _recordFrameEvent(p_event); }
+		void _onWindowShownEvent(spk::WindowShownEvent& p_event) override { _recordFrameEvent(p_event); }
+		void _onWindowHiddenEvent(spk::WindowHiddenEvent& p_event) override { _recordFrameEvent(p_event); }
+
+		void _onMouseEnteredEvent(spk::MouseEnteredWindowEvent& p_event) override { _recordMouseEvent(p_event); }
+		void _onMouseLeftEvent(spk::MouseLeftWindowEvent& p_event) override { _recordMouseEvent(p_event); }
+		void _onMouseMovedEvent(spk::MouseMovedEvent& p_event) override { _recordMouseEvent(p_event); }
+		void _onMouseWheelScrolledEvent(spk::MouseWheelScrolledEvent& p_event) override { _recordMouseEvent(p_event); }
+		void _onMouseButtonPressedEvent(spk::MouseButtonPressedEvent& p_event) override { _recordMouseEvent(p_event); }
+		void _onMouseButtonReleasedEvent(spk::MouseButtonReleasedEvent& p_event) override { _recordMouseEvent(p_event); }
+		void _onMouseButtonDoubleClickedEvent(spk::MouseButtonDoubleClickedEvent& p_event) override { _recordMouseEvent(p_event); }
+
+		void _onKeyPressedEvent(spk::KeyPressedEvent& p_event) override { _recordKeyboardEvent(p_event); }
+		void _onKeyReleasedEvent(spk::KeyReleasedEvent& p_event) override { _recordKeyboardEvent(p_event); }
+		void _onTextInputEvent(spk::TextInputEvent& p_event) override { _recordKeyboardEvent(p_event); }
 	};
 
 	class CallbackWidget : public spk::Widget

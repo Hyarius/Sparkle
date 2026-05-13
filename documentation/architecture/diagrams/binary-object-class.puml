@@ -1,0 +1,85 @@
+@startuml
+title Binary Object Layout - Class View
+
+skinparam classAttributeIconSize 0
+
+namespace spk {
+	enum BinaryFieldKind {
+		Value
+		Object
+		Array
+	}
+
+	enum BinaryLayoutMode {
+		Packed
+		ScalarAligned
+		Std140
+		Std430
+	}
+
+	class SynchronizableTrait {
+		- bool _needsSynchronization
+		+ requestSynchronization()
+		+ synchronize()
+		+ forceSynchronization()
+		# _synchronize()
+	}
+
+	class "_binary_detail::Node" as Node {
+		+ string name
+		+ BinaryFieldKind kind
+		+ size_t offset
+		+ size_t size
+		+ size_t alignment
+		+ size_t stride
+		+ size_t count
+		+ size_t valueSize
+		+ size_t elementSize
+		+ Node* parent
+		+ vector<unique_ptr<Node>> children
+	}
+
+	class BinaryObject {
+		- BinaryLayoutMode _layoutMode
+		- Node _root
+		- vector<uint8_t> _buffer
+		+ root() : BinaryField
+		+ addValue(name, size) : BinaryField
+		+ addArray(name, count, elementSize) : BinaryField
+		+ addObject(name) : BinaryField
+		+ size() : size_t
+		+ buffer() : span<uint8_t>
+		# _synchronize()
+		- _layoutNode(node, baseOffset)
+	}
+
+	class BinaryField {
+		- BinaryObject* _owner
+		- Node* _node
+		+ operator[](name) : BinaryField
+		+ operator[](index) : BinaryField
+		+ addValue(name, size) : BinaryField
+		+ addArray(name, count, elementSize) : BinaryField
+		+ addObject(name) : BinaryField
+		+ resize(count) : BinaryField&
+		+ set<TValueType>(value) : BinaryField&
+		+ as<TValueType>() : TValueType
+		+ bytes() : span<uint8_t>
+	}
+}
+
+spk.SynchronizableTrait <|-- spk.BinaryObject
+spk.BinaryObject *-- spk.Node : root
+spk.Node "1" o-- "0..*" spk.Node : children
+spk.BinaryField --> spk.BinaryObject : owner
+spk.BinaryField --> spk.Node : handle
+spk.BinaryObject --> spk.BinaryLayoutMode
+spk.Node --> spk.BinaryFieldKind
+
+note right of spk.BinaryField
+Fields are lightweight handles.
+They trigger owner synchronization before reading
+layout-dependent data or bytes.
+end note
+
+@enduml

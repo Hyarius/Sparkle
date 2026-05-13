@@ -73,7 +73,8 @@ TEST(WindowHostTest, DestroyedFrameEventPreventsLateRenderContextCreation)
 	EXPECT_EQ(bundle.gpuPlatformRuntime->createRenderContextCount, 0);
 	EXPECT_TRUE(bundle.platformRuntime->createdFrame->surfaceState()->isValid());
 
-	bundle.platformRuntime->createdFrame->emitFrameEvent(spk::Event(spk::WindowDestroyedPayload{}));
+	bundle.platformRuntime->createdFrame->emitFrameEvent(
+		spk::FrameEventRecord(spk::makeEventRecord(spk::WindowDestroyedRecord{})));
 
 	EXPECT_FALSE(bundle.platformRuntime->createdFrame->surfaceState()->isValid());
 	EXPECT_FALSE(bundle.windowHost->makeCurrent());

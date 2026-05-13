@@ -1,0 +1,37 @@
+@startuml
+title Contract Provider Triggering and Blocking
+
+skinparam ParticipantPadding 8
+
+participant "Subscriber" as Subscriber
+participant "ContractProvider<T...>" as Provider
+participant "Contract" as Contract
+participant "Blocker" as Blocker
+participant "Callback" as Callback
+
+Subscriber -> Provider : subscribe(callback)
+Provider -> Provider : create Link
+Provider --> Subscriber : Contract
+
+Subscriber -> Contract : block(Delay)
+Contract -> Blocker : create for Link
+
+Subscriber -> Provider : trigger(args...)
+alt provider is blocked
+	Provider -> Provider : store _lastTriggerArguments
+	Provider -> Provider : setPending()
+else provider/link not blocked
+	Provider -> Callback : callback(args...)
+	Provider -> Provider : cleanup resigned links
+end
+
+Subscriber -> Blocker : release()
+Blocker -> Provider : flushPending()
+Provider -> Provider : trigger(stored args)
+Provider -> Callback : callback(stored args)
+
+Subscriber -> Contract : resign()
+Contract -> Provider : clear Link function
+Provider -> Provider : cleanup()
+
+@enduml

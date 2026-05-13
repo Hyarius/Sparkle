@@ -1,0 +1,62 @@
+@startuml
+title Widget Tree - Class View
+
+skinparam classAttributeIconSize 0
+
+namespace spk {
+	class "InherenceTrait<Widget>" as InherenceTraitWidget {
+		- Widget* _parent
+		- vector<Widget*> _children
+		+ setParent(parent)
+		+ addChild(child)
+		+ removeChild(child)
+		+ children() : vector<Widget*>
+	}
+
+	class ActivableTrait {
+		- bool _isActivated
+		- optional<bool> _pendingActivationState
+		+ activate()
+		+ deactivate()
+		+ isActivated() : bool
+		+ subscribeToActivation(callback)
+		+ subscribeToDeactivation(callback)
+	}
+
+	abstract class Widget {
+		- string _name
+		- bool _renderCommandsDirty
+		- Rect2D _geometry
+		# _appendRenderCommands(builder)
+		# _onUpdate(tick)
+		# _onFrameEventRecord(event)
+		# _onMouseEventRecord(event)
+		# _onKeyboardEventRecord(event)
+		+ appendRenderCommands(builder)
+		+ update(tick)
+		+ dispatchFrameEventRecord(event)
+		+ dispatchMouseEventRecord(event)
+		+ dispatchKeyboardEventRecord(event)
+	}
+
+	class RenderCommandBuilder
+	class UpdateTick
+	class Event
+	class Rect2D
+}
+
+spk.InherenceTraitWidget <|-- spk.Widget
+spk.ActivableTrait <|-- spk.Widget
+spk.Widget "1" o-- "0..*" spk.Widget : children
+spk.Widget --> spk.RenderCommandBuilder
+spk.Widget --> spk.UpdateTick
+spk.Widget --> spk.Event
+spk.Widget --> spk.Rect2D
+
+note right of spk.Widget
+Traversal is child-first for update and events.
+Render command collection is self first, then children.
+Inactive widgets stop propagation at their subtree.
+end note
+
+@enduml

@@ -1,0 +1,66 @@
+@startuml
+title Application::run Runtime Loops
+
+skinparam ParticipantPadding 8
+
+actor User
+participant "Application" as App
+participant "Render jthread" as RenderThread
+participant "Update jthread" as UpdateThread
+participant "Event loop\n(owner thread)" as EventLoop
+participant "WindowRegistry" as Registry
+participant "IPlatformRuntime" as Platform
+participant "Window" as Window
+
+User -> App : run()
+activate App
+App -> App : validate owner thread
+App -> App : set _isRunning = true
+App -> RenderThread : start _runRenderLoop()
+App -> UpdateThread : start _runUpdateLoop()
+App -> EventLoop : _runEventLoop()
+
+loop until stop requested
+	EventLoop -> Platform : pollEvents()
+	Platform -> Window : enqueue Frame/Mouse/Keyboard events
+	EventLoop -> Registry : windows()
+	Registry --> EventLoop : shared windows
+	loop each window
+		EventLoop -> Window : executePendingPlatformActions()
+	end
+	EventLoop -> Registry : removeClosedWindows()
+	EventLoop -> EventLoop : sleep for event polling interval
+end
+
+par render loop
+	loop until stop requested
+		RenderThread -> Registry : windows()
+		loop each window
+			RenderThread -> Window : render()
+		end
+		RenderThread -> RenderThread : sleep until next render tick
+	end
+else update loop
+	loop until stop requested
+		UpdateThread -> Registry : windows()
+		loop each window
+			UpdateThread -> Window : update()
+			Window -> Window : drain and process event queues
+		end
+		UpdateThread -> UpdateThread : sleep until next update tick
+	end
+end
+
+note over EventLoop,UpdateThread
+The event loop receives platform events and enqueues them only.
+The update loop performs effective event use: module state updates,
+widget dispatch, and render snapshot rebuild.
+end note
+
+App -> RenderThread : join()
+App -> UpdateThread : join()
+App -> App : set _isRunning = false
+App -> App : rethrow recorded failures
+deactivate App
+
+@enduml

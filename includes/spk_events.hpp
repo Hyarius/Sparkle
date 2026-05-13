@@ -1,6 +1,6 @@
 #pragma once
 
-#include <concepts>
+#include <cstdint>
 #include <type_traits>
 #include <utility>
 #include <variant>
@@ -9,253 +9,288 @@
 #include "spk_mouse.hpp"
 #include "spk_rect_2d.hpp"
 #include "spk_timestamp.hpp"
-#include "spk_duration.hpp"
 #include "spk_vector2.hpp"
 
 namespace spk
 {
-	struct WindowCloseRequestedPayload
+	struct EventRecord
 	{
-		//Event correspond to WM_CLOSE on WinAPI
-	};
-
-	struct WindowDestroyedPayload
-	{
-		//Event correspond to the point where the native window runtime is effectively destroyed.
-		//Emitting this payload invalidates the frame surface immediately, before subscribers are
-		//notified. After that point, render-context creation and presentation are no longer allowed.
-		//The application can use it to release its higher-level window object afterwards.
-	};
-
-	struct WindowMovedPayload
-	{
-		spk::Vector2Int position;
-	};
-
-	struct WindowResizedPayload
-	{
-		spk::Rect2D rect;
-	};
-
-	struct WindowFocusGainedPayload
-	{
-	};
-
-	struct WindowFocusLostPayload
-	{
-	};
-
-	struct WindowShownPayload
-	{
-	};
-
-	struct WindowHiddenPayload
-	{
-	};
-
-	struct MouseEnteredPayload
-	{
-		spk::Vector2Int position;
-	};
-
-	struct MouseLeftPayload
-	{
-		spk::Vector2Int position;
-	};
-
-	struct MouseMovedPayload
-	{
-		spk::Vector2Int position;
-		spk::Vector2Int delta;
-	};
-
-	struct MouseWheelScrolledPayload
-	{
-		spk::Vector2 delta;
-	};
-
-	struct MouseButtonPressedPayload
-	{
-		spk::Mouse::Button button = spk::Mouse::Left;
-	};
-
-	struct MouseButtonReleasedPayload
-	{
-		spk::Mouse::Button button = spk::Mouse::Left;
-	};
-
-	struct MouseButtonDoubleClickedPayload
-	{
-		spk::Mouse::Button button = spk::Mouse::Left;
-	};
-
-	struct KeyPressedPayload
-	{
-		spk::Keyboard::Key key = spk::Keyboard::Unknow;
-		bool isRepeated = false;
-	};
-
-	struct KeyReleasedPayload
-	{
-		spk::Keyboard::Key key = spk::Keyboard::Unknow;
-	};
-
-	struct TextInputPayload
-	{
-		char32_t glyph = U'\0';
-	};
-
-	using EventPayload = std::variant<
-		WindowCloseRequestedPayload,
-		WindowDestroyedPayload,
-		WindowMovedPayload,
-		WindowResizedPayload,
-		WindowFocusGainedPayload,
-		WindowFocusLostPayload,
-		WindowShownPayload,
-		WindowHiddenPayload,
-		MouseEnteredPayload,
-		MouseLeftPayload,
-		MouseMovedPayload,
-		MouseWheelScrolledPayload,
-		MouseButtonPressedPayload,
-		MouseButtonReleasedPayload,
-		MouseButtonDoubleClickedPayload,
-		KeyPressedPayload,
-		KeyReleasedPayload,
-		TextInputPayload>;
-
-	struct EventMetadata
-	{
-		mutable bool isConsumed = false;
 		spk::Timestamp timestamp;
+		std::uint64_t sequence = 0;
 
-		EventMetadata() = default;
-		explicit EventMetadata(const spk::Timestamp& p_timestamp) :
-			isConsumed(false),
+		EventRecord() = default;
+
+		explicit EventRecord(const spk::Timestamp& p_timestamp) :
 			timestamp(p_timestamp)
 		{
 		}
 	};
 
-	struct Event
+	template <typename TRecord>
+	class EventView
 	{
-	public:
-		template <typename TPayloadType>
-		struct View
-		{
-			static_assert(std::is_same_v<TPayloadType, std::decay_t<TPayloadType>>, "Event::View payload type must be non-cvref");
+	private:
+		static_assert(std::is_base_of_v<spk::EventRecord, TRecord>, "EventView<TRecord> requires an EventRecord-derived type");
 
-			EventMetadata& metadata;
-			TPayloadType& payload;
-
-			[[nodiscard]] bool isConsumed() const
-			{
-				return metadata.isConsumed;
-			}
-
-			void consume()
-			{
-				metadata.isConsumed = true;
-			}
-
-			[[nodiscard]] const spk::Timestamp& timestamp() const
-			{
-				return metadata.timestamp;
-			}
-		};
-
-		template <typename TPayloadType, typename TDeviceType>
-		struct DeviceView : public spk::Event::View<TPayloadType>
-		{
-			const TDeviceType& device;
-		};
+		const TRecord* _record = nullptr;
+		bool _isConsumed = false;
 
 	public:
-		EventMetadata metadata;
-		EventPayload payload;
-
-	public:
-		Event() = default;
-		Event(const Event&) = default;
-		Event(Event&&) noexcept = default;
-		Event& operator=(const Event&) = default;
-		Event& operator=(Event&&) noexcept = default;
-
-		template <typename TPayloadType>
-			requires (std::same_as<std::decay_t<TPayloadType>, Event> == false)
-		Event(TPayloadType&& p_payload) :
-			metadata(),
-			payload(std::forward<TPayloadType>(p_payload))
+		explicit EventView(const TRecord& p_record) :
+			_record(&p_record)
 		{
 		}
 
-		template <typename TPayloadType>
-		Event(const spk::Timestamp& p_timestamp, TPayloadType&& p_payload) :
-			metadata(p_timestamp),
-			payload(std::forward<TPayloadType>(p_payload))
+		template <typename TOtherRecord>
+		EventView(const EventView<TOtherRecord>&) = delete;
+
+		[[nodiscard]] bool isConsumed() const
 		{
+			return _isConsumed;
 		}
 
-		template <typename TPayloadType>
-		Event(const EventMetadata& p_metadata, TPayloadType&& p_payload) :
-			metadata(p_metadata),
-			payload(std::forward<TPayloadType>(p_payload))
+		void consume()
 		{
+			_isConsumed = true;
 		}
 
-		template <typename TPayloadType>
-		[[nodiscard]] bool holds() const
+		[[nodiscard]] const spk::Timestamp& timestamp() const
 		{
-			return std::holds_alternative<TPayloadType>(payload);
+			return _record->timestamp;
 		}
 
-		template <typename TPayloadType>
-		[[nodiscard]] TPayloadType* getIf()
+		[[nodiscard]] const TRecord& record() const
 		{
-			return std::get_if<TPayloadType>(&payload);
+			return *_record;
 		}
 
-		template <typename TPayloadType>
-		[[nodiscard]] const TPayloadType* getIf() const
+		[[nodiscard]] const TRecord& data() const
 		{
-			return std::get_if<TPayloadType>(&payload);
+			return *_record;
 		}
 
-		template <typename TPayloadType>
-		[[nodiscard]] View<TPayloadType> view()
+		[[nodiscard]] const TRecord* operator->() const
 		{
-			return View<TPayloadType>{metadata, std::get<TPayloadType>(payload)};
+			return _record;
 		}
 
-		template <typename TPayloadType, typename TDeviceType>
-		[[nodiscard]] DeviceView<TPayloadType, TDeviceType> deviceView(const TDeviceType& p_device)
+		[[nodiscard]] const TRecord& operator*() const
 		{
-			return DeviceView<TPayloadType, TDeviceType>{
-				{ metadata, std::get<TPayloadType>(payload) },
-				p_device
-			};
+			return *_record;
 		}
 	};
 
-	using WindowCloseRequestedEvent = spk::Event::View<WindowCloseRequestedPayload>;
-	using WindowDestroyedEvent = spk::Event::View<WindowDestroyedPayload>;
-	using WindowMovedEvent = spk::Event::View<WindowMovedPayload>;
-	using WindowResizedEvent = spk::Event::View<WindowResizedPayload>;
-	using WindowFocusGainedEvent = spk::Event::View<WindowFocusGainedPayload>;
-	using WindowFocusLostEvent = spk::Event::View<WindowFocusLostPayload>;
-	using WindowShownEvent = spk::Event::View<WindowShownPayload>;
-	using WindowHiddenEvent = spk::Event::View<WindowHiddenPayload>;
-	using MouseEnteredWindowEvent = spk::Event::DeviceView<MouseEnteredPayload, spk::Mouse>;
-	using MouseLeftWindowEvent = spk::Event::DeviceView<MouseLeftPayload, spk::Mouse>;
+	template <typename TRecord, typename TDeviceType>
+	class DeviceEventView : public EventView<TRecord>
+	{
+	private:
+		const TDeviceType* _device = nullptr;
 
-	using MouseMovedEvent = spk::Event::DeviceView<MouseMovedPayload, spk::Mouse>;
-	using MouseWheelScrolledEvent = spk::Event::DeviceView<MouseWheelScrolledPayload, spk::Mouse>;
-	using MouseButtonPressedEvent = spk::Event::DeviceView<MouseButtonPressedPayload, spk::Mouse>;
-	using MouseButtonReleasedEvent = spk::Event::DeviceView<MouseButtonReleasedPayload, spk::Mouse>;
-	using MouseButtonDoubleClickedEvent = spk::Event::DeviceView<MouseButtonDoubleClickedPayload, spk::Mouse>;
+	public:
+		DeviceEventView(const TRecord& p_record, const TDeviceType& p_device) :
+			EventView<TRecord>(p_record),
+			_device(&p_device)
+		{
+		}
 
-	using KeyPressedEvent = spk::Event::DeviceView<KeyPressedPayload, spk::Keyboard>;
-	using KeyReleasedEvent = spk::Event::DeviceView<KeyReleasedPayload, spk::Keyboard>;
-	using TextInputEvent = spk::Event::DeviceView<TextInputPayload, spk::Keyboard>;
+		[[nodiscard]] const TDeviceType& device() const
+		{
+			return *_device;
+		}
+	};
+
+	struct WindowCloseRequestedRecord : public EventRecord
+	{
+		using EventRecord::EventRecord;
+		// Event corresponds to WM_CLOSE on WinAPI.
+	};
+
+	struct WindowDestroyedRecord : public EventRecord
+	{
+		using EventRecord::EventRecord;
+		// Event corresponds to the point where the native window runtime is effectively destroyed.
+		// Emitting this event invalidates the frame surface immediately, before subscribers are notified.
+	};
+
+	struct WindowMovedRecord : public EventRecord
+	{
+		spk::Vector2Int position;
+	};
+
+	struct WindowResizedRecord : public EventRecord
+	{
+		spk::Rect2D rect;
+	};
+
+	struct WindowFocusGainedRecord : public EventRecord
+	{
+		using EventRecord::EventRecord;
+	};
+
+	struct WindowFocusLostRecord : public EventRecord
+	{
+		using EventRecord::EventRecord;
+	};
+
+	struct WindowShownRecord : public EventRecord
+	{
+		using EventRecord::EventRecord;
+	};
+
+	struct WindowHiddenRecord : public EventRecord
+	{
+		using EventRecord::EventRecord;
+	};
+
+	struct MouseEnteredRecord : public EventRecord
+	{
+		spk::Vector2Int position;
+	};
+
+	struct MouseLeftRecord : public EventRecord
+	{
+		spk::Vector2Int position;
+	};
+
+	struct MouseMovedRecord : public EventRecord
+	{
+		spk::Vector2Int position;
+		spk::Vector2Int delta;
+	};
+
+	struct MouseWheelScrolledRecord : public EventRecord
+	{
+		spk::Vector2 delta;
+	};
+
+	struct MouseButtonPressedRecord : public EventRecord
+	{
+		spk::Mouse::Button button = spk::Mouse::Left;
+	};
+
+	struct MouseButtonReleasedRecord : public EventRecord
+	{
+		spk::Mouse::Button button = spk::Mouse::Left;
+	};
+
+	struct MouseButtonDoubleClickedRecord : public EventRecord
+	{
+		spk::Mouse::Button button = spk::Mouse::Left;
+	};
+
+	struct KeyPressedRecord : public EventRecord
+	{
+		spk::Keyboard::Key key = spk::Keyboard::Unknow;
+		bool isRepeated = false;
+	};
+
+	struct KeyReleasedRecord : public EventRecord
+	{
+		spk::Keyboard::Key key = spk::Keyboard::Unknow;
+	};
+
+	struct TextInputRecord : public EventRecord
+	{
+		char32_t glyph = U'\0';
+	};
+
+	using FrameEventRecord = std::variant<
+		WindowCloseRequestedRecord,
+		WindowDestroyedRecord,
+		WindowMovedRecord,
+		WindowResizedRecord,
+		WindowFocusGainedRecord,
+		WindowFocusLostRecord,
+		WindowShownRecord,
+		WindowHiddenRecord>;
+
+	using MouseEventRecord = std::variant<
+		MouseEnteredRecord,
+		MouseLeftRecord,
+		MouseMovedRecord,
+		MouseWheelScrolledRecord,
+		MouseButtonPressedRecord,
+		MouseButtonReleasedRecord,
+		MouseButtonDoubleClickedRecord>;
+
+	using KeyboardEventRecord = std::variant<
+		KeyPressedRecord,
+		KeyReleasedRecord,
+		TextInputRecord>;
+
+	template <typename... TVisitors>
+	struct Overloaded : TVisitors...
+	{
+		using TVisitors::operator()...;
+	};
+
+	template <typename... TVisitors>
+	Overloaded(TVisitors...) -> Overloaded<TVisitors...>;
+
+	template <typename TRecord>
+	[[nodiscard]] std::decay_t<TRecord> makeEventRecord(TRecord&& p_record)
+	{
+		return std::forward<TRecord>(p_record);
+	}
+
+	template <typename TRecord, typename TVariant>
+	[[nodiscard]] bool holds(const TVariant& p_event)
+	{
+		return std::holds_alternative<TRecord>(p_event);
+	}
+
+	template <typename TRecord, typename TVariant>
+	[[nodiscard]] TRecord* getIf(TVariant& p_event)
+	{
+		return std::get_if<TRecord>(&p_event);
+	}
+
+	template <typename TRecord, typename TVariant>
+	[[nodiscard]] const TRecord* getIf(const TVariant& p_event)
+	{
+		return std::get_if<TRecord>(&p_event);
+	}
+
+	template <typename TVariant>
+	[[nodiscard]] std::uint64_t eventSequence(const TVariant& p_event)
+	{
+		return std::visit(
+			[](const auto& p_record) -> std::uint64_t
+			{
+				return p_record.sequence;
+			},
+			p_event);
+	}
+
+	template <typename TVariant>
+	void setEventSequence(TVariant& p_event, std::uint64_t p_sequence)
+	{
+		std::visit(
+			[p_sequence](auto& p_record)
+			{
+				p_record.sequence = p_sequence;
+			},
+			p_event);
+	}
+
+	using WindowCloseRequestedEvent = spk::EventView<WindowCloseRequestedRecord>;
+	using WindowDestroyedEvent = spk::EventView<WindowDestroyedRecord>;
+	using WindowMovedEvent = spk::EventView<WindowMovedRecord>;
+	using WindowResizedEvent = spk::EventView<WindowResizedRecord>;
+	using WindowFocusGainedEvent = spk::EventView<WindowFocusGainedRecord>;
+	using WindowFocusLostEvent = spk::EventView<WindowFocusLostRecord>;
+	using WindowShownEvent = spk::EventView<WindowShownRecord>;
+	using WindowHiddenEvent = spk::EventView<WindowHiddenRecord>;
+
+	using MouseEnteredWindowEvent = spk::DeviceEventView<MouseEnteredRecord, spk::Mouse>;
+	using MouseLeftWindowEvent = spk::DeviceEventView<MouseLeftRecord, spk::Mouse>;
+	using MouseMovedEvent = spk::DeviceEventView<MouseMovedRecord, spk::Mouse>;
+	using MouseWheelScrolledEvent = spk::DeviceEventView<MouseWheelScrolledRecord, spk::Mouse>;
+	using MouseButtonPressedEvent = spk::DeviceEventView<MouseButtonPressedRecord, spk::Mouse>;
+	using MouseButtonReleasedEvent = spk::DeviceEventView<MouseButtonReleasedRecord, spk::Mouse>;
+	using MouseButtonDoubleClickedEvent = spk::DeviceEventView<MouseButtonDoubleClickedRecord, spk::Mouse>;
+
+	using KeyPressedEvent = spk::DeviceEventView<KeyPressedRecord, spk::Keyboard>;
+	using KeyReleasedEvent = spk::DeviceEventView<KeyReleasedRecord, spk::Keyboard>;
+	using TextInputEvent = spk::DeviceEventView<TextInputRecord, spk::Keyboard>;
 }

@@ -1,0 +1,71 @@
+@startuml
+title Platform and Rendering Abstractions - Class View
+
+skinparam classAttributeIconSize 0
+
+namespace spk {
+	interface IPlatformRuntime {
+		+ createFrame(rect, title) : unique_ptr<IFrame>
+		+ pollEvents()
+	}
+
+	abstract class IFrame {
+		- EventContractProvider _mouseEventContractProvider
+		- EventContractProvider _keyboardEventContractProvider
+		- EventContractProvider _frameEventContractProvider
+		- shared_ptr<ISurfaceState> _surfaceState
+		# _emitMouseEvent(event)
+		# _emitKeyboardEvent(event)
+		# _emitFrameEvent(event)
+		# _invalidateSurfaceState()
+		+ resize(rect)
+		+ setTitle(title)
+		+ requestClosure()
+		+ validateClosure()
+		+ surfaceState() : shared_ptr<ISurfaceState>
+	}
+
+	class ISurfaceState {
+		- atomic<bool> _isValid
+		+ invalidate()
+		+ isValid() : bool
+	}
+
+	interface IGPUPlatformRuntime {
+		+ createRenderContext(frame) : unique_ptr<IRenderContext>
+	}
+
+	abstract class IRenderContext {
+		- shared_ptr<ISurfaceState> _surfaceState
+		+ invalidate()
+		+ isValid() : bool
+		+ makeCurrent()
+		+ present()
+		+ setVSync(enabled)
+		+ notifyResize(rect)
+	}
+
+	abstract class RenderCommand {
+		+ execute()
+	}
+
+	class RenderCommandBuilder {
+		- vector<unique_ptr<RenderCommand>> _commands
+		+ emplace<TCommand>(args...) : TCommand&
+		+ commands() : vector<unique_ptr<RenderCommand>>&
+	}
+}
+
+spk.IPlatformRuntime --> spk.IFrame : creates
+spk.IFrame *-- spk.ISurfaceState
+spk.IGPUPlatformRuntime --> spk.IRenderContext : creates
+spk.IGPUPlatformRuntime --> spk.IFrame : reads backend data from
+spk.IRenderContext --> spk.ISurfaceState
+spk.RenderCommandBuilder *-- "0..*" spk.RenderCommand
+
+note bottom of spk.ISurfaceState
+Surface invalidation is a cross-thread signal.
+The render thread still owns render-context teardown.
+end note
+
+@enduml

@@ -1,0 +1,41 @@
+@startuml
+title Binary Object Lazy Layout
+
+skinparam ParticipantPadding 8
+
+participant "User" as User
+participant "BinaryObject" as Object
+participant "BinaryField" as Field
+participant "SynchronizableTrait" as Sync
+participant "_binary_detail::Node tree" as Nodes
+participant "Buffer" as Buffer
+
+User -> Object : addObject("transform")
+Object -> Nodes : append child node
+Object -> Sync : requestSynchronization()
+Object --> User : BinaryField
+
+User -> Field : addValue("x", sizeof(float))
+Field -> Object : _appendChild(node, name, Value)
+Object -> Nodes : append value node
+Object -> Sync : requestSynchronization()
+
+User -> Object : buffer()
+Object -> Sync : synchronize()
+alt synchronization requested
+	Sync -> Object : _synchronize()
+	Object -> Nodes : _layoutNode(root, 0)
+	Object -> Buffer : resize(root.size)
+	Sync -> Sync : clear pending flag
+end
+Object --> User : span<uint8_t>
+
+User -> Field : set<float>(value)
+Field -> Object : synchronize()
+Field -> Buffer : memcpy(value, offset)
+
+User -> Field : bytes()
+Field -> Object : synchronize()
+Field --> User : span at node offset and size
+
+@enduml

@@ -27,13 +27,13 @@ TEST(WindowTest, PollEventsDrivesWindowModulesAndWidgetTree)
 	child.activate();
 
 	const spk::Rect2D resizedRect(0, 0, 500, 300);
-	bundle.platformRuntime->queueFramePayload(spk::WindowResizedPayload{
+	bundle.platformRuntime->queueFrameEvent(spk::WindowResizedRecord{
 		.rect = resizedRect});
-	bundle.platformRuntime->queueMousePayload(spk::MouseMovedPayload{
+	bundle.platformRuntime->queueMouseEvent(spk::MouseMovedRecord{
 		.position = spk::Vector2Int(8, 10)});
-	bundle.platformRuntime->queueMousePayload(spk::MouseMovedPayload{
+	bundle.platformRuntime->queueMouseEvent(spk::MouseMovedRecord{
 		.position = spk::Vector2Int(7, 9)});
-	bundle.platformRuntime->queueKeyboardPayload(spk::KeyPressedPayload{
+	bundle.platformRuntime->queueKeyboardEvent(spk::KeyPressedRecord{
 		.key = spk::Keyboard::C,
 		.isRepeated = false});
 
@@ -63,11 +63,11 @@ TEST(WindowTest, UpdatePreservesCrossCategoryEventOrdering)
 	sparkle_test::RecordingWidget child("Child", &bundle.window->rootWidget());
 	child.activate();
 
-	bundle.platformRuntime->queueMousePayload(spk::MouseMovedPayload{
+	bundle.platformRuntime->queueMouseEvent(spk::MouseMovedRecord{
 		.position = spk::Vector2Int(5, 7)});
-	bundle.platformRuntime->queueFramePayload(spk::WindowResizedPayload{
+	bundle.platformRuntime->queueFrameEvent(spk::WindowResizedRecord{
 		.rect = spk::Rect2D(1, 2, 300, 200)});
-	bundle.platformRuntime->queueKeyboardPayload(spk::KeyPressedPayload{
+	bundle.platformRuntime->queueKeyboardEvent(spk::KeyPressedRecord{
 		.key = spk::Keyboard::A,
 		.isRepeated = false});
 
@@ -91,9 +91,9 @@ TEST(WindowTest, RenderConsumesTheLatestPendingResizeAfterUpdate)
 	const spk::Rect2D firstRect(0, 0, 500, 300);
 	const spk::Rect2D secondRect(10, 20, 800, 600);
 
-	bundle.platformRuntime->queueFramePayload(spk::WindowResizedPayload{
+	bundle.platformRuntime->queueFrameEvent(spk::WindowResizedRecord{
 		.rect = firstRect});
-	bundle.platformRuntime->queueFramePayload(spk::WindowResizedPayload{
+	bundle.platformRuntime->queueFrameEvent(spk::WindowResizedRecord{
 		.rect = secondRect});
 
 	bundle.platformRuntime->pollEvents();
@@ -159,7 +159,7 @@ TEST(WindowTest, UnconsumedCloseRequestValidatesClosure)
 	sparkle_test::RecordingWidget child("Child", &bundle.window->rootWidget());
 	child.activate();
 
-	bundle.platformRuntime->queueFramePayload(spk::WindowCloseRequestedPayload{});
+	bundle.platformRuntime->queueFrameEvent(spk::WindowCloseRequestedRecord{});
 	bundle.platformRuntime->pollEvents();
 	bundle.window->update();
 	bundle.window->executePendingPlatformActions();
@@ -177,7 +177,7 @@ TEST(WindowTest, ConsumedCloseRequestDoesNotValidateClosure)
 	child.activate();
 	child.consumeFrameEvent = true;
 
-	bundle.platformRuntime->queueFramePayload(spk::WindowCloseRequestedPayload{});
+	bundle.platformRuntime->queueFrameEvent(spk::WindowCloseRequestedRecord{});
 	bundle.platformRuntime->pollEvents();
 	bundle.window->update();
 	bundle.window->executePendingPlatformActions();
@@ -198,7 +198,7 @@ TEST(WindowTest, ClosureSubscribersAreTriggeredByDestroyedEvents)
 		EXPECT_EQ(p_window, bundle.window.get());
 	});
 
-	bundle.platformRuntime->queueFramePayload(spk::WindowDestroyedPayload{});
+	bundle.platformRuntime->queueFrameEvent(spk::WindowDestroyedRecord{});
 	bundle.platformRuntime->pollEvents();
 	bundle.window->update();
 	bundle.window->executePendingPlatformActions();

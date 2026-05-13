@@ -1,0 +1,50 @@
+@startuml
+title Window Closure Flow
+
+skinparam ParticipantPadding 8
+
+participant "Caller" as Caller
+participant "Window" as Window
+participant "Event loop" as EventLoop
+participant "WindowHost" as Host
+participant "IFrame" as Frame
+participant "Update loop" as UpdateLoop
+participant "Render loop" as RenderLoop
+participant "Closure subscribers" as Subscribers
+
+Caller -> Window : requestClosure()
+Window -> Window : enqueue PlatformAction.RequestClosure
+
+EventLoop -> Window : executePendingPlatformActions()
+Window -> Host : requestClosure()
+Host -> Frame : requestClosure()
+
+Frame -> Window : emits WindowCloseRequestedRecord\nvia frame event queue
+UpdateLoop -> Window : update()
+Window -> Window : _treatEvent(close requested)
+alt event not consumed
+	Window -> Window : enqueue PlatformAction.ValidateClosure
+else event consumed
+	Window -> Window : _closureRequested = false
+end
+
+EventLoop -> Window : executePendingPlatformActions()
+Window -> Host : validateClosure()
+Host -> Frame : validateClosure()
+
+Frame -> Window : emits WindowDestroyedRecord\nvia frame event queue
+UpdateLoop -> Window : update()
+Window -> Window : _isClosed = true\n_closureNotificationPending = true
+
+RenderLoop -> Window : render()
+Window -> Host : releaseRenderContext()
+
+EventLoop -> Window : executePendingPlatformActions()
+Window -> Subscribers : closureEventProvider.trigger(this)
+alt render resources released
+	Window -> Host : releaseFrame()
+	Host -> Frame : surfaceState().invalidate()
+	Host -> Host : reset frame
+end
+
+@enduml

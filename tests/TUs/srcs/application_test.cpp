@@ -101,7 +101,7 @@ TEST(ApplicationTest, RunExecutesEventUpdateAndRenderLoops)
 		++renderCount;
 	};
 
-	platformRuntimePtr->queueMousePayload(spk::MouseMovedPayload{
+	platformRuntimePtr->queueMouseEvent(spk::MouseMovedRecord{
 		.position = spk::Vector2Int(11, 13),
 		.delta = spk::Vector2Int(0, 0)});
 	platformRuntimePtr->onPollEvents = [&](sparkle_test::TestPlatformRuntime&)
@@ -111,7 +111,7 @@ TEST(ApplicationTest, RunExecutesEventUpdateAndRenderLoops)
 			renderCount.load() > 10)
 		{
 			destroyQueued.store(true);
-			platformRuntimePtr->queueFramePayload(spk::WindowDestroyedPayload{});
+			platformRuntimePtr->queueFrameEvent(spk::WindowDestroyedRecord{});
 		}
 	};
 
@@ -156,7 +156,7 @@ TEST(ApplicationTest, RunExecutesDeferredFrameValidationOnTheOwnerThread)
 			.title = "Main"
 		});
 
-	platformRuntimePtr->queueFramePayload(spk::WindowCloseRequestedPayload{});
+	platformRuntimePtr->queueFrameEvent(spk::WindowCloseRequestedRecord{});
 	platformRuntimePtr->onPollEvents = [&](sparkle_test::TestPlatformRuntime&)
 	{
 		if (platformRuntimePtr->createdFrame != nullptr &&
@@ -164,7 +164,7 @@ TEST(ApplicationTest, RunExecutesDeferredFrameValidationOnTheOwnerThread)
 			destroyQueued.load() == false)
 		{
 			destroyQueued.store(true);
-			platformRuntimePtr->queueFramePayload(spk::WindowDestroyedPayload{});
+			platformRuntimePtr->queueFrameEvent(spk::WindowDestroyedRecord{});
 		}
 	};
 
@@ -253,7 +253,7 @@ TEST(ApplicationTest, StopRequestsClosureAndWaitsForWindowDisposal)
 		{
 			sawClosureRequest.store(true);
 			destroyQueued.store(true);
-			platformRuntimePtr->queueFramePayload(spk::WindowDestroyedPayload{});
+			platformRuntimePtr->queueFrameEvent(spk::WindowDestroyedRecord{});
 		}
 	};
 
@@ -282,7 +282,7 @@ TEST(ApplicationTest, RunStopsWhenTheLastWindowCloses)
 			.title = "Main"
 		});
 
-	platformRuntimePtr->queueFramePayload(spk::WindowDestroyedPayload{});
+	platformRuntimePtr->queueFrameEvent(spk::WindowDestroyedRecord{});
 
 	application.run();
 

@@ -18,19 +18,19 @@ namespace spk
 		_invalidateSurfaceState();
 	}
 
-	void IFrame::_emitMouseEvent(const spk::Event& p_event)
+	void IFrame::_emitMouseEvent(const spk::MouseEventRecord& p_event)
 	{
 		_mouseEventContractProvider.trigger(p_event);
 	}
 
-	void IFrame::_emitKeyboardEvent(const spk::Event& p_event)
+	void IFrame::_emitKeyboardEvent(const spk::KeyboardEventRecord& p_event)
 	{
 		_keyboardEventContractProvider.trigger(p_event);
 	}
 
-	void IFrame::_emitFrameEvent(const spk::Event& p_event)
+	void IFrame::_emitFrameEvent(const spk::FrameEventRecord& p_event)
 	{
-		if (p_event.holds<spk::WindowDestroyedPayload>())
+		if (spk::holds<spk::WindowDestroyedRecord>(p_event))
 		{
 			_invalidateSurfaceState();
 		}
@@ -51,17 +51,17 @@ namespace spk
 		return _surfaceState;
 	}
 
-	IFrame::EventContract IFrame::subscribeToMouseEvents(EventCallback p_callback)
+	IFrame::MouseEventContract IFrame::subscribeToMouseEvents(MouseEventCallback p_callback)
 	{
 		return _mouseEventContractProvider.subscribe(std::move(p_callback));
 	}
 
-	IFrame::EventContract IFrame::subscribeToKeyboardEvents(EventCallback p_callback)
+	IFrame::KeyboardEventContract IFrame::subscribeToKeyboardEvents(KeyboardEventCallback p_callback)
 	{
 		return _keyboardEventContractProvider.subscribe(std::move(p_callback));
 	}
 
-	IFrame::EventContract IFrame::subscribeToFrameEvents(EventCallback p_callback)
+	IFrame::FrameEventContract IFrame::subscribeToFrameEvents(FrameEventCallback p_callback)
 	{
 		return _frameEventContractProvider.subscribe(std::move(p_callback));
 	}

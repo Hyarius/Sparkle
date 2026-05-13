@@ -30,12 +30,12 @@ namespace spk
 		spk::Mouse _mouse;
 
 	private:
-		void _treatEvent(const spk::Event& p_event);
+		void _treatEvent(spk::MouseEventRecord& p_event);
 
 	public:
 		MouseModule();
 
-		void pushEvent(const spk::Event& p_event);
+		void pushEvent(spk::MouseEventRecord& p_event);
 
 		[[nodiscard]] spk::Mouse& mouse();
 		[[nodiscard]] const spk::Mouse& mouse() const;
@@ -47,12 +47,12 @@ namespace spk
 		spk::Keyboard _keyboard;
 
 	private:
-		void _treatEvent(const spk::Event& p_event);
+		void _treatEvent(spk::KeyboardEventRecord& p_event);
 
 	public:
 		KeyboardModule();
 
-		void pushEvent(const spk::Event& p_event);
+		void pushEvent(spk::KeyboardEventRecord& p_event);
 
 		[[nodiscard]] spk::Keyboard& keyboard();
 		[[nodiscard]] const spk::Keyboard& keyboard() const;
@@ -61,12 +61,12 @@ namespace spk
 	class FrameModule : public IModule
 	{
 	private:
-		void _treatEvent(const spk::Event& p_event);
+		bool _treatEvent(spk::FrameEventRecord& p_event);
 
 	public:
 		FrameModule();
 
-		void pushEvent(const spk::Event& p_event);
+		bool pushEvent(spk::FrameEventRecord& p_event);
 	};
 
 	class UpdateModule : public IModule

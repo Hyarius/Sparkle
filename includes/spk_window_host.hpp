@@ -50,8 +50,8 @@ namespace spk
 		void present();
 		void setVSync(bool p_enabled);
 
-		IFrame::EventContract subscribeToMouseEvents(IFrame::EventCallback p_callback);
-		IFrame::EventContract subscribeToKeyboardEvents(IFrame::EventCallback p_callback);
-		IFrame::EventContract subscribeToFrameEvents(IFrame::EventCallback p_callback);
+		IFrame::MouseEventContract subscribeToMouseEvents(IFrame::MouseEventCallback p_callback);
+		IFrame::KeyboardEventContract subscribeToKeyboardEvents(IFrame::KeyboardEventCallback p_callback);
+		IFrame::FrameEventContract subscribeToFrameEvents(IFrame::FrameEventCallback p_callback);
 	};
 }

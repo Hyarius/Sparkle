@@ -30,18 +30,24 @@ TEST(MouseModuleTest, MouseEventsUpdateInternalStateAndDispatchToBoundWidget)
 	spk::MouseModule module;
 	module.bind(&widget);
 
-	module.pushEvent(spk::Event(spk::MouseMovedPayload{
+	spk::MouseEventRecord firstMove = spk::MouseEventRecord(spk::makeEventRecord(spk::MouseMovedRecord{
 		.position = spk::Vector2Int(36, 45),
 		.delta = spk::Vector2Int(4, 5)}));
-	module.pushEvent(spk::Event(spk::MouseMovedPayload{
+	spk::MouseEventRecord secondMove = spk::MouseEventRecord(spk::makeEventRecord(spk::MouseMovedRecord{
 		.position = spk::Vector2Int(40, 50),
 		.delta = spk::Vector2Int(4, 5)}));
-	module.pushEvent(spk::Event(spk::MouseWheelScrolledPayload{
+	spk::MouseEventRecord wheel = spk::MouseEventRecord(spk::makeEventRecord(spk::MouseWheelScrolledRecord{
 		.delta = spk::Vector2(0.0f, 1.5f)}));
-	module.pushEvent(spk::Event(spk::MouseButtonPressedPayload{
+	spk::MouseEventRecord press = spk::MouseEventRecord(spk::makeEventRecord(spk::MouseButtonPressedRecord{
 		.button = spk::Mouse::Left}));
-	module.pushEvent(spk::Event(spk::MouseButtonReleasedPayload{
+	spk::MouseEventRecord release = spk::MouseEventRecord(spk::makeEventRecord(spk::MouseButtonReleasedRecord{
 		.button = spk::Mouse::Left}));
+
+	module.pushEvent(firstMove);
+	module.pushEvent(secondMove);
+	module.pushEvent(wheel);
+	module.pushEvent(press);
+	module.pushEvent(release);
 
 	EXPECT_EQ(module.mouse().position, spk::Vector2Int(40, 50));
 	EXPECT_EQ(module.mouse().deltaPosition, spk::Vector2Int(4, 5));
@@ -54,9 +60,11 @@ TEST(MouseModuleTest, PushEventIsSafeWhenUnbound)
 {
 	spk::MouseModule module;
 
-	EXPECT_NO_THROW(module.pushEvent(spk::Event(spk::MouseMovedPayload{
+	spk::MouseEventRecord event = spk::MouseEventRecord(spk::makeEventRecord(spk::MouseMovedRecord{
 		.position = spk::Vector2Int(9, 9),
-		.delta = spk::Vector2Int(1, 1)})));
+		.delta = spk::Vector2Int(1, 1)}));
+
+	EXPECT_NO_THROW(module.pushEvent(event));
 
 	EXPECT_EQ(module.mouse().position, spk::Vector2Int(0, 0));
 }
@@ -69,13 +77,17 @@ TEST(KeyboardModuleTest, KeyboardEventsUpdateInternalStateAndDispatchToBoundWidg
 	spk::KeyboardModule module;
 	module.bind(&widget);
 
-	module.pushEvent(spk::Event(spk::KeyPressedPayload{
+	spk::KeyboardEventRecord press = spk::KeyboardEventRecord(spk::makeEventRecord(spk::KeyPressedRecord{
 		.key = spk::Keyboard::Escape,
 		.isRepeated = false}));
-	module.pushEvent(spk::Event(spk::TextInputPayload{
+	spk::KeyboardEventRecord text = spk::KeyboardEventRecord(spk::makeEventRecord(spk::TextInputRecord{
 		.glyph = U'Q'}));
-	module.pushEvent(spk::Event(spk::KeyReleasedPayload{
+	spk::KeyboardEventRecord release = spk::KeyboardEventRecord(spk::makeEventRecord(spk::KeyReleasedRecord{
 		.key = spk::Keyboard::Escape}));
+
+	module.pushEvent(press);
+	module.pushEvent(text);
+	module.pushEvent(release);
 
 	EXPECT_EQ(module.keyboard()[spk::Keyboard::Escape], spk::InputState::Up);
 	EXPECT_EQ(module.keyboard().glyph, U'Q');
@@ -86,9 +98,11 @@ TEST(KeyboardModuleTest, PushEventIsSafeWhenUnbound)
 {
 	spk::KeyboardModule module;
 
-	EXPECT_NO_THROW(module.pushEvent(spk::Event(spk::KeyPressedPayload{
+	spk::KeyboardEventRecord event = spk::KeyboardEventRecord(spk::makeEventRecord(spk::KeyPressedRecord{
 		.key = spk::Keyboard::A,
-		.isRepeated = false})));
+		.isRepeated = false}));
+
+	EXPECT_NO_THROW(module.pushEvent(event));
 
 	EXPECT_EQ(module.keyboard()[spk::Keyboard::A], spk::InputState::Up);
 }
@@ -102,8 +116,9 @@ TEST(FrameModuleTest, FrameEventsDispatchToBoundWidget)
 	module.bind(&widget);
 
 	const spk::Rect2D resizedRect(0, 0, 1920, 1080);
-	module.pushEvent(spk::Event(spk::WindowResizedPayload{
+	spk::FrameEventRecord event = spk::FrameEventRecord(spk::makeEventRecord(spk::WindowResizedRecord{
 		.rect = resizedRect}));
+	module.pushEvent(event);
 
 	EXPECT_EQ(widget.geometry(), resizedRect.atOrigin());
 	EXPECT_EQ(widget.frameEventCount, 1);
@@ -116,8 +131,10 @@ TEST(FrameModuleTest, PushEventIsSafeWhenUnbound)
 	spk::FrameModule module;
 	const spk::Rect2D resizedRect(0, 0, 1920, 1080);
 
-	EXPECT_NO_THROW(module.pushEvent(spk::Event(spk::WindowResizedPayload{
-		.rect = resizedRect})));
+	spk::FrameEventRecord event = spk::FrameEventRecord(spk::makeEventRecord(spk::WindowResizedRecord{
+		.rect = resizedRect}));
+
+	EXPECT_NO_THROW(module.pushEvent(event));
 }
 
 TEST(UpdateModuleTest, UpdateIsSafeWhenUnbound)

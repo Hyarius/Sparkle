@@ -1,6 +1,8 @@
 #pragma once
 
 #include <atomic>
+#include <cstdint>
+#include <cstddef>
 #include <memory>
 #include <mutex>
 #include <optional>
@@ -58,6 +60,20 @@ namespace spk
 		};
 
 	private:
+		enum class EventFamily
+		{
+			Frame,
+			Mouse,
+			Keyboard
+		};
+
+		struct EventReference
+		{
+			EventFamily family;
+			size_t index;
+			std::uint64_t sequence;
+		};
+
 		spk::Widget _rootWidget;
 		spk::WindowHost _host;
 
@@ -67,8 +83,18 @@ namespace spk
 		UpdateModule _updateModule;
 		RenderModule _renderModule;
 
-		mutable std::mutex _pendingEventsMutex;
-		std::vector<spk::Event> _pendingEvents;
+		std::atomic<std::uint64_t> _nextEventSequence = 0;
+
+		mutable std::mutex _pendingFrameEventsMutex;
+		mutable std::mutex _pendingMouseEventsMutex;
+		mutable std::mutex _pendingKeyboardEventsMutex;
+		std::vector<spk::FrameEventRecord> _pendingFrameEvents;
+		std::vector<spk::MouseEventRecord> _pendingMouseEvents;
+		std::vector<spk::KeyboardEventRecord> _pendingKeyboardEvents;
+		std::vector<spk::FrameEventRecord> _frameEventsToProcess;
+		std::vector<spk::MouseEventRecord> _mouseEventsToProcess;
+		std::vector<spk::KeyboardEventRecord> _keyboardEventsToProcess;
+		std::vector<EventReference> _eventsToProcess;
 
 		mutable std::mutex _pendingPlatformActionsMutex;
 		std::vector<PlatformAction> _pendingPlatformActions;
@@ -85,25 +111,40 @@ namespace spk
 		std::atomic<bool> _renderResourcesReleased = false;
 		std::atomic<bool> _platformResourcesReleased = false;
 
-		spk::IFrame::EventContract _frameEventQueueContract;
-		spk::IFrame::EventContract _mouseEventQueueContract;
-		spk::IFrame::EventContract _keyboardEventQueueContract;
+		spk::IFrame::FrameEventContract _frameEventQueueContract;
+		spk::IFrame::MouseEventContract _mouseEventQueueContract;
+		spk::IFrame::KeyboardEventContract _keyboardEventQueueContract;
 
 		ClosureEventProvider _closureEventProvider;
 
 	private:
-		void _enqueueEvent(const spk::Event& p_event);
+		void _enqueueFrameEvent(spk::FrameEventRecord p_event);
+		void _enqueueMouseEvent(spk::MouseEventRecord p_event);
+		void _enqueueKeyboardEvent(spk::KeyboardEventRecord p_event);
 		void _enqueuePlatformAction(PlatformAction p_action);
 		void _enqueueRenderAction(RenderAction p_action);
 
-		[[nodiscard]] std::vector<spk::Event> _drainPendingEvents();
+		void _drainPendingEvents();
 		[[nodiscard]] std::vector<PlatformAction> _drainPendingPlatformActions();
 		[[nodiscard]] std::vector<RenderAction> _drainPendingRenderActions();
 
-		void _treatEvent(const spk::Event& p_event);
+		void _treatFrameEvent(spk::FrameEventRecord& p_event);
+		void _treatKeyboardEvent(spk::KeyboardEventRecord& p_event);
+		void _treatMouseEvent(spk::MouseEventRecord& p_event);
+		void _treatEvent(const EventReference& p_eventReference);
 
 		void _rebuildRenderSnapshot();
 		[[nodiscard]] std::shared_ptr<spk::RenderCommandBuilder> _currentRenderSnapshot() const;
+
+		void _executePlatformAction(const PlatformAction& p_action);
+		void _triggerClosureNotificationIfPending();
+		void _releasePlatformResourcesIfReady();
+		void _executePendingPlatformActionsIfOnPlatformThread();
+
+		void _processPendingEvents();
+
+		void _releaseRenderResources();
+		void _executeRenderAction(const RenderAction& p_action);
 
 	public:
 		Window(std::shared_ptr<IPlatformRuntime> p_platformRuntime, std::shared_ptr<IGPUPlatformRuntime> p_gpuPlatformRuntime, Configuration p_configuration);

@@ -146,7 +146,8 @@ TEST(WidgetTest, FrameEventsPropagateToChildrenBeforeParent)
 	parent.activate();
 	child.activate();
 
-	parent.dispatchFrameEvent(spk::Event(spk::WindowShownPayload{}));
+	spk::FrameEventRecord shownEvent = spk::FrameEventRecord(spk::makeEventRecord(spk::WindowShownRecord{}));
+	parent.dispatchFrameEvent(shownEvent);
 
 	std::vector<std::string> expected = {
 		"Child:frame:WindowShown",
@@ -167,7 +168,8 @@ TEST(WidgetTest, ConsumedFrameEventStopsPropagationToParent)
 	child.activate();
 	child.consumeFrameEvent = true;
 
-	parent.dispatchFrameEvent(spk::Event(spk::WindowHiddenPayload{}));
+	spk::FrameEventRecord hiddenEvent = spk::FrameEventRecord(spk::makeEventRecord(spk::WindowHiddenRecord{}));
+	parent.dispatchFrameEvent(hiddenEvent);
 
 	EXPECT_EQ(child.frameEventCount, 1);
 	EXPECT_EQ(parent.frameEventCount, 0);
@@ -178,11 +180,16 @@ TEST(WidgetTest, MouseAndKeyboardDispatchReachDedicatedHandlers)
 	sparkle_test::RecordingWidget widget("Widget");
 	widget.activate();
 
-	widget.dispatchMouseEvent(spk::Event(spk::MouseButtonPressedPayload{
+	spk::Mouse mouse;
+	spk::Keyboard keyboard;
+	spk::MouseEventRecord mouseEvent = spk::MouseEventRecord(spk::makeEventRecord(spk::MouseButtonPressedRecord{
 		.button = spk::Mouse::Left}));
-	widget.dispatchKeyboardEvent(spk::Event(spk::KeyPressedPayload{
+	spk::KeyboardEventRecord keyboardEvent = spk::KeyboardEventRecord(spk::makeEventRecord(spk::KeyPressedRecord{
 		.key = spk::Keyboard::Return,
 		.isRepeated = false}));
+
+	widget.dispatchMouseEvent(mouseEvent, mouse);
+	widget.dispatchKeyboardEvent(keyboardEvent, keyboard);
 
 	EXPECT_EQ(widget.mouseEventCount, 1);
 	EXPECT_EQ(widget.keyboardEventCount, 1);
@@ -204,12 +211,18 @@ TEST(WidgetTest, DeactivatedWidgetSkipsRenderCommandAppendUpdateAndEventDispatch
 	widget.appendRenderCommands(builder);
 	renderModule.render(builder);
 	widget.update(tick);
-	widget.dispatchFrameEvent(spk::Event(spk::WindowShownPayload{}));
-	widget.dispatchMouseEvent(spk::Event(spk::MouseMovedPayload{
+	spk::Mouse mouse;
+	spk::Keyboard keyboard;
+	spk::FrameEventRecord frameEvent = spk::FrameEventRecord(spk::makeEventRecord(spk::WindowShownRecord{}));
+	spk::MouseEventRecord mouseEvent = spk::MouseEventRecord(spk::makeEventRecord(spk::MouseMovedRecord{
 		.position = spk::Vector2Int(1, 2),
 		.delta = spk::Vector2Int(3, 4)}));
-	widget.dispatchKeyboardEvent(spk::Event(spk::TextInputPayload{
+	spk::KeyboardEventRecord keyboardEvent = spk::KeyboardEventRecord(spk::makeEventRecord(spk::TextInputRecord{
 		.glyph = U'X'}));
+
+	widget.dispatchFrameEvent(frameEvent);
+	widget.dispatchMouseEvent(mouseEvent, mouse);
+	widget.dispatchKeyboardEvent(keyboardEvent, keyboard);
 
 	EXPECT_EQ(widget.geometryUpdateCount, 0);
 	EXPECT_EQ(widget.appendRenderCommandCount, 0);

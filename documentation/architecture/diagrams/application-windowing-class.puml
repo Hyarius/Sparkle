@@ -1,0 +1,94 @@
+@startuml
+title Application and Windowing - Class View
+
+skinparam classAttributeIconSize 0
+
+namespace spk {
+	class Application {
+		- Configuration _configuration
+		- shared_ptr<IPlatformRuntime> _platformRuntime
+		- shared_ptr<IGPUPlatformRuntime> _gpuPlatformRuntime
+		- WindowRegistry _windowRegistry
+		- atomic<bool> _isRunning
+		- atomic<bool> _shutdownRequested
+		- atomic<bool> _stopRequested
+		+ createWindow(id, configuration) : shared_ptr<Window>
+		+ requestWindowClosing(id)
+		+ stop()
+		+ run()
+		- _runRenderLoop()
+		- _runUpdateLoop()
+		- _runEventLoop()
+	}
+
+	class WindowRegistry {
+		- unordered_map<WindowID, Entry> _windows
+		+ createWindow(id, platformRuntime, gpuRuntime, configuration) : shared_ptr<Window>
+		+ windows() : vector<shared_ptr<Window>>
+		+ removeClosedWindows()
+		+ requestWindowClosing(id)
+	}
+
+	class Window {
+		- Widget _rootWidget
+		- WindowHost _host
+		- vector<FrameEventRecord> _pendingFrameEvents
+		- vector<MouseEventRecord> _pendingMouseEvents
+		- vector<KeyboardEventRecord> _pendingKeyboardEvents
+		- atomic<uint64> _nextEventSequence
+		- vector<PlatformAction> _pendingPlatformActions
+		- vector<RenderAction> _pendingRenderActions
+		- shared_ptr<RenderCommandBuilder> _renderSnapshot
+		- _enqueueFrameEventRecord(FrameEventRecord)
+		- _enqueueMouseEventRecord(MouseEventRecord)
+		- _enqueueKeyboardEventRecord(KeyboardEventRecord)
+		+ executePendingPlatformActions()
+		+ update()
+		+ render()
+		+ requestClosure()
+		+ isReadyForDisposal() : bool
+	}
+
+	class WindowHost {
+		- unique_ptr<IFrame> _frame
+		- shared_ptr<IGPUPlatformRuntime> _gpuPlatformRuntime
+		- unique_ptr<IRenderContext> _renderContext
+		+ requestClosure()
+		+ validateClosure()
+		+ makeCurrent() : bool
+		+ present()
+		+ releaseFrame()
+		+ releaseRenderContext()
+	}
+
+	interface IPlatformRuntime {
+		+ createFrame(rect, title) : unique_ptr<IFrame>
+		+ pollEvents()
+	}
+
+	interface IGPUPlatformRuntime {
+		+ createRenderContext(frame) : unique_ptr<IRenderContext>
+	}
+}
+
+spk.Application *-- spk.WindowRegistry
+spk.Application --> spk.IPlatformRuntime
+spk.Application --> spk.IGPUPlatformRuntime
+spk.WindowRegistry o-- "0..*" spk.Window
+spk.Window *-- spk.WindowHost
+spk.WindowHost --> spk.IFrame
+spk.WindowHost --> spk.IGPUPlatformRuntime
+spk.WindowHost --> spk.IRenderContext
+
+note right of spk.Application
+run() owns the event loop on the owner thread
+and starts separate render/update jthreads.
+end note
+
+note right of spk.Window
+Platform callbacks only enqueue events.
+update() drains and processes them later,
+keeping reception separate from use.
+end note
+
+@enduml

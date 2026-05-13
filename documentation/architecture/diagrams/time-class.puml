@@ -1,0 +1,73 @@
+@startuml
+title Time System - Class View
+
+skinparam classAttributeIconSize 0
+
+namespace spk {
+	enum TimeUnit {
+		Second
+		Millisecond
+		Nanosecond
+	}
+
+	class Duration {
+		- long long _nanoseconds
+		- CachedData<long long> _millisecondsCache
+		- CachedData<double> _secondsCache
+		+ nanoseconds() : long long
+		+ milliseconds() : long long
+		+ seconds() : double
+	}
+
+	class Timestamp {
+		- long long _nanoseconds
+		- CachedData<long long> _millisecondsCache
+		- CachedData<double> _secondsCache
+		+ nanoseconds() : long long
+		+ milliseconds() : long long
+		+ seconds() : double
+	}
+
+	class Chronometer {
+		- State _state
+		- Timestamp _startTime
+		- Duration _accumulatedTime
+		+ start()
+		+ stop()
+		+ pause()
+		+ resume()
+		+ restart()
+		+ elapsedTime() : Duration
+	}
+
+	class Timer {
+		- State _state
+		- Duration _expectedDuration
+		- Chronometer _chronometer
+		+ start()
+		+ stop()
+		+ pause()
+		+ resume()
+		+ elapsed() : Duration
+		+ elapsedRatio() : float
+		+ hasTimedOut() : bool
+	}
+
+	class TimeUtils {
+		+ nowNsMono() : uint64_t
+		+ getTime() : Timestamp
+		+ sleepFor(duration)
+	}
+}
+
+spk.Duration --> spk.TimeUnit
+spk.Timestamp --> spk.TimeUnit
+spk.Timestamp --> spk.Duration
+spk.Chronometer *-- spk.Timestamp
+spk.Chronometer *-- spk.Duration
+spk.Timer *-- spk.Duration
+spk.Timer *-- spk.Chronometer
+spk.TimeUtils --> spk.Timestamp
+spk.TimeUtils --> spk.Duration
+
+@enduml

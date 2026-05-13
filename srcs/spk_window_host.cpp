@@ -246,7 +246,7 @@ namespace spk
 		_renderContext->setVSync(p_enabled);
 	}
 
-	IFrame::EventContract WindowHost::subscribeToMouseEvents(IFrame::EventCallback p_callback)
+	IFrame::MouseEventContract WindowHost::subscribeToMouseEvents(IFrame::MouseEventCallback p_callback)
 	{
 		_bindOrValidatePlatformThread(__FUNCTION__);
 
@@ -258,7 +258,7 @@ namespace spk
 		return _frame->subscribeToMouseEvents(std::move(p_callback));
 	}
 
-	IFrame::EventContract WindowHost::subscribeToKeyboardEvents(IFrame::EventCallback p_callback)
+	IFrame::KeyboardEventContract WindowHost::subscribeToKeyboardEvents(IFrame::KeyboardEventCallback p_callback)
 	{
 		_bindOrValidatePlatformThread(__FUNCTION__);
 
@@ -270,7 +270,7 @@ namespace spk
 		return _frame->subscribeToKeyboardEvents(std::move(p_callback));
 	}
 
-	IFrame::EventContract WindowHost::subscribeToFrameEvents(IFrame::EventCallback p_callback)
+	IFrame::FrameEventContract WindowHost::subscribeToFrameEvents(IFrame::FrameEventCallback p_callback)
 	{
 		_bindOrValidatePlatformThread(__FUNCTION__);
 
