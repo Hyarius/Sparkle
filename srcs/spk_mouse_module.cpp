@@ -1,4 +1,6 @@
-#include "spk_window_modules.hpp"
+#include "spk_mouse_module.hpp"
+
+#include <utility>
 
 namespace spk
 {
@@ -49,9 +51,19 @@ namespace spk
 		widget()->dispatchMouseEvent(p_event, _mouse);
 	}
 
-	void MouseModule::pushEvent(spk::MouseEventRecord& p_event)
+	void MouseModule::pushEvent(spk::MouseEventRecord p_event)
 	{
-		_treatEvent(p_event);
+		_events.pushBack(std::move(p_event));
+	}
+
+	void MouseModule::processEvents()
+	{
+		spk::MouseEventRecord event;
+
+		while (_events.popFront(event) == true)
+		{
+			_treatEvent(event);
+		}
 	}
 
 	spk::Mouse& MouseModule::mouse()

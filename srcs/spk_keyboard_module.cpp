@@ -1,4 +1,6 @@
-#include "spk_window_modules.hpp"
+#include "spk_keyboard_module.hpp"
+
+#include <utility>
 
 namespace spk
 {
@@ -31,9 +33,19 @@ namespace spk
 		widget()->dispatchKeyboardEvent(p_event, _keyboard);
 	}
 
-	void KeyboardModule::pushEvent(spk::KeyboardEventRecord& p_event)
+	void KeyboardModule::pushEvent(spk::KeyboardEventRecord p_event)
 	{
-		_treatEvent(p_event);
+		_events.pushBack(std::move(p_event));
+	}
+
+	void KeyboardModule::processEvents()
+	{
+		spk::KeyboardEventRecord event;
+
+		while (_events.popFront(event) == true)
+		{
+			_treatEvent(event);
+		}
 	}
 
 	spk::Keyboard& KeyboardModule::keyboard()

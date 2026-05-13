@@ -25,7 +25,6 @@ namespace spk {
 
 	struct EventRecord {
 		+ Timestamp timestamp
-		+ uint64 sequence
 	}
 
 	struct WindowMovedRecord {
@@ -107,7 +106,6 @@ spk.KeyboardEventRecord *-- spk.EventRecord
 note right of spk.EventRecord
 Records are the stored queue entries.
 timestamp is captured at reception time.
-sequence is internal ordering metadata.
 end note
 
 note right of spk.EventView

@@ -32,16 +32,15 @@ namespace spk {
 	class Window {
 		- Widget _rootWidget
 		- WindowHost _host
-		- vector<FrameEventRecord> _pendingFrameEvents
-		- vector<MouseEventRecord> _pendingMouseEvents
-		- vector<KeyboardEventRecord> _pendingKeyboardEvents
-		- atomic<uint64> _nextEventSequence
-		- vector<PlatformAction> _pendingPlatformActions
-		- vector<RenderAction> _pendingRenderActions
+		- FrameModule _frameModule
+		- MouseModule _mouseModule
+		- KeyboardModule _keyboardModule
+		- ThreadSafeDeque<PlatformAction> _pendingPlatformActions
+		- ThreadSafeDeque<RenderAction> _pendingRenderActions
 		- shared_ptr<RenderCommandBuilder> _renderSnapshot
-		- _enqueueFrameEventRecord(FrameEventRecord)
-		- _enqueueMouseEventRecord(MouseEventRecord)
-		- _enqueueKeyboardEventRecord(KeyboardEventRecord)
+		- _enqueueFrameEvent(FrameEventRecord)
+		- _enqueueMouseEvent(MouseEventRecord)
+		- _enqueueKeyboardEvent(KeyboardEventRecord)
 		+ executePendingPlatformActions()
 		+ update()
 		+ render()
@@ -61,6 +60,24 @@ namespace spk {
 		+ releaseRenderContext()
 	}
 
+	class FrameModule {
+		- ThreadSafeDeque<FrameEventRecord> _events
+		+ pushEvent(event)
+		+ processEvents(callback)
+	}
+
+	class MouseModule {
+		- ThreadSafeDeque<MouseEventRecord> _events
+		+ pushEvent(event)
+		+ processEvents()
+	}
+
+	class KeyboardModule {
+		- ThreadSafeDeque<KeyboardEventRecord> _events
+		+ pushEvent(event)
+		+ processEvents()
+	}
+
 	interface IPlatformRuntime {
 		+ createFrame(rect, title) : unique_ptr<IFrame>
 		+ pollEvents()
@@ -76,6 +93,9 @@ spk.Application --> spk.IPlatformRuntime
 spk.Application --> spk.IGPUPlatformRuntime
 spk.WindowRegistry o-- "0..*" spk.Window
 spk.Window *-- spk.WindowHost
+spk.Window *-- spk.FrameModule
+spk.Window *-- spk.MouseModule
+spk.Window *-- spk.KeyboardModule
 spk.WindowHost --> spk.IFrame
 spk.WindowHost --> spk.IGPUPlatformRuntime
 spk.WindowHost --> spk.IRenderContext
@@ -86,9 +106,9 @@ and starts separate render/update jthreads.
 end note
 
 note right of spk.Window
-Platform callbacks only enqueue events.
-update() drains and processes them later,
-keeping reception separate from use.
+Platform callbacks only enqueue into
+module-owned family queues. update()
+asks modules to process them later.
 end note
 
 @enduml

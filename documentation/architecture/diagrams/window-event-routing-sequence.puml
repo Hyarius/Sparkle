@@ -6,58 +6,62 @@ skinparam ParticipantPadding 8
 participant "Concrete IFrame\n(platform thread)" as Frame
 participant "IFrame family providers" as Provider
 participant "WindowHost" as Host
-participant "Window\n(thread-safe queues)" as Window
+participant "Window\n(orchestration)" as Window
 participant "Update thread" as UpdateThread
-participant "Frame/Mouse/Keyboard Module" as Module
+participant "Frame/Mouse/Keyboard Module\n(thread-safe family queues)" as Module
 participant "Widget tree" as Widget
 
-Frame -> Provider : _emitFrameEventRecord(FrameEventRecord)
+Frame -> Provider : _emitFrameEvent(FrameEventRecord)
 Provider -> Host : subscribed frame callback(event)
-Host -> Window : _enqueueFrameEventRecord(event)
+Host -> Window : _enqueueFrameEvent(event)
+Window -> Module : FrameModule.pushEvent(event)
 
-Frame -> Provider : _emitMouseEventRecord(MouseEventRecord)
+Frame -> Provider : _emitMouseEvent(MouseEventRecord)
 Provider -> Host : subscribed mouse callback(event)
-Host -> Window : _enqueueMouseEventRecord(event)
+Host -> Window : _enqueueMouseEvent(event)
+Window -> Module : MouseModule.pushEvent(event)
 
-Frame -> Provider : _emitKeyboardEventRecord(KeyboardEventRecord)
+Frame -> Provider : _emitKeyboardEvent(KeyboardEventRecord)
 Provider -> Host : subscribed keyboard callback(event)
-Host -> Window : _enqueueKeyboardEventRecord(event)
+Host -> Window : _enqueueKeyboardEvent(event)
+Window -> Module : KeyboardModule.pushEvent(event)
 
 note right of Window
-Reception only copies event data into
-family-specific queues. No widget or
-device state work is performed on the
-platform polling path.
+Reception only pushes event records into
+module-owned queues. No widget or device
+state work is performed on the platform
+polling path.
 end note
 
 ... update loop ...
 
 UpdateThread -> Window : update()
-Window -> Window : drain frame, mouse, keyboard queues
-Window -> Window : merge by internal sequence
+Window -> Module : FrameModule.processEvents(callback)
 
-loop each queued event reference
-	alt frame event
-		Window -> Module : FrameModule.pushEvent(FrameEventRecord)
-		Module -> Widget : dispatchFrameEventRecord(FrameEventRecord)
-		Widget -> Widget : _onWindow*Event(EventView<T>)
-		alt WindowResizedRecord
-			Window -> Window : enqueue RenderAction.NotifyResize
-		end
-		alt WindowCloseRequestedRecord and not consumed
-			Window -> Window : enqueue PlatformAction.ValidateClosure
-		end
-	else mouse event
-		Window -> Module : MouseModule.pushEvent(MouseEventRecord)
-		Module -> Module : update Mouse state
-		Module -> Widget : dispatchMouseEventRecord(MouseEventRecord, Mouse)
-		Widget -> Widget : _onMouse*Event(DeviceEventView<T,Mouse>)
-	else keyboard event
-		Window -> Module : KeyboardModule.pushEvent(KeyboardEventRecord)
-		Module -> Module : update Keyboard state
-		Module -> Widget : dispatchKeyboardEventRecord(KeyboardEventRecord, Keyboard)
-		Widget -> Widget : _onKey/Text*Event(DeviceEventView<T,Keyboard>)
+loop each frame event, FIFO inside frame family
+	Module -> Widget : dispatchFrameEvent(FrameEventRecord)
+	Widget -> Widget : _onWindow*Event(EventView<T>)
+	Module -> Window : callback(event, isConsumed)
+	alt WindowResizedRecord
+		Window -> Window : enqueue RenderAction.NotifyResize
 	end
+	alt WindowCloseRequestedRecord and not consumed
+		Window -> Window : enqueue PlatformAction.ValidateClosure
+	end
+end
+
+Window -> Module : MouseModule.processEvents()
+loop each mouse event, FIFO inside mouse family
+	Module -> Module : update Mouse state
+	Module -> Widget : dispatchMouseEvent(MouseEventRecord, Mouse)
+	Widget -> Widget : _onMouse*Event(DeviceEventView<T,Mouse>)
+end
+
+Window -> Module : KeyboardModule.processEvents()
+loop each keyboard event, FIFO inside keyboard family
+	Module -> Module : update Keyboard state
+	Module -> Widget : dispatchKeyboardEvent(KeyboardEventRecord, Keyboard)
+	Widget -> Widget : _onKey/Text*Event(DeviceEventView<T,Keyboard>)
 end
 
 Window -> Module : UpdateModule.update()

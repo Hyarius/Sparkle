@@ -6,11 +6,14 @@
 #include "spk_timestamp.hpp"
 #include "spk_time_unit.hpp"
 
-TEST(EventRecordTest, DefaultRecordStoresDefaultTimestampAndZeroSequence)
+TEST(EventRecordTest, DefaultRecordStoresDefaultTimestamp)
 {
+	const spk::Timestamp before;
 	spk::EventRecord record;
+	const spk::Timestamp after;
 
-	EXPECT_EQ(record.sequence, 0u);
+	EXPECT_GE(record.timestamp, before);
+	EXPECT_LE(record.timestamp, after);
 }
 
 TEST(EventRecordTest, ExplicitTimestampConstructorStoresTimestamp)
@@ -19,7 +22,6 @@ TEST(EventRecordTest, ExplicitTimestampConstructorStoresTimestamp)
 	const spk::EventRecord record(timestamp);
 
 	EXPECT_EQ(record.timestamp, timestamp);
-	EXPECT_EQ(record.sequence, 0u);
 }
 
 TEST(EventViewTest, ViewProvidesConstAccessToRecord)
@@ -108,16 +110,4 @@ TEST(EventVariantTest, FrameMouseAndKeyboardFamiliesHoldOnlyTheirConcreteRecords
 	EXPECT_FALSE(spk::holds<spk::WindowHiddenRecord>(frameEvent));
 	EXPECT_TRUE(spk::holds<spk::MouseWheelScrolledRecord>(mouseEvent));
 	EXPECT_TRUE(spk::holds<spk::TextInputRecord>(keyboardEvent));
-}
-
-TEST(EventVariantTest, SequenceCanBeAssignedToRecordsThroughFamilyVariant)
-{
-	spk::MouseMovedRecord record;
-	record.position = spk::Vector2Int(1, 2);
-	record.delta = spk::Vector2Int(3, 4);
-	spk::MouseEventRecord event = record;
-
-	spk::setEventSequence(event, 42);
-
-	EXPECT_EQ(spk::eventSequence(event), 42u);
 }

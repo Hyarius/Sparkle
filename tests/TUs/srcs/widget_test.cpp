@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "spk_window_modules.hpp"
+#include "spk_render_module.hpp"
 #include "window_test_utils.hpp"
 
 TEST(WidgetTest, ConstructionStoresNameAndOptionalParent)

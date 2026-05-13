@@ -1,6 +1,5 @@
 #include "spk_window.hpp"
 
-#include <algorithm>
 #include <stdexcept>
 #include <utility>
 
@@ -29,132 +28,37 @@ namespace spk
 
 	void Window::_enqueueFrameEvent(spk::FrameEventRecord p_event)
 	{
-		spk::setEventSequence(p_event, _nextEventSequence.fetch_add(1));
-
-		std::scoped_lock lock(_pendingFrameEventsMutex);
-		_pendingFrameEvents.push_back(std::move(p_event));
+		_frameModule.pushEvent(std::move(p_event));
 	}
 
 	void Window::_enqueueMouseEvent(spk::MouseEventRecord p_event)
 	{
-		spk::setEventSequence(p_event, _nextEventSequence.fetch_add(1));
-
-		std::scoped_lock lock(_pendingMouseEventsMutex);
-		_pendingMouseEvents.push_back(std::move(p_event));
+		_mouseModule.pushEvent(std::move(p_event));
 	}
 
 	void Window::_enqueueKeyboardEvent(spk::KeyboardEventRecord p_event)
 	{
-		spk::setEventSequence(p_event, _nextEventSequence.fetch_add(1));
-
-		std::scoped_lock lock(_pendingKeyboardEventsMutex);
-		_pendingKeyboardEvents.push_back(std::move(p_event));
+		_keyboardModule.pushEvent(std::move(p_event));
 	}
 
 	void Window::_enqueuePlatformAction(PlatformAction p_action)
 	{
-		std::scoped_lock lock(_pendingPlatformActionsMutex);
-		_pendingPlatformActions.push_back(std::move(p_action));
+		_pendingPlatformActions.pushBack(std::move(p_action));
 	}
 
 	void Window::_enqueueRenderAction(RenderAction p_action)
 	{
-		std::scoped_lock lock(_pendingRenderActionsMutex);
-
-		for (RenderAction &pendingAction : _pendingRenderActions)
-		{
-			if (pendingAction.type != p_action.type)
-			{
-				continue;
-			}
-
-			pendingAction = std::move(p_action);
-			return;
-		}
-
-		_pendingRenderActions.push_back(std::move(p_action));
-	}
-
-	void Window::_drainPendingEvents()
-	{
-		_eventsToProcess.clear();
-		_frameEventsToProcess.clear();
-		_mouseEventsToProcess.clear();
-		_keyboardEventsToProcess.clear();
-
-		{
-			std::scoped_lock lock(_pendingFrameEventsMutex);
-			_frameEventsToProcess.swap(_pendingFrameEvents);
-		}
-
-		{
-			std::scoped_lock lock(_pendingMouseEventsMutex);
-			_mouseEventsToProcess.swap(_pendingMouseEvents);
-		}
-
-		{
-			std::scoped_lock lock(_pendingKeyboardEventsMutex);
-			_keyboardEventsToProcess.swap(_pendingKeyboardEvents);
-		}
-
-		_eventsToProcess.reserve(_frameEventsToProcess.size() + _mouseEventsToProcess.size() + _keyboardEventsToProcess.size());
-
-		for (size_t i = 0; i < _frameEventsToProcess.size(); ++i)
-		{
-			_eventsToProcess.push_back(EventReference{
-				.family = EventFamily::Frame,
-				.index = i,
-				.sequence = spk::eventSequence(_frameEventsToProcess[i])
-			});
-		}
-
-		for (size_t i = 0; i < _mouseEventsToProcess.size(); ++i)
-		{
-			_eventsToProcess.push_back(EventReference{
-				.family = EventFamily::Mouse,
-				.index = i,
-				.sequence = spk::eventSequence(_mouseEventsToProcess[i])
-			});
-		}
-
-		for (size_t i = 0; i < _keyboardEventsToProcess.size(); ++i)
-		{
-			_eventsToProcess.push_back(EventReference{
-				.family = EventFamily::Keyboard,
-				.index = i,
-				.sequence = spk::eventSequence(_keyboardEventsToProcess[i])
-			});
-		}
-
-		std::sort(
-			_eventsToProcess.begin(),
-			_eventsToProcess.end(),
-			[](const EventReference& p_left, const EventReference& p_right)
-			{
-				return p_left.sequence < p_right.sequence;
-			});
+		_pendingRenderActions.pushBack(std::move(p_action));
 	}
 
 	std::vector<Window::PlatformAction> Window::_drainPendingPlatformActions()
 	{
-		std::vector<PlatformAction> result;
-
-		{
-			std::scoped_lock lock(_pendingPlatformActionsMutex);
-			result.swap(_pendingPlatformActions);
-		}
-
-		return result;
+		return _pendingPlatformActions.drain();
 	}
 
 	std::vector<Window::RenderAction> Window::_drainPendingRenderActions()
 	{
-		std::vector<RenderAction> result;
-
-		{
-			std::scoped_lock lock(_pendingRenderActionsMutex);
-			result.swap(_pendingRenderActions);
-		}
+		std::vector<RenderAction> result = _pendingRenderActions.drain();
 
 		std::optional<RenderAction> latestResizeAction;
 		std::optional<RenderAction> latestVSyncAction;
@@ -185,13 +89,11 @@ namespace spk
 		return coalescedActions;
 	}
 
-	void Window::_treatFrameEvent(spk::FrameEventRecord &p_event)
+	void Window::_treatProcessedFrameEvent(spk::FrameEventRecord &p_event, bool p_isConsumed)
 	{
-		const bool isConsumed = _frameModule.pushEvent(p_event);
-
 		if (const auto* event = spk::getIf<spk::WindowCloseRequestedRecord>(p_event); event != nullptr)
 		{
-			if (isConsumed == false)
+			if (p_isConsumed == false)
 			{
 				_enqueuePlatformAction(PlatformAction{
 					.type = PlatformActionType::ValidateClosure});
@@ -216,32 +118,6 @@ namespace spk
 			_closureNotificationPending.store(true);
 		}
 		return;
-	}
-
-	void Window::_treatKeyboardEvent(spk::KeyboardEventRecord &p_event)
-	{
-		_keyboardModule.pushEvent(p_event);
-	}
-
-	void Window::_treatMouseEvent(spk::MouseEventRecord &p_event)
-	{
-		_mouseModule.pushEvent(p_event);
-	}
-
-	void Window::_treatEvent(const EventReference& p_eventReference)
-	{
-		switch (p_eventReference.family)
-		{
-		case EventFamily::Frame:
-			_treatFrameEvent(_frameEventsToProcess[p_eventReference.index]);
-			break;
-		case EventFamily::Mouse:
-			_treatMouseEvent(_mouseEventsToProcess[p_eventReference.index]);
-			break;
-		case EventFamily::Keyboard:
-			_treatKeyboardEvent(_keyboardEventsToProcess[p_eventReference.index]);
-			break;
-		}
 	}
 
 	void Window::_rebuildRenderSnapshot()
@@ -313,19 +189,42 @@ namespace spk
 		}
 	}
 
+	void Window::_processPendingFrameEvents()
+	{
+		_frameModule.processEvents(
+			[this](spk::FrameEventRecord& p_event, bool p_isConsumed) -> bool
+			{
+				if (_isClosed.load() == true)
+				{
+					return false;
+				}
+
+				_treatProcessedFrameEvent(p_event, p_isConsumed);
+				return (_isClosed.load() == false);
+			});
+	}
+
+	void Window::_processPendingMouseEvents()
+	{
+		_mouseModule.processEvents();
+	}
+
+	void Window::_processPendingKeyboardEvents()
+	{
+		_keyboardModule.processEvents();
+	}
+
 	void Window::_processPendingEvents()
 	{
-		_drainPendingEvents();
+		_processPendingFrameEvents();
 
-		for (const EventReference& eventReference : _eventsToProcess)
+		if (_isClosed.load() == true)
 		{
-			_treatEvent(eventReference);
-
-			if (_isClosed.load() == true)
-			{
-				return;
-			}
+			return;
 		}
+
+		_processPendingMouseEvents();
+		_processPendingKeyboardEvents();
 	}
 
 	void Window::_releaseRenderResources()

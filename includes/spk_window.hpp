@@ -1,8 +1,6 @@
 #pragma once
 
 #include <atomic>
-#include <cstdint>
-#include <cstddef>
 #include <memory>
 #include <mutex>
 #include <optional>
@@ -10,11 +8,16 @@
 #include <vector>
 
 #include "spk_contract_provider.hpp"
+#include "spk_frame_module.hpp"
 #include "spk_gpu_platform_runtime.hpp"
+#include "spk_keyboard_module.hpp"
+#include "spk_mouse_module.hpp"
 #include "spk_platform_runtime.hpp"
 #include "spk_render_command_builder.hpp"
+#include "spk_render_module.hpp"
+#include "spk_thread_safe_deque.hpp"
+#include "spk_update_module.hpp"
 #include "spk_window_host.hpp"
-#include "spk_window_modules.hpp"
 
 namespace spk
 {
@@ -60,20 +63,6 @@ namespace spk
 		};
 
 	private:
-		enum class EventFamily
-		{
-			Frame,
-			Mouse,
-			Keyboard
-		};
-
-		struct EventReference
-		{
-			EventFamily family;
-			size_t index;
-			std::uint64_t sequence;
-		};
-
 		spk::Widget _rootWidget;
 		spk::WindowHost _host;
 
@@ -83,24 +72,8 @@ namespace spk
 		UpdateModule _updateModule;
 		RenderModule _renderModule;
 
-		std::atomic<std::uint64_t> _nextEventSequence = 0;
-
-		mutable std::mutex _pendingFrameEventsMutex;
-		mutable std::mutex _pendingMouseEventsMutex;
-		mutable std::mutex _pendingKeyboardEventsMutex;
-		std::vector<spk::FrameEventRecord> _pendingFrameEvents;
-		std::vector<spk::MouseEventRecord> _pendingMouseEvents;
-		std::vector<spk::KeyboardEventRecord> _pendingKeyboardEvents;
-		std::vector<spk::FrameEventRecord> _frameEventsToProcess;
-		std::vector<spk::MouseEventRecord> _mouseEventsToProcess;
-		std::vector<spk::KeyboardEventRecord> _keyboardEventsToProcess;
-		std::vector<EventReference> _eventsToProcess;
-
-		mutable std::mutex _pendingPlatformActionsMutex;
-		std::vector<PlatformAction> _pendingPlatformActions;
-
-		mutable std::mutex _pendingRenderActionsMutex;
-		std::vector<RenderAction> _pendingRenderActions;
+		spk::ThreadSafeDeque<PlatformAction> _pendingPlatformActions;
+		spk::ThreadSafeDeque<RenderAction> _pendingRenderActions;
 
 		mutable std::mutex _renderSnapshotMutex;
 		std::shared_ptr<spk::RenderCommandBuilder> _renderSnapshot;
@@ -124,14 +97,10 @@ namespace spk
 		void _enqueuePlatformAction(PlatformAction p_action);
 		void _enqueueRenderAction(RenderAction p_action);
 
-		void _drainPendingEvents();
 		[[nodiscard]] std::vector<PlatformAction> _drainPendingPlatformActions();
 		[[nodiscard]] std::vector<RenderAction> _drainPendingRenderActions();
 
-		void _treatFrameEvent(spk::FrameEventRecord& p_event);
-		void _treatKeyboardEvent(spk::KeyboardEventRecord& p_event);
-		void _treatMouseEvent(spk::MouseEventRecord& p_event);
-		void _treatEvent(const EventReference& p_eventReference);
+		void _treatProcessedFrameEvent(spk::FrameEventRecord& p_event, bool p_isConsumed);
 
 		void _rebuildRenderSnapshot();
 		[[nodiscard]] std::shared_ptr<spk::RenderCommandBuilder> _currentRenderSnapshot() const;
@@ -141,6 +110,9 @@ namespace spk
 		void _releasePlatformResourcesIfReady();
 		void _executePendingPlatformActionsIfOnPlatformThread();
 
+		void _processPendingFrameEvents();
+		void _processPendingMouseEvents();
+		void _processPendingKeyboardEvents();
 		void _processPendingEvents();
 
 		void _releaseRenderResources();

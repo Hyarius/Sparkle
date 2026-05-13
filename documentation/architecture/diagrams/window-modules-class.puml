@@ -11,20 +11,26 @@ namespace spk {
 	}
 
 	class FrameModule {
+		- ThreadSafeDeque<FrameEventRecord> _events
 		+ pushEvent(FrameEventRecord)
+		+ processEvents(callback)
 		- _treatEvent(FrameEventRecord)
 	}
 
 	class MouseModule {
 		- Mouse _mouse
+		- ThreadSafeDeque<MouseEventRecord> _events
 		+ pushEvent(MouseEventRecord)
+		+ processEvents()
 		+ mouse() : Mouse&
 		- _treatEvent(MouseEventRecord)
 	}
 
 	class KeyboardModule {
 		- Keyboard _keyboard
+		- ThreadSafeDeque<KeyboardEventRecord> _events
 		+ pushEvent(KeyboardEventRecord)
+		+ processEvents()
 		+ keyboard() : Keyboard&
 		- _treatEvent(KeyboardEventRecord)
 	}
@@ -41,6 +47,15 @@ namespace spk {
 		+ render(builder)
 	}
 
+	class "ThreadSafeDeque<T>" as ThreadSafeDeque {
+		- deque<T> _values
+		- mutex _mutex
+		+ pushBack(value)
+		+ popFront(output) : bool
+		+ drain() : vector<T>
+		+ clear()
+	}
+
 	class Window {
 		- FrameModule _frameModule
 		- MouseModule _mouseModule
@@ -50,9 +65,9 @@ namespace spk {
 	}
 
 	class Widget {
-		+ dispatchFrameEventRecord(FrameEventRecord)
-		+ dispatchMouseEventRecord(MouseEventRecord, Mouse)
-		+ dispatchKeyboardEventRecord(KeyboardEventRecord, Keyboard)
+		+ dispatchFrameEvent(FrameEventRecord)
+		+ dispatchMouseEvent(MouseEventRecord, Mouse)
+		+ dispatchKeyboardEvent(KeyboardEventRecord, Keyboard)
 		# _onWindowResizedEvent(WindowResizedEvent)
 		# _onMouseMovedEvent(MouseMovedEvent)
 		# _onKeyPressedEvent(KeyPressedEvent)
@@ -73,6 +88,9 @@ spk.Window *-- spk.UpdateModule
 spk.Window *-- spk.RenderModule
 
 spk.IModule --> spk.Widget : bound root
+spk.FrameModule *-- spk.ThreadSafeDeque
+spk.MouseModule *-- spk.ThreadSafeDeque
+spk.KeyboardModule *-- spk.ThreadSafeDeque
 spk.UpdateModule --> spk.Mouse
 spk.UpdateModule --> spk.Keyboard
 spk.RenderModule --> spk.RenderCommandBuilder
@@ -84,8 +102,8 @@ end note
 
 note bottom of spk.FrameModule
 Modules consume already separated event
-families. They do not reclassify a generic
-payload event.
+families from their own thread-safe queues.
+They do not reclassify a generic payload event.
 end note
 
 @enduml

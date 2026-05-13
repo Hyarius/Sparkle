@@ -29,19 +29,19 @@ namespace spk {
 		- Rect2D _geometry
 		# _appendRenderCommands(builder)
 		# _onUpdate(tick)
-		# _onFrameEventRecord(event)
-		# _onMouseEventRecord(event)
-		# _onKeyboardEventRecord(event)
+		# _onWindow*Event(event)
+		# _onMouse*Event(event)
+		# _onKey/Text*Event(event)
 		+ appendRenderCommands(builder)
 		+ update(tick)
-		+ dispatchFrameEventRecord(event)
-		+ dispatchMouseEventRecord(event)
-		+ dispatchKeyboardEventRecord(event)
+		+ dispatchFrameEvent(event)
+		+ dispatchMouseEvent(event, mouse)
+		+ dispatchKeyboardEvent(event, keyboard)
 	}
 
 	class RenderCommandBuilder
 	class UpdateTick
-	class Event
+	class EventView
 	class Rect2D
 }
 
@@ -50,7 +50,7 @@ spk.ActivableTrait <|-- spk.Widget
 spk.Widget "1" o-- "0..*" spk.Widget : children
 spk.Widget --> spk.RenderCommandBuilder
 spk.Widget --> spk.UpdateTick
-spk.Widget --> spk.Event
+spk.Widget --> spk.EventView
 spk.Widget --> spk.Rect2D
 
 note right of spk.Widget

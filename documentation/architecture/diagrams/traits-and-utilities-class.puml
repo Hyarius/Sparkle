@@ -64,6 +64,17 @@ namespace spk {
 		+ close()
 	}
 
+	class "ThreadSafeDeque<T>" as ThreadSafeDeque {
+		- deque<T> _values
+		- mutex _mutex
+		+ pushBack(value)
+		+ popFront(output) : bool
+		+ drain() : vector<T>
+		+ clear()
+		+ empty() : bool
+		+ size() : size_t
+	}
+
 	class "Flags<TEnum,TStorage>" as Flags {
 		- MaskType _bits
 		+ set(flag)

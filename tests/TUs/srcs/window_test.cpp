@@ -57,7 +57,7 @@ TEST(WindowTest, PollEventsDrivesWindowModulesAndWidgetTree)
 	EXPECT_EQ(child.keyboardEventCount, 1);
 }
 
-TEST(WindowTest, UpdatePreservesCrossCategoryEventOrdering)
+TEST(WindowTest, UpdateProcessesEventQueuesByFamily)
 {
 	auto bundle = sparkle_test::createWindowBundle();
 	sparkle_test::RecordingWidget child("Child", &bundle.window->rootWidget());
@@ -75,8 +75,8 @@ TEST(WindowTest, UpdatePreservesCrossCategoryEventOrdering)
 	bundle.window->update();
 
 	ASSERT_EQ(child.callLog.size(), 5u);
-	EXPECT_EQ(child.callLog[0], "Child:mouse:MouseMoved");
-	EXPECT_EQ(child.callLog[1], "Child:frame:WindowResized");
+	EXPECT_EQ(child.callLog[0], "Child:frame:WindowResized");
+	EXPECT_EQ(child.callLog[1], "Child:mouse:MouseMoved");
 	EXPECT_EQ(child.callLog[2], "Child:keyboard:KeyPressed");
 	EXPECT_EQ(child.callLog[3], "Child:update");
 	EXPECT_EQ(child.callLog[4], "Child:append_render");

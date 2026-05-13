@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cstdint>
 #include <type_traits>
 #include <utility>
 #include <variant>
@@ -16,7 +15,6 @@ namespace spk
 	struct EventRecord
 	{
 		spk::Timestamp timestamp;
-		std::uint64_t sequence = 0;
 
 		EventRecord() = default;
 
@@ -249,28 +247,6 @@ namespace spk
 	[[nodiscard]] const TRecord* getIf(const TVariant& p_event)
 	{
 		return std::get_if<TRecord>(&p_event);
-	}
-
-	template <typename TVariant>
-	[[nodiscard]] std::uint64_t eventSequence(const TVariant& p_event)
-	{
-		return std::visit(
-			[](const auto& p_record) -> std::uint64_t
-			{
-				return p_record.sequence;
-			},
-			p_event);
-	}
-
-	template <typename TVariant>
-	void setEventSequence(TVariant& p_event, std::uint64_t p_sequence)
-	{
-		std::visit(
-			[p_sequence](auto& p_record)
-			{
-				p_record.sequence = p_sequence;
-			},
-			p_event);
 	}
 
 	using WindowCloseRequestedEvent = spk::EventView<WindowCloseRequestedRecord>;

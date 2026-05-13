@@ -1,4 +1,6 @@
-#include "spk_window_modules.hpp"
+#include "spk_frame_module.hpp"
+
+#include <utility>
 
 namespace spk
 {
@@ -19,8 +21,26 @@ namespace spk
 		return widget()->dispatchFrameEvent(p_event);
 	}
 
-	bool FrameModule::pushEvent(spk::FrameEventRecord& p_event)
+	void FrameModule::pushEvent(spk::FrameEventRecord p_event)
 	{
-		return _treatEvent(p_event);
+		_events.pushBack(std::move(p_event));
+	}
+
+	void FrameModule::processEvents(const ProcessedEventCallback& p_processedEventCallback)
+	{
+		spk::FrameEventRecord event;
+
+		while (_events.popFront(event) == true)
+		{
+			const bool isConsumed = _treatEvent(event);
+
+			if (p_processedEventCallback != nullptr)
+			{
+				if (p_processedEventCallback(event, isConsumed) == false)
+				{
+					return;
+				}
+			}
+		}
 	}
 }
