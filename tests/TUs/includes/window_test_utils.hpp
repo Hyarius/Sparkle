@@ -17,7 +17,6 @@
 #include "spk_gpu_platform_runtime.hpp"
 #include "spk_platform_runtime.hpp"
 #include "spk_render_command.hpp"
-#include "spk_render_command_builder.hpp"
 #include "spk_render_context.hpp"
 #include "spk_update_tick.hpp"
 #include "spk_widget.hpp"
@@ -549,7 +548,7 @@ namespace sparkle_test
 		}
 
 	protected:
-		void _appendRenderCommands(spk::RenderCommandBuilder& p_builder) const override
+		spk::RenderUnit _buildRenderUnit() const override
 		{
 			if (isRenderCommandDirty() == true)
 			{
@@ -564,7 +563,8 @@ namespace sparkle_test
 				sharedCallLog->push_back(name() + ":append_render");
 			}
 
-			p_builder.emplace<CallbackRenderCommand>(
+			spk::RenderUnitBuilder builder;
+			builder.emplace<CallbackRenderCommand>(
 				[this]()
 				{
 					++renderCount;
@@ -574,6 +574,8 @@ namespace sparkle_test
 						sharedCallLog->push_back(name() + ":render");
 					}
 				});
+
+			return builder.build();
 		}
 
 		void _onUpdate(const spk::UpdateTick& p_tick) override
@@ -680,21 +682,24 @@ namespace sparkle_test
 			}
 		}
 
-		void _appendRenderCommands(spk::RenderCommandBuilder& p_builder) const override
+		spk::RenderUnit _buildRenderUnit() const override
 		{
 			if (onAppendRenderCommands != nullptr)
 			{
 				onAppendRenderCommands();
 			}
 
+			spk::RenderUnitBuilder builder;
 			if (onExecuteRenderCommand != nullptr)
 			{
-				p_builder.emplace<CallbackRenderCommand>(onExecuteRenderCommand);
+				builder.emplace<CallbackRenderCommand>(onExecuteRenderCommand);
 			}
 			else if (onRender != nullptr)
 			{
-				p_builder.emplace<CallbackRenderCommand>(onRender);
+				builder.emplace<CallbackRenderCommand>(onRender);
 			}
+
+			return builder.build();
 		}
 	};
 

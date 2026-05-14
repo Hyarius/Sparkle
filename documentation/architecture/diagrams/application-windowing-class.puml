@@ -35,12 +35,14 @@ namespace spk {
 		- FrameModule _frameModule
 		- MouseModule _mouseModule
 		- KeyboardModule _keyboardModule
+		- UpdateModule _updateModule
+		- RenderModule _renderModule
 		- ThreadSafeDeque<PlatformAction> _pendingPlatformActions
 		- ThreadSafeDeque<RenderAction> _pendingRenderActions
-		- shared_ptr<RenderCommandBuilder> _renderSnapshot
 		- _enqueueFrameEvent(FrameEventRecord)
 		- _enqueueMouseEvent(MouseEventRecord)
 		- _enqueueKeyboardEvent(KeyboardEventRecord)
+		- _rebuildRenderSnapshot()
 		+ executePendingPlatformActions()
 		+ update()
 		+ render()
@@ -96,6 +98,8 @@ spk.Window *-- spk.WindowHost
 spk.Window *-- spk.FrameModule
 spk.Window *-- spk.MouseModule
 spk.Window *-- spk.KeyboardModule
+spk.Window *-- spk.UpdateModule
+spk.Window *-- spk.RenderModule
 spk.WindowHost --> spk.IFrame
 spk.WindowHost --> spk.IGPUPlatformRuntime
 spk.WindowHost --> spk.IRenderContext

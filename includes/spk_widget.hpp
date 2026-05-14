@@ -1,12 +1,14 @@
 #pragma once
 
+#include <memory>
 #include <string>
 
 #include "spk_activable_trait.hpp"
 #include "spk_events.hpp"
 #include "spk_inherence_trait.hpp"
 #include "spk_rect_2d.hpp"
-#include "spk_render_command_builder.hpp"
+#include "spk_render_snapshot_builder.hpp"
+#include "spk_render_unit_builder.hpp"
 #include "spk_update_tick.hpp"
 
 namespace spk
@@ -16,10 +18,11 @@ namespace spk
 	private:
 		std::string _name;
 		mutable bool _renderCommandsDirty = true;
+		mutable std::shared_ptr<const spk::RenderUnit> _renderUnit = nullptr;
 		spk::Rect2D _geometry;
 
 	protected:
-		virtual void _appendRenderCommands(spk::RenderCommandBuilder& p_builder) const;
+		[[nodiscard]] virtual spk::RenderUnit _buildRenderUnit() const;
 
 		virtual void _onUpdate(const spk::UpdateTick& p_tick);
 		virtual void _onWindowCloseRequestedEvent(spk::WindowCloseRequestedEvent& p_event);
@@ -71,12 +74,13 @@ namespace spk
 		[[nodiscard]] const std::string& name() const;
 
 		void setGeometry(const spk::Rect2D& p_geometry);
-		void requireRenderCommandRebuild();
+		void invalidateRenderUnit();
 
 		[[nodiscard]] const spk::Rect2D& geometry() const;
 		[[nodiscard]] bool isRenderCommandDirty() const;
 
-		void appendRenderCommands(spk::RenderCommandBuilder& p_builder) const;
+		[[nodiscard]] std::shared_ptr<const spk::RenderUnit> renderUnit() const;
+		void appendRenderUnits(spk::RenderSnapshotBuilder& p_builder) const;
 		void update(const spk::UpdateTick& p_tick);
 
 		bool dispatchFrameEvent(spk::FrameEventRecord& p_event);

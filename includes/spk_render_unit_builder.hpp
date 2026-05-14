@@ -5,30 +5,28 @@
 #include <utility>
 #include <vector>
 
-#include "spk_render_command.hpp"
+#include "spk_render_unit.hpp"
 
 namespace spk
 {
-	class RenderCommandBuilder
+	class RenderUnitBuilder
 	{
 	private:
 		std::vector<std::unique_ptr<spk::RenderCommand>> _commands;
 
 	public:
-		RenderCommandBuilder() = default;
-		~RenderCommandBuilder() = default;
+		RenderUnitBuilder() = default;
+		~RenderUnitBuilder() = default;
 
-		RenderCommandBuilder(const RenderCommandBuilder&) = delete;
-		RenderCommandBuilder& operator=(const RenderCommandBuilder&) = delete;
+		RenderUnitBuilder(const RenderUnitBuilder&) = delete;
+		RenderUnitBuilder& operator=(const RenderUnitBuilder&) = delete;
 
-		RenderCommandBuilder(RenderCommandBuilder&&) noexcept = default;
-		RenderCommandBuilder& operator=(RenderCommandBuilder&&) noexcept = default;
+		RenderUnitBuilder(RenderUnitBuilder&&) noexcept = default;
+		RenderUnitBuilder& operator=(RenderUnitBuilder&&) noexcept = default;
 
 		void clear();
 		[[nodiscard]] bool empty() const;
 		[[nodiscard]] size_t size() const;
-
-		[[nodiscard]] const std::vector<std::unique_ptr<spk::RenderCommand>>& commands() const;
 
 		template <typename TCommand, typename... TArguments>
 		TCommand& emplace(TArguments&&... p_arguments)
@@ -42,5 +40,7 @@ namespace spk
 
 			return (*result);
 		}
+
+		[[nodiscard]] spk::RenderUnit build();
 	};
 }

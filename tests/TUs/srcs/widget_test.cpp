@@ -1,7 +1,20 @@
 #include <gtest/gtest.h>
 
+#include <memory>
+#include <utility>
+#include <vector>
+
 #include "spk_render_module.hpp"
 #include "window_test_utils.hpp"
+
+namespace
+{
+	void publishAndRender(spk::RenderModule& p_module, spk::RenderSnapshot p_snapshot)
+	{
+		p_module.publishSnapshot(std::make_shared<const spk::RenderSnapshot>(std::move(p_snapshot)));
+		p_module.render();
+	}
+}
 
 TEST(WidgetTest, ConstructionStoresNameAndOptionalParent)
 {
@@ -19,7 +32,7 @@ TEST(WidgetTest, SetGeometryMarksWidgetDirtyAndFirstAppendClearsIt)
 {
 	sparkle_test::RecordingWidget widget("Widget");
 	const spk::Rect2D rect(4, 5, 100, 60);
-	spk::RenderCommandBuilder builder;
+	spk::RenderSnapshotBuilder builder;
 	spk::RenderModule renderModule;
 
 	widget.activate();
@@ -27,8 +40,8 @@ TEST(WidgetTest, SetGeometryMarksWidgetDirtyAndFirstAppendClearsIt)
 
 	EXPECT_TRUE(widget.isRenderCommandDirty());
 
-	widget.appendRenderCommands(builder);
-	renderModule.render(builder);
+	widget.appendRenderUnits(builder);
+	publishAndRender(renderModule, builder.build());
 
 	EXPECT_EQ(widget.geometry(), rect);
 	EXPECT_EQ(widget.geometryUpdateCount, 1);
@@ -38,60 +51,126 @@ TEST(WidgetTest, SetGeometryMarksWidgetDirtyAndFirstAppendClearsIt)
 	EXPECT_FALSE(widget.isRenderCommandDirty());
 }
 
-TEST(WidgetTest, RequireRenderCommandRebuildTriggersAnotherDirtyPass)
+TEST(WidgetTest, InvalidateRenderUnitTriggersAnotherDirtyPass)
 {
 	sparkle_test::RecordingWidget widget("Widget");
-	spk::RenderCommandBuilder builder;
+	spk::RenderSnapshotBuilder builder;
 	spk::RenderModule renderModule;
 
 	widget.activate();
 
-	widget.appendRenderCommands(builder);
-	renderModule.render(builder);
+	widget.appendRenderUnits(builder);
+	publishAndRender(renderModule, builder.build());
 	ASSERT_EQ(widget.geometryUpdateCount, 1);
 
 	builder.clear();
-	widget.requireRenderCommandRebuild();
+	widget.invalidateRenderUnit();
 	EXPECT_TRUE(widget.isRenderCommandDirty());
 
-	widget.appendRenderCommands(builder);
-	renderModule.render(builder);
+	widget.appendRenderUnits(builder);
+	publishAndRender(renderModule, builder.build());
 
 	EXPECT_EQ(widget.geometryUpdateCount, 2);
 	EXPECT_EQ(widget.renderCount, 2);
 	EXPECT_FALSE(widget.isRenderCommandDirty());
 }
 
+TEST(WidgetTest, AppendRenderUnitsReusesCleanUnitsAndRebuildsOnlyDirtyWidgets)
+{
+	sparkle_test::RecordingWidget parent("Parent");
+	sparkle_test::RecordingWidget child("Child", &parent);
+	spk::RenderSnapshotBuilder builder;
+	spk::RenderModule renderModule;
+
+	parent.activate();
+	child.activate();
+
+	parent.appendRenderUnits(builder);
+	publishAndRender(renderModule, builder.build());
+
+	EXPECT_EQ(parent.appendRenderCommandCount, 1);
+	EXPECT_EQ(child.appendRenderCommandCount, 1);
+	EXPECT_EQ(parent.renderCount, 1);
+	EXPECT_EQ(child.renderCount, 1);
+
+	builder.clear();
+	parent.appendRenderUnits(builder);
+	publishAndRender(renderModule, builder.build());
+
+	EXPECT_EQ(parent.appendRenderCommandCount, 1);
+	EXPECT_EQ(child.appendRenderCommandCount, 1);
+	EXPECT_EQ(parent.renderCount, 2);
+	EXPECT_EQ(child.renderCount, 2);
+
+	builder.clear();
+	child.invalidateRenderUnit();
+	parent.appendRenderUnits(builder);
+	publishAndRender(renderModule, builder.build());
+
+	EXPECT_EQ(parent.appendRenderCommandCount, 1);
+	EXPECT_EQ(child.appendRenderCommandCount, 2);
+	EXPECT_EQ(parent.renderCount, 3);
+	EXPECT_EQ(child.renderCount, 3);
+}
+
+TEST(WidgetTest, OldSnapshotsKeepTheirPreviousRenderUnitsAfterWidgetRebuilds)
+{
+	sparkle_test::CallbackWidget widget("Widget");
+	spk::RenderSnapshotBuilder firstBuilder;
+	spk::RenderSnapshotBuilder secondBuilder;
+	spk::RenderModule renderModule;
+	std::vector<int> calls;
+
+	widget.activate();
+	widget.onExecuteRenderCommand = [&calls]() { calls.push_back(1); };
+	widget.appendRenderUnits(firstBuilder);
+	std::shared_ptr<const spk::RenderSnapshot> firstSnapshot =
+		std::make_shared<const spk::RenderSnapshot>(firstBuilder.build());
+
+	widget.onExecuteRenderCommand = [&calls]() { calls.push_back(2); };
+	widget.invalidateRenderUnit();
+	widget.appendRenderUnits(secondBuilder);
+	std::shared_ptr<const spk::RenderSnapshot> secondSnapshot =
+		std::make_shared<const spk::RenderSnapshot>(secondBuilder.build());
+
+	renderModule.publishSnapshot(firstSnapshot);
+	renderModule.render();
+	renderModule.publishSnapshot(secondSnapshot);
+	renderModule.render();
+
+	EXPECT_EQ(calls, std::vector<int>({1, 2}));
+}
+
 TEST(WidgetTest, SettingSameGeometryDoesNotRequestAnotherDirtyPass)
 {
 	sparkle_test::RecordingWidget widget("Widget");
 	const spk::Rect2D rect(1, 2, 30, 40);
-	spk::RenderCommandBuilder builder;
+	spk::RenderSnapshotBuilder builder;
 	spk::RenderModule renderModule;
 
 	widget.activate();
 
 	widget.setGeometry(rect);
-	widget.appendRenderCommands(builder);
-	renderModule.render(builder);
+	widget.appendRenderUnits(builder);
+	publishAndRender(renderModule, builder.build());
 	ASSERT_EQ(widget.geometryUpdateCount, 1);
 
 	builder.clear();
 	widget.setGeometry(rect);
 	EXPECT_FALSE(widget.isRenderCommandDirty());
 
-	widget.appendRenderCommands(builder);
-	renderModule.render(builder);
+	widget.appendRenderUnits(builder);
+	publishAndRender(renderModule, builder.build());
 
 	EXPECT_EQ(widget.geometryUpdateCount, 1);
 	EXPECT_EQ(widget.renderCount, 2);
 }
 
-TEST(WidgetTest, AppendRenderCommandsVisitsSelfBeforeChildrenAndRenderExecutesInThatOrder)
+TEST(WidgetTest, AppendRenderUnitsVisitsSelfBeforeChildrenAndRenderExecutesInThatOrder)
 {
 	sparkle_test::RecordingWidget parent("Parent");
 	sparkle_test::RecordingWidget child("Child", &parent);
-	spk::RenderCommandBuilder builder;
+	spk::RenderSnapshotBuilder builder;
 	spk::RenderModule renderModule;
 	std::vector<std::string> callLog;
 
@@ -100,8 +179,8 @@ TEST(WidgetTest, AppendRenderCommandsVisitsSelfBeforeChildrenAndRenderExecutesIn
 	parent.activate();
 	child.activate();
 
-	parent.appendRenderCommands(builder);
-	renderModule.render(builder);
+	parent.appendRenderUnits(builder);
+	publishAndRender(renderModule, builder.build());
 
 	std::vector<std::string> expected = {
 		"Parent:append_render",
@@ -202,14 +281,14 @@ TEST(WidgetTest, MouseAndKeyboardDispatchReachDedicatedHandlers)
 TEST(WidgetTest, DeactivatedWidgetSkipsRenderCommandAppendUpdateAndEventDispatch)
 {
 	sparkle_test::RecordingWidget widget("Widget");
-	spk::RenderCommandBuilder builder;
+	spk::RenderSnapshotBuilder builder;
 	spk::RenderModule renderModule;
 	spk::UpdateTick tick;
 
 	widget.setGeometry(spk::Rect2D(1, 1, 10, 10));
 
-	widget.appendRenderCommands(builder);
-	renderModule.render(builder);
+	widget.appendRenderUnits(builder);
+	publishAndRender(renderModule, builder.build());
 	widget.update(tick);
 	spk::Mouse mouse;
 	spk::Keyboard keyboard;

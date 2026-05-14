@@ -49,10 +49,36 @@ namespace spk {
 		+ execute()
 	}
 
-	class RenderCommandBuilder {
+	class RenderUnit {
+		- vector<unique_ptr<RenderCommand>> _commands
+		+ commands() : vector<unique_ptr<RenderCommand>>&
+		+ execute()
+	}
+
+	class RenderUnitBuilder {
 		- vector<unique_ptr<RenderCommand>> _commands
 		+ emplace<TCommand>(args...) : TCommand&
-		+ commands() : vector<unique_ptr<RenderCommand>>&
+		+ build() : RenderUnit
+	}
+
+	class RenderSnapshot {
+		- vector<shared_ptr<const RenderUnit>> _units
+		+ units() : vector<shared_ptr<const RenderUnit>>&
+		+ execute()
+	}
+
+	class RenderSnapshotBuilder {
+		- vector<shared_ptr<const RenderUnit>> _units
+		+ append(unit)
+		+ build() : RenderSnapshot
+	}
+
+	class RenderModule {
+		- shared_ptr<const RenderSnapshot> _currentSnapshot
+		- mutex _snapshotMutex
+		+ publishSnapshot(snapshot)
+		+ currentSnapshot() : shared_ptr<const RenderSnapshot>
+		+ render()
 	}
 }
 
@@ -61,11 +87,23 @@ spk.IFrame *-- spk.ISurfaceState
 spk.IGPUPlatformRuntime --> spk.IRenderContext : creates
 spk.IGPUPlatformRuntime --> spk.IFrame : reads backend data from
 spk.IRenderContext --> spk.ISurfaceState
-spk.RenderCommandBuilder *-- "0..*" spk.RenderCommand
+spk.RenderUnit *-- "0..*" spk.RenderCommand
+spk.RenderUnitBuilder *-- "0..*" spk.RenderCommand
+spk.RenderUnitBuilder ..> spk.RenderUnit : builds
+spk.RenderSnapshot o-- "0..*" spk.RenderUnit
+spk.RenderSnapshotBuilder o-- "0..*" spk.RenderUnit
+spk.RenderSnapshotBuilder ..> spk.RenderSnapshot : builds
+spk.RenderModule o-- spk.RenderSnapshot
 
 note bottom of spk.ISurfaceState
 Surface invalidation is a cross-thread signal.
 The render thread still owns render-context teardown.
+end note
+
+note right of spk.RenderUnit
+RenderUnits are immutable after publication.
+Dirty widgets replace the shared unit instead
+of mutating command storage in place.
 end note
 
 @enduml

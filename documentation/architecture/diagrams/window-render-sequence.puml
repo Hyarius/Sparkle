@@ -9,7 +9,8 @@ participant "WindowHost" as Host
 participant "IGPUPlatformRuntime" as GPURuntime
 participant "IRenderContext" as Context
 participant "RenderModule" as RenderModule
-participant "RenderCommandBuilder" as Builder
+participant "RenderSnapshot" as Snapshot
+participant "RenderUnit" as Unit
 participant "RenderCommand" as Command
 
 RenderLoop -> Window : render()
@@ -19,7 +20,6 @@ alt window is closed
 	Window -> Host : releaseRenderContext()
 	Window --> RenderLoop
 else window is open
-	Window -> Window : _currentRenderSnapshot()
 	Window -> Window : _drainPendingRenderActions()
 	Window -> Host : makeCurrent()
 	activate Host
@@ -41,10 +41,14 @@ else window is open
 		end
 	end
 
-	Window -> RenderModule : render(snapshot)
-	loop each command
-		RenderModule -> Builder : commands()
-		RenderModule -> Command : execute()
+	Window -> RenderModule : render()
+	RenderModule -> RenderModule : currentSnapshot()
+	RenderModule -> Snapshot : execute()
+	loop each render unit
+		Snapshot -> Unit : execute()
+		loop each command
+			Unit -> Command : execute()
+		end
 	end
 	Window -> Host : present()
 	Host -> Context : present()

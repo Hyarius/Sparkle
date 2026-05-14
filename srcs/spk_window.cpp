@@ -122,17 +122,12 @@ namespace spk
 
 	void Window::_rebuildRenderSnapshot()
 	{
-		std::shared_ptr<spk::RenderCommandBuilder> newSnapshot = std::make_shared<spk::RenderCommandBuilder>();
-		_rootWidget.appendRenderCommands(*newSnapshot);
+		spk::RenderSnapshotBuilder builder;
+		_rootWidget.appendRenderUnits(builder);
 
-		std::scoped_lock lock(_renderSnapshotMutex);
-		_renderSnapshot = std::move(newSnapshot);
-	}
-
-	std::shared_ptr<spk::RenderCommandBuilder> Window::_currentRenderSnapshot() const
-	{
-		std::scoped_lock lock(_renderSnapshotMutex);
-		return _renderSnapshot;
+		std::shared_ptr<const spk::RenderSnapshot> snapshot =
+			std::make_shared<const spk::RenderSnapshot>(builder.build());
+		_renderModule.publishSnapshot(std::move(snapshot));
 	}
 
 	void Window::_executePlatformAction(const PlatformAction &p_action)
@@ -256,7 +251,7 @@ namespace spk
 
 	Window::Window(std::shared_ptr<IPlatformRuntime> p_platformRuntime, std::shared_ptr<IGPUPlatformRuntime> p_gpuPlatformRuntime, Configuration p_configuration) :
 		_rootWidget(":/" + p_configuration.title + "/RootWidget", nullptr),
-		_host(_createFrame(p_platformRuntime, p_configuration.rect, p_configuration.title), std::move(p_gpuPlatformRuntime)), _renderSnapshot(std::make_shared<spk::RenderCommandBuilder>())
+		_host(_createFrame(p_platformRuntime, p_configuration.rect, p_configuration.title), std::move(p_gpuPlatformRuntime))
 	{
 		_rootWidget.setGeometry(p_configuration.rect.atOrigin());
 		_rootWidget.activate();
@@ -365,7 +360,6 @@ namespace spk
 			return;
 		}
 
-		std::shared_ptr<spk::RenderCommandBuilder> snapshot = _currentRenderSnapshot();
 		std::vector<RenderAction> renderActions = _drainPendingRenderActions();
 
 		if (_host.makeCurrent() == false)
@@ -378,10 +372,7 @@ namespace spk
 			_executeRenderAction(action);
 		}
 
-		if (snapshot != nullptr)
-		{
-			_renderModule.render(*snapshot);
-		}
+		_renderModule.render();
 
 		_host.present();
 	}

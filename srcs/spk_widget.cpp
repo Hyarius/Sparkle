@@ -2,9 +2,9 @@
 
 namespace spk
 {
-	void Widget::_appendRenderCommands(spk::RenderCommandBuilder& p_builder) const
+	spk::RenderUnit Widget::_buildRenderUnit() const
 	{
-		(void)p_builder;
+		return spk::RenderUnit();
 	}
 
 	void Widget::_onUpdate(const spk::UpdateTick& p_tick)
@@ -102,10 +102,10 @@ namespace spk
 		}
 
 		_geometry = p_geometry;
-		_renderCommandsDirty = true;
+		invalidateRenderUnit();
 	}
 
-	void Widget::requireRenderCommandRebuild()
+	void Widget::invalidateRenderUnit()
 	{
 		_renderCommandsDirty = true;
 	}
@@ -120,21 +120,32 @@ namespace spk
 		return (_renderCommandsDirty);
 	}
 
-	void Widget::appendRenderCommands(spk::RenderCommandBuilder& p_builder) const
+	std::shared_ptr<const spk::RenderUnit> Widget::renderUnit() const
+	{
+		if (_renderCommandsDirty == true || _renderUnit == nullptr)
+		{
+			spk::RenderUnit unit = _buildRenderUnit();
+			_renderUnit = std::make_shared<const spk::RenderUnit>(std::move(unit));
+			_renderCommandsDirty = false;
+		}
+
+		return (_renderUnit);
+	}
+
+	void Widget::appendRenderUnits(spk::RenderSnapshotBuilder& p_builder) const
 	{
 		if (isActivated() == false)
 		{
 			return;
 		}
 
-		_appendRenderCommands(p_builder);
-		_renderCommandsDirty = false;
+		p_builder.append(renderUnit());
 
 		for (const auto* child : children())
 		{
 			if (child != nullptr)
 			{
-				child->appendRenderCommands(p_builder);
+				child->appendRenderUnits(p_builder);
 			}
 		}
 	}

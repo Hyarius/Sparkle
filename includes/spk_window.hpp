@@ -2,7 +2,6 @@
 
 #include <atomic>
 #include <memory>
-#include <mutex>
 #include <optional>
 #include <string>
 #include <vector>
@@ -13,8 +12,8 @@
 #include "spk_keyboard_module.hpp"
 #include "spk_mouse_module.hpp"
 #include "spk_platform_runtime.hpp"
-#include "spk_render_command_builder.hpp"
 #include "spk_render_module.hpp"
+#include "spk_render_snapshot_builder.hpp"
 #include "spk_thread_safe_deque.hpp"
 #include "spk_update_module.hpp"
 #include "spk_window_host.hpp"
@@ -75,9 +74,6 @@ namespace spk
 		spk::ThreadSafeDeque<PlatformAction> _pendingPlatformActions;
 		spk::ThreadSafeDeque<RenderAction> _pendingRenderActions;
 
-		mutable std::mutex _renderSnapshotMutex;
-		std::shared_ptr<spk::RenderCommandBuilder> _renderSnapshot;
-
 		std::atomic<bool> _isClosed = false;
 		std::atomic<bool> _closureRequested = false;
 		std::atomic<bool> _closureNotificationPending = false;
@@ -103,7 +99,6 @@ namespace spk
 		void _treatProcessedFrameEvent(spk::FrameEventRecord& p_event, bool p_isConsumed);
 
 		void _rebuildRenderSnapshot();
-		[[nodiscard]] std::shared_ptr<spk::RenderCommandBuilder> _currentRenderSnapshot() const;
 
 		void _executePlatformAction(const PlatformAction& p_action);
 		void _triggerClosureNotificationIfPending();

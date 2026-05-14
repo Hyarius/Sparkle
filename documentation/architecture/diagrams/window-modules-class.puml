@@ -44,7 +44,11 @@ namespace spk {
 	}
 
 	class RenderModule {
-		+ render(builder)
+		- mutex _snapshotMutex
+		- shared_ptr<const RenderSnapshot> _currentSnapshot
+		+ publishSnapshot(snapshot)
+		+ currentSnapshot() : shared_ptr<const RenderSnapshot>
+		+ render()
 	}
 
 	class "ThreadSafeDeque<T>" as ThreadSafeDeque {
@@ -72,8 +76,12 @@ namespace spk {
 		# _onMouseMovedEvent(MouseMovedEvent)
 		# _onKeyPressedEvent(KeyPressedEvent)
 		+ update(tick)
-		+ appendRenderCommands(builder)
+		+ appendRenderUnits(builder)
 	}
+
+	class RenderSnapshot
+	class RenderSnapshotBuilder
+	class RenderUnit
 }
 
 spk.IModule <|-- spk.FrameModule
@@ -93,7 +101,9 @@ spk.MouseModule *-- spk.ThreadSafeDeque
 spk.KeyboardModule *-- spk.ThreadSafeDeque
 spk.UpdateModule --> spk.Mouse
 spk.UpdateModule --> spk.Keyboard
-spk.RenderModule --> spk.RenderCommandBuilder
+spk.RenderModule o-- spk.RenderSnapshot
+spk.Widget --> spk.RenderSnapshotBuilder
+spk.Widget o-- spk.RenderUnit
 
 note bottom of spk.MouseModule
 MouseModule updates Mouse state before
