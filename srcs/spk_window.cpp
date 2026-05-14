@@ -127,6 +127,7 @@ namespace spk
 
 		std::shared_ptr<const spk::RenderSnapshot> snapshot =
 			std::make_shared<const spk::RenderSnapshot>(builder.build());
+			
 		_renderModule.publishSnapshot(std::move(snapshot));
 	}
 
@@ -281,6 +282,20 @@ namespace spk
 			});
 
 		_rebuildRenderSnapshot();
+	}
+
+	Window::~Window()
+	{
+		if (_renderResourcesReleased.load() == false && _host.isRenderThread() == true)
+		{
+			_releaseRenderResources();
+		}
+
+		if (_platformResourcesReleased.load() == false && _host.isPlatformThread() == true)
+		{
+			_host.releaseFrame();
+			_platformResourcesReleased.store(true);
+		}
 	}
 
 	spk::WindowHost &Window::host()

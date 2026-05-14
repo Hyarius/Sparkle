@@ -81,3 +81,23 @@ TEST(WindowHostTest, DestroyedFrameEventPreventsLateRenderContextCreation)
 	EXPECT_EQ(bundle.gpuPlatformRuntime->createRenderContextCount, 0);
 	EXPECT_EQ(bundle.gpuPlatformRuntime->createdContext, nullptr);
 }
+
+TEST(WindowHostTest, DestructorInvalidatesLiveRenderAndFrameState)
+{
+	auto bundle = sparkle_test::createWindowHostBundle();
+	std::shared_ptr<sparkle_test::TestFrameStats> frameStats = bundle.platformRuntime->frameStats;
+	std::shared_ptr<spk::ISurfaceState> surfaceState = bundle.platformRuntime->createdFrame->surfaceState();
+
+	ASSERT_TRUE(bundle.windowHost->makeCurrent());
+	std::shared_ptr<sparkle_test::TestRenderContextStats> contextStats = bundle.gpuPlatformRuntime->contextStats;
+
+	bundle.windowHost.reset();
+
+	ASSERT_NE(surfaceState, nullptr);
+	EXPECT_FALSE(surfaceState->isValid());
+	ASSERT_NE(contextStats, nullptr);
+	EXPECT_EQ(contextStats->invalidateCount, 1);
+	EXPECT_TRUE(contextStats->destroyed);
+	ASSERT_NE(frameStats, nullptr);
+	EXPECT_TRUE(frameStats->destroyed);
+}

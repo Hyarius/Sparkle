@@ -19,13 +19,11 @@ namespace spk
 			return;
 		}
 
-		static spk::Timestamp _lastTimestamp = spk::TimeUtils::getTime();
-
 		const spk::Timestamp currentTimestamp = spk::TimeUtils::getTime();
 
 		spk::UpdateTick tick;
 		tick.timestamp = currentTimestamp;
-		tick.deltaTime = currentTimestamp - _lastTimestamp;
+		tick.deltaTime = _lastTimestamp.has_value() == true ? currentTimestamp - _lastTimestamp.value() : 0_ms;
 		tick.mouse = _mouse;
 		tick.keyboard = _keyboard;
 

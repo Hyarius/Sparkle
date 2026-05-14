@@ -17,7 +17,7 @@ TEST(ApplicationTest, CreateWindowAndLookupReturnTheManagedWindow)
 			.gpuPlatformRuntime = gpuPlatformRuntime
 		});
 
-	std::shared_ptr<spk::Window> window = application.createWindow(
+	std::weak_ptr<spk::Window> windowHandle = application.createWindow(
 		"main",
 		spk::Window::Configuration{
 			.rect = sparkle_test::defaultRect(),
@@ -25,7 +25,9 @@ TEST(ApplicationTest, CreateWindowAndLookupReturnTheManagedWindow)
 		});
 
 	EXPECT_TRUE(application.containsWindow("main"));
-	EXPECT_EQ(application.window("main"), window);
+	EXPECT_FALSE(application.window("main").expired());
+	EXPECT_FALSE(windowHandle.expired());
+	std::shared_ptr<spk::Window> window = windowHandle.lock();
 	ASSERT_NE(window, nullptr);
 	EXPECT_EQ(window->host().title(), "Main");
 	ASSERT_NE(platformRuntimePtr->createdFrame, nullptr);
@@ -76,7 +78,7 @@ TEST(ApplicationTest, RunExecutesEventUpdateAndRenderLoops)
 	auto* platformRuntimePtr = platformRuntime.get();
 	auto* gpuPlatformRuntimePtr = gpuPlatformRuntime.get();
 
-	std::shared_ptr<spk::Window> window = application.createWindow(
+	std::weak_ptr<spk::Window> windowHandle = application.createWindow(
 		"main",
 		spk::Window::Configuration{
 			.rect = sparkle_test::defaultRect(),
@@ -87,6 +89,7 @@ TEST(ApplicationTest, RunExecutesEventUpdateAndRenderLoops)
 	std::atomic<int> renderCount = 0;
 	std::atomic<bool> destroyQueued = false;
 
+	std::shared_ptr<spk::Window> window = windowHandle.lock();
 	ASSERT_NE(window, nullptr);
 	sparkle_test::CallbackWidget probe("Probe", &window->rootWidget());
 	probe.activate();
@@ -191,13 +194,14 @@ TEST(ApplicationTest, RunRethrowsWorkerThreadFailuresOnTheCallerThread)
 			.stopWhenNoWindows = false
 		});
 
-	std::shared_ptr<spk::Window> window = application.createWindow(
+	std::weak_ptr<spk::Window> windowHandle = application.createWindow(
 		"main",
 		spk::Window::Configuration{
 			.rect = sparkle_test::defaultRect(),
 			.title = "Main"
 		});
 
+	std::shared_ptr<spk::Window> window = windowHandle.lock();
 	ASSERT_NE(window, nullptr);
 
 	sparkle_test::CallbackWidget probe("Probe", &window->rootWidget());

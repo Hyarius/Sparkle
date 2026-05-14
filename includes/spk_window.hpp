@@ -115,6 +115,7 @@ namespace spk
 
 	public:
 		Window(std::shared_ptr<IPlatformRuntime> p_platformRuntime, std::shared_ptr<IGPUPlatformRuntime> p_gpuPlatformRuntime, Configuration p_configuration);
+		~Window();
 
 		[[nodiscard]] spk::WindowHost& host();
 		[[nodiscard]] const spk::WindowHost& host() const;

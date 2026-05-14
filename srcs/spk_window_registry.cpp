@@ -2,7 +2,7 @@
 
 namespace spk
 {
-	std::shared_ptr<spk::Window> WindowRegistry::createWindow(const WindowID& p_id, std::shared_ptr<IPlatformRuntime> p_platformRuntime, std::shared_ptr<IGPUPlatformRuntime> p_gpuPlatformRuntime, spk::Window::Configuration p_configuration)
+	std::weak_ptr<spk::Window> WindowRegistry::createWindow(const WindowID& p_id, std::shared_ptr<IPlatformRuntime> p_platformRuntime, std::shared_ptr<IGPUPlatformRuntime> p_gpuPlatformRuntime, spk::Window::Configuration p_configuration)
 	{
 		{
 			std::scoped_lock lock(_mutex);
@@ -27,10 +27,10 @@ namespace spk
 			});
 
 		(void)inserted;
-		return iterator->second.window;
+		return std::weak_ptr<spk::Window>(iterator->second.window);
 	}
 
-	std::shared_ptr<spk::Window> WindowRegistry::window(const WindowID& p_id) const
+	std::weak_ptr<spk::Window> WindowRegistry::window(const WindowID& p_id) const
 	{
 		std::scoped_lock lock(_mutex);
 
@@ -40,7 +40,7 @@ namespace spk
 			throw std::runtime_error("WindowRegistry::" + std::string(__FUNCTION__) + " : Window ID [" + p_id + "] doesn't exist");
 		}
 
-		return iterator->second.window;
+		return std::weak_ptr<spk::Window>(iterator->second.window);
 	}
 
 	bool WindowRegistry::contains(const WindowID& p_id) const
@@ -55,11 +55,11 @@ namespace spk
 		return _windows.size();
 	}
 
-	std::vector<std::shared_ptr<spk::Window>> WindowRegistry::windows() const
+	std::vector<std::weak_ptr<spk::Window>> WindowRegistry::windows() const
 	{
 		std::scoped_lock lock(_mutex);
 
-		std::vector<std::shared_ptr<spk::Window>> result;
+		std::vector<std::weak_ptr<spk::Window>> result;
 		result.reserve(_windows.size());
 
 		for (const auto& [id, entry] : _windows)

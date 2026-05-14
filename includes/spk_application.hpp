@@ -55,10 +55,10 @@ namespace spk
 		Application();
 		explicit Application(Configuration p_configuration);
 
-		std::shared_ptr<spk::Window> createWindow(const WindowID& p_id, spk::Window::Configuration p_configuration);
+		std::weak_ptr<spk::Window> createWindow(const WindowID& p_id, spk::Window::Configuration p_configuration);
 
-		[[nodiscard]] std::shared_ptr<spk::Window> window(const WindowID& p_id);
-		[[nodiscard]] std::shared_ptr<const spk::Window> window(const WindowID& p_id) const;
+		[[nodiscard]] std::weak_ptr<spk::Window> window(const WindowID& p_id);
+		[[nodiscard]] std::weak_ptr<const spk::Window> window(const WindowID& p_id) const;
 		[[nodiscard]] bool containsWindow(const WindowID& p_id) const;
 		[[nodiscard]] bool isRunning() const;
 

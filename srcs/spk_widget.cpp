@@ -42,7 +42,7 @@ namespace spk
 #define SPK_DEFINE_EVENT_PROPAGATION(MethodName, ViewType, HandlerName) \
 	void Widget::MethodName(ViewType& p_event) \
 	{ \
-		if (isActivated() == false) \
+		if (isActivated() == false || p_event.isConsumed() == true) \
 		{ \
 			return; \
 		} \

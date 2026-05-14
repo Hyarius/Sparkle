@@ -20,7 +20,20 @@ namespace spk
 		}
 	}
 
-	WindowHost::~WindowHost() = default;
+	WindowHost::~WindowHost()
+	{
+		std::scoped_lock lock(_renderThreadMutex);
+
+		if (_renderContext != nullptr)
+		{
+			_renderContext->invalidate();
+		}
+
+		if (_frame != nullptr && _frame->surfaceState() != nullptr)
+		{
+			_frame->surfaceState()->invalidate();
+		}
+	}
 
 	void WindowHost::_bindOrValidatePlatformThread(const char* p_operation) const
 	{

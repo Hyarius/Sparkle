@@ -64,7 +64,7 @@ namespace spk
 			spk::Chronometer chronometer;
 			chronometer.start();
 
-			std::vector<std::shared_ptr<spk::Window>> windows = _windowRegistry.windows();
+			std::vector<std::weak_ptr<spk::Window>> windows = _windowRegistry.windows();
 
 			if (windows.empty() == true)
 			{
@@ -76,13 +76,14 @@ namespace spk
 			}
 			else
 			{
-				for (const auto& window : windows)
+				for (const std::weak_ptr<spk::Window>& windowHandle : windows)
 				{
 					if (_stopRequested.load() == true)
 					{
 						return;
 					}
 					
+					std::shared_ptr<spk::Window> window = windowHandle.lock();
 					if (window != nullptr)
 					{
 						window->render();
@@ -107,7 +108,7 @@ namespace spk
 			spk::Chronometer chronometer;
 			chronometer.start();
 
-			std::vector<std::shared_ptr<spk::Window>> windows = _windowRegistry.windows();
+			std::vector<std::weak_ptr<spk::Window>> windows = _windowRegistry.windows();
 
 			if (windows.empty() == true)
 			{
@@ -119,13 +120,14 @@ namespace spk
 			}
 			else
 			{
-				for (const auto& window : windows)
+				for (const std::weak_ptr<spk::Window>& windowHandle : windows)
 				{
 					if (_stopRequested.load() == true)
 					{
 						return;
 					}
 
+					std::shared_ptr<spk::Window> window = windowHandle.lock();
 					if (window != nullptr)
 					{
 						window->update();
@@ -149,9 +151,10 @@ namespace spk
 		{
 			if (_shutdownRequested.load() == true)
 			{
-				std::vector<std::shared_ptr<spk::Window>> windows = _windowRegistry.windows();
-				for (const auto& window : windows)
+				std::vector<std::weak_ptr<spk::Window>> windows = _windowRegistry.windows();
+				for (const std::weak_ptr<spk::Window>& windowHandle : windows)
 				{
+					std::shared_ptr<spk::Window> window = windowHandle.lock();
 					if (window != nullptr)
 					{
 						window->requestClosure();
@@ -173,9 +176,10 @@ namespace spk
 
 			_platformRuntime->pollEvents();
 
-			std::vector<std::shared_ptr<spk::Window>> windows = _windowRegistry.windows();
-			for (const auto& window : windows)
+			std::vector<std::weak_ptr<spk::Window>> windows = _windowRegistry.windows();
+			for (const std::weak_ptr<spk::Window>& windowHandle : windows)
 			{
+				std::shared_ptr<spk::Window> window = windowHandle.lock();
 				if (window != nullptr)
 				{
 					window->executePendingPlatformActions();
@@ -207,7 +211,7 @@ namespace spk
 	{
 	}
 
-	std::shared_ptr<spk::Window> Application::createWindow(const WindowID& p_id, spk::Window::Configuration p_configuration)
+	std::weak_ptr<spk::Window> Application::createWindow(const WindowID& p_id, spk::Window::Configuration p_configuration)
 	{
 		_bindOrValidateOwnerThread(__FUNCTION__);
 
@@ -224,12 +228,12 @@ namespace spk
 		return _windowRegistry.createWindow(p_id, _platformRuntime, _gpuPlatformRuntime, std::move(p_configuration));
 	}
 
-	std::shared_ptr<spk::Window> Application::window(const WindowID& p_id)
+	std::weak_ptr<spk::Window> Application::window(const WindowID& p_id)
 	{
 		return _windowRegistry.window(p_id);
 	}
 
-	std::shared_ptr<const spk::Window> Application::window(const WindowID& p_id) const
+	std::weak_ptr<const spk::Window> Application::window(const WindowID& p_id) const
 	{
 		return _windowRegistry.window(p_id);
 	}
