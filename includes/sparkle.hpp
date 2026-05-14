@@ -10,3 +10,4 @@
 #include "spk_object_pool.hpp"
 #include "spk_observable_value.hpp"
 #include "spk_synchronizable_trait.hpp"
+#include "spk_thread_safe_contract.hpp"

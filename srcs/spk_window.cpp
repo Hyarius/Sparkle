@@ -160,6 +160,7 @@ namespace spk
 	{
 		if (_closureNotificationPending.exchange(false) == true)
 		{
+			std::scoped_lock lock(*_closureEventProviderMutex);
 			_closureEventProvider.trigger(this);
 		}
 	}
@@ -425,6 +426,10 @@ namespace spk
 
 	Window::ClosureContract Window::subscribeToClosure(ClosureCallback p_callback)
 	{
-		return _closureEventProvider.subscribe(std::move(p_callback));
+		std::scoped_lock lock(*_closureEventProviderMutex);
+
+		return ClosureContract(
+			_closureEventProvider.subscribe(std::move(p_callback)),
+			_closureEventProviderMutex);
 	}
 }

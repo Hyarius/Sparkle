@@ -205,3 +205,24 @@ TEST(WindowTest, ClosureSubscribersAreTriggeredByDestroyedEvents)
 
 	EXPECT_EQ(closureCount, 1);
 }
+
+TEST(WindowTest, ClosureSubscriberCanResignItselfDuringNotification)
+{
+	auto bundle = sparkle_test::createWindowBundle();
+	int closureCount = 0;
+	spk::Window::ClosureContract contract;
+
+	contract = bundle.window->subscribeToClosure([&](spk::Window*)
+	{
+		++closureCount;
+		contract.resign();
+	});
+
+	bundle.platformRuntime->queueFrameEvent(spk::WindowDestroyedRecord{});
+	bundle.platformRuntime->pollEvents();
+	bundle.window->update();
+	bundle.window->executePendingPlatformActions();
+
+	EXPECT_EQ(closureCount, 1);
+	EXPECT_FALSE(contract.isValid());
+}

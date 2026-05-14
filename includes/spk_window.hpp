@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <string>
 #include <vector>
@@ -14,6 +15,7 @@
 #include "spk_platform_runtime.hpp"
 #include "spk_render_module.hpp"
 #include "spk_render_snapshot_builder.hpp"
+#include "spk_thread_safe_contract.hpp"
 #include "spk_thread_safe_deque.hpp"
 #include "spk_update_module.hpp"
 #include "spk_window_host.hpp"
@@ -24,7 +26,8 @@ namespace spk
 	{
 	public:
 		using ClosureEventProvider = spk::ContractProvider<Window*>;
-		using ClosureContract = ClosureEventProvider::Contract;
+		using ClosureEventProviderMutex = std::recursive_mutex;
+		using ClosureContract = spk::ThreadSafeContract<ClosureEventProvider::Contract, ClosureEventProviderMutex>;
 		using ClosureCallback = ClosureEventProvider::Callback;
 
 		enum class PlatformActionType
@@ -84,6 +87,7 @@ namespace spk
 		spk::IFrame::MouseEventContract _mouseEventQueueContract;
 		spk::IFrame::KeyboardEventContract _keyboardEventQueueContract;
 
+		std::shared_ptr<ClosureEventProviderMutex> _closureEventProviderMutex = std::make_shared<ClosureEventProviderMutex>();
 		ClosureEventProvider _closureEventProvider;
 
 	private:
