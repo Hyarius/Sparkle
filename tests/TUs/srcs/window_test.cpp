@@ -11,19 +11,19 @@ TEST(WindowTest, ConstructionActivatesRootWidgetAndExposesAccessors)
 	auto bundle = sparkle_test::createWindowBundle(sparkle_test::defaultRect(), "Runtime");
 
 	ASSERT_NE(bundle.window, nullptr);
-	EXPECT_TRUE(bundle.window->rootWidget().isActivated());
-	EXPECT_EQ(bundle.window->rootWidget().name(), ":/Runtime/RootWidget");
-	EXPECT_EQ(bundle.window->rootWidget().geometry(), sparkle_test::defaultRect().atOrigin());
-	EXPECT_EQ(bundle.window->host().title(), "Runtime");
-	EXPECT_EQ(bundle.window->host().rect(), sparkle_test::defaultRect());
-	EXPECT_EQ(bundle.window->mouse().position, spk::Vector2Int(0, 0));
-	EXPECT_EQ(bundle.window->keyboard().glyph, U'\0');
+	EXPECT_TRUE(sparkle_test::WindowAccess::rootWidget(*bundle.window).isActivated());
+	EXPECT_EQ(sparkle_test::WindowAccess::rootWidget(*bundle.window).name(), ":/Runtime/RootWidget");
+	EXPECT_EQ(sparkle_test::WindowAccess::rootWidget(*bundle.window).geometry(), sparkle_test::defaultRect().atOrigin());
+	EXPECT_EQ(sparkle_test::WindowAccess::host(*bundle.window).title(), "Runtime");
+	EXPECT_EQ(sparkle_test::WindowAccess::host(*bundle.window).rect(), sparkle_test::defaultRect());
+	EXPECT_EQ(sparkle_test::WindowAccess::mouse(*bundle.window).position, spk::Vector2Int(0, 0));
+	EXPECT_EQ(sparkle_test::WindowAccess::keyboard(*bundle.window).glyph, U'\0');
 }
 
 TEST(WindowTest, PollEventsDrivesWindowModulesAndWidgetTree)
 {
 	auto bundle = sparkle_test::createWindowBundle();
-	sparkle_test::RecordingWidget child("Child", &bundle.window->rootWidget());
+	sparkle_test::RecordingWidget child("Child", &sparkle_test::WindowAccess::rootWidget(*bundle.window));
 	child.activate();
 
 	const spk::Rect2D resizedRect(0, 0, 500, 300);
@@ -41,10 +41,10 @@ TEST(WindowTest, PollEventsDrivesWindowModulesAndWidgetTree)
 	bundle.window->update();
 
 	EXPECT_EQ(bundle.platformRuntime->pollEventsCount, 1);
-	EXPECT_EQ(bundle.window->rootWidget().geometry(), resizedRect.atOrigin());
-	EXPECT_EQ(bundle.window->mouse().position, spk::Vector2Int(7, 9));
-	EXPECT_EQ(bundle.window->mouse().deltaPosition, spk::Vector2Int(-1, -1));
-	EXPECT_EQ(bundle.window->keyboard()[spk::Keyboard::C], spk::InputState::Down);
+	EXPECT_EQ(sparkle_test::WindowAccess::rootWidget(*bundle.window).geometry(), resizedRect.atOrigin());
+	EXPECT_EQ(sparkle_test::WindowAccess::mouse(*bundle.window).position, spk::Vector2Int(7, 9));
+	EXPECT_EQ(sparkle_test::WindowAccess::mouse(*bundle.window).deltaPosition, spk::Vector2Int(-1, -1));
+	EXPECT_EQ(sparkle_test::WindowAccess::keyboard(*bundle.window)[spk::Keyboard::C], spk::InputState::Down);
 	EXPECT_EQ(bundle.gpuPlatformRuntime->createdContext, nullptr);
 	EXPECT_EQ(bundle.gpuPlatformRuntime->createRenderContextCount, 0);
 	bundle.window->render();
@@ -60,7 +60,7 @@ TEST(WindowTest, PollEventsDrivesWindowModulesAndWidgetTree)
 TEST(WindowTest, UpdateProcessesEventQueuesByFamily)
 {
 	auto bundle = sparkle_test::createWindowBundle();
-	sparkle_test::RecordingWidget child("Child", &bundle.window->rootWidget());
+	sparkle_test::RecordingWidget child("Child", &sparkle_test::WindowAccess::rootWidget(*bundle.window));
 	child.activate();
 
 	bundle.platformRuntime->queueMouseEvent(spk::MouseMovedRecord{
@@ -85,7 +85,7 @@ TEST(WindowTest, UpdateProcessesEventQueuesByFamily)
 TEST(WindowTest, RenderConsumesTheLatestPendingResizeAfterUpdate)
 {
 	auto bundle = sparkle_test::createWindowBundle();
-	sparkle_test::RecordingWidget child("Child", &bundle.window->rootWidget());
+	sparkle_test::RecordingWidget child("Child", &sparkle_test::WindowAccess::rootWidget(*bundle.window));
 	child.activate();
 
 	const spk::Rect2D firstRect(0, 0, 500, 300);
@@ -118,20 +118,20 @@ TEST(WindowTest, RenderConsumesTheLatestPendingResizeAfterUpdate)
 TEST(WindowTest, UpdateDelegatesToRootWidgetTree)
 {
 	auto bundle = sparkle_test::createWindowBundle();
-	sparkle_test::RecordingWidget child("Child", &bundle.window->rootWidget());
+	sparkle_test::RecordingWidget child("Child", &sparkle_test::WindowAccess::rootWidget(*bundle.window));
 	child.activate();
 
 	bundle.window->update();
 
 	EXPECT_EQ(child.updateCount, 1);
-	EXPECT_EQ(child.lastTickMouse, &bundle.window->mouse());
-	EXPECT_EQ(child.lastTickKeyboard, &bundle.window->keyboard());
+	EXPECT_EQ(child.lastTickMouse, &sparkle_test::WindowAccess::mouse(*bundle.window));
+	EXPECT_EQ(child.lastTickKeyboard, &sparkle_test::WindowAccess::keyboard(*bundle.window));
 }
 
 TEST(WindowTest, RenderMakesContextCurrentExecutesSnapshotAndPresents)
 {
 	auto bundle = sparkle_test::createWindowBundle();
-	sparkle_test::RecordingWidget child("Child", &bundle.window->rootWidget());
+	sparkle_test::RecordingWidget child("Child", &sparkle_test::WindowAccess::rootWidget(*bundle.window));
 	child.activate();
 
 	bundle.window->update();
@@ -150,13 +150,14 @@ TEST(WindowTest, RequestClosureDelegatesToManagedWindow)
 	bundle.window->requestClosure();
 
 	ASSERT_NE(bundle.platformRuntime->createdFrame, nullptr);
+	bundle.window->executePendingPlatformActions();
 	EXPECT_EQ(bundle.platformRuntime->createdFrame->requestClosureCount, 1);
 }
 
 TEST(WindowTest, UnconsumedCloseRequestValidatesClosure)
 {
 	auto bundle = sparkle_test::createWindowBundle();
-	sparkle_test::RecordingWidget child("Child", &bundle.window->rootWidget());
+	sparkle_test::RecordingWidget child("Child", &sparkle_test::WindowAccess::rootWidget(*bundle.window));
 	child.activate();
 
 	bundle.platformRuntime->queueFrameEvent(spk::WindowCloseRequestedRecord{});
@@ -173,7 +174,7 @@ TEST(WindowTest, UnconsumedCloseRequestValidatesClosure)
 TEST(WindowTest, ConsumedCloseRequestDoesNotValidateClosure)
 {
 	auto bundle = sparkle_test::createWindowBundle();
-	sparkle_test::RecordingWidget child("Child", &bundle.window->rootWidget());
+	sparkle_test::RecordingWidget child("Child", &sparkle_test::WindowAccess::rootWidget(*bundle.window));
 	child.activate();
 	child.consumeFrameEvent = true;
 
@@ -226,3 +227,5 @@ TEST(WindowTest, ClosureSubscriberCanResignItselfDuringNotification)
 	EXPECT_EQ(closureCount, 1);
 	EXPECT_FALSE(contract.isValid());
 }
+
+

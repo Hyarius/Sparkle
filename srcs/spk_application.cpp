@@ -211,7 +211,7 @@ namespace spk
 	{
 	}
 
-	std::weak_ptr<spk::Window> Application::createWindow(const WindowID& p_id, spk::Window::Configuration p_configuration)
+	spk::WindowHandle Application::createWindow(const WindowID& p_id, spk::Window::Configuration p_configuration)
 	{
 		_bindOrValidateOwnerThread(__FUNCTION__);
 
@@ -228,12 +228,12 @@ namespace spk
 		return _windowRegistry.createWindow(p_id, _platformRuntime, _gpuPlatformRuntime, std::move(p_configuration));
 	}
 
-	std::weak_ptr<spk::Window> Application::window(const WindowID& p_id)
+	spk::WindowHandle Application::window(const WindowID& p_id)
 	{
 		return _windowRegistry.window(p_id);
 	}
 
-	std::weak_ptr<const spk::Window> Application::window(const WindowID& p_id) const
+	spk::WindowHandle Application::window(const WindowID& p_id) const
 	{
 		return _windowRegistry.window(p_id);
 	}

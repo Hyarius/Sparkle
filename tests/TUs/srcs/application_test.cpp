@@ -3,7 +3,9 @@
 #include <atomic>
 #include <thread>
 
+#define private public
 #include "spk_application.hpp"
+#undef private
 #include "window_test_utils.hpp"
 
 TEST(ApplicationTest, CreateWindowAndLookupReturnTheManagedWindow)
@@ -17,7 +19,7 @@ TEST(ApplicationTest, CreateWindowAndLookupReturnTheManagedWindow)
 			.gpuPlatformRuntime = gpuPlatformRuntime
 		});
 
-	std::weak_ptr<spk::Window> windowHandle = application.createWindow(
+	spk::WindowHandle windowHandle = application.createWindow(
 		"main",
 		spk::Window::Configuration{
 			.rect = sparkle_test::defaultRect(),
@@ -27,10 +29,8 @@ TEST(ApplicationTest, CreateWindowAndLookupReturnTheManagedWindow)
 	EXPECT_TRUE(application.containsWindow("main"));
 	EXPECT_FALSE(application.window("main").expired());
 	EXPECT_FALSE(windowHandle.expired());
-	std::shared_ptr<spk::Window> window = windowHandle.lock();
-	ASSERT_NE(window, nullptr);
-	EXPECT_EQ(window->host().title(), "Main");
 	ASSERT_NE(platformRuntimePtr->createdFrame, nullptr);
+	EXPECT_EQ(platformRuntimePtr->createdFrame->currentTitle, "Main");
 	EXPECT_EQ(platformRuntimePtr->lastCreateTitle, "Main");
 }
 
@@ -55,6 +55,9 @@ TEST(ApplicationTest, RequestWindowClosingDelegatesToTheManagedWindow)
 	application.requestWindowClosing("main");
 
 	ASSERT_NE(platformRuntimePtr->createdFrame, nullptr);
+	std::shared_ptr<spk::Window> window = application._windowRegistry._windows.at("main").window;
+	ASSERT_NE(window, nullptr);
+	window->executePendingPlatformActions();
 	EXPECT_EQ(platformRuntimePtr->createdFrame->requestClosureCount, 1);
 }
 
@@ -78,7 +81,7 @@ TEST(ApplicationTest, RunExecutesEventUpdateAndRenderLoops)
 	auto* platformRuntimePtr = platformRuntime.get();
 	auto* gpuPlatformRuntimePtr = gpuPlatformRuntime.get();
 
-	std::weak_ptr<spk::Window> windowHandle = application.createWindow(
+	spk::WindowHandle windowHandle = application.createWindow(
 		"main",
 		spk::Window::Configuration{
 			.rect = sparkle_test::defaultRect(),
@@ -89,9 +92,9 @@ TEST(ApplicationTest, RunExecutesEventUpdateAndRenderLoops)
 	std::atomic<int> renderCount = 0;
 	std::atomic<bool> destroyQueued = false;
 
-	std::shared_ptr<spk::Window> window = windowHandle.lock();
+	std::shared_ptr<spk::Window> window = application._windowRegistry._windows.at("main").window;
 	ASSERT_NE(window, nullptr);
-	sparkle_test::CallbackWidget probe("Probe", &window->rootWidget());
+	sparkle_test::CallbackWidget probe("Probe", &sparkle_test::WindowAccess::rootWidget(*window));
 	probe.activate();
 	probe.onUpdate = [&](const spk::UpdateTick& p_tick)
 	{
@@ -123,7 +126,7 @@ TEST(ApplicationTest, RunExecutesEventUpdateAndRenderLoops)
 	EXPECT_GT(platformRuntimePtr->pollEventsCount, 0);
 	EXPECT_GT(updateCount.load(), 0);
 	EXPECT_GT(renderCount.load(), 0);
-	EXPECT_EQ(window->mouse().position, spk::Vector2Int(11, 13));
+	EXPECT_EQ(sparkle_test::WindowAccess::mouse(*window).position, spk::Vector2Int(11, 13));
 	ASSERT_NE(gpuPlatformRuntimePtr->contextStats, nullptr);
 	EXPECT_GT(gpuPlatformRuntimePtr->contextStats->makeCurrentCount, 0);
 	EXPECT_GT(gpuPlatformRuntimePtr->contextStats->presentCount, 0);
@@ -194,17 +197,17 @@ TEST(ApplicationTest, RunRethrowsWorkerThreadFailuresOnTheCallerThread)
 			.stopWhenNoWindows = false
 		});
 
-	std::weak_ptr<spk::Window> windowHandle = application.createWindow(
+	spk::WindowHandle windowHandle = application.createWindow(
 		"main",
 		spk::Window::Configuration{
 			.rect = sparkle_test::defaultRect(),
 			.title = "Main"
 		});
 
-	std::shared_ptr<spk::Window> window = windowHandle.lock();
+	std::shared_ptr<spk::Window> window = application._windowRegistry._windows.at("main").window;
 	ASSERT_NE(window, nullptr);
 
-	sparkle_test::CallbackWidget probe("Probe", &window->rootWidget());
+	sparkle_test::CallbackWidget probe("Probe", &sparkle_test::WindowAccess::rootWidget(*window));
 	probe.activate();
 	probe.onUpdate = [](const spk::UpdateTick&)
 	{
@@ -362,3 +365,6 @@ TEST(ApplicationTest, CreateWindowThrowsWhenCalledFromDifferentThreadThanApplica
 	EXPECT_THROW(std::rethrow_exception(failure), std::runtime_error);
 	EXPECT_FALSE(application.containsWindow("main"));
 }
+
+
+

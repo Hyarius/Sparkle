@@ -22,6 +22,8 @@
 
 namespace spk
 {
+	class WindowHandle;
+
 	class Window
 	{
 	public:
@@ -107,7 +109,6 @@ namespace spk
 		void _executePlatformAction(const PlatformAction& p_action);
 		void _triggerClosureNotificationIfPending();
 		void _releasePlatformResourcesIfReady();
-		void _executePendingPlatformActionsIfOnPlatformThread();
 
 		void _processPendingFrameEvents();
 		void _processPendingMouseEvents();
@@ -116,6 +117,12 @@ namespace spk
 
 		void _releaseRenderResources();
 		void _executeRenderAction(const RenderAction& p_action);
+
+		void _setTitle(std::string p_title);
+		void _resize(const spk::Rect2D& p_rect);
+		void _setVSync(bool p_enabled);
+
+		friend class spk::WindowHandle;
 
 	public:
 		Window(std::shared_ptr<IPlatformRuntime> p_platformRuntime, std::shared_ptr<IGPUPlatformRuntime> p_gpuPlatformRuntime, Configuration p_configuration);

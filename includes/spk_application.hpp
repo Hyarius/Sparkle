@@ -9,6 +9,7 @@
 #include "spk_duration.hpp"
 #include "spk_gpu_platform_runtime.hpp"
 #include "spk_platform_runtime.hpp"
+#include "spk_window_handle.hpp"
 #include "spk_window_registry.hpp"
 
 namespace spk
@@ -55,10 +56,10 @@ namespace spk
 		Application();
 		explicit Application(Configuration p_configuration);
 
-		std::weak_ptr<spk::Window> createWindow(const WindowID& p_id, spk::Window::Configuration p_configuration);
+		spk::WindowHandle createWindow(const WindowID& p_id, spk::Window::Configuration p_configuration);
 
-		[[nodiscard]] std::weak_ptr<spk::Window> window(const WindowID& p_id);
-		[[nodiscard]] std::weak_ptr<const spk::Window> window(const WindowID& p_id) const;
+		[[nodiscard]] spk::WindowHandle window(const WindowID& p_id);
+		[[nodiscard]] spk::WindowHandle window(const WindowID& p_id) const;
 		[[nodiscard]] bool containsWindow(const WindowID& p_id) const;
 		[[nodiscard]] bool isRunning() const;
 

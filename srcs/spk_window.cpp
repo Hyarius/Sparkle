@@ -178,14 +178,6 @@ namespace spk
 		}
 	}
 
-	void Window::_executePendingPlatformActionsIfOnPlatformThread()
-	{
-		if (_host.isPlatformThread() == true)
-		{
-			executePendingPlatformActions();
-		}
-	}
-
 	void Window::_processPendingFrameEvents()
 	{
 		_frameModule.processEvents(
@@ -339,6 +331,42 @@ namespace spk
 		return _rootWidget;
 	}
 
+	void Window::_setTitle(std::string p_title)
+	{
+		if (_isClosed.load() == true)
+		{
+			return;
+		}
+
+		_enqueuePlatformAction(PlatformAction{
+			.type = PlatformActionType::SetTitle,
+			.title = std::move(p_title)});
+	}
+
+	void Window::_resize(const spk::Rect2D& p_rect)
+	{
+		if (_isClosed.load() == true)
+		{
+			return;
+		}
+
+		_enqueuePlatformAction(PlatformAction{
+			.type = PlatformActionType::ResizeFrame,
+			.rect = p_rect});
+	}
+
+	void Window::_setVSync(bool p_enabled)
+	{
+		if (_isClosed.load() == true)
+		{
+			return;
+		}
+
+		_enqueueRenderAction(RenderAction{
+			.type = RenderActionType::SetVSync,
+			.vSyncEnabled = p_enabled});
+	}
+
 	void Window::executePendingPlatformActions()
 	{
 		std::vector<PlatformAction> actions = _drainPendingPlatformActions();
@@ -407,8 +435,6 @@ namespace spk
 
 		_enqueuePlatformAction(PlatformAction{
 			.type = PlatformActionType::RequestClosure});
-
-		_executePendingPlatformActionsIfOnPlatformThread();
 	}
 
 	bool Window::isClosed() const

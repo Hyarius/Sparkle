@@ -9,9 +9,12 @@
 #include "spk_gpu_platform_runtime.hpp"
 #include "spk_platform_runtime.hpp"
 #include "spk_window.hpp"
+#include "spk_window_handle.hpp"
 
 namespace spk
 {
+	class Application;
+
 	class WindowRegistry
 	{
 	public:
@@ -27,12 +30,15 @@ namespace spk
 
 		std::unordered_map<WindowID, Entry> _windows;
 
+		[[nodiscard]] std::vector<std::weak_ptr<spk::Window>> windows() const;
+
+		friend class spk::Application;
+
 	public:
-		std::weak_ptr<spk::Window> createWindow(const WindowID& p_id, std::shared_ptr<IPlatformRuntime> p_platformRuntime, std::shared_ptr<IGPUPlatformRuntime> p_gpuPlatformRuntime, spk::Window::Configuration p_configuration);
-		[[nodiscard]] std::weak_ptr<spk::Window> window(const WindowID& p_id) const;
+		spk::WindowHandle createWindow(const WindowID& p_id, std::shared_ptr<IPlatformRuntime> p_platformRuntime, std::shared_ptr<IGPUPlatformRuntime> p_gpuPlatformRuntime, spk::Window::Configuration p_configuration);
+		[[nodiscard]] spk::WindowHandle window(const WindowID& p_id) const;
 		[[nodiscard]] bool contains(const WindowID& p_id) const;
 		[[nodiscard]] size_t size() const;
-		[[nodiscard]] std::vector<std::weak_ptr<spk::Window>> windows() const;
 		void removeClosedWindows();
 		void requestWindowClosing(const WindowID& p_id);
 	};

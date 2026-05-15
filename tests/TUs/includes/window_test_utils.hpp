@@ -12,6 +12,7 @@
 #include <variant>
 #include <vector>
 
+#include "spk_application.hpp"
 #include "spk_events.hpp"
 #include "spk_frame.hpp"
 #include "spk_gpu_platform_runtime.hpp"
@@ -25,6 +26,50 @@
 
 namespace sparkle_test
 {
+	class WindowAccess
+	{
+	public:
+		[[nodiscard]] static spk::WindowHost& host(spk::Window& p_window)
+		{
+			return p_window.host();
+		}
+
+		[[nodiscard]] static const spk::WindowHost& host(const spk::Window& p_window)
+		{
+			return p_window.host();
+		}
+
+		[[nodiscard]] static spk::Mouse& mouse(spk::Window& p_window)
+		{
+			return p_window.mouse();
+		}
+
+		[[nodiscard]] static const spk::Mouse& mouse(const spk::Window& p_window)
+		{
+			return p_window.mouse();
+		}
+
+		[[nodiscard]] static spk::Keyboard& keyboard(spk::Window& p_window)
+		{
+			return p_window.keyboard();
+		}
+
+		[[nodiscard]] static const spk::Keyboard& keyboard(const spk::Window& p_window)
+		{
+			return p_window.keyboard();
+		}
+
+		[[nodiscard]] static spk::Widget& rootWidget(spk::Window& p_window)
+		{
+			return p_window.rootWidget();
+		}
+
+		[[nodiscard]] static const spk::Widget& rootWidget(const spk::Window& p_window)
+		{
+			return p_window.rootWidget();
+		}
+	};
+
 	inline spk::Rect2D defaultRect()
 	{
 		return spk::Rect2D(10, 20, 300, 400);
