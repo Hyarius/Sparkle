@@ -9,7 +9,7 @@ This folder contains focused PlantUML diagrams for the currently implemented Spa
 - `widget-tree-class.puml`: widget inheritance, activation, and render/update/event extension points.
 - `platform-rendering-class.puml`: frame, surface state, render context, render commands, and GPU runtime abstractions.
 - `events-input-class.puml`: split frame/mouse/keyboard event record variants, typed event views, and input state devices.
-- `binary-object-class.puml`: binary object, fields, layout nodes, and synchronization.
+- `binary-object-class.puml`: binary field byte views, explicit sections, and assignment constraints.
 - `traits-and-utilities-class.puml`: reusable traits and utility templates.
 - `time-class.puml`: duration, timestamp, chronometer, timer, and time utilities.
 
@@ -19,5 +19,5 @@ This folder contains focused PlantUML diagrams for the currently implemented Spa
 - `window-event-routing-sequence.puml`: platform event reception into family queues, update-thread processing, modules, and widgets.
 - `window-render-sequence.puml`: render snapshots, render actions, context binding, command execution, and presentation.
 - `window-closure-sequence.puml`: closure request, validation, destruction notification, and resource release.
-- `binary-layout-sequence.puml`: binary schema mutation, lazy synchronization, layout, and buffer access.
+- `binary-layout-sequence.puml`: binary field section creation, lookup, assignment, and byte access.
 - `contract-provider-sequence.puml`: subscription, triggering, blocking, delayed flush, and contract resignation.

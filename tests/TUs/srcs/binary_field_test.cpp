@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include <array>
 #include <cstdint>
 #include <span>
 #include <stdexcept>
@@ -8,409 +9,194 @@
 
 namespace
 {
-	using namespace spk;
-
 	struct Uint3
 	{
 		std::uint32_t x;
 		std::uint32_t y;
 		std::uint32_t z;
 	};
-
-	struct Uint4
-	{
-		std::uint32_t x;
-		std::uint32_t y;
-		std::uint32_t z;
-		std::uint32_t w;
-	};
 }
 
 TEST(BinaryFieldTest, DefaultConstructedFieldIsInvalid)
 {
-	BinaryField field;
+	spk::BinaryField field;
 
 	EXPECT_FALSE(field.isValid());
-
-	EXPECT_THROW(field.kind(), std::runtime_error);
 	EXPECT_THROW(field.name(), std::runtime_error);
-	EXPECT_THROW(field.size(), std::runtime_error);
-	EXPECT_THROW(field.offset(), std::runtime_error);
-	EXPECT_THROW(field.alignment(), std::runtime_error);
-	EXPECT_THROW(field.count(), std::runtime_error);
-	EXPECT_THROW(field.stride(), std::runtime_error);
 	EXPECT_THROW(field.bytes(), std::runtime_error);
 }
 
-TEST(BinaryFieldTest, RootFieldIsValidAndIsObject)
+TEST(BinaryFieldTest, RootFieldWrapsExternalBytes)
 {
-	BinaryObject object;
-	BinaryField root = object.root();
-
-	EXPECT_TRUE(root.isValid());
-	EXPECT_TRUE(root.isObject());
-	EXPECT_FALSE(root.isValue());
-	EXPECT_FALSE(root.isArray());
-
-	EXPECT_EQ(root.kind(), BinaryFieldKind::Object);
-	EXPECT_EQ(root.name(), "<root>");
-}
-
-TEST(BinaryFieldTest, AddValueCreatesValueFieldWithExpectedName)
-{
-	BinaryObject object;
-	BinaryField field = object.addValue("Version", sizeof(std::uint32_t));
+	std::array<std::uint8_t, 16> data{};
+	spk::BinaryField field(data.data(), data.size());
 
 	EXPECT_TRUE(field.isValid());
-	EXPECT_TRUE(field.isValue());
-	EXPECT_EQ(field.kind(), BinaryFieldKind::Value);
-	EXPECT_EQ(field.name(), "Version");
-	EXPECT_EQ(field.size(), sizeof(std::uint32_t));
+	EXPECT_EQ(field.name(), "<root>");
+	EXPECT_EQ(field.size(), data.size());
+	EXPECT_EQ(field.offset(), 0u);
+	EXPECT_EQ(field.data(), data.data());
 }
 
-TEST(BinaryFieldTest, AddObjectCreatesObjectField)
+TEST(BinaryFieldTest, NullDataWithNonZeroSizeThrows)
 {
-	BinaryObject object;
-	BinaryField nested = object.addObject("Transform");
-
-	EXPECT_TRUE(nested.isObject());
-	EXPECT_EQ(nested.name(), "Transform");
+	EXPECT_THROW(spk::BinaryField(nullptr, 4), std::runtime_error);
 }
 
-TEST(BinaryFieldTest, AddArrayCreatesArrayField)
+TEST(BinaryFieldTest, AddsNamedValueAtExplicitOffset)
 {
-	BinaryObject object;
-	BinaryField arrayField = object.addArray("Values", 3, sizeof(std::uint32_t));
+	std::array<std::uint8_t, 16> data{};
+	spk::BinaryField root(data.data(), data.size());
 
-	EXPECT_TRUE(arrayField.isArray());
-	EXPECT_EQ(arrayField.kind(), BinaryFieldKind::Array);
-	EXPECT_EQ(arrayField.name(), "Values");
-	EXPECT_EQ(arrayField.count(), 3u);
-	EXPECT_EQ(arrayField.stride(), sizeof(std::uint32_t));
+	spk::BinaryField value = root.addValue("Value", 4, sizeof(std::uint32_t));
+
+	EXPECT_EQ(value.name(), "Value");
+	EXPECT_EQ(value.offset(), 4u);
+	EXPECT_EQ(value.size(), sizeof(std::uint32_t));
+	EXPECT_EQ(value.data(), data.data() + 4);
 }
 
-TEST(BinaryFieldTest, AddChildValueInsideObjectWorks)
+TEST(BinaryFieldTest, RejectsChildOutsideParentBounds)
 {
-	BinaryObject object;
-	BinaryField nested = object.addObject("Transform");
-	BinaryField position = nested.addValue("Position", sizeof(Uint3));
+	std::array<std::uint8_t, 8> data{};
+	spk::BinaryField root(data.data(), data.size());
 
-	EXPECT_TRUE(position.isValue());
-	EXPECT_EQ(position.name(), "Position");
-	EXPECT_EQ(position.size(), sizeof(Uint3));
-
-	BinaryField fetched = nested["Position"];
-	EXPECT_EQ(fetched.name(), "Position");
-	EXPECT_EQ(fetched.size(), sizeof(Uint3));
+	EXPECT_THROW(root.addValue("TooLarge", 4, 8), std::runtime_error);
 }
 
-TEST(BinaryFieldTest, AddChildArrayInsideObjectWorks)
+TEST(BinaryFieldTest, AddsObjectAndValidatesChildrenAgainstObjectSize)
 {
-	BinaryObject object;
-	BinaryField nested = object.addObject("Data");
-	BinaryField values = nested.addArray("Values", 4, sizeof(std::uint32_t));
+	std::array<std::uint8_t, 16> data{};
+	spk::BinaryField root(data.data(), data.size());
 
-	EXPECT_TRUE(values.isArray());
-	EXPECT_EQ(values.name(), "Values");
-	EXPECT_EQ(values.count(), 4u);
+	spk::BinaryField object = root.addObject("Object", 4, 4);
+	spk::BinaryField value = object.addValue("Byte", 2, sizeof(std::uint8_t));
 
-	for (std::size_t index = 0; index < 4; ++index)
-	{
-		EXPECT_TRUE(values[index].isValue());
-		EXPECT_EQ(values[index].size(), sizeof(std::uint32_t));
-	}
+	EXPECT_EQ(object.data(), data.data() + 4);
+	EXPECT_EQ(value.data(), data.data() + 6);
+	EXPECT_THROW(object.addValue("Overflow", 3, 2), std::runtime_error);
 }
 
-TEST(BinaryFieldTest, AddChildObjectInsideObjectWorks)
+TEST(BinaryFieldTest, NamedLookupReturnsChild)
 {
-	BinaryObject object;
-	BinaryField root = object.root();
-	BinaryField nested = root.addObject("Nested");
-	BinaryField child = nested.addObject("SubNested");
+	std::array<std::uint8_t, 8> data{};
+	spk::BinaryField root(data.data(), data.size());
 
-	EXPECT_TRUE(nested.isObject());
-	EXPECT_TRUE(child.isObject());
-	EXPECT_EQ(nested.name(), "Nested");
-	EXPECT_EQ(child.name(), "SubNested");
+	root.addValue("A", 0, 1);
+
+	EXPECT_EQ(root["A"].data(), data.data());
+	EXPECT_THROW(root["Missing"], std::runtime_error);
 }
 
-TEST(BinaryFieldTest, AccessByNameFromNonObjectThrows)
+TEST(BinaryFieldTest, DuplicateNamesThrow)
 {
-	BinaryObject object;
-	BinaryField value = object.addValue("Value", sizeof(std::uint32_t));
+	std::array<std::uint8_t, 8> data{};
+	spk::BinaryField root(data.data(), data.size());
 
-	EXPECT_THROW(value["Child"], std::runtime_error);
+	root.addValue("A", 0, 1);
+
+	EXPECT_THROW(root.addValue("A", 1, 1), std::runtime_error);
 }
 
-TEST(BinaryFieldTest, AccessByIndexFromNonArrayThrows)
+TEST(BinaryFieldTest, AddsFixedArrayAndIndexedElements)
 {
-	BinaryObject object;
-	BinaryField value = object.addValue("Value", sizeof(std::uint32_t));
+	std::array<std::uint8_t, 16> data{};
+	spk::BinaryField root(data.data(), data.size());
 
-	EXPECT_THROW(value[0], std::runtime_error);
+	spk::BinaryField values = root.addArray("Values", 4, 3, sizeof(std::uint16_t));
+
+	EXPECT_EQ(values.size(), 6u);
+	EXPECT_EQ(values.count(), 3u);
+	EXPECT_EQ(values.elementSize(), sizeof(std::uint16_t));
+	EXPECT_EQ(values[0].data(), data.data() + 4);
+	EXPECT_EQ(values[1].data(), data.data() + 6);
+	EXPECT_EQ(values[2].data(), data.data() + 8);
+	EXPECT_THROW(values[3], std::runtime_error);
 }
 
-TEST(BinaryFieldTest, AccessMissingChildByNameThrows)
+TEST(BinaryFieldTest, ArrayCannotReceiveNamedChildren)
 {
-	BinaryObject object;
-	BinaryField nested = object.addObject("Nested");
+	std::array<std::uint8_t, 8> data{};
+	spk::BinaryField root(data.data(), data.size());
+	spk::BinaryField values = root.addArray("Values", 0, 2, 1);
 
-	EXPECT_THROW(nested["Missing"], std::runtime_error);
+	EXPECT_THROW(values.addValue("A", 0, 1), std::runtime_error);
 }
 
-TEST(BinaryFieldTest, AccessArrayOutOfRangeThrows)
+TEST(BinaryFieldTest, AssignsTriviallyCopyableScalarWithExactSize)
 {
-	BinaryObject object;
-	BinaryField values = object.addArray("Values", 2, sizeof(std::uint32_t));
+	std::array<std::uint8_t, 8> data{};
+	spk::BinaryField root(data.data(), data.size());
+	spk::BinaryField value = root.addValue("Value", 2, sizeof(std::uint32_t));
 
-	EXPECT_THROW(values[2], std::runtime_error);
-	EXPECT_THROW(values[99], std::runtime_error);
+	value = std::uint32_t{0xAABBCCDDu};
+
+	EXPECT_EQ(value.as<std::uint32_t>(), 0xAABBCCDDu);
+	EXPECT_THROW(value = std::uint16_t{0xFFFFu}, std::runtime_error);
 }
 
-TEST(BinaryFieldTest, AddValueOnNonObjectThrows)
+TEST(BinaryFieldTest, AssignsOneByteValueWithExplicitByteType)
 {
-	BinaryObject object;
-	BinaryField value = object.addValue("Value", sizeof(std::uint32_t));
+	std::array<std::uint8_t, 4> data{};
+	spk::BinaryField root(data.data(), data.size());
+	spk::BinaryField value = root.addValue("Byte", 1, sizeof(std::uint8_t));
 
-	EXPECT_THROW(value.addValue("Other", sizeof(std::uint32_t)), std::runtime_error);
+	value = std::uint8_t{0xFFu};
+
+	EXPECT_EQ(data[1], 0xFFu);
 }
 
-TEST(BinaryFieldTest, AddArrayOnNonObjectThrows)
+TEST(BinaryFieldTest, AssignsStdArrayWhenByteSizeMatches)
 {
-	BinaryObject object;
-	BinaryField value = object.addValue("Value", sizeof(std::uint32_t));
+	std::array<std::uint8_t, 8> data{};
+	spk::BinaryField root(data.data(), data.size());
+	spk::BinaryField values = root.addArray("Values", 2, 3, sizeof(std::uint8_t));
 
-	EXPECT_THROW(value.addArray("Other", 3, sizeof(std::uint32_t)), std::runtime_error);
+	const std::array<std::uint8_t, 3> source{0xAAu, 0xBBu, 0xCCu};
+	values = source;
+
+	EXPECT_EQ(data[2], 0xAAu);
+	EXPECT_EQ(data[3], 0xBBu);
+	EXPECT_EQ(data[4], 0xCCu);
 }
 
-TEST(BinaryFieldTest, AddObjectOnNonObjectThrows)
+TEST(BinaryFieldTest, IndexedArrayElementAssignmentChecksElementSize)
 {
-	BinaryObject object;
-	BinaryField value = object.addValue("Value", sizeof(std::uint32_t));
+	std::array<std::uint8_t, 8> data{};
+	spk::BinaryField root(data.data(), data.size());
+	spk::BinaryField values = root.addArray("Values", 0, 2, sizeof(std::uint16_t));
 
-	EXPECT_THROW(value.addObject("Other"), std::runtime_error);
+	values[1] = std::uint16_t{0xCAFEu};
+
+	EXPECT_EQ(values[1].as<std::uint16_t>(), 0xCAFEu);
+	EXPECT_THROW(values[0] = std::uint8_t{0xFFu}, std::runtime_error);
 }
 
-TEST(BinaryFieldTest, DuplicateNameInsideSameObjectThrows)
+TEST(BinaryFieldTest, ObjectAssignmentCopiesExactObjectBytes)
 {
-	BinaryObject object;
-	object.addValue("Value", sizeof(std::uint32_t));
+	std::array<std::uint8_t, 16> data{};
+	spk::BinaryField root(data.data(), data.size());
+	spk::BinaryField object = root.addObject("Position", 0, sizeof(Uint3));
 
-	EXPECT_THROW(object.addValue("Value", sizeof(std::uint32_t)), std::runtime_error);
+	const Uint3 source{1u, 2u, 3u};
+	object = source;
+
+	EXPECT_EQ(object.as<Uint3>().x, 1u);
+	EXPECT_EQ(object.as<Uint3>().y, 2u);
+	EXPECT_EQ(object.as<Uint3>().z, 3u);
 }
 
-TEST(BinaryFieldTest, DuplicateNameInsideNestedObjectThrows)
+TEST(BinaryFieldTest, BytesExposeTheSelectedSection)
 {
-	BinaryObject object;
-	BinaryField nested = object.addObject("Nested");
-	nested.addValue("Value", sizeof(std::uint32_t));
-
-	EXPECT_THROW(nested.addValue("Value", sizeof(std::uint32_t)), std::runtime_error);
-}
-
-TEST(BinaryFieldTest, EmptyNameThrows)
-{
-	BinaryObject object;
-	BinaryField root = object.root();
-
-	EXPECT_THROW(root.addValue("", sizeof(std::uint32_t)), std::runtime_error);
-	EXPECT_THROW(root.addArray("", 2, sizeof(std::uint32_t)), std::runtime_error);
-	EXPECT_THROW(root.addObject(""), std::runtime_error);
-}
-
-TEST(BinaryFieldTest, ZeroSizedValueThrows)
-{
-	BinaryObject object;
-
-	EXPECT_THROW(object.addValue("Zero", 0), std::runtime_error);
-	EXPECT_THROW(object.root().addValue("Zero", 0), std::runtime_error);
-}
-
-TEST(BinaryFieldTest, ZeroSizedArrayElementThrows)
-{
-	BinaryObject object;
-
-	EXPECT_THROW(object.addArray("Array", 3, 0), std::runtime_error);
-	EXPECT_THROW(object.root().addArray("Array", 3, 0), std::runtime_error);
-}
-
-TEST(BinaryFieldTest, SetAndAsRoundTripScalarWorks)
-{
-	BinaryObject object;
-	BinaryField value = object.addValue("Value", sizeof(std::uint32_t));
-
-	value.set<std::uint32_t>(123456u);
-
-	EXPECT_EQ(value.as<std::uint32_t>(), 123456u);
-}
-
-TEST(BinaryFieldTest, SetAndAsRoundTripCustomStructureWorks)
-{
-	BinaryObject object;
-	BinaryField position = object.addValue("Position", sizeof(Uint3));
-
-	const Uint3 source{10u, 20u, 30u};
-	position.set<Uint3>(source);
-
-	const Uint3 readback = position.as<Uint3>();
-
-	EXPECT_EQ(readback.x, 10u);
-	EXPECT_EQ(readback.y, 20u);
-	EXPECT_EQ(readback.z, 30u);
-}
-
-TEST(BinaryFieldTest, SetWithWrongSizeThrows)
-{
-	BinaryObject object;
-	BinaryField value = object.addValue("Value", sizeof(std::uint32_t));
-
-	EXPECT_THROW(value.set<Uint3>({1u, 2u, 3u}), std::runtime_error);
-}
-
-TEST(BinaryFieldTest, AsWithWrongSizeThrows)
-{
-	BinaryObject object;
-	BinaryField value = object.addValue("Value", sizeof(std::uint32_t));
-	value.set<std::uint32_t>(77u);
-
-	EXPECT_THROW(value.as<Uint3>(), std::runtime_error);
-}
-
-TEST(BinaryFieldTest, SetOnNonValueThrows)
-{
-	BinaryObject object;
-	BinaryField nested = object.addObject("Nested");
-
-	EXPECT_THROW(nested.set<std::uint32_t>(5u), std::runtime_error);
-}
-
-TEST(BinaryFieldTest, AsOnNonValueThrows)
-{
-	BinaryObject object;
-	BinaryField nested = object.addObject("Nested");
-
-	EXPECT_THROW(nested.as<std::uint32_t>(), std::runtime_error);
-}
-
-TEST(BinaryFieldTest, BytesExposeWrittenMemoryForValueField)
-{
-	BinaryObject object;
-	BinaryField value = object.addValue("Value", sizeof(Uint4));
-
-	const Uint4 source{1u, 2u, 3u, 4u};
-	value.set<Uint4>(source);
+	std::array<std::uint8_t, 8> data{};
+	spk::BinaryField root(data.data(), data.size());
+	spk::BinaryField value = root.addValue("Value", 3, 2);
 
 	std::span<std::uint8_t> bytes = value.bytes();
-	ASSERT_EQ(bytes.size(), sizeof(Uint4));
+	ASSERT_EQ(bytes.size(), 2u);
+	bytes[0] = 10u;
+	bytes[1] = 20u;
 
-	const Uint4* typedView = reinterpret_cast<const Uint4*>(bytes.data());
-	EXPECT_EQ(typedView->x, 1u);
-	EXPECT_EQ(typedView->y, 2u);
-	EXPECT_EQ(typedView->z, 3u);
-	EXPECT_EQ(typedView->w, 4u);
-}
-
-TEST(BinaryFieldTest, ConstBytesExposeWrittenMemoryForValueField)
-{
-	BinaryObject object;
-	BinaryField value = object.addValue("Value", sizeof(Uint4));
-
-	const Uint4 source{5u, 6u, 7u, 8u};
-	value.set<Uint4>(source);
-
-	const BinaryField& constField = value;
-	std::span<const std::uint8_t> bytes = constField.bytes();
-	ASSERT_EQ(bytes.size(), sizeof(Uint4));
-
-	const Uint4* typedView = reinterpret_cast<const Uint4*>(bytes.data());
-	EXPECT_EQ(typedView->x, 5u);
-	EXPECT_EQ(typedView->y, 6u);
-	EXPECT_EQ(typedView->z, 7u);
-	EXPECT_EQ(typedView->w, 8u);
-}
-
-TEST(BinaryFieldTest, ResizeArrayGrowAddsElements)
-{
-	BinaryObject object;
-	BinaryField values = object.addArray("Values", 2, sizeof(std::uint32_t));
-
-	EXPECT_EQ(values.count(), 2u);
-
-	values.resize(5);
-
-	EXPECT_EQ(values.count(), 5u);
-	for (std::size_t index = 0; index < 5; ++index)
-	{
-		EXPECT_TRUE(values[index].isValue());
-		EXPECT_EQ(values[index].size(), sizeof(std::uint32_t));
-	}
-}
-
-TEST(BinaryFieldTest, ResizeArrayShrinkRemovesElements)
-{
-	BinaryObject object;
-	BinaryField values = object.addArray("Values", 5, sizeof(std::uint32_t));
-
-	values.resize(2);
-
-	EXPECT_EQ(values.count(), 2u);
-	EXPECT_THROW(values[2], std::runtime_error);
-}
-
-TEST(BinaryFieldTest, ResizeArrayToSameCountKeepsCountStable)
-{
-	BinaryObject object;
-	BinaryField values = object.addArray("Values", 3, sizeof(std::uint32_t));
-
-	values.resize(3);
-
-	EXPECT_EQ(values.count(), 3u);
-}
-
-TEST(BinaryFieldTest, ResizeOnNonArrayThrows)
-{
-	BinaryObject object;
-	BinaryField value = object.addValue("Value", sizeof(std::uint32_t));
-
-	EXPECT_THROW(value.resize(10), std::runtime_error);
-}
-
-TEST(BinaryFieldTest, ArrayElementsCanStoreIndependentValues)
-{
-	BinaryObject object;
-	BinaryField values = object.addArray("Values", 3, sizeof(std::uint32_t));
-
-	values[0].set<std::uint32_t>(10u);
-	values[1].set<std::uint32_t>(20u);
-	values[2].set<std::uint32_t>(30u);
-
-	EXPECT_EQ(values[0].as<std::uint32_t>(), 10u);
-	EXPECT_EQ(values[1].as<std::uint32_t>(), 20u);
-	EXPECT_EQ(values[2].as<std::uint32_t>(), 30u);
-}
-
-TEST(BinaryFieldTest, ArrayElementOffsetsFollowStride)
-{
-	BinaryObject object(BinaryLayoutMode::Packed);
-	BinaryField values = object.addArray("Values", 3, sizeof(std::uint32_t));
-
-	EXPECT_EQ(values[1].offset() - values[0].offset(), values.stride());
-	EXPECT_EQ(values[2].offset() - values[1].offset(), values.stride());
-}
-
-TEST(BinaryFieldTest, NestedFieldLookupsWorkThroughMultipleLevels)
-{
-	BinaryObject object;
-	BinaryField transform = object.addObject("Transform");
-	BinaryField rotation = transform.addObject("Rotation");
-	BinaryField axis = rotation.addValue("Axis", sizeof(Uint3));
-
-	const Uint3 source{9u, 8u, 7u};
-	axis.set<Uint3>(source);
-
-	const Uint3 readback = object["Transform"]["Rotation"]["Axis"].as<Uint3>();
-
-	EXPECT_EQ(readback.x, 9u);
-	EXPECT_EQ(readback.y, 8u);
-	EXPECT_EQ(readback.z, 7u);
+	EXPECT_EQ(data[3], 10u);
+	EXPECT_EQ(data[4], 20u);
 }
