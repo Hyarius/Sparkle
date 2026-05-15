@@ -7,7 +7,7 @@ namespace spk
 		_units.clear();
 	}
 
-	void RenderSnapshotBuilder::append(const std::shared_ptr<const spk::RenderUnit>& p_unit)
+	void RenderSnapshotBuilder::append(const std::shared_ptr<spk::RenderUnit>& p_unit)
 	{
 		if (p_unit == nullptr || p_unit->empty() == true)
 		{
@@ -27,7 +27,7 @@ namespace spk
 		return (_units.size());
 	}
 
-	const std::vector<std::shared_ptr<const spk::RenderUnit>>& RenderSnapshotBuilder::units() const
+	const std::vector<std::shared_ptr<spk::RenderUnit>>& RenderSnapshotBuilder::units() const
 	{
 		return (_units);
 	}

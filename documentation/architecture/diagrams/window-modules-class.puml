@@ -45,10 +45,10 @@ namespace spk {
 
 	class RenderModule {
 		- mutex _snapshotMutex
-		- shared_ptr<const RenderSnapshot> _currentSnapshot
+		- shared_ptr<RenderSnapshot> _currentSnapshot
 		+ publishSnapshot(snapshot)
-		+ currentSnapshot() : shared_ptr<const RenderSnapshot>
-		+ render()
+		+ currentSnapshot() : shared_ptr<RenderSnapshot>
+		+ render(renderContext)
 	}
 
 	class "ThreadSafeDeque<T>" as ThreadSafeDeque {

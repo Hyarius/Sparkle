@@ -41,13 +41,15 @@ else window is open
 		end
 	end
 
-	Window -> RenderModule : render()
+	Window -> Host : renderContext()
+	Host --> Window : IRenderContext&
+	Window -> RenderModule : render(context)
 	RenderModule -> RenderModule : currentSnapshot()
-	RenderModule -> Snapshot : execute()
+	RenderModule -> Snapshot : execute(context)
 	loop each render unit
-		Snapshot -> Unit : execute()
+		Snapshot -> Unit : execute(context)
 		loop each command
-			Unit -> Command : execute()
+			Unit -> Command : execute(context)
 		end
 	end
 	Window -> Host : present()

@@ -74,7 +74,7 @@ TEST(KeyboardTest, ToStringReturnsFallbackForInvalidValue)
 {
 	const auto invalidKey = static_cast<spk::Keyboard::Key>(999);
 
-	EXPECT_EQ(spk::toString(invalidKey), "Unknow key");
+	EXPECT_EQ(spk::toString(invalidKey), "Unknown key");
 }
 
 TEST(KeyboardTest, ToWstringReturnsExpectedValueForRepresentativeKeys)
@@ -90,7 +90,7 @@ TEST(KeyboardTest, ToWstringReturnsFallbackForInvalidValue)
 {
 	const auto invalidKey = static_cast<spk::Keyboard::Key>(999);
 
-	EXPECT_EQ(spk::toWstring(invalidKey), L"Unknow key");
+	EXPECT_EQ(spk::toWstring(invalidKey), L"Unknown key");
 }
 
 TEST(KeyboardTest, OstreamOperatorPrintsExpectedText)
@@ -122,7 +122,7 @@ TEST(KeyboardTest, UnknownNamedKeyCanBeAccessed)
 {
 	spk::Keyboard keyboard;
 
-	keyboard[spk::Keyboard::Unknow] = spk::InputState::Down;
+	keyboard[spk::Keyboard::Unknown] = spk::InputState::Down;
 
-	EXPECT_EQ(keyboard[spk::Keyboard::Unknow], spk::InputState::Down);
+	EXPECT_EQ(keyboard[spk::Keyboard::Unknown], spk::InputState::Down);
 }

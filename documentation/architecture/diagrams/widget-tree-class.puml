@@ -26,14 +26,14 @@ namespace spk {
 	abstract class Widget {
 		- string _name
 		- bool _renderCommandsDirty
-		- shared_ptr<const RenderUnit> _renderUnit
+		- shared_ptr<RenderUnit> _renderUnit
 		- Rect2D _geometry
 		# _buildRenderUnit() : RenderUnit
 		# _onUpdate(tick)
 		# _onWindow*Event(event)
 		# _onMouse*Event(event)
 		# _onKey/Text*Event(event)
-		+ renderUnit() : shared_ptr<const RenderUnit>
+		+ renderUnit() : shared_ptr<RenderUnit>
 		+ appendRenderUnits(builder)
 		+ invalidateRenderUnit()
 		+ update(tick)
@@ -61,7 +61,7 @@ spk.Widget --> spk.Rect2D
 note right of spk.Widget
 Traversal is child-first for update and events.
 Render unit collection is self first, then children.
-Dirty widgets rebuild their own immutable render unit.
+Dirty widgets replace their cached render unit.
 Inactive widgets stop propagation at their subtree.
 end note
 

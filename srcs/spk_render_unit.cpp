@@ -1,5 +1,7 @@
 #include "spk_render_unit.hpp"
 
+#include "spk_render_context.hpp"
+
 namespace spk
 {
 	RenderUnit::RenderUnit(std::vector<std::unique_ptr<spk::RenderCommand>>&& p_commands) :
@@ -22,13 +24,13 @@ namespace spk
 		return (_commands);
 	}
 
-	void RenderUnit::execute() const
+	void RenderUnit::execute(spk::IRenderContext& p_renderContext)
 	{
 		for (const std::unique_ptr<spk::RenderCommand>& command : _commands)
 		{
 			if (command != nullptr)
 			{
-				command->execute();
+				command->execute(p_renderContext);
 			}
 		}
 	}

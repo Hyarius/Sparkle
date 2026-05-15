@@ -141,7 +141,7 @@ namespace spk
 			VerticalLine = 220,
 			RightBracket = 221,
 			Quote = 222,
-			Unknow = 223,
+			Unknown = 223,
 			AngleBracket = 226,
 			Process = 229
 		};

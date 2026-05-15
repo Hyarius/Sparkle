@@ -13,7 +13,7 @@ namespace spk
 		};
 
 	template <typename TType>
-	concept comparaison_compatible =
+	concept comparison_compatible =
 		equality_comparable_with<TType, TType>;
 
 	template <typename TLeft, typename TRight = TLeft>

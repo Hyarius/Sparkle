@@ -12,7 +12,7 @@ namespace spk
 	public:
 		virtual ~ISurfaceState();
 
-		virtual void invalidate();
-		[[nodiscard]] virtual bool isValid() const;
+		void invalidate();
+		[[nodiscard]] bool isValid() const;
 	};
 }

@@ -10,7 +10,7 @@ namespace spk
 	class RenderSnapshotBuilder
 	{
 	private:
-		std::vector<std::shared_ptr<const spk::RenderUnit>> _units;
+		std::vector<std::shared_ptr<spk::RenderUnit>> _units;
 
 	public:
 		RenderSnapshotBuilder() = default;
@@ -23,11 +23,11 @@ namespace spk
 		RenderSnapshotBuilder& operator=(RenderSnapshotBuilder&&) noexcept = default;
 
 		void clear();
-		void append(const std::shared_ptr<const spk::RenderUnit>& p_unit);
+		void append(const std::shared_ptr<spk::RenderUnit>& p_unit);
 
 		[[nodiscard]] bool empty() const;
 		[[nodiscard]] size_t size() const;
-		[[nodiscard]] const std::vector<std::shared_ptr<const spk::RenderUnit>>& units() const;
+		[[nodiscard]] const std::vector<std::shared_ptr<spk::RenderUnit>>& units() const;
 
 		[[nodiscard]] spk::RenderSnapshot build();
 	};

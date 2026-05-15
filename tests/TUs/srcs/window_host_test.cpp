@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include <atomic>
+#include <stdexcept>
 #include <thread>
 
 #include "window_test_utils.hpp"
@@ -80,6 +81,55 @@ TEST(WindowHostTest, DestroyedFrameEventPreventsLateRenderContextCreation)
 	EXPECT_FALSE(bundle.windowHost->makeCurrent());
 	EXPECT_EQ(bundle.gpuPlatformRuntime->createRenderContextCount, 0);
 	EXPECT_EQ(bundle.gpuPlatformRuntime->createdContext, nullptr);
+}
+
+TEST(WindowHostTest, ReleasingRenderContextBeforeMakeCurrentDoesNotBindRenderThread)
+{
+	auto bundle = sparkle_test::createWindowHostBundle();
+
+	bundle.windowHost->releaseRenderContext();
+
+	EXPECT_FALSE(bundle.windowHost->isRenderThread());
+
+	std::jthread renderThread([&](){
+		EXPECT_TRUE(bundle.windowHost->makeCurrent());
+		EXPECT_TRUE(bundle.windowHost->isRenderThread());
+		bundle.windowHost->releaseRenderContext();
+	});
+	renderThread.join();
+
+	EXPECT_EQ(bundle.gpuPlatformRuntime->createRenderContextCount, 1);
+	EXPECT_EQ(bundle.gpuPlatformRuntime->contextStats->makeCurrentCount, 1);
+}
+
+TEST(WindowHostTest, ReleasingRenderContextFromNonRenderThreadAfterMakeCurrentThrows)
+{
+	auto bundle = sparkle_test::createWindowHostBundle();
+	std::atomic<bool> contextCreated = false;
+	std::atomic<bool> allowRelease = false;
+
+	std::jthread renderThread([&]()
+	{
+		EXPECT_TRUE(bundle.windowHost->makeCurrent());
+		contextCreated.store(true);
+
+		while (allowRelease.load() == false)
+		{
+			std::this_thread::yield();
+		}
+
+		bundle.windowHost->releaseRenderContext();
+	});
+
+	while (contextCreated.load() == false)
+	{
+		std::this_thread::yield();
+	}
+
+	EXPECT_THROW(bundle.windowHost->releaseRenderContext(), std::runtime_error);
+
+	allowRelease.store(true);
+	renderThread.join();
 }
 
 TEST(WindowHostTest, DestructorInvalidatesLiveRenderAndFrameState)

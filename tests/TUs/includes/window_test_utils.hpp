@@ -109,19 +109,31 @@ namespace sparkle_test
 	class CallbackRenderCommand : public spk::RenderCommand
 	{
 	private:
-		std::function<void()> _callback = nullptr;
+		std::function<void(spk::IRenderContext&)> _callback = nullptr;
 
 	public:
 		explicit CallbackRenderCommand(std::function<void()> p_callback) :
+			_callback(
+				[p_callback = std::move(p_callback)](spk::IRenderContext&)
+				{
+					if (p_callback != nullptr)
+					{
+						p_callback();
+					}
+				})
+		{
+		}
+
+		explicit CallbackRenderCommand(std::function<void(spk::IRenderContext&)> p_callback) :
 			_callback(std::move(p_callback))
 		{
 		}
 
-		void execute() const override
+		void execute(spk::IRenderContext& p_renderContext) override
 		{
 			if (_callback != nullptr)
 			{
-				_callback();
+				_callback(p_renderContext);
 			}
 		}
 	};

@@ -57,6 +57,7 @@ namespace spk {
 		+ requestClosure()
 		+ validateClosure()
 		+ makeCurrent() : bool
+		+ renderContext() : IRenderContext&
 		+ present()
 		+ releaseFrame()
 		+ releaseRenderContext()

@@ -11,10 +11,10 @@ namespace spk
 	class RenderSnapshot
 	{
 	private:
-		std::vector<std::shared_ptr<const spk::RenderUnit>> _units;
+		std::vector<std::shared_ptr<spk::RenderUnit>> _units;
 
 	public:
-		explicit RenderSnapshot(std::vector<std::shared_ptr<const spk::RenderUnit>>&& p_units = {});
+		explicit RenderSnapshot(std::vector<std::shared_ptr<spk::RenderUnit>>&& p_units = {});
 		~RenderSnapshot() = default;
 
 		RenderSnapshot(const RenderSnapshot&) = delete;
@@ -25,8 +25,8 @@ namespace spk
 
 		[[nodiscard]] bool empty() const;
 		[[nodiscard]] size_t size() const;
-		[[nodiscard]] const std::vector<std::shared_ptr<const spk::RenderUnit>>& units() const;
+		[[nodiscard]] const std::vector<std::shared_ptr<spk::RenderUnit>>& units() const;
 
-		void execute() const;
+		void execute(spk::IRenderContext& p_renderContext);
 	};
 }

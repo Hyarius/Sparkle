@@ -18,8 +18,31 @@ namespace spk
 	private:
 		std::string _name;
 		mutable bool _renderCommandsDirty = true;
-		mutable std::shared_ptr<const spk::RenderUnit> _renderUnit = nullptr;
+		mutable std::shared_ptr<spk::RenderUnit> _renderUnit = nullptr;
 		spk::Rect2D _geometry;
+
+		template <typename TEvent>
+		void _propagate(TEvent& p_event, void (spk::Widget::*p_handler)(TEvent&))
+		{
+			if (isActivated() == false || p_event.isConsumed() == true)
+			{
+				return;
+			}
+
+			for (auto* child : children())
+			{
+				if (child != nullptr)
+				{
+					child->_propagate(p_event, p_handler);
+					if (p_event.isConsumed() == true)
+					{
+						return;
+					}
+				}
+			}
+
+			(this->*p_handler)(p_event);
+		}
 
 	protected:
 		[[nodiscard]] virtual spk::RenderUnit _buildRenderUnit() const;
@@ -46,27 +69,6 @@ namespace spk
 		virtual void _onKeyReleasedEvent(spk::KeyReleasedEvent& p_event);
 		virtual void _onTextInputEvent(spk::TextInputEvent& p_event);
 
-		void _propagateWindowCloseRequestedEvent(spk::WindowCloseRequestedEvent& p_event);
-		void _propagateWindowDestroyedEvent(spk::WindowDestroyedEvent& p_event);
-		void _propagateWindowMovedEvent(spk::WindowMovedEvent& p_event);
-		void _propagateWindowResizedEvent(spk::WindowResizedEvent& p_event);
-		void _propagateWindowFocusGainedEvent(spk::WindowFocusGainedEvent& p_event);
-		void _propagateWindowFocusLostEvent(spk::WindowFocusLostEvent& p_event);
-		void _propagateWindowShownEvent(spk::WindowShownEvent& p_event);
-		void _propagateWindowHiddenEvent(spk::WindowHiddenEvent& p_event);
-
-		void _propagateMouseEnteredEvent(spk::MouseEnteredWindowEvent& p_event);
-		void _propagateMouseLeftEvent(spk::MouseLeftWindowEvent& p_event);
-		void _propagateMouseMovedEvent(spk::MouseMovedEvent& p_event);
-		void _propagateMouseWheelScrolledEvent(spk::MouseWheelScrolledEvent& p_event);
-		void _propagateMouseButtonPressedEvent(spk::MouseButtonPressedEvent& p_event);
-		void _propagateMouseButtonReleasedEvent(spk::MouseButtonReleasedEvent& p_event);
-		void _propagateMouseButtonDoubleClickedEvent(spk::MouseButtonDoubleClickedEvent& p_event);
-
-		void _propagateKeyPressedEvent(spk::KeyPressedEvent& p_event);
-		void _propagateKeyReleasedEvent(spk::KeyReleasedEvent& p_event);
-		void _propagateTextInputEvent(spk::TextInputEvent& p_event);
-
 	public:
 		explicit Widget(const std::string& p_name, spk::Widget* p_parent = nullptr);
 		virtual ~Widget();
@@ -79,7 +81,7 @@ namespace spk
 		[[nodiscard]] const spk::Rect2D& geometry() const;
 		[[nodiscard]] bool isRenderCommandDirty() const;
 
-		[[nodiscard]] std::shared_ptr<const spk::RenderUnit> renderUnit() const;
+		[[nodiscard]] std::shared_ptr<spk::RenderUnit> renderUnit() const;
 		void appendRenderUnits(spk::RenderSnapshotBuilder& p_builder) const;
 		void update(const spk::UpdateTick& p_tick);
 

@@ -62,6 +62,16 @@ namespace spk
 		}
 	}
 
+	void WindowHost::_validateRenderThreadLocked(const char* p_operation) const
+	{
+		if (_renderThreadID.has_value() == false || _renderThreadID.value() != std::this_thread::get_id())
+		{
+			throw std::runtime_error(
+				"spk::WindowHost::" + std::string(p_operation) +
+				" must be called from the render thread");
+		}
+	}
+
 	bool WindowHost::_ensureRenderContextLocked()
 	{
 		_bindOrValidateRenderThreadLocked(__FUNCTION__);
@@ -116,6 +126,8 @@ namespace spk
 
 	void WindowHost::notifyFrameResized(const spk::Rect2D& p_rect)
 	{
+		_bindOrValidatePlatformThread(__FUNCTION__);
+		
 		std::scoped_lock lock(_renderThreadMutex);
 		if (_ensureRenderContextLocked() == false)
 		{
@@ -182,7 +194,12 @@ namespace spk
 	void WindowHost::releaseRenderContext()
 	{
 		std::scoped_lock lock(_renderThreadMutex);
-		_bindOrValidateRenderThreadLocked(__FUNCTION__);
+		if (_renderThreadID.has_value() == false && _renderContext == nullptr)
+		{
+			return;
+		}
+
+		_validateRenderThreadLocked(__FUNCTION__);
 		_renderContext.reset();
 	}
 
@@ -227,12 +244,23 @@ namespace spk
 		return true;
 	}
 
+	IRenderContext& WindowHost::renderContext()
+	{
+		std::scoped_lock lock(_renderThreadMutex);
+		if (_ensureRenderContextLocked() == false || _renderContext == nullptr || _renderContext->isValid() == false)
+		{
+			throw std::runtime_error("spk::WindowHost::renderContext called without a valid render context");
+		}
+
+		return (*_renderContext);
+	}
+
 	void WindowHost::present()
 	{
 		std::scoped_lock lock(_renderThreadMutex);
-		if (_ensureRenderContextLocked() == false)
+		if (_renderContext == nullptr)
 		{
-			return;
+			throw std::runtime_error("spk::WindowHost::renderContext not initialized while calling for Window presentation.");
 		}
 
 		if (_renderContext->isValid() == false)

@@ -27,6 +27,6 @@ namespace spk
 		[[nodiscard]] size_t size() const;
 		[[nodiscard]] const std::vector<std::unique_ptr<spk::RenderCommand>>& commands() const;
 
-		void execute() const;
+		void execute(spk::IRenderContext& p_renderContext);
 	};
 }

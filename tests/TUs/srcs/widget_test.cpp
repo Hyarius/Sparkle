@@ -11,8 +11,10 @@ namespace
 {
 	void publishAndRender(spk::RenderModule& p_module, spk::RenderSnapshot p_snapshot)
 	{
-		p_module.publishSnapshot(std::make_shared<const spk::RenderSnapshot>(std::move(p_snapshot)));
-		p_module.render();
+		sparkle_test::TestRenderContext renderContext(std::make_shared<sparkle_test::TestSurfaceState>());
+
+		p_module.publishSnapshot(std::make_shared<spk::RenderSnapshot>(std::move(p_snapshot)));
+		p_module.render(renderContext);
 	}
 }
 
@@ -124,19 +126,20 @@ TEST(WidgetTest, OldSnapshotsKeepTheirPreviousRenderUnitsAfterWidgetRebuilds)
 	widget.activate();
 	widget.onExecuteRenderCommand = [&calls]() { calls.push_back(1); };
 	widget.appendRenderUnits(firstBuilder);
-	std::shared_ptr<const spk::RenderSnapshot> firstSnapshot =
-		std::make_shared<const spk::RenderSnapshot>(firstBuilder.build());
+	std::shared_ptr<spk::RenderSnapshot> firstSnapshot =
+		std::make_shared<spk::RenderSnapshot>(firstBuilder.build());
 
 	widget.onExecuteRenderCommand = [&calls]() { calls.push_back(2); };
 	widget.invalidateRenderUnit();
 	widget.appendRenderUnits(secondBuilder);
-	std::shared_ptr<const spk::RenderSnapshot> secondSnapshot =
-		std::make_shared<const spk::RenderSnapshot>(secondBuilder.build());
+	std::shared_ptr<spk::RenderSnapshot> secondSnapshot =
+		std::make_shared<spk::RenderSnapshot>(secondBuilder.build());
+	sparkle_test::TestRenderContext renderContext(std::make_shared<sparkle_test::TestSurfaceState>());
 
 	renderModule.publishSnapshot(firstSnapshot);
-	renderModule.render();
+	renderModule.render(renderContext);
 	renderModule.publishSnapshot(secondSnapshot);
-	renderModule.render();
+	renderModule.render(renderContext);
 
 	EXPECT_EQ(calls, std::vector<int>({1, 2}));
 }

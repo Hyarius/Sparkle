@@ -26,6 +26,7 @@ namespace spk
 	private:
 		void _bindOrValidatePlatformThread(const char* p_operation) const;
 		void _bindOrValidateRenderThreadLocked(const char* p_operation);
+		void _validateRenderThreadLocked(const char* p_operation) const;
 		[[nodiscard]] bool _ensureRenderContextLocked();
 
 	public:
@@ -47,6 +48,7 @@ namespace spk
 		[[nodiscard]] std::string title() const;
 
 		[[nodiscard]] bool makeCurrent();
+		[[nodiscard]] IRenderContext& renderContext();
 		void present();
 		void setVSync(bool p_enabled);
 

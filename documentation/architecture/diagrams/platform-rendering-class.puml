@@ -46,13 +46,13 @@ namespace spk {
 	}
 
 	abstract class RenderCommand {
-		+ execute()
+		+ execute(renderContext)
 	}
 
 	class RenderUnit {
 		- vector<unique_ptr<RenderCommand>> _commands
 		+ commands() : vector<unique_ptr<RenderCommand>>&
-		+ execute()
+		+ execute(renderContext)
 	}
 
 	class RenderUnitBuilder {
@@ -62,23 +62,23 @@ namespace spk {
 	}
 
 	class RenderSnapshot {
-		- vector<shared_ptr<const RenderUnit>> _units
-		+ units() : vector<shared_ptr<const RenderUnit>>&
-		+ execute()
+		- vector<shared_ptr<RenderUnit>> _units
+		+ units() : vector<shared_ptr<RenderUnit>>&
+		+ execute(renderContext)
 	}
 
 	class RenderSnapshotBuilder {
-		- vector<shared_ptr<const RenderUnit>> _units
+		- vector<shared_ptr<RenderUnit>> _units
 		+ append(unit)
 		+ build() : RenderSnapshot
 	}
 
 	class RenderModule {
-		- shared_ptr<const RenderSnapshot> _currentSnapshot
+		- shared_ptr<RenderSnapshot> _currentSnapshot
 		- mutex _snapshotMutex
 		+ publishSnapshot(snapshot)
-		+ currentSnapshot() : shared_ptr<const RenderSnapshot>
-		+ render()
+		+ currentSnapshot() : shared_ptr<RenderSnapshot>
+		+ render(renderContext)
 	}
 }
 
@@ -87,6 +87,7 @@ spk.IFrame *-- spk.ISurfaceState
 spk.IGPUPlatformRuntime --> spk.IRenderContext : creates
 spk.IGPUPlatformRuntime --> spk.IFrame : reads backend data from
 spk.IRenderContext --> spk.ISurfaceState
+spk.RenderCommand ..> spk.IRenderContext : receives during execution
 spk.RenderUnit *-- "0..*" spk.RenderCommand
 spk.RenderUnitBuilder *-- "0..*" spk.RenderCommand
 spk.RenderUnitBuilder ..> spk.RenderUnit : builds
@@ -101,9 +102,9 @@ The render thread still owns render-context teardown.
 end note
 
 note right of spk.RenderUnit
-RenderUnits are immutable after publication.
-Dirty widgets replace the shared unit instead
-of mutating command storage in place.
+Widgets replace dirty render units instead of
+mutating command storage during snapshot rebuilds.
+Render command execution may update backend state.
 end note
 
 @enduml

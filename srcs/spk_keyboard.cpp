@@ -264,14 +264,14 @@ namespace spk
 			return ("RightBracket");
 		case spk::Keyboard::Key::Quote:
 			return ("Quote");
-		case spk::Keyboard::Key::Unknow:
-			return ("Unknow");
+		case spk::Keyboard::Key::Unknown:
+			return ("Unknown");
 		case spk::Keyboard::Key::AngleBracket:
 			return ("AngleBracket");
 		case spk::Keyboard::Key::Process:
 			return ("Process");
 		default:
-			return ("Unknow key");
+			return ("Unknown key");
 		}
 	}
 
@@ -537,14 +537,14 @@ namespace spk
 			return (L"RightBracket");
 		case spk::Keyboard::Key::Quote:
 			return (L"Quote");
-		case spk::Keyboard::Key::Unknow:
-			return (L"Unknow");
+		case spk::Keyboard::Key::Unknown:
+			return (L"Unknown");
 		case spk::Keyboard::Key::AngleBracket:
 			return (L"AngleBracket");
 		case spk::Keyboard::Key::Process:
 			return (L"Process");
 		default:
-			return (L"Unknow key");
+			return (L"Unknown key");
 		}
 	}
 

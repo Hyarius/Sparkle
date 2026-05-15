@@ -7,18 +7,20 @@
 
 namespace spk
 {
+	class IRenderContext;
+
 	class RenderModule
 	{
 	private:
 		mutable std::mutex _snapshotMutex;
-		std::shared_ptr<const spk::RenderSnapshot> _currentSnapshot = nullptr;
+		std::shared_ptr<spk::RenderSnapshot> _currentSnapshot = nullptr;
 
 	public:
 		RenderModule();
 
-		void publishSnapshot(std::shared_ptr<const spk::RenderSnapshot> p_snapshot);
-		[[nodiscard]] std::shared_ptr<const spk::RenderSnapshot> currentSnapshot() const;
+		void publishSnapshot(std::shared_ptr<spk::RenderSnapshot> p_snapshot);
+		[[nodiscard]] std::shared_ptr<spk::RenderSnapshot> currentSnapshot() const;
 
-		void render() const;
+		void render(spk::IRenderContext& p_renderContext) const;
 	};
 }

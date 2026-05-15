@@ -11,7 +11,7 @@ namespace spk
 	template <typename TType>
 		requires std::move_constructible<TType> &&
 				 std::default_initializable<TType> &&
-				 spk::comparaison_compatible<TType>
+				 spk::comparison_compatible<TType>
 	class ObservableValue : public ContractProvider<const TType&>
 	{
 	private:

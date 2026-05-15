@@ -2,11 +2,13 @@
 
 namespace spk
 {
+	class IRenderContext;
+
 	class RenderCommand
 	{
 	public:
 		virtual ~RenderCommand() = default;
 
-		virtual void execute() const = 0;
+		virtual void execute(spk::IRenderContext& p_renderContext) = 0;
 	};
 }

@@ -178,13 +178,13 @@ namespace spk
 
 	struct KeyPressedRecord : public EventRecord
 	{
-		spk::Keyboard::Key key = spk::Keyboard::Unknow;
+		spk::Keyboard::Key key = spk::Keyboard::Unknown;
 		bool isRepeated = false;
 	};
 
 	struct KeyReleasedRecord : public EventRecord
 	{
-		spk::Keyboard::Key key = spk::Keyboard::Unknow;
+		spk::Keyboard::Key key = spk::Keyboard::Unknown;
 	};
 
 	struct TextInputRecord : public EventRecord

@@ -60,6 +60,8 @@ namespace spk
 	{
 		std::vector<RenderAction> result = _pendingRenderActions.drain();
 
+		// NotifyResize and SetVSync are coalesced: only the last queued value matters.
+		// New action types must be added as explicit cases in both this function and _executeRenderAction.
 		std::optional<RenderAction> latestResizeAction;
 		std::optional<RenderAction> latestVSyncAction;
 
@@ -125,8 +127,8 @@ namespace spk
 		spk::RenderSnapshotBuilder builder;
 		_rootWidget.appendRenderUnits(builder);
 
-		std::shared_ptr<const spk::RenderSnapshot> snapshot =
-			std::make_shared<const spk::RenderSnapshot>(builder.build());
+		std::shared_ptr<spk::RenderSnapshot> snapshot =
+			std::make_shared<spk::RenderSnapshot>(builder.build());
 			
 		_renderModule.publishSnapshot(std::move(snapshot));
 	}
@@ -421,7 +423,7 @@ namespace spk
 			_executeRenderAction(action);
 		}
 
-		_renderModule.render();
+		_renderModule.render(_host.renderContext());
 
 		_host.present();
 	}
