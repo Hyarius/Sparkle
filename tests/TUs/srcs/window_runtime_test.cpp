@@ -111,6 +111,67 @@ TEST(WindowRegistryTest, WindowHandleQueuesThreadBoundCommands)
 	EXPECT_TRUE(gpuPlatformRuntimePtr->createdContext->lastVSync);
 }
 
+TEST(WindowRegistryTest, WindowHandleExposesCentralWidgetForStackAllocatedWidgets)
+{
+	spk::WindowRegistry registry;
+	auto platformRuntime = std::make_shared<sparkle_test::TestPlatformRuntime>();
+	auto gpuPlatformRuntime = std::make_shared<sparkle_test::TestGPUPlatformRuntime>();
+
+	spk::WindowHandle windowHandle = registry.createWindow(
+		"main",
+		platformRuntime,
+		gpuPlatformRuntime,
+		spk::Window::Configuration{
+			.rect = sparkle_test::defaultRect(),
+			.title = "Main"
+		});
+
+	std::shared_ptr<spk::Window> window = registry._windows.at("main").window;
+	ASSERT_NE(window, nullptr);
+
+	sparkle_test::RecordingWidget widget("Registered", &windowHandle.centralWidget());
+
+	EXPECT_EQ(&windowHandle.centralWidget(), &sparkle_test::WindowAccess::rootWidget(*window));
+	EXPECT_EQ(widget.parent(), &sparkle_test::WindowAccess::rootWidget(*window));
+	EXPECT_TRUE(sparkle_test::WindowAccess::rootWidget(*window).hasChild(&widget));
+
+	widget.activate();
+	window->update();
+	window->render();
+
+	EXPECT_EQ(widget.updateCount, 1);
+	EXPECT_EQ(widget.renderCount, 1);
+}
+
+TEST(WindowRegistryTest, WindowHandleCentralWidgetSupportsCallerOwnedHeapWidgets)
+{
+	spk::WindowRegistry registry;
+	auto platformRuntime = std::make_shared<sparkle_test::TestPlatformRuntime>();
+	auto gpuPlatformRuntime = std::make_shared<sparkle_test::TestGPUPlatformRuntime>();
+
+	spk::WindowHandle windowHandle = registry.createWindow(
+		"main",
+		platformRuntime,
+		gpuPlatformRuntime,
+		spk::Window::Configuration{
+			.rect = sparkle_test::defaultRect(),
+			.title = "Main"
+		});
+
+	std::shared_ptr<spk::Window> window = registry._windows.at("main").window;
+	ASSERT_NE(window, nullptr);
+
+	auto widget = std::make_unique<sparkle_test::RecordingWidget>("Registered", &windowHandle.centralWidget());
+	widget->activate();
+
+	window->update();
+	window->render();
+
+	EXPECT_EQ(widget->parent(), &sparkle_test::WindowAccess::rootWidget(*window));
+	EXPECT_EQ(widget->updateCount, 1);
+	EXPECT_EQ(widget->renderCount, 1);
+}
+
 TEST(WindowRegistryTest, RequestWindowClosingThrowsForUnknownWindow)
 {
 	spk::WindowRegistry registry;

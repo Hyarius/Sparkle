@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <utility>
 
@@ -9,6 +10,7 @@
 namespace spk
 {
 	class Window;
+	class Widget;
 
 	class WindowHandle
 	{
@@ -27,5 +29,7 @@ namespace spk
 		void setTitle(std::string p_title) const;
 		void resize(const spk::Rect2D& p_rect) const;
 		void setVSync(bool p_enabled) const;
+
+		[[nodiscard]] spk::Widget& centralWidget() const;
 	};
 }

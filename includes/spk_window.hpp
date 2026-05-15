@@ -121,6 +121,7 @@ namespace spk
 		void _setTitle(std::string p_title);
 		void _resize(const spk::Rect2D& p_rect);
 		void _setVSync(bool p_enabled);
+		[[nodiscard]] spk::Widget& _centralWidget();
 
 		friend class spk::WindowHandle;
 

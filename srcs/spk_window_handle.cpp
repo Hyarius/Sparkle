@@ -70,4 +70,16 @@ namespace spk
 			window->_setVSync(p_enabled);
 		}
 	}
+
+	spk::Widget& WindowHandle::centralWidget() const
+	{
+		std::shared_ptr<spk::Window> window = _window.lock();
+
+		if (window == nullptr)
+		{
+			throw std::runtime_error("WindowHandle::centralWidget : can't access an expired window");
+		}
+
+		return window->_centralWidget();
+	}
 }

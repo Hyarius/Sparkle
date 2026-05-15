@@ -367,6 +367,11 @@ namespace spk
 			.vSyncEnabled = p_enabled});
 	}
 
+	spk::Widget& Window::_centralWidget()
+	{
+		return _rootWidget;
+	}
+
 	void Window::executePendingPlatformActions()
 	{
 		std::vector<PlatformAction> actions = _drainPendingPlatformActions();
