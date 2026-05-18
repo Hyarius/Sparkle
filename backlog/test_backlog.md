@@ -1,16 +1,3 @@
-## Image Comparison Utilities
-
-| Priority | Item | Source / Files | Notes |
-|---:|---|---|---|
-| 180 | **Test tolerance boundary: pixel differing by exactly `rgbTolerance` passes, by `rgbTolerance+1` fails** | `image_comparison_test_utils.cpp:42-44`, `image_comparison_test.cpp` | `channelDiffers` uses `> tolerance`, so diff == tolerance should pass. No test currently exercises the boundary in either direction. |
-| 170 | **Test transparent-pixel RGB skip behavior** | `image_comparison_test_utils.cpp:57-59` | When both `actual[3]` and `expected[3]` are `<= transparentAlphaThreshold`, RGB differences are silently ignored. No test covers this. A pixel with mismatched RGB but both alphas = 0 should count as matching. |
-| 160 | **Test dimension mismatch case** | `image_comparison_test_utils.cpp:91-125` | When actual and expected have different sizes, out-of-overlap pixels are marked as mismatched and the diff image uses `max(w, h)`. No test exercises this at all. |
-| 120 | **Test alpha-only difference is caught** | `image_comparison_test_utils.cpp:52-55` | Two pixels identical in RGB but differing in alpha by more than `alphaTolerance` should register as different. Not currently covered. |
-| 100 | **Test that `compareImages` throws on missing file** | `image_comparison_test_utils.cpp:29-32` | `loadImage` throws `std::runtime_error` when the file does not exist. No test verifies this propagates correctly from `compareImages`. |
-| 80 | **Test all-pixels-different case** | `image_comparison_test.cpp` | Current test has only 1 out of 4 pixels different. A test where every pixel differs should verify `differentPixelCount == width * height` and `matches == false`. |
-
----
-
 ## OpenGL Screenshot
 
 | Priority | Item | Source / Files | Notes |
