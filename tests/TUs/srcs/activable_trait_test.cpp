@@ -299,6 +299,53 @@ TEST(ActivableTraitTest, ObjectCanDeactivateAfterBlockIsReleased)
 	EXPECT_EQ(deactivationCount, 1);
 }
 
+TEST(ActivableTraitTest, DelayBlockedActivationIsAppliedWhenBlockIsReleased)
+{
+	TestActivableObject object;
+	int activationCount = 0;
+
+	auto contract = object.subscribeToActivation([&activationCount]()
+	{
+		++activationCount;
+	});
+
+	auto blocker = object.block(spk::BlockableTrait::Mode::Delay);
+
+	object.activate();
+
+	EXPECT_FALSE(object.isActivated());
+	EXPECT_EQ(activationCount, 0);
+
+	blocker.release();
+
+	EXPECT_TRUE(object.isActivated());
+	EXPECT_EQ(activationCount, 1);
+}
+
+TEST(ActivableTraitTest, DelayBlockedDeactivationIsAppliedWhenBlockIsReleased)
+{
+	TestActivableObject object;
+	int deactivationCount = 0;
+
+	auto contract = object.subscribeToDeactivation([&deactivationCount]()
+	{
+		++deactivationCount;
+	});
+
+	object.activate();
+	auto blocker = object.block(spk::BlockableTrait::Mode::Delay);
+
+	object.deactivate();
+
+	EXPECT_TRUE(object.isActivated());
+	EXPECT_EQ(deactivationCount, 0);
+
+	blocker.release();
+
+	EXPECT_FALSE(object.isActivated());
+	EXPECT_EQ(deactivationCount, 1);
+}
+
 TEST(ActivableTraitTest, ActivationSubscriptionCanBeResigned)
 {
 	TestActivableObject object;

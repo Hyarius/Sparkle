@@ -111,6 +111,37 @@ TEST(WindowRegistryTest, WindowHandleQueuesThreadBoundCommands)
 	EXPECT_TRUE(gpuPlatformRuntimePtr->createdContext->lastVSync);
 }
 
+TEST(WindowRegistryTest, WindowHandleReportsValidityAndClosedState)
+{
+	spk::WindowRegistry registry;
+	auto platformRuntime = std::make_shared<sparkle_test::TestPlatformRuntime>();
+	auto gpuPlatformRuntime = std::make_shared<sparkle_test::TestGPUPlatformRuntime>();
+
+	spk::WindowHandle windowHandle = registry.createWindow(
+		"main",
+		platformRuntime,
+		gpuPlatformRuntime,
+		spk::Window::Configuration{
+			.rect = sparkle_test::defaultRect(),
+			.title = "Main"
+		});
+
+	EXPECT_TRUE(windowHandle.isValid());
+	EXPECT_FALSE(windowHandle.expired());
+	EXPECT_FALSE(windowHandle.isClosed());
+
+	std::shared_ptr<spk::Window> window = registry._windows.at("main").window;
+	ASSERT_NE(window, nullptr);
+
+	platformRuntime->queueFrameEvent(spk::WindowDestroyedRecord{});
+	platformRuntime->pollEvents();
+	window->update();
+	window->render();
+	window->executePendingPlatformActions();
+
+	EXPECT_TRUE(windowHandle.isClosed());
+}
+
 TEST(WindowRegistryTest, WindowHandleExposesCentralWidgetForStackAllocatedWidgets)
 {
 	spk::WindowRegistry registry;
@@ -209,6 +240,21 @@ TEST(WindowRegistryTest, RemovedWindowsExpireExternalHandles)
 
 	EXPECT_TRUE(windowHandle.expired());
 	EXPECT_FALSE(registry.contains("main"));
+}
+
+TEST(WindowRegistryTest, ExpiredWindowHandleReportsClosedAndIgnoresCommands)
+{
+	spk::WindowHandle windowHandle;
+
+	EXPECT_FALSE(windowHandle.isValid());
+	EXPECT_TRUE(windowHandle.expired());
+	EXPECT_TRUE(windowHandle.isClosed());
+
+	EXPECT_NO_THROW(windowHandle.requestClosure());
+	EXPECT_NO_THROW(windowHandle.setTitle("Ignored"));
+	EXPECT_NO_THROW(windowHandle.resize(sparkle_test::defaultRect()));
+	EXPECT_NO_THROW(windowHandle.setVSync(true));
+	EXPECT_THROW(static_cast<void>(windowHandle.centralWidget()), std::runtime_error);
 }
 
 

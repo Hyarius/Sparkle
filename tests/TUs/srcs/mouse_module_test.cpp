@@ -41,6 +41,30 @@ TEST(MouseModuleTest, MouseEventsUpdateInternalStateAndDispatchToBoundWidget)
 	EXPECT_EQ(widget.mouseEventCount, 5);
 }
 
+TEST(MouseModuleTest, EnterLeaveAndDoubleClickEventsAreProcessed)
+{
+	sparkle_test::RecordingWidget widget("MouseWidget");
+	widget.activate();
+
+	spk::MouseModule module;
+	module.bind(&widget);
+
+	module.pushEvent(spk::MouseEventRecord(spk::makeEventRecord(spk::MouseEnteredRecord{
+		.position = spk::Vector2Int(12, 14)})));
+	module.pushEvent(spk::MouseEventRecord(spk::makeEventRecord(spk::MouseLeftRecord{
+		.position = spk::Vector2Int(20, 24)})));
+	module.pushEvent(spk::MouseEventRecord(spk::makeEventRecord(spk::MouseButtonDoubleClickedRecord{
+		.button = spk::Mouse::Right})));
+
+	module.processEvents();
+
+	const spk::Mouse& mouse = module.mouse();
+	EXPECT_EQ(mouse.position, spk::Vector2Int(20, 24));
+	EXPECT_EQ(mouse.deltaPosition, spk::Vector2Int(0, 0));
+	EXPECT_EQ(mouse[spk::Mouse::Right], spk::InputState::Up);
+	EXPECT_EQ(widget.mouseEventCount, 3);
+}
+
 TEST(MouseModuleTest, PushEventIsSafeWhenUnbound)
 {
 	spk::MouseModule module;

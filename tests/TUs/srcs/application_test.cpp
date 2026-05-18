@@ -34,6 +34,42 @@ TEST(ApplicationTest, CreateWindowAndLookupReturnTheManagedWindow)
 	EXPECT_EQ(platformRuntimePtr->lastCreateTitle, "Main");
 }
 
+TEST(ApplicationTest, DefaultCreateWindowThrowsWhenNoDefaultRuntimeExists)
+{
+	spk::Application application;
+
+	EXPECT_THROW(
+		application.createWindow(
+			"main",
+			spk::Window::Configuration{
+				.rect = sparkle_test::defaultRect(),
+				.title = "Main"
+			}),
+		std::runtime_error);
+}
+
+TEST(ApplicationTest, ConstWindowLookupReturnsTheManagedWindow)
+{
+	auto platformRuntime = std::make_shared<sparkle_test::TestPlatformRuntime>();
+	auto gpuPlatformRuntime = std::make_shared<sparkle_test::TestGPUPlatformRuntime>();
+	spk::Application application(
+		spk::Application::Configuration{
+			.platformRuntime = platformRuntime,
+			.gpuPlatformRuntime = gpuPlatformRuntime
+		});
+
+	application.createWindow(
+		"main",
+		spk::Window::Configuration{
+			.rect = sparkle_test::defaultRect(),
+			.title = "Main"
+		});
+
+	const spk::Application& constApplication = application;
+
+	EXPECT_FALSE(constApplication.window("main").expired());
+}
+
 TEST(ApplicationTest, RequestWindowClosingDelegatesToTheManagedWindow)
 {
 	auto platformRuntime = std::make_shared<sparkle_test::TestPlatformRuntime>();
@@ -295,6 +331,32 @@ TEST(ApplicationTest, RunStopsWhenTheLastWindowCloses)
 
 	EXPECT_FALSE(application.containsWindow("main"));
 	EXPECT_GT(platformRuntimePtr->pollEventsCount, 0);
+}
+
+TEST(ApplicationTest, RunReturnsImmediatelyWhenNoWindowsAndConfiguredToStop)
+{
+	spk::Application application(
+		spk::Application::Configuration{
+			.stopWhenNoWindows = true
+		});
+
+	application.run();
+
+	EXPECT_FALSE(application.isRunning());
+}
+
+TEST(ApplicationTest, RunThrowsWhenApplicationIsAlreadyRunning)
+{
+	spk::Application application(
+		spk::Application::Configuration{
+			.stopWhenNoWindows = true
+		});
+
+	application._isRunning.store(true);
+
+	EXPECT_THROW(application.run(), std::runtime_error);
+
+	application._isRunning.store(false);
 }
 
 TEST(ApplicationTest, RunThrowsWhenCalledFromDifferentThreadThanApplicationConstruction)

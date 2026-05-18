@@ -1,10 +1,80 @@
 #include <gtest/gtest.h>
 
 #include <atomic>
+#include <memory>
 #include <stdexcept>
 #include <thread>
 
 #include "window_test_utils.hpp"
+
+TEST(WindowHostTest, ConstructorRejectsMissingDependencies)
+{
+	auto gpuPlatformRuntime = std::make_shared<sparkle_test::TestGPUPlatformRuntime>();
+	auto frame = std::make_unique<sparkle_test::TestFrame>(sparkle_test::defaultRect(), "Window");
+
+	EXPECT_THROW(spk::WindowHost(nullptr, gpuPlatformRuntime), std::runtime_error);
+	EXPECT_THROW(spk::WindowHost(std::move(frame), nullptr), std::runtime_error);
+}
+
+TEST(WindowHostTest, PlatformOperationsThrowFromNonPlatformThread)
+{
+	auto bundle = sparkle_test::createWindowHostBundle();
+	std::exception_ptr failure = nullptr;
+
+	std::jthread worker([&]()
+	{
+		try
+		{
+			bundle.windowHost->setTitle("WrongThread");
+		}
+		catch (...)
+		{
+			failure = std::current_exception();
+		}
+	});
+	worker.join();
+
+	ASSERT_NE(failure, nullptr);
+	EXPECT_THROW(std::rethrow_exception(failure), std::runtime_error);
+}
+
+TEST(WindowHostTest, PlatformOperationsThrowAfterFrameRelease)
+{
+	auto bundle = sparkle_test::createWindowHostBundle();
+
+	bundle.windowHost->releaseFrame();
+
+	EXPECT_THROW(bundle.windowHost->resize(sparkle_test::defaultRect()), std::runtime_error);
+	EXPECT_THROW(bundle.windowHost->setTitle("Released"), std::runtime_error);
+	EXPECT_THROW(bundle.windowHost->requestClosure(), std::runtime_error);
+	EXPECT_THROW(bundle.windowHost->validateClosure(), std::runtime_error);
+	EXPECT_THROW(static_cast<void>(bundle.windowHost->rect()), std::runtime_error);
+	EXPECT_THROW(static_cast<void>(bundle.windowHost->title()), std::runtime_error);
+	EXPECT_THROW(bundle.windowHost->subscribeToMouseEvents([](const spk::MouseEventRecord&) {}), std::runtime_error);
+	EXPECT_THROW(bundle.windowHost->subscribeToKeyboardEvents([](const spk::KeyboardEventRecord&) {}), std::runtime_error);
+	EXPECT_THROW(bundle.windowHost->subscribeToFrameEvents([](const spk::FrameEventRecord&) {}), std::runtime_error);
+}
+
+TEST(WindowHostTest, PresentAndRenderContextRequireAValidRenderContext)
+{
+	auto bundle = sparkle_test::createWindowHostBundle();
+
+	EXPECT_THROW(bundle.windowHost->present(), std::runtime_error);
+
+	bundle.platformRuntime->createdFrame->emitFrameEvent(
+		spk::FrameEventRecord(spk::makeEventRecord(spk::WindowDestroyedRecord{})));
+
+	EXPECT_THROW(static_cast<void>(bundle.windowHost->renderContext()), std::runtime_error);
+}
+
+TEST(WindowHostTest, NullRenderContextCreationThrows)
+{
+	auto bundle = sparkle_test::createWindowHostBundle();
+
+	bundle.gpuPlatformRuntime->returnNullContext = true;
+
+	EXPECT_THROW(static_cast<void>(bundle.windowHost->makeCurrent()), std::runtime_error);
+}
 
 TEST(WindowHostTest, ReleasingFrameInvalidatesTheExistingRenderContext)
 {

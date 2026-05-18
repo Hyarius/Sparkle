@@ -50,6 +50,82 @@ TEST(RenderModuleTest, RenderUnitBuilderPreservesCommandInsertionOrder)
 	EXPECT_EQ(calls, std::vector<int>({1, 2, 3}));
 }
 
+TEST(RenderModuleTest, RenderUnitBuilderReportsSizeAndCanBeCleared)
+{
+	spk::RenderUnitBuilder builder;
+
+	EXPECT_TRUE(builder.empty());
+	EXPECT_EQ(builder.size(), 0);
+
+	builder.emplace<sparkle_test::CallbackRenderCommand>([]() {});
+	builder.emplace<sparkle_test::CallbackRenderCommand>([]() {});
+
+	EXPECT_FALSE(builder.empty());
+	EXPECT_EQ(builder.size(), 2);
+
+	builder.clear();
+
+	EXPECT_TRUE(builder.empty());
+	EXPECT_EQ(builder.size(), 0);
+}
+
+TEST(RenderModuleTest, RenderUnitExposesCommandsAndReportsSize)
+{
+	spk::RenderUnitBuilder builder;
+
+	builder.emplace<sparkle_test::CallbackRenderCommand>([]() {});
+	builder.emplace<sparkle_test::CallbackRenderCommand>([]() {});
+
+	spk::RenderUnit unit = builder.build();
+
+	EXPECT_FALSE(unit.empty());
+	EXPECT_EQ(unit.size(), 2);
+	EXPECT_EQ(unit.commands().size(), 2);
+}
+
+TEST(RenderModuleTest, RenderSnapshotBuilderIgnoresEmptyUnitsAndExposesState)
+{
+	spk::RenderSnapshotBuilder snapshotBuilder;
+	spk::RenderUnitBuilder emptyUnitBuilder;
+	spk::RenderUnitBuilder commandUnitBuilder;
+	commandUnitBuilder.emplace<sparkle_test::CallbackRenderCommand>([]() {});
+
+	EXPECT_TRUE(snapshotBuilder.empty());
+	EXPECT_EQ(snapshotBuilder.size(), 0);
+
+	snapshotBuilder.append(nullptr);
+	snapshotBuilder.append(std::make_shared<spk::RenderUnit>(emptyUnitBuilder.build()));
+
+	EXPECT_TRUE(snapshotBuilder.empty());
+
+	const auto unit = std::make_shared<spk::RenderUnit>(commandUnitBuilder.build());
+	snapshotBuilder.append(unit);
+
+	EXPECT_FALSE(snapshotBuilder.empty());
+	EXPECT_EQ(snapshotBuilder.size(), 1);
+	ASSERT_EQ(snapshotBuilder.units().size(), 1);
+	EXPECT_EQ(snapshotBuilder.units().front(), unit);
+
+	snapshotBuilder.clear();
+
+	EXPECT_TRUE(snapshotBuilder.empty());
+	EXPECT_EQ(snapshotBuilder.size(), 0);
+}
+
+TEST(RenderModuleTest, RenderSnapshotExposesUnitsAndReportsSize)
+{
+	spk::RenderUnitBuilder unitBuilder;
+	unitBuilder.emplace<sparkle_test::CallbackRenderCommand>([]() {});
+	const auto unit = std::make_shared<spk::RenderUnit>(unitBuilder.build());
+
+	spk::RenderSnapshot snapshot(std::vector<std::shared_ptr<spk::RenderUnit>>{unit});
+
+	EXPECT_FALSE(snapshot.empty());
+	EXPECT_EQ(snapshot.size(), 1);
+	ASSERT_EQ(snapshot.units().size(), 1);
+	EXPECT_EQ(snapshot.units().front(), unit);
+}
+
 TEST(RenderModuleTest, RenderCommandReceivesRenderContext)
 {
 	spk::RenderModule module;
