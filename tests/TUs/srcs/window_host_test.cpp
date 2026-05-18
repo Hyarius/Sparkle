@@ -202,6 +202,33 @@ TEST(WindowHostTest, ReleasingRenderContextFromNonRenderThreadAfterMakeCurrentTh
 	renderThread.join();
 }
 
+TEST(WindowHostTest, NotifyFrameResizedBeforeMakeCurrentIsIgnored)
+{
+	auto bundle = sparkle_test::createWindowHostBundle();
+	const spk::Rect2D newRect(0, 0, 640, 480);
+
+	EXPECT_NO_THROW(bundle.windowHost->notifyFrameResized(newRect));
+	EXPECT_EQ(bundle.gpuPlatformRuntime->createdContext, nullptr);
+}
+
+TEST(WindowHostTest, NotifyFrameResizedAfterMakeCurrentForwardsToRenderContext)
+{
+	auto bundle = sparkle_test::createWindowHostBundle();
+	const spk::Rect2D newRect(0, 0, 640, 480);
+
+	std::jthread renderThread([&]()
+	{
+		ASSERT_TRUE(bundle.windowHost->makeCurrent());
+		bundle.windowHost->notifyFrameResized(newRect);
+		bundle.windowHost->releaseRenderContext();
+	});
+	renderThread.join();
+
+	ASSERT_NE(bundle.gpuPlatformRuntime->contextStats, nullptr);
+	EXPECT_EQ(bundle.gpuPlatformRuntime->contextStats->notifyResizeCount, 1);
+	EXPECT_EQ(bundle.gpuPlatformRuntime->contextStats->lastResizeRect, newRect);
+}
+
 TEST(WindowHostTest, DestructorInvalidatesLiveRenderAndFrameState)
 {
 	auto bundle = sparkle_test::createWindowHostBundle();

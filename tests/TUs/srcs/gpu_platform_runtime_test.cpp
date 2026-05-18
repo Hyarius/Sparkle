@@ -1,0 +1,76 @@
+#include <gtest/gtest.h>
+
+#include <memory>
+#include <stdexcept>
+
+#include "spk_frame.hpp"
+#include "spk_gpu_platform_runtime.hpp"
+#include "spk_render_context.hpp"
+#include "spk_surface_state.hpp"
+
+namespace
+{
+	class TestSurfaceState : public spk::ISurfaceState
+	{
+	};
+
+	class FrameA : public spk::IFrame
+	{
+	public:
+		FrameA() : spk::IFrame(std::make_shared<TestSurfaceState>()) {}
+		void resize(const spk::Rect2D&) override {}
+		void setTitle(const std::string&) override {}
+		void requestClosure() override {}
+		void validateClosure() override {}
+		[[nodiscard]] spk::Rect2D rect() const override { return {}; }
+		[[nodiscard]] std::string title() const override { return {}; }
+	};
+
+	class FrameB : public spk::IFrame
+	{
+	public:
+		FrameB() : spk::IFrame(std::make_shared<TestSurfaceState>()) {}
+		void resize(const spk::Rect2D&) override {}
+		void setTitle(const std::string&) override {}
+		void requestClosure() override {}
+		void validateClosure() override {}
+		[[nodiscard]] spk::Rect2D rect() const override { return {}; }
+		[[nodiscard]] std::string title() const override { return {}; }
+	};
+
+	class TestRenderContext : public spk::IRenderContext
+	{
+	public:
+		explicit TestRenderContext(std::shared_ptr<spk::ISurfaceState> p_state)
+			: spk::IRenderContext(std::move(p_state)) {}
+		void makeCurrent() override {}
+		void present() override {}
+		void setVSync(bool) override {}
+		void notifyResize(const spk::Rect2D&) override {}
+	};
+
+	// A GPU runtime that expects FrameA specifically.
+	class FrameARuntime : public spk::IGPUPlatformRuntime
+	{
+	public:
+		std::unique_ptr<spk::IRenderContext> createRenderContext(spk::IFrame& p_frame) override
+		{
+			FrameA& frame = requireFrame<FrameA>(p_frame);
+			return std::make_unique<TestRenderContext>(frame.surfaceState());
+		}
+	};
+}
+
+TEST(GPUPlatformRuntimeTest, RequireFrameDoesNotThrowOnMatchingType)
+{
+	FrameARuntime runtime;
+	FrameA frame;
+	EXPECT_NO_THROW(runtime.createRenderContext(frame));
+}
+
+TEST(GPUPlatformRuntimeTest, RequireFrameThrowsOnMismatchedType)
+{
+	FrameARuntime runtime;
+	FrameB frame;
+	EXPECT_THROW(runtime.createRenderContext(frame), std::runtime_error);
+}

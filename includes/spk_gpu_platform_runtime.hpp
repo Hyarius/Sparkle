@@ -1,15 +1,29 @@
 #pragma once
 
 #include <memory>
+#include <stdexcept>
+#include <string>
+#include <typeinfo>
 
 #include "spk_render_context.hpp"
+#include "spk_frame.hpp"
 
 namespace spk
 {
-	class IFrame;
-
 	class IGPUPlatformRuntime
 	{
+	protected:
+		template<typename TExpected>
+		TExpected& requireFrame(IFrame& p_frame)
+		{
+			auto* ptr = dynamic_cast<TExpected*>(&p_frame);
+			if (ptr == nullptr)
+				throw std::runtime_error(
+					std::string("IGPUPlatformRuntime: expected ") + typeid(TExpected).name() +
+					", got " + typeid(p_frame).name());
+			return *ptr;
+		}
+
 	public:
 		virtual ~IGPUPlatformRuntime();
 

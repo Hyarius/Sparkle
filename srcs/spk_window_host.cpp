@@ -126,19 +126,14 @@ namespace spk
 
 	void WindowHost::notifyFrameResized(const spk::Rect2D& p_rect)
 	{
-		_bindOrValidatePlatformThread(__FUNCTION__);
-		
 		std::scoped_lock lock(_renderThreadMutex);
-		if (_ensureRenderContextLocked() == false)
+
+		if (_renderThreadID.has_value() == false || _renderContext == nullptr || _renderContext->isValid() == false)
 		{
 			return;
 		}
 
-		if (_renderContext->isValid() == false)
-		{
-			return;
-		}
-
+		_validateRenderThreadLocked(__FUNCTION__);
 		_renderContext->notifyResize(p_rect);
 	}
 
@@ -258,9 +253,11 @@ namespace spk
 	void WindowHost::present()
 	{
 		std::scoped_lock lock(_renderThreadMutex);
+		_validateRenderThreadLocked(__FUNCTION__);
+
 		if (_renderContext == nullptr)
 		{
-			throw std::runtime_error("spk::WindowHost::renderContext not initialized while calling for Window presentation.");
+			throw std::runtime_error("spk::WindowHost::present called without an initialized render context");
 		}
 
 		if (_renderContext->isValid() == false)
