@@ -71,6 +71,18 @@ namespace spk
 		}
 	}
 
+	spk::Rect2D WindowHandle::rect() const
+	{
+		std::shared_ptr<spk::Window> window = _window.lock();
+
+		if (window == nullptr)
+		{
+			throw std::runtime_error("WindowHandle::rect : can't access an expired window");
+		}
+
+		return window->host().rect();
+	}
+
 	spk::Widget& WindowHandle::centralWidget() const
 	{
 		std::shared_ptr<spk::Window> window = _window.lock();

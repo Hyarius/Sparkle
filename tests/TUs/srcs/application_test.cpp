@@ -34,10 +34,20 @@ TEST(ApplicationTest, CreateWindowAndLookupReturnTheManagedWindow)
 	EXPECT_EQ(platformRuntimePtr->lastCreateTitle, "Main");
 }
 
-TEST(ApplicationTest, DefaultCreateWindowThrowsWhenNoDefaultRuntimeExists)
+TEST(ApplicationTest, DefaultCreateWindowUsesNativeRuntimeWhenAvailable)
 {
 	spk::Application application;
 
+#if defined(_WIN32) && defined(SPARKLE_GPU_BACKEND_OPENGL)
+	EXPECT_NO_THROW(
+		application.createWindow(
+			"main",
+			spk::Window::Configuration{
+				.rect = sparkle_test::defaultRect(),
+				.title = "Main"
+			}));
+	EXPECT_TRUE(application.containsWindow("main"));
+#else
 	EXPECT_THROW(
 		application.createWindow(
 			"main",
@@ -46,6 +56,7 @@ TEST(ApplicationTest, DefaultCreateWindowThrowsWhenNoDefaultRuntimeExists)
 				.title = "Main"
 			}),
 		std::runtime_error);
+#endif
 }
 
 TEST(ApplicationTest, ConstWindowLookupReturnsTheManagedWindow)

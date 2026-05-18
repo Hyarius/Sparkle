@@ -42,6 +42,15 @@
 #include "spk_platform_runtime.hpp"
 #include "spk_render_context.hpp"
 #include "spk_gpu_platform_runtime.hpp"
+#ifdef _WIN32
+#include "spk_winapi_class.hpp"
+#include "spk_winapi_cursor.hpp"
+#include "spk_winapi_window.hpp"
+#include "spk_winapi_frame.hpp"
+#include "spk_winapi_platform_runtime.hpp"
+#include "spk_opengl_render_context.hpp"
+#include "spk_opengl_runtime.hpp"
+#endif
 
 // Rendering
 #include "spk_render_command.hpp"

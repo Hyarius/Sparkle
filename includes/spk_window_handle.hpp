@@ -30,6 +30,7 @@ namespace spk
 		void resize(const spk::Rect2D& p_rect) const;
 		void setVSync(bool p_enabled) const;
 
+		[[nodiscard]] spk::Rect2D rect() const;
 		[[nodiscard]] spk::Widget& centralWidget() const;
 	};
 }

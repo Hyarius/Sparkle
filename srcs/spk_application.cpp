@@ -7,16 +7,29 @@
 #include "spk_chronometer.hpp"
 #include "spk_time_utils.hpp"
 
+#ifdef _WIN32
+#include "spk_opengl_runtime.hpp"
+#include "spk_winapi_platform_runtime.hpp"
+#endif
+
 namespace spk
 {
 	std::shared_ptr<IPlatformRuntime> Application::_createDefaultPlatformRuntime()
 	{
+#ifdef _WIN32
+		return std::make_shared<spk::WinAPI::PlatformRuntime>();
+#else
 		throw std::runtime_error("No default spk::IPlatformRuntime is implemented for this platform yet");
+#endif
 	}
 
 	std::shared_ptr<IGPUPlatformRuntime> Application::_createDefaultGPUPlatformRuntime()
 	{
+#if defined(_WIN32) && defined(SPARKLE_GPU_BACKEND_OPENGL)
+		return std::make_shared<spk::OpenGL::Runtime>();
+#else
 		throw std::runtime_error("No default spk::IGPUPlatformRuntime is implemented for this platform yet");
+#endif
 	}
 
 	void Application::_bindOrValidateOwnerThread(const char* p_operation)
