@@ -33,6 +33,8 @@ set(SPARKLE_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/srcs")
 set(SPARKLE_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/includes")
 set(SPARKLE_RESOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/resources")
 
+option(ENABLE_PLAYGROUND "Build the Sparkle playground executable" OFF)
+
 add_subdirectory(tools)
 
 file(GLOB_RECURSE SPARKLE_SOURCES
@@ -158,4 +160,8 @@ if (ENABLE_TESTS)
 	enable_testing()
     
 	add_subdirectory(tests)
+endif()
+
+if (ENABLE_PLAYGROUND)
+	add_subdirectory(Playground)
 endif()

@@ -38,6 +38,7 @@ namespace spk
 		std::atomic<bool> _isRunning = false;
 		std::atomic<bool> _shutdownRequested = false;
 		std::atomic<bool> _stopRequested = false;
+		std::atomic<int> _exitCode = 0;
 		std::mutex _failureMutex;
 		std::exception_ptr _failure = nullptr;
 
@@ -64,7 +65,8 @@ namespace spk
 		[[nodiscard]] bool isRunning() const;
 
 		void requestWindowClosing(const WindowID& p_id);
+		void quit(int p_exitCode);
 		void stop();
-		void run();
+		int run();
 	};
 }

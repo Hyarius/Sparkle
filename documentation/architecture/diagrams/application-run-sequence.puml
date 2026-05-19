@@ -61,6 +61,7 @@ App -> RenderThread : join()
 App -> UpdateThread : join()
 App -> App : set _isRunning = false
 App -> App : rethrow recorded failures
+App --> User : exit code
 deactivate App
 
 @enduml

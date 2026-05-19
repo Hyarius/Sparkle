@@ -11,7 +11,10 @@ file(GLOB_RECURSE SPARKLE_TEST_UTILS_SOURCES
     ${SPARKLE_TEST_UTILS_DIR}/*.cpp
 )
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/includes)
+include_directories(
+	${CMAKE_CURRENT_SOURCE_DIR}/includes
+	${CMAKE_CURRENT_SOURCE_DIR}/includes/utils
+)
 
 file(GLOB_RECURSE SPARKLE_TEST_SOURCES
     CONFIGURE_DEPENDS

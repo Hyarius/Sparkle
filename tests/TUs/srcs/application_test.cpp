@@ -168,7 +168,7 @@ TEST(ApplicationTest, RunExecutesEventUpdateAndRenderLoops)
 		}
 	};
 
-	application.run();
+	EXPECT_EQ(application.run(), 0);
 
 	EXPECT_GT(platformRuntimePtr->pollEventsCount, 0);
 	EXPECT_GT(updateCount.load(), 0);
@@ -221,7 +221,7 @@ TEST(ApplicationTest, RunExecutesDeferredFrameValidationOnTheOwnerThread)
 		}
 	};
 
-	application.run();
+	EXPECT_EQ(application.run(), 0);
 
 	ASSERT_NE(platformRuntimePtr->frameStats, nullptr);
 	EXPECT_EQ(platformRuntimePtr->frameStats->validateClosureCount, 1);
@@ -311,9 +311,62 @@ TEST(ApplicationTest, StopRequestsClosureAndWaitsForWindowDisposal)
 		}
 	};
 
-	application.run();
+	EXPECT_EQ(application.run(), 0);
 
 	EXPECT_TRUE(stopIssued.load());
+	EXPECT_TRUE(sawClosureRequest.load());
+	EXPECT_FALSE(application.containsWindow("main"));
+}
+
+TEST(ApplicationTest, QuitRequestsClosureAndReturnsTheProvidedExitCode)
+{
+	const spk::Duration step(1.0L, spk::TimeUnit::Millisecond);
+	auto platformRuntime = std::make_shared<sparkle_test::TestPlatformRuntime>();
+	auto gpuPlatformRuntime = std::make_shared<sparkle_test::TestGPUPlatformRuntime>();
+	auto* platformRuntimePtr = platformRuntime.get();
+	std::atomic<bool> quitIssued = false;
+	std::atomic<bool> sawClosureRequest = false;
+	std::atomic<bool> destroyQueued = false;
+
+	spk::Application application(
+		spk::Application::Configuration{
+			.platformRuntime = platformRuntime,
+			.gpuPlatformRuntime = gpuPlatformRuntime,
+			.renderInterval = step,
+			.updateInterval = step,
+			.eventPollingInterval = step,
+			.stopWhenNoWindows = false
+		});
+
+	application.createWindow(
+		"main",
+		spk::Window::Configuration{
+			.rect = sparkle_test::defaultRect(),
+			.title = "Main"
+		});
+
+	platformRuntimePtr->onPollEvents = [&](sparkle_test::TestPlatformRuntime&)
+	{
+		if (quitIssued.load() == false)
+		{
+			quitIssued.store(true);
+			application.quit(42);
+			return;
+		}
+
+		if (destroyQueued.load() == false &&
+			platformRuntimePtr->createdFrame != nullptr &&
+			platformRuntimePtr->createdFrame->requestClosureCount > 0)
+		{
+			sawClosureRequest.store(true);
+			destroyQueued.store(true);
+			platformRuntimePtr->queueFrameEvent(spk::WindowDestroyedRecord{});
+		}
+	};
+
+	EXPECT_EQ(application.run(), 42);
+
+	EXPECT_TRUE(quitIssued.load());
 	EXPECT_TRUE(sawClosureRequest.load());
 	EXPECT_FALSE(application.containsWindow("main"));
 }
@@ -338,7 +391,7 @@ TEST(ApplicationTest, RunStopsWhenTheLastWindowCloses)
 
 	platformRuntimePtr->queueFrameEvent(spk::WindowDestroyedRecord{});
 
-	application.run();
+	EXPECT_EQ(application.run(), 0);
 
 	EXPECT_FALSE(application.containsWindow("main"));
 	EXPECT_GT(platformRuntimePtr->pollEventsCount, 0);
@@ -351,7 +404,7 @@ TEST(ApplicationTest, RunReturnsImmediatelyWhenNoWindowsAndConfiguredToStop)
 			.stopWhenNoWindows = true
 		});
 
-	application.run();
+	EXPECT_EQ(application.run(), 0);
 
 	EXPECT_FALSE(application.isRunning());
 }

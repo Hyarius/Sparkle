@@ -12,10 +12,12 @@ namespace spk {
 		- atomic<bool> _isRunning
 		- atomic<bool> _shutdownRequested
 		- atomic<bool> _stopRequested
+		- atomic<int> _exitCode
 		+ createWindow(id, configuration) : shared_ptr<Window>
 		+ requestWindowClosing(id)
+		+ quit(exitCode)
 		+ stop()
-		+ run()
+		+ run() : int
 		- _runRenderLoop()
 		- _runUpdateLoop()
 		- _runEventLoop()

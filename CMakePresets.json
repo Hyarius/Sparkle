@@ -45,6 +45,15 @@
 				"ENABLE_TESTS": "ON",
 				"CMAKE_BUILD_TYPE": "Release"
 			}
+		},
+		{
+			"name": "playground",
+			"inherits": "default",
+			"description": "Configure for Debug build with Playground executable",
+			"cacheVariables": {
+				"ENABLE_PLAYGROUND": "ON",
+				"CMAKE_BUILD_TYPE": "Debug"
+			}
 		}
 	],
 	"buildPresets": [
@@ -64,6 +73,13 @@
 		{
 			"name": "test",
 			"configurePreset": "test"
+		},
+		{
+			"name": "playground",
+			"configurePreset": "playground",
+			"targets": [
+				"SparklePlayground"
+			]
 		}
 	],
 	"testPresets": [
@@ -83,6 +99,10 @@
 		{
 			"name": "test",
 			"configurePreset": "test"
+		},
+		{
+			"name": "playground",
+			"configurePreset": "playground"
 		}
 	]
 }

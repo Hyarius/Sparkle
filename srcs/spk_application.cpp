@@ -266,12 +266,18 @@ namespace spk
 		_windowRegistry.requestWindowClosing(p_id);
 	}
 
-	void Application::stop()
+	void Application::quit(int p_exitCode)
 	{
+		_exitCode.store(p_exitCode);
 		_shutdownRequested.store(true);
 	}
 
-	void Application::run()
+	void Application::stop()
+	{
+		quit(0);
+	}
+
+	int Application::run()
 	{
 		_bindOrValidateOwnerThread(__FUNCTION__);
 
@@ -293,6 +299,7 @@ namespace spk
 
 		_stopRequested.store(false);
 		_shutdownRequested.store(false);
+		_exitCode.store(0);
 		_rethrowFailureIfAny();
 
 		std::jthread renderThread([this]()
@@ -336,5 +343,7 @@ namespace spk
 
 		_isRunning.store(false);
 		_rethrowFailureIfAny();
+
+		return _exitCode.load();
 	}
 }
