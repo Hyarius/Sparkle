@@ -1,11 +1,13 @@
 #pragma once
 
+#include <atomic>
+
 namespace spk
 {
 	class SynchronizableTrait
 	{
 	private:
-		bool _needsSynchronization = false;
+		std::atomic_bool _needsSynchronization = false;
 
 	protected:
 		SynchronizableTrait() = default;

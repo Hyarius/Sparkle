@@ -20,6 +20,10 @@ namespace spk
 		mutable bool _renderCommandsDirty = true;
 		mutable std::shared_ptr<spk::RenderUnit> _renderUnit = nullptr;
 		spk::Rect2D _geometry;
+		spk::Rect2D _absoluteGeometry;
+		spk::Rect2D _scissor;
+
+		void _updateAbsoluteGeometryAndScissor();
 
 		template <typename TEvent>
 		void _propagate(TEvent& p_event, void (spk::Widget::*p_handler)(TEvent&))
@@ -45,6 +49,11 @@ namespace spk
 		}
 
 	protected:
+		void onParentChanged(spk::Widget* p_oldParent, spk::Widget* p_newParent) override;
+
+		[[nodiscard]] const spk::Rect2D& absoluteGeometry() const;
+		[[nodiscard]] const spk::Rect2D& scissor() const;
+
 		[[nodiscard]] virtual spk::RenderUnit _buildRenderUnit() const;
 
 		virtual void _onUpdate(const spk::UpdateTick& p_tick);
@@ -76,7 +85,7 @@ namespace spk
 		[[nodiscard]] const std::string& name() const;
 
 		void setGeometry(const spk::Rect2D& p_geometry);
-		void invalidateRenderUnit();
+		void invalidateRenderUnit() const;
 
 		[[nodiscard]] const spk::Rect2D& geometry() const;
 		[[nodiscard]] bool isRenderCommandDirty() const;

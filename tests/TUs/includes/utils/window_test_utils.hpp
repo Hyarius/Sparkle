@@ -604,6 +604,16 @@ namespace sparkle_test
 			sharedCallLog = p_log;
 		}
 
+		const spk::Rect2D& absoluteGeometryForTest() const
+		{
+			return absoluteGeometry();
+		}
+
+		const spk::Rect2D& scissorForTest() const
+		{
+			return scissor();
+		}
+
 	protected:
 		spk::RenderUnit _buildRenderUnit() const override
 		{

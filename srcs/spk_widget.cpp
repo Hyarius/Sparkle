@@ -1,10 +1,43 @@
 #include "spk_widget.hpp"
 
+#if defined(SPARKLE_GPU_BACKEND_OPENGL)
+#include <memory>
+
+#include "spk_opengl_scissor_command.hpp"
+#include "spk_opengl_viewport_command.hpp"
+#include "spk_render_unit_builder.hpp"
+#endif
+
 namespace spk
 {
+#if defined(SPARKLE_GPU_BACKEND_OPENGL)
+	namespace
+	{
+		std::shared_ptr<spk::RenderUnit> makeViewportAndScissorUnit(const spk::Rect2D& p_viewport, const spk::Rect2D& p_scissor)
+		{
+			if (p_viewport.empty() == true)
+			{
+				return nullptr;
+			}
+
+			spk::RenderUnitBuilder builder;
+			builder.emplace<spk::OpenGL::ViewportCommand>(p_viewport);
+			builder.emplace<spk::OpenGL::ScissorCommand>(p_scissor);
+			return std::make_shared<spk::RenderUnit>(builder.build());
+		}
+	}
+#endif
+
 	spk::RenderUnit Widget::_buildRenderUnit() const
 	{
 		return spk::RenderUnit();
+	}
+
+	void Widget::onParentChanged(spk::Widget* p_oldParent, spk::Widget* p_newParent)
+	{
+		(void)p_oldParent;
+		(void)p_newParent;
+		_updateAbsoluteGeometryAndScissor();
 	}
 
 	void Widget::_onUpdate(const spk::UpdateTick &p_tick)
@@ -34,6 +67,7 @@ namespace spk
 	Widget::Widget(const std::string &p_name, spk::Widget *p_parent) : spk::InherenceTrait<Widget>(p_parent),
 																	   _name(p_name)
 	{
+		_updateAbsoluteGeometryAndScissor();
 	}
 
 	Widget::~Widget() = default;
@@ -51,10 +85,33 @@ namespace spk
 		}
 
 		_geometry = p_geometry;
+		_updateAbsoluteGeometryAndScissor();
 		invalidateRenderUnit();
 	}
 
-	void Widget::invalidateRenderUnit()
+	void Widget::_updateAbsoluteGeometryAndScissor()
+	{
+		_absoluteGeometry = _geometry;
+		if (parent() != nullptr)
+		{
+			_absoluteGeometry = _geometry.translated(parent()->absoluteGeometry().anchor);
+			_scissor = _absoluteGeometry.intersect(parent()->scissor());
+		}
+		else
+		{
+			_scissor = _absoluteGeometry;
+		}
+
+		for (auto* child : children())
+		{
+			if (child != nullptr)
+			{
+				child->_updateAbsoluteGeometryAndScissor();
+			}
+		}
+	}
+
+	void Widget::invalidateRenderUnit() const
 	{
 		_renderCommandsDirty = true;
 	}
@@ -62,6 +119,16 @@ namespace spk
 	const spk::Rect2D &Widget::geometry() const
 	{
 		return (_geometry);
+	}
+
+	const spk::Rect2D& Widget::absoluteGeometry() const
+	{
+		return _absoluteGeometry;
+	}
+
+	const spk::Rect2D& Widget::scissor() const
+	{
+		return _scissor;
 	}
 
 	bool Widget::isRenderCommandDirty() const
@@ -88,12 +155,20 @@ namespace spk
 			return;
 		}
 
+#if defined(SPARKLE_GPU_BACKEND_OPENGL)
+		std::shared_ptr<spk::RenderUnit> viewportAndScissorUnit = makeViewportAndScissorUnit(absoluteGeometry(), scissor());
+		p_builder.append(viewportAndScissorUnit);
+#endif
+
 		p_builder.append(renderUnit());
 
 		for (const auto *child : children())
 		{
 			if (child != nullptr)
 			{
+#if defined(SPARKLE_GPU_BACKEND_OPENGL)
+				p_builder.append(viewportAndScissorUnit);
+#endif
 				child->appendRenderUnits(p_builder);
 			}
 		}

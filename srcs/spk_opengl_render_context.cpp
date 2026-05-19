@@ -4,7 +4,7 @@
 
 #include <stdexcept>
 
-#include <GL/gl.h>
+#include <GL/glew.h>
 
 #include "spk_winapi_helpers.hpp"
 
@@ -67,6 +67,15 @@ namespace spk::OpenGL
 		}
 
 		makeCurrent();
+
+		glewExperimental = GL_TRUE;
+		const GLenum glewResult = glewInit();
+		if (glewResult != GLEW_OK)
+		{
+			throw std::runtime_error(
+				"spk::OpenGL::RenderContext failed to initialize GLEW: " +
+				std::string(reinterpret_cast<const char*>(glewGetErrorString(glewResult))));
+		}
 	}
 
 	RenderContext::~RenderContext()

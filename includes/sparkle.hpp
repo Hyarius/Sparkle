@@ -59,6 +59,21 @@
 #include "spk_render_snapshot.hpp"
 #include "spk_render_snapshot_builder.hpp"
 #include "spk_render_module.hpp"
+#ifdef SPARKLE_GPU_BACKEND_OPENGL
+#include "spk_program.hpp"
+#include "spk_opengl_bind_vertex_array_command.hpp"
+#include "spk_opengl_buffer_object.hpp"
+#include "spk_opengl_clear_command.hpp"
+#include "spk_opengl_draw_arrays_command.hpp"
+#include "spk_opengl_index_buffer_object.hpp"
+#include "spk_opengl_scissor_command.hpp"
+#include "spk_opengl_shader_storage_buffer_object.hpp"
+#include "spk_opengl_uniform_buffer_object.hpp"
+#include "spk_opengl_use_program_render_command.hpp"
+#include "spk_opengl_vertex_array_object.hpp"
+#include "spk_opengl_vertex_buffer_object.hpp"
+#include "spk_opengl_viewport_command.hpp"
+#endif
 
 // Modules
 #include "spk_module.hpp"

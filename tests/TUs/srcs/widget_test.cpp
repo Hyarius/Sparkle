@@ -169,6 +169,96 @@ TEST(WidgetTest, SettingSameGeometryDoesNotRequestAnotherDirtyPass)
 	EXPECT_EQ(widget.renderCount, 2);
 }
 
+TEST(WidgetTest, ChildGeometryIsStoredRelativeAndRenderedAbsolute)
+{
+	sparkle_test::RecordingWidget parent("Parent");
+	sparkle_test::RecordingWidget child("Child", &parent);
+
+	parent.activate();
+	child.activate();
+
+	parent.setGeometry(spk::Rect2D(10, 20, 100, 80));
+	child.setGeometry(spk::Rect2D(5, 6, 30, 20));
+
+	EXPECT_EQ(parent.geometry(), spk::Rect2D(10, 20, 100, 80));
+	EXPECT_EQ(parent.absoluteGeometryForTest().anchor, spk::Vector2Int(10, 20));
+	EXPECT_EQ(parent.absoluteGeometryForTest(), spk::Rect2D(10, 20, 100, 80));
+	EXPECT_EQ(parent.scissorForTest(), spk::Rect2D(10, 20, 100, 80));
+
+	EXPECT_EQ(child.geometry(), spk::Rect2D(5, 6, 30, 20));
+	EXPECT_EQ(child.absoluteGeometryForTest().anchor, spk::Vector2Int(15, 26));
+	EXPECT_EQ(child.absoluteGeometryForTest(), spk::Rect2D(15, 26, 30, 20));
+	EXPECT_EQ(child.scissorForTest(), spk::Rect2D(15, 26, 30, 20));
+}
+
+TEST(WidgetTest, ChildScissorIsClippedByParentScissorAndUpdatesWhenParentMoves)
+{
+	sparkle_test::RecordingWidget parent("Parent");
+	sparkle_test::RecordingWidget child("Child", &parent);
+
+	parent.activate();
+	child.activate();
+
+	parent.setGeometry(spk::Rect2D(10, 20, 20, 20));
+	child.setGeometry(spk::Rect2D(15, 15, 20, 20));
+
+	EXPECT_EQ(child.geometry(), spk::Rect2D(15, 15, 20, 20));
+	EXPECT_EQ(child.absoluteGeometryForTest().anchor, spk::Vector2Int(25, 35));
+	EXPECT_EQ(child.absoluteGeometryForTest(), spk::Rect2D(25, 35, 20, 20));
+	EXPECT_EQ(child.scissorForTest(), spk::Rect2D(25, 35, 5, 5));
+
+	parent.setGeometry(spk::Rect2D(0, 0, 20, 20));
+
+	EXPECT_EQ(child.geometry(), spk::Rect2D(15, 15, 20, 20));
+	EXPECT_EQ(child.absoluteGeometryForTest().anchor, spk::Vector2Int(15, 15));
+	EXPECT_EQ(child.absoluteGeometryForTest(), spk::Rect2D(15, 15, 20, 20));
+	EXPECT_EQ(child.scissorForTest(), spk::Rect2D(15, 15, 5, 5));
+}
+
+TEST(WidgetTest, ParentMoveRefreshesChildAbsolutePlacementWithoutDirtyingChildRenderUnit)
+{
+	sparkle_test::RecordingWidget parent("Parent");
+	sparkle_test::RecordingWidget child("Child", &parent);
+	spk::RenderSnapshotBuilder builder;
+
+	parent.activate();
+	child.activate();
+
+	parent.setGeometry(spk::Rect2D(10, 20, 20, 20));
+	child.setGeometry(spk::Rect2D(1, 2, 3, 4));
+	child.appendRenderUnits(builder);
+	ASSERT_FALSE(child.isRenderCommandDirty());
+
+	parent.setGeometry(spk::Rect2D(30, 40, 20, 20));
+
+	EXPECT_FALSE(child.isRenderCommandDirty());
+	EXPECT_EQ(child.absoluteGeometryForTest().anchor, spk::Vector2Int(31, 42));
+	EXPECT_EQ(child.absoluteGeometryForTest(), spk::Rect2D(31, 42, 3, 4));
+	EXPECT_EQ(child.scissorForTest(), spk::Rect2D(31, 42, 3, 4));
+	EXPECT_FALSE(child.isRenderCommandDirty());
+}
+
+TEST(WidgetTest, ReparentingRefreshesAbsoluteGeometryAndScissorCache)
+{
+	sparkle_test::RecordingWidget firstParent("FirstParent");
+	sparkle_test::RecordingWidget secondParent("SecondParent");
+	sparkle_test::RecordingWidget child("Child", &firstParent);
+
+	firstParent.setGeometry(spk::Rect2D(10, 20, 20, 20));
+	secondParent.setGeometry(spk::Rect2D(100, 200, 15, 15));
+	child.setGeometry(spk::Rect2D(12, 10, 10, 10));
+
+	EXPECT_EQ(child.geometry(), spk::Rect2D(12, 10, 10, 10));
+	EXPECT_EQ(child.absoluteGeometryForTest(), spk::Rect2D(22, 30, 10, 10));
+	EXPECT_EQ(child.scissorForTest(), spk::Rect2D(22, 30, 8, 10));
+
+	child.setParent(&secondParent);
+
+	EXPECT_EQ(child.geometry(), spk::Rect2D(12, 10, 10, 10));
+	EXPECT_EQ(child.absoluteGeometryForTest(), spk::Rect2D(112, 210, 10, 10));
+	EXPECT_EQ(child.scissorForTest(), spk::Rect2D(112, 210, 3, 5));
+}
+
 TEST(WidgetTest, AppendRenderUnitsVisitsSelfBeforeChildrenAndRenderExecutesInThatOrder)
 {
 	sparkle_test::RecordingWidget parent("Parent");

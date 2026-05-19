@@ -4,28 +4,35 @@ namespace spk
 {
 		void SynchronizableTrait::requestSynchronization() noexcept
 		{
-			_needsSynchronization = true;
+			_needsSynchronization.store(true);
 		}
 
 		bool SynchronizableTrait::needsSynchronization() const noexcept
 		{
-			return _needsSynchronization;
+			return _needsSynchronization.load();
 		}
 
 		void SynchronizableTrait::synchronize()
 		{
-			if (_needsSynchronization == false)
+			if (_needsSynchronization.exchange(false) == false)
 			{
 				return;
 			}
 
-			_synchronize();
-			_needsSynchronization = false;
+			try
+			{
+				_synchronize();
+			}
+			catch (...)
+			{
+				_needsSynchronization.store(true);
+				throw;
+			}
 		}
 
 		void SynchronizableTrait::forceSynchronization()
 		{
 			_synchronize();
-			_needsSynchronization = false;
+			_needsSynchronization.store(false);
 		}
 }

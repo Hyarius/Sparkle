@@ -3,6 +3,15 @@
 #include <stdexcept>
 #include <utility>
 
+#if defined(SPARKLE_GPU_BACKEND_OPENGL)
+#include <memory>
+
+#include "spk_opengl_clear_command.hpp"
+#include "spk_opengl_scissor_command.hpp"
+#include "spk_opengl_viewport_command.hpp"
+#include "spk_render_unit_builder.hpp"
+#endif
+
 namespace spk
 {
 	namespace
@@ -24,6 +33,17 @@ namespace spk
 			return result;
 		}
 
+#if defined(SPARKLE_GPU_BACKEND_OPENGL)
+		std::shared_ptr<spk::RenderUnit> _createRenderPassPreparationUnit(const spk::Rect2D& p_rect)
+		{
+			spk::RenderUnitBuilder builder;
+			const spk::Rect2D viewport = p_rect.atOrigin();
+			builder.emplace<spk::OpenGL::ViewportCommand>(viewport);
+			builder.emplace<spk::OpenGL::ScissorCommand>(viewport);
+			builder.emplace<spk::OpenGL::ClearCommand>();
+			return std::make_shared<spk::RenderUnit>(builder.build());
+		}
+#endif
 	}
 
 	void Window::_enqueueFrameEvent(spk::FrameEventRecord p_event)
@@ -125,6 +145,9 @@ namespace spk
 	void Window::_rebuildRenderSnapshot()
 	{
 		spk::RenderSnapshotBuilder builder;
+#if defined(SPARKLE_GPU_BACKEND_OPENGL)
+		builder.append(_createRenderPassPreparationUnit(_rootWidget.geometry()));
+#endif
 		_rootWidget.appendRenderUnits(builder);
 
 		std::shared_ptr<spk::RenderSnapshot> snapshot =
