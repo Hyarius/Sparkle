@@ -46,7 +46,7 @@ namespace
 			spk::RenderUnitBuilder builder;
 			builder.emplace<spk::OpenGL::UseProgramRenderCommand>(_program);
 			builder.emplace<spk::OpenGL::BindVertexArrayCommand>(_vertexArray);
-			builder.emplace<spk::OpenGL::DrawArraysCommand>(GL_TRIANGLES, 0, 3);
+			builder.emplace<spk::OpenGL::DrawArraysCommand>(spk::OpenGL::Primitive::Triangles, 0, 3);
 			builder.emplace<spk::OpenGL::BindVertexArrayCommand>();
 			builder.emplace<spk::OpenGL::UseProgramRenderCommand>();
 			return builder.build();

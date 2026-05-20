@@ -43,7 +43,7 @@ TEST(OpenGLVertexArrayObjectTest, RendersTriangleWithConfiguredVBO)
 	builder.emplace<spk::OpenGL::ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
 	builder.emplace<spk::OpenGL::UseProgramRenderCommand>(program);
 	builder.emplace<spk::OpenGL::BindVertexArrayCommand>(vertexArray);
-	builder.emplace<spk::OpenGL::DrawArraysCommand>(GL_TRIANGLES, 0, 3);
+	builder.emplace<spk::OpenGL::DrawArraysCommand>(spk::OpenGL::Primitive::Triangles, 0, 3);
 
 	spk::RenderUnit unit = builder.build();
 	unit.execute(renderContext);

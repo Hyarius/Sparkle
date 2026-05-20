@@ -4,8 +4,8 @@
 
 namespace spk::OpenGL
 {
-	DrawArraysCommand::DrawArraysCommand(GLenum p_mode, GLint p_first, GLsizei p_count) :
-		_mode(p_mode),
+	DrawArraysCommand::DrawArraysCommand(Primitive p_primitive, GLint p_first, GLsizei p_count) :
+		_primitive(p_primitive),
 		_first(p_first),
 		_count(p_count)
 	{
@@ -15,7 +15,7 @@ namespace spk::OpenGL
 	{
 		(void)p_renderContext;
 
-		glDrawArrays(_mode, _first, _count);
+		glDrawArrays(static_cast<GLenum>(_primitive), _first, _count);
 	}
 }
 
