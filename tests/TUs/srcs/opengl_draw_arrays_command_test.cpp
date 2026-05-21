@@ -35,4 +35,12 @@ TEST(OpenGLDrawArraysCommandTest, DrawsConfiguredVertexRange)
 	EXPECT_TRUE(result.matches);
 }
 
+TEST(OpenGLDrawArraysCommandTest, ExecutesWithoutOptionalProgramOrVertexArray)
+{
+	sparkle_test::OpenGLTestContext context;
+	spk::OpenGL::DrawArraysCommand command(spk::OpenGL::Primitive::Points, 0, 0);
+
+	EXPECT_NO_THROW(command.execute(context.renderContext()));
+}
+
 #endif

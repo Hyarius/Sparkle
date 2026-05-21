@@ -109,4 +109,75 @@ TEST(OpenGLTextureTest, ForceSynchronizationUploadsToGPU)
 	EXPECT_FALSE(tex.needsSynchronization());
 }
 
+TEST(OpenGLTextureTest, SynchronizeCoversSupportedPixelFormats)
+{
+	sparkle_test::OpenGLTestContext context;
+	(void)context;
+
+	const struct FormatCase
+	{
+		spk::Texture::Format format;
+		std::size_t bytesPerPixel;
+	} cases[] = {
+		{spk::Texture::Format::BGR, 3},
+		{spk::Texture::Format::BGRA, 4},
+		{spk::Texture::Format::GreyLevel, 1},
+		{spk::Texture::Format::DualChannel, 2}
+	};
+
+	for (const FormatCase& formatCase : cases)
+	{
+		spk::OpenGL::Texture tex;
+		std::vector<uint8_t> pixels(formatCase.bytesPerPixel, 255);
+
+		tex.setPixels(
+			pixels,
+			{1, 1},
+			formatCase.format,
+			spk::Texture::Filtering::Linear,
+			spk::Texture::Wrap::ClampToBorder,
+			spk::Texture::Mipmap::Disable);
+		tex.synchronize();
+
+		EXPECT_NE(tex.glId(), spk::OpenGL::Texture::InvalidGLId);
+		EXPECT_FALSE(tex.needsSynchronization());
+	}
+}
+
+TEST(OpenGLTextureTest, SynchronizeReturnsWithoutUploadingInvalidTextureData)
+{
+	sparkle_test::OpenGLTestContext context;
+	(void)context;
+
+	spk::OpenGL::Texture empty;
+	empty.synchronize();
+	EXPECT_EQ(empty.glId(), spk::OpenGL::Texture::InvalidGLId);
+
+	spk::OpenGL::Texture invalidFormat;
+	invalidFormat.setPixels(std::vector<uint8_t>{255}, {1, 1}, spk::Texture::Format::Error);
+	invalidFormat.synchronize();
+	EXPECT_EQ(invalidFormat.glId(), spk::OpenGL::Texture::InvalidGLId);
+}
+
+TEST(OpenGLTextureTest, MoveAssignmentDeletesExistingTextureBeforeTakingSource)
+{
+	sparkle_test::OpenGLTestContext context;
+	(void)context;
+
+	spk::OpenGL::Texture src;
+	src.setPixels(std::vector<uint8_t>(4, 80), {1, 1}, spk::Texture::Format::RGBA);
+	src.synchronize();
+	const GLuint srcId = src.glId();
+
+	spk::OpenGL::Texture dst;
+	dst.setPixels(std::vector<uint8_t>(4, 160), {1, 1}, spk::Texture::Format::RGBA);
+	dst.synchronize();
+	ASSERT_NE(dst.glId(), spk::OpenGL::Texture::InvalidGLId);
+
+	dst = std::move(src);
+
+	EXPECT_EQ(dst.glId(), srcId);
+	EXPECT_EQ(src.glId(), spk::OpenGL::Texture::InvalidGLId);
+}
+
 #endif

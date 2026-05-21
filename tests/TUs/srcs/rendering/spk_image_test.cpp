@@ -4,6 +4,8 @@
 
 #include <stb_image_write.h>
 
+#include <filesystem>
+
 #include "opengl_wrapper_test_utils.hpp"
 #include "rendering/spk_image.hpp"
 
@@ -144,6 +146,28 @@ TEST(ImageTest, InheritsUniqueTextureID)
 	EXPECT_NE(a.id(), spk::Texture::InvalidID);
 	EXPECT_NE(b.id(), spk::Texture::InvalidID);
 	EXPECT_NE(a.id(), b.id());
+}
+
+TEST(ImageTest, LoadFromFileAndPathConstructorReadPngFiles)
+{
+	sparkle_test::OpenGLTestContext context;
+	(void)context;
+
+	const std::filesystem::path outputPath = std::filesystem::temp_directory_path() / "sparkle-image-load-test.png";
+	const std::vector<uint8_t> pixels(2 * 2 * 2, 128);
+	std::filesystem::remove(outputPath);
+	ASSERT_NE(stbi_write_png(outputPath.string().c_str(), 2, 2, 2, pixels.data(), 2 * 2), 0);
+
+	spk::Image loadedByMethod;
+	loadedByMethod.loadFromFile(outputPath);
+	spk::Image loadedByConstructor(outputPath);
+
+	EXPECT_EQ(loadedByMethod.size(), (spk::Vector2UInt{2, 2}));
+	EXPECT_EQ(loadedByMethod.format(), spk::Texture::Format::DualChannel);
+	EXPECT_EQ(loadedByConstructor.size(), (spk::Vector2UInt{2, 2}));
+	EXPECT_EQ(loadedByConstructor.format(), spk::Texture::Format::DualChannel);
+
+	std::filesystem::remove(outputPath);
 }
 
 #endif

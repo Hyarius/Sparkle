@@ -1,5 +1,8 @@
 #include <gtest/gtest.h>
 
+#include <algorithm>
+#include <filesystem>
+
 #include "rendering/spk_texture.hpp"
 
 namespace
@@ -142,4 +145,89 @@ TEST(TextureTest, SetPixelsMarksSynchronizationAsPending)
 	tex.setPixels(pixels, {2, 2}, spk::Texture::Format::RGBA);
 
 	EXPECT_TRUE(tex.needsSynchronization());
+}
+
+TEST(TextureTest, ReleasedTextureIdCanBeReused)
+{
+	spk::Texture::ID releasedId = spk::Texture::InvalidID;
+	{
+		spk::Texture tex;
+		releasedId = tex.id();
+	}
+
+	spk::Texture next;
+
+	EXPECT_EQ(next.id(), releasedId);
+}
+
+TEST(TextureTest, RawPointerOverloadsFillWithZeroesWhenDataIsNull)
+{
+	spk::Texture withProperties;
+	withProperties.setPixels(
+		nullptr,
+		{2, 2},
+		spk::Texture::Format::DualChannel,
+		spk::Texture::Filtering::Linear,
+		spk::Texture::Wrap::Repeat,
+		spk::Texture::Mipmap::Disable);
+
+	EXPECT_EQ(withProperties.pixels().size(), 8u);
+	EXPECT_TRUE(std::ranges::all_of(withProperties.pixels(), [](uint8_t p_value) { return p_value == 0; }));
+	EXPECT_EQ(withProperties.filtering(), spk::Texture::Filtering::Linear);
+	EXPECT_EQ(withProperties.wrap(), spk::Texture::Wrap::Repeat);
+	EXPECT_EQ(withProperties.mipmap(), spk::Texture::Mipmap::Disable);
+
+	spk::Texture withoutProperties;
+	withoutProperties.setPixels(nullptr, {1, 1}, spk::Texture::Format::BGRA);
+
+	EXPECT_EQ(withoutProperties.pixels().size(), 4u);
+	EXPECT_TRUE(std::ranges::all_of(withoutProperties.pixels(), [](uint8_t p_value) { return p_value == 0; }));
+}
+
+TEST(TextureTest, SectionInequalityDetectsDifferentAnchorAndSize)
+{
+	const spk::Texture::Section base{{0.0f, 0.0f}, {1.0f, 1.0f}};
+
+	EXPECT_NE(base, (spk::Texture::Section{{0.25f, 0.0f}, {1.0f, 1.0f}}));
+	EXPECT_NE(base, (spk::Texture::Section{{0.0f, 0.0f}, {0.5f, 1.0f}}));
+}
+
+TEST(TextureTest, SynchronizeClearsPendingFlagOnBaseTexture)
+{
+	spk::Texture tex;
+	tex.setProperties(spk::Texture::Filtering::Linear, spk::Texture::Wrap::Repeat, spk::Texture::Mipmap::Disable);
+
+	ASSERT_TRUE(tex.needsSynchronization());
+	tex.synchronize();
+
+	EXPECT_FALSE(tex.needsSynchronization());
+}
+
+TEST(TextureTest, SaveAsPngThrowsWithoutPixelData)
+{
+	const spk::Texture tex;
+
+	EXPECT_THROW(tex.saveAsPng("empty-texture.png"), std::runtime_error);
+}
+
+TEST(TextureTest, SaveAsPngThrowsForUnsupportedFormat)
+{
+	spk::Texture tex;
+	tex.setPixels(std::vector<uint8_t>{1, 2, 3, 4}, {1, 1}, spk::Texture::Format::Error);
+
+	EXPECT_THROW(tex.saveAsPng("unsupported-texture.png"), std::runtime_error);
+}
+
+TEST(TextureTest, SaveAsPngWritesSupportedTexture)
+{
+	spk::Texture tex;
+	tex.setPixels(std::vector<uint8_t>{255, 0, 0, 255}, {1, 1}, spk::Texture::Format::RGBA);
+
+	const std::filesystem::path outputPath = std::filesystem::temp_directory_path() / "sparkle-texture-test.png";
+	std::filesystem::remove(outputPath);
+
+	ASSERT_NO_THROW(tex.saveAsPng(outputPath));
+	EXPECT_TRUE(std::filesystem::exists(outputPath));
+
+	std::filesystem::remove(outputPath);
 }

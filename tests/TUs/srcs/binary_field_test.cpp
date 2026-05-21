@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cstdint>
+#include <limits>
 #include <span>
 #include <stdexcept>
 
@@ -199,4 +200,39 @@ TEST(BinaryFieldTest, BytesExposeTheSelectedSection)
 
 	EXPECT_EQ(data[3], 10u);
 	EXPECT_EQ(data[4], 20u);
+}
+
+TEST(BinaryFieldTest, ConstDataAndBytesExposeSelectedSection)
+{
+	std::array<std::uint8_t, 4> data{1, 2, 3, 4};
+	const spk::BinaryField root(data.data(), data.size());
+
+	EXPECT_EQ(root.data(), data.data());
+	std::span<const std::uint8_t> bytes = root.bytes();
+	ASSERT_EQ(bytes.size(), data.size());
+	EXPECT_EQ(bytes[2], 3u);
+}
+
+TEST(BinaryFieldTest, RejectsInvalidChildDefinitions)
+{
+	std::array<std::uint8_t, 8> data{};
+	spk::BinaryField root(data.data(), data.size());
+	spk::BinaryField value = root.addValue("Value", 0, 1);
+
+	EXPECT_THROW(value.addValue("Nested", 0, 1), std::runtime_error);
+	EXPECT_THROW(root.addValue("", 0, 1), std::runtime_error);
+	EXPECT_THROW(root.addValue("Zero", 0, 0), std::runtime_error);
+	EXPECT_THROW(root.addArray("BadElementSize", 0, 1, 0), std::runtime_error);
+	EXPECT_THROW(root.addArray("Overflow", 0, std::numeric_limits<std::size_t>::max(), 2), std::runtime_error);
+}
+
+TEST(BinaryFieldTest, LookupRejectsWrongFieldKinds)
+{
+	std::array<std::uint8_t, 8> data{};
+	spk::BinaryField root(data.data(), data.size());
+	spk::BinaryField value = root.addValue("Value", 0, 1);
+	spk::BinaryField array = root.addArray("Array", 1, 2, 1);
+
+	EXPECT_THROW(array["0"], std::runtime_error);
+	EXPECT_THROW(value[0], std::runtime_error);
 }

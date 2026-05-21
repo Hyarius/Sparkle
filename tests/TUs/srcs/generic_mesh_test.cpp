@@ -1,7 +1,9 @@
 ﻿#include <gtest/gtest.h>
 
 #include <array>
+#include <unordered_set>
 
+#include "rendering/spk_color_mesh_2d.hpp"
 #include "rendering/spk_mesh_2d.hpp"
 
 TEST(GenericMeshTest, AddTriangleStoresVerticesIndexesAndShape)
@@ -84,4 +86,67 @@ TEST(GenericMeshTest, ClearRemovesBufferAndShapes)
 	EXPECT_TRUE(mesh.buffer().vertices.empty());
 	EXPECT_TRUE(mesh.buffer().indexes.empty());
 	EXPECT_TRUE(mesh.shapes().empty());
+}
+
+TEST(GenericMeshTest, IgnoresShapesWithFewerThanThreeVertices)
+{
+	spk::Mesh2D mesh;
+	const std::array<spk::Vertex2D, 2> vertices{
+		spk::Vertex2D{.position = {0.0f, 0.0f}},
+		spk::Vertex2D{.position = {1.0f, 0.0f}}
+	};
+
+	mesh.addShape(std::span<const spk::Vertex2D>(vertices.data(), vertices.size()));
+	mesh.addShape(std::vector<spk::Vertex2D>{});
+
+	EXPECT_EQ(mesh.nbShape(), 0u);
+	EXPECT_TRUE(mesh.buffer().vertices.empty());
+}
+
+TEST(GenericMeshTest, ReusesDuplicateVerticesAcrossShapes)
+{
+	spk::Mesh2D mesh;
+	const spk::Vertex2D a{.position = {0.0f, 0.0f}};
+	const spk::Vertex2D b{.position = {1.0f, 0.0f}};
+	const spk::Vertex2D c{.position = {0.0f, 1.0f}};
+
+	mesh.reserve(6, 6);
+	mesh.addShape(a, b, c);
+	mesh.addShape(a, c, b);
+
+	EXPECT_EQ(mesh.buffer().vertices.size(), 3u);
+	EXPECT_EQ(mesh.buffer().indexes, (std::vector<std::uint32_t>{0, 1, 2, 0, 2, 1}));
+	EXPECT_EQ(mesh.nbShape(), 2u);
+}
+
+TEST(ColorMesh2DTest, ColorValuesVertexComparisonAndHashWork)
+{
+	const spk::Color color(0.1f, 0.2f, 0.3f, 0.4f);
+	const spk::ColorVertex2D first{.position = {1.0f, 2.0f}, .color = color};
+	const spk::ColorVertex2D same{.position = {1.0f, 2.0f}, .color = color};
+	const spk::ColorVertex2D other{.position = {2.0f, 1.0f}, .color = spk::Color(0.4f, 0.3f, 0.2f, 0.1f)};
+
+	EXPECT_EQ(color.values(), (std::array<float, 4>{0.1f, 0.2f, 0.3f, 0.4f}));
+	EXPECT_EQ(first, same);
+	EXPECT_FALSE(first == other);
+
+	std::unordered_set<spk::ColorVertex2D> vertices;
+	vertices.insert(first);
+	vertices.insert(same);
+	vertices.insert(other);
+
+	EXPECT_EQ(vertices.size(), 2u);
+}
+
+TEST(ColorMesh2DTest, StoresColoredShape)
+{
+	spk::ColorMesh2D mesh;
+
+	mesh.addShape(
+		spk::ColorVertex2D{.position = {0.0f, 0.0f}, .color = spk::Color(1.0f, 0.0f, 0.0f)},
+		spk::ColorVertex2D{.position = {1.0f, 0.0f}, .color = spk::Color(0.0f, 1.0f, 0.0f)},
+		spk::ColorVertex2D{.position = {0.0f, 1.0f}, .color = spk::Color(0.0f, 0.0f, 1.0f)});
+
+	EXPECT_EQ(mesh.buffer().vertices.size(), 3u);
+	EXPECT_EQ(mesh.buffer().indexes, (std::vector<std::uint32_t>{0, 1, 2}));
 }

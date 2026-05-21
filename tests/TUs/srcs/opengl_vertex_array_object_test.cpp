@@ -57,4 +57,58 @@ TEST(OpenGLVertexArrayObjectTest, RendersTriangleWithConfiguredVBO)
 	EXPECT_TRUE(result.matches) << "actual=[" << actual.string() << "] expected=[" << expected.string() << "] diff=[" << diff.string() << "]";
 }
 
+TEST(OpenGLVertexArrayObjectTest, MutationHelpersRequestSynchronization)
+{
+	sparkle_test::OpenGLTestContext context;
+	(void)context;
+
+	auto vertexArray = sparkle_test::makeTriangleVAO(
+		sparkle_test::fullScreenTriangle({1.0f, 0.0f, 0.0f}));
+	vertexArray->activate();
+	ASSERT_TRUE(vertexArray->isAllocated());
+	ASSERT_FALSE(vertexArray->needsSynchronization());
+
+	vertexArray->clearVertexBuffers();
+	EXPECT_TRUE(vertexArray->needsSynchronization());
+	vertexArray->activate();
+	EXPECT_FALSE(vertexArray->needsSynchronization());
+
+	auto indexBuffer = std::make_shared<spk::OpenGL::IndexBufferObject>(
+		spk::OpenGL::BufferObject::Usage::StaticDraw,
+		0);
+	vertexArray->setIndexBuffer(indexBuffer);
+	EXPECT_EQ(vertexArray->indexBuffer(), indexBuffer);
+	EXPECT_TRUE(vertexArray->needsSynchronization());
+
+	vertexArray->clearIndexBuffer();
+	EXPECT_EQ(vertexArray->indexBuffer(), nullptr);
+	EXPECT_TRUE(vertexArray->needsSynchronization());
+
+	vertexArray->deactivate();
+	GLint currentVertexArray = 1;
+	glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &currentVertexArray);
+	EXPECT_EQ(currentVertexArray, 0);
+}
+
+TEST(OpenGLVertexArrayObjectTest, RejectsNullVertexBuffer)
+{
+	sparkle_test::OpenGLTestContext context;
+	(void)context;
+
+	spk::OpenGL::VertexArrayObject vertexArray;
+
+	EXPECT_THROW(
+		vertexArray.addVertexBuffer(
+			nullptr,
+			spk::OpenGL::VertexArrayObject::Attribute{
+				.index = 0,
+				.componentCount = 2,
+				.componentType = GL_FLOAT,
+				.normalized = false,
+				.stride = sizeof(float) * 2,
+				.offset = 0
+			}),
+		std::runtime_error);
+}
+
 #endif

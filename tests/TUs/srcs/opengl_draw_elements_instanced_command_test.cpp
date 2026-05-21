@@ -103,4 +103,12 @@ TEST(OpenGLDrawElementsInstancedCommandTest, DrawsInstancedIndexedElementsFromIn
 	EXPECT_EQ(result.differentPixelCount, 0);
 }
 
+TEST(OpenGLDrawElementsInstancedCommandTest, ThrowsWhenIndexBufferIsMissing)
+{
+	sparkle_test::OpenGLTestContext context;
+	spk::OpenGL::DrawElementsInstancedCommand command(spk::OpenGL::Primitive::Triangles, nullptr, 1);
+
+	EXPECT_THROW(command.execute(context.renderContext()), std::runtime_error);
+}
+
 #endif

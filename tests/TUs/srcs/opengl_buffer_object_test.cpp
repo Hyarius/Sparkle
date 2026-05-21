@@ -69,4 +69,107 @@ TEST(OpenGLBufferObjectTest, EditAppendResizeAndUsageRequestSynchronization)
 	EXPECT_EQ(buffer.field().size(), 2u);
 }
 
+TEST(OpenGLBufferObjectTest, AccessorsAndViewsExposeCpuBuffer)
+{
+	sparkle_test::OpenGLTestContext context;
+	(void)context;
+
+	spk::OpenGL::BufferObject buffer(
+		spk::OpenGL::BufferObject::Target::Array,
+		spk::OpenGL::BufferObject::Usage::StreamDraw,
+		4);
+
+	std::uint8_t* data = buffer.data();
+	data[0] = 4;
+	data[1] = 3;
+	data[2] = 2;
+	data[3] = 1;
+
+	std::span<std::uint8_t> bytes = buffer.bytes();
+	bytes[2] = 9;
+
+	const spk::OpenGL::BufferObject& constBuffer = buffer;
+	std::span<const std::uint8_t> constBytes = constBuffer.bytes();
+
+	EXPECT_EQ(buffer.target(), spk::OpenGL::BufferObject::Target::Array);
+	EXPECT_EQ(buffer.usage(), spk::OpenGL::BufferObject::Usage::StreamDraw);
+	EXPECT_EQ(constBuffer.data()[0], 4u);
+	EXPECT_EQ(constBytes[2], 9u);
+	EXPECT_EQ(constBuffer.field().size(), 4u);
+	EXPECT_TRUE(buffer.needsSynchronization());
+}
+
+TEST(OpenGLBufferObjectTest, SetTargetSetUsageAndClearHandleNoOpAndMutation)
+{
+	sparkle_test::OpenGLTestContext context;
+	(void)context;
+
+	spk::OpenGL::BufferObject buffer(
+		spk::OpenGL::BufferObject::Target::Array,
+		spk::OpenGL::BufferObject::Usage::DynamicDraw,
+		4);
+	buffer.synchronize();
+	ASSERT_FALSE(buffer.needsSynchronization());
+
+	buffer.setTarget(spk::OpenGL::BufferObject::Target::Array);
+	buffer.setUsage(spk::OpenGL::BufferObject::Usage::DynamicDraw);
+	EXPECT_FALSE(buffer.needsSynchronization());
+
+	buffer.setTarget(spk::OpenGL::BufferObject::Target::Uniform);
+	buffer.setUsage(spk::OpenGL::BufferObject::Usage::StaticRead);
+	EXPECT_EQ(buffer.target(), spk::OpenGL::BufferObject::Target::Uniform);
+	EXPECT_EQ(buffer.usage(), spk::OpenGL::BufferObject::Usage::StaticRead);
+	EXPECT_TRUE(buffer.needsSynchronization());
+
+	buffer.clear();
+	EXPECT_EQ(buffer.size(), 0u);
+	EXPECT_EQ(buffer.field().size(), 0u);
+}
+
+TEST(OpenGLBufferObjectTest, EditAndAppendValidateInputs)
+{
+	sparkle_test::OpenGLTestContext context;
+	(void)context;
+
+	spk::OpenGL::BufferObject buffer(
+		spk::OpenGL::BufferObject::Target::Array,
+		spk::OpenGL::BufferObject::Usage::DynamicDraw,
+		4);
+
+	EXPECT_THROW(buffer.edit(nullptr, 1), std::runtime_error);
+	EXPECT_THROW(buffer.edit(nullptr, 0, 5), std::runtime_error);
+	EXPECT_THROW(buffer.append(nullptr, 1), std::runtime_error);
+
+	EXPECT_NO_THROW(buffer.edit(nullptr, 0));
+	EXPECT_NO_THROW(buffer.append(nullptr, 0));
+}
+
+TEST(OpenGLBufferObjectTest, ActivationHelpersBindBaseAndRange)
+{
+	sparkle_test::OpenGLTestContext context;
+	(void)context;
+
+	std::array<std::uint8_t, 8> values = {0, 1, 2, 3, 4, 5, 6, 7};
+	spk::OpenGL::BufferObject buffer(
+		spk::OpenGL::BufferObject::Target::Uniform,
+		spk::OpenGL::BufferObject::Usage::DynamicDraw,
+		values.size());
+	buffer.edit(values.data(), values.size());
+
+	buffer.activateBase(0);
+	GLint boundBase = 0;
+	glGetIntegeri_v(GL_UNIFORM_BUFFER_BINDING, 0, &boundBase);
+	EXPECT_EQ(static_cast<GLuint>(boundBase), buffer.id());
+
+	buffer.activateRange(1, 0, static_cast<GLsizeiptr>(values.size()));
+	GLint boundRange = 0;
+	glGetIntegeri_v(GL_UNIFORM_BUFFER_BINDING, 1, &boundRange);
+	EXPECT_EQ(static_cast<GLuint>(boundRange), buffer.id());
+
+	buffer.deactivate();
+	GLint boundUniform = 1;
+	glGetIntegerv(GL_UNIFORM_BUFFER_BINDING, &boundUniform);
+	EXPECT_EQ(boundUniform, 0);
+}
+
 #endif

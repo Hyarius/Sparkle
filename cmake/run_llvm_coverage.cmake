@@ -10,7 +10,7 @@ foreach(required_var
     endif()
 endforeach()
 
-set(PROFILE_PATTERN "${BINARY_DIR}/sparkle-%p.profraw")
+set(PROFILE_PATTERN "${BINARY_DIR}/sparkle-%64m.profraw")
 set(PROFDATA_FILE "${BINARY_DIR}/coverage.profdata")
 set(REPORT_FILE "${BINARY_DIR}/coverage-report.txt")
 set(SUMMARY_FILE "${BINARY_DIR}/coverage-summary.json")
