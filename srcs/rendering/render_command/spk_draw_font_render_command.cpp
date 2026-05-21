@@ -66,13 +66,13 @@ namespace
 namespace spk
 {
 	DrawFontRenderCommand::DrawFontRenderCommand(
-		std::shared_ptr<spk::Font> p_font,
+		const spk::Font& p_font,
 		std::wstring p_text,
 		spk::Vector2Int p_baselinePosition,
 		spk::Font::Size p_size,
 		spk::Color p_color,
 		float p_depth) :
-		_font(std::move(p_font)),
+		_font(p_font),
 		_text(std::move(p_text)),
 		_baselinePosition(p_baselinePosition),
 		_size(p_size),
@@ -159,18 +159,13 @@ namespace spk
 	{
 		(void)p_renderContext;
 
-		if (_font == nullptr)
-		{
-			throw std::runtime_error("DrawFontRenderCommand requires a valid font");
-		}
-
 		const spk::Vector2UInt viewportSize = currentViewportSize();
 		if (viewportSize.x == 0 || viewportSize.y == 0)
 		{
 			throw std::runtime_error("DrawFontRenderCommand requires a valid viewport");
 		}
 
-		spk::Font::Atlas& atlas = _font->atlas(_size);
+		spk::Font::Atlas& atlas = const_cast<spk::Font&>(_font).atlas(_size);
 		_ensureProgram();
 		_uploadMesh(viewportSize, atlas);
 

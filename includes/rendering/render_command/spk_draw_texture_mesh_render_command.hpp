@@ -2,20 +2,20 @@
 
 #if defined(SPARKLE_GPU_BACKEND_OPENGL)
 
-#include <memory>
-
 #include "opengl/spk_opengl_layout_buffer_object.hpp"
 #include "opengl/spk_opengl_program.hpp"
 #include "rendering/spk_render_command.hpp"
 #include "rendering/spk_texture.hpp"
 #include "rendering/spk_texture_mesh_2d.hpp"
 
+#include <memory>
+
 namespace spk
 {
 	class DrawTextureMeshRenderCommand : public spk::RenderCommand
 	{
 	private:
-		std::shared_ptr<spk::Texture> _texture;
+		const spk::Texture& _texture;
 		spk::TextureMesh2D _mesh;
 		mutable std::shared_ptr<spk::Program> _program;
 		mutable spk::OpenGL::LayoutBufferObject _layoutBuffer;
@@ -26,9 +26,7 @@ namespace spk
 		void _uploadMesh() const;
 
 	public:
-		DrawTextureMeshRenderCommand(std::shared_ptr<spk::Texture> p_texture, spk::TextureMesh2D p_mesh);
-
-		[[nodiscard]] const spk::TextureMesh2D& mesh() const;
+		DrawTextureMeshRenderCommand(const spk::Texture& p_texture, spk::TextureMesh2D p_mesh);
 
 		void execute(spk::IRenderContext& p_renderContext) override;
 	};

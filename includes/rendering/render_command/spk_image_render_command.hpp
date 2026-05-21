@@ -5,17 +5,19 @@
 #include <memory>
 
 #include "math/spk_rect_2d.hpp"
+#include "math/spk_vector2.hpp"
 #include "rendering/render_command/spk_draw_texture_mesh_render_command.hpp"
 #include "rendering/spk_render_command.hpp"
-#include "rendering/spk_sprite_sheet.hpp"
+#include "rendering/spk_texture.hpp"
+#include "rendering/spk_texture_mesh_2d.hpp"
 
 namespace spk
 {
-	class DrawSpriteRenderCommand : public spk::RenderCommand
+	class ImageRenderCommand : public spk::RenderCommand
 	{
 	private:
-		const spk::SpriteSheet& _spriteSheet;
-		std::size_t _spriteID = 0;
+		const spk::Texture& _texture;
+		spk::Texture::Section _section;
 		spk::Rect2D _screenRect;
 		float _depth = 0.0f;
 
@@ -26,15 +28,9 @@ namespace spk
 		void _ensureTextureCommand() const;
 
 	public:
-		DrawSpriteRenderCommand(
-			const spk::SpriteSheet& p_spriteSheet,
-			std::size_t p_spriteID,
-			spk::Rect2D p_screenRect,
-			float p_depth = 0.0f);
-
-		DrawSpriteRenderCommand(
-			const spk::SpriteSheet& p_spriteSheet,
-			const spk::Vector2UInt& p_spriteCoordinates,
+		ImageRenderCommand(
+			const spk::Texture& p_texture,
+			spk::Texture::Section p_section,
 			spk::Rect2D p_screenRect,
 			float p_depth = 0.0f);
 

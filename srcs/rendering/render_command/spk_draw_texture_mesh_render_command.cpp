@@ -61,17 +61,12 @@ namespace
 
 namespace spk
 {
-	DrawTextureMeshRenderCommand::DrawTextureMeshRenderCommand(std::shared_ptr<spk::Texture> p_texture, spk::TextureMesh2D p_mesh) :
-		_texture(std::move(p_texture)),
+	DrawTextureMeshRenderCommand::DrawTextureMeshRenderCommand(const spk::Texture& p_texture, spk::TextureMesh2D p_mesh) :
+		_texture(p_texture),
 		_mesh(std::move(p_mesh))
 	{
 		_layoutBuffer.addAttribute(0, spk::OpenGL::LayoutBufferObject::Attribute::Type::Vector3);
 		_layoutBuffer.addAttribute(1, spk::OpenGL::LayoutBufferObject::Attribute::Type::Vector2);
-	}
-
-	const spk::TextureMesh2D& DrawTextureMeshRenderCommand::mesh() const
-	{
-		return _mesh;
 	}
 
 	void DrawTextureMeshRenderCommand::_ensureProgram() const
@@ -131,11 +126,6 @@ namespace spk
 	{
 		(void)p_renderContext;
 
-		if (_texture == nullptr)
-		{
-			throw std::runtime_error("DrawTextureMeshRenderCommand requires a valid texture");
-		}
-
 		_ensureProgram();
 		_uploadMesh();
 
@@ -146,7 +136,7 @@ namespace spk
 
 		_layoutBuffer.activate();
 		_program->activate();
-		bindTexture(*_texture);
+		bindTexture(_texture);
 
 		if (_textureUniformLocation >= 0)
 		{

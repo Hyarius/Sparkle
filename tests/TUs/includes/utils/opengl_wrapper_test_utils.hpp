@@ -196,6 +196,33 @@ namespace sparkle_test
 		}
 		ASSERT_NE(stbi_write_png(p_path.string().c_str(), p_width, p_height, 4, pixels.data(), p_width * 4), 0);
 	}
+	// Saves a screenshot of p_rect from p_context, then compares it against p_expectedPath.
+	// If the expected image does not exist yet, the test fails with instructions to copy
+	// p_actualPath to p_expectedPath after visual validation.
+	inline void validateScreenshot(
+		OpenGLTestContext& p_context,
+		const spk::Rect2D& p_rect,
+		const std::filesystem::path& p_actualPath,
+		const std::filesystem::path& p_expectedPath,
+		const std::filesystem::path& p_diffPath)
+	{
+		p_context.gpuRuntime().saveScreenshot(p_actualPath, p_rect);
+
+		if (std::filesystem::exists(p_expectedPath) == false)
+		{
+			ADD_FAILURE()
+				<< "Expected image not found. Visually validate the actual image and copy it to approve.\n"
+				<< "  actual:   " << p_actualPath.string() << "\n"
+				<< "  expected: " << p_expectedPath.string();
+			return;
+		}
+
+		const ImageComparisonResult result = compareImages(p_actualPath, p_expectedPath, p_diffPath);
+		EXPECT_TRUE(result.matches)
+			<< "actual=[" << p_actualPath.string() << "] "
+			<< "expected=[" << p_expectedPath.string() << "] "
+			<< "diff=[" << p_diffPath.string() << "]";
+	}
 }
 
 #endif

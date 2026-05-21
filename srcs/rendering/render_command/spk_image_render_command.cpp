@@ -1,10 +1,9 @@
-#include "rendering/render_command/spk_draw_sprite_render_command.hpp"
+#include "rendering/render_command/spk_image_render_command.hpp"
 
 #if defined(SPARKLE_GPU_BACKEND_OPENGL)
 
 #include <array>
 #include <stdexcept>
-#include <utility>
 
 #include <GL/glew.h>
 
@@ -33,38 +32,24 @@ namespace
 
 namespace spk
 {
-	DrawSpriteRenderCommand::DrawSpriteRenderCommand(
-		const spk::SpriteSheet& p_spriteSheet,
-		std::size_t p_spriteID,
+	ImageRenderCommand::ImageRenderCommand(
+		const spk::Texture& p_texture,
+		spk::Texture::Section p_section,
 		spk::Rect2D p_screenRect,
 		float p_depth) :
-		_spriteSheet(p_spriteSheet),
-		_spriteID(p_spriteID),
+		_texture(p_texture),
+		_section(p_section),
 		_screenRect(p_screenRect),
 		_depth(p_depth)
 	{
 	}
 
-	DrawSpriteRenderCommand::DrawSpriteRenderCommand(
-		const spk::SpriteSheet& p_spriteSheet,
-		const spk::Vector2UInt& p_spriteCoordinates,
-		spk::Rect2D p_screenRect,
-		float p_depth) :
-		DrawSpriteRenderCommand(
-			p_spriteSheet,
-			p_spriteSheet.spriteID(p_spriteCoordinates),
-			p_screenRect,
-			p_depth)
+	spk::TextureMesh2D ImageRenderCommand::_buildMesh(const spk::Vector2UInt& p_viewportSize) const
 	{
-	}
-
-	spk::TextureMesh2D DrawSpriteRenderCommand::_buildMesh(const spk::Vector2UInt& p_viewportSize) const
-	{
-		const spk::SpriteSheet::Sprite& sprite = _spriteSheet.sprite(_spriteID);
-		const spk::Vector2 topLeftUV = sprite.anchor;
-		const spk::Vector2 bottomLeftUV = {sprite.anchor.x, sprite.anchor.y + sprite.size.y};
-		const spk::Vector2 bottomRightUV = sprite.anchor + sprite.size;
-		const spk::Vector2 topRightUV = {sprite.anchor.x + sprite.size.x, sprite.anchor.y};
+		const spk::Vector2 topLeftUV = _section.anchor;
+		const spk::Vector2 bottomLeftUV = {_section.anchor.x, _section.anchor.y + _section.size.y};
+		const spk::Vector2 bottomRightUV = _section.anchor + _section.size;
+		const spk::Vector2 topRightUV = {_section.anchor.x + _section.size.x, _section.anchor.y};
 
 		const spk::Vector2Int topLeft = _screenRect.anchor;
 		const spk::Vector2Int bottomLeft = {_screenRect.left(), _screenRect.bottom()};
@@ -80,24 +65,24 @@ namespace spk
 		return mesh;
 	}
 
-	void DrawSpriteRenderCommand::_ensureTextureCommand() const
+	void ImageRenderCommand::_ensureTextureCommand() const
 	{
 		const spk::Vector2UInt viewportSize = currentViewportSize();
 		if (viewportSize.x == 0 || viewportSize.y == 0)
 		{
-			throw std::runtime_error("DrawSpriteRenderCommand requires a valid viewport");
+			throw std::runtime_error("ImageRenderCommand requires a valid viewport");
 		}
 
 		if (_textureCommand == nullptr || _cachedViewportSize != viewportSize)
 		{
 			_cachedViewportSize = viewportSize;
 			_textureCommand = std::make_unique<spk::DrawTextureMeshRenderCommand>(
-				static_cast<const spk::Texture&>(_spriteSheet),
+				_texture,
 				_buildMesh(viewportSize));
 		}
 	}
 
-	void DrawSpriteRenderCommand::execute(spk::IRenderContext& p_renderContext)
+	void ImageRenderCommand::execute(spk::IRenderContext& p_renderContext)
 	{
 		_ensureTextureCommand();
 		_textureCommand->execute(p_renderContext);

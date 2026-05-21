@@ -232,10 +232,11 @@ TEST(DrawTextureMeshRenderCommandTest, DrawsFullScreenTexture)
 	sparkle_test::OpenGLTestContext context(spk::Rect2D(0, 0, width, height));
 	spk::IRenderContext& renderContext = context.renderContext();
 
+	auto blueTexture = makeSolidTexture({2, 2}, 0, 0, 255);
 	spk::RenderUnitBuilder builder;
 	builder.emplace<spk::OpenGL::ViewportCommand>(spk::Rect2D(0, 0, width, height));
 	builder.emplace<spk::OpenGL::ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
-	builder.emplace<spk::DrawTextureMeshRenderCommand>(makeSolidTexture({2, 2}, 0, 0, 255), makeFullScreenMesh());
+	builder.emplace<spk::DrawTextureMeshRenderCommand>(*blueTexture, makeFullScreenMesh());
 
 	spk::RenderUnit unit = builder.build();
 	unit.execute(renderContext);
@@ -252,27 +253,11 @@ TEST(DrawTextureMeshRenderCommandTest, DrawsFullScreenTexture)
 		<< "actual=[" << actual.string() << "] expected=[" << expected.string() << "] diff=[" << diff.string() << "]";
 }
 
-TEST(DrawTextureMeshRenderCommandTest, RejectsMissingTexture)
-{
-	sparkle_test::OpenGLTestContext context;
-	spk::DrawTextureMeshRenderCommand command(nullptr, makeFullScreenMesh());
-
-	EXPECT_THROW(command.execute(context.renderContext()), std::runtime_error);
-}
-
-TEST(DrawTextureMeshRenderCommandTest, RejectsNonOpenGLTexture)
-{
-	sparkle_test::OpenGLTestContext context;
-	auto texture = std::make_shared<spk::Texture>();
-	spk::DrawTextureMeshRenderCommand command(texture, makeFullScreenMesh());
-
-	EXPECT_THROW(command.execute(context.renderContext()), std::runtime_error);
-}
-
 TEST(DrawTextureMeshRenderCommandTest, EmptyMeshDoesNotDraw)
 {
 	sparkle_test::OpenGLTestContext context;
-	spk::DrawTextureMeshRenderCommand command(makeSolidTexture({1, 1}, 255, 255, 255), spk::TextureMesh2D{});
+	auto whiteTexture = makeSolidTexture({1, 1}, 255, 255, 255);
+	spk::DrawTextureMeshRenderCommand command(*whiteTexture, spk::TextureMesh2D{});
 
 	EXPECT_NO_THROW(command.execute(context.renderContext()));
 }
@@ -284,8 +269,8 @@ TEST(DrawSpriteRenderCommandTest, DrawsSelectedSprite)
 	sparkle_test::OpenGLTestContext context(spk::Rect2D(0, 0, width, height));
 	spk::IRenderContext& renderContext = context.renderContext();
 
-	auto spriteSheet = std::make_shared<spk::SpriteSheet>();
-	spriteSheet->loadFromData(makeTwoSpritePngBytes(), {2, 1});
+	spk::SpriteSheet spriteSheet;
+	spriteSheet.loadFromData(makeTwoSpritePngBytes(), {2, 1});
 
 	spk::RenderUnitBuilder builder;
 	builder.emplace<spk::OpenGL::ViewportCommand>(spk::Rect2D(0, 0, width, height));
@@ -307,19 +292,11 @@ TEST(DrawSpriteRenderCommandTest, DrawsSelectedSprite)
 		<< "actual=[" << actual.string() << "] expected=[" << expected.string() << "] diff=[" << diff.string() << "]";
 }
 
-TEST(DrawSpriteRenderCommandTest, RejectsMissingSpriteSheet)
-{
-	sparkle_test::OpenGLTestContext context;
-	spk::DrawSpriteRenderCommand command(nullptr, 0, spk::Rect2D(0, 0, 8, 8));
-
-	EXPECT_THROW(command.execute(context.renderContext()), std::runtime_error);
-}
-
 TEST(DrawSpriteRenderCommandTest, RejectsInvalidSpriteID)
 {
 	sparkle_test::OpenGLTestContext context(spk::Rect2D(0, 0, 8, 8));
-	auto spriteSheet = std::make_shared<spk::SpriteSheet>();
-	spriteSheet->loadFromData(makeTwoSpritePngBytes(), {2, 1});
+	spk::SpriteSheet spriteSheet;
+	spriteSheet.loadFromData(makeTwoSpritePngBytes(), {2, 1});
 	spk::DrawSpriteRenderCommand command(spriteSheet, 8, spk::Rect2D(0, 0, 8, 8));
 
 	EXPECT_THROW(command.execute(context.renderContext()), std::out_of_range);
@@ -328,8 +305,8 @@ TEST(DrawSpriteRenderCommandTest, RejectsInvalidSpriteID)
 TEST(DrawSpriteRenderCommandTest, CanExecuteCachedMeshTwice)
 {
 	sparkle_test::OpenGLTestContext context(spk::Rect2D(0, 0, 8, 8));
-	auto spriteSheet = std::make_shared<spk::SpriteSheet>();
-	spriteSheet->loadFromData(makeTwoSpritePngBytes(), {2, 1});
+	spk::SpriteSheet spriteSheet;
+	spriteSheet.loadFromData(makeTwoSpritePngBytes(), {2, 1});
 	spk::DrawSpriteRenderCommand command(spriteSheet, 1, spk::Rect2D(0, 0, 8, 8));
 
 	EXPECT_NO_THROW(command.execute(context.renderContext()));
@@ -349,7 +326,7 @@ TEST(DrawFontRenderCommandTest, DrawsGlyphsWithSizeAndOutline)
 	sparkle_test::OpenGLTestContext context(spk::Rect2D(0, 0, width, height));
 	spk::IRenderContext& renderContext = context.renderContext();
 
-	auto font = std::make_shared<spk::Font>(fontPath);
+	spk::Font font(fontPath);
 
 	spk::RenderUnitBuilder builder;
 	builder.emplace<spk::OpenGL::ViewportCommand>(spk::Rect2D(0, 0, width, height));
@@ -377,14 +354,6 @@ TEST(DrawFontRenderCommandTest, DrawsGlyphsWithSizeAndOutline)
 	EXPECT_GT(countLitPixels(actual), 100u);
 }
 
-TEST(DrawFontRenderCommandTest, RejectsMissingFont)
-{
-	sparkle_test::OpenGLTestContext context;
-	spk::DrawFontRenderCommand command(nullptr, L"A", {0, 16}, spk::Font::Size(16, 0));
-
-	EXPECT_THROW(command.execute(context.renderContext()), std::runtime_error);
-}
-
 TEST(DrawFontRenderCommandTest, EmptyTextDoesNotDraw)
 {
 	const std::filesystem::path fontPath = systemFontPath();
@@ -394,7 +363,7 @@ TEST(DrawFontRenderCommandTest, EmptyTextDoesNotDraw)
 	}
 
 	sparkle_test::OpenGLTestContext context;
-	auto font = std::make_shared<spk::Font>(fontPath);
+	spk::Font font(fontPath);
 	spk::DrawFontRenderCommand command(font, L"", {0, 16}, spk::Font::Size(16, 0));
 
 	EXPECT_NO_THROW(command.execute(context.renderContext()));

@@ -1,0 +1,116 @@
+#include <gtest/gtest.h>
+
+#if defined(_WIN32) && defined(SPARKLE_GPU_BACKEND_OPENGL)
+
+#include <array>
+#include <cstddef>
+#include <cstdint>
+#include <filesystem>
+#include <vector>
+
+#include <GL/glew.h>
+
+#include "image_comparison_test_utils.hpp"
+#include "opengl_wrapper_test_utils.hpp"
+#include "opengl/spk_opengl_clear_command.hpp"
+#include "opengl/spk_opengl_viewport_command.hpp"
+#include "rendering/render_command/spk_color_rectangle_render_command.hpp"
+#include "rendering/spk_render_unit_builder.hpp"
+
+namespace
+{
+	[[nodiscard]] std::filesystem::path expectedPath(const std::string& p_name)
+	{
+		std::filesystem::path directory = spk::test::expectedDirectory() / "RenderCommands";
+		std::filesystem::create_directories(directory);
+		return directory / (p_name + ".png");
+	}
+
+	[[nodiscard]] std::filesystem::path resultPath(const std::string& p_name)
+	{
+		std::filesystem::path directory = spk::test::resultDirectory() / "RenderCommands";
+		std::filesystem::create_directories(directory);
+		return directory / (p_name + ".png");
+	}
+}
+
+TEST(ColorRectangleRenderCommandTest, DrawsFullScreenRect)
+{
+	constexpr int width = 24;
+	constexpr int height = 24;
+	sparkle_test::OpenGLTestContext context(spk::Rect2D(0, 0, width, height));
+	spk::IRenderContext& renderContext = context.renderContext();
+
+	spk::RenderUnitBuilder builder;
+	builder.emplace<spk::OpenGL::ViewportCommand>(spk::Rect2D(0, 0, width, height));
+	builder.emplace<spk::OpenGL::ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
+	builder.emplace<spk::ColorRectangleRenderCommand>(
+		spk::Rect2D(0, 0, width, height),
+		spk::Color(1.0f, 0.0f, 0.0f),
+		0.0f);
+
+	builder.build().execute(renderContext);
+	glFinish();
+
+	sparkle_test::validateScreenshot(
+		context,
+		spk::Rect2D(0, 0, width, height),
+		resultPath("color_rect_full_actual"),
+		expectedPath("color_rect_full_expected"),
+		resultPath("color_rect_full_diff"));
+}
+
+TEST(ColorRectangleRenderCommandTest, DrawsPartialRect)
+{
+	constexpr int width = 24;
+	constexpr int height = 24;
+	sparkle_test::OpenGLTestContext context(spk::Rect2D(0, 0, width, height));
+	spk::IRenderContext& renderContext = context.renderContext();
+
+	spk::RenderUnitBuilder builder;
+	builder.emplace<spk::OpenGL::ViewportCommand>(spk::Rect2D(0, 0, width, height));
+	builder.emplace<spk::OpenGL::ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
+	builder.emplace<spk::ColorRectangleRenderCommand>(
+		spk::Rect2D(0, 0, width / 2, height),
+		spk::Color(0.0f, 1.0f, 0.0f),
+		0.0f);
+
+	builder.build().execute(renderContext);
+	glFinish();
+
+	sparkle_test::validateScreenshot(
+		context,
+		spk::Rect2D(0, 0, width, height),
+		resultPath("color_rect_partial_actual"),
+		expectedPath("color_rect_partial_expected"),
+		resultPath("color_rect_partial_diff"));
+}
+
+TEST(ColorRectangleRenderCommandTest, RejectsZeroSizeViewport)
+{
+	sparkle_test::OpenGLTestContext context(spk::Rect2D(0, 0, 32, 32));
+	spk::ColorRectangleRenderCommand command(spk::Rect2D(0, 0, 8, 8), spk::Color(1.0f, 0.0f, 0.0f));
+
+	spk::RenderUnitBuilder builder;
+	builder.emplace<spk::OpenGL::ViewportCommand>(spk::Rect2D(0, 0, 0, 0));
+	builder.build().execute(context.renderContext());
+
+	EXPECT_THROW(command.execute(context.renderContext()), std::runtime_error);
+}
+
+TEST(ColorRectangleRenderCommandTest, CanExecuteTwiceWithCachedMesh)
+{
+	sparkle_test::OpenGLTestContext context(spk::Rect2D(0, 0, 16, 16));
+	spk::IRenderContext& renderContext = context.renderContext();
+
+	spk::RenderUnitBuilder builder;
+	builder.emplace<spk::OpenGL::ViewportCommand>(spk::Rect2D(0, 0, 16, 16));
+	builder.emplace<spk::OpenGL::ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
+	builder.emplace<spk::ColorRectangleRenderCommand>(spk::Rect2D(0, 0, 16, 16), spk::Color(1.0f, 0.0f, 0.0f));
+
+	spk::RenderUnit unit = builder.build();
+	EXPECT_NO_THROW(unit.execute(renderContext));
+	EXPECT_NO_THROW(unit.execute(renderContext));
+}
+
+#endif
