@@ -1,9 +1,22 @@
 #pragma once
 
 #include <concepts>
+#include <functional>
+#include <type_traits>
 
 namespace spk
 {
+	template <typename TType>
+	concept hashable =
+		requires(const TType& p_value)
+		{
+			{ std::hash<TType>{}(p_value) } -> std::convertible_to<std::size_t>;
+		};
+
+	template <typename TType>
+	concept arithmetic_value =
+		std::is_arithmetic_v<TType>;
+
 	template <typename TLeft, typename TRight = TLeft>
 	concept equality_comparable_with =
 		requires(const TLeft& p_left, const TRight& p_right)

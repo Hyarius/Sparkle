@@ -1,8 +1,8 @@
-#include <gtest/gtest.h>
+﻿#include <gtest/gtest.h>
 
-#include "spk_duration.hpp"
-#include "spk_time_utils.hpp"
-#include "spk_timestamp.hpp"
+#include "time/spk_duration.hpp"
+#include "time/spk_time_utils.hpp"
+#include "time/spk_timestamp.hpp"
 
 using namespace spk;
 

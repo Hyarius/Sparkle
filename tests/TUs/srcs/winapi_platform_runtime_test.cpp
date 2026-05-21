@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+﻿#include <gtest/gtest.h>
 
 #ifdef _WIN32
 
@@ -6,9 +6,9 @@
 
 #include <Windows.h>
 
-#include "spk_events.hpp"
-#include "spk_winapi_frame.hpp"
-#include "spk_winapi_platform_runtime.hpp"
+#include "input/spk_events.hpp"
+#include "winapi/spk_winapi_frame.hpp"
+#include "winapi/spk_winapi_platform_runtime.hpp"
 
 TEST(WinAPIPlatformRuntimeTest, PollEventsDispatchesPostedCloseRequest)
 {

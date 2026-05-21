@@ -1,9 +1,9 @@
-#include <gtest/gtest.h>
+﻿#include <gtest/gtest.h>
 
 #include <memory>
 #include <stdexcept>
 
-#include "spk_window_registry.hpp"
+#include "window/spk_window_registry.hpp"
 #include "window_test_utils.hpp"
 
 TEST(WindowTest, ConstructionActivatesRootWidgetAndExposesAccessors)

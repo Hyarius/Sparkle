@@ -1,9 +1,9 @@
-#include <gtest/gtest.h>
+﻿#include <gtest/gtest.h>
 
 #include <string>
 #include <vector>
 
-#include "spk_inherence_trait.hpp"
+#include "traits/spk_inherence_trait.hpp"
 
 namespace
 {

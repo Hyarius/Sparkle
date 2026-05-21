@@ -1,10 +1,10 @@
-#include <gtest/gtest.h>
+﻿#include <gtest/gtest.h>
 
 #include <string>
 #include <utility>
 #include <vector>
 
-#include "spk_contract_provider.hpp"
+#include "utils/spk_contract_provider.hpp"
 
 TEST(ContractProviderTest, NewProviderStartsEmpty)
 {

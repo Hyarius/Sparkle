@@ -78,9 +78,7 @@ TEST(OpenGLDrawElementsCommandTest, DrawsIndexedElementsFromIndexBuffer)
 	builder.emplace<spk::OpenGL::ViewportCommand>(spk::Rect2D(0, 0, width, height));
 	builder.emplace<spk::OpenGL::ScissorCommand>(spk::Rect2D(0, 0, width, height), false);
 	builder.emplace<spk::OpenGL::ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
-	builder.emplace<spk::OpenGL::UseProgramRenderCommand>(program);
-	builder.emplace<spk::OpenGL::BindVertexArrayCommand>(vertexArray);
-	builder.emplace<spk::OpenGL::DrawElementsCommand>(spk::OpenGL::Primitive::Triangles, indexBuffer);
+	builder.emplace<spk::OpenGL::DrawElementsCommand>(spk::OpenGL::Primitive::Triangles, program, vertexArray, indexBuffer);
 
 	spk::RenderUnit unit = builder.build();
 	unit.execute(renderContext);

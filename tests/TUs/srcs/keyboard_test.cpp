@@ -1,10 +1,10 @@
-#include <gtest/gtest.h>
+﻿#include <gtest/gtest.h>
 
 #include <sstream>
 #include <string>
 #include <vector>
 
-#include "spk_keyboard.hpp"
+#include "input/spk_keyboard.hpp"
 
 namespace
 {

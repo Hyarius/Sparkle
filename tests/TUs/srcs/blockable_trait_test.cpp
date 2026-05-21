@@ -1,9 +1,9 @@
-#include <gtest/gtest.h>
+﻿#include <gtest/gtest.h>
 
 #include <memory>
 #include <utility>
 
-#include "spk_blockable_trait.hpp"
+#include "traits/spk_blockable_trait.hpp"
 
 namespace
 {

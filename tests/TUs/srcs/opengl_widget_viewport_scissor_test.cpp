@@ -63,11 +63,12 @@ namespace
 		spk::RenderUnit _buildRenderUnit() const override
 		{
 			spk::RenderUnitBuilder builder;
-			builder.emplace<spk::OpenGL::UseProgramRenderCommand>(_program);
-			builder.emplace<spk::OpenGL::BindVertexArrayCommand>(_vertexArray);
-			builder.emplace<spk::OpenGL::DrawArraysCommand>(spk::OpenGL::Primitive::Triangles, 0, 6);
-			builder.emplace<spk::OpenGL::BindVertexArrayCommand>();
-			builder.emplace<spk::OpenGL::UseProgramRenderCommand>();
+			builder.emplace<spk::OpenGL::DrawArraysCommand>(
+				spk::OpenGL::Primitive::Triangles,
+				_program,
+				_vertexArray,
+				0,
+				6);
 			return builder.build();
 		}
 

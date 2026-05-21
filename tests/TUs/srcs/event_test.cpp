@@ -1,10 +1,10 @@
-#include <gtest/gtest.h>
+﻿#include <gtest/gtest.h>
 
 #include <type_traits>
 
-#include "spk_events.hpp"
-#include "spk_timestamp.hpp"
-#include "spk_time_unit.hpp"
+#include "input/spk_events.hpp"
+#include "time/spk_timestamp.hpp"
+#include "time/spk_time_unit.hpp"
 
 TEST(EventRecordTest, DefaultRecordStoresDefaultTimestamp)
 {

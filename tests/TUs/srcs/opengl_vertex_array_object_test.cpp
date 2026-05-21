@@ -5,14 +5,14 @@
 
 #if defined(_WIN32) && defined(SPARKLE_GPU_BACKEND_OPENGL)
 
-TEST(OpenGLVertexArrayObjectTest, BindsConfiguredVertexAttributes)
+TEST(OpenGLVertexArrayObjectTest, ActivatesConfiguredVertexAttributes)
 {
 	sparkle_test::OpenGLTestContext context;
 	(void)context;
 
 	auto vertexArray = sparkle_test::makeTriangleVAO(
 		sparkle_test::fullScreenTriangle({0.0f, 1.0f, 0.0f}));
-	vertexArray->bind();
+	vertexArray->activate();
 
 	GLint currentVertexArray = 0;
 	GLint positionEnabled = 0;
@@ -41,9 +41,7 @@ TEST(OpenGLVertexArrayObjectTest, RendersTriangleWithConfiguredVBO)
 	builder.emplace<spk::OpenGL::ViewportCommand>(spk::Rect2D(0, 0, width, height));
 	builder.emplace<spk::OpenGL::ScissorCommand>(spk::Rect2D(0, 0, width, height), false);
 	builder.emplace<spk::OpenGL::ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
-	builder.emplace<spk::OpenGL::UseProgramRenderCommand>(program);
-	builder.emplace<spk::OpenGL::BindVertexArrayCommand>(vertexArray);
-	builder.emplace<spk::OpenGL::DrawArraysCommand>(spk::OpenGL::Primitive::Triangles, 0, 3);
+	builder.emplace<spk::OpenGL::DrawArraysCommand>(spk::OpenGL::Primitive::Triangles, program, vertexArray, 0, 3);
 
 	spk::RenderUnit unit = builder.build();
 	unit.execute(renderContext);

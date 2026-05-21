@@ -1,10 +1,10 @@
-#include <gtest/gtest.h>
+﻿#include <gtest/gtest.h>
 
 #include <atomic>
 #include <thread>
 
 #define private public
-#include "spk_application.hpp"
+#include "application/spk_application.hpp"
 #undef private
 #include "window_test_utils.hpp"
 

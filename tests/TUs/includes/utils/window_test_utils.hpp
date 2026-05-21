@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <atomic>
 #include <functional>
@@ -12,17 +12,17 @@
 #include <variant>
 #include <vector>
 
-#include "spk_application.hpp"
-#include "spk_events.hpp"
-#include "spk_frame.hpp"
-#include "spk_gpu_platform_runtime.hpp"
-#include "spk_platform_runtime.hpp"
-#include "spk_render_command.hpp"
-#include "spk_render_context.hpp"
-#include "spk_update_tick.hpp"
-#include "spk_widget.hpp"
-#include "spk_window.hpp"
-#include "spk_window_host.hpp"
+#include "application/spk_application.hpp"
+#include "input/spk_events.hpp"
+#include "window/spk_frame.hpp"
+#include "opengl/spk_gpu_platform_runtime.hpp"
+#include "application/spk_platform_runtime.hpp"
+#include "rendering/spk_render_command.hpp"
+#include "rendering/spk_render_context.hpp"
+#include "time/spk_update_tick.hpp"
+#include "widget/spk_widget.hpp"
+#include "window/spk_window.hpp"
+#include "window/spk_window_host.hpp"
 
 namespace sparkle_test
 {

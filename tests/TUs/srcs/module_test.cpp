@@ -1,6 +1,6 @@
-#include <gtest/gtest.h>
+﻿#include <gtest/gtest.h>
 
-#include "spk_module.hpp"
+#include "application/module/spk_module.hpp"
 #include "window_test_utils.hpp"
 
 namespace

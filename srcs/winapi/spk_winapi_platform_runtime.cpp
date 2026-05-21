@@ -1,0 +1,33 @@
+﻿#include "winapi/spk_winapi_platform_runtime.hpp"
+
+#ifdef _WIN32
+
+#include "winapi/spk_winapi_frame.hpp"
+#include "winapi/spk_winapi_window.hpp"
+
+namespace spk::WinAPI
+{
+	PlatformRuntime::PlatformRuntime() :
+		_windowClass(std::make_shared<Class>("Sparkle.WinAPI.Frame", &Window::_staticWindowProcedure))
+	{
+	}
+
+	PlatformRuntime::~PlatformRuntime() = default;
+
+	std::unique_ptr<spk::IFrame> PlatformRuntime::createFrame(const spk::Rect2D& p_rect, const std::string& p_title)
+	{
+		return std::make_unique<Frame>(_windowClass, p_rect, p_title);
+	}
+
+	void PlatformRuntime::pollEvents()
+	{
+		MSG message{};
+		while (PeekMessageW(&message, nullptr, 0, 0, PM_REMOVE) == TRUE)
+		{
+			TranslateMessage(&message);
+			DispatchMessageW(&message);
+		}
+	}
+}
+
+#endif

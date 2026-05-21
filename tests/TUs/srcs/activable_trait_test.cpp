@@ -1,6 +1,6 @@
-#include <gtest/gtest.h>
+﻿#include <gtest/gtest.h>
 
-#include "spk_activable_trait.hpp"
+#include "traits/spk_activable_trait.hpp"
 
 namespace
 {

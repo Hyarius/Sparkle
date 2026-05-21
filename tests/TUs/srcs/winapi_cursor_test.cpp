@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+﻿#include <gtest/gtest.h>
 
 #ifdef _WIN32
 
@@ -10,9 +10,9 @@
 
 #include <Windows.h>
 
-#include "spk_winapi_class.hpp"
-#include "spk_winapi_cursor.hpp"
-#include "spk_winapi_window.hpp"
+#include "winapi/spk_winapi_class.hpp"
+#include "winapi/spk_winapi_cursor.hpp"
+#include "winapi/spk_winapi_window.hpp"
 
 namespace
 {

@@ -1,9 +1,9 @@
-#include <gtest/gtest.h>
+﻿#include <gtest/gtest.h>
 
 #include <utility>
 
-#include "spk_duration.hpp"
-#include "spk_time_unit.hpp"
+#include "time/spk_duration.hpp"
+#include "time/spk_time_unit.hpp"
 
 using namespace spk;
 

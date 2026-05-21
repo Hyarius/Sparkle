@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+﻿#include <gtest/gtest.h>
 
 #if defined(_WIN32) && defined(SPARKLE_GPU_BACKEND_OPENGL)
 
@@ -8,9 +8,9 @@
 #include <Windows.h>
 #include <GL/gl.h>
 
-#include "spk_opengl_render_context.hpp"
-#include "spk_winapi_frame.hpp"
-#include "spk_winapi_platform_runtime.hpp"
+#include "opengl/spk_opengl_render_context.hpp"
+#include "winapi/spk_winapi_frame.hpp"
+#include "winapi/spk_winapi_platform_runtime.hpp"
 
 namespace
 {

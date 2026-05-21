@@ -1,0 +1,349 @@
+﻿#include "application/spk_application.hpp"
+
+#include <chrono>
+#include <stdexcept>
+#include <thread>
+
+#include "time/spk_chronometer.hpp"
+#include "time/spk_time_utils.hpp"
+
+#ifdef _WIN32
+#include "opengl/spk_opengl_runtime.hpp"
+#include "winapi/spk_winapi_platform_runtime.hpp"
+#endif
+
+namespace spk
+{
+	std::shared_ptr<IPlatformRuntime> Application::_createDefaultPlatformRuntime()
+	{
+#ifdef _WIN32
+		return std::make_shared<spk::WinAPI::PlatformRuntime>();
+#else
+		throw std::runtime_error("No default spk::IPlatformRuntime is implemented for this platform yet");
+#endif
+	}
+
+	std::shared_ptr<IGPUPlatformRuntime> Application::_createDefaultGPUPlatformRuntime()
+	{
+#if defined(_WIN32) && defined(SPARKLE_GPU_BACKEND_OPENGL)
+		return std::make_shared<spk::OpenGL::Runtime>();
+#else
+		throw std::runtime_error("No default spk::IGPUPlatformRuntime is implemented for this platform yet");
+#endif
+	}
+
+	void Application::_bindOrValidateOwnerThread(const char* p_operation)
+	{
+		const std::thread::id currentThreadID = std::this_thread::get_id();
+
+		if (_ownerThreadID != currentThreadID)
+		{
+			throw std::runtime_error(
+				"Application::" + std::string(p_operation) +
+				" must be called from the application construction thread");
+		}
+	}
+
+	void Application::_recordFailure(std::exception_ptr p_failure)
+	{
+		std::scoped_lock lock(_failureMutex);
+
+		if (_failure == nullptr)
+		{
+			_failure = std::move(p_failure);
+		}
+	}
+
+	void Application::_rethrowFailureIfAny()
+	{
+		std::exception_ptr failure = nullptr;
+
+		{
+			std::scoped_lock lock(_failureMutex);
+			failure = _failure;
+			_failure = nullptr;
+		}
+
+		if (failure != nullptr)
+		{
+			std::rethrow_exception(failure);
+		}
+	}
+
+	void Application::_runRenderLoop()
+	{
+		while (_stopRequested.load() == false)
+		{
+			spk::Chronometer chronometer;
+			chronometer.start();
+
+			std::vector<std::weak_ptr<spk::Window>> windows = _windowRegistry.windows();
+
+			if (windows.empty() == true)
+			{
+				if (_shutdownRequested.load() == true ||
+					_configuration.stopWhenNoWindows == true)
+				{
+					return;
+				}
+			}
+			else
+			{
+				for (const std::weak_ptr<spk::Window>& windowHandle : windows)
+				{
+					if (_stopRequested.load() == true)
+					{
+						return;
+					}
+					
+					std::shared_ptr<spk::Window> window = windowHandle.lock();
+					if (window != nullptr)
+					{
+						window->render();
+					}
+				}
+			}
+
+			const spk::Duration elapsedTime = chronometer.elapsedTime();
+			const spk::Duration remainingTime = _configuration.renderInterval - elapsedTime;
+
+			if (remainingTime > 0_ns)
+			{
+				spk::TimeUtils::sleepFor(remainingTime);
+			}
+		}
+	}
+
+	void Application::_runUpdateLoop()
+	{
+		while (_stopRequested.load() == false)
+		{
+			spk::Chronometer chronometer;
+			chronometer.start();
+
+			std::vector<std::weak_ptr<spk::Window>> windows = _windowRegistry.windows();
+
+			if (windows.empty() == true)
+			{
+				if (_shutdownRequested.load() == true ||
+					_configuration.stopWhenNoWindows == true)
+				{
+					return;
+				}
+			}
+			else
+			{
+				for (const std::weak_ptr<spk::Window>& windowHandle : windows)
+				{
+					if (_stopRequested.load() == true)
+					{
+						return;
+					}
+
+					std::shared_ptr<spk::Window> window = windowHandle.lock();
+					if (window != nullptr)
+					{
+						window->update();
+					}
+				}	
+			}
+
+			const spk::Duration elapsedTime = chronometer.elapsedTime();
+			const spk::Duration remainingTime = _configuration.updateInterval - elapsedTime;
+
+			if (remainingTime > 0_ns)
+			{
+				spk::TimeUtils::sleepFor(remainingTime);
+			}
+		}
+	}
+
+	void Application::_runEventLoop()
+	{
+		while (_stopRequested.load() == false)
+		{
+			if (_shutdownRequested.load() == true)
+			{
+				std::vector<std::weak_ptr<spk::Window>> windows = _windowRegistry.windows();
+				for (const std::weak_ptr<spk::Window>& windowHandle : windows)
+				{
+					std::shared_ptr<spk::Window> window = windowHandle.lock();
+					if (window != nullptr)
+					{
+						window->requestClosure();
+					}
+				}
+			}
+
+			if (_windowRegistry.size() == 0)
+			{
+				if (_shutdownRequested.load() == true ||
+					_configuration.stopWhenNoWindows == true)
+				{
+					return;
+				}
+
+				spk::TimeUtils::sleepFor(_configuration.eventPollingInterval);
+				continue;
+			}
+
+			_platformRuntime->pollEvents();
+
+			std::vector<std::weak_ptr<spk::Window>> windows = _windowRegistry.windows();
+			for (const std::weak_ptr<spk::Window>& windowHandle : windows)
+			{
+				std::shared_ptr<spk::Window> window = windowHandle.lock();
+				if (window != nullptr)
+				{
+					window->executePendingPlatformActions();
+				}
+			}
+
+			_windowRegistry.removeClosedWindows();
+
+			if (_windowRegistry.size() == 0 &&
+				(_shutdownRequested.load() == true || _configuration.stopWhenNoWindows == true))
+			{
+				return;
+			}
+
+			spk::TimeUtils::sleepFor(_configuration.eventPollingInterval);
+		}
+	}
+
+	Application::Application() :
+		_ownerThreadID(std::this_thread::get_id())
+	{
+	}
+
+	Application::Application(Configuration p_configuration) :
+		_configuration(std::move(p_configuration)),
+		_platformRuntime(_configuration.platformRuntime),
+		_gpuPlatformRuntime(_configuration.gpuPlatformRuntime),
+		_ownerThreadID(std::this_thread::get_id())
+	{
+	}
+
+	spk::WindowHandle Application::createWindow(const WindowID& p_id, spk::Window::Configuration p_configuration)
+	{
+		_bindOrValidateOwnerThread(__FUNCTION__);
+
+		if (_platformRuntime == nullptr)
+		{
+			_platformRuntime = _createDefaultPlatformRuntime();
+		}
+
+		if (_gpuPlatformRuntime == nullptr)
+		{
+			_gpuPlatformRuntime = _createDefaultGPUPlatformRuntime();
+		}
+
+		return _windowRegistry.createWindow(p_id, _platformRuntime, _gpuPlatformRuntime, std::move(p_configuration));
+	}
+
+	spk::WindowHandle Application::window(const WindowID& p_id)
+	{
+		return _windowRegistry.window(p_id);
+	}
+
+	spk::WindowHandle Application::window(const WindowID& p_id) const
+	{
+		return _windowRegistry.window(p_id);
+	}
+
+	bool Application::containsWindow(const WindowID& p_id) const
+	{
+		return _windowRegistry.contains(p_id);
+	}
+
+	bool Application::isRunning() const
+	{
+		return _isRunning.load();
+	}
+
+	void Application::requestWindowClosing(const WindowID& p_id)
+	{
+		_windowRegistry.requestWindowClosing(p_id);
+	}
+
+	void Application::quit(int p_exitCode)
+	{
+		_exitCode.store(p_exitCode);
+		_shutdownRequested.store(true);
+	}
+
+	void Application::stop()
+	{
+		quit(0);
+	}
+
+	int Application::run()
+	{
+		_bindOrValidateOwnerThread(__FUNCTION__);
+
+		if (_platformRuntime == nullptr && _windowRegistry.size() != 0)
+		{
+			_platformRuntime = _createDefaultPlatformRuntime();
+		}
+
+		if (_gpuPlatformRuntime == nullptr && _windowRegistry.size() != 0)
+		{
+			_gpuPlatformRuntime = _createDefaultGPUPlatformRuntime();
+		}
+
+		bool expectedValue = false;
+		if (_isRunning.compare_exchange_strong(expectedValue, true) == false)
+		{
+			throw std::runtime_error("Application::run : Application is already running");
+		}
+
+		_stopRequested.store(false);
+		_shutdownRequested.store(false);
+		_exitCode.store(0);
+		_rethrowFailureIfAny();
+
+		std::jthread renderThread([this]()
+		{
+			try
+			{
+				_runRenderLoop();
+			}
+			catch (...)
+			{
+				_recordFailure(std::current_exception());
+				_stopRequested.store(true);
+			}
+		});
+
+		std::jthread updateThread([this]()
+		{
+			try
+			{
+				_runUpdateLoop();
+			}
+			catch (...)
+			{
+				_recordFailure(std::current_exception());
+				_stopRequested.store(true);
+			}
+		});
+
+		try
+		{
+			_runEventLoop();
+		}
+		catch (...)
+		{
+			_recordFailure(std::current_exception());
+			_stopRequested.store(true);
+		}
+
+		renderThread.join();
+		updateThread.join();
+
+		_isRunning.store(false);
+		_rethrowFailureIfAny();
+
+		return _exitCode.load();
+	}
+}

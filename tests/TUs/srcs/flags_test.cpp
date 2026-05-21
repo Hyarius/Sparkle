@@ -1,11 +1,11 @@
-#include <cstdint>
+﻿#include <cstdint>
 #include <sstream>
 #include <string>
 #include <type_traits>
 
 #include <gtest/gtest.h>
 
-#include "spk_flags.hpp"
+#include "utils/spk_flags.hpp"
 
 namespace
 {

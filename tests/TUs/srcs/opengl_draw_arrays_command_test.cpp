@@ -19,9 +19,7 @@ TEST(OpenGLDrawArraysCommandTest, DrawsConfiguredVertexRange)
 	spk::RenderUnitBuilder builder;
 	builder.emplace<spk::OpenGL::ViewportCommand>(spk::Rect2D(0, 0, width, height));
 	builder.emplace<spk::OpenGL::ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
-	builder.emplace<spk::OpenGL::UseProgramRenderCommand>(program);
-	builder.emplace<spk::OpenGL::BindVertexArrayCommand>(vertexArray);
-	builder.emplace<spk::OpenGL::DrawArraysCommand>(spk::OpenGL::Primitive::Triangles, 0, 3);
+	builder.emplace<spk::OpenGL::DrawArraysCommand>(spk::OpenGL::Primitive::Triangles, program, vertexArray, 0, 3);
 
 	spk::RenderUnit unit = builder.build();
 	unit.execute(renderContext);

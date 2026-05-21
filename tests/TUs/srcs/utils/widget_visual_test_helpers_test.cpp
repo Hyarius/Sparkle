@@ -1,11 +1,11 @@
-#include <filesystem>
+﻿#include <filesystem>
 #include <memory>
 #include <vector>
 
 #include <gtest/gtest.h>
 #include <stb_image_write.h>
 
-#include "spk_render_unit_builder.hpp"
+#include "rendering/spk_render_unit_builder.hpp"
 #include "spk_widget_visual_test_helpers.hpp"
 
 #if defined(_WIN32) && defined(SPARKLE_GPU_BACKEND_OPENGL)

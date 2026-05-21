@@ -1,8 +1,8 @@
-#include <gtest/gtest.h>
+﻿#include <gtest/gtest.h>
 
 #include <utility>
 
-#include "spk_mouse_module.hpp"
+#include "application/module/spk_mouse_module.hpp"
 #include "window_test_utils.hpp"
 
 TEST(MouseModuleTest, MouseEventsUpdateInternalStateAndDispatchToBoundWidget)

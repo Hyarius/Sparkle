@@ -1,11 +1,11 @@
-#include <gtest/gtest.h>
+﻿#include <gtest/gtest.h>
 
 #include <atomic>
 #include <memory>
 #include <thread>
 #include <vector>
 
-#include "spk_thread_safe_deque.hpp"
+#include "utils/spk_thread_safe_deque.hpp"
 
 TEST(ThreadSafeDequeTest, StartsEmpty)
 {

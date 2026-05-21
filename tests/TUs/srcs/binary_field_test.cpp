@@ -1,11 +1,11 @@
-#include <gtest/gtest.h>
+﻿#include <gtest/gtest.h>
 
 #include <array>
 #include <cstdint>
 #include <span>
 #include <stdexcept>
 
-#include "spk_binary_field.hpp"
+#include "utils/spk_binary_field.hpp"
 
 namespace
 {

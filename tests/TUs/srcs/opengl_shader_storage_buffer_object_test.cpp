@@ -15,7 +15,7 @@ TEST(OpenGLShaderStorageBufferObjectTest, BindsConfiguredBindingPointWhenSupport
 	}
 
 	spk::OpenGL::ShaderStorageBufferObject storageBuffer(4, spk::OpenGL::BufferObject::Usage::DynamicDraw, 16);
-	storageBuffer.bind();
+	storageBuffer.activate();
 
 	GLint boundBuffer = 0;
 	glGetIntegeri_v(GL_SHADER_STORAGE_BUFFER_BINDING, 4, &boundBuffer);

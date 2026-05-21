@@ -1,10 +1,10 @@
-#include <gtest/gtest.h>
+﻿#include <gtest/gtest.h>
 
 #include <memory>
 #include <stdexcept>
 
 #define private public
-#include "spk_window_registry.hpp"
+#include "window/spk_window_registry.hpp"
 #undef private
 #include "window_test_utils.hpp"
 

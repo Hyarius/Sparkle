@@ -1,10 +1,10 @@
-#include <gtest/gtest.h>
+﻿#include <gtest/gtest.h>
 
 #include <sstream>
 #include <stdexcept>
 #include <type_traits>
 
-#include "spk_vector2.hpp"
+#include "math/spk_vector2.hpp"
 
 TEST(Vector2ConstructionTest, DefaultConstructorBuildsZeroVectorInt)
 {

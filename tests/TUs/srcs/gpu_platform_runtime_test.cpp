@@ -1,12 +1,12 @@
-#include <gtest/gtest.h>
+﻿#include <gtest/gtest.h>
 
 #include <memory>
 #include <stdexcept>
 
-#include "spk_frame.hpp"
-#include "spk_gpu_platform_runtime.hpp"
-#include "spk_render_context.hpp"
-#include "spk_surface_state.hpp"
+#include "window/spk_frame.hpp"
+#include "opengl/spk_gpu_platform_runtime.hpp"
+#include "rendering/spk_render_context.hpp"
+#include "window/spk_surface_state.hpp"
 
 namespace
 {

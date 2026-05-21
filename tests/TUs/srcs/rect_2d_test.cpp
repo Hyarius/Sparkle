@@ -1,9 +1,9 @@
-#include <gtest/gtest.h>
+﻿#include <gtest/gtest.h>
 
 #include <sstream>
 #include <string>
 
-#include "spk_rect_2d.hpp"
+#include "math/spk_rect_2d.hpp"
 
 TEST(Rect2DConstructionTest, DefaultConstructorBuildsZeroRect)
 {

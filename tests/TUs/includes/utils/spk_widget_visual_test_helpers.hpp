@@ -1,11 +1,11 @@
-#pragma once
+﻿#pragma once
 
 #include <filesystem>
 #include <string>
 
 #include "image_comparison_test_utils.hpp"
-#include "spk_rect_2d.hpp"
-#include "spk_widget.hpp"
+#include "math/spk_rect_2d.hpp"
+#include "widget/spk_widget.hpp"
 
 namespace spk::test
 {

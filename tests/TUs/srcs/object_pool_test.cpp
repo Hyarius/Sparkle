@@ -1,11 +1,11 @@
-#include <memory>
+﻿#include <memory>
 #include <stdexcept>
 #include <string>
 #include <utility>
 
 #include <gtest/gtest.h>
 
-#include "spk_object_pool.hpp"
+#include "utils/spk_object_pool.hpp"
 
 namespace
 {

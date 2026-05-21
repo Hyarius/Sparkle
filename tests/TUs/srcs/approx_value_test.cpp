@@ -1,9 +1,9 @@
-#include <gtest/gtest.h>
+﻿#include <gtest/gtest.h>
 
 #include <type_traits>
 
-#include "spk_approx_value.hpp"
-#include "spk_constants.hpp"
+#include "math/spk_approx_value.hpp"
+#include "math/spk_constants.hpp"
 
 namespace
 {

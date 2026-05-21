@@ -1,4 +1,4 @@
-#include "spk_widget_visual_test_helpers.hpp"
+﻿#include "spk_widget_visual_test_helpers.hpp"
 
 #include <exception>
 #include <memory>
@@ -11,10 +11,10 @@
 #include <GL/gl.h>
 #endif
 
-#include "spk_opengl_runtime.hpp"
-#include "spk_platform_runtime.hpp"
-#include "spk_render_snapshot_builder.hpp"
-#include "spk_winapi_platform_runtime.hpp"
+#include "opengl/spk_opengl_runtime.hpp"
+#include "application/spk_platform_runtime.hpp"
+#include "rendering/spk_render_snapshot_builder.hpp"
+#include "winapi/spk_winapi_platform_runtime.hpp"
 
 namespace spk::test
 {

@@ -16,7 +16,7 @@ TEST(OpenGLVertexBufferObjectTest, DefaultsToArrayBufferTargetAndUploadsVertexDa
 	auto vertexBuffer = sparkle_test::makeTriangleVBO(vertices);
 
 	EXPECT_EQ(vertexBuffer->target(), spk::OpenGL::BufferObject::Target::Array);
-	vertexBuffer->bind();
+	vertexBuffer->activate();
 
 	std::array<sparkle_test::TestVertex, 3> gpuVertices = {};
 	glGetBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(gpuVertices), gpuVertices.data());

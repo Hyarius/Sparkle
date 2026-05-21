@@ -1,9 +1,9 @@
-#include <gtest/gtest.h>
+﻿#include <gtest/gtest.h>
 
 #include <memory>
 #include <utility>
 
-#include "spk_render_module.hpp"
+#include "application/module/spk_render_module.hpp"
 #include "window_test_utils.hpp"
 
 namespace

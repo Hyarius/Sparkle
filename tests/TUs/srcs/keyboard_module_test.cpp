@@ -1,8 +1,8 @@
-#include <gtest/gtest.h>
+﻿#include <gtest/gtest.h>
 
 #include <utility>
 
-#include "spk_keyboard_module.hpp"
+#include "application/module/spk_keyboard_module.hpp"
 #include "window_test_utils.hpp"
 
 TEST(KeyboardModuleTest, KeyboardEventsUpdateInternalStateAndDispatchToBoundWidget)

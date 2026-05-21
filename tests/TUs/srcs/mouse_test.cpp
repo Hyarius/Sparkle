@@ -1,9 +1,9 @@
-#include <gtest/gtest.h>
+﻿#include <gtest/gtest.h>
 
 #include <sstream>
 #include <string>
 
-#include "spk_mouse.hpp"
+#include "input/spk_mouse.hpp"
 
 TEST(MouseTest, DefaultConstructorInitializesAllButtonsToUp)
 {

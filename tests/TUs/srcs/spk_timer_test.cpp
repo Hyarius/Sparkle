@@ -1,12 +1,12 @@
-#include <gtest/gtest.h>
+﻿#include <gtest/gtest.h>
 
 #include <chrono>
 #include <sstream>
 #include <thread>
 
-#include "spk_timer.hpp"
+#include "time/spk_timer.hpp"
 
-#include "spk_time_utils.hpp"
+#include "time/spk_time_utils.hpp"
 
 using namespace spk;
 

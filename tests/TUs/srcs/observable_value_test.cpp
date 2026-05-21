@@ -1,8 +1,8 @@
-#include <string>
+﻿#include <string>
 
 #include <gtest/gtest.h>
 
-#include "spk_observable_value.hpp"
+#include "utils/spk_observable_value.hpp"
 
 namespace
 {

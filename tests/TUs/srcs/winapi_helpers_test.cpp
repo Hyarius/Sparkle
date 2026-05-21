@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+﻿#include <gtest/gtest.h>
 
 #ifdef _WIN32
 
@@ -7,7 +7,7 @@
 
 #include <Windows.h>
 
-#include "spk_winapi_helpers.hpp"
+#include "winapi/spk_winapi_helpers.hpp"
 
 TEST(WinAPIHelpersTest, ConvertsEmptyAsciiAndUtf8RoundTripStrings)
 {

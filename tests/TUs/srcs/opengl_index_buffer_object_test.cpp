@@ -17,7 +17,7 @@ TEST(OpenGLIndexBufferObjectTest, StoresDrawMetadataAndSynchronizesData)
 	indexBuffer.setElementType(GL_UNSIGNED_SHORT);
 	indexBuffer.setCount(indices.size());
 	indexBuffer.edit(indices.data(), sizeof(indices));
-	indexBuffer.bind();
+	indexBuffer.activate();
 
 	std::array<std::uint16_t, 3> gpuIndices = {};
 	glGetBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, sizeof(gpuIndices), gpuIndices.data());

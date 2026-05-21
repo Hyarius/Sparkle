@@ -1,11 +1,11 @@
-#include <gtest/gtest.h>
+﻿#include <gtest/gtest.h>
 
 #include <atomic>
 #include <mutex>
 #include <thread>
 
-#include "spk_contract_provider.hpp"
-#include "spk_thread_safe_contract.hpp"
+#include "utils/spk_contract_provider.hpp"
+#include "utils/spk_thread_safe_contract.hpp"
 
 TEST(ThreadSafeContractTest, StartsInvalid)
 {

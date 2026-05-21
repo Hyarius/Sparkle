@@ -25,7 +25,7 @@ TEST(OpenGLBufferObjectTest, SynchronizesBinaryFieldToGPU)
 	}
 
 	buffer.synchronize();
-	buffer.bind();
+	buffer.activate();
 
 	std::array<std::uint32_t, 4> gpuValues = {};
 	glGetBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(gpuValues), gpuValues.data());
@@ -55,7 +55,7 @@ TEST(OpenGLBufferObjectTest, EditAppendResizeAndUsageRequestSynchronization)
 
 	std::array<std::uint8_t, 2> patch = {9, 8};
 	buffer.edit(patch.data(), patch.size(), 1);
-	buffer.bind();
+	buffer.activate();
 
 	std::array<std::uint8_t, 4> gpuValues = {};
 	glGetBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(gpuValues), gpuValues.data());

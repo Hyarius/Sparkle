@@ -1,8 +1,8 @@
-#include <gtest/gtest.h>
+﻿#include <gtest/gtest.h>
 
 #include <sstream>
 
-#include "spk_time_unit.hpp"
+#include "time/spk_time_unit.hpp"
 
 TEST(TimeUnitTest, ToStringReturnsExpectedValues)
 {

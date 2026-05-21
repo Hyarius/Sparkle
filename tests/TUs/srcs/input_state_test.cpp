@@ -1,9 +1,9 @@
-#include <gtest/gtest.h>
+﻿#include <gtest/gtest.h>
 
 #include <sstream>
 #include <string>
 
-#include "spk_input_state.hpp"
+#include "input/spk_input_state.hpp"
 
 TEST(InputStateTest, ToStringUpReturnsUp)
 {

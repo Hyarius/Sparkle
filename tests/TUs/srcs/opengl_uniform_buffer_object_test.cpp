@@ -10,7 +10,7 @@ TEST(OpenGLUniformBufferObjectTest, BindsConfiguredBindingPoint)
 	(void)context;
 
 	spk::OpenGL::UniformBufferObject uniformBuffer(3, spk::OpenGL::BufferObject::Usage::DynamicDraw, 16);
-	uniformBuffer.bind();
+	uniformBuffer.activate();
 
 	GLint boundBuffer = 0;
 	glGetIntegeri_v(GL_UNIFORM_BUFFER_BINDING, 3, &boundBuffer);

@@ -4,20 +4,20 @@
 
 #if defined(_WIN32) && defined(SPARKLE_GPU_BACKEND_OPENGL)
 
-TEST(ProgramTest, CompilesLinksBindsAndUnbinds)
+TEST(ProgramTest, CompilesLinksActivatesAndDeactivates)
 {
 	sparkle_test::OpenGLTestContext context;
 	(void)context;
 
 	std::shared_ptr<spk::Program> program = sparkle_test::makeSolidProgram(1.0f, 0.0f, 0.0f);
-	program->bind();
+	program->activate();
 
 	GLint currentProgram = 0;
 	glGetIntegerv(GL_CURRENT_PROGRAM, &currentProgram);
 	EXPECT_EQ(static_cast<GLuint>(currentProgram), program->id());
 	EXPECT_TRUE(program->isLinked());
 
-	program->unbind();
+	program->deactivate();
 	glGetIntegerv(GL_CURRENT_PROGRAM, &currentProgram);
 	EXPECT_EQ(currentProgram, 0);
 }
@@ -28,12 +28,12 @@ TEST(ProgramTest, RelinksAfterSourceUpdateAndRejectsInvalidSource)
 	(void)context;
 
 	std::shared_ptr<spk::Program> program = sparkle_test::makeSolidProgram(1.0f, 0.0f, 0.0f);
-	program->bind();
+	program->activate();
 	program->setSources(
 		sparkle_test::makeSolidProgram(0.0f, 1.0f, 0.0f)->vertexShaderSource(),
 		sparkle_test::makeSolidProgram(0.0f, 1.0f, 0.0f)->fragmentShaderSource());
 	EXPECT_TRUE(program->needsSynchronization());
-	program->bind();
+	program->activate();
 	EXPECT_FALSE(program->needsSynchronization());
 	EXPECT_TRUE(program->isLinked());
 
