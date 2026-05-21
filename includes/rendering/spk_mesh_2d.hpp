@@ -18,11 +18,6 @@ namespace spk
 		}
 	};
 
-	class Mesh2D : public spk::GenericMesh<spk::Vertex2D>
-	{
-	public:
-		Mesh2D() = default;
-	};
 }
 
 namespace std
@@ -36,5 +31,14 @@ namespace std
 			h ^= std::hash<spk::Vector2>{}(p_value.uv) + 0x9e3779b9u + (h << 6) + (h >> 2);
 			return h;
 		}
+	};
+}
+
+namespace spk
+{
+	class Mesh2D : public spk::GenericMesh<spk::Vertex2D>
+	{
+	public:
+		Mesh2D() = default;
 	};
 }

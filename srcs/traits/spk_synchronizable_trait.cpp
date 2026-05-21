@@ -2,7 +2,7 @@
 
 namespace spk
 {
-		void SynchronizableTrait::requestSynchronization() noexcept
+		void SynchronizableTrait::requestSynchronization() const noexcept
 		{
 			_needsSynchronization.store(true);
 		}
@@ -12,7 +12,7 @@ namespace spk
 			return _needsSynchronization.load();
 		}
 
-		void SynchronizableTrait::synchronize()
+		void SynchronizableTrait::synchronize() const
 		{
 			if (_needsSynchronization.exchange(false) == false)
 			{
@@ -30,7 +30,7 @@ namespace spk
 			}
 		}
 
-		void SynchronizableTrait::forceSynchronization()
+		void SynchronizableTrait::forceSynchronization() const
 		{
 			_synchronize();
 			_needsSynchronization.store(false);

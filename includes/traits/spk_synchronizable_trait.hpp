@@ -7,24 +7,35 @@ namespace spk
 	class SynchronizableTrait
 	{
 	private:
-		std::atomic_bool _needsSynchronization = false;
+		mutable std::atomic_bool _needsSynchronization = false;
 
 	protected:
 		SynchronizableTrait() = default;
 		~SynchronizableTrait() = default;
 
-		virtual void _synchronize() = 0;
+		virtual void _synchronize() const = 0;
 
 	public:
 		SynchronizableTrait(const SynchronizableTrait&) = delete;
 		SynchronizableTrait& operator=(const SynchronizableTrait&) = delete;
 
-		SynchronizableTrait(SynchronizableTrait&&) noexcept = delete;
-		SynchronizableTrait& operator=(SynchronizableTrait&&) noexcept = delete;
+		SynchronizableTrait(SynchronizableTrait&& p_other) noexcept
+			: _needsSynchronization(p_other._needsSynchronization.exchange(false))
+		{
+		}
 
-		void requestSynchronization() noexcept;
+		SynchronizableTrait& operator=(SynchronizableTrait&& p_other) noexcept
+		{
+			if (this != &p_other)
+			{
+				_needsSynchronization.store(p_other._needsSynchronization.exchange(false));
+			}
+			return *this;
+		}
+
+		void requestSynchronization() const noexcept;
 		bool needsSynchronization() const noexcept;
-		void synchronize();
-		void forceSynchronization();
+		void synchronize() const;
+		void forceSynchronization() const;
 	};
 }

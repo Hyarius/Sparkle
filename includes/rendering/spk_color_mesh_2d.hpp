@@ -23,11 +23,6 @@ namespace spk
 		}
 	};
 
-	class ColorMesh2D : public spk::GenericMesh<spk::ColorVertex2D>
-	{
-	public:
-		ColorMesh2D() = default;
-	};
 }
 
 namespace std
@@ -44,5 +39,14 @@ namespace std
 			h ^= std::hash<float>{}(p_value.color.a) + 0x9e3779b9u + (h << 6) + (h >> 2);
 			return h;
 		}
+	};
+}
+
+namespace spk
+{
+	class ColorMesh2D : public spk::GenericMesh<spk::ColorVertex2D>
+	{
+	public:
+		ColorMesh2D() = default;
 	};
 }
