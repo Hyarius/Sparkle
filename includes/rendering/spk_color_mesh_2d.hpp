@@ -5,12 +5,13 @@
 #include "rendering/spk_color.hpp"
 #include "rendering/spk_generic_mesh.hpp"
 #include "math/spk_vector2.hpp"
+#include "math/spk_vector3.hpp"
 
 namespace spk
 {
 	struct ColorVertex2D
 	{
-		spk::Vector2 position{};
+		spk::Vector3 position{};
 		spk::Color color{};
 
 		[[nodiscard]] bool operator==(const ColorVertex2D& p_other) const noexcept
@@ -32,7 +33,9 @@ namespace std
 	{
 		std::size_t operator()(const spk::ColorVertex2D& p_value) const noexcept
 		{
-			std::size_t h = std::hash<spk::Vector2>{}(p_value.position);
+			std::size_t h = std::hash<float>{}(p_value.position.x);
+			h ^= std::hash<float>{}(p_value.position.y) + 0x9e3779b9u + (h << 6) + (h >> 2);
+			h ^= std::hash<float>{}(p_value.position.z) + 0x9e3779b9u + (h << 6) + (h >> 2);
 			h ^= std::hash<float>{}(p_value.color.r) + 0x9e3779b9u + (h << 6) + (h >> 2);
 			h ^= std::hash<float>{}(p_value.color.g) + 0x9e3779b9u + (h << 6) + (h >> 2);
 			h ^= std::hash<float>{}(p_value.color.b) + 0x9e3779b9u + (h << 6) + (h >> 2);

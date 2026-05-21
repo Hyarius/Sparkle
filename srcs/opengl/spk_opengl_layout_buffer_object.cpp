@@ -177,7 +177,9 @@ namespace spk::OpenGL
 		}
 		if (_vertexSize != 0 && p_size % _vertexSize != 0)
 		{
-			throw std::runtime_error("spk::OpenGL::LayoutBufferObject vertex data size is not aligned with its vertex layout");
+			throw std::runtime_error(
+				"spk::OpenGL::LayoutBufferObject vertex data size [" + std::to_string(p_size) +
+				"] is not aligned with its vertex layout [" + std::to_string(_vertexSize) + "]");
 		}
 
 		_vertexBuffer->clear();

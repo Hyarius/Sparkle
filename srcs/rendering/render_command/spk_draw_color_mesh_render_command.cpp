@@ -1,4 +1,4 @@
-﻿#include "rendering/spk_draw_color_mesh_render_command.hpp"
+﻿#include "rendering/render_command/spk_draw_color_mesh_render_command.hpp"
 
 #if defined(SPARKLE_GPU_BACKEND_OPENGL)
 
@@ -18,10 +18,10 @@ namespace
 	{
 		return
 			"#version 330 core\n"
-			"layout(location = 0) in vec2 inPosition;\n"
+			"layout(location = 0) in vec3 inPosition;\n"
 			"void main()\n"
 			"{\n"
-			"	gl_Position = vec4(inPosition, 0.0, 1.0);\n"
+			"	gl_Position = vec4(inPosition, 1.0);\n"
 			"}\n";
 	}
 

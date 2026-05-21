@@ -122,9 +122,9 @@ TEST(GenericMeshTest, ReusesDuplicateVerticesAcrossShapes)
 TEST(ColorMesh2DTest, ColorValuesVertexComparisonAndHashWork)
 {
 	const spk::Color color(0.1f, 0.2f, 0.3f, 0.4f);
-	const spk::ColorVertex2D first{.position = {1.0f, 2.0f}, .color = color};
-	const spk::ColorVertex2D same{.position = {1.0f, 2.0f}, .color = color};
-	const spk::ColorVertex2D other{.position = {2.0f, 1.0f}, .color = spk::Color(0.4f, 0.3f, 0.2f, 0.1f)};
+	const spk::ColorVertex2D first{.position = {1.0f, 2.0f, 0.0f}, .color = color};
+	const spk::ColorVertex2D same{.position = {1.0f, 2.0f, 0.0f}, .color = color};
+	const spk::ColorVertex2D other{.position = {2.0f, 1.0f, 0.0f}, .color = spk::Color(0.4f, 0.3f, 0.2f, 0.1f)};
 
 	EXPECT_EQ(color.values(), (std::array<float, 4>{0.1f, 0.2f, 0.3f, 0.4f}));
 	EXPECT_EQ(first, same);
@@ -143,9 +143,9 @@ TEST(ColorMesh2DTest, StoresColoredShape)
 	spk::ColorMesh2D mesh;
 
 	mesh.addShape(
-		spk::ColorVertex2D{.position = {0.0f, 0.0f}, .color = spk::Color(1.0f, 0.0f, 0.0f)},
-		spk::ColorVertex2D{.position = {1.0f, 0.0f}, .color = spk::Color(0.0f, 1.0f, 0.0f)},
-		spk::ColorVertex2D{.position = {0.0f, 1.0f}, .color = spk::Color(0.0f, 0.0f, 1.0f)});
+		spk::ColorVertex2D{.position = {0.0f, 0.0f, 0.0f}, .color = spk::Color(1.0f, 0.0f, 0.0f)},
+		spk::ColorVertex2D{.position = {1.0f, 0.0f, 0.0f}, .color = spk::Color(0.0f, 1.0f, 0.0f)},
+		spk::ColorVertex2D{.position = {0.0f, 1.0f, 0.0f}, .color = spk::Color(0.0f, 0.0f, 1.0f)});
 
 	EXPECT_EQ(mesh.buffer().vertices.size(), 3u);
 	EXPECT_EQ(mesh.buffer().indexes, (std::vector<std::uint32_t>{0, 1, 2}));

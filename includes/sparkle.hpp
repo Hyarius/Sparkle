@@ -61,7 +61,10 @@
 
 // Rendering
 #include "rendering/spk_render_command.hpp"
-#include "rendering/spk_draw_color_mesh_render_command.hpp"
+#include "rendering/render_command/spk_draw_color_mesh_render_command.hpp"
+#include "rendering/render_command/spk_draw_font_render_command.hpp"
+#include "rendering/render_command/spk_draw_sprite_render_command.hpp"
+#include "rendering/render_command/spk_draw_texture_mesh_render_command.hpp"
 #include "rendering/spk_render_unit.hpp"
 #include "rendering/spk_render_unit_builder.hpp"
 #include "rendering/spk_render_snapshot.hpp"
@@ -70,6 +73,12 @@
 #include "rendering/spk_generic_mesh.hpp"
 #include "rendering/spk_mesh_2d.hpp"
 #include "rendering/spk_color_mesh_2d.hpp"
+#include "rendering/spk_texture_mesh_2d.hpp"
+#ifdef SPARKLE_GPU_BACKEND_OPENGL
+#include "rendering/spk_font.hpp"
+#include "rendering/spk_image.hpp"
+#include "rendering/spk_sprite_sheet.hpp"
+#endif
 #ifdef SPARKLE_GPU_BACKEND_OPENGL
 #include "opengl/spk_opengl_program.hpp"
 #include "opengl/spk_opengl_buffer_object.hpp"
