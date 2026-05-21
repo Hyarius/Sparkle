@@ -47,18 +47,18 @@ namespace spk::OpenGL
 
 	private:
 		mutable std::mutex _mutex;
-		GLuint _id = 0;
+		mutable GLuint _id = 0;
 		Target _target = Target::Array;
 		Usage _usage = Usage::DynamicDraw;
 		std::vector<std::uint8_t> _cpuBuffer;
 		spk::BinaryField _field;
-		std::size_t _allocatedSize = 0;
+		mutable std::size_t _allocatedSize = 0;
 
 	protected:
-		void _allocate();
-		void _release();
+		void _allocate() const;
+		void _release() const;
 		void _resetField();
-		void _synchronize() override;
+		void _synchronize() const override;
 
 	public:
 		explicit BufferObject(

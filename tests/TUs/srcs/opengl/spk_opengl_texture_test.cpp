@@ -12,7 +12,7 @@ TEST(OpenGLTextureTest, DefaultConstructionProducesInvalidGLId)
 
 	spk::OpenGL::Texture tex;
 
-	EXPECT_EQ(tex.glId(), 0u);
+	EXPECT_EQ(tex.glId(), spk::OpenGL::Texture::InvalidGLId);
 }
 
 TEST(OpenGLTextureTest, InheritsFromSpkTexture)
@@ -39,7 +39,7 @@ TEST(OpenGLTextureTest, SynchronizeAfterSetPixelsUploadsToGPU)
 	tex.synchronize();
 
 	EXPECT_FALSE(tex.needsSynchronization());
-	EXPECT_NE(tex.glId(), 0u);
+	EXPECT_NE(tex.glId(), spk::OpenGL::Texture::InvalidGLId);
 }
 
 TEST(OpenGLTextureTest, SynchronizeCalledTwiceDoesNotReuploadUnlessNewData)
@@ -69,12 +69,12 @@ TEST(OpenGLTextureTest, MoveConstructionPreservesGLIdAndInvalidatesSource)
 	src.setPixels(pixels, {2, 2}, spk::Texture::Format::RGBA);
 	src.synchronize();
 	GLuint originalId = src.glId();
-	ASSERT_NE(originalId, 0u);
+	ASSERT_NE(originalId, spk::OpenGL::Texture::InvalidGLId);
 
 	spk::OpenGL::Texture dst(std::move(src));
 
 	EXPECT_EQ(dst.glId(), originalId);
-	EXPECT_EQ(src.glId(), 0u);
+	EXPECT_EQ(src.glId(), spk::OpenGL::Texture::InvalidGLId);
 }
 
 TEST(OpenGLTextureTest, MoveAssignmentPreservesGLId)
@@ -105,7 +105,7 @@ TEST(OpenGLTextureTest, ForceSynchronizationUploadsToGPU)
 
 	tex.forceSynchronization();
 
-	EXPECT_NE(tex.glId(), 0u);
+	EXPECT_NE(tex.glId(), spk::OpenGL::Texture::InvalidGLId);
 	EXPECT_FALSE(tex.needsSynchronization());
 }
 

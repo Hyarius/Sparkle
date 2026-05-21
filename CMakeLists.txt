@@ -34,6 +34,33 @@ set(SPARKLE_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/includes")
 set(SPARKLE_RESOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/resources")
 
 option(ENABLE_PLAYGROUND "Build the Sparkle playground executable" OFF)
+option(ENABLE_COVERAGE "Build tests with LLVM source-based coverage instrumentation" OFF)
+
+if(ENABLE_COVERAGE)
+    if(NOT ENABLE_TESTS)
+        message(FATAL_ERROR "ENABLE_COVERAGE requires ENABLE_TESTS=ON")
+    endif()
+
+    if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        message(FATAL_ERROR "ENABLE_COVERAGE currently requires Clang/LLVM")
+    endif()
+
+    find_program(LLVM_COV_EXECUTABLE llvm-cov REQUIRED)
+    find_program(LLVM_PROFDATA_EXECUTABLE llvm-profdata REQUIRED)
+
+    function(sparkle_enable_coverage target_name)
+        target_compile_options(${target_name} PRIVATE
+            -O0
+            -g
+            -fprofile-instr-generate
+            -fcoverage-mapping
+        )
+        target_link_options(${target_name} PRIVATE
+            -fprofile-instr-generate
+            -fcoverage-mapping
+        )
+    endfunction()
+endif()
 
 add_subdirectory(tools)
 
@@ -68,6 +95,10 @@ set_property(CACHE SPARKLE_GPU_BACKEND PROPERTY STRINGS OPENGL NONE)
 
 add_library(Sparkle STATIC ${SPARKLE_SOURCES} ${SPARKLE_HEADERS})
 add_library(Sparkle::Sparkle ALIAS Sparkle)
+
+if(ENABLE_COVERAGE)
+    sparkle_enable_coverage(Sparkle)
+endif()
 
 add_dependencies(Sparkle SparkleResourcesHeaderTarget)
 target_sources(Sparkle PRIVATE "${SPARKLE_RESOURCES_HEADER}")

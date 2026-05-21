@@ -23,7 +23,7 @@ namespace spk::OpenGL
 		std::string _name;
 		GLuint _programId;
 		GLint _location = -1;
-		bool _validated = false;
+		mutable bool _validated = false;
 
 	protected:
 		UniformBase(std::string p_name, GLuint p_programId) :
@@ -53,16 +53,16 @@ namespace spk::OpenGL
 		virtual bool _validateType(GLenum p_shaderType) const = 0;
 		virtual const char* _expectedTypeName() const noexcept = 0;
 		virtual std::size_t _expectedCount() const noexcept = 0;
-		virtual void _onDataActivation() = 0;
+		virtual void _onDataActivation() const = 0;
 
 	private:
-		void _synchronize() final override
+		void _synchronize() const final override
 		{
 			_validateShaderDeclarationIfNeeded();
 			_onDataActivation();
 		}
 
-		void _validateShaderDeclarationIfNeeded()
+		void _validateShaderDeclarationIfNeeded() const
 		{
 			if (_validated == true)
 			{
@@ -73,7 +73,7 @@ namespace spk::OpenGL
 			_validated = true;
 		}
 
-		void _validateShaderDeclaration()
+		void _validateShaderDeclaration() const
 		{
 			const std::string normalizedName = _normalizeUniformName(_name);
 
@@ -237,7 +237,7 @@ namespace spk::OpenGL
 			return 1;
 		}
 
-		void _onDataActivation() override
+		void _onDataActivation() const override
 		{
 			TSpecification::activate(_locationValue(), _value);
 		}
@@ -292,7 +292,7 @@ namespace spk::OpenGL
 			return _values.size();
 		}
 
-		void _onDataActivation() override
+		void _onDataActivation() const override
 		{
 			TSpecification::activateArray(
 				_locationValue(),

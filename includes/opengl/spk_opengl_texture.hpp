@@ -11,8 +11,11 @@ namespace spk::OpenGL
 {
 	class Texture : public spk::Texture
 	{
+	public:
+		static constexpr GLuint InvalidGLId = 0;
+
 	private:
-		mutable GLuint _glId = 0;
+		mutable GLuint _glId = InvalidGLId;
 
 		static void _setupTextureParameters(Filtering p_filtering, Wrap p_wrap, Mipmap p_mipmap);
 		static void _convertFormat(Format p_format, GLint& p_internalFormat, GLenum& p_externalFormat);

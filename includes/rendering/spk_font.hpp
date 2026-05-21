@@ -2,6 +2,7 @@
 
 #if defined(SPARKLE_GPU_BACKEND_OPENGL)
 
+#include <array>
 #include <filesystem>
 #include <map>
 #include <unordered_map>
@@ -117,6 +118,7 @@ namespace spk
 			void _loadGlyph(wchar_t p_char);
 			void _uploadTexture();
 
+		public:
 			Atlas(
 				const stbtt_fontinfo& p_fontInfo,
 				const Data& p_fontData,
@@ -126,7 +128,6 @@ namespace spk
 				Wrap p_wrap = Wrap::ClampToEdge,
 				Mipmap p_mipmap = Mipmap::Enable);
 
-		public:
 			Contract subscribe(const Job& p_job);
 
 			void loadGlyphs(const std::wstring& p_glyphsToLoad);

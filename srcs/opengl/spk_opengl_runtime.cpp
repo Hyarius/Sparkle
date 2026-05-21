@@ -10,7 +10,6 @@
 #include <Windows.h>
 #include <GL/gl.h>
 
-#define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb_image_write.h>
 
 #include "opengl/spk_opengl_render_context.hpp"

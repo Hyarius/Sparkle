@@ -158,5 +158,5 @@ TEST(MatrixTest, StringifiesRows)
 		3.0f, 4.0f
 	};
 
-	EXPECT_EQ(matrix.toString(), "[1 - 2] - [3 - 4]");
+	EXPECT_EQ(matrix.toString(), "[1, 2]\n[3, 4]");
 }

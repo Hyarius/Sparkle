@@ -58,7 +58,7 @@ namespace spk
 		return shader;
 	}
 
-	void Program::_release()
+	void Program::_release() const
 	{
 		if (_id != 0 && hasCurrentOpenGLContext() == true)
 		{
@@ -67,7 +67,7 @@ namespace spk
 		_id = 0;
 	}
 
-	void Program::_synchronize()
+	void Program::_synchronize() const
 	{
 		std::string vertexShaderSource;
 		std::string fragmentShaderSource;

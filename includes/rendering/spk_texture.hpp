@@ -79,6 +79,9 @@ namespace spk
 
 		size_t _getBytesPerPixel(Format p_format) const;
 
+	protected:
+		void _synchronize() const override;
+
 	public:
 		Texture();
 		virtual ~Texture();

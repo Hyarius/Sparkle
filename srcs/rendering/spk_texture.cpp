@@ -59,6 +59,10 @@ namespace spk
 		}
 	}
 
+	void Texture::_synchronize() const
+	{
+	}
+
 	const Texture::Section Texture::Section::whole = Texture::Section({0.0f, 0.0f}, {1.0f, 1.0f});
 
 	Texture::Section::Section() :

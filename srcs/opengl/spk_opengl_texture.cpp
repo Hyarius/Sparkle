@@ -95,6 +95,11 @@ namespace spk::OpenGL
 			return;
 		}
 
+		if (_glId == InvalidGLId)
+		{
+			glGenTextures(1, &_glId);
+		}
+
 		glBindTexture(GL_TEXTURE_2D, _glId);
 
 		glTexImage2D(
@@ -121,21 +126,20 @@ namespace spk::OpenGL
 	Texture::Texture() :
 		spk::Texture()
 	{
-		glGenTextures(1, &_glId);
 	}
 
 	Texture::~Texture()
 	{
-		if (_glId != 0)
+		if (_glId != InvalidGLId)
 		{
 			glDeleteTextures(1, &_glId);
-			_glId = 0;
+			_glId = InvalidGLId;
 		}
 	}
 
 	Texture::Texture(Texture&& p_other) noexcept :
 		spk::Texture(std::move(p_other)),
-		_glId(std::exchange(p_other._glId, 0))
+		_glId(std::exchange(p_other._glId, InvalidGLId))
 	{
 	}
 
@@ -143,12 +147,12 @@ namespace spk::OpenGL
 	{
 		if (this != &p_other)
 		{
-			if (_glId != 0)
+			if (_glId != InvalidGLId)
 			{
 				glDeleteTextures(1, &_glId);
 			}
 			spk::Texture::operator=(std::move(p_other));
-			_glId = std::exchange(p_other._glId, 0);
+			_glId = std::exchange(p_other._glId, InvalidGLId);
 		}
 		return *this;
 	}

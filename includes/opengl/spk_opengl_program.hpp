@@ -19,14 +19,14 @@ namespace spk
 		std::string _vertexShaderSource;
 		std::string _fragmentShaderSource;
 		mutable std::mutex _sourceMutex;
-		GLuint _id = 0;
+		mutable GLuint _id = 0;
 
 	private:
 		static GLuint _compileShader(GLenum p_type, const std::string& p_source);
-		void _release();
+		void _release() const;
 
 	protected:
-		void _synchronize() override;
+		void _synchronize() const override;
 
 	public:
 		Program(std::string p_vertexShaderSource, std::string p_fragmentShaderSource);

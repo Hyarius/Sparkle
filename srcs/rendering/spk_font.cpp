@@ -171,6 +171,10 @@ namespace spk
 		Wrap p_wrap,
 		Mipmap p_mipmap)
 	{
+		if (p_data.empty() == true)
+		{
+			throw std::runtime_error("Font can't be initialized from an empty data.");
+		}
 		Font result;
 		result._loadFromData(p_data);
 		result.setProperties(p_filtering, p_wrap, p_mipmap);
@@ -262,7 +266,7 @@ namespace spk
 	{
 		if (_atlases.find(p_size) == _atlases.end())
 		{
-			_atlases.emplace(p_size, Atlas(_fontInfo, _fontData, p_size.glyph, p_size.outline, _filtering, _wrap, _mipmap));
+			_atlases.try_emplace(p_size, _fontInfo, _fontData, p_size.glyph, p_size.outline, _filtering, _wrap, _mipmap);
 		}
 		return _atlases.at(p_size);
 	}

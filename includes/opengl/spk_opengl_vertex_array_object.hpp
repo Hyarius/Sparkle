@@ -35,16 +35,16 @@ namespace spk::OpenGL
 			Attribute attribute;
 		};
 
-		GLuint _id = 0;
+		mutable GLuint _id = 0;
 		std::vector<VertexBufferBinding> _vertexBufferBindings;
 		std::shared_ptr<IndexBufferObject> _indexBuffer = nullptr;
 
 	private:
-		void _allocate();
-		void _release();
+		void _allocate() const;
+		void _release() const;
 
 	protected:
-		void _synchronize() override;
+		void _synchronize() const override;
 
 	public:
 		VertexArrayObject();

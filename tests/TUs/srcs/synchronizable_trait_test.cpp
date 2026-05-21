@@ -7,10 +7,10 @@ namespace
 	class TestSynchronizable : public spk::SynchronizableTrait
 	{
 	private:
-		int _synchronizeCount = 0;
+		mutable int _synchronizeCount = 0;
 
 	protected:
-		void _synchronize() override
+		void _synchronize() const override
 		{
 			++_synchronizeCount;
 		}

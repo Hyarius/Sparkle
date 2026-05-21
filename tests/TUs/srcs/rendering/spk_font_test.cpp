@@ -49,12 +49,12 @@ TEST(FontSizeTest, InequalityOperatorReturnsTrueForDifferentSizes)
 
 TEST(FontSizeTest, LessThanOperatorOrdersByGlyphThenOutline)
 {
-	spk::Font::Size small(8, 0);
+	spk::Font::Size smallSize(8, 0);
 	spk::Font::Size mediumSameOutline(16, 0);
 	spk::Font::Size mediumLargerOutline(16, 2);
 
-	EXPECT_TRUE(small < mediumSameOutline);
-	EXPECT_FALSE(mediumSameOutline < small);
+	EXPECT_TRUE(smallSize < mediumSameOutline);
+	EXPECT_FALSE(mediumSameOutline < smallSize);
 	EXPECT_TRUE(mediumSameOutline < mediumLargerOutline);
 	EXPECT_FALSE(mediumLargerOutline < mediumSameOutline);
 }

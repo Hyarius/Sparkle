@@ -47,6 +47,16 @@
 			}
 		},
 		{
+			"name": "coverage",
+			"inherits": "default",
+			"description": "Configure for Debug test build with LLVM coverage instrumentation",
+			"cacheVariables": {
+				"ENABLE_TESTS": "ON",
+				"ENABLE_COVERAGE": "ON",
+				"CMAKE_BUILD_TYPE": "Debug"
+			}
+		},
+		{
 			"name": "playground",
 			"inherits": "default",
 			"description": "Configure for Debug build with Playground executable",
@@ -75,6 +85,13 @@
 			"configurePreset": "test"
 		},
 		{
+			"name": "coverage",
+			"configurePreset": "coverage",
+			"targets": [
+				"coverage"
+			]
+		},
+		{
 			"name": "playground",
 			"configurePreset": "playground",
 			"targets": [
@@ -99,6 +116,10 @@
 		{
 			"name": "test",
 			"configurePreset": "test"
+		},
+		{
+			"name": "coverage",
+			"configurePreset": "coverage"
 		},
 		{
 			"name": "playground",

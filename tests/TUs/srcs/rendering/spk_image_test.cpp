@@ -41,7 +41,7 @@ TEST(ImageTest, DefaultConstructionProducesEmptyImage)
 
 	EXPECT_EQ(img.size(), (spk::Vector2UInt{0, 0}));
 	EXPECT_TRUE(img.pixels().empty());
-	EXPECT_EQ(img.glId(), 0u);
+	EXPECT_EQ(img.glId(), spk::OpenGL::Texture::InvalidGLId);
 }
 
 TEST(ImageTest, LoadFromDataRGBASetsCorrectSizeAndFormat)
@@ -110,7 +110,7 @@ TEST(ImageTest, SynchronizeAfterLoadUploadsToGPU)
 	img.loadFromData(pngData);
 	img.synchronize();
 
-	EXPECT_NE(img.glId(), 0u);
+	EXPECT_NE(img.glId(), spk::OpenGL::Texture::InvalidGLId);
 	EXPECT_FALSE(img.needsSynchronization());
 }
 

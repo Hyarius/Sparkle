@@ -32,7 +32,7 @@ namespace spk::OpenGL
 		_release();
 	}
 
-	void VertexArrayObject::_allocate()
+	void VertexArrayObject::_allocate() const
 	{
 		if (_id == 0)
 		{
@@ -40,7 +40,7 @@ namespace spk::OpenGL
 		}
 	}
 
-	void VertexArrayObject::_release()
+	void VertexArrayObject::_release() const
 	{
 		if (_id != 0 && hasCurrentOpenGLContext() == true)
 		{
@@ -49,7 +49,7 @@ namespace spk::OpenGL
 		_id = 0;
 	}
 
-	void VertexArrayObject::_synchronize()
+	void VertexArrayObject::_synchronize() const
 	{
 		_allocate();
 		glBindVertexArray(_id);

@@ -38,7 +38,7 @@ namespace spk::OpenGL
 		_release();
 	}
 
-	void BufferObject::_allocate()
+	void BufferObject::_allocate() const
 	{
 		if (_id == 0)
 		{
@@ -46,7 +46,7 @@ namespace spk::OpenGL
 		}
 	}
 
-	void BufferObject::_release()
+	void BufferObject::_release() const
 	{
 		if (_id != 0 && hasCurrentOpenGLContext() == true)
 		{
@@ -61,7 +61,7 @@ namespace spk::OpenGL
 		_field = spk::BinaryField(_cpuBuffer.data(), _cpuBuffer.size());
 	}
 
-	void BufferObject::_synchronize()
+	void BufferObject::_synchronize() const
 	{
 		std::scoped_lock lock(_mutex);
 		_allocate();
