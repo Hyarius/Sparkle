@@ -4,65 +4,19 @@
 
 #include <array>
 #include <cstddef>
-#include <cstdint>
 #include <filesystem>
 #include <memory>
-#include <vector>
 
 #include <GL/glew.h>
 
 #include "image_comparison_test_utils.hpp"
 #include "opengl_wrapper_test_utils.hpp"
+#include "render_command_test_utils.hpp"
 #include "opengl/spk_opengl_clear_command.hpp"
 #include "opengl/spk_opengl_viewport.hpp"
 #include "rendering/render_command/spk_viewport_render_command.hpp"
 #include "rendering/render_command/spk_image_render_command.hpp"
 #include "rendering/spk_render_unit_builder.hpp"
-
-namespace
-{
-	[[nodiscard]] std::filesystem::path expectedPath(const std::string& p_name)
-	{
-		std::filesystem::path directory = spk::test::expectedDirectory() / "RenderCommands";
-		std::filesystem::create_directories(directory);
-		return directory / (p_name + ".png");
-	}
-
-	[[nodiscard]] std::filesystem::path resultPath(const std::string& p_name)
-	{
-		std::filesystem::path directory = spk::test::resultDirectory() / "RenderCommands";
-		std::filesystem::create_directories(directory);
-		return directory / (p_name + ".png");
-	}
-
-	[[nodiscard]] std::shared_ptr<spk::OpenGL::Texture> makeSolidTexture(
-		const spk::Vector2UInt& p_size,
-		std::uint8_t p_red,
-		std::uint8_t p_green,
-		std::uint8_t p_blue,
-		std::uint8_t p_alpha = 255)
-	{
-		std::vector<std::uint8_t> pixels(
-			static_cast<std::size_t>(p_size.x) * static_cast<std::size_t>(p_size.y) * 4, 0);
-		for (std::size_t i = 0; i < pixels.size(); i += 4)
-		{
-			pixels[i + 0] = p_red;
-			pixels[i + 1] = p_green;
-			pixels[i + 2] = p_blue;
-			pixels[i + 3] = p_alpha;
-		}
-
-		auto texture = std::make_shared<spk::OpenGL::Texture>();
-		texture->setPixels(
-			pixels,
-			p_size,
-			spk::Texture::Format::RGBA,
-			spk::Texture::Filtering::Nearest,
-			spk::Texture::Wrap::ClampToEdge,
-			spk::Texture::Mipmap::Disable);
-		return texture;
-	}
-}
 
 TEST(ImageRenderCommandTest, DrawsFullTextureWithWholeSection)
 {
@@ -71,7 +25,7 @@ TEST(ImageRenderCommandTest, DrawsFullTextureWithWholeSection)
 	sparkle_test::OpenGLTestContext context(spk::Rect2D(0, 0, width, height));
 	spk::IRenderContext& renderContext = context.renderContext();
 
-	auto blueTexture = makeSolidTexture({2, 2}, 0, 0, 255);
+	auto blueTexture = sparkle_test::makeSolidTexture({2, 2}, 0, 0, 255);
 	spk::OpenGL::Viewport viewport(spk::Rect2D(0, 0, width, height));
 	spk::RenderUnitBuilder builder;
 	builder.emplace<spk::ViewportCommand>(viewport);
@@ -84,9 +38,9 @@ TEST(ImageRenderCommandTest, DrawsFullTextureWithWholeSection)
 	sparkle_test::validateScreenshot(
 		context,
 		spk::Rect2D(0, 0, width, height),
-		resultPath("image_cmd_full_actual"),
-		expectedPath("image_cmd_full_expected"),
-		resultPath("image_cmd_full_diff"));
+		sparkle_test::renderCommandResultPath("image_cmd_full_actual"),
+		sparkle_test::renderCommandExpectedPath("image_cmd_full_expected"),
+		sparkle_test::renderCommandResultPath("image_cmd_full_diff"));
 }
 
 TEST(ImageRenderCommandTest, DrawsPartialTextureSection)
@@ -122,9 +76,9 @@ TEST(ImageRenderCommandTest, DrawsPartialTextureSection)
 	sparkle_test::validateScreenshot(
 		context,
 		spk::Rect2D(0, 0, width, height),
-		resultPath("image_cmd_section_actual"),
-		expectedPath("image_cmd_section_expected"),
-		resultPath("image_cmd_section_diff"));
+		sparkle_test::renderCommandResultPath("image_cmd_section_actual"),
+		sparkle_test::renderCommandExpectedPath("image_cmd_section_expected"),
+		sparkle_test::renderCommandResultPath("image_cmd_section_diff"));
 }
 
 TEST(ImageRenderCommandTest, CanExecuteTwiceWithConstructedMesh)
@@ -132,7 +86,7 @@ TEST(ImageRenderCommandTest, CanExecuteTwiceWithConstructedMesh)
 	sparkle_test::OpenGLTestContext context(spk::Rect2D(0, 0, 16, 16));
 	spk::IRenderContext& renderContext = context.renderContext();
 
-	auto redTexture = makeSolidTexture({1, 1}, 255, 0, 0);
+	auto redTexture = sparkle_test::makeSolidTexture({1, 1}, 255, 0, 0);
 	spk::OpenGL::Viewport viewport(spk::Rect2D(0, 0, 16, 16));
 	spk::RenderUnitBuilder builder;
 	builder.emplace<spk::ViewportCommand>(viewport);

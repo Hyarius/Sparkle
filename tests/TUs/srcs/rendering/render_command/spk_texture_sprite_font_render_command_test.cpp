@@ -10,11 +10,10 @@
 #include <vector>
 
 #include <GL/glew.h>
-#include <stb_image.h>
-#include <stb_image_write.h>
 
 #include "image_comparison_test_utils.hpp"
 #include "opengl_wrapper_test_utils.hpp"
+#include "render_command_test_utils.hpp"
 #include "rendering/render_command/spk_draw_font_render_command.hpp"
 #include "rendering/render_command/spk_draw_texture_mesh_render_command.hpp"
 #include "rendering/spk_texture_mesh_2d.hpp"
@@ -23,20 +22,6 @@
 
 namespace
 {
-	[[nodiscard]] std::filesystem::path renderCommandExpectedImagePath(const std::string& p_name)
-	{
-		std::filesystem::path directory = spk::test::expectedDirectory() / "RenderCommands";
-		std::filesystem::create_directories(directory);
-		return directory / (p_name + ".png");
-	}
-
-	[[nodiscard]] std::filesystem::path renderCommandResultImagePath(const std::string& p_name)
-	{
-		std::filesystem::path directory = spk::test::resultDirectory() / "RenderCommands";
-		std::filesystem::create_directories(directory);
-		return directory / (p_name + ".png");
-	}
-
 	[[nodiscard]] spk::TextureMesh2D makeFullScreenMesh(const spk::Vector2UInt& p_size)
 	{
 		spk::TextureMesh2D mesh;
@@ -46,112 +31,6 @@ namespace
 			spk::TextureVertex2D{{static_cast<float>(p_size.x), static_cast<float>(p_size.y), 0.0f}, {1.0f, 1.0f}},
 			spk::TextureVertex2D{{static_cast<float>(p_size.x), 0.0f, 0.0f}, {1.0f, 0.0f}});
 		return mesh;
-	}
-
-	[[nodiscard]] std::shared_ptr<spk::OpenGL::Texture> makeSolidTexture(
-		const spk::Vector2UInt& p_size,
-		std::uint8_t p_red,
-		std::uint8_t p_green,
-		std::uint8_t p_blue,
-		std::uint8_t p_alpha = 255)
-	{
-		std::vector<std::uint8_t> pixels(
-			static_cast<std::size_t>(p_size.x) * static_cast<std::size_t>(p_size.y) * 4,
-			0);
-		for (std::size_t index = 0; index < pixels.size(); index += 4)
-		{
-			pixels[index + 0] = p_red;
-			pixels[index + 1] = p_green;
-			pixels[index + 2] = p_blue;
-			pixels[index + 3] = p_alpha;
-		}
-
-		auto texture = std::make_shared<spk::OpenGL::Texture>();
-		texture->setPixels(
-			pixels,
-			p_size,
-			spk::Texture::Format::RGBA,
-			spk::Texture::Filtering::Nearest,
-			spk::Texture::Wrap::ClampToEdge,
-			spk::Texture::Mipmap::Disable);
-		return texture;
-	}
-
-	[[nodiscard]] std::vector<std::uint8_t> makeTwoSpritePngBytes()
-	{
-		constexpr int width = 32;
-		constexpr int height = 16;
-		std::vector<std::uint8_t> pixels(static_cast<std::size_t>(width) * static_cast<std::size_t>(height) * 4, 0);
-		for (int y = 0; y < height; ++y)
-		{
-			for (int x = 0; x < width; ++x)
-			{
-				const std::size_t index = (static_cast<std::size_t>(y) * width + static_cast<std::size_t>(x)) * 4;
-				const bool rightSprite = x >= width / 2;
-				pixels[index + 0] = rightSprite ? 0 : 255;
-				pixels[index + 1] = rightSprite ? 255 : 0;
-				pixels[index + 2] = 0;
-				pixels[index + 3] = 255;
-			}
-		}
-
-		std::vector<std::uint8_t> result;
-		stbi_write_png_to_func(
-			[](void* p_context, void* p_data, int p_size)
-			{
-				auto* output = reinterpret_cast<std::vector<std::uint8_t>*>(p_context);
-				const auto* bytes = reinterpret_cast<const std::uint8_t*>(p_data);
-				output->insert(output->end(), bytes, bytes + p_size);
-			},
-			&result,
-			width,
-			height,
-			4,
-			pixels.data(),
-			width * 4);
-		return result;
-	}
-
-	[[nodiscard]] std::filesystem::path systemFontPath()
-	{
-		const std::filesystem::path arial = "C:/Windows/Fonts/arial.ttf";
-		if (std::filesystem::exists(arial))
-		{
-			return arial;
-		}
-
-		const std::filesystem::path segoe = "C:/Windows/Fonts/segoeui.ttf";
-		if (std::filesystem::exists(segoe))
-		{
-			return segoe;
-		}
-
-		return {};
-	}
-
-	[[nodiscard]] std::size_t countLitPixels(const std::filesystem::path& p_path)
-	{
-		int width = 0;
-		int height = 0;
-		int channels = 0;
-		unsigned char* rawPixels = stbi_load(p_path.string().c_str(), &width, &height, &channels, 4);
-		if (rawPixels == nullptr)
-		{
-			throw std::runtime_error("Failed to load rendered image");
-		}
-
-		std::size_t result = 0;
-		const std::size_t pixelCount = static_cast<std::size_t>(width) * static_cast<std::size_t>(height);
-		for (std::size_t i = 0; i < pixelCount; ++i)
-		{
-			const std::size_t index = i * 4;
-			if (rawPixels[index + 0] > 10 || rawPixels[index + 1] > 10 || rawPixels[index + 2] > 10)
-			{
-				++result;
-			}
-		}
-		stbi_image_free(rawPixels);
-		return result;
 	}
 }
 
@@ -233,7 +112,7 @@ TEST(DrawTextureMeshRenderCommandTest, DrawsFullScreenTexture)
 	sparkle_test::OpenGLTestContext context(spk::Rect2D(0, 0, width, height));
 	spk::IRenderContext& renderContext = context.renderContext();
 
-	auto blueTexture = makeSolidTexture({2, 2}, 0, 0, 255);
+	auto blueTexture = sparkle_test::makeSolidTexture({2, 2}, 0, 0, 255);
 	spk::OpenGL::Viewport viewport(spk::Rect2D(0, 0, width, height));
 	spk::RenderUnitBuilder builder;
 	builder.emplace<spk::ViewportCommand>(viewport);
@@ -244,9 +123,9 @@ TEST(DrawTextureMeshRenderCommandTest, DrawsFullScreenTexture)
 	unit.execute(renderContext);
 	context.gpuRuntime().waitUntilWorkDone();
 
-	const std::filesystem::path actual = renderCommandResultImagePath("texture_mesh_actual");
-	const std::filesystem::path expected = renderCommandExpectedImagePath("texture_mesh_expected");
-	const std::filesystem::path diff = renderCommandResultImagePath("texture_mesh_diff");
+	const std::filesystem::path actual = sparkle_test::renderCommandResultPath("texture_mesh_actual");
+	const std::filesystem::path expected = sparkle_test::renderCommandExpectedPath("texture_mesh_expected");
+	const std::filesystem::path diff = sparkle_test::renderCommandResultPath("texture_mesh_diff");
 	context.gpuRuntime().saveScreenshot(actual, spk::Rect2D(0, 0, width, height));
 	sparkle_test::writeSolidExpectedImage(expected, width, height, {0, 0, 255, 255});
 
@@ -264,7 +143,7 @@ TEST(DrawTextureMeshRenderCommandTest, EmptyMeshDoesNotDraw)
 	spk::ViewportCommand viewportSetup(viewport);
 	viewportSetup.execute(renderContext);
 
-	auto whiteTexture = makeSolidTexture({1, 1}, 255, 255, 255);
+	auto whiteTexture = sparkle_test::makeSolidTexture({1, 1}, 255, 255, 255);
 	spk::DrawTextureMeshRenderCommand command(*whiteTexture, spk::TextureMesh2D{});
 
 	EXPECT_NO_THROW(command.execute(renderContext));
@@ -272,18 +151,12 @@ TEST(DrawTextureMeshRenderCommandTest, EmptyMeshDoesNotDraw)
 
 TEST(DrawFontRenderCommandTest, DrawsGlyphsWithSizeAndOutline)
 {
-	const std::filesystem::path fontPath = systemFontPath();
-	if (fontPath.empty())
-	{
-		GTEST_SKIP() << "No known Windows system font found";
-	}
-
 	constexpr int width = 80;
 	constexpr int height = 48;
 	sparkle_test::OpenGLTestContext context(spk::Rect2D(0, 0, width, height));
 	spk::IRenderContext& renderContext = context.renderContext();
 
-	spk::Font font(fontPath);
+	spk::Font font = sparkle_test::testFont();
 
 	spk::OpenGL::Viewport viewport(spk::Rect2D(0, 0, width, height));
 	spk::RenderUnitBuilder builder;
@@ -306,22 +179,16 @@ TEST(DrawFontRenderCommandTest, DrawsGlyphsWithSizeAndOutline)
 	unit.execute(renderContext);
 	context.gpuRuntime().waitUntilWorkDone();
 
-	const std::filesystem::path actual = renderCommandResultImagePath("font_actual");
+	const std::filesystem::path actual = sparkle_test::renderCommandResultPath("font_actual");
 	context.gpuRuntime().saveScreenshot(actual, spk::Rect2D(0, 0, width, height));
 
-	EXPECT_GT(countLitPixels(actual), 100u);
+	EXPECT_GT(sparkle_test::countLitPixels(actual), 100u);
 }
 
 TEST(DrawFontRenderCommandTest, EmptyTextDoesNotDraw)
 {
-	const std::filesystem::path fontPath = systemFontPath();
-	if (fontPath.empty())
-	{
-		GTEST_SKIP() << "No known Windows system font found";
-	}
-
 	sparkle_test::OpenGLTestContext context;
-	spk::Font font(fontPath);
+	spk::Font font = sparkle_test::testFont();
 	spk::DrawFontRenderCommand command(font, L"", {0, 16}, spk::Font::Size(16, 0));
 
 	EXPECT_NO_THROW(command.execute(context.renderContext()));

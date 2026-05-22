@@ -2,37 +2,13 @@
 
 #if defined(_WIN32) && defined(SPARKLE_GPU_BACKEND_OPENGL)
 
-#include <fstream>
-
 #include "opengl_wrapper_test_utils.hpp"
+#include "render_command_test_utils.hpp"
 #include "rendering/spk_font.hpp"
 
 namespace
 {
-	std::filesystem::path systemFontPath()
-	{
-		const std::filesystem::path arial = "C:/Windows/Fonts/arial.ttf";
-		if (std::filesystem::exists(arial))
-		{
-			return arial;
-		}
-
-		const std::filesystem::path segoe = "C:/Windows/Fonts/segoeui.ttf";
-		if (std::filesystem::exists(segoe))
-		{
-			return segoe;
-		}
-
-		return {};
-	}
-
-	std::vector<uint8_t> readBytes(const std::filesystem::path& p_path)
-	{
-		std::ifstream file(p_path, std::ios::binary);
-		return std::vector<uint8_t>(
-			std::istreambuf_iterator<char>(file),
-			std::istreambuf_iterator<char>());
-	}
+	using sparkle_test::testFont;
 }
 
 TEST(FontSizeTest, DefaultSizeIsZero)
@@ -166,13 +142,7 @@ TEST(FontTest, LoadsSystemFontAndComputesGlyphMetrics)
 	sparkle_test::OpenGLTestContext context;
 	(void)context;
 
-	const std::filesystem::path fontPath = systemFontPath();
-	if (fontPath.empty())
-	{
-		GTEST_SKIP() << "No known Windows system font found";
-	}
-
-	spk::Font font(fontPath);
+	spk::Font font = testFont();
 
 	const spk::Vector2UInt charSize = font.computeCharSize(L'A', spk::Font::Size(24, 2));
 	const spk::Vector2UInt stringSize = font.computeStringSize(L"Hello", spk::Font::Size(24, 2));
@@ -190,14 +160,9 @@ TEST(FontTest, FromRawDataLoadsGlyphsAndNotifiesAtlasSubscribers)
 	sparkle_test::OpenGLTestContext context;
 	(void)context;
 
-	const std::filesystem::path fontPath = systemFontPath();
-	if (fontPath.empty())
-	{
-		GTEST_SKIP() << "No known Windows system font found";
-	}
-
+	const auto& fontBytes = SPARKLE_GET_RESOURCE("tests/TUs/resources/fonts/arial.ttf");
 	spk::Font font = spk::Font::fromRawData(
-		readBytes(fontPath),
+		std::vector<uint8_t>(fontBytes.begin(), fontBytes.end()),
 		spk::Font::Filtering::Linear,
 		spk::Font::Wrap::Repeat,
 		spk::Font::Mipmap::Disable);
@@ -221,13 +186,7 @@ TEST(FontTest, SetPropertiesPropagatesToExistingAtlas)
 	sparkle_test::OpenGLTestContext context;
 	(void)context;
 
-	const std::filesystem::path fontPath = systemFontPath();
-	if (fontPath.empty())
-	{
-		GTEST_SKIP() << "No known Windows system font found";
-	}
-
-	spk::Font font(fontPath);
+	spk::Font font = testFont();
 	spk::Font::Atlas& atlas = font.atlas(spk::Font::Size(16, 0));
 	atlas.glyph(L'A');
 
@@ -246,13 +205,7 @@ TEST(FontTest, ComputeOptimalTextSizeHandlesEmptyAndNonEmptyStrings)
 	sparkle_test::OpenGLTestContext context;
 	(void)context;
 
-	const std::filesystem::path fontPath = systemFontPath();
-	if (fontPath.empty())
-	{
-		GTEST_SKIP() << "No known Windows system font found";
-	}
-
-	spk::Font font(fontPath);
+	spk::Font font = testFont();
 
 	const spk::Font::Size emptySize = font.computeOptimalTextSize(L"", 0.1f, {200, 50});
 	const spk::Font::Size textSize = font.computeOptimalTextSize(L"Sparkle", 0.1f, {200, 50});
@@ -269,13 +222,7 @@ TEST(FontTest, AtlasLoadsAllRenderableGlyphs)
 	sparkle_test::OpenGLTestContext context;
 	(void)context;
 
-	const std::filesystem::path fontPath = systemFontPath();
-	if (fontPath.empty())
-	{
-		GTEST_SKIP() << "No known Windows system font found";
-	}
-
-	spk::Font font(fontPath);
+	spk::Font font = testFont();
 	spk::Font::Atlas& atlas = font.atlas(spk::Font::Size(12, 0));
 
 	EXPECT_NO_THROW(atlas.loadAllRenderableGlyphs());

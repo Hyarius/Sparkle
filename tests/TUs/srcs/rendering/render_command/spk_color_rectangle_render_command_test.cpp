@@ -4,36 +4,19 @@
 
 #include <array>
 #include <cstddef>
-#include <cstdint>
 #include <filesystem>
-#include <vector>
 
 #include <GL/glew.h>
 
 #include "image_comparison_test_utils.hpp"
 #include "opengl_wrapper_test_utils.hpp"
+#include "render_command_test_utils.hpp"
 #include "opengl/spk_opengl_clear_command.hpp"
 #include "opengl/spk_opengl_viewport.hpp"
 #include "rendering/render_command/spk_viewport_render_command.hpp"
 #include "rendering/render_command/spk_color_rectangle_render_command.hpp"
 #include "rendering/spk_render_unit_builder.hpp"
 
-namespace
-{
-	[[nodiscard]] std::filesystem::path expectedPath(const std::string& p_name)
-	{
-		std::filesystem::path directory = spk::test::expectedDirectory() / "RenderCommands";
-		std::filesystem::create_directories(directory);
-		return directory / (p_name + ".png");
-	}
-
-	[[nodiscard]] std::filesystem::path resultPath(const std::string& p_name)
-	{
-		std::filesystem::path directory = spk::test::resultDirectory() / "RenderCommands";
-		std::filesystem::create_directories(directory);
-		return directory / (p_name + ".png");
-	}
-}
 
 TEST(ColorRectangleRenderCommandTest, DrawsFullScreenRect)
 {
@@ -57,9 +40,9 @@ TEST(ColorRectangleRenderCommandTest, DrawsFullScreenRect)
 	sparkle_test::validateScreenshot(
 		context,
 		spk::Rect2D(0, 0, width, height),
-		resultPath("color_rect_full_actual"),
-		expectedPath("color_rect_full_expected"),
-		resultPath("color_rect_full_diff"));
+		sparkle_test::renderCommandResultPath("color_rect_full_actual"),
+		sparkle_test::renderCommandExpectedPath("color_rect_full_expected"),
+		sparkle_test::renderCommandResultPath("color_rect_full_diff"));
 }
 
 TEST(ColorRectangleRenderCommandTest, DrawsPartialRect)
@@ -84,9 +67,9 @@ TEST(ColorRectangleRenderCommandTest, DrawsPartialRect)
 	sparkle_test::validateScreenshot(
 		context,
 		spk::Rect2D(0, 0, width, height),
-		resultPath("color_rect_partial_actual"),
-		expectedPath("color_rect_partial_expected"),
-		resultPath("color_rect_partial_diff"));
+		sparkle_test::renderCommandResultPath("color_rect_partial_actual"),
+		sparkle_test::renderCommandExpectedPath("color_rect_partial_expected"),
+		sparkle_test::renderCommandResultPath("color_rect_partial_diff"));
 }
 
 TEST(ColorRectangleRenderCommandTest, ConstructsWithoutValidViewport)
