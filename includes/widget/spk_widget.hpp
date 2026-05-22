@@ -58,6 +58,7 @@ namespace spk
 		[[nodiscard]] const spk::Rect2D& scissor() const;
 
 		[[nodiscard]] virtual spk::RenderUnit _buildRenderUnit() const;
+		virtual void _onGeometryChange();
 
 		virtual void _onUpdate(const spk::UpdateTick& p_tick);
 		virtual void _onWindowCloseRequestedEvent(spk::WindowCloseRequestedEvent& p_event);
@@ -89,10 +90,11 @@ namespace spk
 
 		void setGeometry(const spk::Rect2D& p_geometry);
 		void invalidateRenderUnit() const;
+		void invalidateRenderUnitTree() const;
 
 		[[nodiscard]] const spk::Rect2D& geometry() const;
 		[[nodiscard]] bool isRenderCommandDirty() const;
-	[[nodiscard]] const spk::Viewport& viewport() const;
+		[[nodiscard]] const spk::Viewport& viewport() const;
 
 		[[nodiscard]] std::shared_ptr<spk::RenderUnit> renderUnit() const;
 		void appendRenderUnits(spk::RenderSnapshotBuilder& p_builder) const;

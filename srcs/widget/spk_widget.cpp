@@ -41,6 +41,10 @@ namespace spk
 		return spk::RenderUnit();
 	}
 
+	void Widget::_onGeometryChange()
+	{
+	}
+
 	void Widget::onParentChanged(spk::Widget* p_oldParent, spk::Widget* p_newParent)
 	{
 		(void)p_oldParent;
@@ -56,7 +60,10 @@ namespace spk
 	void Widget::_onWindowCloseRequestedEvent(spk::WindowCloseRequestedEvent &p_event) { (void)p_event; }
 	void Widget::_onWindowDestroyedEvent(spk::WindowDestroyedEvent &p_event) { (void)p_event; }
 	void Widget::_onWindowMovedEvent(spk::WindowMovedEvent &p_event) { (void)p_event; }
-	void Widget::_onWindowResizedEvent(spk::WindowResizedEvent &p_event) { (void)p_event; }
+	void Widget::_onWindowResizedEvent(spk::WindowResizedEvent &p_event)
+	{
+		setGeometry(p_event->rect.atOrigin());
+	}
 	void Widget::_onWindowFocusGainedEvent(spk::WindowFocusGainedEvent &p_event) { (void)p_event; }
 	void Widget::_onWindowFocusLostEvent(spk::WindowFocusLostEvent &p_event) { (void)p_event; }
 	void Widget::_onWindowShownEvent(spk::WindowShownEvent &p_event) { (void)p_event; }
@@ -95,6 +102,7 @@ namespace spk
 
 		_geometry = p_geometry;
 		_updateAbsoluteGeometryAndScissor();
+		_onGeometryChange();
 		invalidateRenderUnit();
 	}
 
@@ -129,6 +137,19 @@ namespace spk
 	void Widget::invalidateRenderUnit() const
 	{
 		_renderCommandsDirty = true;
+	}
+
+	void Widget::invalidateRenderUnitTree() const
+	{
+		invalidateRenderUnit();
+
+		for (const auto* child : children())
+		{
+			if (child != nullptr)
+			{
+				child->invalidateRenderUnitTree();
+			}
+		}
 	}
 
 	const spk::Rect2D &Widget::geometry() const

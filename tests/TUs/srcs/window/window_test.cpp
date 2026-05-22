@@ -115,6 +115,28 @@ TEST(WindowTest, RenderConsumesTheLatestPendingResizeAfterUpdate)
 	EXPECT_EQ(bundle.gpuPlatformRuntime->createdContext->notifyResizeCount, 1);
 }
 
+TEST(WindowTest, ResizeInvalidatesTheEntireWidgetRenderUnitTree)
+{
+	auto bundle = sparkle_test::createWindowBundle();
+	sparkle_test::RecordingWidget child("Child", &sparkle_test::WindowAccess::rootWidget(*bundle.window));
+	child.activate();
+
+	bundle.window->update();
+	ASSERT_EQ(child.appendRenderCommandCount, 1);
+	ASSERT_FALSE(child.isRenderCommandDirty());
+
+	const spk::Rect2D resizedRect(0, 0, 500, 300);
+	bundle.platformRuntime->queueFrameEvent(spk::WindowResizedRecord{
+		.rect = resizedRect});
+
+	bundle.platformRuntime->pollEvents();
+	bundle.window->update();
+
+	EXPECT_EQ(sparkle_test::WindowAccess::rootWidget(*bundle.window).geometry(), resizedRect.atOrigin());
+	EXPECT_EQ(child.appendRenderCommandCount, 2);
+	EXPECT_FALSE(child.isRenderCommandDirty());
+}
+
 TEST(WindowTest, UpdateDelegatesToRootWidgetTree)
 {
 	auto bundle = sparkle_test::createWindowBundle();
