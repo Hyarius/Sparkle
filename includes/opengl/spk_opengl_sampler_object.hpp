@@ -2,7 +2,6 @@
 
 #if defined(SPARKLE_GPU_BACKEND_OPENGL)
 
-#include <memory>
 #include <string>
 
 #include <GL/glew.h>
@@ -26,7 +25,7 @@ namespace spk::OpenGL
 		using BindingPoint = int;
 
 	private:
-		std::weak_ptr<const OpenGL::Texture> _texture;
+		const OpenGL::Texture* _texture = nullptr;
 		std::string _designator;
 		BindingPoint _bindingPoint = -1;
 		GLint _uniformDestination = -1;
@@ -36,7 +35,7 @@ namespace spk::OpenGL
 		SamplerObject() = default;
 		SamplerObject(const std::string& p_name, Type p_type, BindingPoint p_bindingPoint);
 
-		void bind(std::weak_ptr<const OpenGL::Texture> p_texture);
+		void bind(const OpenGL::Texture& p_texture);
 
 		BindingPoint bindingPoint() const;
 		void setBindingPoint(BindingPoint p_bindingPoint);

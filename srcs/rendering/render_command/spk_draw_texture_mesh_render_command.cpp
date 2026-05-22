@@ -9,7 +9,10 @@
 
 #include <GL/glew.h>
 
+#include "math/spk_matrix.hpp"
+#include "opengl/spk_opengl_gpu_data_buffer_center.hpp"
 #include "opengl/spk_opengl_texture.hpp"
+#include "opengl/spk_opengl_uniform_buffer_object.hpp"
 
 namespace
 {
@@ -19,11 +22,15 @@ namespace
 			"#version 330 core\n"
 			"layout(location = 0) in vec3 inPosition;\n"
 			"layout(location = 1) in vec2 inUV;\n"
+			"layout(std140) uniform ViewportData\n"
+			"{\n"
+			"	mat4 uProjection;\n"
+			"};\n"
 			"out vec2 vertexUV;\n"
 			"void main()\n"
 			"{\n"
 			"	vertexUV = inUV;\n"
-			"	gl_Position = vec4(inPosition, 1.0);\n"
+			"	gl_Position = uProjection * vec4(inPosition, 1.0);\n"
 			"}\n";
 	}
 
@@ -57,6 +64,30 @@ namespace
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, openGLTexture->glId());
 	}
+
+	spk::OpenGL::UniformBufferObject& viewportUniformBuffer()
+	{
+		return spk::OpenGL::GPUDataBufferCenter::getUBO(spk::OpenGL::GPUDataBufferCenter::ViewportBlockName);
+	}
+
+	void bindViewportUniformBlock(spk::Program& p_program)
+	{
+		spk::OpenGL::UniformBufferObject& buffer = viewportUniformBuffer();
+		if (buffer.bindingPoint().has_value() == false)
+		{
+			throw std::runtime_error("DrawTextureMeshRenderCommand requires a viewport uniform buffer binding point");
+		}
+
+		const GLuint blockIndex = glGetUniformBlockIndex(
+			p_program.id(),
+			spk::OpenGL::GPUDataBufferCenter::ViewportBlockName.data());
+		if (blockIndex == GL_INVALID_INDEX)
+		{
+			throw std::runtime_error("DrawTextureMeshRenderCommand requires a viewport uniform block");
+		}
+
+		glUniformBlockBinding(p_program.id(), blockIndex, buffer.bindingPoint().value());
+	}
 }
 
 namespace spk
@@ -69,16 +100,17 @@ namespace spk
 		_layoutBuffer.addAttribute(1, spk::OpenGL::LayoutBufferObject::Attribute::Type::Vector2);
 	}
 
-	void DrawTextureMeshRenderCommand::_ensureProgram() const
+	void DrawTextureMeshRenderCommand::_ensureProgram()
 	{
 		if (_program == nullptr)
 		{
 			_program = std::make_shared<spk::Program>(vertexShaderSource(), fragmentShaderSource());
+			bindViewportUniformBlock(*_program);
 			_textureUniformLocation = glGetUniformLocation(_program->id(), "uTexture");
 		}
 	}
 
-	void DrawTextureMeshRenderCommand::_uploadMesh() const
+	void DrawTextureMeshRenderCommand::_uploadMesh()
 	{
 		if (_layoutBufferDirty == false)
 		{
@@ -136,6 +168,7 @@ namespace spk
 
 		_layoutBuffer.activate();
 		_program->activate();
+		viewportUniformBuffer().activate();
 		bindTexture(_texture);
 
 		if (_textureUniformLocation >= 0)

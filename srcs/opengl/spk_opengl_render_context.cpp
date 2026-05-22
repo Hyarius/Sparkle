@@ -150,6 +150,8 @@ namespace spk::OpenGL
 
 	void RenderContext::notifyResize(const spk::Rect2D& p_rect)
 	{
+		surfaceState()->setRect(p_rect);
+
 		if (isValid() == false)
 		{
 			return;

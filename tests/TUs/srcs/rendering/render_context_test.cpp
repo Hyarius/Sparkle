@@ -107,3 +107,13 @@ TEST(IGPUPlatformRuntimeTest, RuntimeCanBeConfiguredToReturnNullContext)
 	EXPECT_EQ(gpuPlatformRuntime.lastFrame, &frame);
 	EXPECT_EQ(gpuPlatformRuntime.createdContext, nullptr);
 }
+
+TEST(IGPUPlatformRuntimeTest, WaitUntilWorkDoneIsTrackedByTestRuntime)
+{
+	sparkle_test::TestGPUPlatformRuntime gpuPlatformRuntime;
+
+	gpuPlatformRuntime.waitUntilWorkDone();
+	gpuPlatformRuntime.waitUntilWorkDone();
+
+	EXPECT_EQ(gpuPlatformRuntime.waitUntilWorkDoneCount, 2);
+}

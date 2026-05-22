@@ -17,13 +17,13 @@ namespace spk
 	private:
 		const spk::Texture& _texture;
 		spk::TextureMesh2D _mesh;
-		mutable std::shared_ptr<spk::Program> _program;
-		mutable spk::OpenGL::LayoutBufferObject _layoutBuffer;
-		mutable bool _layoutBufferDirty = true;
-		mutable int _textureUniformLocation = -1;
+		std::shared_ptr<spk::Program> _program;
+		spk::OpenGL::LayoutBufferObject _layoutBuffer;
+		bool _layoutBufferDirty = true;
+		int _textureUniformLocation = -1;
 
-		void _ensureProgram() const;
-		void _uploadMesh() const;
+		void _ensureProgram();
+		void _uploadMesh();
 
 	public:
 		DrawTextureMeshRenderCommand(const spk::Texture& p_texture, spk::TextureMesh2D p_mesh);

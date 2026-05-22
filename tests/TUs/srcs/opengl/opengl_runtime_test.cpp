@@ -1,4 +1,4 @@
-﻿#include <gtest/gtest.h>
+#include <gtest/gtest.h>
 
 #if defined(_WIN32) && defined(SPARKLE_GPU_BACKEND_OPENGL)
 
@@ -65,7 +65,7 @@ TEST(OpenGLRuntimeTest, SaveScreenshotThrowsWhenPngCannotBeWritten)
 
 	glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT);
-	glFinish();
+	gpuRuntime.waitUntilWorkDone();
 
 	EXPECT_THROW(gpuRuntime.saveScreenshot(openglEdgeCaseResultDirectory(), spk::Rect2D(0, 0, 16, 16)), std::runtime_error);
 
@@ -87,7 +87,7 @@ TEST(OpenGLRuntimeTest, SaveScreenshotUsesCurrentViewportWhenNoRectIsProvided)
 
 	glClearColor(0.0f, 0.0f, 1.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT);
-	glFinish();
+	gpuRuntime.waitUntilWorkDone();
 
 	const std::filesystem::path outputPath = openglEdgeCaseResultDirectory() / "viewport.png";
 	std::filesystem::remove(outputPath);

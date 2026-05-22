@@ -14,7 +14,7 @@ TEST(OpenGLClearCommandTest, ClearsFramebufferToRequestedColor)
 
 	spk::OpenGL::ClearCommand clearCommand(std::array<float, 4>{0.0f, 1.0f, 0.0f, 1.0f});
 	clearCommand.execute(renderContext);
-	glFinish();
+	context.gpuRuntime().waitUntilWorkDone();
 
 	const std::filesystem::path actual = sparkle_test::resultImagePath("clear_command_actual.png");
 	const std::filesystem::path expected = sparkle_test::expectedImagePath("clear_command_expected.png");

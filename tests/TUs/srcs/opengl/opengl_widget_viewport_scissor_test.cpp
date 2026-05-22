@@ -127,7 +127,7 @@ namespace
 				}
 
 				const std::size_t index =
-					(static_cast<std::size_t>(p_height - 1 - y) * static_cast<std::size_t>(p_width) + static_cast<std::size_t>(x)) * 4;
+					(static_cast<std::size_t>(y) * static_cast<std::size_t>(p_width) + static_cast<std::size_t>(x)) * 4;
 				p_pixels[index + 0] = p_color[0];
 				p_pixels[index + 1] = p_color[1];
 				p_pixels[index + 2] = p_color[2];
@@ -232,7 +232,7 @@ TEST(OpenGLWidgetViewportScissorTest, VisualHierarchyIsClippedByParentScissors)
 	hierarchy.parent.appendRenderUnits(snapshotBuilder);
 	spk::RenderSnapshot snapshot = snapshotBuilder.build();
 	snapshot.execute(renderContext);
-	glFinish();
+	context.gpuRuntime().waitUntilWorkDone();
 
 	const std::filesystem::path actual = sparkle_test::resultImagePath("widget_geometry_scissor_hierarchy_actual.png");
 	const std::filesystem::path expected = sparkle_test::expectedImagePath("widget_geometry_scissor_hierarchy_expected.png");
@@ -264,7 +264,7 @@ TEST(OpenGLWidgetViewportScissorTest, VisualHierarchyUsesUpdatedAbsoluteGeometry
 	hierarchy.parent.appendRenderUnits(snapshotBuilder);
 	spk::RenderSnapshot snapshot = snapshotBuilder.build();
 	snapshot.execute(renderContext);
-	glFinish();
+	context.gpuRuntime().waitUntilWorkDone();
 
 	const std::filesystem::path actual = sparkle_test::resultImagePath("widget_moved_geometry_scissor_hierarchy_actual.png");
 	const std::filesystem::path expected = sparkle_test::expectedImagePath("widget_moved_geometry_scissor_hierarchy_expected.png");

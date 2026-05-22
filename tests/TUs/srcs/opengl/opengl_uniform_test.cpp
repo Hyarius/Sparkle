@@ -74,22 +74,22 @@ TEST(OpenGLUniformTest, ScalarUniformsActivateAndStoreValues)
 	const auto program = makeUniformProgram();
 	program->activate();
 
-	spk::OpenGL::FloatUniform uFloat("uFloat", program->id());
-	spk::OpenGL::BoolUniform uBool("uBool", program->id());
-	spk::OpenGL::IntUniform uInt("uInt", program->id());
-	spk::OpenGL::UIntUniform uUInt("uUInt", program->id());
-	spk::OpenGL::Vector2Uniform uVec2("uVec2", program->id());
-	spk::OpenGL::Vector3Uniform uVec3("uVec3", program->id());
-	spk::OpenGL::Vector4Uniform uVec4("uVec4", program->id());
-	spk::OpenGL::Vector2IntUniform uIVec2("uIVec2", program->id());
-	spk::OpenGL::Vector3IntUniform uIVec3("uIVec3", program->id());
-	spk::OpenGL::Vector4IntUniform uIVec4("uIVec4", program->id());
-	spk::OpenGL::Vector2UIntUniform uUVec2("uUVec2", program->id());
-	spk::OpenGL::Vector3UIntUniform uUVec3("uUVec3", program->id());
-	spk::OpenGL::Vector4UIntUniform uUVec4("uUVec4", program->id());
-	spk::OpenGL::Matrix2x2Uniform uMat2("uMat2", program->id());
-	spk::OpenGL::Matrix3x3Uniform uMat3("uMat3", program->id());
-	spk::OpenGL::Matrix4x4Uniform uMat4("uMat4", program->id());
+	spk::OpenGL::FloatUniform uFloat("uFloat", *program);
+	spk::OpenGL::BoolUniform uBool("uBool", *program);
+	spk::OpenGL::IntUniform uInt("uInt", *program);
+	spk::OpenGL::UIntUniform uUInt("uUInt", *program);
+	spk::OpenGL::Vector2Uniform uVec2("uVec2", *program);
+	spk::OpenGL::Vector3Uniform uVec3("uVec3", *program);
+	spk::OpenGL::Vector4Uniform uVec4("uVec4", *program);
+	spk::OpenGL::Vector2IntUniform uIVec2("uIVec2", *program);
+	spk::OpenGL::Vector3IntUniform uIVec3("uIVec3", *program);
+	spk::OpenGL::Vector4IntUniform uIVec4("uIVec4", *program);
+	spk::OpenGL::Vector2UIntUniform uUVec2("uUVec2", *program);
+	spk::OpenGL::Vector3UIntUniform uUVec3("uUVec3", *program);
+	spk::OpenGL::Vector4UIntUniform uUVec4("uUVec4", *program);
+	spk::OpenGL::Matrix2x2Uniform uMat2("uMat2", *program);
+	spk::OpenGL::Matrix3x3Uniform uMat3("uMat3", *program);
+	spk::OpenGL::Matrix4x4Uniform uMat4("uMat4", *program);
 
 	uFloat = 1.25f;
 	uBool = true;
@@ -138,22 +138,22 @@ TEST(OpenGLUniformTest, ArrayUniformsActivateFromVectorAndInitializerList)
 	const auto program = makeUniformProgram();
 	program->activate();
 
-	spk::OpenGL::FloatArrayUniform aFloat("aFloat", program->id(), 2);
-	spk::OpenGL::BoolArrayUniform aBool("aBool", program->id(), 2);
-	spk::OpenGL::IntArrayUniform aInt("aInt", program->id(), 2);
-	spk::OpenGL::UIntArrayUniform aUInt("aUInt", program->id(), 2);
-	spk::OpenGL::Vector2ArrayUniform aVec2("aVec2", program->id(), 2);
-	spk::OpenGL::Vector3ArrayUniform aVec3("aVec3", program->id(), 2);
-	spk::OpenGL::Vector4ArrayUniform aVec4("aVec4", program->id(), 2);
-	spk::OpenGL::Vector2IntArrayUniform aIVec2("aIVec2", program->id(), 2);
-	spk::OpenGL::Vector3IntArrayUniform aIVec3("aIVec3", program->id(), 2);
-	spk::OpenGL::Vector4IntArrayUniform aIVec4("aIVec4", program->id(), 2);
-	spk::OpenGL::Vector2UIntArrayUniform aUVec2("aUVec2", program->id(), 2);
-	spk::OpenGL::Vector3UIntArrayUniform aUVec3("aUVec3", program->id(), 2);
-	spk::OpenGL::Vector4UIntArrayUniform aUVec4("aUVec4", program->id(), 2);
-	spk::OpenGL::Matrix2x2ArrayUniform aMat2("aMat2", program->id(), 2);
-	spk::OpenGL::Matrix3x3ArrayUniform aMat3("aMat3", program->id(), 2);
-	spk::OpenGL::Matrix4x4ArrayUniform aMat4("aMat4", program->id(), 2);
+	spk::OpenGL::FloatArrayUniform aFloat("aFloat", *program, 2);
+	spk::OpenGL::BoolArrayUniform aBool("aBool", *program, 2);
+	spk::OpenGL::IntArrayUniform aInt("aInt", *program, 2);
+	spk::OpenGL::UIntArrayUniform aUInt("aUInt", *program, 2);
+	spk::OpenGL::Vector2ArrayUniform aVec2("aVec2", *program, 2);
+	spk::OpenGL::Vector3ArrayUniform aVec3("aVec3", *program, 2);
+	spk::OpenGL::Vector4ArrayUniform aVec4("aVec4", *program, 2);
+	spk::OpenGL::Vector2IntArrayUniform aIVec2("aIVec2", *program, 2);
+	spk::OpenGL::Vector3IntArrayUniform aIVec3("aIVec3", *program, 2);
+	spk::OpenGL::Vector4IntArrayUniform aIVec4("aIVec4", *program, 2);
+	spk::OpenGL::Vector2UIntArrayUniform aUVec2("aUVec2", *program, 2);
+	spk::OpenGL::Vector3UIntArrayUniform aUVec3("aUVec3", *program, 2);
+	spk::OpenGL::Vector4UIntArrayUniform aUVec4("aUVec4", *program, 2);
+	spk::OpenGL::Matrix2x2ArrayUniform aMat2("aMat2", *program, 2);
+	spk::OpenGL::Matrix3x3ArrayUniform aMat3("aMat3", *program, 2);
+	spk::OpenGL::Matrix4x4ArrayUniform aMat4("aMat4", *program, 2);
 
 	aFloat = {1.0f, 2.0f};
 	aBool = {true, false};
@@ -205,19 +205,23 @@ TEST(OpenGLUniformTest, ValidationErrorsAreReported)
 	const auto program = makeUniformProgram();
 	program->activate();
 
-	EXPECT_THROW(spk::OpenGL::FloatUniform missing("missingUniform", program->id()), std::runtime_error);
-	EXPECT_THROW(spk::OpenGL::FloatArrayUniform zeroCount("aFloat", program->id(), 0), std::runtime_error);
+	{
+		spk::OpenGL::FloatUniform missing("missingUniform", *program);
+		EXPECT_THROW(missing.activate(), std::runtime_error);
+	}
 
-	spk::OpenGL::FloatArrayUniform aFloat("aFloat[0]", program->id(), 2);
+	EXPECT_THROW(spk::OpenGL::FloatArrayUniform zeroCount("aFloat", *program, 0), std::runtime_error);
+
+	spk::OpenGL::FloatArrayUniform aFloat("aFloat[0]", *program, 2);
 	EXPECT_THROW(aFloat.set(nullptr, 2), std::runtime_error);
 	EXPECT_THROW(aFloat.set(std::vector<float>{1.0f}), std::runtime_error);
 	aFloat = {1.0f, 2.0f};
 	EXPECT_NO_THROW(aFloat.activate());
 
-	spk::OpenGL::FloatUniform wrongType("uInt", program->id());
+	spk::OpenGL::FloatUniform wrongType("uInt", *program);
 	EXPECT_THROW(wrongType.activate(), std::runtime_error);
 
-	spk::OpenGL::FloatArrayUniform tooLarge("aFloat", program->id(), 3);
+	spk::OpenGL::FloatArrayUniform tooLarge("aFloat", *program, 3);
 	EXPECT_THROW(tooLarge.activate(), std::runtime_error);
 }
 

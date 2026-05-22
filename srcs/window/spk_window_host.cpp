@@ -97,6 +97,7 @@ namespace spk
 		{
 			throw std::runtime_error("spk::WindowHost failed to create its render context");
 		}
+		_frame->surfaceState()->setRect(_frame->rect());
 
 		return true;
 	}

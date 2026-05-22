@@ -2,36 +2,49 @@
 
 #if defined(SPARKLE_GPU_BACKEND_OPENGL)
 
+#include <utility>
+
+namespace
+{
+	[[nodiscard]] spk::Vector3 toPosition(const spk::Vector2Int& p_pixel, float p_depth)
+	{
+		return {
+			static_cast<float>(p_pixel.x),
+			static_cast<float>(p_pixel.y),
+			p_depth
+		};
+	}
+}
+
 namespace spk
 {
 	SpriteRenderCommand::SpriteRenderCommand(
 		const spk::SpriteSheet& p_spriteSheet,
 		spk::Vector2UInt p_spriteCoordinates,
 		spk::Rect2D p_screenRect,
-		float p_depth) :
-		_spriteSheet(p_spriteSheet),
-		_spriteCoordinates(p_spriteCoordinates),
-		_screenRect(p_screenRect),
-		_depth(p_depth)
+		float p_depth)
 	{
-	}
+		const spk::SpriteSheet::Sprite& sprite = p_spriteSheet.sprite(p_spriteCoordinates);
 
-	void SpriteRenderCommand::_ensureSpriteCommand() const
-	{
-		if (_spriteCommand == nullptr)
-		{
-			_spriteCommand = std::make_unique<spk::DrawSpriteRenderCommand>(
-				_spriteSheet,
-				_spriteCoordinates,
-				_screenRect,
-				_depth);
-		}
+		const spk::Vector2 topLeftUV     = sprite.anchor;
+		const spk::Vector2 bottomLeftUV  = {sprite.anchor.x, sprite.anchor.y + sprite.size.y};
+		const spk::Vector2 bottomRightUV = sprite.anchor + sprite.size;
+		const spk::Vector2 topRightUV    = {sprite.anchor.x + sprite.size.x, sprite.anchor.y};
+
+		spk::TextureMesh2D mesh;
+		mesh.addShape(
+			{toPosition(p_screenRect.anchor,                                p_depth), topLeftUV},
+			{toPosition({p_screenRect.left(),  p_screenRect.bottom()},      p_depth), bottomLeftUV},
+			{toPosition({p_screenRect.right(), p_screenRect.bottom()},      p_depth), bottomRightUV},
+			{toPosition({p_screenRect.right(), p_screenRect.top()},         p_depth), topRightUV});
+
+		_textureCommand = std::make_unique<spk::DrawTextureMeshRenderCommand>(
+			static_cast<const spk::Texture&>(p_spriteSheet), std::move(mesh));
 	}
 
 	void SpriteRenderCommand::execute(spk::IRenderContext& p_renderContext)
 	{
-		_ensureSpriteCommand();
-		_spriteCommand->execute(p_renderContext);
+		_textureCommand->execute(p_renderContext);
 	}
 }
 

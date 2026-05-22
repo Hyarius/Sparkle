@@ -1,32 +1,40 @@
 ﻿#include "widget/spk_widget.hpp"
 
-#if defined(SPARKLE_GPU_BACKEND_OPENGL)
 #include <memory>
-
-#include "opengl/spk_opengl_scissor_command.hpp"
-#include "opengl/spk_opengl_viewport_command.hpp"
 #include "rendering/spk_render_unit_builder.hpp"
+#include "rendering/render_command/spk_viewport_render_command.hpp"
+
+#if defined(SPARKLE_GPU_BACKEND_OPENGL)
+#include "opengl/spk_opengl_viewport.hpp"
 #endif
 
 namespace spk
 {
-#if defined(SPARKLE_GPU_BACKEND_OPENGL)
 	namespace
 	{
-		std::shared_ptr<spk::RenderUnit> makeViewportAndScissorUnit(const spk::Rect2D& p_viewport, const spk::Rect2D& p_scissor)
+		std::unique_ptr<spk::Viewport> makeViewport()
 		{
-			if (p_viewport.empty() == true)
+#if defined(SPARKLE_GPU_BACKEND_OPENGL)
+			return std::make_unique<spk::OpenGL::Viewport>();
+#else
+			return nullptr;
+#endif
+		}
+
+		std::shared_ptr<spk::RenderUnit> makeViewportUnit(const spk::Viewport* p_viewport)
+		{
+			if (p_viewport == nullptr ||
+				p_viewport->geometry().empty() == true ||
+				p_viewport->scissor().empty() == true)
 			{
 				return nullptr;
 			}
 
 			spk::RenderUnitBuilder builder;
-			builder.emplace<spk::OpenGL::ViewportCommand>(p_viewport);
-			builder.emplace<spk::OpenGL::ScissorCommand>(p_scissor);
+			builder.emplace<spk::ViewportCommand>(*p_viewport);
 			return std::make_shared<spk::RenderUnit>(builder.build());
 		}
 	}
-#endif
 
 	spk::RenderUnit Widget::_buildRenderUnit() const
 	{
@@ -65,7 +73,8 @@ namespace spk
 	void Widget::_onTextInputEvent(spk::TextInputEvent &p_event) { (void)p_event; }
 
 	Widget::Widget(const std::string &p_name, spk::Widget *p_parent) : spk::InherenceTrait<Widget>(p_parent),
-																	   _name(p_name)
+																	   _name(p_name),
+																	   _viewport(makeViewport())
 	{
 		_updateAbsoluteGeometryAndScissor();
 	}
@@ -102,6 +111,12 @@ namespace spk
 			_scissor = _absoluteGeometry;
 		}
 
+		if (_viewport != nullptr)
+		{
+			_viewport->setGeometry(_absoluteGeometry);
+			_viewport->setScissor(_scissor);
+		}
+
 		for (auto* child : children())
 		{
 			if (child != nullptr)
@@ -136,6 +151,11 @@ namespace spk
 		return (_renderCommandsDirty);
 	}
 
+	const spk::Viewport& Widget::viewport() const
+	{
+		return *_viewport;
+	}
+
 	std::shared_ptr<spk::RenderUnit> Widget::renderUnit() const
 	{
 		if (_renderCommandsDirty == true || _renderUnit == nullptr)
@@ -155,10 +175,15 @@ namespace spk
 			return;
 		}
 
-#if defined(SPARKLE_GPU_BACKEND_OPENGL)
-		std::shared_ptr<spk::RenderUnit> viewportAndScissorUnit = makeViewportAndScissorUnit(absoluteGeometry(), scissor());
-		p_builder.append(viewportAndScissorUnit);
-#endif
+		if (_viewport != nullptr &&
+			_viewport->geometry().empty() == false &&
+			_viewport->scissor().empty() == true)
+		{
+			return;
+		}
+
+		std::shared_ptr<spk::RenderUnit> viewportUnit = makeViewportUnit(_viewport.get());
+		p_builder.append(viewportUnit);
 
 		p_builder.append(renderUnit());
 
@@ -166,9 +191,7 @@ namespace spk
 		{
 			if (child != nullptr)
 			{
-#if defined(SPARKLE_GPU_BACKEND_OPENGL)
-				p_builder.append(viewportAndScissorUnit);
-#endif
+				p_builder.append(viewportUnit);
 				child->appendRenderUnits(p_builder);
 			}
 		}

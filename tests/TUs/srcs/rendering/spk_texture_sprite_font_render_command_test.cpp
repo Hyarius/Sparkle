@@ -16,9 +16,10 @@
 #include "image_comparison_test_utils.hpp"
 #include "opengl_wrapper_test_utils.hpp"
 #include "rendering/render_command/spk_draw_font_render_command.hpp"
-#include "rendering/render_command/spk_draw_sprite_render_command.hpp"
 #include "rendering/render_command/spk_draw_texture_mesh_render_command.hpp"
 #include "rendering/spk_texture_mesh_2d.hpp"
+#include "opengl/spk_opengl_viewport.hpp"
+#include "rendering/render_command/spk_viewport_render_command.hpp"
 
 namespace
 {
@@ -36,14 +37,14 @@ namespace
 		return directory / (p_name + ".png");
 	}
 
-	[[nodiscard]] spk::TextureMesh2D makeFullScreenMesh()
+	[[nodiscard]] spk::TextureMesh2D makeFullScreenMesh(const spk::Vector2UInt& p_size)
 	{
 		spk::TextureMesh2D mesh;
 		mesh.addShape(
-			spk::TextureVertex2D{{-1.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
-			spk::TextureVertex2D{{-1.0f, -1.0f, 0.0f}, {0.0f, 1.0f}},
-			spk::TextureVertex2D{{1.0f, -1.0f, 0.0f}, {1.0f, 1.0f}},
-			spk::TextureVertex2D{{1.0f, 1.0f, 0.0f}, {1.0f, 0.0f}});
+			spk::TextureVertex2D{{0.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
+			spk::TextureVertex2D{{0.0f, static_cast<float>(p_size.y), 0.0f}, {0.0f, 1.0f}},
+			spk::TextureVertex2D{{static_cast<float>(p_size.x), static_cast<float>(p_size.y), 0.0f}, {1.0f, 1.0f}},
+			spk::TextureVertex2D{{static_cast<float>(p_size.x), 0.0f, 0.0f}, {1.0f, 0.0f}});
 		return mesh;
 	}
 
@@ -170,7 +171,7 @@ TEST(TextureMesh2DTest, StoresVector3PositionsAndUVs)
 
 TEST(TextureMesh2DTest, QuadShapeStoresFourVerticesAndSixIndexes)
 {
-	spk::TextureMesh2D mesh = makeFullScreenMesh();
+	spk::TextureMesh2D mesh = makeFullScreenMesh({24, 24});
 
 	EXPECT_EQ(mesh.nbShape(), 1u);
 	ASSERT_EQ(mesh.shapes().size(), 1u);
@@ -233,14 +234,15 @@ TEST(DrawTextureMeshRenderCommandTest, DrawsFullScreenTexture)
 	spk::IRenderContext& renderContext = context.renderContext();
 
 	auto blueTexture = makeSolidTexture({2, 2}, 0, 0, 255);
+	spk::OpenGL::Viewport viewport(spk::Rect2D(0, 0, width, height));
 	spk::RenderUnitBuilder builder;
-	builder.emplace<spk::OpenGL::ViewportCommand>(spk::Rect2D(0, 0, width, height));
+	builder.emplace<spk::ViewportCommand>(viewport);
 	builder.emplace<spk::OpenGL::ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
-	builder.emplace<spk::DrawTextureMeshRenderCommand>(*blueTexture, makeFullScreenMesh());
+	builder.emplace<spk::DrawTextureMeshRenderCommand>(*blueTexture, makeFullScreenMesh({width, height}));
 
 	spk::RenderUnit unit = builder.build();
 	unit.execute(renderContext);
-	glFinish();
+	context.gpuRuntime().waitUntilWorkDone();
 
 	const std::filesystem::path actual = renderCommandResultImagePath("texture_mesh_actual");
 	const std::filesystem::path expected = renderCommandExpectedImagePath("texture_mesh_expected");
@@ -262,57 +264,6 @@ TEST(DrawTextureMeshRenderCommandTest, EmptyMeshDoesNotDraw)
 	EXPECT_NO_THROW(command.execute(context.renderContext()));
 }
 
-TEST(DrawSpriteRenderCommandTest, DrawsSelectedSprite)
-{
-	constexpr int width = 24;
-	constexpr int height = 24;
-	sparkle_test::OpenGLTestContext context(spk::Rect2D(0, 0, width, height));
-	spk::IRenderContext& renderContext = context.renderContext();
-
-	spk::SpriteSheet spriteSheet;
-	spriteSheet.loadFromData(makeTwoSpritePngBytes(), {2, 1});
-
-	spk::RenderUnitBuilder builder;
-	builder.emplace<spk::OpenGL::ViewportCommand>(spk::Rect2D(0, 0, width, height));
-	builder.emplace<spk::OpenGL::ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
-	builder.emplace<spk::DrawSpriteRenderCommand>(spriteSheet, spk::Vector2UInt{1, 0}, spk::Rect2D(0, 0, width, height));
-
-	spk::RenderUnit unit = builder.build();
-	unit.execute(renderContext);
-	glFinish();
-
-	const std::filesystem::path actual = renderCommandResultImagePath("sprite_actual");
-	const std::filesystem::path expected = renderCommandExpectedImagePath("sprite_expected");
-	const std::filesystem::path diff = renderCommandResultImagePath("sprite_diff");
-	context.gpuRuntime().saveScreenshot(actual, spk::Rect2D(0, 0, width, height));
-	sparkle_test::writeSolidExpectedImage(expected, width, height, {0, 255, 0, 255});
-
-	const sparkle_test::ImageComparisonResult result = sparkle_test::compareImages(actual, expected, diff);
-	EXPECT_TRUE(result.matches)
-		<< "actual=[" << actual.string() << "] expected=[" << expected.string() << "] diff=[" << diff.string() << "]";
-}
-
-TEST(DrawSpriteRenderCommandTest, RejectsInvalidSpriteID)
-{
-	sparkle_test::OpenGLTestContext context(spk::Rect2D(0, 0, 8, 8));
-	spk::SpriteSheet spriteSheet;
-	spriteSheet.loadFromData(makeTwoSpritePngBytes(), {2, 1});
-	spk::DrawSpriteRenderCommand command(spriteSheet, 8, spk::Rect2D(0, 0, 8, 8));
-
-	EXPECT_THROW(command.execute(context.renderContext()), std::out_of_range);
-}
-
-TEST(DrawSpriteRenderCommandTest, CanExecuteCachedMeshTwice)
-{
-	sparkle_test::OpenGLTestContext context(spk::Rect2D(0, 0, 8, 8));
-	spk::SpriteSheet spriteSheet;
-	spriteSheet.loadFromData(makeTwoSpritePngBytes(), {2, 1});
-	spk::DrawSpriteRenderCommand command(spriteSheet, 1, spk::Rect2D(0, 0, 8, 8));
-
-	EXPECT_NO_THROW(command.execute(context.renderContext()));
-	EXPECT_NO_THROW(command.execute(context.renderContext()));
-}
-
 TEST(DrawFontRenderCommandTest, DrawsGlyphsWithSizeAndOutline)
 {
 	const std::filesystem::path fontPath = systemFontPath();
@@ -328,8 +279,9 @@ TEST(DrawFontRenderCommandTest, DrawsGlyphsWithSizeAndOutline)
 
 	spk::Font font(fontPath);
 
+	spk::OpenGL::Viewport viewport(spk::Rect2D(0, 0, width, height));
 	spk::RenderUnitBuilder builder;
-	builder.emplace<spk::OpenGL::ViewportCommand>(spk::Rect2D(0, 0, width, height));
+	builder.emplace<spk::ViewportCommand>(viewport);
 	builder.emplace<spk::OpenGL::ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
 	builder.emplace<spk::DrawFontRenderCommand>(
 		font,
@@ -346,7 +298,7 @@ TEST(DrawFontRenderCommandTest, DrawsGlyphsWithSizeAndOutline)
 
 	spk::RenderUnit unit = builder.build();
 	unit.execute(renderContext);
-	glFinish();
+	context.gpuRuntime().waitUntilWorkDone();
 
 	const std::filesystem::path actual = renderCommandResultImagePath("font_actual");
 	context.gpuRuntime().saveScreenshot(actual, spk::Rect2D(0, 0, width, height));

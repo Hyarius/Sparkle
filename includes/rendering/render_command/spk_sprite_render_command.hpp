@@ -6,7 +6,7 @@
 
 #include "math/spk_rect_2d.hpp"
 #include "math/spk_vector2.hpp"
-#include "rendering/render_command/spk_draw_sprite_render_command.hpp"
+#include "rendering/render_command/spk_draw_texture_mesh_render_command.hpp"
 #include "rendering/spk_render_command.hpp"
 #include "rendering/spk_sprite_sheet.hpp"
 
@@ -15,14 +15,7 @@ namespace spk
 	class SpriteRenderCommand : public spk::RenderCommand
 	{
 	private:
-		const spk::SpriteSheet& _spriteSheet;
-		spk::Vector2UInt _spriteCoordinates;
-		spk::Rect2D _screenRect;
-		float _depth = 0.0f;
-
-		mutable std::unique_ptr<spk::DrawSpriteRenderCommand> _spriteCommand;
-
-		void _ensureSpriteCommand() const;
+		std::unique_ptr<spk::DrawTextureMeshRenderCommand> _textureCommand;
 
 	public:
 		SpriteRenderCommand(

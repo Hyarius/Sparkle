@@ -46,7 +46,7 @@ namespace
 		void makeCurrent() override {}
 		void present() override {}
 		void setVSync(bool) override {}
-		void notifyResize(const spk::Rect2D&) override {}
+		void notifyResize(const spk::Rect2D& p_rect) override { surfaceState()->setRect(p_rect); }
 	};
 
 	// A GPU runtime that expects FrameA specifically.
@@ -57,6 +57,10 @@ namespace
 		{
 			FrameA& frame = requireFrame<FrameA>(p_frame);
 			return std::make_unique<TestRenderContext>(frame.surfaceState());
+		}
+
+		void waitUntilWorkDone() override
+		{
 		}
 	};
 }

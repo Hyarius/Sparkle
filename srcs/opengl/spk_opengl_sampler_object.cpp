@@ -11,9 +11,9 @@ namespace spk::OpenGL
 	{
 	}
 
-	void SamplerObject::bind(std::weak_ptr<const OpenGL::Texture> p_texture)
+	void SamplerObject::bind(const OpenGL::Texture& p_texture)
 	{
-		_texture = std::move(p_texture);
+		_texture = &p_texture;
 	}
 
 	SamplerObject::BindingPoint SamplerObject::bindingPoint() const
@@ -39,11 +39,9 @@ namespace spk::OpenGL
 
 	void SamplerObject::activate()
 	{
-		std::shared_ptr<const OpenGL::Texture> texture = _texture.lock();
-
 		glActiveTexture(GL_TEXTURE0 + _bindingPoint);
 
-		if (texture == nullptr)
+		if (_texture == nullptr)
 		{
 			glBindTexture(static_cast<GLenum>(_type), 0);
 			return;
@@ -57,10 +55,9 @@ namespace spk::OpenGL
 			glUniform1i(_uniformDestination, _bindingPoint);
 		}
 
-		// Synchronize GPU data if the texture has pending changes
-		texture->synchronize();
+		_texture->synchronize();
 
-		glBindTexture(static_cast<GLenum>(_type), texture->glId());
+		glBindTexture(static_cast<GLenum>(_type), _texture->glId());
 	}
 
 	void SamplerObject::deactivate()

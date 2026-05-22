@@ -18,19 +18,7 @@ namespace spk
 	class TextRenderCommand : public spk::RenderCommand
 	{
 	private:
-		const spk::Font& _font;
-		std::wstring _text;
-		spk::Font::Size _size;
-		spk::Color _color;
-		float _depth = 0.0f;
-		spk::Vector2Int _anchor;
-		spk::HorizontalAlignment _horizontalAlignment;
-		spk::VerticalAlignment _verticalAlignment;
-
-		mutable std::unique_ptr<spk::DrawFontRenderCommand> _fontCommand;
-
-		void _ensureFontCommand() const;
-		[[nodiscard]] spk::Vector2Int _computeBaselinePosition() const;
+		std::unique_ptr<spk::DrawFontRenderCommand> _fontCommand;
 
 	public:
 		TextRenderCommand(

@@ -29,6 +29,7 @@ namespace spk
 		void _synchronize() const override;
 
 	public:
+		Program() = default;
 		Program(std::string p_vertexShaderSource, std::string p_fragmentShaderSource);
 		~Program();
 

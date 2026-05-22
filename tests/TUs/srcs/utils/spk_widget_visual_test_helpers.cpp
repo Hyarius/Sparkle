@@ -1,4 +1,4 @@
-﻿#include "spk_widget_visual_test_helpers.hpp"
+#include "spk_widget_visual_test_helpers.hpp"
 
 #include <exception>
 #include <memory>
@@ -131,7 +131,7 @@ namespace spk::test
 		p_widget.appendRenderUnits(builder);
 		spk::RenderSnapshot snapshot = builder.build();
 		snapshot.execute(renderContext);
-		glFinish();
+		context.gpuRuntime().waitUntilWorkDone();
 
 		context.gpuRuntime().saveScreenshot(actualPath, p_captureRect.atOrigin());
 

@@ -7,8 +7,7 @@
 #include <memory>
 
 #include "opengl/spk_opengl_clear_command.hpp"
-#include "opengl/spk_opengl_scissor_command.hpp"
-#include "opengl/spk_opengl_viewport_command.hpp"
+#include "rendering/render_command/spk_viewport_render_command.hpp"
 #include "rendering/spk_render_unit_builder.hpp"
 #endif
 
@@ -34,12 +33,10 @@ namespace spk
 		}
 
 #if defined(SPARKLE_GPU_BACKEND_OPENGL)
-		std::shared_ptr<spk::RenderUnit> _createRenderPassPreparationUnit(const spk::Rect2D& p_rect)
+		std::shared_ptr<spk::RenderUnit> _createRenderPassPreparationUnit(const spk::Viewport& p_viewport)
 		{
 			spk::RenderUnitBuilder builder;
-			const spk::Rect2D viewport = p_rect.atOrigin();
-			builder.emplace<spk::OpenGL::ViewportCommand>(viewport);
-			builder.emplace<spk::OpenGL::ScissorCommand>(viewport);
+			builder.emplace<spk::ViewportCommand>(p_viewport);
 			builder.emplace<spk::OpenGL::ClearCommand>();
 			return std::make_shared<spk::RenderUnit>(builder.build());
 		}
@@ -146,7 +143,7 @@ namespace spk
 	{
 		spk::RenderSnapshotBuilder builder;
 #if defined(SPARKLE_GPU_BACKEND_OPENGL)
-		builder.append(_createRenderPassPreparationUnit(_rootWidget.geometry()));
+		builder.append(_createRenderPassPreparationUnit(_rootWidget.viewport()));
 #endif
 		_rootWidget.appendRenderUnits(builder);
 

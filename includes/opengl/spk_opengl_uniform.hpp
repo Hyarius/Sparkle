@@ -2,6 +2,7 @@
 
 #if defined(SPARKLE_GPU_BACKEND_OPENGL)
 
+#include "opengl/spk_opengl_program.hpp"
 #include "traits/spk_synchronizable_trait.hpp"
 
 #include <algorithm>
@@ -21,22 +22,16 @@ namespace spk::OpenGL
 	{
 	private:
 		std::string _name;
-		GLuint _programId;
-		GLint _location = -1;
+		spk::Program& _program;
+		mutable GLint _location = -1;
+		mutable bool _locationResolved = false;
 		mutable bool _validated = false;
 
 	protected:
-		UniformBase(std::string p_name, GLuint p_programId) :
+		UniformBase(std::string p_name, spk::Program& p_program) :
 			_name(std::move(p_name)),
-			_programId(p_programId),
-			_location(_findUniformLocation(p_programId, _name))
+			_program(p_program)
 		{
-			if (_location == -1)
-			{
-				throw std::runtime_error(
-					"spk::OpenGL::UniformBase: uniform [" + _name + "] not found in program");
-			}
-
 			requestSynchronization();
 		}
 
@@ -58,6 +53,16 @@ namespace spk::OpenGL
 	private:
 		void _synchronize() const final override
 		{
+			if (_locationResolved == false)
+			{
+				_location = _findUniformLocation(_program.id(), _name);
+				_locationResolved = true;
+				if (_location == -1)
+				{
+					throw std::runtime_error(
+						"spk::OpenGL::UniformBase: uniform [" + _name + "] not found in program");
+				}
+			}
 			_validateShaderDeclarationIfNeeded();
 			_onDataActivation();
 		}
@@ -85,7 +90,7 @@ namespace spk::OpenGL
 				};
 
 				glGetUniformIndices(
-					_programId,
+					_program.id(),
 					1,
 					uniformNames,
 					&uniformIndex);
@@ -100,7 +105,7 @@ namespace spk::OpenGL
 				};
 
 				glGetUniformIndices(
-					_programId,
+					_program.id(),
 					1,
 					uniformNames,
 					&uniformIndex);
@@ -116,7 +121,7 @@ namespace spk::OpenGL
 			GLint activeType = 0;
 
 			glGetActiveUniformsiv(
-				_programId,
+				_program.id(),
 				1,
 				&uniformIndex,
 				GL_UNIFORM_TYPE,
@@ -133,7 +138,7 @@ namespace spk::OpenGL
 			GLint activeSize = 0;
 
 			glGetActiveUniformsiv(
-				_programId,
+				_program.id(),
 				1,
 				&uniformIndex,
 				GL_UNIFORM_SIZE,
@@ -243,8 +248,8 @@ namespace spk::OpenGL
 		}
 
 	public:
-		ScalarUniform(std::string p_name, GLuint p_programId) :
-			UniformBase(std::move(p_name), p_programId)
+		ScalarUniform(std::string p_name, spk::Program& p_program) :
+			UniformBase(std::move(p_name), p_program)
 		{
 		}
 
@@ -301,8 +306,8 @@ namespace spk::OpenGL
 		}
 
 	public:
-		ArrayUniform(std::string p_name, GLuint p_programId, std::size_t p_count) :
-			UniformBase(std::move(p_name), p_programId),
+		ArrayUniform(std::string p_name, spk::Program& p_program, std::size_t p_count) :
+			UniformBase(std::move(p_name), p_program),
 			_values(p_count)
 		{
 			if (p_count == 0)

@@ -40,5 +40,10 @@ namespace spk
 		//
 		// This method is expected to run on the render thread that will own the created context.
 		virtual std::unique_ptr<IRenderContext> createRenderContext(IFrame& p_frame) = 0;
+
+		// Blocks until the GPU backend has completed all previously submitted work for the
+		// current context. This is intended for synchronization points such as screenshots and
+		// pixel comparisons without exposing backend-specific calls to higher-level code.
+		virtual void waitUntilWorkDone() = 0;
 	};
 }

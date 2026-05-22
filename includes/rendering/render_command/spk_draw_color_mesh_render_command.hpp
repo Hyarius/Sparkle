@@ -19,13 +19,13 @@ namespace spk
 		spk::Mesh2D _mesh;
 		spk::Color _color;
 		spk::Matrix3x3 _transformation;
-		mutable std::shared_ptr<spk::Program> _program;
-		mutable spk::OpenGL::LayoutBufferObject _layoutBuffer;
-		mutable bool _layoutBufferDirty = true;
-		mutable int _colorUniformLocation = -1;
+		std::shared_ptr<spk::Program> _program;
+		spk::OpenGL::LayoutBufferObject _layoutBuffer;
+		bool _layoutBufferDirty = true;
+		int _colorUniformLocation = -1;
 
-		void _ensureProgram() const;
-		void _uploadMesh() const;
+		void _ensureProgram();
+		void _uploadMesh();
 
 	public:
 		DrawColorMeshRenderCommand(spk::Mesh2D p_mesh, spk::Color p_color, spk::Matrix3x3 p_transformation = spk::Matrix3x3::identity());

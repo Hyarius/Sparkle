@@ -53,7 +53,7 @@ TEST(OpenGLScreenshotTest, RuntimeSavesCurrentFramebufferToPng)
 
 	glClearColor(0.0f, 1.0f, 0.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT);
-	glFinish();
+	gpuRuntime.waitUntilWorkDone();
 
 	gpuRuntime.saveScreenshot(actualPath, spk::Rect2D(0, 0, width, height));
 

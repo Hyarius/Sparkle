@@ -14,7 +14,8 @@
 #include "image_comparison_test_utils.hpp"
 #include "opengl_wrapper_test_utils.hpp"
 #include "opengl/spk_opengl_clear_command.hpp"
-#include "opengl/spk_opengl_viewport_command.hpp"
+#include "opengl/spk_opengl_viewport.hpp"
+#include "rendering/render_command/spk_viewport_render_command.hpp"
 #include "rendering/render_command/spk_image_render_command.hpp"
 #include "rendering/spk_render_unit_builder.hpp"
 
@@ -71,13 +72,14 @@ TEST(ImageRenderCommandTest, DrawsFullTextureWithWholeSection)
 	spk::IRenderContext& renderContext = context.renderContext();
 
 	auto blueTexture = makeSolidTexture({2, 2}, 0, 0, 255);
+	spk::OpenGL::Viewport viewport(spk::Rect2D(0, 0, width, height));
 	spk::RenderUnitBuilder builder;
-	builder.emplace<spk::OpenGL::ViewportCommand>(spk::Rect2D(0, 0, width, height));
+	builder.emplace<spk::ViewportCommand>(viewport);
 	builder.emplace<spk::OpenGL::ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
 	builder.emplace<spk::ImageRenderCommand>(*blueTexture, spk::Texture::Section::whole, spk::Rect2D(0, 0, width, height));
 
 	builder.build().execute(renderContext);
-	glFinish();
+	context.gpuRuntime().waitUntilWorkDone();
 
 	sparkle_test::validateScreenshot(
 		context,
@@ -108,13 +110,14 @@ TEST(ImageRenderCommandTest, DrawsPartialTextureSection)
 	// Section covering only the right (green) pixel
 	const spk::Texture::Section greenSection({0.5f, 0.0f}, {0.5f, 1.0f});
 
+	spk::OpenGL::Viewport viewport(spk::Rect2D(0, 0, width, height));
 	spk::RenderUnitBuilder builder;
-	builder.emplace<spk::OpenGL::ViewportCommand>(spk::Rect2D(0, 0, width, height));
+	builder.emplace<spk::ViewportCommand>(viewport);
 	builder.emplace<spk::OpenGL::ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
 	builder.emplace<spk::ImageRenderCommand>(*texture, greenSection, spk::Rect2D(0, 0, width, height));
 
 	builder.build().execute(renderContext);
-	glFinish();
+	context.gpuRuntime().waitUntilWorkDone();
 
 	sparkle_test::validateScreenshot(
 		context,
@@ -124,14 +127,15 @@ TEST(ImageRenderCommandTest, DrawsPartialTextureSection)
 		resultPath("image_cmd_section_diff"));
 }
 
-TEST(ImageRenderCommandTest, CanExecuteTwiceWithCachedMesh)
+TEST(ImageRenderCommandTest, CanExecuteTwiceWithConstructedMesh)
 {
 	sparkle_test::OpenGLTestContext context(spk::Rect2D(0, 0, 16, 16));
 	spk::IRenderContext& renderContext = context.renderContext();
 
 	auto redTexture = makeSolidTexture({1, 1}, 255, 0, 0);
+	spk::OpenGL::Viewport viewport(spk::Rect2D(0, 0, 16, 16));
 	spk::RenderUnitBuilder builder;
-	builder.emplace<spk::OpenGL::ViewportCommand>(spk::Rect2D(0, 0, 16, 16));
+	builder.emplace<spk::ViewportCommand>(viewport);
 	builder.emplace<spk::OpenGL::ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
 	builder.emplace<spk::ImageRenderCommand>(*redTexture, spk::Texture::Section::whole, spk::Rect2D(0, 0, 16, 16));
 

@@ -69,7 +69,7 @@ TEST(OpenGLSamplerObjectTest, BindAssociatesWeakTexture)
 	tex->synchronize();
 
 	spk::OpenGL::SamplerObject sampler("uTex", spk::OpenGL::SamplerObject::Type::Texture2D, 0);
-	EXPECT_NO_THROW(sampler.bind(tex));
+	EXPECT_NO_THROW(sampler.bind(*tex));
 }
 
 TEST(OpenGLSamplerObjectTest, ActivateAndDeactivateDoNotThrow)
@@ -83,7 +83,7 @@ TEST(OpenGLSamplerObjectTest, ActivateAndDeactivateDoNotThrow)
 	tex->synchronize();
 
 	spk::OpenGL::SamplerObject sampler("uTex", spk::OpenGL::SamplerObject::Type::Texture2D, 0);
-	sampler.bind(tex);
+	sampler.bind(*tex);
 
 	EXPECT_NO_THROW(sampler.activate());
 	EXPECT_NO_THROW(sampler.deactivate());

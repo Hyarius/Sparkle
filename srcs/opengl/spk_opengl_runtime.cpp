@@ -25,6 +25,11 @@ namespace spk::OpenGL
 		return std::make_unique<RenderContext>(frame);
 	}
 
+	void Runtime::waitUntilWorkDone()
+	{
+		glFinish();
+	}
+
 	void Runtime::saveScreenshot(const std::filesystem::path& p_outputPath, const spk::Rect2D& p_rect) const
 	{
 		const int width = static_cast<int>(p_rect.width());

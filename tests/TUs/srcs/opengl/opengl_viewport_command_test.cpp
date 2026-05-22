@@ -4,20 +4,24 @@
 
 #if defined(_WIN32) && defined(SPARKLE_GPU_BACKEND_OPENGL)
 
-TEST(OpenGLViewportCommandTest, AppliesRectToOpenGLViewport)
+#include "opengl/spk_opengl_viewport.hpp"
+#include "rendering/render_command/spk_viewport_render_command.hpp"
+
+TEST(ViewportCommandTest, AppliesRectToOpenGLViewport)
 {
 	sparkle_test::OpenGLTestContext context;
 	spk::IRenderContext& renderContext = context.renderContext();
 
-	spk::OpenGL::ViewportCommand command(spk::Rect2D(1, 2, 11, 12));
+	spk::OpenGL::Viewport viewport(spk::Rect2D(1, 2, 11, 12));
+	spk::ViewportCommand command(viewport);
 	command.execute(renderContext);
 
-	GLint viewport[4] = {};
-	glGetIntegerv(GL_VIEWPORT, viewport);
-	EXPECT_EQ(viewport[0], 1);
-	EXPECT_EQ(viewport[1], 2);
-	EXPECT_EQ(viewport[2], 11);
-	EXPECT_EQ(viewport[3], 12);
+	GLint vp[4] = {};
+	glGetIntegerv(GL_VIEWPORT, vp);
+	EXPECT_EQ(vp[0], 1);
+	EXPECT_EQ(vp[1], 18);
+	EXPECT_EQ(vp[2], 11);
+	EXPECT_EQ(vp[3], 12);
 }
 
 #endif

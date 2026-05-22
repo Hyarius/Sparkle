@@ -2,31 +2,15 @@
 
 #if defined(SPARKLE_GPU_BACKEND_OPENGL)
 
-#include <array>
-#include <stdexcept>
-
-#include <GL/glew.h>
-
 namespace
 {
-	[[nodiscard]] spk::Vector2UInt currentViewportSize()
+	[[nodiscard]] spk::Vector3 toPosition(const spk::Vector2Int& p_pixel, float p_depth)
 	{
-		std::array<GLint, 4> viewport{};
-		glGetIntegerv(GL_VIEWPORT, viewport.data());
 		return {
-			static_cast<unsigned int>(viewport[2]),
-			static_cast<unsigned int>(viewport[3])
+			static_cast<float>(p_pixel.x),
+			static_cast<float>(p_pixel.y),
+			p_depth
 		};
-	}
-
-	[[nodiscard]] spk::Vector3 toClipSpace(
-		const spk::Vector2Int& p_pixel,
-		const spk::Vector2UInt& p_viewportSize,
-		float p_depth)
-	{
-		const float x = (2.0f * static_cast<float>(p_pixel.x) / static_cast<float>(p_viewportSize.x)) - 1.0f;
-		const float y = 1.0f - (2.0f * static_cast<float>(p_pixel.y) / static_cast<float>(p_viewportSize.y));
-		return {x, y, p_depth};
 	}
 }
 
@@ -36,55 +20,25 @@ namespace spk
 		const spk::Texture& p_texture,
 		spk::Texture::Section p_section,
 		spk::Rect2D p_screenRect,
-		float p_depth) :
-		_texture(p_texture),
-		_section(p_section),
-		_screenRect(p_screenRect),
-		_depth(p_depth)
+		float p_depth)
 	{
-	}
-
-	spk::TextureMesh2D ImageRenderCommand::_buildMesh(const spk::Vector2UInt& p_viewportSize) const
-	{
-		const spk::Vector2 topLeftUV = _section.anchor;
-		const spk::Vector2 bottomLeftUV = {_section.anchor.x, _section.anchor.y + _section.size.y};
-		const spk::Vector2 bottomRightUV = _section.anchor + _section.size;
-		const spk::Vector2 topRightUV = {_section.anchor.x + _section.size.x, _section.anchor.y};
-
-		const spk::Vector2Int topLeft = _screenRect.anchor;
-		const spk::Vector2Int bottomLeft = {_screenRect.left(), _screenRect.bottom()};
-		const spk::Vector2Int bottomRight = {_screenRect.right(), _screenRect.bottom()};
-		const spk::Vector2Int topRight = {_screenRect.right(), _screenRect.top()};
+		const spk::Vector2 topLeftUV     = p_section.anchor;
+		const spk::Vector2 bottomLeftUV  = {p_section.anchor.x, p_section.anchor.y + p_section.size.y};
+		const spk::Vector2 bottomRightUV = p_section.anchor + p_section.size;
+		const spk::Vector2 topRightUV    = {p_section.anchor.x + p_section.size.x, p_section.anchor.y};
 
 		spk::TextureMesh2D mesh;
 		mesh.addShape(
-			{toClipSpace(topLeft, p_viewportSize, _depth), topLeftUV},
-			{toClipSpace(bottomLeft, p_viewportSize, _depth), bottomLeftUV},
-			{toClipSpace(bottomRight, p_viewportSize, _depth), bottomRightUV},
-			{toClipSpace(topRight, p_viewportSize, _depth), topRightUV});
-		return mesh;
-	}
+			{toPosition(p_screenRect.anchor,                                p_depth), topLeftUV},
+			{toPosition({p_screenRect.left(),  p_screenRect.bottom()},      p_depth), bottomLeftUV},
+			{toPosition({p_screenRect.right(), p_screenRect.bottom()},      p_depth), bottomRightUV},
+			{toPosition({p_screenRect.right(), p_screenRect.top()},         p_depth), topRightUV});
 
-	void ImageRenderCommand::_ensureTextureCommand() const
-	{
-		const spk::Vector2UInt viewportSize = currentViewportSize();
-		if (viewportSize.x == 0 || viewportSize.y == 0)
-		{
-			throw std::runtime_error("ImageRenderCommand requires a valid viewport");
-		}
-
-		if (_textureCommand == nullptr || _cachedViewportSize != viewportSize)
-		{
-			_cachedViewportSize = viewportSize;
-			_textureCommand = std::make_unique<spk::DrawTextureMeshRenderCommand>(
-				_texture,
-				_buildMesh(viewportSize));
-		}
+		_textureCommand = std::make_unique<spk::DrawTextureMeshRenderCommand>(p_texture, std::move(mesh));
 	}
 
 	void ImageRenderCommand::execute(spk::IRenderContext& p_renderContext)
 	{
-		_ensureTextureCommand();
 		_textureCommand->execute(p_renderContext);
 	}
 }

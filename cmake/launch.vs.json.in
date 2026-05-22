@@ -1,0 +1,15 @@
+{
+  "version": "0.2.1",
+  "configurations": [
+    {
+      "type": "default",
+      "project": "CMakeLists.txt",
+      "projectTarget": "SparkleTest.exe",
+      "name": "SparkleTest failed tests",
+      "args": [
+        "--gtest_brief=1",
+        "--gtest_filter=@SPARKLE_FAILED_TEST_FILTER@"
+      ]
+    }
+  ]
+}

@@ -63,7 +63,6 @@
 #include "rendering/spk_render_command.hpp"
 #include "rendering/render_command/spk_draw_color_mesh_render_command.hpp"
 #include "rendering/render_command/spk_draw_font_render_command.hpp"
-#include "rendering/render_command/spk_draw_sprite_render_command.hpp"
 #include "rendering/render_command/spk_draw_texture_mesh_render_command.hpp"
 #include "rendering/spk_render_unit.hpp"
 #include "rendering/spk_render_unit_builder.hpp"
@@ -86,17 +85,17 @@
 #include "opengl/spk_opengl_draw_arrays_command.hpp"
 #include "opengl/spk_opengl_draw_elements_command.hpp"
 #include "opengl/spk_opengl_draw_elements_instanced_command.hpp"
+#include "opengl/spk_opengl_gpu_data_buffer_center.hpp"
 #include "opengl/spk_opengl_index_buffer_object.hpp"
 #include "opengl/spk_opengl_layout_buffer_object.hpp"
 #include "opengl/spk_opengl_primitive.hpp"
-#include "opengl/spk_opengl_scissor_command.hpp"
 #include "opengl/spk_opengl_shader_storage_buffer_object.hpp"
 #include "opengl/spk_opengl_uniform.hpp"
 #include "opengl/spk_opengl_uniform_buffer_object.hpp"
 #include "opengl/spk_opengl_vertex_array_object.hpp"
 #include "opengl/spk_opengl_vertex_buffer_object.hpp"
-#include "opengl/spk_opengl_viewport_command.hpp"
 #endif
+#include "rendering/render_command/spk_viewport_render_command.hpp"
 
 // Modules
 #include "application/module/spk_module.hpp"

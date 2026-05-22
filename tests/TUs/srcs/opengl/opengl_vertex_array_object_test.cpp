@@ -5,6 +5,9 @@
 
 #if defined(_WIN32) && defined(SPARKLE_GPU_BACKEND_OPENGL)
 
+#include "opengl/spk_opengl_viewport.hpp"
+#include "rendering/render_command/spk_viewport_render_command.hpp"
+
 TEST(OpenGLVertexArrayObjectTest, ActivatesConfiguredVertexAttributes)
 {
 	sparkle_test::OpenGLTestContext context;
@@ -38,14 +41,14 @@ TEST(OpenGLVertexArrayObjectTest, RendersTriangleWithConfiguredVBO)
 		sparkle_test::fullScreenTriangle({0.0f, 1.0f, 0.0f}));
 
 	spk::RenderUnitBuilder builder;
-	builder.emplace<spk::OpenGL::ViewportCommand>(spk::Rect2D(0, 0, width, height));
-	builder.emplace<spk::OpenGL::ScissorCommand>(spk::Rect2D(0, 0, width, height), false);
+	spk::OpenGL::Viewport viewport(spk::Rect2D(0, 0, width, height));
+	builder.emplace<spk::ViewportCommand>(viewport);
 	builder.emplace<spk::OpenGL::ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
 	builder.emplace<spk::OpenGL::DrawArraysCommand>(spk::OpenGL::Primitive::Triangles, program, vertexArray, 0, 3);
 
 	spk::RenderUnit unit = builder.build();
 	unit.execute(renderContext);
-	glFinish();
+	context.gpuRuntime().waitUntilWorkDone();
 
 	const std::filesystem::path actual = sparkle_test::resultImagePath("vao_triangle_actual.png");
 	const std::filesystem::path expected = sparkle_test::expectedImagePath("vao_triangle_expected.png");

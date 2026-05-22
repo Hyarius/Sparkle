@@ -57,6 +57,7 @@ namespace spk::WinAPI
 		case WM_MOVE:
 		{
 			_rect = _window.clientRect();
+			surfaceState()->setRect(_rect);
 			spk::WindowMovedRecord record;
 			record.position = _rect.anchor;
 			_emitFrameEvent(spk::FrameEventRecord(record));
@@ -65,6 +66,7 @@ namespace spk::WinAPI
 		case WM_SIZE:
 		{
 			_rect = _window.clientRect();
+			surfaceState()->setRect(_rect);
 			spk::WindowResizedRecord record;
 			record.rect = _rect;
 			_emitFrameEvent(spk::FrameEventRecord(record));
@@ -196,6 +198,7 @@ namespace spk::WinAPI
 		_title(p_title),
 		_rect(_window.clientRect())
 	{
+		surfaceState()->setRect(_rect);
 		_window.show();
 	}
 
@@ -208,6 +211,7 @@ namespace spk::WinAPI
 	{
 		_window.resize(p_rect);
 		_rect = _window.clientRect();
+		surfaceState()->setRect(_rect);
 	}
 
 	void Frame::setTitle(const std::string& p_title)

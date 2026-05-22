@@ -14,7 +14,8 @@
 #include "image_comparison_test_utils.hpp"
 #include "opengl_wrapper_test_utils.hpp"
 #include "opengl/spk_opengl_clear_command.hpp"
-#include "opengl/spk_opengl_viewport_command.hpp"
+#include "opengl/spk_opengl_viewport.hpp"
+#include "rendering/render_command/spk_viewport_render_command.hpp"
 #include "rendering/render_command/spk_sprite_render_command.hpp"
 #include "rendering/spk_render_unit_builder.hpp"
 
@@ -76,13 +77,14 @@ TEST(SpriteRenderCommandTest, DrawsSelectedSpriteByCoordinates)
 	spk::SpriteSheet spriteSheet;
 	spriteSheet.loadFromData(makeTwoSpritePngBytes(), {2, 1});
 
+	spk::OpenGL::Viewport viewport(spk::Rect2D(0, 0, width, height));
 	spk::RenderUnitBuilder builder;
-	builder.emplace<spk::OpenGL::ViewportCommand>(spk::Rect2D(0, 0, width, height));
+	builder.emplace<spk::ViewportCommand>(viewport);
 	builder.emplace<spk::OpenGL::ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
 	builder.emplace<spk::SpriteRenderCommand>(spriteSheet, spk::Vector2UInt{1, 0}, spk::Rect2D(0, 0, width, height));
 
 	builder.build().execute(renderContext);
-	glFinish();
+	context.gpuRuntime().waitUntilWorkDone();
 
 	sparkle_test::validateScreenshot(
 		context,
@@ -102,13 +104,14 @@ TEST(SpriteRenderCommandTest, DrawsFirstSpriteByCoordinates)
 	spk::SpriteSheet spriteSheet;
 	spriteSheet.loadFromData(makeTwoSpritePngBytes(), {2, 1});
 
+	spk::OpenGL::Viewport viewport(spk::Rect2D(0, 0, width, height));
 	spk::RenderUnitBuilder builder;
-	builder.emplace<spk::OpenGL::ViewportCommand>(spk::Rect2D(0, 0, width, height));
+	builder.emplace<spk::ViewportCommand>(viewport);
 	builder.emplace<spk::OpenGL::ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
 	builder.emplace<spk::SpriteRenderCommand>(spriteSheet, spk::Vector2UInt{0, 0}, spk::Rect2D(0, 0, width, height));
 
 	builder.build().execute(renderContext);
-	glFinish();
+	context.gpuRuntime().waitUntilWorkDone();
 
 	sparkle_test::validateScreenshot(
 		context,
@@ -123,12 +126,13 @@ TEST(SpriteRenderCommandTest, RejectsOutOfBoundsSpriteCoordinates)
 	sparkle_test::OpenGLTestContext context(spk::Rect2D(0, 0, 8, 8));
 	spk::SpriteSheet spriteSheet;
 	spriteSheet.loadFromData(makeTwoSpritePngBytes(), {2, 1});
-	spk::SpriteRenderCommand command(spriteSheet, spk::Vector2UInt{5, 5}, spk::Rect2D(0, 0, 8, 8));
 
-	EXPECT_THROW(command.execute(context.renderContext()), std::out_of_range);
+	EXPECT_THROW(
+		spk::SpriteRenderCommand(spriteSheet, spk::Vector2UInt{5, 5}, spk::Rect2D(0, 0, 8, 8)),
+		std::out_of_range);
 }
 
-TEST(SpriteRenderCommandTest, CanExecuteTwiceWithCachedMesh)
+TEST(SpriteRenderCommandTest, CanExecuteTwiceWithConstructedMesh)
 {
 	sparkle_test::OpenGLTestContext context(spk::Rect2D(0, 0, 16, 16));
 	spk::IRenderContext& renderContext = context.renderContext();
@@ -136,8 +140,9 @@ TEST(SpriteRenderCommandTest, CanExecuteTwiceWithCachedMesh)
 	spk::SpriteSheet spriteSheet;
 	spriteSheet.loadFromData(makeTwoSpritePngBytes(), {2, 1});
 
+	spk::OpenGL::Viewport viewport(spk::Rect2D(0, 0, 16, 16));
 	spk::RenderUnitBuilder builder;
-	builder.emplace<spk::OpenGL::ViewportCommand>(spk::Rect2D(0, 0, 16, 16));
+	builder.emplace<spk::ViewportCommand>(viewport);
 	builder.emplace<spk::OpenGL::ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
 	builder.emplace<spk::SpriteRenderCommand>(spriteSheet, spk::Vector2UInt{0, 0}, spk::Rect2D(0, 0, 16, 16));
 

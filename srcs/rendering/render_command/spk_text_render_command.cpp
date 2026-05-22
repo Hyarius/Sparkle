@@ -14,71 +14,49 @@ namespace spk
 		float p_depth,
 		spk::Vector2Int p_anchor,
 		spk::HorizontalAlignment p_horizontalAlignment,
-		spk::VerticalAlignment p_verticalAlignment) :
-		_font(p_font),
-		_text(std::move(p_text)),
-		_size(p_size),
-		_color(p_color),
-		_depth(p_depth),
-		_anchor(p_anchor),
-		_horizontalAlignment(p_horizontalAlignment),
-		_verticalAlignment(p_verticalAlignment)
+		spk::VerticalAlignment p_verticalAlignment)
 	{
-	}
+		const spk::Vector2UInt stringSize = const_cast<spk::Font&>(p_font).computeStringSize(p_text, p_size);
 
-	spk::Vector2Int TextRenderCommand::_computeBaselinePosition() const
-	{
-		const spk::Vector2UInt stringSize = const_cast<spk::Font&>(_font).computeStringSize(_text, _size);
-
-
-		int baselineX = _anchor.x;
-		switch (_horizontalAlignment)
+		int baselineX = p_anchor.x;
+		switch (p_horizontalAlignment)
 		{
 		case spk::HorizontalAlignment::Left:
-			baselineX = _anchor.x;
+			baselineX = p_anchor.x;
 			break;
 		case spk::HorizontalAlignment::Centered:
-			baselineX = _anchor.x - static_cast<int>(stringSize.x) / 2;
+			baselineX = p_anchor.x - static_cast<int>(stringSize.x) / 2;
 			break;
 		case spk::HorizontalAlignment::Right:
-			baselineX = _anchor.x - static_cast<int>(stringSize.x);
+			baselineX = p_anchor.x - static_cast<int>(stringSize.x);
 			break;
 		}
 
-		int baselineY = _anchor.y;
-		switch (_verticalAlignment)
+		int baselineY = p_anchor.y;
+		switch (p_verticalAlignment)
 		{
 		case spk::VerticalAlignment::Top:
-			baselineY = _anchor.y;
+			baselineY = p_anchor.y;
 			break;
 		case spk::VerticalAlignment::Centered:
-			baselineY = _anchor.y - static_cast<int>(stringSize.y) / 2;
+			baselineY = p_anchor.y - static_cast<int>(stringSize.y) / 2;
 			break;
 		case spk::VerticalAlignment::Down:
-			baselineY = _anchor.y - static_cast<int>(stringSize.y);
+			baselineY = p_anchor.y - static_cast<int>(stringSize.y);
 			break;
 		}
 
-		return {baselineX, baselineY};
-	}
-
-	void TextRenderCommand::_ensureFontCommand() const
-	{
-		if (_fontCommand == nullptr)
-		{
-			_fontCommand = std::make_unique<spk::DrawFontRenderCommand>(
-				_font,
-				_text,
-				_computeBaselinePosition(),
-				_size,
-				_color,
-				_depth);
-		}
+		_fontCommand = std::make_unique<spk::DrawFontRenderCommand>(
+			p_font,
+			std::move(p_text),
+			spk::Vector2Int{baselineX, baselineY},
+			p_size,
+			p_color,
+			p_depth);
 	}
 
 	void TextRenderCommand::execute(spk::IRenderContext& p_renderContext)
 	{
-		_ensureFontCommand();
 		_fontCommand->execute(p_renderContext);
 	}
 }

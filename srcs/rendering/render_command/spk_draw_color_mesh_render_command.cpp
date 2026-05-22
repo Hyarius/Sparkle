@@ -5,11 +5,15 @@
 #include <array>
 #include <cstdint>
 #include <span>
+#include <stdexcept>
 #include <utility>
 #include <vector>
 
 #include <GL/glew.h>
 
+#include "math/spk_matrix.hpp"
+#include "opengl/spk_opengl_gpu_data_buffer_center.hpp"
+#include "opengl/spk_opengl_uniform_buffer_object.hpp"
 #include "rendering/spk_render_context.hpp"
 
 namespace
@@ -18,10 +22,14 @@ namespace
 	{
 		return
 			"#version 330 core\n"
-			"layout(location = 0) in vec3 inPosition;\n"
+			"layout(location = 0) in vec2 inPosition;\n"
+			"layout(std140) uniform ViewportData\n"
+			"{\n"
+			"	mat4 uProjection;\n"
+			"};\n"
 			"void main()\n"
 			"{\n"
-			"	gl_Position = vec4(inPosition, 1.0);\n"
+			"	gl_Position = uProjection * vec4(inPosition, 0.0, 1.0);\n"
 			"}\n";
 	}
 
@@ -36,6 +44,30 @@ namespace
 			"	outColor = uColor;\n"
 			"}\n";
 	}
+
+	spk::OpenGL::UniformBufferObject& viewportUniformBuffer()
+	{
+		return spk::OpenGL::GPUDataBufferCenter::getUBO(spk::OpenGL::GPUDataBufferCenter::ViewportBlockName);
+	}
+
+	void bindViewportUniformBlock(spk::Program& p_program)
+	{
+		spk::OpenGL::UniformBufferObject& buffer = viewportUniformBuffer();
+		if (buffer.bindingPoint().has_value() == false)
+		{
+			throw std::runtime_error("DrawColorMeshRenderCommand requires a viewport uniform buffer binding point");
+		}
+
+		const GLuint blockIndex = glGetUniformBlockIndex(
+			p_program.id(),
+			spk::OpenGL::GPUDataBufferCenter::ViewportBlockName.data());
+		if (blockIndex == GL_INVALID_INDEX)
+		{
+			throw std::runtime_error("DrawColorMeshRenderCommand requires a viewport uniform block");
+		}
+
+		glUniformBlockBinding(p_program.id(), blockIndex, buffer.bindingPoint().value());
+	}
 }
 
 namespace spk
@@ -48,16 +80,17 @@ namespace spk
 		_layoutBuffer.addAttribute({0, spk::OpenGL::LayoutBufferObject::Attribute::Type::Vector2});
 	}
 
-	void DrawColorMeshRenderCommand::_ensureProgram() const
+	void DrawColorMeshRenderCommand::_ensureProgram()
 	{
 		if (_program == nullptr)
 		{
 			_program = std::make_shared<spk::Program>(vertexShaderSource(), fragmentShaderSource());
+			bindViewportUniformBlock(*_program);
 			_colorUniformLocation = glGetUniformLocation(_program->id(), "uColor");
 		}
 	}
 
-	void DrawColorMeshRenderCommand::_uploadMesh() const
+	void DrawColorMeshRenderCommand::_uploadMesh()
 	{
 		if (_layoutBufferDirty == false)
 		{
@@ -97,6 +130,7 @@ namespace spk
 
 		_layoutBuffer.activate();
 		_program->activate();
+		viewportUniformBuffer().activate();
 
 		if (_colorUniformLocation >= 0)
 		{

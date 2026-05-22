@@ -40,6 +40,12 @@ namespace spk::OpenGL
 
 	void BufferObject::_allocate() const
 	{
+		if (_id != 0 && glIsBuffer(_id) == GL_FALSE)
+		{
+			_id = 0;
+			_allocatedSize = 0;
+		}
+
 		if (_id == 0)
 		{
 			glGenBuffers(1, &_id);

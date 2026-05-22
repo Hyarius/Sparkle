@@ -5,6 +5,9 @@
 
 #if defined(_WIN32) && defined(SPARKLE_GPU_BACKEND_OPENGL)
 
+#include "opengl/spk_opengl_viewport.hpp"
+#include "rendering/render_command/spk_viewport_render_command.hpp"
+
 TEST(OpenGLDrawArraysCommandTest, DrawsConfiguredVertexRange)
 {
 	constexpr int width = 24;
@@ -16,14 +19,15 @@ TEST(OpenGLDrawArraysCommandTest, DrawsConfiguredVertexRange)
 	const auto vertexArray = sparkle_test::makeTriangleVAO(
 		sparkle_test::fullScreenTriangle({0.0f, 1.0f, 0.0f}));
 
+	spk::OpenGL::Viewport viewport(spk::Rect2D(0, 0, width, height));
 	spk::RenderUnitBuilder builder;
-	builder.emplace<spk::OpenGL::ViewportCommand>(spk::Rect2D(0, 0, width, height));
+	builder.emplace<spk::ViewportCommand>(viewport);
 	builder.emplace<spk::OpenGL::ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
 	builder.emplace<spk::OpenGL::DrawArraysCommand>(spk::OpenGL::Primitive::Triangles, program, vertexArray, 0, 3);
 
 	spk::RenderUnit unit = builder.build();
 	unit.execute(renderContext);
-	glFinish();
+	context.gpuRuntime().waitUntilWorkDone();
 
 	const std::filesystem::path actual = sparkle_test::resultImagePath("draw_arrays_command_actual.png");
 	const std::filesystem::path expected = sparkle_test::expectedImagePath("draw_arrays_command_expected.png");

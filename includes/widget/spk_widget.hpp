@@ -9,6 +9,7 @@
 #include "math/spk_rect_2d.hpp"
 #include "rendering/spk_render_snapshot_builder.hpp"
 #include "rendering/spk_render_unit_builder.hpp"
+#include "rendering/spk_viewport.hpp"
 #include "time/spk_update_tick.hpp"
 
 namespace spk
@@ -22,6 +23,8 @@ namespace spk
 		spk::Rect2D _geometry;
 		spk::Rect2D _absoluteGeometry;
 		spk::Rect2D _scissor;
+
+		mutable std::unique_ptr<spk::Viewport> _viewport;
 
 		void _updateAbsoluteGeometryAndScissor();
 
@@ -89,6 +92,7 @@ namespace spk
 
 		[[nodiscard]] const spk::Rect2D& geometry() const;
 		[[nodiscard]] bool isRenderCommandDirty() const;
+	[[nodiscard]] const spk::Viewport& viewport() const;
 
 		[[nodiscard]] std::shared_ptr<spk::RenderUnit> renderUnit() const;
 		void appendRenderUnits(spk::RenderSnapshotBuilder& p_builder) const;

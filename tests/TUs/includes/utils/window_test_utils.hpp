@@ -186,6 +186,7 @@ namespace sparkle_test
 			currentRect(p_rect),
 			currentTitle(std::move(p_title))
 		{
+			surfaceState()->setRect(currentRect);
 			if (_stats != nullptr)
 			{
 				_stats->currentRect = currentRect;
@@ -204,6 +205,7 @@ namespace sparkle_test
 		void resize(const spk::Rect2D& p_rect) override
 		{
 			currentRect = p_rect;
+			surfaceState()->setRect(currentRect);
 			++resizeCount;
 			resizeHistory.push_back(p_rect);
 			lastResizeThreadID = std::this_thread::get_id();
@@ -525,6 +527,7 @@ namespace sparkle_test
 
 		void notifyResize(const spk::Rect2D& p_rect) override
 		{
+			surfaceState()->setRect(p_rect);
 			++notifyResizeCount;
 			lastResizeRect = p_rect;
 			resizeHistory.push_back(p_rect);
@@ -543,6 +546,7 @@ namespace sparkle_test
 	{
 	public:
 		int createRenderContextCount = 0;
+		int waitUntilWorkDoneCount = 0;
 		bool returnNullContext = false;
 		std::shared_ptr<TestRenderContextStats> contextStats = std::make_shared<TestRenderContextStats>();
 		spk::IFrame* lastFrame = nullptr;
@@ -569,6 +573,11 @@ namespace sparkle_test
 			contextStats->creationThreadID = result->creationThreadID;
 			createdContext = result.get();
 			return result;
+		}
+
+		void waitUntilWorkDone() override
+		{
+			++waitUntilWorkDoneCount;
 		}
 	};
 
