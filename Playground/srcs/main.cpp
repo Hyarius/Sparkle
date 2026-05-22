@@ -3,8 +3,6 @@
 
 #include <sparkle.hpp>
 
-#if defined(SPARKLE_GPU_BACKEND_OPENGL)
-
 namespace
 {
 	class PlaygroundWidget : public spk::Widget
@@ -32,29 +30,6 @@ namespace
 		}
 	};
 }
-
-#else
-
-namespace
-{
-	class PlaygroundWidget : public spk::Widget
-	{
-	protected:
-		spk::RenderUnit _buildRenderUnit() const override
-		{
-			return spk::RenderUnit();
-		}
-
-	public:
-		explicit PlaygroundWidget(spk::Widget* p_parent) :
-			spk::Widget("PlaygroundWidget", p_parent)
-		{
-			activate();
-		}
-	};
-}
-
-#endif
 
 int main()
 {
