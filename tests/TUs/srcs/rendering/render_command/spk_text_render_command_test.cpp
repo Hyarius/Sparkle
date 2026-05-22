@@ -29,7 +29,8 @@ TEST(TextRenderCommandTest, DrawsGlyphsWithLeftTopAlignment)
 	builder.emplace<spk::ViewportCommand>(viewport);
 	builder.emplace<spk::OpenGL::ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
 	builder.emplace<spk::TextRenderCommand>(
-		font, L"Hi", spk::Font::Size(16), spk::Color(1.0f, 1.0f, 1.0f, 1.0f), 0.0f,
+		font, L"Hi", spk::Font::Size(16), spk::Color(1.0f, 1.0f, 1.0f, 1.0f),
+		spk::Color(0.0f, 0.0f, 0.0f, 0.0f), 0.0f,
 		spk::Vector2Int{2, 2},
 		spk::HorizontalAlignment::Left,
 		spk::VerticalAlignment::Top);
@@ -56,7 +57,8 @@ TEST(TextRenderCommandTest, DrawsGlyphsWithCenteredAlignment)
 	builder.emplace<spk::ViewportCommand>(viewport);
 	builder.emplace<spk::OpenGL::ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
 	builder.emplace<spk::TextRenderCommand>(
-		font, L"Hi", spk::Font::Size(16), spk::Color(1.0f, 1.0f, 1.0f, 1.0f), 0.0f,
+		font, L"Hi", spk::Font::Size(16), spk::Color(1.0f, 1.0f, 1.0f, 1.0f),
+		spk::Color(0.0f, 0.0f, 0.0f, 0.0f), 0.0f,
 		spk::Vector2Int{width / 2, height / 2},
 		spk::HorizontalAlignment::Centered,
 		spk::VerticalAlignment::Centered);
@@ -83,7 +85,8 @@ TEST(TextRenderCommandTest, DrawsGlyphsWithRightDownAlignment)
 	builder.emplace<spk::ViewportCommand>(viewport);
 	builder.emplace<spk::OpenGL::ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
 	builder.emplace<spk::TextRenderCommand>(
-		font, L"Hi", spk::Font::Size(16), spk::Color(1.0f, 1.0f, 1.0f, 1.0f), 0.0f,
+		font, L"Hi", spk::Font::Size(16), spk::Color(1.0f, 1.0f, 1.0f, 1.0f),
+		spk::Color(0.0f, 0.0f, 0.0f, 0.0f), 0.0f,
 		spk::Vector2Int{width - 2, height - 2},
 		spk::HorizontalAlignment::Right,
 		spk::VerticalAlignment::Down);
@@ -108,7 +111,8 @@ TEST(TextRenderCommandTest, EmptyTextDoesNotDraw)
 	builder.emplace<spk::ViewportCommand>(viewport);
 	builder.emplace<spk::OpenGL::ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
 	builder.emplace<spk::TextRenderCommand>(
-		font, L"", spk::Font::Size(16), spk::Color(1.0f, 1.0f, 1.0f, 1.0f), 0.0f,
+		font, L"", spk::Font::Size(16), spk::Color(1.0f, 1.0f, 1.0f, 1.0f),
+		spk::Color(0.0f, 0.0f, 0.0f, 0.0f), 0.0f,
 		spk::Vector2Int{0, 0});
 
 	spk::RenderUnit unit = builder.build();
@@ -126,7 +130,8 @@ TEST(TextRenderCommandTest, CanExecuteTwiceWithConstructedCommand)
 	builder.emplace<spk::ViewportCommand>(viewport);
 	builder.emplace<spk::OpenGL::ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
 	builder.emplace<spk::TextRenderCommand>(
-		font, L"Hi", spk::Font::Size(16), spk::Color(1.0f, 1.0f, 1.0f, 1.0f), 0.0f,
+		font, L"Hi", spk::Font::Size(16), spk::Color(1.0f, 1.0f, 1.0f, 1.0f),
+		spk::Color(0.0f, 0.0f, 0.0f, 0.0f), 0.0f,
 		spk::Vector2Int{2, 2});
 
 	spk::RenderUnit unit = builder.build();

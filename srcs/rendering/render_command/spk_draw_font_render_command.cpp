@@ -14,52 +14,10 @@
 #include "math/spk_matrix.hpp"
 #include "opengl/spk_opengl_gpu_data_buffer_center.hpp"
 #include "opengl/spk_opengl_uniform_buffer_object.hpp"
+#include "spk_generated_resources.hpp"
 
 namespace
 {
-	const char* vertexShaderSource()
-	{
-		return
-			"#version 330 core\n"
-			"layout(location = 0) in vec3 inPosition;\n"
-			"layout(location = 1) in vec2 inUV;\n"
-			"layout(std140) uniform ViewportData\n"
-			"{\n"
-			"	mat4 uProjection;\n"
-			"};\n"
-			"out vec2 vertexUV;\n"
-			"void main()\n"
-			"{\n"
-			"	vertexUV = inUV;\n"
-			"	gl_Position = uProjection * vec4(inPosition, 1.0);\n"
-			"}\n";
-	}
-
-	const char* fragmentShaderSource()
-	{
-		return
-			"#version 330 core\n"
-			"uniform sampler2D uTexture;\n"
-			"uniform vec4 uColor;\n"
-			"uniform vec4 uOutlineColor;\n"
-			"uniform float uOutlineThickness;\n"
-			"in vec2 vertexUV;\n"
-			"out vec4 outColor;\n"
-			"void main()\n"
-			"{\n"
-			"	float sdf = texture(uTexture, vertexUV).r;\n"
-			"	float fillEdge = 0.5;\n"
-			"	float outlineEdge = fillEdge - uOutlineThickness;\n"
-			"	float fillAlpha = smoothstep(fillEdge - 0.05, fillEdge + 0.05, sdf);\n"
-			"	float outlineAlpha = uOutlineThickness > 0.0\n"
-			"		? smoothstep(outlineEdge - 0.05, outlineEdge + 0.05, sdf) * (1.0 - fillAlpha)\n"
-			"		: 0.0;\n"
-			"	vec4 fill    = vec4(uColor.rgb,        uColor.a        * fillAlpha);\n"
-			"	vec4 outline = vec4(uOutlineColor.rgb, uOutlineColor.a * outlineAlpha);\n"
-			"	outColor = fill + outline * (1.0 - fill.a);\n"
-			"}\n";
-	}
-
 	[[nodiscard]] spk::Vector3 toPosition(const spk::Vector2Int& p_pixel, float p_depth)
 	{
 		return {
@@ -92,6 +50,11 @@ namespace
 
 		glUniformBlockBinding(p_program.id(), blockIndex, buffer.bindingPoint().value());
 	}
+
+	[[nodiscard]] float outlineThickness(const spk::Font::Size& p_size)
+	{
+		return p_size.outline == 0 ? 0.0f : 0.5f;
+	}
 }
 
 namespace spk
@@ -102,19 +65,20 @@ namespace spk
 		spk::Vector2Int p_baselinePosition,
 		spk::Font::Size p_size,
 		spk::Color p_color,
-		float p_depth,
 		spk::Color p_outlineColor,
-		float p_outlineThickness) :
+		float p_depth) :
 		_atlas(const_cast<spk::Font&>(p_font).atlas(p_size)),
 		_color(p_color),
 		_outlineColor(p_outlineColor),
-		_outlineThickness(p_outlineThickness),
+		_outlineThickness(outlineThickness(p_size)),
 		_sampler("uTexture", spk::OpenGL::SamplerObject::Type::Texture2D, 0),
 		_colorUniform("uColor", _program),
 		_outlineColorUniform("uOutlineColor", _program),
 		_outlineThicknessUniform("uOutlineThickness", _program)
 	{
-		_program.setSources(vertexShaderSource(), fragmentShaderSource());
+		_program.setSources(
+			SPARKLE_GET_RESOURCE_AS_STRING("resources/shaders/font/draw_font.vert"),
+			SPARKLE_GET_RESOURCE_AS_STRING("resources/shaders/font/draw_font.frag"));
 		_layoutBuffer.addAttribute(0, spk::OpenGL::LayoutBufferObject::Attribute::Type::Vector3);
 		_layoutBuffer.addAttribute(1, spk::OpenGL::LayoutBufferObject::Attribute::Type::Vector2);
 

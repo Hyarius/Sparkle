@@ -13,40 +13,10 @@
 #include "opengl/spk_opengl_gpu_data_buffer_center.hpp"
 #include "opengl/spk_opengl_texture.hpp"
 #include "opengl/spk_opengl_uniform_buffer_object.hpp"
+#include "spk_generated_resources.hpp"
 
 namespace
 {
-	const char* vertexShaderSource()
-	{
-		return
-			"#version 330 core\n"
-			"layout(location = 0) in vec3 inPosition;\n"
-			"layout(location = 1) in vec2 inUV;\n"
-			"layout(std140) uniform ViewportData\n"
-			"{\n"
-			"	mat4 uProjection;\n"
-			"};\n"
-			"out vec2 vertexUV;\n"
-			"void main()\n"
-			"{\n"
-			"	vertexUV = inUV;\n"
-			"	gl_Position = uProjection * vec4(inPosition, 1.0);\n"
-			"}\n";
-	}
-
-	const char* fragmentShaderSource()
-	{
-		return
-			"#version 330 core\n"
-			"uniform sampler2D uTexture;\n"
-			"in vec2 vertexUV;\n"
-			"out vec4 outColor;\n"
-			"void main()\n"
-			"{\n"
-			"	outColor = texture(uTexture, vertexUV);\n"
-			"}\n";
-	}
-
 	void bindTexture(const spk::Texture& p_texture)
 	{
 		const auto* openGLTexture = dynamic_cast<const spk::OpenGL::Texture*>(&p_texture);
@@ -104,7 +74,9 @@ namespace spk
 	{
 		if (_program == nullptr)
 		{
-			_program = std::make_shared<spk::Program>(vertexShaderSource(), fragmentShaderSource());
+			_program = std::make_shared<spk::Program>(
+				SPARKLE_GET_RESOURCE_AS_STRING("resources/shaders/texture_mesh/draw_texture_mesh.vert"),
+				SPARKLE_GET_RESOURCE_AS_STRING("resources/shaders/texture_mesh/draw_texture_mesh.frag"));
 			bindViewportUniformBlock(*_program);
 			_textureUniformLocation = glGetUniformLocation(_program->id(), "uTexture");
 		}

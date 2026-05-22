@@ -15,36 +15,10 @@
 #include "opengl/spk_opengl_gpu_data_buffer_center.hpp"
 #include "opengl/spk_opengl_uniform_buffer_object.hpp"
 #include "rendering/spk_render_context.hpp"
+#include "spk_generated_resources.hpp"
 
 namespace
 {
-	const char* vertexShaderSource()
-	{
-		return
-			"#version 330 core\n"
-			"layout(location = 0) in vec2 inPosition;\n"
-			"layout(std140) uniform ViewportData\n"
-			"{\n"
-			"	mat4 uProjection;\n"
-			"};\n"
-			"void main()\n"
-			"{\n"
-			"	gl_Position = uProjection * vec4(inPosition, 0.0, 1.0);\n"
-			"}\n";
-	}
-
-	const char* fragmentShaderSource()
-	{
-		return
-			"#version 330 core\n"
-			"uniform vec4 uColor;\n"
-			"out vec4 outColor;\n"
-			"void main()\n"
-			"{\n"
-			"	outColor = uColor;\n"
-			"}\n";
-	}
-
 	spk::OpenGL::UniformBufferObject& viewportUniformBuffer()
 	{
 		return spk::OpenGL::GPUDataBufferCenter::getUBO(spk::OpenGL::GPUDataBufferCenter::ViewportBlockName);
@@ -84,7 +58,9 @@ namespace spk
 	{
 		if (_program == nullptr)
 		{
-			_program = std::make_shared<spk::Program>(vertexShaderSource(), fragmentShaderSource());
+			_program = std::make_shared<spk::Program>(
+				SPARKLE_GET_RESOURCE_AS_STRING("resources/shaders/color_mesh/draw_color_mesh.vert"),
+				SPARKLE_GET_RESOURCE_AS_STRING("resources/shaders/color_mesh/draw_color_mesh.frag"));
 			bindViewportUniformBlock(*_program);
 			_colorUniformLocation = glGetUniformLocation(_program->id(), "uColor");
 		}

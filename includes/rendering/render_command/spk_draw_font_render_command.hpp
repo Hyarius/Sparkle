@@ -43,9 +43,8 @@ namespace spk
 			spk::Vector2Int p_baselinePosition,
 			spk::Font::Size p_size,
 			spk::Color p_color = spk::Color(1.0f, 1.0f, 1.0f, 1.0f),
-			float p_depth = 0.0f,
 			spk::Color p_outlineColor = spk::Color(0.0f, 0.0f, 0.0f, 0.0f),
-			float p_outlineThickness = 0.0f);
+			float p_depth = 0.0f);
 
 		void execute(spk::IRenderContext& p_renderContext) override;
 	};

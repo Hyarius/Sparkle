@@ -10,7 +10,8 @@ namespace spk
 		const spk::Font& p_font,
 		std::wstring p_text,
 		spk::Font::Size p_size,
-		spk::Color p_color,
+		spk::Color p_glyphColor,
+		spk::Color p_outlineColor,
 		float p_depth,
 		spk::Vector2Int p_anchor,
 		spk::HorizontalAlignment p_horizontalAlignment,
@@ -51,7 +52,8 @@ namespace spk
 			std::move(p_text),
 			spk::Vector2Int{baselineX, baselineY},
 			p_size,
-			p_color,
+			p_glyphColor,
+			p_outlineColor,
 			p_depth);
 	}
 
