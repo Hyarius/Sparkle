@@ -21,3 +21,14 @@ TEST(IModuleTest, BindStoresWidgetPointerAndAllowsNull)
 	module.bind(nullptr);
 	EXPECT_EQ(module.widget(), nullptr);
 }
+
+TEST(IModuleTest, ConstWidgetAccessorReturnsConstPointer)
+{
+	TestModule module;
+	sparkle_test::RecordingWidget widget("Widget");
+
+	module.bind(&widget);
+
+	const TestModule& constModule = module;
+	EXPECT_EQ(constModule.widget(), &widget);
+}

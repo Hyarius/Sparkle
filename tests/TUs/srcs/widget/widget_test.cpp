@@ -371,6 +371,109 @@ TEST(WidgetTest, MouseAndKeyboardDispatchReachDedicatedHandlers)
 	EXPECT_EQ(widget.keyboardEventKinds[0], "KeyPressed");
 }
 
+TEST(WidgetTest, AllFrameEventTypesReachHandlers)
+{
+	sparkle_test::RecordingWidget widget("Widget");
+	widget.activate();
+
+	const std::vector<spk::FrameEventRecord> events = {
+		spk::FrameEventRecord(spk::makeEventRecord(spk::WindowCloseRequestedRecord{})),
+		spk::FrameEventRecord(spk::makeEventRecord(spk::WindowDestroyedRecord{})),
+		spk::FrameEventRecord(spk::makeEventRecord(spk::WindowMovedRecord{.position = {0, 0}})),
+		spk::FrameEventRecord(spk::makeEventRecord(spk::WindowFocusGainedRecord{})),
+		spk::FrameEventRecord(spk::makeEventRecord(spk::WindowFocusLostRecord{})),
+	};
+
+	for (auto event : events)
+	{
+		widget.dispatchFrameEvent(event);
+	}
+
+	EXPECT_EQ(widget.frameEventCount, static_cast<int>(events.size()));
+}
+
+TEST(WidgetTest, AllMouseEventTypesReachHandlers)
+{
+	sparkle_test::RecordingWidget widget("Widget");
+	widget.activate();
+	spk::Mouse mouse;
+
+	const std::vector<spk::MouseEventRecord> events = {
+		spk::MouseEventRecord(spk::makeEventRecord(spk::MouseEnteredRecord{})),
+		spk::MouseEventRecord(spk::makeEventRecord(spk::MouseLeftRecord{})),
+		spk::MouseEventRecord(spk::makeEventRecord(spk::MouseWheelScrolledRecord{.delta = {0.0f, 1.0f}})),
+		spk::MouseEventRecord(spk::makeEventRecord(spk::MouseButtonReleasedRecord{.button = spk::Mouse::Left})),
+		spk::MouseEventRecord(spk::makeEventRecord(spk::MouseButtonDoubleClickedRecord{.button = spk::Mouse::Left})),
+	};
+
+	for (auto event : events)
+	{
+		widget.dispatchMouseEvent(event, mouse);
+	}
+
+	EXPECT_EQ(widget.mouseEventCount, static_cast<int>(events.size()));
+}
+
+TEST(WidgetTest, AllKeyboardEventTypesReachHandlers)
+{
+	sparkle_test::RecordingWidget widget("Widget");
+	widget.activate();
+	spk::Keyboard keyboard;
+
+	const std::vector<spk::KeyboardEventRecord> events = {
+		spk::KeyboardEventRecord(spk::makeEventRecord(spk::KeyReleasedRecord{.key = spk::Keyboard::Return})),
+		spk::KeyboardEventRecord(spk::makeEventRecord(spk::TextInputRecord{.glyph = U'A'})),
+	};
+
+	for (auto event : events)
+	{
+		widget.dispatchKeyboardEvent(event, keyboard);
+	}
+
+	EXPECT_EQ(widget.keyboardEventCount, static_cast<int>(events.size()));
+}
+
+TEST(WidgetTest, AppendRenderUnitsSkipsWhenScissorIsEmptyButGeometryIsNot)
+{
+	sparkle_test::RecordingWidget parent("Parent");
+	sparkle_test::RecordingWidget child("Child", &parent);
+	spk::RenderSnapshotBuilder builder;
+	spk::RenderModule renderModule;
+
+	parent.activate();
+	child.activate();
+
+	parent.setGeometry(spk::Rect2D(0, 0, 10, 10));
+	child.setGeometry(spk::Rect2D(20, 20, 5, 5));
+
+	EXPECT_TRUE(child.scissorForTest().empty());
+	EXPECT_FALSE(child.absoluteGeometryForTest().empty());
+
+	child.appendRenderUnits(builder);
+	sparkle_test::TestRenderContext renderContext(std::make_shared<sparkle_test::TestSurfaceState>());
+	renderModule.publishSnapshot(std::make_shared<spk::RenderSnapshot>(builder.build()));
+	renderModule.render(renderContext);
+
+	EXPECT_EQ(child.appendRenderCommandCount, 0);
+}
+
+TEST(WidgetTest, BaseWidgetDefaultEventHandlersAreNoOps)
+{
+	spk::Widget widget("Base");
+	widget.activate();
+
+	spk::Mouse mouse;
+	spk::Keyboard keyboard;
+
+	spk::FrameEventRecord frameEvent(spk::makeEventRecord(spk::WindowMovedRecord{.position = {10, 20}}));
+	spk::MouseEventRecord mouseEvent(spk::makeEventRecord(spk::MouseEnteredRecord{}));
+	spk::KeyboardEventRecord keyboardEvent(spk::makeEventRecord(spk::KeyReleasedRecord{.key = spk::Keyboard::Return}));
+
+	EXPECT_NO_THROW(widget.dispatchFrameEvent(frameEvent));
+	EXPECT_NO_THROW(widget.dispatchMouseEvent(mouseEvent, mouse));
+	EXPECT_NO_THROW(widget.dispatchKeyboardEvent(keyboardEvent, keyboard));
+}
+
 TEST(WidgetTest, DeactivatedWidgetSkipsRenderCommandAppendUpdateAndEventDispatch)
 {
 	sparkle_test::RecordingWidget widget("Widget");

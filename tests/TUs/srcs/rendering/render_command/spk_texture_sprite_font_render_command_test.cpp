@@ -258,10 +258,16 @@ TEST(DrawTextureMeshRenderCommandTest, DrawsFullScreenTexture)
 TEST(DrawTextureMeshRenderCommandTest, EmptyMeshDoesNotDraw)
 {
 	sparkle_test::OpenGLTestContext context;
+	spk::IRenderContext& renderContext = context.renderContext();
+
+	spk::OpenGL::Viewport viewport(spk::Rect2D(0, 0, 32, 32));
+	spk::ViewportCommand viewportSetup(viewport);
+	viewportSetup.execute(renderContext);
+
 	auto whiteTexture = makeSolidTexture({1, 1}, 255, 255, 255);
 	spk::DrawTextureMeshRenderCommand command(*whiteTexture, spk::TextureMesh2D{});
 
-	EXPECT_NO_THROW(command.execute(context.renderContext()));
+	EXPECT_NO_THROW(command.execute(renderContext));
 }
 
 TEST(DrawFontRenderCommandTest, DrawsGlyphsWithSizeAndOutline)
