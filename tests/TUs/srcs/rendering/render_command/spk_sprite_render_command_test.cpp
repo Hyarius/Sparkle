@@ -39,9 +39,9 @@ TEST(SpriteRenderCommandTest, DrawsSelectedSpriteByCoordinates)
 	sparkle_test::validateScreenshot(
 		context,
 		spk::Rect2D(0, 0, width, height),
-		sparkle_test::renderCommandResultPath("sprite_cmd_actual"),
-		sparkle_test::renderCommandExpectedPath("sprite_cmd_expected"),
-		sparkle_test::renderCommandResultPath("sprite_cmd_diff"));
+		sparkle_test::renderCommandResultPath("SpriteRenderCommand/selected_actual"),
+		sparkle_test::renderCommandExpectedPath("SpriteRenderCommand/selected_expected"),
+		sparkle_test::renderCommandResultPath("SpriteRenderCommand/selected_diff"));
 }
 
 TEST(SpriteRenderCommandTest, DrawsFirstSpriteByCoordinates)
@@ -66,9 +66,9 @@ TEST(SpriteRenderCommandTest, DrawsFirstSpriteByCoordinates)
 	sparkle_test::validateScreenshot(
 		context,
 		spk::Rect2D(0, 0, width, height),
-		sparkle_test::renderCommandResultPath("sprite_cmd_first_actual"),
-		sparkle_test::renderCommandExpectedPath("sprite_cmd_first_expected"),
-		sparkle_test::renderCommandResultPath("sprite_cmd_first_diff"));
+		sparkle_test::renderCommandResultPath("SpriteRenderCommand/first_actual"),
+		sparkle_test::renderCommandExpectedPath("SpriteRenderCommand/first_expected"),
+		sparkle_test::renderCommandResultPath("SpriteRenderCommand/first_diff"));
 }
 
 TEST(SpriteRenderCommandTest, RejectsOutOfBoundsSpriteCoordinates)
@@ -104,9 +104,9 @@ TEST(SpriteRenderCommandTest, CanExecuteTwiceWithConstructedMesh)
 	sparkle_test::validateScreenshot(
 		context,
 		spk::Rect2D(0, 0, 16, 16),
-		sparkle_test::renderCommandResultPath("sprite_cmd_twice_actual"),
-		sparkle_test::renderCommandExpectedPath("sprite_cmd_twice_expected"),
-		sparkle_test::renderCommandResultPath("sprite_cmd_twice_diff"));
+		sparkle_test::renderCommandResultPath("SpriteRenderCommand/twice_actual"),
+		sparkle_test::renderCommandExpectedPath("SpriteRenderCommand/twice_expected"),
+		sparkle_test::renderCommandResultPath("SpriteRenderCommand/twice_diff"));
 }
 
 #endif

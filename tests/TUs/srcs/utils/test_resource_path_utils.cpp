@@ -37,8 +37,9 @@ namespace spk::test
 		const std::string& p_name)
 	{
 		std::filesystem::path directory = expectedDirectory() / p_category;
-		std::filesystem::create_directories(directory);
-		return directory / (p_name + ".png");
+		std::filesystem::path result = directory / (p_name + ".png");
+		std::filesystem::create_directories(result.parent_path());
+		return result;
 	}
 
 	std::filesystem::path resultImagePath(
@@ -46,7 +47,8 @@ namespace spk::test
 		const std::string& p_name)
 	{
 		std::filesystem::path directory = resultDirectory() / p_category;
-		std::filesystem::create_directories(directory);
-		return directory / (p_name + ".png");
+		std::filesystem::path result = directory / (p_name + ".png");
+		std::filesystem::create_directories(result.parent_path());
+		return result;
 	}
 }

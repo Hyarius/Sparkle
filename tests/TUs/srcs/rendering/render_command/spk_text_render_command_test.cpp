@@ -29,8 +29,8 @@ TEST(TextRenderCommandTest, DrawsGlyphsWithLeftTopAlignment)
 	builder.emplace<spk::ViewportCommand>(viewport);
 	builder.emplace<spk::OpenGL::ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
 	builder.emplace<spk::TextRenderCommand>(
-		font, "Hi", spk::Font::Size(16), spk::Color(1.0f, 1.0f, 1.0f, 1.0f),
-		spk::Color(0.0f, 0.0f, 0.0f, 0.0f), 0.0f,
+		font, "Hi", spk::Font::Size(16, 3), spk::Color(0.0f, 1.0f, 0.0f, 1.0f),
+		spk::Color(1.0f, 0.0f, 0.0f, 1.0f), 0.0f,
 		spk::Vector2Int{2, 2},
 		spk::HorizontalAlignment::Left,
 		spk::VerticalAlignment::Top);
@@ -39,9 +39,9 @@ TEST(TextRenderCommandTest, DrawsGlyphsWithLeftTopAlignment)
 	unit.execute(renderContext);
 	context.gpuRuntime().waitUntilWorkDone();
 
-	const std::filesystem::path actual = sparkle_test::renderCommandResultPath("text_cmd_left_top_actual");
-	const std::filesystem::path expected = sparkle_test::renderCommandExpectedPath("text_cmd_left_top_expected");
-	const std::filesystem::path diff = sparkle_test::renderCommandResultPath("text_cmd_left_top_diff");
+	const std::filesystem::path actual = sparkle_test::renderCommandResultPath("TextRenderCommand/left_top_actual");
+	const std::filesystem::path expected = sparkle_test::renderCommandExpectedPath("TextRenderCommand/left_top_expected");
+	const std::filesystem::path diff = sparkle_test::renderCommandResultPath("TextRenderCommand/left_top_diff");
 	sparkle_test::validateScreenshot(context, spk::Rect2D(0, 0, width, height), actual, expected, diff);
 }
 
@@ -58,8 +58,8 @@ TEST(TextRenderCommandTest, DrawsGlyphsWithCenteredAlignment)
 	builder.emplace<spk::ViewportCommand>(viewport);
 	builder.emplace<spk::OpenGL::ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
 	builder.emplace<spk::TextRenderCommand>(
-		font, "Hi", spk::Font::Size(16), spk::Color(1.0f, 1.0f, 1.0f, 1.0f),
-		spk::Color(0.0f, 0.0f, 0.0f, 0.0f), 0.0f,
+		font, "Hi", spk::Font::Size(16, 3), spk::Color(0.0f, 1.0f, 0.0f, 1.0f),
+		spk::Color(1.0f, 0.0f, 0.0f, 1.0f), 0.0f,
 		spk::Vector2Int{width / 2, height / 2},
 		spk::HorizontalAlignment::Centered,
 		spk::VerticalAlignment::Centered);
@@ -68,9 +68,9 @@ TEST(TextRenderCommandTest, DrawsGlyphsWithCenteredAlignment)
 	unit.execute(renderContext);
 	context.gpuRuntime().waitUntilWorkDone();
 
-	const std::filesystem::path actual = sparkle_test::renderCommandResultPath("text_cmd_centered_actual");
-	const std::filesystem::path expected = sparkle_test::renderCommandExpectedPath("text_cmd_centered_expected");
-	const std::filesystem::path diff = sparkle_test::renderCommandResultPath("text_cmd_centered_diff");
+	const std::filesystem::path actual = sparkle_test::renderCommandResultPath("TextRenderCommand/centered_actual");
+	const std::filesystem::path expected = sparkle_test::renderCommandExpectedPath("TextRenderCommand/centered_expected");
+	const std::filesystem::path diff = sparkle_test::renderCommandResultPath("TextRenderCommand/centered_diff");
 	sparkle_test::validateScreenshot(context, spk::Rect2D(0, 0, width, height), actual, expected, diff);
 }
 
@@ -87,8 +87,8 @@ TEST(TextRenderCommandTest, DrawsGlyphsWithRightDownAlignment)
 	builder.emplace<spk::ViewportCommand>(viewport);
 	builder.emplace<spk::OpenGL::ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
 	builder.emplace<spk::TextRenderCommand>(
-		font, "Hi", spk::Font::Size(16), spk::Color(1.0f, 1.0f, 1.0f, 1.0f),
-		spk::Color(0.0f, 0.0f, 0.0f, 0.0f), 0.0f,
+		font, "Hi", spk::Font::Size(16, 3), spk::Color(0.0f, 1.0f, 0.0f, 1.0f),
+		spk::Color(1.0f, 0.0f, 0.0f, 1.0f), 0.0f,
 		spk::Vector2Int{width - 2, height - 2},
 		spk::HorizontalAlignment::Right,
 		spk::VerticalAlignment::Down);
@@ -97,9 +97,9 @@ TEST(TextRenderCommandTest, DrawsGlyphsWithRightDownAlignment)
 	unit.execute(renderContext);
 	context.gpuRuntime().waitUntilWorkDone();
 
-	const std::filesystem::path actual = sparkle_test::renderCommandResultPath("text_cmd_right_down_actual");
-	const std::filesystem::path expected = sparkle_test::renderCommandExpectedPath("text_cmd_right_down_expected");
-	const std::filesystem::path diff = sparkle_test::renderCommandResultPath("text_cmd_right_down_diff");
+	const std::filesystem::path actual = sparkle_test::renderCommandResultPath("TextRenderCommand/right_down_actual");
+	const std::filesystem::path expected = sparkle_test::renderCommandExpectedPath("TextRenderCommand/right_down_expected");
+	const std::filesystem::path diff = sparkle_test::renderCommandResultPath("TextRenderCommand/right_down_diff");
 	sparkle_test::validateScreenshot(context, spk::Rect2D(0, 0, width, height), actual, expected, diff);
 }
 
@@ -114,8 +114,8 @@ TEST(TextRenderCommandTest, EmptyTextDoesNotDraw)
 	builder.emplace<spk::ViewportCommand>(viewport);
 	builder.emplace<spk::OpenGL::ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
 	builder.emplace<spk::TextRenderCommand>(
-		font, "", spk::Font::Size(16), spk::Color(1.0f, 1.0f, 1.0f, 1.0f),
-		spk::Color(0.0f, 0.0f, 0.0f, 0.0f), 0.0f,
+		font, "", spk::Font::Size(16, 3), spk::Color(0.0f, 1.0f, 0.0f, 1.0f),
+		spk::Color(1.0f, 0.0f, 0.0f, 1.0f), 0.0f,
 		spk::Vector2Int{0, 0});
 
 	spk::RenderUnit unit = builder.build();
@@ -125,9 +125,9 @@ TEST(TextRenderCommandTest, EmptyTextDoesNotDraw)
 	sparkle_test::validateScreenshot(
 		context,
 		spk::Rect2D(0, 0, 32, 32),
-		sparkle_test::renderCommandResultPath("text_cmd_empty_actual"),
-		sparkle_test::renderCommandExpectedPath("text_cmd_empty_expected"),
-		sparkle_test::renderCommandResultPath("text_cmd_empty_diff"));
+		sparkle_test::renderCommandResultPath("TextRenderCommand/empty_actual"),
+		sparkle_test::renderCommandExpectedPath("TextRenderCommand/empty_expected"),
+		sparkle_test::renderCommandResultPath("TextRenderCommand/empty_diff"));
 }
 
 TEST(TextRenderCommandTest, CanExecuteTwiceWithConstructedCommand)
@@ -141,8 +141,8 @@ TEST(TextRenderCommandTest, CanExecuteTwiceWithConstructedCommand)
 	builder.emplace<spk::ViewportCommand>(viewport);
 	builder.emplace<spk::OpenGL::ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
 	builder.emplace<spk::TextRenderCommand>(
-		font, "Hi", spk::Font::Size(16), spk::Color(1.0f, 1.0f, 1.0f, 1.0f),
-		spk::Color(0.0f, 0.0f, 0.0f, 0.0f), 0.0f,
+		font, "Hi", spk::Font::Size(16, 3), spk::Color(0.0f, 1.0f, 0.0f, 1.0f),
+		spk::Color(1.0f, 0.0f, 0.0f, 1.0f), 0.0f,
 		spk::Vector2Int{2, 2});
 
 	spk::RenderUnit unit = builder.build();
@@ -153,9 +153,9 @@ TEST(TextRenderCommandTest, CanExecuteTwiceWithConstructedCommand)
 	sparkle_test::validateScreenshot(
 		context,
 		spk::Rect2D(0, 0, 80, 48),
-		sparkle_test::renderCommandResultPath("text_cmd_twice_actual"),
-		sparkle_test::renderCommandExpectedPath("text_cmd_twice_expected"),
-		sparkle_test::renderCommandResultPath("text_cmd_twice_diff"));
+		sparkle_test::renderCommandResultPath("TextRenderCommand/twice_actual"),
+		sparkle_test::renderCommandExpectedPath("TextRenderCommand/twice_expected"),
+		sparkle_test::renderCommandResultPath("TextRenderCommand/twice_diff"));
 }
 
 #endif

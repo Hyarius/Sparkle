@@ -38,9 +38,9 @@ TEST(ImageRenderCommandTest, DrawsFullTextureWithWholeSection)
 	sparkle_test::validateScreenshot(
 		context,
 		spk::Rect2D(0, 0, width, height),
-		sparkle_test::renderCommandResultPath("image_cmd_full_actual"),
-		sparkle_test::renderCommandExpectedPath("image_cmd_full_expected"),
-		sparkle_test::renderCommandResultPath("image_cmd_full_diff"));
+		sparkle_test::renderCommandResultPath("ImageRenderCommand/full_actual"),
+		sparkle_test::renderCommandExpectedPath("ImageRenderCommand/full_expected"),
+		sparkle_test::renderCommandResultPath("ImageRenderCommand/full_diff"));
 }
 
 TEST(ImageRenderCommandTest, DrawsPartialTextureSection)
@@ -76,9 +76,9 @@ TEST(ImageRenderCommandTest, DrawsPartialTextureSection)
 	sparkle_test::validateScreenshot(
 		context,
 		spk::Rect2D(0, 0, width, height),
-		sparkle_test::renderCommandResultPath("image_cmd_section_actual"),
-		sparkle_test::renderCommandExpectedPath("image_cmd_section_expected"),
-		sparkle_test::renderCommandResultPath("image_cmd_section_diff"));
+		sparkle_test::renderCommandResultPath("ImageRenderCommand/section_actual"),
+		sparkle_test::renderCommandExpectedPath("ImageRenderCommand/section_expected"),
+		sparkle_test::renderCommandResultPath("ImageRenderCommand/section_diff"));
 }
 
 TEST(ImageRenderCommandTest, CanExecuteTwiceWithConstructedMesh)
@@ -101,9 +101,9 @@ TEST(ImageRenderCommandTest, CanExecuteTwiceWithConstructedMesh)
 	sparkle_test::validateScreenshot(
 		context,
 		spk::Rect2D(0, 0, 16, 16),
-		sparkle_test::renderCommandResultPath("image_cmd_twice_actual"),
-		sparkle_test::renderCommandExpectedPath("image_cmd_twice_expected"),
-		sparkle_test::renderCommandResultPath("image_cmd_twice_diff"));
+		sparkle_test::renderCommandResultPath("ImageRenderCommand/twice_actual"),
+		sparkle_test::renderCommandExpectedPath("ImageRenderCommand/twice_expected"),
+		sparkle_test::renderCommandResultPath("ImageRenderCommand/twice_diff"));
 }
 
 #endif

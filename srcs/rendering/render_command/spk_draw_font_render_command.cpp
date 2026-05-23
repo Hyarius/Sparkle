@@ -53,7 +53,12 @@ namespace
 
 	[[nodiscard]] float outlineThickness(const spk::Font::Size& p_size)
 	{
-		return p_size.outline == 0 ? 0.0f : 0.5f;
+		if (p_size.outline == 0)
+		{
+			return 0.0f;
+		}
+		const float sdfPadding = static_cast<float>(p_size.outline + 2);
+		return static_cast<float>(p_size.outline) * 128.0f / (sdfPadding * 255.0f);
 	}
 }
 

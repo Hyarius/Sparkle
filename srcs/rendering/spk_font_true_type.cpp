@@ -116,6 +116,7 @@ namespace spk
 	{
 		const float scale = stbtt_ScaleForMappingEmToPixels(&_fontInfo, static_cast<float>(_textSize));
 		const int stbCodepoint = static_cast<int>(p_codepoint);
+		const size_t sdfPadding = _outlineSize == 0 ? 0 : _outlineSize + 2;
 
 		int width = 0;
 		int height = 0;
@@ -126,9 +127,9 @@ namespace spk
 			&_fontInfo,
 			scale,
 			stbCodepoint,
-			static_cast<int>(_outlineSize),
+			static_cast<int>(sdfPadding),
 			128,
-			256.0f / static_cast<float>(_outlineSize == 0 ? 1 : _outlineSize),
+			128.0f / static_cast<float>(sdfPadding == 0 ? 1 : sdfPadding),
 			&width,
 			&height,
 			&xOffset,

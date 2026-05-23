@@ -123,9 +123,9 @@ TEST(DrawTextureMeshRenderCommandTest, DrawsFullScreenTexture)
 	unit.execute(renderContext);
 	context.gpuRuntime().waitUntilWorkDone();
 
-	const std::filesystem::path actual = sparkle_test::renderCommandResultPath("texture_mesh_actual");
-	const std::filesystem::path expected = sparkle_test::renderCommandExpectedPath("texture_mesh_expected");
-	const std::filesystem::path diff = sparkle_test::renderCommandResultPath("texture_mesh_diff");
+	const std::filesystem::path actual = sparkle_test::renderCommandResultPath("DrawTextureMeshRenderCommand/full_actual");
+	const std::filesystem::path expected = sparkle_test::renderCommandExpectedPath("DrawTextureMeshRenderCommand/full_expected");
+	const std::filesystem::path diff = sparkle_test::renderCommandResultPath("DrawTextureMeshRenderCommand/full_diff");
 	sparkle_test::validateScreenshot(context, spk::Rect2D(0, 0, width, height), actual, expected, diff);
 }
 
@@ -150,9 +150,9 @@ TEST(DrawTextureMeshRenderCommandTest, EmptyMeshDoesNotDraw)
 	sparkle_test::validateScreenshot(
 		context,
 		spk::Rect2D(0, 0, width, height),
-		sparkle_test::renderCommandResultPath("texture_mesh_empty_actual"),
-		sparkle_test::renderCommandExpectedPath("texture_mesh_empty_expected"),
-		sparkle_test::renderCommandResultPath("texture_mesh_empty_diff"));
+		sparkle_test::renderCommandResultPath("DrawTextureMeshRenderCommand/empty_actual"),
+		sparkle_test::renderCommandExpectedPath("DrawTextureMeshRenderCommand/empty_expected"),
+		sparkle_test::renderCommandResultPath("DrawTextureMeshRenderCommand/empty_diff"));
 }
 
 TEST(DrawFontRenderCommandTest, DrawsGlyphsWithSizeAndOutline)
@@ -185,9 +185,9 @@ TEST(DrawFontRenderCommandTest, DrawsGlyphsWithSizeAndOutline)
 	unit.execute(renderContext);
 	context.gpuRuntime().waitUntilWorkDone();
 
-	const std::filesystem::path actual = sparkle_test::renderCommandResultPath("font_actual");
-	const std::filesystem::path expected = sparkle_test::renderCommandExpectedPath("font_expected");
-	const std::filesystem::path diff = sparkle_test::renderCommandResultPath("font_diff");
+	const std::filesystem::path actual = sparkle_test::renderCommandResultPath("DrawFontRenderCommand/size_outline_actual");
+	const std::filesystem::path expected = sparkle_test::renderCommandExpectedPath("DrawFontRenderCommand/size_outline_expected");
+	const std::filesystem::path diff = sparkle_test::renderCommandResultPath("DrawFontRenderCommand/size_outline_diff");
 	sparkle_test::validateScreenshot(context, spk::Rect2D(0, 0, width, height), actual, expected, diff);
 }
 
@@ -212,9 +212,9 @@ TEST(DrawFontRenderCommandTest, EmptyTextDoesNotDraw)
 	sparkle_test::validateScreenshot(
 		context,
 		spk::Rect2D(0, 0, width, height),
-		sparkle_test::renderCommandResultPath("font_empty_actual"),
-		sparkle_test::renderCommandExpectedPath("font_empty_expected"),
-		sparkle_test::renderCommandResultPath("font_empty_diff"));
+		sparkle_test::renderCommandResultPath("DrawFontRenderCommand/empty_actual"),
+		sparkle_test::renderCommandExpectedPath("DrawFontRenderCommand/empty_expected"),
+		sparkle_test::renderCommandResultPath("DrawFontRenderCommand/empty_diff"));
 }
 
 #endif

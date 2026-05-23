@@ -40,9 +40,9 @@ TEST(ColorRectangleRenderCommandTest, DrawsFullScreenRect)
 	sparkle_test::validateScreenshot(
 		context,
 		spk::Rect2D(0, 0, width, height),
-		sparkle_test::renderCommandResultPath("color_rect_full_actual"),
-		sparkle_test::renderCommandExpectedPath("color_rect_full_expected"),
-		sparkle_test::renderCommandResultPath("color_rect_full_diff"));
+		sparkle_test::renderCommandResultPath("ColorRectangleRenderCommand/full_actual"),
+		sparkle_test::renderCommandExpectedPath("ColorRectangleRenderCommand/full_expected"),
+		sparkle_test::renderCommandResultPath("ColorRectangleRenderCommand/full_diff"));
 }
 
 TEST(ColorRectangleRenderCommandTest, DrawsPartialRect)
@@ -67,9 +67,9 @@ TEST(ColorRectangleRenderCommandTest, DrawsPartialRect)
 	sparkle_test::validateScreenshot(
 		context,
 		spk::Rect2D(0, 0, width, height),
-		sparkle_test::renderCommandResultPath("color_rect_partial_actual"),
-		sparkle_test::renderCommandExpectedPath("color_rect_partial_expected"),
-		sparkle_test::renderCommandResultPath("color_rect_partial_diff"));
+		sparkle_test::renderCommandResultPath("ColorRectangleRenderCommand/partial_actual"),
+		sparkle_test::renderCommandExpectedPath("ColorRectangleRenderCommand/partial_expected"),
+		sparkle_test::renderCommandResultPath("ColorRectangleRenderCommand/partial_diff"));
 }
 
 TEST(ColorRectangleRenderCommandTest, ConstructsWithoutValidViewport)
@@ -101,9 +101,9 @@ TEST(ColorRectangleRenderCommandTest, CanExecuteTwiceWithConstructedMesh)
 	sparkle_test::validateScreenshot(
 		context,
 		spk::Rect2D(0, 0, 16, 16),
-		sparkle_test::renderCommandResultPath("color_rect_twice_actual"),
-		sparkle_test::renderCommandExpectedPath("color_rect_twice_expected"),
-		sparkle_test::renderCommandResultPath("color_rect_twice_diff"));
+		sparkle_test::renderCommandResultPath("ColorRectangleRenderCommand/twice_actual"),
+		sparkle_test::renderCommandExpectedPath("ColorRectangleRenderCommand/twice_expected"),
+		sparkle_test::renderCommandResultPath("ColorRectangleRenderCommand/twice_diff"));
 }
 
 #endif
