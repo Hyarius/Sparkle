@@ -1,18 +1,14 @@
 ﻿#pragma once
 
-#include <filesystem>
 #include <string>
 
 #include "image_comparison_test_utils.hpp"
 #include "math/spk_rect_2d.hpp"
+#include "test_resource_path_utils.hpp"
 #include "widget/spk_widget.hpp"
 
 namespace spk::test
 {
-	[[nodiscard]] std::filesystem::path visualTestResourcesRoot();
-	[[nodiscard]] std::filesystem::path expectedDirectory();
-	[[nodiscard]] std::filesystem::path resultDirectory();
-
 	[[nodiscard]] sparkle_test::ImageComparisonResult compareSnapshot(
 		spk::Widget& p_widget,
 		const std::string& p_widgetName,

@@ -8,7 +8,7 @@ namespace spk
 {
 	TextRenderCommand::TextRenderCommand(
 		const spk::Font& p_font,
-		std::wstring p_text,
+		spk::Font::Text p_text,
 		spk::Font::Size p_size,
 		spk::Color p_glyphColor,
 		spk::Color p_outlineColor,
@@ -18,18 +18,19 @@ namespace spk
 		spk::VerticalAlignment p_verticalAlignment)
 	{
 		const spk::Vector2UInt stringSize = const_cast<spk::Font&>(p_font).computeStringSize(p_text, p_size);
+		const spk::Vector2Int baselineOffset = const_cast<spk::Font&>(p_font).computeStringBaselineOffset(p_text, p_size);
 
 		int baselineX = p_anchor.x;
 		switch (p_horizontalAlignment)
 		{
 		case spk::HorizontalAlignment::Left:
-			baselineX = p_anchor.x;
+			baselineX = p_anchor.x + baselineOffset.x;
 			break;
 		case spk::HorizontalAlignment::Centered:
-			baselineX = p_anchor.x - static_cast<int>(stringSize.x) / 2;
+			baselineX = p_anchor.x - static_cast<int>(stringSize.x) / 2 + baselineOffset.x;
 			break;
 		case spk::HorizontalAlignment::Right:
-			baselineX = p_anchor.x - static_cast<int>(stringSize.x);
+			baselineX = p_anchor.x - static_cast<int>(stringSize.x) + baselineOffset.x;
 			break;
 		}
 
@@ -37,13 +38,13 @@ namespace spk
 		switch (p_verticalAlignment)
 		{
 		case spk::VerticalAlignment::Top:
-			baselineY = p_anchor.y;
+			baselineY = p_anchor.y + baselineOffset.y;
 			break;
 		case spk::VerticalAlignment::Centered:
-			baselineY = p_anchor.y - static_cast<int>(stringSize.y) / 2;
+			baselineY = p_anchor.y - static_cast<int>(stringSize.y) / 2 + baselineOffset.y;
 			break;
 		case spk::VerticalAlignment::Down:
-			baselineY = p_anchor.y - static_cast<int>(stringSize.y);
+			baselineY = p_anchor.y - static_cast<int>(stringSize.y) + baselineOffset.y;
 			break;
 		}
 
@@ -55,6 +56,29 @@ namespace spk
 			p_glyphColor,
 			p_outlineColor,
 			p_depth);
+	}
+
+	TextRenderCommand::TextRenderCommand(
+		const spk::Font& p_font,
+		std::string_view p_text,
+		spk::Font::Size p_size,
+		spk::Color p_glyphColor,
+		spk::Color p_outlineColor,
+		float p_depth,
+		spk::Vector2Int p_anchor,
+		spk::HorizontalAlignment p_horizontalAlignment,
+		spk::VerticalAlignment p_verticalAlignment) :
+		TextRenderCommand(
+			p_font,
+			spk::Font::textFromUTF8(p_text),
+			p_size,
+			p_glyphColor,
+			p_outlineColor,
+			p_depth,
+			p_anchor,
+			p_horizontalAlignment,
+			p_verticalAlignment)
+	{
 	}
 
 	void TextRenderCommand::execute(spk::IRenderContext& p_renderContext)

@@ -96,6 +96,14 @@ TEST(ImageRenderCommandTest, CanExecuteTwiceWithConstructedMesh)
 	spk::RenderUnit unit = builder.build();
 	EXPECT_NO_THROW(unit.execute(renderContext));
 	EXPECT_NO_THROW(unit.execute(renderContext));
+	context.gpuRuntime().waitUntilWorkDone();
+
+	sparkle_test::validateScreenshot(
+		context,
+		spk::Rect2D(0, 0, 16, 16),
+		sparkle_test::renderCommandResultPath("image_cmd_twice_actual"),
+		sparkle_test::renderCommandExpectedPath("image_cmd_twice_expected"),
+		sparkle_test::renderCommandResultPath("image_cmd_twice_diff"));
 }
 
 #endif

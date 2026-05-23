@@ -5,6 +5,8 @@
 #include <array>
 #include <filesystem>
 #include <map>
+#include <string>
+#include <string_view>
 #include <unordered_map>
 #include <vector>
 
@@ -21,6 +23,8 @@ namespace spk
 	{
 	public:
 		using Data = std::vector<uint8_t>;
+		using Codepoint = char32_t;
+		using Text = std::u32string;
 		using Filtering = Texture::Filtering;
 		using Wrap = Texture::Wrap;
 		using Mipmap = Texture::Mipmap;
@@ -85,7 +89,7 @@ namespace spk
 			spk::ContractProvider<> _onEditionContractProvider;
 			const stbtt_fontinfo& _fontInfo;
 
-			std::unordered_map<wchar_t, Glyph> _glyphs;
+			std::unordered_map<Codepoint, Glyph> _glyphs;
 			Glyph _unknownGlyph;
 
 			std::vector<uint8_t> _atlasPixels;
@@ -115,7 +119,7 @@ namespace spk
 				const uint8_t* p_pixelsToApply,
 				const spk::Vector2Int& p_glyphPosition,
 				const spk::Vector2UInt& p_glyphSize);
-			void _loadGlyph(wchar_t p_char);
+			void _loadGlyph(Codepoint p_codepoint);
 			void _uploadTexture();
 
 		public:
@@ -130,15 +134,18 @@ namespace spk
 
 			Contract subscribe(const Job& p_job);
 
-			void loadGlyphs(const std::wstring& p_glyphsToLoad);
+			void loadGlyphs(const Text& p_glyphsToLoad);
+			void loadGlyphs(std::string_view p_utf8GlyphsToLoad);
 			void loadAllRenderableGlyphs();
 
-			const Glyph& operator[](wchar_t p_char);
-			const Glyph& glyph(wchar_t p_char);
+			const Glyph& operator[](Codepoint p_codepoint);
+			const Glyph& glyph(Codepoint p_codepoint);
 
-			spk::Vector2UInt computeCharSize(wchar_t p_char);
-			spk::Vector2UInt computeStringSize(const std::wstring& p_string);
-			spk::Vector2Int computeStringBaselineOffset(const std::wstring& p_string);
+			spk::Vector2UInt computeCharSize(Codepoint p_codepoint);
+			spk::Vector2UInt computeStringSize(const Text& p_string);
+			spk::Vector2UInt computeStringSize(std::string_view p_utf8String);
+			spk::Vector2Int computeStringBaselineOffset(const Text& p_string);
+			spk::Vector2Int computeStringBaselineOffset(std::string_view p_utf8String);
 		};
 
 	private:
@@ -154,6 +161,8 @@ namespace spk
 		Mipmap _mipmap = Mipmap::Disable;
 
 	public:
+		[[nodiscard]] static Text textFromUTF8(std::string_view p_text);
+
 		static Font fromRawData(
 			const std::vector<uint8_t>& p_data,
 			Filtering p_filtering = Filtering::Nearest,
@@ -165,12 +174,18 @@ namespace spk
 
 		void setProperties(Filtering p_filtering, Wrap p_wrap, Mipmap p_mipmap);
 
-		spk::Vector2UInt computeCharSize(wchar_t p_char, const Size& p_size);
-		spk::Vector2UInt computeStringSize(const std::wstring& p_string, const Size& p_size);
-		spk::Vector2Int computeStringBaselineOffset(const std::wstring& p_string, const Size& p_size);
+		spk::Vector2UInt computeCharSize(Codepoint p_codepoint, const Size& p_size);
+		spk::Vector2UInt computeStringSize(const Text& p_string, const Size& p_size);
+		spk::Vector2UInt computeStringSize(std::string_view p_utf8String, const Size& p_size);
+		spk::Vector2Int computeStringBaselineOffset(const Text& p_string, const Size& p_size);
+		spk::Vector2Int computeStringBaselineOffset(std::string_view p_utf8String, const Size& p_size);
 
 		Size computeOptimalTextSize(
-			const std::wstring& p_string,
+			const Text& p_string,
+			float p_outlineSizeRatio,
+			const spk::Vector2UInt& p_textArea);
+		Size computeOptimalTextSize(
+			std::string_view p_utf8String,
 			float p_outlineSizeRatio,
 			const spk::Vector2UInt& p_textArea);
 

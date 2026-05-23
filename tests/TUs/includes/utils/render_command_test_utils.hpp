@@ -12,6 +12,7 @@
 
 #include "sparkle.hpp"
 #include "spk_generated_resources.hpp"
+#include "test_resource_path_utils.hpp"
 
 #if defined(_WIN32) && defined(SPARKLE_GPU_BACKEND_OPENGL)
 #include <GL/glew.h>
@@ -21,16 +22,12 @@ namespace sparkle_test
 {
 	[[nodiscard]] inline std::filesystem::path renderCommandExpectedPath(const std::string& p_name)
 	{
-		std::filesystem::path directory = spk::test::expectedDirectory() / "RenderCommands";
-		std::filesystem::create_directories(directory);
-		return directory / (p_name + ".png");
+		return spk::test::expectedImagePath("RenderCommands", p_name);
 	}
 
 	[[nodiscard]] inline std::filesystem::path renderCommandResultPath(const std::string& p_name)
 	{
-		std::filesystem::path directory = spk::test::resultDirectory() / "RenderCommands";
-		std::filesystem::create_directories(directory);
-		return directory / (p_name + ".png");
+		return spk::test::resultImagePath("RenderCommands", p_name);
 	}
 
 	[[nodiscard]] inline spk::Font testFont()

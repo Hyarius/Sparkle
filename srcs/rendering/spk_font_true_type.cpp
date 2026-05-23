@@ -26,9 +26,9 @@ namespace spk
 				if (rendered.contains(codepoint) == false)
 				{
 					const int glyphIndex = stbtt_FindGlyphIndex(&_fontInfo, codepoint);
-					if (glyphIndex != 0 && _glyphs.contains(static_cast<wchar_t>(codepoint)) == false)
+					if (glyphIndex != 0 && _glyphs.contains(static_cast<Codepoint>(codepoint)) == false)
 					{
-						_loadGlyph(static_cast<wchar_t>(codepoint));
+						_loadGlyph(static_cast<Codepoint>(codepoint));
 						rendered.insert(codepoint);
 					}
 				}
@@ -112,9 +112,10 @@ namespace spk
 		return result;
 	}
 
-	void Font::Atlas::_loadGlyph(wchar_t p_char)
+	void Font::Atlas::_loadGlyph(Codepoint p_codepoint)
 	{
 		const float scale = stbtt_ScaleForMappingEmToPixels(&_fontInfo, static_cast<float>(_textSize));
+		const int stbCodepoint = static_cast<int>(p_codepoint);
 
 		int width = 0;
 		int height = 0;
@@ -124,7 +125,7 @@ namespace spk
 		uint8_t* glyphBitmap = stbtt_GetCodepointSDF(
 			&_fontInfo,
 			scale,
-			p_char,
+			stbCodepoint,
 			static_cast<int>(_outlineSize),
 			128,
 			256.0f / static_cast<float>(_outlineSize == 0 ? 1 : _outlineSize),
@@ -135,7 +136,7 @@ namespace spk
 
 		if (glyphBitmap == nullptr)
 		{
-			_glyphs[p_char] = _unknownGlyph;
+			_glyphs[p_codepoint] = _unknownGlyph;
 			return;
 		}
 
@@ -170,12 +171,12 @@ namespace spk
 			static_cast<float>(glyphPosition.y + height) / static_cast<float>(_atlasSize.y) - halfPixel.y);
 
 		int advance = 0;
-		stbtt_GetCodepointHMetrics(&_fontInfo, p_char, &advance, nullptr);
+		stbtt_GetCodepointHMetrics(&_fontInfo, stbCodepoint, &advance, nullptr);
 		glyph.step = spk::Vector2Int(
 			static_cast<int>(std::ceil(advance * scale)) + static_cast<int>(_outlineSize),
 			0);
 
-		_glyphs[p_char] = glyph;
+		_glyphs[p_codepoint] = glyph;
 		stbtt_FreeBitmap(glyphBitmap, nullptr);
 	}
 

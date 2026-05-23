@@ -2,6 +2,7 @@
 
 #if defined(SPARKLE_GPU_BACKEND_OPENGL)
 
+#include <string_view>
 #include <vector>
 
 #include "opengl/spk_opengl_layout_buffer_object.hpp"
@@ -39,7 +40,15 @@ namespace spk
 	public:
 		DrawFontRenderCommand(
 			const spk::Font& p_font,
-			std::wstring p_text,
+			spk::Font::Text p_text,
+			spk::Vector2Int p_baselinePosition,
+			spk::Font::Size p_size,
+			spk::Color p_color = spk::Color(1.0f, 1.0f, 1.0f, 1.0f),
+			spk::Color p_outlineColor = spk::Color(0.0f, 0.0f, 0.0f, 0.0f),
+			float p_depth = 0.0f);
+		DrawFontRenderCommand(
+			const spk::Font& p_font,
+			std::string_view p_text,
 			spk::Vector2Int p_baselinePosition,
 			spk::Font::Size p_size,
 			spk::Color p_color = spk::Color(1.0f, 1.0f, 1.0f, 1.0f),

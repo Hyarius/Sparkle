@@ -98,6 +98,13 @@ TEST(FontGlyphTest, IndexesOrderHasSixElements)
 	EXPECT_EQ(spk::Font::Glyph::indexesOrder.size(), 6u);
 }
 
+TEST(FontTextTest, ConvertsUtf8StringToCodepoints)
+{
+	const std::string text = std::string("A") + "\xC3\xA9";
+
+	EXPECT_EQ(spk::Font::textFromUTF8(text), spk::Font::Text(U"A\u00E9"));
+}
+
 TEST(FontTest, DefaultConstructionDoesNotThrow)
 {
 	sparkle_test::OpenGLTestContext context;
@@ -144,9 +151,9 @@ TEST(FontTest, LoadsSystemFontAndComputesGlyphMetrics)
 
 	spk::Font font = testFont();
 
-	const spk::Vector2UInt charSize = font.computeCharSize(L'A', spk::Font::Size(24, 2));
-	const spk::Vector2UInt stringSize = font.computeStringSize(L"Hello", spk::Font::Size(24, 2));
-	const spk::Vector2Int baselineOffset = font.computeStringBaselineOffset(L"Hello", spk::Font::Size(24, 2));
+	const spk::Vector2UInt charSize = font.computeCharSize(U'A', spk::Font::Size(24, 2));
+	const spk::Vector2UInt stringSize = font.computeStringSize("Hello", spk::Font::Size(24, 2));
+	const spk::Vector2Int baselineOffset = font.computeStringBaselineOffset("Hello", spk::Font::Size(24, 2));
 
 	EXPECT_GT(charSize.x, 0u);
 	EXPECT_GT(charSize.y, 0u);
@@ -171,8 +178,8 @@ TEST(FontTest, FromRawDataLoadsGlyphsAndNotifiesAtlasSubscribers)
 	int notificationCount = 0;
 	auto contract = atlas.subscribe([&]() { ++notificationCount; });
 
-	atlas.loadGlyphs(L"AB");
-	const spk::Font::Glyph& glyph = atlas[L'A'];
+	atlas.loadGlyphs("AB");
+	const spk::Font::Glyph& glyph = atlas[U'A'];
 	atlas.synchronize();
 
 	EXPECT_GE(notificationCount, 2);
@@ -188,7 +195,7 @@ TEST(FontTest, SetPropertiesPropagatesToExistingAtlas)
 
 	spk::Font font = testFont();
 	spk::Font::Atlas& atlas = font.atlas(spk::Font::Size(16, 0));
-	atlas.glyph(L'A');
+	atlas.glyph(U'A');
 
 	font.setProperties(
 		spk::Font::Filtering::Linear,
@@ -207,8 +214,8 @@ TEST(FontTest, ComputeOptimalTextSizeHandlesEmptyAndNonEmptyStrings)
 
 	spk::Font font = testFont();
 
-	const spk::Font::Size emptySize = font.computeOptimalTextSize(L"", 0.1f, {200, 50});
-	const spk::Font::Size textSize = font.computeOptimalTextSize(L"Sparkle", 0.1f, {200, 50});
+	const spk::Font::Size emptySize = font.computeOptimalTextSize("", 0.1f, {200, 50});
+	const spk::Font::Size textSize = font.computeOptimalTextSize("Sparkle", 0.1f, {200, 50});
 
 	EXPECT_EQ(emptySize.glyph, 40u);
 	EXPECT_EQ(emptySize.outline, 5u);
@@ -226,7 +233,7 @@ TEST(FontTest, AtlasLoadsAllRenderableGlyphs)
 	spk::Font::Atlas& atlas = font.atlas(spk::Font::Size(12, 0));
 
 	EXPECT_NO_THROW(atlas.loadAllRenderableGlyphs());
-	EXPECT_GT(atlas.computeCharSize(L'A').x, 0u);
+	EXPECT_GT(atlas.computeCharSize(U'A').x, 0u);
 }
 
 #endif

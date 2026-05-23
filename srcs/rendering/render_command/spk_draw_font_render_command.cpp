@@ -61,7 +61,7 @@ namespace spk
 {
 	DrawFontRenderCommand::DrawFontRenderCommand(
 		const spk::Font& p_font,
-		std::wstring p_text,
+		spk::Font::Text p_text,
 		spk::Vector2Int p_baselinePosition,
 		spk::Font::Size p_size,
 		spk::Color p_color,
@@ -84,7 +84,7 @@ namespace spk
 
 		spk::TextureMesh2D mesh;
 		int cursorX = p_baselinePosition.x;
-		for (wchar_t character : p_text)
+		for (spk::Font::Codepoint character : p_text)
 		{
 			const spk::Font::Glyph& glyph = _atlas.glyph(character);
 			if (glyph.size.x != 0 && glyph.size.y != 0)
@@ -128,6 +128,25 @@ namespace spk
 				appendVertex(vertex);
 			}
 		}
+	}
+
+	DrawFontRenderCommand::DrawFontRenderCommand(
+		const spk::Font& p_font,
+		std::string_view p_text,
+		spk::Vector2Int p_baselinePosition,
+		spk::Font::Size p_size,
+		spk::Color p_color,
+		spk::Color p_outlineColor,
+		float p_depth) :
+		DrawFontRenderCommand(
+			p_font,
+			spk::Font::textFromUTF8(p_text),
+			p_baselinePosition,
+			p_size,
+			p_color,
+			p_outlineColor,
+			p_depth)
+	{
 	}
 
 	void DrawFontRenderCommand::_uploadMesh()

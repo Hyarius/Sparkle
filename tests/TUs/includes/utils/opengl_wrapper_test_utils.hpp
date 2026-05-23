@@ -10,8 +10,9 @@
 #include <gtest/gtest.h>
 #include <stb_image_write.h>
 
-#include "spk_widget_visual_test_helpers.hpp"
+#include "image_comparison_test_utils.hpp"
 #include "sparkle.hpp"
+#include "test_resource_path_utils.hpp"
 
 #if defined(_WIN32) && defined(SPARKLE_GPU_BACKEND_OPENGL)
 #include <GL/glew.h>

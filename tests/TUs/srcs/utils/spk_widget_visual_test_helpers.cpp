@@ -72,36 +72,6 @@ namespace spk::test
 #endif
 	}
 
-	std::filesystem::path visualTestResourcesRoot()
-	{
-		auto cursor = std::filesystem::current_path();
-		for (int i = 0; i < 8; ++i)
-		{
-			auto candidate = cursor / "tests" / "TUs" / "resources";
-			if (std::filesystem::exists(candidate) == true)
-			{
-				return candidate;
-			}
-			if (cursor.has_parent_path() == false)
-			{
-				break;
-			}
-			cursor = cursor.parent_path();
-		}
-
-		return std::filesystem::current_path() / "tests" / "TUs" / "resources";
-	}
-
-	std::filesystem::path expectedDirectory()
-	{
-		return visualTestResourcesRoot() / "expectedImages";
-	}
-
-	std::filesystem::path resultDirectory()
-	{
-		return visualTestResourcesRoot() / "imageResults";
-	}
-
 	sparkle_test::ImageComparisonResult compareSnapshot(
 		spk::Widget& p_widget,
 		const std::string& p_widgetName,

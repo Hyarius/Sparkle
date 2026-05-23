@@ -9,10 +9,10 @@ namespace
 {
 	const spk::Font::Size PlaygroundFontSize(32, 5);
 
-	[[nodiscard]] std::wstring playgroundGlyphSet()
+	[[nodiscard]] spk::Font::Text playgroundGlyphSet()
 	{
-		std::wstring result;
-		for (wchar_t glyph = L'!'; glyph <= L'~'; ++glyph)
+		spk::Font::Text result;
+		for (spk::Font::Codepoint glyph = U'A'; glyph <= U'G'; ++glyph)
 		{
 			result.push_back(glyph);
 		}

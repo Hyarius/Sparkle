@@ -7,7 +7,7 @@
 #include <stb_image_write.h>
 
 #include "image_comparison_test_utils.hpp"
-#include "spk_widget_visual_test_helpers.hpp"
+#include "test_resource_path_utils.hpp"
 
 namespace
 {

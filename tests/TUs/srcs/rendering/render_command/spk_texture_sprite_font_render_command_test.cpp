@@ -126,27 +126,33 @@ TEST(DrawTextureMeshRenderCommandTest, DrawsFullScreenTexture)
 	const std::filesystem::path actual = sparkle_test::renderCommandResultPath("texture_mesh_actual");
 	const std::filesystem::path expected = sparkle_test::renderCommandExpectedPath("texture_mesh_expected");
 	const std::filesystem::path diff = sparkle_test::renderCommandResultPath("texture_mesh_diff");
-	context.gpuRuntime().saveScreenshot(actual, spk::Rect2D(0, 0, width, height));
-	sparkle_test::writeSolidExpectedImage(expected, width, height, {0, 0, 255, 255});
-
-	const sparkle_test::ImageComparisonResult result = sparkle_test::compareImages(actual, expected, diff);
-	EXPECT_TRUE(result.matches)
-		<< "actual=[" << actual.string() << "] expected=[" << expected.string() << "] diff=[" << diff.string() << "]";
+	sparkle_test::validateScreenshot(context, spk::Rect2D(0, 0, width, height), actual, expected, diff);
 }
 
 TEST(DrawTextureMeshRenderCommandTest, EmptyMeshDoesNotDraw)
 {
-	sparkle_test::OpenGLTestContext context;
+	constexpr int width = 32;
+	constexpr int height = 32;
+	sparkle_test::OpenGLTestContext context(spk::Rect2D(0, 0, width, height));
 	spk::IRenderContext& renderContext = context.renderContext();
 
-	spk::OpenGL::Viewport viewport(spk::Rect2D(0, 0, 32, 32));
-	spk::ViewportCommand viewportSetup(viewport);
-	viewportSetup.execute(renderContext);
-
 	auto whiteTexture = sparkle_test::makeSolidTexture({1, 1}, 255, 255, 255);
-	spk::DrawTextureMeshRenderCommand command(*whiteTexture, spk::TextureMesh2D{});
+	spk::OpenGL::Viewport viewport(spk::Rect2D(0, 0, width, height));
+	spk::RenderUnitBuilder builder;
+	builder.emplace<spk::ViewportCommand>(viewport);
+	builder.emplace<spk::OpenGL::ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
+	builder.emplace<spk::DrawTextureMeshRenderCommand>(*whiteTexture, spk::TextureMesh2D{});
 
-	EXPECT_NO_THROW(command.execute(renderContext));
+	spk::RenderUnit unit = builder.build();
+	EXPECT_NO_THROW(unit.execute(renderContext));
+	context.gpuRuntime().waitUntilWorkDone();
+
+	sparkle_test::validateScreenshot(
+		context,
+		spk::Rect2D(0, 0, width, height),
+		sparkle_test::renderCommandResultPath("texture_mesh_empty_actual"),
+		sparkle_test::renderCommandExpectedPath("texture_mesh_empty_expected"),
+		sparkle_test::renderCommandResultPath("texture_mesh_empty_diff"));
 }
 
 TEST(DrawFontRenderCommandTest, DrawsGlyphsWithSizeAndOutline)
@@ -164,13 +170,13 @@ TEST(DrawFontRenderCommandTest, DrawsGlyphsWithSizeAndOutline)
 	builder.emplace<spk::OpenGL::ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
 	builder.emplace<spk::DrawFontRenderCommand>(
 		font,
-		L"A",
+		"A",
 		spk::Vector2Int{4, 34},
 		spk::Font::Size(16, 0),
 		spk::Color(1.0f, 1.0f, 1.0f, 1.0f));
 	builder.emplace<spk::DrawFontRenderCommand>(
 		font,
-		L"A",
+		"A",
 		spk::Vector2Int{40, 34},
 		spk::Font::Size(28, 3),
 		spk::Color(1.0f, 1.0f, 1.0f, 1.0f));
@@ -180,18 +186,35 @@ TEST(DrawFontRenderCommandTest, DrawsGlyphsWithSizeAndOutline)
 	context.gpuRuntime().waitUntilWorkDone();
 
 	const std::filesystem::path actual = sparkle_test::renderCommandResultPath("font_actual");
-	context.gpuRuntime().saveScreenshot(actual, spk::Rect2D(0, 0, width, height));
-
-	EXPECT_GT(sparkle_test::countLitPixels(actual), 100u);
+	const std::filesystem::path expected = sparkle_test::renderCommandExpectedPath("font_expected");
+	const std::filesystem::path diff = sparkle_test::renderCommandResultPath("font_diff");
+	sparkle_test::validateScreenshot(context, spk::Rect2D(0, 0, width, height), actual, expected, diff);
 }
 
 TEST(DrawFontRenderCommandTest, EmptyTextDoesNotDraw)
 {
-	sparkle_test::OpenGLTestContext context;
-	spk::Font font = sparkle_test::testFont();
-	spk::DrawFontRenderCommand command(font, L"", {0, 16}, spk::Font::Size(16, 0));
+	constexpr int width = 32;
+	constexpr int height = 32;
+	sparkle_test::OpenGLTestContext context(spk::Rect2D(0, 0, width, height));
+	spk::IRenderContext& renderContext = context.renderContext();
 
-	EXPECT_NO_THROW(command.execute(context.renderContext()));
+	spk::Font font = sparkle_test::testFont();
+	spk::OpenGL::Viewport viewport(spk::Rect2D(0, 0, width, height));
+	spk::RenderUnitBuilder builder;
+	builder.emplace<spk::ViewportCommand>(viewport);
+	builder.emplace<spk::OpenGL::ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
+	builder.emplace<spk::DrawFontRenderCommand>(font, "", spk::Vector2Int{0, 16}, spk::Font::Size(16, 0));
+
+	spk::RenderUnit unit = builder.build();
+	EXPECT_NO_THROW(unit.execute(renderContext));
+	context.gpuRuntime().waitUntilWorkDone();
+
+	sparkle_test::validateScreenshot(
+		context,
+		spk::Rect2D(0, 0, width, height),
+		sparkle_test::renderCommandResultPath("font_empty_actual"),
+		sparkle_test::renderCommandExpectedPath("font_empty_expected"),
+		sparkle_test::renderCommandResultPath("font_empty_diff"));
 }
 
 #endif
