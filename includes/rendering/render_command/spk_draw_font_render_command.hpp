@@ -46,6 +46,7 @@ namespace spk
 			spk::Color p_color = spk::Color(1.0f, 1.0f, 1.0f, 1.0f),
 			spk::Color p_outlineColor = spk::Color(0.0f, 0.0f, 0.0f, 0.0f),
 			float p_depth = 0.0f);
+			
 		DrawFontRenderCommand(
 			const spk::Font& p_font,
 			std::string_view p_text,

@@ -4,10 +4,8 @@
 #include <cstdint>
 #include <filesystem>
 #include <memory>
-#include <stdexcept>
 #include <vector>
 
-#include <stb_image.h>
 #include <stb_image_write.h>
 
 #include "sparkle.hpp"
@@ -34,31 +32,6 @@ namespace sparkle_test
 	{
 		const auto& bytes = SPARKLE_GET_RESOURCE("tests/TUs/resources/fonts/arial.ttf");
 		return spk::Font::fromRawData(std::vector<std::uint8_t>(bytes.begin(), bytes.end()));
-	}
-
-	[[nodiscard]] inline std::size_t countLitPixels(const std::filesystem::path& p_path)
-	{
-		int width = 0;
-		int height = 0;
-		int channels = 0;
-		unsigned char* rawPixels = stbi_load(p_path.string().c_str(), &width, &height, &channels, 4);
-		if (rawPixels == nullptr)
-		{
-			throw std::runtime_error("Failed to load rendered image: " + p_path.string());
-		}
-
-		std::size_t result = 0;
-		const std::size_t pixelCount = static_cast<std::size_t>(width) * static_cast<std::size_t>(height);
-		for (std::size_t i = 0; i < pixelCount; ++i)
-		{
-			const std::size_t index = i * 4;
-			if (rawPixels[index + 0] > 10 || rawPixels[index + 1] > 10 || rawPixels[index + 2] > 10)
-			{
-				++result;
-			}
-		}
-		stbi_image_free(rawPixels);
-		return result;
 	}
 
 	[[nodiscard]] inline std::vector<std::uint8_t> makeTwoSpritePngBytes()
