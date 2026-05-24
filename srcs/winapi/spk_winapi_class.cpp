@@ -6,9 +6,9 @@
 
 #include "winapi/spk_winapi_helpers.hpp"
 
-namespace spk::WinAPI
+namespace spk
 {
-	Class::Class(std::string p_name, WNDPROC p_windowProcedure, HINSTANCE p_instance) :
+	WindowClass::WindowClass(std::string p_name, WNDPROC p_windowProcedure, HINSTANCE p_instance) :
 		_instance(p_instance),
 		_name(std::move(p_name)),
 		_nativeName(toWideString(_name))
@@ -49,7 +49,7 @@ namespace spk::WinAPI
 		_isRegistered = true;
 	}
 
-	Class::Class(Class&& p_other) noexcept :
+	WindowClass::WindowClass(WindowClass&& p_other) noexcept :
 		_instance(p_other._instance),
 		_name(std::move(p_other._name)),
 		_nativeName(std::move(p_other._nativeName)),
@@ -59,7 +59,7 @@ namespace spk::WinAPI
 		p_other._isRegistered = false;
 	}
 
-	Class::~Class()
+	WindowClass::~WindowClass()
 	{
 		if (_isRegistered == true && _instance != nullptr && _nativeName.empty() == false)
 		{
@@ -67,7 +67,7 @@ namespace spk::WinAPI
 		}
 	}
 
-	Class& Class::operator=(Class&& p_other) noexcept
+	WindowClass& WindowClass::operator=(WindowClass&& p_other) noexcept
 	{
 		if (this == &p_other)
 		{
@@ -88,12 +88,12 @@ namespace spk::WinAPI
 		return *this;
 	}
 
-	HINSTANCE Class::instance() const
+	HINSTANCE WindowClass::instance() const
 	{
 		return _instance;
 	}
 
-	const std::string& Class::name() const
+	const std::string& WindowClass::name() const
 	{
 		return _name;
 	}

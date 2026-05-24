@@ -1,16 +1,16 @@
-﻿#include <gtest/gtest.h>
+#include <gtest/gtest.h>
 
 #include <memory>
 #include <stdexcept>
 
 #include "window/spk_frame.hpp"
-#include "opengl/spk_gpu_platform_runtime.hpp"
+#include "opengl/spk_opengl_runtime.hpp"
 #include "rendering/spk_render_context.hpp"
 #include "window/spk_surface_state.hpp"
 
 namespace
 {
-	class TestSurfaceState : public spk::ISurfaceState
+	class TestSurfaceState : public spk::SurfaceState
 	{
 	};
 
@@ -38,11 +38,11 @@ namespace
 		[[nodiscard]] std::string title() const override { return {}; }
 	};
 
-	class TestRenderContext : public spk::IRenderContext
+	class TestRenderContext : public spk::RenderContext
 	{
 	public:
-		explicit TestRenderContext(std::shared_ptr<spk::ISurfaceState> p_state)
-			: spk::IRenderContext(std::move(p_state)) {}
+		explicit TestRenderContext(std::shared_ptr<spk::SurfaceState> p_state)
+			: spk::RenderContext(std::move(p_state)) {}
 		void makeCurrent() override {}
 		void present() override {}
 		void setVSync(bool) override {}
@@ -50,10 +50,10 @@ namespace
 	};
 
 	// A GPU runtime that expects FrameA specifically.
-	class FrameARuntime : public spk::IGPUPlatformRuntime
+	class FrameARuntime : public spk::GPUPlatformRuntime
 	{
 	public:
-		std::unique_ptr<spk::IRenderContext> createRenderContext(spk::IFrame& p_frame) override
+		std::unique_ptr<spk::RenderContext> createRenderContext(spk::IFrame& p_frame) override
 		{
 			FrameA& frame = requireFrame<FrameA>(p_frame);
 			return std::make_unique<TestRenderContext>(frame.surfaceState());

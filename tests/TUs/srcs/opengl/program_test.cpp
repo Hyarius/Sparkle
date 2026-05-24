@@ -1,11 +1,13 @@
-#include <gtest/gtest.h>
+﻿#include <gtest/gtest.h>
 
 #include <array>
 #include <cstdint>
 
 #include "opengl_wrapper_test_utils.hpp"
 
-#if defined(_WIN32) && defined(SPARKLE_GPU_BACKEND_OPENGL)
+using BufferObject = spk::BufferObject;
+using IndexBufferObject = spk::IndexBufferObject;
+using Primitive = spk::Primitive;
 
 TEST(ProgramTest, CompilesLinksActivatesAndDeactivates)
 {
@@ -54,8 +56,8 @@ TEST(ProgramTest, RenderHelpersIssueDrawCalls)
 	const auto vertexArray = sparkle_test::makeTriangleVAO(
 		sparkle_test::fullScreenTriangle({1.0f, 0.0f, 0.0f}));
 	const std::array<std::uint32_t, 3> indexes = {0, 1, 2};
-	auto indexBuffer = std::make_shared<spk::OpenGL::IndexBufferObject>(
-		spk::OpenGL::BufferObject::Usage::StaticDraw,
+	auto indexBuffer = std::make_shared<IndexBufferObject>(
+		BufferObject::Usage::StaticDraw,
 		sizeof(indexes));
 	indexBuffer->setElementType(GL_UNSIGNED_INT);
 	indexBuffer->setCount(indexes.size());
@@ -63,8 +65,7 @@ TEST(ProgramTest, RenderHelpersIssueDrawCalls)
 	vertexArray->setIndexBuffer(indexBuffer);
 	vertexArray->activate();
 
-	EXPECT_NO_THROW(program->renderRaw(spk::OpenGL::Primitive::Triangles, 0, 3));
-	EXPECT_NO_THROW(program->render(spk::OpenGL::Primitive::Triangles, 0, 3));
+	EXPECT_NO_THROW(program->renderRaw(Primitive::Triangles, 0, 3));
+	EXPECT_NO_THROW(program->render(Primitive::Triangles, 0, 3));
 }
 
-#endif

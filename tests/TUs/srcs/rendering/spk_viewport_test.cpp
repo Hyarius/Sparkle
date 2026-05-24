@@ -6,22 +6,12 @@
 
 namespace
 {
-	class TestSurfaceState : public spk::ISurfaceState {};
+	class TestSurfaceState : public spk::SurfaceState {};
 }
 
 namespace
 {
-	class ConcreteViewport : public spk::Viewport
-	{
-	private:
-		void _applyToGraphicsContext(const spk::ISurfaceState&) const override {}
-
-	public:
-		ConcreteViewport() = default;
-		explicit ConcreteViewport(const spk::Rect2D& p_geometry) : spk::Viewport(p_geometry) {}
-		ConcreteViewport(const spk::Rect2D& p_geometry, const spk::Rect2D& p_scissor)
-			: spk::Viewport(p_geometry, p_scissor) {}
-	};
+	using ConcreteViewport = spk::Viewport;
 }
 
 TEST(ViewportTest, TwoArgConstructorSetsGeometryAndScissorIndependently)
@@ -103,6 +93,7 @@ TEST(ViewportTest, ActivateSetsActiveViewport)
 {
 	ConcreteViewport viewport(spk::Rect2D(0, 0, 100, 100));
 	TestSurfaceState surfaceState;
+	surfaceState.setRect(spk::Rect2D(0, 0, 100, 100));
 
 	viewport.activate(surfaceState);
 

@@ -110,7 +110,7 @@ TEST(WindowHostTest, ReleasingFrameInvalidatesTheExistingRenderContext)
 		std::this_thread::yield();
 	}
 
-	std::shared_ptr<spk::ISurfaceState> surfaceState = bundle.platformRuntime->createdFrame->surfaceState();
+	std::shared_ptr<spk::SurfaceState> surfaceState = bundle.platformRuntime->createdFrame->surfaceState();
 	ASSERT_NE(bundle.gpuPlatformRuntime->createdContext, nullptr);
 	EXPECT_TRUE(bundle.gpuPlatformRuntime->createdContext->isValid());
 	EXPECT_EQ(bundle.gpuPlatformRuntime->createdContext->makeCurrentCount, 1);
@@ -233,7 +233,7 @@ TEST(WindowHostTest, DestructorInvalidatesLiveRenderAndFrameState)
 {
 	auto bundle = sparkle_test::createWindowHostBundle();
 	std::shared_ptr<sparkle_test::TestFrameStats> frameStats = bundle.platformRuntime->frameStats;
-	std::shared_ptr<spk::ISurfaceState> surfaceState = bundle.platformRuntime->createdFrame->surfaceState();
+	std::shared_ptr<spk::SurfaceState> surfaceState = bundle.platformRuntime->createdFrame->surfaceState();
 
 	ASSERT_TRUE(bundle.windowHost->makeCurrent());
 	std::shared_ptr<sparkle_test::TestRenderContextStats> contextStats = bundle.gpuPlatformRuntime->contextStats;

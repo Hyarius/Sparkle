@@ -7,7 +7,7 @@
 #include <thread>
 
 #include "time/spk_duration.hpp"
-#include "opengl/spk_gpu_platform_runtime.hpp"
+#include "opengl/spk_opengl_runtime.hpp"
 #include "application/spk_platform_runtime.hpp"
 #include "window/spk_window_handle.hpp"
 #include "window/spk_window_registry.hpp"
@@ -21,8 +21,8 @@ namespace spk
 
 		struct Configuration
 		{
-			std::shared_ptr<IPlatformRuntime> platformRuntime = nullptr;
-			std::shared_ptr<IGPUPlatformRuntime> gpuPlatformRuntime = nullptr;
+			std::shared_ptr<PlatformRuntime> platformRuntime = nullptr;
+			std::shared_ptr<GPUPlatformRuntime> gpuPlatformRuntime = nullptr;
 			spk::Duration renderInterval = 16_ms;
 			spk::Duration updateInterval = 16_ms;
 			spk::Duration eventPollingInterval = 1_ms;
@@ -31,8 +31,8 @@ namespace spk
 
 	private:
 		Configuration _configuration;
-		std::shared_ptr<IPlatformRuntime> _platformRuntime;
-		std::shared_ptr<IGPUPlatformRuntime> _gpuPlatformRuntime;
+		std::shared_ptr<PlatformRuntime> _platformRuntime;
+		std::shared_ptr<GPUPlatformRuntime> _gpuPlatformRuntime;
 		spk::WindowRegistry _windowRegistry;
 		std::thread::id _ownerThreadID;
 		std::atomic<bool> _isRunning = false;
@@ -43,8 +43,8 @@ namespace spk
 		std::exception_ptr _failure = nullptr;
 
 	private:
-		static std::shared_ptr<IPlatformRuntime> _createDefaultPlatformRuntime();
-		static std::shared_ptr<IGPUPlatformRuntime> _createDefaultGPUPlatformRuntime();
+		static std::shared_ptr<PlatformRuntime> _createDefaultPlatformRuntime();
+		static std::shared_ptr<GPUPlatformRuntime> _createDefaultGPUPlatformRuntime();
 		void _bindOrValidateOwnerThread(const char* p_operation);
 		void _recordFailure(std::exception_ptr p_failure);
 		void _rethrowFailureIfAny();

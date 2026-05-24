@@ -8,7 +8,7 @@
 
 namespace spk
 {
-	class ISurfaceState;
+	class SurfaceState;
 
 	class Viewport
 	{
@@ -22,7 +22,7 @@ namespace spk
 		mutable spk::CachedData<spk::Matrix4x4> _matrix;
 
 		void _configureMatrix();
-		virtual void _applyToGraphicsContext(const spk::ISurfaceState& p_surfaceState) const = 0;
+		void _applyToGraphicsContext(const spk::SurfaceState& p_surfaceState) const;
 
 	protected:
 		spk::Rect2D _geometry;
@@ -31,7 +31,7 @@ namespace spk
 		Viewport();
 		explicit Viewport(const spk::Rect2D& p_geometry);
 		Viewport(const spk::Rect2D& p_geometry, const spk::Rect2D& p_scissor);
-		virtual ~Viewport() = default;
+		~Viewport() = default;
 
 		void setGeometry(const spk::Rect2D& p_geometry);
 		const spk::Rect2D& geometry() const;
@@ -42,7 +42,7 @@ namespace spk
 		static void setMaxLayer(float p_maxLayer);
 		static float maxLayer();
 
-		void activate(const spk::ISurfaceState& p_surfaceState) const;
+		void activate(const spk::SurfaceState& p_surfaceState) const;
 
 		const spk::Matrix4x4& matrix() const;
 

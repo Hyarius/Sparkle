@@ -6,14 +6,14 @@
 
 #include <Windows.h>
 
-namespace spk::WinAPI
+namespace spk
 {
-	class Window;
+	class WindowRuntime;
 
-	class Class
+	class WindowClass
 	{
 	private:
-		friend class Window;
+		friend class WindowRuntime;
 
 		HINSTANCE _instance = nullptr;
 		std::string _name;
@@ -21,13 +21,13 @@ namespace spk::WinAPI
 		bool _isRegistered = false;
 
 	public:
-		Class(std::string p_name, WNDPROC p_windowProcedure, HINSTANCE p_instance = GetModuleHandleW(nullptr));
-		Class(const Class&) = delete;
-		Class(Class&& p_other) noexcept;
-		~Class();
+		WindowClass(std::string p_name, WNDPROC p_windowProcedure, HINSTANCE p_instance = GetModuleHandleW(nullptr));
+		WindowClass(const WindowClass&) = delete;
+		WindowClass(WindowClass&& p_other) noexcept;
+		~WindowClass();
 
-		Class& operator=(const Class&) = delete;
-		Class& operator=(Class&& p_other) noexcept;
+		WindowClass& operator=(const WindowClass&) = delete;
+		WindowClass& operator=(WindowClass&& p_other) noexcept;
 
 		[[nodiscard]] HINSTANCE instance() const;
 		[[nodiscard]] const std::string& name() const;

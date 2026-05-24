@@ -1,6 +1,5 @@
-#include <gtest/gtest.h>
+﻿#include <gtest/gtest.h>
 
-#if defined(_WIN32) && defined(SPARKLE_GPU_BACKEND_OPENGL)
 
 #include <array>
 #include <cstddef>
@@ -18,18 +17,22 @@
 #include "rendering/render_command/spk_image_render_command.hpp"
 #include "rendering/spk_render_unit_builder.hpp"
 
+using ClearCommand = spk::ClearCommand;
+using Texture = spk::GPUTexture;
+using Viewport = spk::Viewport;
+
 TEST(ImageRenderCommandTest, DrawsFullTextureWithWholeSection)
 {
 	constexpr int width = 24;
 	constexpr int height = 24;
 	sparkle_test::OpenGLTestContext context(spk::Rect2D(0, 0, width, height));
-	spk::IRenderContext& renderContext = context.renderContext();
+	spk::RenderContext& renderContext = context.renderContext();
 
 	auto blueTexture = sparkle_test::makeSolidTexture({2, 2}, 0, 0, 255);
-	spk::OpenGL::Viewport viewport(spk::Rect2D(0, 0, width, height));
+	Viewport viewport(spk::Rect2D(0, 0, width, height));
 	spk::RenderUnitBuilder builder;
 	builder.emplace<spk::ViewportCommand>(viewport);
-	builder.emplace<spk::OpenGL::ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
+	builder.emplace<ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
 	builder.emplace<spk::ImageRenderCommand>(*blueTexture, spk::Texture::Section::whole, spk::Rect2D(0, 0, width, height));
 
 	builder.build().execute(renderContext);
@@ -48,11 +51,11 @@ TEST(ImageRenderCommandTest, DrawsPartialTextureSection)
 	constexpr int width = 24;
 	constexpr int height = 24;
 	sparkle_test::OpenGLTestContext context(spk::Rect2D(0, 0, width, height));
-	spk::IRenderContext& renderContext = context.renderContext();
+	spk::RenderContext& renderContext = context.renderContext();
 
 	// 2×1 texture: left pixel red, right pixel green
 	std::vector<std::uint8_t> pixels = {255, 0, 0, 255, 0, 255, 0, 255};
-	auto texture = std::make_shared<spk::OpenGL::Texture>();
+	auto texture = std::make_shared<Texture>();
 	texture->setPixels(
 		pixels,
 		spk::Vector2UInt{2, 1},
@@ -64,10 +67,10 @@ TEST(ImageRenderCommandTest, DrawsPartialTextureSection)
 	// Section covering only the right (green) pixel
 	const spk::Texture::Section greenSection({0.5f, 0.0f}, {0.5f, 1.0f});
 
-	spk::OpenGL::Viewport viewport(spk::Rect2D(0, 0, width, height));
+	Viewport viewport(spk::Rect2D(0, 0, width, height));
 	spk::RenderUnitBuilder builder;
 	builder.emplace<spk::ViewportCommand>(viewport);
-	builder.emplace<spk::OpenGL::ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
+	builder.emplace<ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
 	builder.emplace<spk::ImageRenderCommand>(*texture, greenSection, spk::Rect2D(0, 0, width, height));
 
 	builder.build().execute(renderContext);
@@ -84,13 +87,13 @@ TEST(ImageRenderCommandTest, DrawsPartialTextureSection)
 TEST(ImageRenderCommandTest, CanExecuteTwiceWithConstructedMesh)
 {
 	sparkle_test::OpenGLTestContext context(spk::Rect2D(0, 0, 16, 16));
-	spk::IRenderContext& renderContext = context.renderContext();
+	spk::RenderContext& renderContext = context.renderContext();
 
 	auto redTexture = sparkle_test::makeSolidTexture({1, 1}, 255, 0, 0);
-	spk::OpenGL::Viewport viewport(spk::Rect2D(0, 0, 16, 16));
+	Viewport viewport(spk::Rect2D(0, 0, 16, 16));
 	spk::RenderUnitBuilder builder;
 	builder.emplace<spk::ViewportCommand>(viewport);
-	builder.emplace<spk::OpenGL::ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
+	builder.emplace<ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
 	builder.emplace<spk::ImageRenderCommand>(*redTexture, spk::Texture::Section::whole, spk::Rect2D(0, 0, 16, 16));
 
 	spk::RenderUnit unit = builder.build();
@@ -106,4 +109,3 @@ TEST(ImageRenderCommandTest, CanExecuteTwiceWithConstructedMesh)
 		sparkle_test::renderCommandResultPath("ImageRenderCommand/twice_diff"));
 }
 
-#endif

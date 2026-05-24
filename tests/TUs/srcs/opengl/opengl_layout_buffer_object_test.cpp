@@ -1,14 +1,14 @@
-#include <gtest/gtest.h>
+﻿#include <gtest/gtest.h>
 #include <stdexcept>
 
 #include "opengl_wrapper_test_utils.hpp"
 
-#if defined(_WIN32) && defined(SPARKLE_GPU_BACKEND_OPENGL)
 
 #include "opengl/spk_opengl_layout_buffer_object.hpp"
 
-using LBO = spk::OpenGL::LayoutBufferObject;
-using Attr = spk::OpenGL::LayoutBufferObject::Attribute;
+using namespace spk;
+using LBO = spk::LayoutBufferObject;
+using Attr = spk::LayoutBufferObject::Attribute;
 
 namespace
 {
@@ -224,4 +224,3 @@ TEST_F(LBOFixture, ActivateAndDeactivateDoNotThrow)
 	EXPECT_NO_THROW(lbo.deactivate());
 }
 
-#endif

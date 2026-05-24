@@ -1,6 +1,5 @@
-#include <gtest/gtest.h>
+﻿#include <gtest/gtest.h>
 
-#if defined(_WIN32) && defined(SPARKLE_GPU_BACKEND_OPENGL)
 
 #include <array>
 #include <cstddef>
@@ -17,18 +16,20 @@
 #include "rendering/render_command/spk_color_rectangle_render_command.hpp"
 #include "rendering/spk_render_unit_builder.hpp"
 
+using ClearCommand = spk::ClearCommand;
+using Viewport = spk::Viewport;
 
 TEST(ColorRectangleRenderCommandTest, DrawsFullScreenRect)
 {
 	constexpr int width = 24;
 	constexpr int height = 24;
 	sparkle_test::OpenGLTestContext context(spk::Rect2D(0, 0, width, height));
-	spk::IRenderContext& renderContext = context.renderContext();
+	spk::RenderContext& renderContext = context.renderContext();
 
-	spk::OpenGL::Viewport viewport(spk::Rect2D(0, 0, width, height));
+	Viewport viewport(spk::Rect2D(0, 0, width, height));
 	spk::RenderUnitBuilder builder;
 	builder.emplace<spk::ViewportCommand>(viewport);
-	builder.emplace<spk::OpenGL::ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
+	builder.emplace<ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
 	builder.emplace<spk::ColorRectangleRenderCommand>(
 		spk::Rect2D(0, 0, width, height),
 		spk::Color(1.0f, 0.0f, 0.0f),
@@ -50,12 +51,12 @@ TEST(ColorRectangleRenderCommandTest, DrawsPartialRect)
 	constexpr int width = 24;
 	constexpr int height = 24;
 	sparkle_test::OpenGLTestContext context(spk::Rect2D(0, 0, width, height));
-	spk::IRenderContext& renderContext = context.renderContext();
+	spk::RenderContext& renderContext = context.renderContext();
 
-	spk::OpenGL::Viewport viewport(spk::Rect2D(0, 0, width, height));
+	Viewport viewport(spk::Rect2D(0, 0, width, height));
 	spk::RenderUnitBuilder builder;
 	builder.emplace<spk::ViewportCommand>(viewport);
-	builder.emplace<spk::OpenGL::ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
+	builder.emplace<ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
 	builder.emplace<spk::ColorRectangleRenderCommand>(
 		spk::Rect2D(0, 0, width / 2, height),
 		spk::Color(0.0f, 1.0f, 0.0f),
@@ -85,12 +86,12 @@ TEST(ColorRectangleRenderCommandTest, ConstructsWithoutValidViewport)
 TEST(ColorRectangleRenderCommandTest, CanExecuteTwiceWithConstructedMesh)
 {
 	sparkle_test::OpenGLTestContext context(spk::Rect2D(0, 0, 16, 16));
-	spk::IRenderContext& renderContext = context.renderContext();
+	spk::RenderContext& renderContext = context.renderContext();
 
-	spk::OpenGL::Viewport viewport(spk::Rect2D(0, 0, 16, 16));
+	Viewport viewport(spk::Rect2D(0, 0, 16, 16));
 	spk::RenderUnitBuilder builder;
 	builder.emplace<spk::ViewportCommand>(viewport);
-	builder.emplace<spk::OpenGL::ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
+	builder.emplace<ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
 	builder.emplace<spk::ColorRectangleRenderCommand>(spk::Rect2D(0, 0, 16, 16), spk::Color(1.0f, 0.0f, 0.0f));
 
 	spk::RenderUnit unit = builder.build();
@@ -106,4 +107,3 @@ TEST(ColorRectangleRenderCommandTest, CanExecuteTwiceWithConstructedMesh)
 		sparkle_test::renderCommandResultPath("ColorRectangleRenderCommand/twice_diff"));
 }
 
-#endif

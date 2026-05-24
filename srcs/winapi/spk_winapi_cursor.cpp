@@ -8,7 +8,7 @@
 #include "winapi/spk_winapi_helpers.hpp"
 #include "winapi/spk_winapi_window.hpp"
 
-namespace spk::WinAPI
+namespace spk
 {
 	Cursor::Cursor() = default;
 
@@ -18,7 +18,7 @@ namespace spk::WinAPI
 	{
 		if (_handle == nullptr)
 		{
-			throw std::invalid_argument("spk::WinAPI::Cursor requires a valid cursor handle");
+			throw std::invalid_argument("spk::Cursor requires a valid cursor handle");
 		}
 	}
 
@@ -86,13 +86,13 @@ namespace spk::WinAPI
 	{
 		if (_handle == nullptr)
 		{
-			throw std::runtime_error("spk::WinAPI::Cursor::activate called on an empty cursor");
+			throw std::runtime_error("spk::Cursor::activate called on an empty cursor");
 		}
 
 		SetCursor(_handle);
 	}
 
-	void Cursor::activate(const spk::WinAPI::Window& p_window) const
+	void Cursor::activate(const spk::WindowRuntime& p_window) const
 	{
 		p_window.setCursor(*this);
 		activate();

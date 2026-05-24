@@ -12,17 +12,13 @@
 #include "winapi/spk_winapi_cursor.hpp"
 #include "winapi/spk_winapi_window.hpp"
 
-namespace spk::WinAPI
+namespace spk
 {
-	class SurfaceState : public spk::ISurfaceState
-	{
-	};
-
 	class Frame : public spk::IFrame
 	{
 	private:
-		std::shared_ptr<Class> _class;
-		Window _window;
+		std::shared_ptr<WindowClass> _class;
+		WindowRuntime _window;
 		std::string _title;
 		spk::Rect2D _rect;
 		spk::Vector2Int _lastMousePosition = {0, 0};
@@ -33,7 +29,7 @@ namespace spk::WinAPI
 		void _startMouseLeaveTracking();
 
 	public:
-		Frame(std::shared_ptr<Class> p_class, const spk::Rect2D& p_rect, const std::string& p_title);
+		Frame(std::shared_ptr<WindowClass> p_class, const spk::Rect2D& p_rect, const std::string& p_title);
 		~Frame() override;
 
 		void resize(const spk::Rect2D& p_rect) override;

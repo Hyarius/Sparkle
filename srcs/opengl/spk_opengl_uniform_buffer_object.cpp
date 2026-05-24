@@ -1,43 +1,50 @@
-﻿#include "opengl/spk_opengl_uniform_buffer_object.hpp"
+#include "opengl/spk_opengl_uniform_buffer_object.hpp"
 
-#if defined(SPARKLE_GPU_BACKEND_OPENGL)
+#include <stdexcept>
+#include <string>
 
-namespace spk::OpenGL
+#include "opengl/spk_opengl_program.hpp"
+
+namespace spk
 {
-	UniformBufferObject::UniformBufferObject(Usage p_usage, std::size_t p_size) :
-		BufferObject(Target::Uniform, p_usage, p_size)
-	{
-	}
-
 	UniformBufferObject::UniformBufferObject(GLuint p_bindingPoint, Usage p_usage, std::size_t p_size) :
-		UniformBufferObject(p_usage, p_size)
+		BufferObject(Target::Uniform, p_usage, p_size),
+		_bindingPoint(p_bindingPoint)
 	{
-		setBindingPoint(p_bindingPoint);
 	}
 
-	void UniformBufferObject::setBindingPoint(GLuint p_bindingPoint)
-	{
-		_bindingPoint = p_bindingPoint;
-	}
-
-	void UniformBufferObject::clearBindingPoint()
-	{
-		_bindingPoint = std::nullopt;
-	}
-
-	std::optional<GLuint> UniformBufferObject::bindingPoint() const noexcept
+	GLuint UniformBufferObject::bindingPoint() const noexcept
 	{
 		return _bindingPoint;
+	}
+
+	void UniformBufferObject::validateFor(spk::Program& p_program) const
+	{
+		const GLuint programID = p_program.id();
+		GLint activeBlocks = 0;
+		glGetProgramiv(programID, GL_ACTIVE_UNIFORM_BLOCKS, &activeBlocks);
+		for (GLint blockIndex = 0; blockIndex < activeBlocks; ++blockIndex)
+		{
+			GLint blockBindingPoint = -1;
+			glGetActiveUniformBlockiv(
+				programID,
+				static_cast<GLuint>(blockIndex),
+				GL_UNIFORM_BLOCK_BINDING,
+				&blockBindingPoint);
+			if (blockBindingPoint == static_cast<GLint>(_bindingPoint))
+			{
+				return;
+			}
+		}
+
+		throw std::runtime_error(
+			"spk::UniformBufferObject::validateFor program has no uniform block at binding point [" +
+			std::to_string(_bindingPoint) + "]");
 	}
 
 	void UniformBufferObject::activate()
 	{
 		BufferObject::activate();
-		if (_bindingPoint.has_value() == true)
-		{
-			glBindBufferBase(GL_UNIFORM_BUFFER, _bindingPoint.value(), id());
-		}
+		glBindBufferBase(GL_UNIFORM_BUFFER, _bindingPoint, id());
 	}
 }
-
-#endif

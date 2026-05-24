@@ -27,6 +27,6 @@ namespace spk
 		[[nodiscard]] size_t size() const;
 		[[nodiscard]] const std::vector<std::shared_ptr<spk::RenderUnit>>& units() const;
 
-		void execute(spk::IRenderContext& p_renderContext);
+		void execute(spk::RenderContext& p_renderContext);
 	};
 }

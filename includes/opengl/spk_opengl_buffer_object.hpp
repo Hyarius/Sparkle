@@ -1,6 +1,4 @@
-﻿#pragma once
-
-#if defined(SPARKLE_GPU_BACKEND_OPENGL)
+#pragma once
 
 #include <cstddef>
 #include <cstdint>
@@ -13,7 +11,7 @@
 #include "utils/spk_binary_field.hpp"
 #include "traits/spk_synchronizable_trait.hpp"
 
-namespace spk::OpenGL
+namespace spk
 {
 	class BufferObject : public spk::SynchronizableTrait
 	{
@@ -99,5 +97,3 @@ namespace spk::OpenGL
 		void activateRange(GLuint p_bindingPoint, GLintptr p_offset, GLsizeiptr p_size);
 	};
 }
-
-#endif

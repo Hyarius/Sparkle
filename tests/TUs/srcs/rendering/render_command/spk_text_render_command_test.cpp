@@ -1,6 +1,5 @@
-#include <gtest/gtest.h>
+﻿#include <gtest/gtest.h>
 
-#if defined(_WIN32) && defined(SPARKLE_GPU_BACKEND_OPENGL)
 
 #include <array>
 #include <cstddef>
@@ -16,18 +15,21 @@
 #include "rendering/render_command/spk_text_render_command.hpp"
 #include "rendering/spk_render_unit_builder.hpp"
 
+using ClearCommand = spk::ClearCommand;
+using Viewport = spk::Viewport;
+
 TEST(TextRenderCommandTest, DrawsGlyphsWithLeftTopAlignment)
 {
 	constexpr int width = 80;
 	constexpr int height = 48;
 	sparkle_test::OpenGLTestContext context(spk::Rect2D(0, 0, width, height));
-	spk::IRenderContext& renderContext = context.renderContext();
+	spk::RenderContext& renderContext = context.renderContext();
 
 	spk::Font font = sparkle_test::testFont();
-	spk::OpenGL::Viewport viewport(spk::Rect2D(0, 0, width, height));
+	Viewport viewport(spk::Rect2D(0, 0, width, height));
 	spk::RenderUnitBuilder builder;
 	builder.emplace<spk::ViewportCommand>(viewport);
-	builder.emplace<spk::OpenGL::ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
+	builder.emplace<ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
 	builder.emplace<spk::TextRenderCommand>(
 		font, "Hi", spk::Font::Size(16, 3), spk::Color(0.0f, 1.0f, 0.0f, 1.0f),
 		spk::Color(1.0f, 0.0f, 0.0f, 1.0f), 0.0f,
@@ -50,13 +52,13 @@ TEST(TextRenderCommandTest, DrawsGlyphsWithCenteredAlignment)
 	constexpr int width = 80;
 	constexpr int height = 48;
 	sparkle_test::OpenGLTestContext context(spk::Rect2D(0, 0, width, height));
-	spk::IRenderContext& renderContext = context.renderContext();
+	spk::RenderContext& renderContext = context.renderContext();
 
 	spk::Font font = sparkle_test::testFont();
-	spk::OpenGL::Viewport viewport(spk::Rect2D(0, 0, width, height));
+	Viewport viewport(spk::Rect2D(0, 0, width, height));
 	spk::RenderUnitBuilder builder;
 	builder.emplace<spk::ViewportCommand>(viewport);
-	builder.emplace<spk::OpenGL::ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
+	builder.emplace<ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
 	builder.emplace<spk::TextRenderCommand>(
 		font, "Hi", spk::Font::Size(16, 3), spk::Color(0.0f, 1.0f, 0.0f, 1.0f),
 		spk::Color(1.0f, 0.0f, 0.0f, 1.0f), 0.0f,
@@ -79,13 +81,13 @@ TEST(TextRenderCommandTest, DrawsGlyphsWithRightDownAlignment)
 	constexpr int width = 80;
 	constexpr int height = 48;
 	sparkle_test::OpenGLTestContext context(spk::Rect2D(0, 0, width, height));
-	spk::IRenderContext& renderContext = context.renderContext();
+	spk::RenderContext& renderContext = context.renderContext();
 
 	spk::Font font = sparkle_test::testFont();
-	spk::OpenGL::Viewport viewport(spk::Rect2D(0, 0, width, height));
+	Viewport viewport(spk::Rect2D(0, 0, width, height));
 	spk::RenderUnitBuilder builder;
 	builder.emplace<spk::ViewportCommand>(viewport);
-	builder.emplace<spk::OpenGL::ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
+	builder.emplace<ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
 	builder.emplace<spk::TextRenderCommand>(
 		font, "Hi", spk::Font::Size(16, 3), spk::Color(0.0f, 1.0f, 0.0f, 1.0f),
 		spk::Color(1.0f, 0.0f, 0.0f, 1.0f), 0.0f,
@@ -106,13 +108,13 @@ TEST(TextRenderCommandTest, DrawsGlyphsWithRightDownAlignment)
 TEST(TextRenderCommandTest, EmptyTextDoesNotDraw)
 {
 	sparkle_test::OpenGLTestContext context(spk::Rect2D(0, 0, 32, 32));
-	spk::IRenderContext& renderContext = context.renderContext();
+	spk::RenderContext& renderContext = context.renderContext();
 
 	spk::Font font = sparkle_test::testFont();
-	spk::OpenGL::Viewport viewport(spk::Rect2D(0, 0, 32, 32));
+	Viewport viewport(spk::Rect2D(0, 0, 32, 32));
 	spk::RenderUnitBuilder builder;
 	builder.emplace<spk::ViewportCommand>(viewport);
-	builder.emplace<spk::OpenGL::ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
+	builder.emplace<ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
 	builder.emplace<spk::TextRenderCommand>(
 		font, "", spk::Font::Size(16, 3), spk::Color(0.0f, 1.0f, 0.0f, 1.0f),
 		spk::Color(1.0f, 0.0f, 0.0f, 1.0f), 0.0f,
@@ -133,13 +135,13 @@ TEST(TextRenderCommandTest, EmptyTextDoesNotDraw)
 TEST(TextRenderCommandTest, CanExecuteTwiceWithConstructedCommand)
 {
 	sparkle_test::OpenGLTestContext context(spk::Rect2D(0, 0, 80, 48));
-	spk::IRenderContext& renderContext = context.renderContext();
+	spk::RenderContext& renderContext = context.renderContext();
 
 	spk::Font font = sparkle_test::testFont();
-	spk::OpenGL::Viewport viewport(spk::Rect2D(0, 0, 80, 48));
+	Viewport viewport(spk::Rect2D(0, 0, 80, 48));
 	spk::RenderUnitBuilder builder;
 	builder.emplace<spk::ViewportCommand>(viewport);
-	builder.emplace<spk::OpenGL::ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
+	builder.emplace<ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
 	builder.emplace<spk::TextRenderCommand>(
 		font, "Hi", spk::Font::Size(16, 3), spk::Color(0.0f, 1.0f, 0.0f, 1.0f),
 		spk::Color(1.0f, 0.0f, 0.0f, 1.0f), 0.0f,
@@ -158,4 +160,3 @@ TEST(TextRenderCommandTest, CanExecuteTwiceWithConstructedCommand)
 		sparkle_test::renderCommandResultPath("TextRenderCommand/twice_diff"));
 }
 
-#endif

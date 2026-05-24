@@ -1,6 +1,4 @@
-﻿#pragma once
-
-#if defined(SPARKLE_GPU_BACKEND_OPENGL)
+#pragma once
 
 #include <cstddef>
 
@@ -8,7 +6,7 @@
 
 #include "opengl/spk_opengl_buffer_object.hpp"
 
-namespace spk::OpenGL
+namespace spk
 {
 	class IndexBufferObject : public BufferObject
 	{
@@ -28,5 +26,3 @@ namespace spk::OpenGL
 		[[nodiscard]] std::size_t count() const noexcept;
 	};
 }
-
-#endif

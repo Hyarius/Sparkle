@@ -1,7 +1,5 @@
 ﻿#include "opengl/spk_opengl_program.hpp"
 
-#if defined(SPARKLE_GPU_BACKEND_OPENGL)
-
 #include <cstdint>
 #include <stdexcept>
 #include <utility>
@@ -148,7 +146,7 @@ namespace spk
 		glUseProgram(0);
 	}
 
-	void Program::renderRaw(spk::OpenGL::Primitive p_primitive, std::size_t p_firstVertex, std::size_t p_vertexCount)
+	void Program::renderRaw(spk::Primitive p_primitive, std::size_t p_firstVertex, std::size_t p_vertexCount)
 	{
 		activate();
 		glDrawArrays(
@@ -157,7 +155,7 @@ namespace spk
 			static_cast<GLsizei>(p_vertexCount));
 	}
 
-	void Program::render(spk::OpenGL::Primitive p_primitive, std::size_t p_firstIndex, std::size_t p_indexCount)
+	void Program::render(spk::Primitive p_primitive, std::size_t p_firstIndex, std::size_t p_indexCount)
 	{
 		activate();
 		glDrawElements(
@@ -167,5 +165,3 @@ namespace spk
 			reinterpret_cast<const void*>(static_cast<std::uintptr_t>(p_firstIndex) * sizeof(std::uint32_t)));
 	}
 }
-
-#endif

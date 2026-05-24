@@ -6,15 +6,13 @@
 
 namespace spk
 {
-	class ISurfaceState
+	class SurfaceState
 	{
 	private:
 		std::atomic<bool> _isValid = true;
 		spk::Rect2D _rect;
 
 	public:
-		virtual ~ISurfaceState();
-
 		void invalidate();
 		[[nodiscard]] bool isValid() const;
 

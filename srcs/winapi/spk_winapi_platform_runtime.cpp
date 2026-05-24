@@ -1,18 +1,16 @@
-﻿#include "winapi/spk_winapi_platform_runtime.hpp"
+#include "winapi/spk_winapi_platform_runtime.hpp"
 
 #ifdef _WIN32
 
 #include "winapi/spk_winapi_frame.hpp"
 #include "winapi/spk_winapi_window.hpp"
 
-namespace spk::WinAPI
+namespace spk
 {
 	PlatformRuntime::PlatformRuntime() :
-		_windowClass(std::make_shared<Class>("Sparkle.WinAPI.Frame", &Window::_staticWindowProcedure))
+		_windowClass(std::make_shared<WindowClass>("Sparkle.WinAPI.Frame", &WindowRuntime::_staticWindowProcedure))
 	{
 	}
-
-	PlatformRuntime::~PlatformRuntime() = default;
 
 	std::unique_ptr<spk::IFrame> PlatformRuntime::createFrame(const spk::Rect2D& p_rect, const std::string& p_title)
 	{

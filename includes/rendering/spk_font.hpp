@@ -1,7 +1,5 @@
 #pragma once
 
-#if defined(SPARKLE_GPU_BACKEND_OPENGL)
-
 #include <array>
 #include <filesystem>
 #include <map>
@@ -12,7 +10,6 @@
 
 #include "stb_truetype.h"
 
-#include "opengl/spk_opengl_texture.hpp"
 #include "rendering/spk_texture.hpp"
 #include "utils/spk_contract_provider.hpp"
 #include "math/spk_vector2.hpp"
@@ -77,7 +74,7 @@ namespace spk
 			}
 		};
 
-		class Atlas : public spk::OpenGL::Texture
+		class Atlas : public spk::Texture
 		{
 			friend class Font;
 
@@ -192,5 +189,3 @@ namespace spk
 		Atlas& atlas(const Size& p_size);
 	};
 }
-
-#endif

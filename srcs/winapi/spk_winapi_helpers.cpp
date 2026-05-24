@@ -4,7 +4,7 @@
 
 #include <vector>
 
-namespace spk::WinAPI
+namespace spk
 {
 	std::wstring toWideString(const std::string& p_value)
 	{

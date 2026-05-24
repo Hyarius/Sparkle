@@ -1,6 +1,5 @@
-#include <gtest/gtest.h>
+﻿#include <gtest/gtest.h>
 
-#if defined(_WIN32) && defined(SPARKLE_GPU_BACKEND_OPENGL)
 
 #include <array>
 #include <cstdint>
@@ -15,6 +14,9 @@
 #include "rendering/render_command/spk_nine_slice_render_command.hpp"
 #include "rendering/render_command/spk_viewport_render_command.hpp"
 #include "rendering/spk_render_unit_builder.hpp"
+
+using ClearCommand = spk::ClearCommand;
+using Viewport = spk::Viewport;
 
 namespace
 {
@@ -59,13 +61,13 @@ TEST(NineSliceRenderCommandTest, BuildsAndDrawsTheNineSliceMesh)
 	constexpr int width = 96;
 	constexpr int height = 72;
 	sparkle_test::OpenGLTestContext context(spk::Rect2D(0, 0, width, height));
-	spk::IRenderContext& renderContext = context.renderContext();
+	spk::RenderContext& renderContext = context.renderContext();
 	spk::SpriteSheet spriteSheet = makeNineSpriteSheet();
 
-	spk::OpenGL::Viewport viewport(spk::Rect2D(0, 0, width, height));
+	Viewport viewport(spk::Rect2D(0, 0, width, height));
 	spk::RenderUnitBuilder builder;
 	builder.emplace<spk::ViewportCommand>(viewport);
-	builder.emplace<spk::OpenGL::ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
+	builder.emplace<ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
 	builder.emplace<spk::NineSliceRenderCommand>(spriteSheet, spk::Rect2D(0, 0, width, height), spk::Vector2Int{16, 16});
 
 	EXPECT_NO_THROW(builder.build().execute(renderContext));
@@ -79,4 +81,3 @@ TEST(NineSliceRenderCommandTest, BuildsAndDrawsTheNineSliceMesh)
 		sparkle_test::renderCommandResultPath("NineSliceRenderCommand/stretched_diff"));
 }
 
-#endif

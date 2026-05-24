@@ -4,21 +4,13 @@
 #include "rendering/spk_render_unit_builder.hpp"
 #include "rendering/render_command/spk_viewport_render_command.hpp"
 
-#if defined(SPARKLE_GPU_BACKEND_OPENGL)
-#include "opengl/spk_opengl_viewport.hpp"
-#endif
-
 namespace spk
 {
 	namespace
 	{
 		std::unique_ptr<spk::Viewport> makeViewport()
 		{
-#if defined(SPARKLE_GPU_BACKEND_OPENGL)
-			return std::make_unique<spk::OpenGL::Viewport>();
-#else
-			return nullptr;
-#endif
+			return std::make_unique<spk::Viewport>();
 		}
 
 		std::shared_ptr<spk::RenderUnit> makeViewportUnit(const spk::Viewport* p_viewport)

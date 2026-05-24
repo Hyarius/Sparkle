@@ -4,9 +4,9 @@
 
 #include <Windows.h>
 
-namespace spk::WinAPI
+namespace spk
 {
-	class Window;
+	class WindowRuntime;
 
 	class Cursor
 	{
@@ -31,7 +31,7 @@ namespace spk::WinAPI
 		[[nodiscard]] static Cursor wait();
 
 		void activate() const;
-		void activate(const spk::WinAPI::Window& p_window) const;
+		void activate(const spk::WindowRuntime& p_window) const;
 
 		[[nodiscard]] HCURSOR handle() const;
 		[[nodiscard]] bool isValid() const;

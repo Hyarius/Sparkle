@@ -1,10 +1,8 @@
-﻿#pragma once
-
-#if defined(SPARKLE_GPU_BACKEND_OPENGL)
+#pragma once
 
 #include "opengl/spk_opengl_buffer_object.hpp"
 
-namespace spk::OpenGL
+namespace spk
 {
 	class VertexBufferObject : public BufferObject
 	{
@@ -14,5 +12,3 @@ namespace spk::OpenGL
 			std::size_t p_size = 0);
 	};
 }
-
-#endif

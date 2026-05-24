@@ -1,7 +1,5 @@
 #include "rendering/render_command/spk_nine_slice_render_command.hpp"
 
-#if defined(SPARKLE_GPU_BACKEND_OPENGL)
-
 #include <array>
 #include <stdexcept>
 #include <utility>
@@ -88,10 +86,8 @@ namespace spk
 			static_cast<const spk::Texture&>(p_spriteSheet), std::move(mesh));
 	}
 
-	void NineSliceRenderCommand::execute(spk::IRenderContext& p_renderContext)
+	void NineSliceRenderCommand::execute(spk::RenderContext& p_renderContext)
 	{
 		_textureCommand->execute(p_renderContext);
 	}
 }
-
-#endif

@@ -1,7 +1,5 @@
 #include "rendering/render_command/spk_image_render_command.hpp"
 
-#if defined(SPARKLE_GPU_BACKEND_OPENGL)
-
 namespace
 {
 	[[nodiscard]] spk::Vector3 toPosition(const spk::Vector2Int& p_pixel, float p_depth)
@@ -37,10 +35,8 @@ namespace spk
 		_textureCommand = std::make_unique<spk::DrawTextureMeshRenderCommand>(p_texture, std::move(mesh));
 	}
 
-	void ImageRenderCommand::execute(spk::IRenderContext& p_renderContext)
+	void ImageRenderCommand::execute(spk::RenderContext& p_renderContext)
 	{
 		_textureCommand->execute(p_renderContext);
 	}
 }
-
-#endif

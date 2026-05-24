@@ -1,23 +1,29 @@
 #include "rendering/render_command/spk_draw_font_render_command.hpp"
 
-#if defined(SPARKLE_GPU_BACKEND_OPENGL)
-
 #include <array>
 #include <cstdint>
 #include <span>
 #include <stdexcept>
 #include <utility>
-#include <vector>
 
 #include <GL/glew.h>
 
-#include "math/spk_matrix.hpp"
 #include "opengl/spk_opengl_gpu_data_buffer_center.hpp"
+#include "opengl/spk_opengl_layout_buffer_object.hpp"
+#include "opengl/spk_opengl_program.hpp"
+#include "opengl/spk_opengl_sampler_object.hpp"
+#include "opengl/spk_opengl_texture.hpp"
+#include "opengl/spk_opengl_uniform.hpp"
 #include "opengl/spk_opengl_uniform_buffer_object.hpp"
 #include "spk_generated_resources.hpp"
 
 namespace
 {
+	spk::UniformBufferObject& viewportUniformBuffer()
+	{
+		return spk::GPUDataBufferCenter::getUBO(spk::GPUDataBufferCenter::ViewportBlockName);
+	}
+
 	[[nodiscard]] spk::Vector3 toPosition(const spk::Vector2Int& p_pixel, float p_depth)
 	{
 		return {
@@ -25,30 +31,6 @@ namespace
 			static_cast<float>(p_pixel.y),
 			p_depth
 		};
-	}
-
-	spk::OpenGL::UniformBufferObject& viewportUniformBuffer()
-	{
-		return spk::OpenGL::GPUDataBufferCenter::getUBO(spk::OpenGL::GPUDataBufferCenter::ViewportBlockName);
-	}
-
-	void bindViewportUniformBlock(spk::Program& p_program)
-	{
-		spk::OpenGL::UniformBufferObject& buffer = viewportUniformBuffer();
-		if (buffer.bindingPoint().has_value() == false)
-		{
-			throw std::runtime_error("DrawFontRenderCommand requires a viewport uniform buffer binding point");
-		}
-
-		const GLuint blockIndex = glGetUniformBlockIndex(
-			p_program.id(),
-			spk::OpenGL::GPUDataBufferCenter::ViewportBlockName.data());
-		if (blockIndex == GL_INVALID_INDEX)
-		{
-			throw std::runtime_error("DrawFontRenderCommand requires a viewport uniform block");
-		}
-
-		glUniformBlockBinding(p_program.id(), blockIndex, buffer.bindingPoint().value());
 	}
 
 	[[nodiscard]] float outlineThickness(const spk::Font::Size& p_size)
@@ -76,16 +58,18 @@ namespace spk
 		_color(p_color),
 		_outlineColor(p_outlineColor),
 		_outlineThickness(outlineThickness(p_size)),
-		_sampler("uTexture", spk::OpenGL::SamplerObject::Type::Texture2D, 0),
+		_program(),
+		_sampler("uTexture", spk::SamplerObject::Type::Texture2D, 0),
 		_colorUniform("uColor", _program),
 		_outlineColorUniform("uOutlineColor", _program),
-		_outlineThicknessUniform("uOutlineThickness", _program)
+		_outlineThicknessUniform("uOutlineThickness", _program),
+		_layoutBufferDirty(true)
 	{
 		_program.setSources(
 			SPARKLE_GET_RESOURCE_AS_STRING("resources/shaders/font/draw_font.vert"),
 			SPARKLE_GET_RESOURCE_AS_STRING("resources/shaders/font/draw_font.frag"));
-		_layoutBuffer.addAttribute(0, spk::OpenGL::LayoutBufferObject::Attribute::Type::Vector3);
-		_layoutBuffer.addAttribute(1, spk::OpenGL::LayoutBufferObject::Attribute::Type::Vector2);
+		_layoutBuffer.addAttribute(0, spk::LayoutBufferObject::Attribute::Type::Vector3);
+		_layoutBuffer.addAttribute(1, spk::LayoutBufferObject::Attribute::Type::Vector2);
 
 		spk::TextureMesh2D mesh;
 		int cursorX = p_baselinePosition.x;
@@ -166,7 +150,7 @@ namespace spk
 		_layoutBuffer.setIndexes(std::span<const std::uint32_t>());
 	}
 
-	void DrawFontRenderCommand::execute(spk::IRenderContext& p_renderContext)
+	void DrawFontRenderCommand::execute(spk::RenderContext& p_renderContext)
 	{
 		(void)p_renderContext;
 
@@ -177,20 +161,40 @@ namespace spk
 			return;
 		}
 
+		if (_atlasPixels != _atlas.pixels() ||
+			_atlasSize != _atlas.size() ||
+			_atlasFormat != _atlas.format() ||
+			_atlasFiltering != _atlas.filtering() ||
+			_atlasWrap != _atlas.wrap() ||
+			_atlasMipmap != _atlas.mipmap())
+		{
+			_atlasPixels = _atlas.pixels();
+			_atlasSize = _atlas.size();
+			_atlasFormat = _atlas.format();
+			_atlasFiltering = _atlas.filtering();
+			_atlasWrap = _atlas.wrap();
+			_atlasMipmap = _atlas.mipmap();
+			_atlasTexture.setPixels(
+				_atlasPixels,
+				_atlasSize,
+				_atlasFormat,
+				_atlasFiltering,
+				_atlasWrap,
+				_atlasMipmap);
+		}
+
+		_atlasTexture.synchronize();
+		_sampler.bind(_atlasTexture);
+
 		_layoutBuffer.activate();
-		bindViewportUniformBlock(_program);
 		_program.activate();
 		viewportUniformBuffer().activate();
 
-		_sampler.bind(_atlas);
 		_sampler.activate();
-
 		_colorUniform.set(_color.values());
 		_colorUniform.activate();
-
 		_outlineColorUniform.set(_outlineColor.values());
 		_outlineColorUniform.activate();
-
 		_outlineThicknessUniform.set(_outlineThickness);
 		_outlineThicknessUniform.activate();
 
@@ -199,11 +203,11 @@ namespace spk
 
 		if (_layoutBuffer.isIndexed() == true)
 		{
-			_program.render(spk::OpenGL::Primitive::Triangles, 0, _layoutBuffer.indexCount());
+			_program.render(spk::Primitive::Triangles, 0, _layoutBuffer.indexCount());
 		}
 		else
 		{
-			_program.renderRaw(spk::OpenGL::Primitive::Triangles, 0, _layoutBuffer.vertexCount());
+			_program.renderRaw(spk::Primitive::Triangles, 0, _layoutBuffer.vertexCount());
 		}
 
 		_sampler.deactivate();
@@ -211,5 +215,3 @@ namespace spk
 		_program.deactivate();
 	}
 }
-
-#endif

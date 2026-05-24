@@ -7,7 +7,7 @@
 #include <thread>
 
 #include "window/spk_frame.hpp"
-#include "opengl/spk_gpu_platform_runtime.hpp"
+#include "opengl/spk_opengl_runtime.hpp"
 #include "math/spk_rect_2d.hpp"
 #include "rendering/spk_render_context.hpp"
 
@@ -17,8 +17,8 @@ namespace spk
 	{
 	private:
 		std::unique_ptr<IFrame> _frame;
-		std::shared_ptr<IGPUPlatformRuntime> _gpuPlatformRuntime;
-		std::unique_ptr<IRenderContext> _renderContext;
+		std::shared_ptr<GPUPlatformRuntime> _gpuPlatformRuntime;
+		std::unique_ptr<RenderContext> _renderContext;
 		std::thread::id _platformThreadID;
 		mutable std::mutex _renderThreadMutex;
 		std::optional<std::thread::id> _renderThreadID;
@@ -30,7 +30,7 @@ namespace spk
 		[[nodiscard]] bool _ensureRenderContextLocked();
 
 	public:
-		WindowHost(std::unique_ptr<IFrame> p_frame, std::shared_ptr<IGPUPlatformRuntime> p_gpuPlatformRuntime);
+		WindowHost(std::unique_ptr<IFrame> p_frame, std::shared_ptr<GPUPlatformRuntime> p_gpuPlatformRuntime);
 		~WindowHost();
 
 		[[nodiscard]] bool isPlatformThread() const;
@@ -48,7 +48,7 @@ namespace spk
 		[[nodiscard]] std::string title() const;
 
 		[[nodiscard]] bool makeCurrent();
-		[[nodiscard]] IRenderContext& renderContext();
+		[[nodiscard]] RenderContext& renderContext();
 		void present();
 		void setVSync(bool p_enabled);
 

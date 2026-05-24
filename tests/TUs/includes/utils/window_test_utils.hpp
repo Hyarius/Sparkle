@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include <atomic>
 #include <functional>
@@ -15,7 +15,7 @@
 #include "application/spk_application.hpp"
 #include "input/spk_events.hpp"
 #include "window/spk_frame.hpp"
-#include "opengl/spk_gpu_platform_runtime.hpp"
+#include "opengl/spk_opengl_runtime.hpp"
 #include "application/spk_platform_runtime.hpp"
 #include "rendering/spk_render_command.hpp"
 #include "rendering/spk_render_context.hpp"
@@ -109,12 +109,12 @@ namespace sparkle_test
 	class CallbackRenderCommand : public spk::RenderCommand
 	{
 	private:
-		std::function<void(spk::IRenderContext&)> _callback = nullptr;
+		std::function<void(spk::RenderContext&)> _callback = nullptr;
 
 	public:
 		explicit CallbackRenderCommand(std::function<void()> p_callback) :
 			_callback(
-				[p_callback = std::move(p_callback)](spk::IRenderContext&)
+				[p_callback = std::move(p_callback)](spk::RenderContext&)
 				{
 					if (p_callback != nullptr)
 					{
@@ -124,12 +124,12 @@ namespace sparkle_test
 		{
 		}
 
-		explicit CallbackRenderCommand(std::function<void(spk::IRenderContext&)> p_callback) :
+		explicit CallbackRenderCommand(std::function<void(spk::RenderContext&)> p_callback) :
 			_callback(std::move(p_callback))
 		{
 		}
 
-		void execute(spk::IRenderContext& p_renderContext) override
+		void execute(spk::RenderContext& p_renderContext) override
 		{
 			if (_callback != nullptr)
 			{
@@ -138,7 +138,7 @@ namespace sparkle_test
 		}
 	};
 
-	class TestSurfaceState : public spk::ISurfaceState
+	class TestSurfaceState : public spk::SurfaceState
 	{
 
 	};
@@ -285,7 +285,7 @@ namespace sparkle_test
 		}
 	};
 
-	class TestPlatformRuntime : public spk::IPlatformRuntime
+	class TestPlatformRuntime : public spk::PlatformRuntime
 	{
 	private:
 		enum class PendingEventKind
@@ -437,7 +437,7 @@ namespace sparkle_test
 		bool destroyed = false;
 	};
 
-	class TestRenderContext : public spk::IRenderContext
+	class TestRenderContext : public spk::RenderContext
 	{
 	private:
 		std::shared_ptr<TestRenderContextStats> _stats;
@@ -459,8 +459,8 @@ namespace sparkle_test
 		std::thread::id lastInvalidateThreadID;
 
 	public:
-		explicit TestRenderContext(std::shared_ptr<spk::ISurfaceState> p_surfaceState, std::shared_ptr<TestRenderContextStats> p_stats = std::make_shared<TestRenderContextStats>()) :
-			spk::IRenderContext(std::move(p_surfaceState)),
+		explicit TestRenderContext(std::shared_ptr<spk::SurfaceState> p_surfaceState, std::shared_ptr<TestRenderContextStats> p_stats = std::make_shared<TestRenderContextStats>()) :
+			spk::RenderContext(std::move(p_surfaceState)),
 			_stats(std::move(p_stats))
 		{
 		}
@@ -482,12 +482,13 @@ namespace sparkle_test
 				++_stats->invalidateCount;
 				_stats->lastInvalidateThreadID = lastInvalidateThreadID;
 			}
-			spk::IRenderContext::invalidate();
+			spk::RenderContext::invalidate();
 		}
 
 		[[nodiscard]] bool isValid() const override
 		{
-			return spk::IRenderContext::isValid();
+			const std::shared_ptr<spk::SurfaceState> state = surfaceState();
+			return state != nullptr && state->isValid();
 		}
 
 		void makeCurrent() override
@@ -542,7 +543,7 @@ namespace sparkle_test
 		}
 	};
 
-	class TestGPUPlatformRuntime : public spk::IGPUPlatformRuntime
+	class TestGPUPlatformRuntime : public spk::GPUPlatformRuntime
 	{
 	public:
 		int createRenderContextCount = 0;
@@ -554,7 +555,7 @@ namespace sparkle_test
 		std::thread::id lastCreateRenderContextThreadID;
 
 	public:
-		std::unique_ptr<spk::IRenderContext> createRenderContext(spk::IFrame& p_frame) override
+		std::unique_ptr<spk::RenderContext> createRenderContext(spk::IFrame& p_frame) override
 		{
 			++createRenderContextCount;
 			lastFrame = &p_frame;

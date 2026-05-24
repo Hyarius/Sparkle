@@ -97,8 +97,8 @@ add_resources(${SPARKLE_RESOURCE_FILES} ${SPARKLE_TEST_RESOURCE_FILES})
 
 find_package(Stb REQUIRED)
 
-set(SPARKLE_GPU_BACKEND "NONE" CACHE STRING "GPU backend to compile against (OPENGL, NONE)")
-set_property(CACHE SPARKLE_GPU_BACKEND PROPERTY STRINGS OPENGL NONE)
+find_package(GLEW REQUIRED)
+find_package(OpenGL REQUIRED)
 
 add_library(Sparkle STATIC ${SPARKLE_SOURCES} ${SPARKLE_HEADERS})
 add_library(Sparkle::Sparkle ALIAS Sparkle)
@@ -121,16 +121,7 @@ target_include_directories(Sparkle
         ${Stb_INCLUDE_DIR}
 )
 
-if(SPARKLE_GPU_BACKEND STREQUAL "OPENGL")
-    find_package(GLEW REQUIRED)
-    find_package(OpenGL REQUIRED)
-    target_link_libraries(Sparkle PUBLIC GLEW::GLEW OpenGL::GL)
-    target_compile_definitions(Sparkle PUBLIC SPARKLE_GPU_BACKEND_OPENGL)
-elseif(SPARKLE_GPU_BACKEND STREQUAL "NONE")
-    # no GPU backend
-else()
-    message(FATAL_ERROR "Unknown SPARKLE_GPU_BACKEND: '${SPARKLE_GPU_BACKEND}'. Valid values: OPENGL, NONE")
-endif()
+target_link_libraries(Sparkle PUBLIC GLEW::GLEW OpenGL::GL)
 
 if(WIN32)
     target_link_libraries(Sparkle

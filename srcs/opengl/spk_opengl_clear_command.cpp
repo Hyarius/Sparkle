@@ -1,10 +1,8 @@
-﻿#include "opengl/spk_opengl_clear_command.hpp"
+#include "opengl/spk_opengl_clear_command.hpp"
 
-#if defined(SPARKLE_GPU_BACKEND_OPENGL)
+#include "rendering/spk_render_context.hpp"
 
-#include "opengl/spk_opengl_render_context.hpp"
-
-namespace spk::OpenGL
+namespace spk
 {
 	ClearCommand::ClearCommand(const std::array<float, 4>& p_color, GLbitfield p_mask) :
 		_color(p_color),
@@ -12,20 +10,14 @@ namespace spk::OpenGL
 	{
 	}
 
-	void ClearCommand::execute(spk::IRenderContext& p_renderContext)
+	void ClearCommand::execute(spk::RenderContext& p_renderContext)
 	{
-#if defined(_WIN32)
-		if (dynamic_cast<spk::OpenGL::RenderContext*>(&p_renderContext) == nullptr)
+		if (p_renderContext.supportsOpenGLCommands() == false)
 		{
 			return;
 		}
-#else
-		(void)p_renderContext;
-#endif
 
 		glClearColor(_color[0], _color[1], _color[2], _color[3]);
 		glClear(_mask);
 	}
 }
-
-#endif

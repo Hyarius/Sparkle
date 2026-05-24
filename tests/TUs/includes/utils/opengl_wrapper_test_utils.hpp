@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <array>
 #include <cstddef>
@@ -14,7 +14,6 @@
 #include "sparkle.hpp"
 #include "test_resource_path_utils.hpp"
 
-#if defined(_WIN32) && defined(SPARKLE_GPU_BACKEND_OPENGL)
 #include <GL/glew.h>
 
 namespace sparkle_test
@@ -22,10 +21,10 @@ namespace sparkle_test
 	class OpenGLTestContext
 	{
 	private:
-		spk::WinAPI::PlatformRuntime _platformRuntime;
-		spk::OpenGL::Runtime _gpuRuntime;
+		spk::PlatformRuntime _platformRuntime;
+		spk::GPUPlatformRuntime _gpuRuntime;
 		std::unique_ptr<spk::IFrame> _frame;
-		std::unique_ptr<spk::IRenderContext> _renderContext;
+		std::unique_ptr<spk::RenderContext> _renderContext;
 
 	public:
 		explicit OpenGLTestContext(const spk::Rect2D& p_rect = spk::Rect2D(0, 0, 32, 32)) :
@@ -45,13 +44,13 @@ namespace sparkle_test
 			}
 		}
 
-		spk::IRenderContext& renderContext()
+		spk::RenderContext& renderContext()
 		{
 			_renderContext->makeCurrent();
 			return *_renderContext;
 		}
 
-		spk::OpenGL::Runtime& gpuRuntime()
+		spk::GPUPlatformRuntime& gpuRuntime()
 		{
 			return _gpuRuntime;
 		}
@@ -101,10 +100,10 @@ namespace sparkle_test
 			"}\n");
 	}
 
-	inline std::shared_ptr<spk::OpenGL::VertexBufferObject> makeTriangleVBO(const std::array<TestVertex, 3>& p_vertices)
+	inline std::shared_ptr<spk::VertexBufferObject> makeTriangleVBO(const std::array<TestVertex, 3>& p_vertices)
 	{
-		auto vertexBuffer = std::make_shared<spk::OpenGL::VertexBufferObject>(
-			spk::OpenGL::BufferObject::Usage::StaticDraw,
+		auto vertexBuffer = std::make_shared<spk::VertexBufferObject>(
+			spk::BufferObject::Usage::StaticDraw,
 			sizeof(TestVertex) * p_vertices.size());
 
 		spk::BinaryField vertices = vertexBuffer->field().addArray("vertices", 0, p_vertices.size(), sizeof(TestVertex));
@@ -116,13 +115,13 @@ namespace sparkle_test
 		return vertexBuffer;
 	}
 
-	inline std::shared_ptr<spk::OpenGL::VertexArrayObject> makeTriangleVAO(const std::array<TestVertex, 3>& p_vertices)
+	inline std::shared_ptr<spk::VertexArrayObject> makeTriangleVAO(const std::array<TestVertex, 3>& p_vertices)
 	{
 		auto vertexBuffer = makeTriangleVBO(p_vertices);
-		auto vertexArray = std::make_shared<spk::OpenGL::VertexArrayObject>();
+		auto vertexArray = std::make_shared<spk::VertexArrayObject>();
 		vertexArray->addVertexBuffer(
 			vertexBuffer,
-			spk::OpenGL::VertexArrayObject::Attribute{
+			spk::VertexArrayObject::Attribute{
 				.index = 0,
 				.componentCount = 2,
 				.componentType = GL_FLOAT,
@@ -132,7 +131,7 @@ namespace sparkle_test
 			});
 		vertexArray->addVertexBuffer(
 			vertexBuffer,
-			spk::OpenGL::VertexArrayObject::Attribute{
+			spk::VertexArrayObject::Attribute{
 				.index = 1,
 				.componentCount = 3,
 				.componentType = GL_FLOAT,
@@ -197,6 +196,7 @@ namespace sparkle_test
 		}
 		ASSERT_NE(stbi_write_png(p_path.string().c_str(), p_width, p_height, 4, pixels.data(), p_width * 4), 0);
 	}
+
 	// Saves a screenshot of p_rect from p_context, then compares it against p_expectedPath.
 	// If the expected image does not exist yet, the test fails with instructions to copy
 	// p_actualPath to p_expectedPath after visual validation.
@@ -226,4 +226,3 @@ namespace sparkle_test
 	}
 }
 
-#endif

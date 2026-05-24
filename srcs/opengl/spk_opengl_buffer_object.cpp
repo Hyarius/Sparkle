@@ -1,6 +1,4 @@
-﻿#include "opengl/spk_opengl_buffer_object.hpp"
-
-#if defined(SPARKLE_GPU_BACKEND_OPENGL)
+#include "opengl/spk_opengl_buffer_object.hpp"
 
 #include <algorithm>
 #include <cstring>
@@ -22,7 +20,7 @@ namespace
 	}
 }
 
-namespace spk::OpenGL
+namespace spk
 {
 	BufferObject::BufferObject(Target p_target, Usage p_usage, std::size_t p_size) :
 		_target(p_target),
@@ -160,13 +158,13 @@ namespace spk::OpenGL
 	{
 		if (p_data == nullptr && p_size != 0)
 		{
-			throw std::runtime_error("spk::OpenGL::BufferObject::edit received null data with a non-zero size");
+			throw std::runtime_error("spk::BufferObject::edit received null data with a non-zero size");
 		}
 
 		std::scoped_lock lock(_mutex);
 		if (p_offset > _cpuBuffer.size() || p_size > _cpuBuffer.size() - p_offset)
 		{
-			throw std::runtime_error("spk::OpenGL::BufferObject::edit exceeds the CPU buffer bounds");
+			throw std::runtime_error("spk::BufferObject::edit exceeds the CPU buffer bounds");
 		}
 
 		if (p_size != 0)
@@ -180,7 +178,7 @@ namespace spk::OpenGL
 	{
 		if (p_data == nullptr && p_size != 0)
 		{
-			throw std::runtime_error("spk::OpenGL::BufferObject::append received null data with a non-zero size");
+			throw std::runtime_error("spk::BufferObject::append received null data with a non-zero size");
 		}
 
 		std::scoped_lock lock(_mutex);
@@ -274,5 +272,3 @@ namespace spk::OpenGL
 		glBindBufferRange(static_cast<GLenum>(_target), p_bindingPoint, _id, p_offset, p_size);
 	}
 }
-
-#endif

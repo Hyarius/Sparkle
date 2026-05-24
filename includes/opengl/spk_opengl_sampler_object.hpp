@@ -1,7 +1,5 @@
 #pragma once
 
-#if defined(SPARKLE_GPU_BACKEND_OPENGL)
-
 #include <string>
 
 #include <GL/glew.h>
@@ -9,7 +7,7 @@
 
 #include "opengl/spk_opengl_texture.hpp"
 
-namespace spk::OpenGL
+namespace spk
 {
 	class SamplerObject
 	{
@@ -25,7 +23,7 @@ namespace spk::OpenGL
 		using BindingPoint = int;
 
 	private:
-		const OpenGL::Texture* _texture = nullptr;
+		const spk::GPUTexture* _texture = nullptr;
 		std::string _designator;
 		BindingPoint _bindingPoint = -1;
 		GLint _uniformDestination = -1;
@@ -35,7 +33,7 @@ namespace spk::OpenGL
 		SamplerObject() = default;
 		SamplerObject(const std::string& p_name, Type p_type, BindingPoint p_bindingPoint);
 
-		void bind(const OpenGL::Texture& p_texture);
+		void bind(const spk::GPUTexture& p_texture);
 
 		BindingPoint bindingPoint() const;
 		void setBindingPoint(BindingPoint p_bindingPoint);
@@ -47,5 +45,3 @@ namespace spk::OpenGL
 		void deactivate();
 	};
 }
-
-#endif

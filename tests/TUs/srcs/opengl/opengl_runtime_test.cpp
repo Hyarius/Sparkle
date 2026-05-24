@@ -1,6 +1,5 @@
-#include <gtest/gtest.h>
+﻿#include <gtest/gtest.h>
 
-#if defined(_WIN32) && defined(SPARKLE_GPU_BACKEND_OPENGL)
 
 #include <filesystem>
 #include <memory>
@@ -35,7 +34,7 @@ namespace
 
 TEST(OpenGLRuntimeTest, CreateRenderContextRejectsNonWinApiFrames)
 {
-	spk::OpenGL::Runtime runtime;
+	spk::GPUPlatformRuntime runtime;
 	sparkle_test::TestFrame frame(spk::Rect2D(0, 0, 32, 32), "NonWinApi");
 
 	EXPECT_THROW(runtime.createRenderContext(frame), std::runtime_error);
@@ -43,7 +42,7 @@ TEST(OpenGLRuntimeTest, CreateRenderContextRejectsNonWinApiFrames)
 
 TEST(OpenGLRuntimeTest, SaveScreenshotRejectsEmptyCaptureRects)
 {
-	spk::OpenGL::Runtime runtime;
+	spk::GPUPlatformRuntime runtime;
 	const std::filesystem::path outputPath = openglEdgeCaseResultDirectory() / "empty.png";
 
 	EXPECT_THROW(runtime.saveScreenshot(outputPath, spk::Rect2D(0, 0, 0, 1)), std::runtime_error);
@@ -53,12 +52,12 @@ TEST(OpenGLRuntimeTest, SaveScreenshotRejectsEmptyCaptureRects)
 
 TEST(OpenGLRuntimeTest, SaveScreenshotThrowsWhenPngCannotBeWritten)
 {
-	spk::WinAPI::PlatformRuntime platformRuntime;
-	spk::OpenGL::Runtime gpuRuntime;
+	spk::PlatformRuntime platformRuntime;
+	spk::GPUPlatformRuntime gpuRuntime;
 	std::unique_ptr<spk::IFrame> frame = platformRuntime.createFrame(spk::Rect2D(300, 300, 16, 16), "ScreenshotFailure");
 	ASSERT_NE(frame, nullptr);
 
-	std::unique_ptr<spk::IRenderContext> renderContext = gpuRuntime.createRenderContext(*frame);
+	std::unique_ptr<spk::RenderContext> renderContext = gpuRuntime.createRenderContext(*frame);
 	ASSERT_NE(renderContext, nullptr);
 	renderContext->makeCurrent();
 	renderContext->notifyResize(spk::Rect2D(0, 0, 16, 16));
@@ -75,12 +74,12 @@ TEST(OpenGLRuntimeTest, SaveScreenshotThrowsWhenPngCannotBeWritten)
 
 TEST(OpenGLRuntimeTest, SaveScreenshotUsesCurrentViewportWhenNoRectIsProvided)
 {
-	spk::WinAPI::PlatformRuntime platformRuntime;
-	spk::OpenGL::Runtime gpuRuntime;
+	spk::PlatformRuntime platformRuntime;
+	spk::GPUPlatformRuntime gpuRuntime;
 	std::unique_ptr<spk::IFrame> frame = platformRuntime.createFrame(spk::Rect2D(320, 320, 8, 6), "ViewportScreenshot");
 	ASSERT_NE(frame, nullptr);
 
-	std::unique_ptr<spk::IRenderContext> renderContext = gpuRuntime.createRenderContext(*frame);
+	std::unique_ptr<spk::RenderContext> renderContext = gpuRuntime.createRenderContext(*frame);
 	ASSERT_NE(renderContext, nullptr);
 	renderContext->makeCurrent();
 	renderContext->notifyResize(spk::Rect2D(0, 0, 8, 6));
@@ -101,4 +100,3 @@ TEST(OpenGLRuntimeTest, SaveScreenshotUsesCurrentViewportWhenNoRectIsProvided)
 	pumpWinApiMessages();
 }
 
-#endif

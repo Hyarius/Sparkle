@@ -1,4 +1,4 @@
-#include <array>
+﻿#include <array>
 #include <cstdint>
 #include <memory>
 
@@ -7,14 +7,13 @@
 #include "image_comparison_test_utils.hpp"
 #include "opengl_wrapper_test_utils.hpp"
 
-#if defined(_WIN32) && defined(SPARKLE_GPU_BACKEND_OPENGL)
 
 #include "opengl/spk_opengl_viewport.hpp"
 #include "rendering/render_command/spk_viewport_render_command.hpp"
 
 namespace
 {
-	std::shared_ptr<spk::OpenGL::VertexArrayObject> makeQuadVAO()
+	std::shared_ptr<spk::VertexArrayObject> makeQuadVAO()
 	{
 		const std::array<sparkle_test::TestVertex, 4> vertices = {
 			sparkle_test::TestVertex{{-1.0f, -1.0f}, {1.0f, 0.0f, 0.0f}},
@@ -23,15 +22,15 @@ namespace
 			sparkle_test::TestVertex{{-1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}}
 		};
 
-		auto vertexBuffer = std::make_shared<spk::OpenGL::VertexBufferObject>(
-			spk::OpenGL::BufferObject::Usage::StaticDraw,
+		auto vertexBuffer = std::make_shared<spk::VertexBufferObject>(
+			spk::BufferObject::Usage::StaticDraw,
 			sizeof(vertices));
 		vertexBuffer->edit(vertices.data(), sizeof(vertices));
 
-		auto vertexArray = std::make_shared<spk::OpenGL::VertexArrayObject>();
+		auto vertexArray = std::make_shared<spk::VertexArrayObject>();
 		vertexArray->addVertexBuffer(
 			vertexBuffer,
-			spk::OpenGL::VertexArrayObject::Attribute{
+			spk::VertexArrayObject::Attribute{
 				.index = 0,
 				.componentCount = 2,
 				.componentType = GL_FLOAT,
@@ -41,7 +40,7 @@ namespace
 			});
 		vertexArray->addVertexBuffer(
 			vertexBuffer,
-			spk::OpenGL::VertexArrayObject::Attribute{
+			spk::VertexArrayObject::Attribute{
 				.index = 1,
 				.componentCount = 3,
 				.componentType = GL_FLOAT,
@@ -53,11 +52,11 @@ namespace
 		return vertexArray;
 	}
 
-	std::shared_ptr<spk::OpenGL::IndexBufferObject> makeQuadIndexBuffer()
+	std::shared_ptr<spk::IndexBufferObject> makeQuadIndexBuffer()
 	{
 		const std::array<std::uint16_t, 6> indices = {0, 1, 2, 0, 2, 3};
-		auto indexBuffer = std::make_shared<spk::OpenGL::IndexBufferObject>(
-			spk::OpenGL::BufferObject::Usage::StaticDraw,
+		auto indexBuffer = std::make_shared<spk::IndexBufferObject>(
+			spk::BufferObject::Usage::StaticDraw,
 			sizeof(indices));
 		indexBuffer->setElementType(GL_UNSIGNED_SHORT);
 		indexBuffer->setCount(indices.size());
@@ -71,17 +70,17 @@ TEST(OpenGLDrawElementsCommandTest, DrawsIndexedElementsFromIndexBuffer)
 	constexpr int width = 24;
 	constexpr int height = 24;
 	sparkle_test::OpenGLTestContext context(spk::Rect2D(0, 0, width, height));
-	spk::IRenderContext& renderContext = context.renderContext();
+	spk::RenderContext& renderContext = context.renderContext();
 
 	const auto program = sparkle_test::makeColorProgram();
 	const auto vertexArray = makeQuadVAO();
 	const auto indexBuffer = makeQuadIndexBuffer();
 
 	spk::RenderUnitBuilder builder;
-	spk::OpenGL::Viewport viewport(spk::Rect2D(0, 0, width, height));
+	spk::Viewport viewport(spk::Rect2D(0, 0, width, height));
 	builder.emplace<spk::ViewportCommand>(viewport);
-	builder.emplace<spk::OpenGL::ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
-	builder.emplace<spk::OpenGL::DrawElementsCommand>(spk::OpenGL::Primitive::Triangles, program, vertexArray, indexBuffer);
+	builder.emplace<spk::ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
+	builder.emplace<spk::DrawElementsCommand>(spk::Primitive::Triangles, program, vertexArray, indexBuffer);
 
 	spk::RenderUnit unit = builder.build();
 	unit.execute(renderContext);
@@ -101,9 +100,8 @@ TEST(OpenGLDrawElementsCommandTest, DrawsIndexedElementsFromIndexBuffer)
 TEST(OpenGLDrawElementsCommandTest, ThrowsWhenIndexBufferIsMissing)
 {
 	sparkle_test::OpenGLTestContext context;
-	spk::OpenGL::DrawElementsCommand command(spk::OpenGL::Primitive::Triangles, nullptr);
+	spk::DrawElementsCommand command(spk::Primitive::Triangles, nullptr);
 
 	EXPECT_THROW(command.execute(context.renderContext()), std::runtime_error);
 }
 
-#endif

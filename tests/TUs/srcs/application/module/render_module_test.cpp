@@ -131,10 +131,10 @@ TEST(RenderModuleTest, RenderCommandReceivesRenderContext)
 	spk::RenderModule module;
 	spk::RenderUnitBuilder builder;
 	sparkle_test::TestRenderContext renderContext(std::make_shared<sparkle_test::TestSurfaceState>());
-	spk::IRenderContext* seenContext = nullptr;
+	spk::RenderContext* seenContext = nullptr;
 
 	builder.emplace<sparkle_test::CallbackRenderCommand>(
-		[&seenContext](spk::IRenderContext& p_renderContext)
+		[&seenContext](spk::RenderContext& p_renderContext)
 		{
 			seenContext = &p_renderContext;
 		});

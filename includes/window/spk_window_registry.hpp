@@ -6,7 +6,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "opengl/spk_gpu_platform_runtime.hpp"
+#include "opengl/spk_opengl_runtime.hpp"
 #include "application/spk_platform_runtime.hpp"
 #include "window/spk_window.hpp"
 #include "window/spk_window_handle.hpp"
@@ -35,7 +35,7 @@ namespace spk
 		friend class spk::Application;
 
 	public:
-		spk::WindowHandle createWindow(const WindowID& p_id, std::shared_ptr<IPlatformRuntime> p_platformRuntime, std::shared_ptr<IGPUPlatformRuntime> p_gpuPlatformRuntime, spk::Window::Configuration p_configuration);
+		spk::WindowHandle createWindow(const WindowID& p_id, std::shared_ptr<PlatformRuntime> p_platformRuntime, std::shared_ptr<GPUPlatformRuntime> p_gpuPlatformRuntime, spk::Window::Configuration p_configuration);
 		[[nodiscard]] spk::WindowHandle window(const WindowID& p_id) const;
 		[[nodiscard]] bool contains(const WindowID& p_id) const;
 		[[nodiscard]] size_t size() const;

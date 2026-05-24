@@ -1,7 +1,5 @@
 #include "rendering/spk_font.hpp"
 
-#if defined(SPARKLE_GPU_BACKEND_OPENGL)
-
 namespace spk
 {
 	Font::Text Font::textFromUTF8(std::string_view p_text)
@@ -386,5 +384,3 @@ namespace spk
 		return _atlases.at(p_size);
 	}
 }
-
-#endif

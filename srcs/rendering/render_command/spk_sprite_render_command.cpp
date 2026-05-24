@@ -1,7 +1,5 @@
 #include "rendering/render_command/spk_sprite_render_command.hpp"
 
-#if defined(SPARKLE_GPU_BACKEND_OPENGL)
-
 #include <utility>
 
 namespace
@@ -42,10 +40,8 @@ namespace spk
 			static_cast<const spk::Texture&>(p_spriteSheet), std::move(mesh));
 	}
 
-	void SpriteRenderCommand::execute(spk::IRenderContext& p_renderContext)
+	void SpriteRenderCommand::execute(spk::RenderContext& p_renderContext)
 	{
 		_textureCommand->execute(p_renderContext);
 	}
 }
-
-#endif

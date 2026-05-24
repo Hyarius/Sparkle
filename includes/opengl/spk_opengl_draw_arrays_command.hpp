@@ -1,6 +1,4 @@
-﻿#pragma once
-
-#if defined(SPARKLE_GPU_BACKEND_OPENGL)
+#pragma once
 
 #include <memory>
 
@@ -11,14 +9,14 @@
 #include "opengl/spk_opengl_program.hpp"
 #include "rendering/spk_render_command.hpp"
 
-namespace spk::OpenGL
+namespace spk
 {
 	class DrawArraysCommand : public spk::RenderCommand
 	{
 	private:
 		Primitive _primitive = Primitive::Triangles;
 		std::shared_ptr<spk::Program> _program = nullptr;
-		std::shared_ptr<spk::OpenGL::VertexArrayObject> _vertexArray = nullptr;
+		std::shared_ptr<spk::VertexArrayObject> _vertexArray = nullptr;
 		GLint _first = 0;
 		GLsizei _count = 0;
 
@@ -27,12 +25,10 @@ namespace spk::OpenGL
 		DrawArraysCommand(
 			Primitive p_primitive,
 			std::shared_ptr<spk::Program> p_program,
-			std::shared_ptr<spk::OpenGL::VertexArrayObject> p_vertexArray,
+			std::shared_ptr<spk::VertexArrayObject> p_vertexArray,
 			GLint p_first,
 			GLsizei p_count);
 
-		void execute(spk::IRenderContext& p_renderContext) override;
+		void execute(spk::RenderContext& p_renderContext) override;
 	};
 }
-
-#endif

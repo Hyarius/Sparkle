@@ -12,9 +12,8 @@
 #include "spk_generated_resources.hpp"
 #include "test_resource_path_utils.hpp"
 
-#if defined(_WIN32) && defined(SPARKLE_GPU_BACKEND_OPENGL)
 #include <GL/glew.h>
-#endif
+#include "opengl/spk_opengl_texture.hpp"
 
 namespace sparkle_test
 {
@@ -65,8 +64,7 @@ namespace sparkle_test
 		return result;
 	}
 
-#if defined(_WIN32) && defined(SPARKLE_GPU_BACKEND_OPENGL)
-	[[nodiscard]] inline std::shared_ptr<spk::OpenGL::Texture> makeSolidTexture(
+	[[nodiscard]] inline std::shared_ptr<spk::GPUTexture> makeSolidTexture(
 		const spk::Vector2UInt& p_size,
 		std::uint8_t p_red,
 		std::uint8_t p_green,
@@ -83,7 +81,7 @@ namespace sparkle_test
 			pixels[i + 3] = p_alpha;
 		}
 
-		auto texture = std::make_shared<spk::OpenGL::Texture>();
+		auto texture = std::make_shared<spk::GPUTexture>();
 		texture->setPixels(
 			pixels,
 			p_size,
@@ -93,5 +91,4 @@ namespace sparkle_test
 			spk::Texture::Mipmap::Disable);
 		return texture;
 	}
-#endif
 }

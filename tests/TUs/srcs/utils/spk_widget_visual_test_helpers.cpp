@@ -6,10 +6,8 @@
 
 #include <gtest/gtest.h>
 
-#if defined(_WIN32) && defined(SPARKLE_GPU_BACKEND_OPENGL)
 #include <Windows.h>
 #include <GL/gl.h>
-#endif
 
 #include "opengl/spk_opengl_runtime.hpp"
 #include "application/spk_platform_runtime.hpp"
@@ -20,14 +18,13 @@ namespace spk::test
 {
 	namespace
 	{
-#if defined(_WIN32) && defined(SPARKLE_GPU_BACKEND_OPENGL)
 		class OpenGLVisualTestContext
 		{
 		private:
-			spk::WinAPI::PlatformRuntime _platformRuntime;
-			spk::OpenGL::Runtime _gpuRuntime;
+			spk::PlatformRuntime _platformRuntime;
+			spk::GPUPlatformRuntime _gpuRuntime;
 			std::unique_ptr<spk::IFrame> _frame;
-			std::unique_ptr<spk::IRenderContext> _renderContext;
+			std::unique_ptr<spk::RenderContext> _renderContext;
 
 		public:
 			OpenGLVisualTestContext() :
@@ -52,13 +49,13 @@ namespace spk::test
 				_renderContext->notifyResize(p_rect.atOrigin());
 			}
 
-			spk::IRenderContext& renderContext()
+			spk::RenderContext& renderContext()
 			{
 				_renderContext->makeCurrent();
 				return *_renderContext;
 			}
 
-			spk::OpenGL::Runtime& gpuRuntime()
+			spk::GPUPlatformRuntime& gpuRuntime()
 			{
 				return _gpuRuntime;
 			}
@@ -69,7 +66,6 @@ namespace spk::test
 			static OpenGLVisualTestContext context;
 			return context;
 		}
-#endif
 	}
 
 	sparkle_test::ImageComparisonResult compareSnapshot(
@@ -78,7 +74,6 @@ namespace spk::test
 		const std::string& p_variant,
 		const spk::Rect2D& p_captureRect)
 	{
-#if defined(_WIN32) && defined(SPARKLE_GPU_BACKEND_OPENGL)
 		auto& context = visualContext();
 		context.resize(p_captureRect);
 
@@ -93,7 +88,7 @@ namespace spk::test
 
 		p_widget.setGeometry(p_captureRect.atOrigin());
 
-		spk::IRenderContext& renderContext = context.renderContext();
+		spk::RenderContext& renderContext = context.renderContext();
 		glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
@@ -127,13 +122,5 @@ namespace spk::test
 		}
 
 		return result;
-#else
-		(void)p_widget;
-		(void)p_widgetName;
-		(void)p_variant;
-		(void)p_captureRect;
-		ADD_FAILURE() << "OpenGL visual snapshot tests require Windows and SPARKLE_GPU_BACKEND_OPENGL";
-		return {};
-#endif
 	}
 }

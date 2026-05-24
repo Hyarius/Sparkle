@@ -13,6 +13,6 @@ namespace spk
 	public:
 		explicit ViewportCommand(const spk::Viewport& p_viewport);
 
-		void execute(spk::IRenderContext& p_renderContext) override;
+		void execute(spk::RenderContext& p_renderContext) override;
 	};
 }

@@ -1,10 +1,11 @@
-﻿#include "opengl/spk_opengl_runtime.hpp"
+#include "opengl/spk_opengl_runtime.hpp"
 
-#if defined(_WIN32) && defined(SPARKLE_GPU_BACKEND_OPENGL)
+#ifdef _WIN32
 
 #include <algorithm>
 #include <cstdint>
 #include <stdexcept>
+#include <typeinfo>
 #include <vector>
 
 #include <Windows.h>
@@ -15,28 +16,26 @@
 #include "opengl/spk_opengl_render_context.hpp"
 #include "winapi/spk_winapi_frame.hpp"
 
-namespace spk::OpenGL
+namespace spk
 {
-	Runtime::~Runtime() = default;
-
-	std::unique_ptr<spk::IRenderContext> Runtime::createRenderContext(spk::IFrame& p_frame)
+	std::unique_ptr<spk::RenderContext> GPUPlatformRuntime::createRenderContext(spk::IFrame& p_frame)
 	{
-		spk::WinAPI::Frame& frame = requireFrame<spk::WinAPI::Frame>(p_frame);
+		spk::Frame& frame = requireFrame<spk::Frame>(p_frame);
 		return std::make_unique<RenderContext>(frame);
 	}
 
-	void Runtime::waitUntilWorkDone()
+	void GPUPlatformRuntime::waitUntilWorkDone()
 	{
 		glFinish();
 	}
 
-	void Runtime::saveScreenshot(const std::filesystem::path& p_outputPath, const spk::Rect2D& p_rect) const
+	void GPUPlatformRuntime::saveScreenshot(const std::filesystem::path& p_outputPath, const spk::Rect2D& p_rect) const
 	{
 		const int width = static_cast<int>(p_rect.width());
 		const int height = static_cast<int>(p_rect.height());
 		if (width <= 0 || height <= 0)
 		{
-			throw std::runtime_error("spk::OpenGL::Runtime::saveScreenshot requires a non-empty capture rect");
+			throw std::runtime_error("spk::GPUPlatformRuntime::saveScreenshot requires a non-empty capture rect");
 		}
 
 		std::vector<std::uint8_t> pixels(static_cast<std::size_t>(width) * static_cast<std::size_t>(height) * 4);
@@ -56,11 +55,11 @@ namespace spk::OpenGL
 
 		if (stbi_write_png(p_outputPath.string().c_str(), width, height, 4, flipped.data(), width * 4) == 0)
 		{
-			throw std::runtime_error("spk::OpenGL::Runtime::saveScreenshot failed to write [" + p_outputPath.string() + "]");
+			throw std::runtime_error("spk::GPUPlatformRuntime::saveScreenshot failed to write [" + p_outputPath.string() + "]");
 		}
 	}
 
-	void Runtime::saveScreenshot(const std::filesystem::path& p_outputPath) const
+	void GPUPlatformRuntime::saveScreenshot(const std::filesystem::path& p_outputPath) const
 	{
 		GLint viewport[4] = {0, 0, 0, 0};
 		glGetIntegerv(GL_VIEWPORT, viewport);

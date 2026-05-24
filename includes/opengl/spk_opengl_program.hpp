@@ -1,7 +1,5 @@
 ﻿#pragma once
 
-#if defined(SPARKLE_GPU_BACKEND_OPENGL)
-
 #include <cstddef>
 #include <string>
 #include <mutex>
@@ -48,9 +46,7 @@ namespace spk
 		void activate();
 		void deactivate() const;
 
-		void renderRaw(spk::OpenGL::Primitive p_primitive, std::size_t p_firstVertex, std::size_t p_vertexCount);
-		void render(spk::OpenGL::Primitive p_primitive, std::size_t p_firstIndex, std::size_t p_indexCount);
+		void renderRaw(spk::Primitive p_primitive, std::size_t p_firstVertex, std::size_t p_vertexCount);
+		void render(spk::Primitive p_primitive, std::size_t p_firstIndex, std::size_t p_indexCount);
 	};
 }
-
-#endif

@@ -24,7 +24,7 @@ namespace spk
 		return (_commands);
 	}
 
-	void RenderUnit::execute(spk::IRenderContext& p_renderContext)
+	void RenderUnit::execute(spk::RenderContext& p_renderContext)
 	{
 		for (const std::unique_ptr<spk::RenderCommand>& command : _commands)
 		{

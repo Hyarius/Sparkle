@@ -24,7 +24,7 @@ namespace spk
 		return (_units);
 	}
 
-	void RenderSnapshot::execute(spk::IRenderContext& p_renderContext)
+	void RenderSnapshot::execute(spk::RenderContext& p_renderContext)
 	{
 		for (const std::shared_ptr<spk::RenderUnit>& unit : _units)
 		{

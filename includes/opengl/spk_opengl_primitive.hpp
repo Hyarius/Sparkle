@@ -1,10 +1,8 @@
 #pragma once
 
-#if defined(SPARKLE_GPU_BACKEND_OPENGL)
-
 #include <GL/glew.h>
 
-namespace spk::OpenGL
+namespace spk
 {
 	enum class Primitive : GLenum
 	{
@@ -17,5 +15,3 @@ namespace spk::OpenGL
 		TriangleFan = GL_TRIANGLE_FAN
 	};
 }
-
-#endif

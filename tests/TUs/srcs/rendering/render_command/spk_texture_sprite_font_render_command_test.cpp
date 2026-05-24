@@ -1,6 +1,5 @@
-#include <gtest/gtest.h>
+﻿#include <gtest/gtest.h>
 
-#if defined(_WIN32) && defined(SPARKLE_GPU_BACKEND_OPENGL)
 
 #include <cstddef>
 #include <cstdint>
@@ -19,6 +18,9 @@
 #include "rendering/spk_texture_mesh_2d.hpp"
 #include "opengl/spk_opengl_viewport.hpp"
 #include "rendering/render_command/spk_viewport_render_command.hpp"
+
+using ClearCommand = spk::ClearCommand;
+using Viewport = spk::Viewport;
 
 namespace
 {
@@ -110,13 +112,13 @@ TEST(DrawTextureMeshRenderCommandTest, DrawsFullScreenTexture)
 	constexpr int width = 24;
 	constexpr int height = 24;
 	sparkle_test::OpenGLTestContext context(spk::Rect2D(0, 0, width, height));
-	spk::IRenderContext& renderContext = context.renderContext();
+	spk::RenderContext& renderContext = context.renderContext();
 
 	auto blueTexture = sparkle_test::makeSolidTexture({2, 2}, 0, 0, 255);
-	spk::OpenGL::Viewport viewport(spk::Rect2D(0, 0, width, height));
+	Viewport viewport(spk::Rect2D(0, 0, width, height));
 	spk::RenderUnitBuilder builder;
 	builder.emplace<spk::ViewportCommand>(viewport);
-	builder.emplace<spk::OpenGL::ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
+	builder.emplace<ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
 	builder.emplace<spk::DrawTextureMeshRenderCommand>(*blueTexture, makeFullScreenMesh({width, height}));
 
 	spk::RenderUnit unit = builder.build();
@@ -134,13 +136,13 @@ TEST(DrawTextureMeshRenderCommandTest, EmptyMeshDoesNotDraw)
 	constexpr int width = 32;
 	constexpr int height = 32;
 	sparkle_test::OpenGLTestContext context(spk::Rect2D(0, 0, width, height));
-	spk::IRenderContext& renderContext = context.renderContext();
+	spk::RenderContext& renderContext = context.renderContext();
 
 	auto whiteTexture = sparkle_test::makeSolidTexture({1, 1}, 255, 255, 255);
-	spk::OpenGL::Viewport viewport(spk::Rect2D(0, 0, width, height));
+	Viewport viewport(spk::Rect2D(0, 0, width, height));
 	spk::RenderUnitBuilder builder;
 	builder.emplace<spk::ViewportCommand>(viewport);
-	builder.emplace<spk::OpenGL::ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
+	builder.emplace<ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
 	builder.emplace<spk::DrawTextureMeshRenderCommand>(*whiteTexture, spk::TextureMesh2D{});
 
 	spk::RenderUnit unit = builder.build();
@@ -160,14 +162,14 @@ TEST(DrawFontRenderCommandTest, DrawsGlyphsWithSizeAndOutline)
 	constexpr int width = 80;
 	constexpr int height = 48;
 	sparkle_test::OpenGLTestContext context(spk::Rect2D(0, 0, width, height));
-	spk::IRenderContext& renderContext = context.renderContext();
+	spk::RenderContext& renderContext = context.renderContext();
 
 	spk::Font font = sparkle_test::testFont();
 
-	spk::OpenGL::Viewport viewport(spk::Rect2D(0, 0, width, height));
+	Viewport viewport(spk::Rect2D(0, 0, width, height));
 	spk::RenderUnitBuilder builder;
 	builder.emplace<spk::ViewportCommand>(viewport);
-	builder.emplace<spk::OpenGL::ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
+	builder.emplace<ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
 	builder.emplace<spk::DrawFontRenderCommand>(
 		font,
 		"A",
@@ -196,13 +198,13 @@ TEST(DrawFontRenderCommandTest, EmptyTextDoesNotDraw)
 	constexpr int width = 32;
 	constexpr int height = 32;
 	sparkle_test::OpenGLTestContext context(spk::Rect2D(0, 0, width, height));
-	spk::IRenderContext& renderContext = context.renderContext();
+	spk::RenderContext& renderContext = context.renderContext();
 
 	spk::Font font = sparkle_test::testFont();
-	spk::OpenGL::Viewport viewport(spk::Rect2D(0, 0, width, height));
+	Viewport viewport(spk::Rect2D(0, 0, width, height));
 	spk::RenderUnitBuilder builder;
 	builder.emplace<spk::ViewportCommand>(viewport);
-	builder.emplace<spk::OpenGL::ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
+	builder.emplace<ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
 	builder.emplace<spk::DrawFontRenderCommand>(font, "", spk::Vector2Int{0, 16}, spk::Font::Size(16, 0));
 
 	spk::RenderUnit unit = builder.build();
@@ -217,4 +219,3 @@ TEST(DrawFontRenderCommandTest, EmptyTextDoesNotDraw)
 		sparkle_test::renderCommandResultPath("DrawFontRenderCommand/empty_diff"));
 }
 
-#endif

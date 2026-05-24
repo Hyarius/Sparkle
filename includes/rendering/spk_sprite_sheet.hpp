@@ -1,7 +1,5 @@
 #pragma once
 
-#if defined(SPARKLE_GPU_BACKEND_OPENGL)
-
 #include <filesystem>
 #include <stdexcept>
 #include <vector>
@@ -131,5 +129,3 @@ namespace spk
 		}
 	};
 }
-
-#endif

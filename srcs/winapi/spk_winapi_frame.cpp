@@ -42,7 +42,7 @@ namespace
 	}
 }
 
-namespace spk::WinAPI
+namespace spk
 {
 	LRESULT Frame::_windowProcedure(HWND p_handle, UINT p_message, WPARAM p_wParam, LPARAM p_lParam)
 	{
@@ -184,8 +184,8 @@ namespace spk::WinAPI
 		}
 	}
 
-	Frame::Frame(std::shared_ptr<Class> p_class, const spk::Rect2D& p_rect, const std::string& p_title) :
-		spk::IFrame(std::make_shared<SurfaceState>()),
+	Frame::Frame(std::shared_ptr<WindowClass> p_class, const spk::Rect2D& p_rect, const std::string& p_title) :
+		spk::IFrame(std::make_shared<spk::SurfaceState>()),
 		_class(std::move(p_class)),
 		_window(
 			_class,

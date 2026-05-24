@@ -9,7 +9,7 @@
 
 #include "utils/spk_contract_provider.hpp"
 #include "application/module/spk_frame_module.hpp"
-#include "opengl/spk_gpu_platform_runtime.hpp"
+#include "opengl/spk_opengl_runtime.hpp"
 #include "application/module/spk_keyboard_module.hpp"
 #include "application/module/spk_mouse_module.hpp"
 #include "application/spk_platform_runtime.hpp"
@@ -126,7 +126,7 @@ namespace spk
 		friend class spk::WindowHandle;
 
 	public:
-		Window(std::shared_ptr<IPlatformRuntime> p_platformRuntime, std::shared_ptr<IGPUPlatformRuntime> p_gpuPlatformRuntime, Configuration p_configuration);
+		Window(std::shared_ptr<PlatformRuntime> p_platformRuntime, std::shared_ptr<GPUPlatformRuntime> p_gpuPlatformRuntime, Configuration p_configuration);
 		~Window();
 
 		[[nodiscard]] spk::WindowHost& host();

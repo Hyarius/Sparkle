@@ -1,16 +1,14 @@
 #pragma once
 
-#if defined(SPARKLE_GPU_BACKEND_OPENGL)
-
 #include <filesystem>
 #include <vector>
 #include <cstdint>
 
-#include "opengl/spk_opengl_texture.hpp"
+#include "rendering/spk_texture.hpp"
 
 namespace spk
 {
-	class Image : public spk::OpenGL::Texture
+	class Image : public spk::Texture
 	{
 	public:
 		Image();
@@ -23,5 +21,3 @@ namespace spk
 		static Format _determineFormat(int p_channels);
 	};
 }
-
-#endif

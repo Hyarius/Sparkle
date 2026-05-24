@@ -1,10 +1,10 @@
-﻿#include "window/spk_frame.hpp"
+#include "window/spk_frame.hpp"
 
 #include <stdexcept>
 
 namespace spk
 {
-	IFrame::IFrame(std::shared_ptr<ISurfaceState> p_surfaceState) :
+	IFrame::IFrame(std::shared_ptr<SurfaceState> p_surfaceState) :
 		_surfaceState(std::move(p_surfaceState))
 	{
 		if (_surfaceState == nullptr)
@@ -46,7 +46,7 @@ namespace spk
 		}
 	}
 
-	std::shared_ptr<ISurfaceState> IFrame::surfaceState() const
+	std::shared_ptr<SurfaceState> IFrame::surfaceState() const
 	{
 		return _surfaceState;
 	}

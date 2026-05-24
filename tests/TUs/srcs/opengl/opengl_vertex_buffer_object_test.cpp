@@ -1,10 +1,9 @@
-#include <array>
+﻿#include <array>
 
 #include <gtest/gtest.h>
 
 #include "opengl_wrapper_test_utils.hpp"
 
-#if defined(_WIN32) && defined(SPARKLE_GPU_BACKEND_OPENGL)
 
 TEST(OpenGLVertexBufferObjectTest, DefaultsToArrayBufferTargetAndUploadsVertexData)
 {
@@ -15,7 +14,7 @@ TEST(OpenGLVertexBufferObjectTest, DefaultsToArrayBufferTargetAndUploadsVertexDa
 		sparkle_test::fullScreenTriangle({0.0f, 1.0f, 0.0f});
 	auto vertexBuffer = sparkle_test::makeTriangleVBO(vertices);
 
-	EXPECT_EQ(vertexBuffer->target(), spk::OpenGL::BufferObject::Target::Array);
+	EXPECT_EQ(vertexBuffer->target(), spk::BufferObject::Target::Array);
 	vertexBuffer->activate();
 
 	std::array<sparkle_test::TestVertex, 3> gpuVertices = {};
@@ -24,4 +23,3 @@ TEST(OpenGLVertexBufferObjectTest, DefaultsToArrayBufferTargetAndUploadsVertexDa
 	EXPECT_EQ(gpuVertices[1].color, vertices[1].color);
 }
 
-#endif

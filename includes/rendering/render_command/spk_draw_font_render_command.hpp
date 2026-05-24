@@ -1,18 +1,17 @@
 #pragma once
 
-#if defined(SPARKLE_GPU_BACKEND_OPENGL)
-
 #include <string_view>
 #include <vector>
 
-#include "opengl/spk_opengl_layout_buffer_object.hpp"
-#include "opengl/spk_opengl_program.hpp"
-#include "opengl/spk_opengl_sampler_object.hpp"
-#include "opengl/spk_opengl_uniform.hpp"
 #include "rendering/spk_color.hpp"
 #include "rendering/spk_font.hpp"
 #include "rendering/spk_render_command.hpp"
 #include "rendering/spk_texture_mesh_2d.hpp"
+#include "opengl/spk_opengl_layout_buffer_object.hpp"
+#include "opengl/spk_opengl_program.hpp"
+#include "opengl/spk_opengl_sampler_object.hpp"
+#include "opengl/spk_opengl_texture.hpp"
+#include "opengl/spk_opengl_uniform.hpp"
 
 namespace spk
 {
@@ -20,20 +19,26 @@ namespace spk
 	{
 	private:
 		spk::Font::Atlas& _atlas;
+		spk::GPUTexture _atlasTexture;
+		std::vector<uint8_t> _atlasPixels;
+		spk::Vector2UInt _atlasSize{};
+		spk::Texture::Format _atlasFormat = spk::Texture::Format::Error;
+		spk::Texture::Filtering _atlasFiltering = spk::Texture::Filtering::Nearest;
+		spk::Texture::Wrap _atlasWrap = spk::Texture::Wrap::ClampToEdge;
+		spk::Texture::Mipmap _atlasMipmap = spk::Texture::Mipmap::Enable;
 		const spk::Color _color;
 		const spk::Color _outlineColor;
 		const float _outlineThickness;
 
 		spk::Program _program;
-		spk::OpenGL::LayoutBufferObject _layoutBuffer;
-
-		spk::OpenGL::SamplerObject _sampler;
-		spk::OpenGL::Vector4Uniform _colorUniform;
-		spk::OpenGL::Vector4Uniform _outlineColorUniform;
-		spk::OpenGL::FloatUniform _outlineThicknessUniform;
+		spk::SamplerObject _sampler;
+		spk::Vector4Uniform _colorUniform;
+		spk::Vector4Uniform _outlineColorUniform;
+		spk::FloatUniform _outlineThicknessUniform;
 
 		std::vector<float> _vertexData;
-		bool _layoutBufferDirty = true;
+		spk::LayoutBufferObject _layoutBuffer;
+		bool _layoutBufferDirty;
 
 		void _uploadMesh();
 
@@ -46,7 +51,7 @@ namespace spk
 			spk::Color p_color = spk::Color(1.0f, 1.0f, 1.0f, 1.0f),
 			spk::Color p_outlineColor = spk::Color(0.0f, 0.0f, 0.0f, 0.0f),
 			float p_depth = 0.0f);
-			
+
 		DrawFontRenderCommand(
 			const spk::Font& p_font,
 			std::string_view p_text,
@@ -56,8 +61,6 @@ namespace spk
 			spk::Color p_outlineColor = spk::Color(0.0f, 0.0f, 0.0f, 0.0f),
 			float p_depth = 0.0f);
 
-		void execute(spk::IRenderContext& p_renderContext) override;
+		void execute(spk::RenderContext& p_renderContext) override;
 	};
 }
-
-#endif

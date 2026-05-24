@@ -1,6 +1,5 @@
-#include <gtest/gtest.h>
+﻿#include <gtest/gtest.h>
 
-#if defined(_WIN32) && defined(SPARKLE_GPU_BACKEND_OPENGL)
 
 #include <filesystem>
 #include <vector>
@@ -72,4 +71,3 @@ TEST(FontTextureTest, AtlasMatchesExpectedImage)
 		<< " expectedSize=" << result.expectedWidth << "x" << result.expectedHeight;
 }
 
-#endif

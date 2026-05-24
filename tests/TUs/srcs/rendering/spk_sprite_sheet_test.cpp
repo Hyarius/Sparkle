@@ -1,6 +1,5 @@
-#include <gtest/gtest.h>
+﻿#include <gtest/gtest.h>
 
-#if defined(_WIN32) && defined(SPARKLE_GPU_BACKEND_OPENGL)
 
 #include <stb_image_write.h>
 
@@ -167,4 +166,3 @@ TEST(SpriteSheetTest, FromRawDataFactoryCreatesValidSheet)
 	EXPECT_EQ(sheet.sprites().size(), 4u);
 }
 
-#endif

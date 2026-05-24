@@ -1,6 +1,4 @@
-﻿#pragma once
-
-#if defined(SPARKLE_GPU_BACKEND_OPENGL)
+#pragma once
 
 #include <optional>
 
@@ -8,7 +6,7 @@
 
 #include "opengl/spk_opengl_buffer_object.hpp"
 
-namespace spk::OpenGL
+namespace spk
 {
 	class ShaderStorageBufferObject : public BufferObject
 	{
@@ -31,5 +29,3 @@ namespace spk::OpenGL
 		void activate() override;
 	};
 }
-
-#endif

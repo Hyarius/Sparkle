@@ -2,8 +2,42 @@
 
 #include <stdexcept>
 
+#include <GL/glew.h>
+
+#include "window/spk_surface_state.hpp"
+
 namespace spk
 {
+	void Viewport::_applyToGraphicsContext(const spk::SurfaceState& p_surfaceState) const
+	{
+		const spk::Vector2UInt& windowSize = p_surfaceState.rect().size;
+		if (windowSize.x == 0 || windowSize.y == 0)
+		{
+			throw std::runtime_error("spk::Viewport::_applyToGraphicsContext() - window size must be positive");
+		}
+
+		const GLint viewportGLY = static_cast<GLint>(windowSize.y)
+			- _geometry.y()
+			- static_cast<GLint>(_geometry.height());
+
+		glViewport(
+			static_cast<GLint>(_geometry.x()),
+			viewportGLY,
+			static_cast<GLsizei>(_geometry.width()),
+			static_cast<GLsizei>(_geometry.height()));
+
+		const GLint scissorGLY = static_cast<GLint>(windowSize.y)
+			- _scissor.y()
+			- static_cast<GLint>(_scissor.height());
+
+		glEnable(GL_SCISSOR_TEST);
+		glScissor(
+			static_cast<GLint>(_scissor.x()),
+			scissorGLY,
+			static_cast<GLsizei>(_scissor.width()),
+			static_cast<GLsizei>(_scissor.height()));
+	}
+
 	void Viewport::_configureMatrix()
 	{
 		_matrix.configure([this]() -> spk::Matrix4x4
@@ -69,7 +103,7 @@ namespace spk
 		return _maxLayer;
 	}
 
-	void Viewport::activate(const spk::ISurfaceState& p_surfaceState) const
+	void Viewport::activate(const spk::SurfaceState& p_surfaceState) const
 	{
 		if (_geometry.width() == 0 || _geometry.height() == 0)
 		{

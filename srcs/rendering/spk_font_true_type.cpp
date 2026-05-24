@@ -1,7 +1,5 @@
 #include "rendering/spk_font.hpp"
 
-#if defined(SPARKLE_GPU_BACKEND_OPENGL)
-
 #include <fstream>
 #include <unordered_set>
 
@@ -199,5 +197,3 @@ namespace spk
 			std::istreambuf_iterator<char>()));
 	}
 }
-
-#endif

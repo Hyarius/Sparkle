@@ -11,11 +11,11 @@
 #include "math/spk_rect_2d.hpp"
 #include "winapi/spk_winapi_class.hpp"
 
-namespace spk::WinAPI
+namespace spk
 {
 	class Cursor;
 
-	class Window
+	class WindowRuntime
 	{
 	public:
 		using Procedure = std::function<LRESULT(HWND, UINT, WPARAM, LPARAM)>;
@@ -23,7 +23,7 @@ namespace spk::WinAPI
 	private:
 		friend class PlatformRuntime;
 
-		std::shared_ptr<Class> _windowClass;
+		std::shared_ptr<WindowClass> _windowClass;
 		HWND _handle = nullptr;
 		Procedure _procedure = nullptr;
 
@@ -32,26 +32,26 @@ namespace spk::WinAPI
 		LRESULT _dispatch(UINT p_message, WPARAM p_wParam, LPARAM p_lParam);
 
 	public:
-		Window(
-			std::shared_ptr<Class> p_windowClass,
+		WindowRuntime(
+			std::shared_ptr<WindowClass> p_windowClass,
 			const spk::Rect2D& p_rect,
 			const std::string& p_title,
 			Procedure p_procedure = nullptr,
 			DWORD p_style = WS_OVERLAPPEDWINDOW,
 			DWORD p_extendedStyle = 0);
-		Window(const Window&) = delete;
-		Window(Window&& p_other) noexcept;
-		~Window();
+		WindowRuntime(const WindowRuntime&) = delete;
+		WindowRuntime(WindowRuntime&& p_other) noexcept;
+		~WindowRuntime();
 
-		Window& operator=(const Window&) = delete;
-		Window& operator=(Window&& p_other) noexcept;
+		WindowRuntime& operator=(const WindowRuntime&) = delete;
+		WindowRuntime& operator=(WindowRuntime&& p_other) noexcept;
 
 		void show(int p_command = SW_SHOWNORMAL);
 		void hide();
 		void destroy();
 		void setTitle(const std::string& p_title);
 		void resize(const spk::Rect2D& p_rect);
-		void setCursor(const spk::WinAPI::Cursor& p_cursor) const;
+		void setCursor(const spk::Cursor& p_cursor) const;
 
 		[[nodiscard]] HWND handle() const;
 		[[nodiscard]] HDC deviceContext() const;

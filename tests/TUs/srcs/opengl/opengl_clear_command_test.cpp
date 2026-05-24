@@ -1,18 +1,17 @@
-#include <gtest/gtest.h>
+﻿#include <gtest/gtest.h>
 
 #include "image_comparison_test_utils.hpp"
 #include "opengl_wrapper_test_utils.hpp"
 
-#if defined(_WIN32) && defined(SPARKLE_GPU_BACKEND_OPENGL)
 
 TEST(OpenGLClearCommandTest, ClearsFramebufferToRequestedColor)
 {
 	constexpr int width = 8;
 	constexpr int height = 8;
 	sparkle_test::OpenGLTestContext context(spk::Rect2D(0, 0, width, height));
-	spk::IRenderContext& renderContext = context.renderContext();
+	spk::RenderContext& renderContext = context.renderContext();
 
-	spk::OpenGL::ClearCommand clearCommand(std::array<float, 4>{0.0f, 1.0f, 0.0f, 1.0f});
+	spk::ClearCommand clearCommand(std::array<float, 4>{0.0f, 1.0f, 0.0f, 1.0f});
 	clearCommand.execute(renderContext);
 	context.gpuRuntime().waitUntilWorkDone();
 
@@ -26,4 +25,3 @@ TEST(OpenGLClearCommandTest, ClearsFramebufferToRequestedColor)
 	EXPECT_TRUE(result.matches);
 }
 
-#endif

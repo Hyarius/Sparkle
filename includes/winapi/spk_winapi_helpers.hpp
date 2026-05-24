@@ -7,7 +7,7 @@
 
 #include <Windows.h>
 
-namespace spk::WinAPI
+namespace spk
 {
 	[[nodiscard]] std::wstring toWideString(const std::string& p_value);
 	[[nodiscard]] std::string toString(const std::wstring& p_value);

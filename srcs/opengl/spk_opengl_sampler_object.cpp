@@ -1,8 +1,6 @@
 #include "opengl/spk_opengl_sampler_object.hpp"
 
-#if defined(SPARKLE_GPU_BACKEND_OPENGL)
-
-namespace spk::OpenGL
+namespace spk
 {
 	SamplerObject::SamplerObject(const std::string& p_name, Type p_type, BindingPoint p_bindingPoint) :
 		_designator(p_name),
@@ -11,7 +9,7 @@ namespace spk::OpenGL
 	{
 	}
 
-	void SamplerObject::bind(const OpenGL::Texture& p_texture)
+	void SamplerObject::bind(const spk::GPUTexture& p_texture)
 	{
 		_texture = &p_texture;
 	}
@@ -66,5 +64,3 @@ namespace spk::OpenGL
 		glBindTexture(static_cast<GLenum>(_type), 0);
 	}
 }
-
-#endif

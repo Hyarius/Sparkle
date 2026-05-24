@@ -1,10 +1,10 @@
-﻿#include "window/spk_window_host.hpp"
+#include "window/spk_window_host.hpp"
 
 #include <stdexcept>
 
 namespace spk
 {
-	WindowHost::WindowHost(std::unique_ptr<IFrame> p_frame, std::shared_ptr<IGPUPlatformRuntime> p_gpuPlatformRuntime) :
+	WindowHost::WindowHost(std::unique_ptr<IFrame> p_frame, std::shared_ptr<GPUPlatformRuntime> p_gpuPlatformRuntime) :
 		_frame(std::move(p_frame)),
 		_gpuPlatformRuntime(std::move(p_gpuPlatformRuntime)),
 		_platformThreadID(std::this_thread::get_id())
@@ -16,7 +16,7 @@ namespace spk
 
 		if (_gpuPlatformRuntime == nullptr)
 		{
-			throw std::runtime_error("spk::WindowHost requires a valid spk::IGPUPlatformRuntime");
+			throw std::runtime_error("spk::WindowHost requires a valid spk::GPUPlatformRuntime");
 		}
 	}
 
@@ -86,7 +86,7 @@ namespace spk
 			throw std::runtime_error("spk::WindowHost can't create a render context after its frame has been released");
 		}
 
-		std::shared_ptr<ISurfaceState> surfaceState = _frame->surfaceState();
+		std::shared_ptr<SurfaceState> surfaceState = _frame->surfaceState();
 		if (surfaceState == nullptr || surfaceState->isValid() == false)
 		{
 			return false;
@@ -240,7 +240,7 @@ namespace spk
 		return true;
 	}
 
-	IRenderContext& WindowHost::renderContext()
+	RenderContext& WindowHost::renderContext()
 	{
 		std::scoped_lock lock(_renderThreadMutex);
 		if (_ensureRenderContextLocked() == false || _renderContext == nullptr || _renderContext->isValid() == false)

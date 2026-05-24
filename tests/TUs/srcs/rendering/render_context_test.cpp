@@ -4,11 +4,11 @@
 
 namespace
 {
-	class NullSurfaceStateRenderContext : public spk::IRenderContext
+	class NullSurfaceStateRenderContext : public spk::RenderContext
 	{
 	public:
 		NullSurfaceStateRenderContext() :
-			spk::IRenderContext(nullptr)
+			spk::RenderContext(nullptr)
 		{
 		}
 
@@ -30,7 +30,7 @@ namespace
 	};
 }
 
-TEST(IRenderContextTest, TestRenderContextTracksAllOperations)
+TEST(RenderContextTest, TestRenderContextTracksAllOperations)
 {
 	sparkle_test::TestRenderContext context(std::make_shared<sparkle_test::TestSurfaceState>());
 	const spk::Rect2D resizedRect(3, 4, 1280, 720);
@@ -50,7 +50,7 @@ TEST(IRenderContextTest, TestRenderContextTracksAllOperations)
 	EXPECT_EQ(context.resizeHistory[0], resizedRect);
 }
 
-TEST(IRenderContextTest, InvalidateMarksContextAsInvalid)
+TEST(RenderContextTest, InvalidateMarksContextAsInvalid)
 {
 	sparkle_test::TestRenderContext context(std::make_shared<sparkle_test::TestSurfaceState>());
 
@@ -62,12 +62,13 @@ TEST(IRenderContextTest, InvalidateMarksContextAsInvalid)
 	EXPECT_EQ(context.invalidateCount, 1);
 }
 
-TEST(IRenderContextTest, ConstructingRenderContextWithoutSurfaceStateThrows)
+TEST(RenderContextTest, ConstructingRenderContextWithoutSurfaceStateIsInvalid)
 {
-	EXPECT_THROW(NullSurfaceStateRenderContext(), std::invalid_argument);
+	NullSurfaceStateRenderContext ctx;
+	EXPECT_FALSE(ctx.isValid());
 }
 
-TEST(IRenderContextTest, ConstructingWithSurfaceStateSharesValidityWithTheSurface)
+TEST(RenderContextTest, ConstructingWithSurfaceStateSharesValidityWithTheSurface)
 {
 	auto surfaceState = std::make_shared<sparkle_test::TestSurfaceState>();
 	sparkle_test::TestRenderContext context(surfaceState);
@@ -80,12 +81,12 @@ TEST(IRenderContextTest, ConstructingWithSurfaceStateSharesValidityWithTheSurfac
 	EXPECT_FALSE(context.isValid());
 }
 
-TEST(IGPUPlatformRuntimeTest, CreateRenderContextReceivesFrameReference)
+TEST(GPUPlatformTest, CreateRenderContextReceivesFrameReference)
 {
 	sparkle_test::TestGPUPlatformRuntime gpuPlatformRuntime;
 	sparkle_test::TestFrame frame(sparkle_test::defaultRect(), "Frame");
 
-	std::unique_ptr<spk::IRenderContext> context = gpuPlatformRuntime.createRenderContext(frame);
+	std::unique_ptr<spk::RenderContext> context = gpuPlatformRuntime.createRenderContext(frame);
 
 	ASSERT_NE(context, nullptr);
 	ASSERT_NE(gpuPlatformRuntime.createdContext, nullptr);
@@ -94,13 +95,13 @@ TEST(IGPUPlatformRuntimeTest, CreateRenderContextReceivesFrameReference)
 	EXPECT_TRUE(context->surfaceState() != nullptr);
 }
 
-TEST(IGPUPlatformRuntimeTest, RuntimeCanBeConfiguredToReturnNullContext)
+TEST(GPUPlatformTest, RuntimeCanBeConfiguredToReturnNullContext)
 {
 	sparkle_test::TestGPUPlatformRuntime gpuPlatformRuntime;
 	sparkle_test::TestFrame frame(sparkle_test::defaultRect(), "Frame");
 	gpuPlatformRuntime.returnNullContext = true;
 
-	std::unique_ptr<spk::IRenderContext> context = gpuPlatformRuntime.createRenderContext(frame);
+	std::unique_ptr<spk::RenderContext> context = gpuPlatformRuntime.createRenderContext(frame);
 
 	EXPECT_EQ(context, nullptr);
 	EXPECT_EQ(gpuPlatformRuntime.createRenderContextCount, 1);
@@ -108,7 +109,7 @@ TEST(IGPUPlatformRuntimeTest, RuntimeCanBeConfiguredToReturnNullContext)
 	EXPECT_EQ(gpuPlatformRuntime.createdContext, nullptr);
 }
 
-TEST(IGPUPlatformRuntimeTest, WaitUntilWorkDoneIsTrackedByTestRuntime)
+TEST(GPUPlatformTest, WaitUntilWorkDoneIsTrackedByTestRuntime)
 {
 	sparkle_test::TestGPUPlatformRuntime gpuPlatformRuntime;
 

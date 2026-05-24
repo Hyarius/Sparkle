@@ -8,16 +8,16 @@
 #include "winapi/spk_winapi_cursor.hpp"
 #include "winapi/spk_winapi_helpers.hpp"
 
-namespace spk::WinAPI
+namespace spk
 {
-	LRESULT CALLBACK Window::_staticWindowProcedure(HWND p_handle, UINT p_message, WPARAM p_wParam, LPARAM p_lParam)
+	LRESULT CALLBACK WindowRuntime::_staticWindowProcedure(HWND p_handle, UINT p_message, WPARAM p_wParam, LPARAM p_lParam)
 	{
-		Window* window = reinterpret_cast<Window*>(GetWindowLongPtrW(p_handle, GWLP_USERDATA));
+		WindowRuntime* window = reinterpret_cast<WindowRuntime*>(GetWindowLongPtrW(p_handle, GWLP_USERDATA));
 
 		if (p_message == WM_NCCREATE)
 		{
 			auto* createStruct = reinterpret_cast<CREATESTRUCTW*>(p_lParam);
-			window = reinterpret_cast<Window*>(createStruct->lpCreateParams);
+			window = reinterpret_cast<WindowRuntime*>(createStruct->lpCreateParams);
 			window->_handle = p_handle;
 			SetWindowLongPtrW(p_handle, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(window));
 		}
@@ -30,7 +30,7 @@ namespace spk::WinAPI
 		return DefWindowProcW(p_handle, p_message, p_wParam, p_lParam);
 	}
 
-	LRESULT Window::_dispatch(UINT p_message, WPARAM p_wParam, LPARAM p_lParam)
+	LRESULT WindowRuntime::_dispatch(UINT p_message, WPARAM p_wParam, LPARAM p_lParam)
 	{
 		LRESULT result = 0;
 		if (_procedure != nullptr)
@@ -51,8 +51,8 @@ namespace spk::WinAPI
 		return result;
 	}
 
-	Window::Window(
-		std::shared_ptr<Class> p_windowClass,
+	WindowRuntime::WindowRuntime(
+		std::shared_ptr<WindowClass> p_windowClass,
 		const spk::Rect2D& p_rect,
 		const std::string& p_title,
 		Procedure p_procedure,
@@ -63,7 +63,7 @@ namespace spk::WinAPI
 	{
 		if (_windowClass == nullptr)
 		{
-			throw std::invalid_argument("spk::WinAPI::Window requires a valid window class");
+			throw std::invalid_argument("spk::WindowRuntime requires a valid window class");
 		}
 
 		RECT nativeRect{
@@ -97,7 +97,7 @@ namespace spk::WinAPI
 		}
 	}
 
-	Window::Window(Window&& p_other) noexcept :
+	WindowRuntime::WindowRuntime(WindowRuntime&& p_other) noexcept :
 		_windowClass(std::move(p_other._windowClass)),
 		_handle(p_other._handle),
 		_procedure(std::move(p_other._procedure))
@@ -109,12 +109,12 @@ namespace spk::WinAPI
 		}
 	}
 
-	Window::~Window()
+	WindowRuntime::~WindowRuntime()
 	{
 		destroy();
 	}
 
-	Window& Window::operator=(Window&& p_other) noexcept
+	WindowRuntime& WindowRuntime::operator=(WindowRuntime&& p_other) noexcept
 	{
 		if (this == &p_other)
 		{
@@ -135,7 +135,7 @@ namespace spk::WinAPI
 		return *this;
 	}
 
-	void Window::show(int p_command)
+	void WindowRuntime::show(int p_command)
 	{
 		if (_handle != nullptr)
 		{
@@ -144,7 +144,7 @@ namespace spk::WinAPI
 		}
 	}
 
-	void Window::hide()
+	void WindowRuntime::hide()
 	{
 		if (_handle != nullptr)
 		{
@@ -152,7 +152,7 @@ namespace spk::WinAPI
 		}
 	}
 
-	void Window::destroy()
+	void WindowRuntime::destroy()
 	{
 		if (_handle != nullptr)
 		{
@@ -165,7 +165,7 @@ namespace spk::WinAPI
 		}
 	}
 
-	void Window::setTitle(const std::string& p_title)
+	void WindowRuntime::setTitle(const std::string& p_title)
 	{
 		if (_handle != nullptr && SetWindowTextW(_handle, toWideString(p_title).c_str()) == FALSE)
 		{
@@ -173,7 +173,7 @@ namespace spk::WinAPI
 		}
 	}
 
-	void Window::resize(const spk::Rect2D& p_rect)
+	void WindowRuntime::resize(const spk::Rect2D& p_rect)
 	{
 		if (_handle == nullptr)
 		{
@@ -207,7 +207,7 @@ namespace spk::WinAPI
 		}
 	}
 
-	void Window::setCursor(const spk::WinAPI::Cursor& p_cursor) const
+	void WindowRuntime::setCursor(const spk::Cursor& p_cursor) const
 	{
 		if (_handle != nullptr && p_cursor.isValid() == true)
 		{
@@ -215,12 +215,12 @@ namespace spk::WinAPI
 		}
 	}
 
-	HWND Window::handle() const
+	HWND WindowRuntime::handle() const
 	{
 		return _handle;
 	}
 
-	HDC Window::deviceContext() const
+	HDC WindowRuntime::deviceContext() const
 	{
 		if (_handle == nullptr)
 		{
@@ -230,7 +230,7 @@ namespace spk::WinAPI
 		return GetDC(_handle);
 	}
 
-	spk::Rect2D Window::rect() const
+	spk::Rect2D WindowRuntime::rect() const
 	{
 		if (_handle == nullptr)
 		{
@@ -242,7 +242,7 @@ namespace spk::WinAPI
 		return spk::Rect2D(rect.left, rect.top, static_cast<std::size_t>(rect.right - rect.left), static_cast<std::size_t>(rect.bottom - rect.top));
 	}
 
-	spk::Rect2D Window::clientRect() const
+	spk::Rect2D WindowRuntime::clientRect() const
 	{
 		if (_handle == nullptr)
 		{
@@ -257,7 +257,7 @@ namespace spk::WinAPI
 		return spk::Rect2D(origin.x, origin.y, static_cast<std::size_t>(client.right - client.left), static_cast<std::size_t>(client.bottom - client.top));
 	}
 
-	std::string Window::title() const
+	std::string WindowRuntime::title() const
 	{
 		if (_handle == nullptr)
 		{
@@ -271,7 +271,7 @@ namespace spk::WinAPI
 		return toString(result);
 	}
 
-	bool Window::isValid() const
+	bool WindowRuntime::isValid() const
 	{
 		return _handle != nullptr && IsWindow(_handle) == TRUE;
 	}

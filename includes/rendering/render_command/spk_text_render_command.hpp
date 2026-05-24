@@ -1,7 +1,5 @@
 #pragma once
 
-#if defined(SPARKLE_GPU_BACKEND_OPENGL)
-
 #include <memory>
 #include <string>
 #include <string_view>
@@ -43,8 +41,6 @@ namespace spk
 			spk::HorizontalAlignment p_horizontalAlignment = spk::HorizontalAlignment::Left,
 			spk::VerticalAlignment p_verticalAlignment = spk::VerticalAlignment::Top);
 
-		void execute(spk::IRenderContext& p_renderContext) override;
+		void execute(spk::RenderContext& p_renderContext) override;
 	};
 }
-
-#endif

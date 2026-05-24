@@ -1,12 +1,10 @@
 #include "opengl/spk_opengl_texture.hpp"
 
-#if defined(SPARKLE_GPU_BACKEND_OPENGL)
-
 #include <utility>
 
-namespace spk::OpenGL
+namespace spk
 {
-	void Texture::_convertFormat(Format p_format, GLint& p_internalFormat, GLenum& p_externalFormat)
+	void GPUTexture::_convertFormat(Format p_format, GLint& p_internalFormat, GLenum& p_externalFormat)
 	{
 		switch (p_format)
 		{
@@ -41,7 +39,7 @@ namespace spk::OpenGL
 		}
 	}
 
-	void Texture::_setupTextureParameters(Filtering p_filtering, Wrap p_wrap, Mipmap p_mipmap)
+	void GPUTexture::_setupTextureParameters(Filtering p_filtering, Wrap p_wrap, Mipmap p_mipmap)
 	{
 		switch (p_wrap)
 		{
@@ -79,7 +77,7 @@ namespace spk::OpenGL
 		}
 	}
 
-	void Texture::_uploadToGPU() const
+	void GPUTexture::_uploadToGPU() const
 	{
 		if (size().x == 0 || size().y == 0 || format() == Format::Error)
 		{
@@ -118,17 +116,17 @@ namespace spk::OpenGL
 		glBindTexture(GL_TEXTURE_2D, 0);
 	}
 
-	void Texture::_synchronize() const
+	void GPUTexture::_synchronize() const
 	{
 		_uploadToGPU();
 	}
 
-	Texture::Texture() :
+	GPUTexture::GPUTexture() :
 		spk::Texture()
 	{
 	}
 
-	Texture::~Texture()
+	GPUTexture::~GPUTexture()
 	{
 		if (_glId != InvalidGLId)
 		{
@@ -137,13 +135,13 @@ namespace spk::OpenGL
 		}
 	}
 
-	Texture::Texture(Texture&& p_other) noexcept :
+	GPUTexture::GPUTexture(GPUTexture&& p_other) noexcept :
 		spk::Texture(std::move(p_other)),
 		_glId(std::exchange(p_other._glId, InvalidGLId))
 	{
 	}
 
-	Texture& Texture::operator=(Texture&& p_other) noexcept
+	GPUTexture& GPUTexture::operator=(GPUTexture&& p_other) noexcept
 	{
 		if (this != &p_other)
 		{
@@ -157,10 +155,8 @@ namespace spk::OpenGL
 		return *this;
 	}
 
-	GLuint Texture::glId() const
+	GLuint GPUTexture::glId() const
 	{
 		return _glId;
 	}
 }
-
-#endif

@@ -3,23 +3,21 @@
 #include <stdexcept>
 #include <utility>
 
-#if defined(SPARKLE_GPU_BACKEND_OPENGL)
 #include <memory>
 
 #include "opengl/spk_opengl_clear_command.hpp"
 #include "rendering/render_command/spk_viewport_render_command.hpp"
 #include "rendering/spk_render_unit_builder.hpp"
-#endif
 
 namespace spk
 {
 	namespace
 	{
-		std::unique_ptr<spk::IFrame> _createFrame(const std::shared_ptr<spk::IPlatformRuntime> &p_platformRuntime, const spk::Rect2D &p_rect, const std::string &p_title)
+		std::unique_ptr<spk::IFrame> _createFrame(const std::shared_ptr<spk::PlatformRuntime> &p_platformRuntime, const spk::Rect2D &p_rect, const std::string &p_title)
 		{
 			if (p_platformRuntime == nullptr)
 			{
-				throw std::runtime_error("spk::Window requires a valid spk::IPlatformRuntime to create its frame");
+				throw std::runtime_error("spk::Window requires a valid spk::PlatformRuntime to create its frame");
 			}
 
 			std::unique_ptr<spk::IFrame> result = p_platformRuntime->createFrame(p_rect, p_title);
@@ -32,15 +30,13 @@ namespace spk
 			return result;
 		}
 
-#if defined(SPARKLE_GPU_BACKEND_OPENGL)
 		std::shared_ptr<spk::RenderUnit> _createRenderPassPreparationUnit(const spk::Viewport& p_viewport)
 		{
 			spk::RenderUnitBuilder builder;
 			builder.emplace<spk::ViewportCommand>(p_viewport);
-			builder.emplace<spk::OpenGL::ClearCommand>();
+			builder.emplace<spk::ClearCommand>();
 			return std::make_shared<spk::RenderUnit>(builder.build());
 		}
-#endif
 	}
 
 	void Window::_enqueueFrameEvent(spk::FrameEventRecord p_event)
@@ -142,9 +138,7 @@ namespace spk
 	void Window::_rebuildRenderSnapshot()
 	{
 		spk::RenderSnapshotBuilder builder;
-#if defined(SPARKLE_GPU_BACKEND_OPENGL)
 		builder.append(_createRenderPassPreparationUnit(_rootWidget.viewport()));
-#endif
 		_rootWidget.appendRenderUnits(builder);
 
 		std::shared_ptr<spk::RenderSnapshot> snapshot =
@@ -265,7 +259,7 @@ namespace spk
 		}
 	}
 
-	Window::Window(std::shared_ptr<IPlatformRuntime> p_platformRuntime, std::shared_ptr<IGPUPlatformRuntime> p_gpuPlatformRuntime, Configuration p_configuration) :
+	Window::Window(std::shared_ptr<PlatformRuntime> p_platformRuntime, std::shared_ptr<GPUPlatformRuntime> p_gpuPlatformRuntime, Configuration p_configuration) :
 		_rootWidget(":/" + p_configuration.title + "/RootWidget", nullptr),
 		_host(_createFrame(p_platformRuntime, p_configuration.rect, p_configuration.title), std::move(p_gpuPlatformRuntime))
 	{

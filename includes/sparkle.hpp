@@ -48,7 +48,7 @@
 #include "window/spk_frame.hpp"
 #include "application/spk_platform_runtime.hpp"
 #include "rendering/spk_render_context.hpp"
-#include "opengl/spk_gpu_platform_runtime.hpp"
+#include "opengl/spk_opengl_runtime.hpp"
 #ifdef _WIN32
 #include "winapi/spk_winapi_class.hpp"
 #include "winapi/spk_winapi_cursor.hpp"
@@ -56,7 +56,6 @@
 #include "winapi/spk_winapi_frame.hpp"
 #include "winapi/spk_winapi_platform_runtime.hpp"
 #include "opengl/spk_opengl_render_context.hpp"
-#include "opengl/spk_opengl_runtime.hpp"
 #endif
 
 // Rendering
@@ -64,6 +63,11 @@
 #include "rendering/render_command/spk_draw_color_mesh_render_command.hpp"
 #include "rendering/render_command/spk_draw_font_render_command.hpp"
 #include "rendering/render_command/spk_draw_texture_mesh_render_command.hpp"
+#include "rendering/render_command/spk_color_rectangle_render_command.hpp"
+#include "rendering/render_command/spk_image_render_command.hpp"
+#include "rendering/render_command/spk_nine_slice_render_command.hpp"
+#include "rendering/render_command/spk_sprite_render_command.hpp"
+#include "rendering/render_command/spk_text_render_command.hpp"
 #include "rendering/spk_render_unit.hpp"
 #include "rendering/spk_render_unit_builder.hpp"
 #include "rendering/spk_render_snapshot.hpp"
@@ -73,12 +77,9 @@
 #include "rendering/spk_mesh_2d.hpp"
 #include "rendering/spk_color_mesh_2d.hpp"
 #include "rendering/spk_texture_mesh_2d.hpp"
-#ifdef SPARKLE_GPU_BACKEND_OPENGL
 #include "rendering/spk_font.hpp"
 #include "rendering/spk_image.hpp"
 #include "rendering/spk_sprite_sheet.hpp"
-#endif
-#ifdef SPARKLE_GPU_BACKEND_OPENGL
 #include "opengl/spk_opengl_program.hpp"
 #include "opengl/spk_opengl_buffer_object.hpp"
 #include "opengl/spk_opengl_clear_command.hpp"
@@ -94,7 +95,6 @@
 #include "opengl/spk_opengl_uniform_buffer_object.hpp"
 #include "opengl/spk_opengl_vertex_array_object.hpp"
 #include "opengl/spk_opengl_vertex_buffer_object.hpp"
-#endif
 #include "rendering/render_command/spk_viewport_render_command.hpp"
 
 // Modules

@@ -1,6 +1,5 @@
-#include <gtest/gtest.h>
+﻿#include <gtest/gtest.h>
 
-#if defined(_WIN32) && defined(SPARKLE_GPU_BACKEND_OPENGL)
 
 #include <stb_image_write.h>
 
@@ -43,7 +42,7 @@ TEST(ImageTest, DefaultConstructionProducesEmptyImage)
 
 	EXPECT_EQ(img.size(), (spk::Vector2UInt{0, 0}));
 	EXPECT_TRUE(img.pixels().empty());
-	EXPECT_EQ(img.glId(), spk::OpenGL::Texture::InvalidGLId);
+	EXPECT_EQ(img.format(), spk::Texture::Format::Error);
 }
 
 TEST(ImageTest, LoadFromDataRGBASetsCorrectSizeAndFormat)
@@ -101,7 +100,7 @@ TEST(ImageTest, LoadFromDataMarksSynchronizationAsPending)
 	EXPECT_TRUE(img.needsSynchronization());
 }
 
-TEST(ImageTest, SynchronizeAfterLoadUploadsToGPU)
+TEST(ImageTest, SynchronizeAfterLoadConsumesPendingChange)
 {
 	sparkle_test::OpenGLTestContext context;
 	(void)context;
@@ -112,7 +111,6 @@ TEST(ImageTest, SynchronizeAfterLoadUploadsToGPU)
 	img.loadFromData(pngData);
 	img.synchronize();
 
-	EXPECT_NE(img.glId(), spk::OpenGL::Texture::InvalidGLId);
 	EXPECT_FALSE(img.needsSynchronization());
 }
 
@@ -170,4 +168,3 @@ TEST(ImageTest, LoadFromFileAndPathConstructorReadPngFiles)
 	std::filesystem::remove(outputPath);
 }
 
-#endif

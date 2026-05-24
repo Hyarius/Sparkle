@@ -9,9 +9,9 @@
 #include "sparkle.hpp"
 #include "test_resource_path_utils.hpp"
 
-#if defined(_WIN32) && defined(SPARKLE_GPU_BACKEND_OPENGL)
 #include <GL/gl.h>
-#endif
+
+using Runtime = spk::GPUPlatformRuntime;
 
 namespace
 {
@@ -30,8 +30,6 @@ namespace
 	}
 }
 
-#if defined(_WIN32) && defined(SPARKLE_GPU_BACKEND_OPENGL)
-
 TEST(OpenGLScreenshotTest, RuntimeSavesCurrentFramebufferToPng)
 {
 	constexpr int width = 16;
@@ -41,12 +39,12 @@ TEST(OpenGLScreenshotTest, RuntimeSavesCurrentFramebufferToPng)
 	const std::filesystem::path expectedPath = openglScreenshotExpectedDirectory() / "green_expected.png";
 	const std::filesystem::path diffPath = openglScreenshotResultDirectory() / "green_diff.png";
 
-	spk::WinAPI::PlatformRuntime platformRuntime;
-	spk::OpenGL::Runtime gpuRuntime;
+	spk::PlatformRuntime platformRuntime;
+	Runtime gpuRuntime;
 	std::unique_ptr<spk::IFrame> frame = platformRuntime.createFrame(spk::Rect2D(100, 100, width, height), "Sparkle screenshot test");
 	ASSERT_NE(frame, nullptr);
 
-	std::unique_ptr<spk::IRenderContext> renderContext = gpuRuntime.createRenderContext(*frame);
+	std::unique_ptr<spk::RenderContext> renderContext = gpuRuntime.createRenderContext(*frame);
 	ASSERT_NE(renderContext, nullptr);
 	renderContext->makeCurrent();
 	renderContext->notifyResize(spk::Rect2D(0, 0, width, height));
@@ -77,5 +75,3 @@ TEST(OpenGLScreenshotTest, RuntimeSavesCurrentFramebufferToPng)
 	frame->validateClosure();
 	platformRuntime.pollEvents();
 }
-
-#endif

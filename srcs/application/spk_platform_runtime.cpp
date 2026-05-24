@@ -2,5 +2,5 @@
 
 namespace spk
 {
-	IPlatformRuntime::~IPlatformRuntime() = default;
+	PlatformRuntime::~PlatformRuntime() = default;
 }

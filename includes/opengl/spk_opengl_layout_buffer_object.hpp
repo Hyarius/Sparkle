@@ -1,6 +1,4 @@
-﻿#pragma once
-
-#if defined(SPARKLE_GPU_BACKEND_OPENGL)
+#pragma once
 
 #include <cstddef>
 #include <cstdint>
@@ -15,7 +13,7 @@
 #include "opengl/spk_opengl_vertex_array_object.hpp"
 #include "opengl/spk_opengl_vertex_buffer_object.hpp"
 
-namespace spk::OpenGL
+namespace spk
 {
 	class LayoutBufferObject
 	{
@@ -50,9 +48,9 @@ namespace spk::OpenGL
 		};
 
 	private:
-		std::shared_ptr<spk::OpenGL::VertexBufferObject> _vertexBuffer;
-		std::shared_ptr<spk::OpenGL::IndexBufferObject> _indexBuffer;
-		std::shared_ptr<spk::OpenGL::VertexArrayObject> _vertexArray;
+		std::shared_ptr<spk::VertexBufferObject> _vertexBuffer;
+		std::shared_ptr<spk::IndexBufferObject> _indexBuffer;
+		std::shared_ptr<spk::VertexArrayObject> _vertexArray;
 		std::vector<Attribute> _attributes;
 		std::size_t _vertexSize = 0;
 		std::size_t _vertexCount = 0;
@@ -93,5 +91,3 @@ namespace spk::OpenGL
 		void deactivate() const;
 	};
 }
-
-#endif

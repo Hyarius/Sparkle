@@ -1,7 +1,5 @@
 #include "rendering/render_command/spk_color_rectangle_render_command.hpp"
 
-#if defined(SPARKLE_GPU_BACKEND_OPENGL)
-
 #include "rendering/spk_mesh_2d.hpp"
 
 namespace spk
@@ -28,10 +26,8 @@ namespace spk
 		_colorCommand = std::make_unique<spk::DrawColorMeshRenderCommand>(std::move(mesh), p_color);
 	}
 
-	void ColorRectangleRenderCommand::execute(spk::IRenderContext& p_renderContext)
+	void ColorRectangleRenderCommand::execute(spk::RenderContext& p_renderContext)
 	{
 		_colorCommand->execute(p_renderContext);
 	}
 }
-
-#endif

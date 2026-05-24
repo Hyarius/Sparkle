@@ -1,6 +1,5 @@
 ﻿#include <gtest/gtest.h>
 
-#if defined(_WIN32) && defined(SPARKLE_GPU_BACKEND_OPENGL)
 
 #include <memory>
 #include <stdexcept>
@@ -27,12 +26,12 @@ namespace
 
 TEST(OpenGLRenderContextTest, ContextLifecycleMakeCurrentResizePresentAndInvalidate)
 {
-	spk::WinAPI::PlatformRuntime platformRuntime;
+	spk::PlatformRuntime platformRuntime;
 	std::unique_ptr<spk::IFrame> baseFrame = platformRuntime.createFrame(spk::Rect2D(340, 340, 64, 48), "RenderContextLifecycle");
 	ASSERT_NE(baseFrame, nullptr);
-	auto& frame = dynamic_cast<spk::WinAPI::Frame&>(*baseFrame);
+	auto& frame = dynamic_cast<spk::Frame&>(*baseFrame);
 
-	spk::OpenGL::RenderContext context(frame);
+	spk::RenderContext context(frame);
 	ASSERT_TRUE(context.isValid());
 	EXPECT_NO_THROW(context.makeCurrent());
 
@@ -61,16 +60,16 @@ TEST(OpenGLRenderContextTest, ContextLifecycleMakeCurrentResizePresentAndInvalid
 
 TEST(OpenGLRenderContextTest, CreatingSecondContextOnSameFrameReusesConfiguredPixelFormat)
 {
-	spk::WinAPI::PlatformRuntime platformRuntime;
+	spk::PlatformRuntime platformRuntime;
 	std::unique_ptr<spk::IFrame> baseFrame = platformRuntime.createFrame(spk::Rect2D(360, 360, 32, 32), "RenderContextPixelFormatReuse");
 	ASSERT_NE(baseFrame, nullptr);
-	auto& frame = dynamic_cast<spk::WinAPI::Frame&>(*baseFrame);
+	auto& frame = dynamic_cast<spk::Frame&>(*baseFrame);
 
-	spk::OpenGL::RenderContext firstContext(frame);
+	spk::RenderContext firstContext(frame);
 	ASSERT_TRUE(firstContext.isValid());
 	firstContext.makeCurrent();
 
-	spk::OpenGL::RenderContext secondContext(frame);
+	spk::RenderContext secondContext(frame);
 	ASSERT_TRUE(secondContext.isValid());
 	EXPECT_NO_THROW(secondContext.makeCurrent());
 	EXPECT_NO_THROW(secondContext.notifyResize(spk::Rect2D(0, 0, 7, 9)));
@@ -84,4 +83,3 @@ TEST(OpenGLRenderContextTest, CreatingSecondContextOnSameFrameReusesConfiguredPi
 	pumpWinApiMessages();
 }
 
-#endif

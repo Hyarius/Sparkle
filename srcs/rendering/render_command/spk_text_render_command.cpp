@@ -1,7 +1,5 @@
 #include "rendering/render_command/spk_text_render_command.hpp"
 
-#if defined(SPARKLE_GPU_BACKEND_OPENGL)
-
 #include <utility>
 
 namespace spk
@@ -81,10 +79,8 @@ namespace spk
 	{
 	}
 
-	void TextRenderCommand::execute(spk::IRenderContext& p_renderContext)
+	void TextRenderCommand::execute(spk::RenderContext& p_renderContext)
 	{
 		_fontCommand->execute(p_renderContext);
 	}
 }
-
-#endif

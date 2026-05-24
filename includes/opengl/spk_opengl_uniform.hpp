@@ -1,7 +1,5 @@
 ﻿#pragma once
 
-#if defined(SPARKLE_GPU_BACKEND_OPENGL)
-
 #include "opengl/spk_opengl_program.hpp"
 #include "traits/spk_synchronizable_trait.hpp"
 
@@ -16,7 +14,7 @@
 
 #include <GL/glew.h>
 
-namespace spk::OpenGL
+namespace spk
 {
 	class UniformBase : public spk::SynchronizableTrait
 	{
@@ -60,7 +58,7 @@ namespace spk::OpenGL
 				if (_location == -1)
 				{
 					throw std::runtime_error(
-						"spk::OpenGL::UniformBase: uniform [" + _name + "] not found in program");
+						"spk::UniformBase: uniform [" + _name + "] not found in program");
 				}
 			}
 			_validateShaderDeclarationIfNeeded();
@@ -114,7 +112,7 @@ namespace spk::OpenGL
 			if (uniformIndex == GL_INVALID_INDEX)
 			{
 				throw std::runtime_error(
-					"spk::OpenGL::UniformBase: uniform [" + _name +
+					"spk::UniformBase: uniform [" + _name +
 					"] not found in active uniform declarations");
 			}
 
@@ -130,7 +128,7 @@ namespace spk::OpenGL
 			if (_validateType(static_cast<GLenum>(activeType)) == false)
 			{
 				throw std::runtime_error(
-					"spk::OpenGL::UniformBase: uniform [" + _name +
+					"spk::UniformBase: uniform [" + _name +
 					"] has a different shader type than expected. Expected [" +
 					std::string(_expectedTypeName()) + "]");
 			}
@@ -147,7 +145,7 @@ namespace spk::OpenGL
 			if (static_cast<std::size_t>(activeSize) < _expectedCount())
 			{
 				throw std::runtime_error(
-					"spk::OpenGL::UniformBase: uniform array [" + _name +
+					"UniformBase: uniform array [" + _name +
 					"] is smaller than requested");
 			}
 		}
@@ -312,7 +310,7 @@ namespace spk::OpenGL
 		{
 			if (p_count == 0)
 			{
-				throw std::runtime_error("spk::OpenGL::ArrayUniform: count cannot be zero");
+				throw std::runtime_error("ArrayUniform: count cannot be zero");
 			}
 		}
 
@@ -320,12 +318,12 @@ namespace spk::OpenGL
 		{
 			if (p_values == nullptr && p_count > 0)
 			{
-				throw std::runtime_error("spk::OpenGL::ArrayUniform: null value array");
+				throw std::runtime_error("ArrayUniform: null value array");
 			}
 
 			if (p_count != _values.size())
 			{
-				throw std::runtime_error("spk::OpenGL::ArrayUniform: count mismatch");
+				throw std::runtime_error("ArrayUniform: count mismatch");
 			}
 
 			for (std::size_t i = 0; i < p_count; i++)
@@ -665,5 +663,3 @@ namespace spk::OpenGL
 	using Matrix3x3ArrayUniform = ArrayUniform<Matrix3x3UniformSpecification>;
 	using Matrix4x4ArrayUniform = ArrayUniform<Matrix4x4UniformSpecification>;
 }
-
-#endif

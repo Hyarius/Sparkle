@@ -1,4 +1,4 @@
-#include <array>
+﻿#include <array>
 #include <filesystem>
 #include <memory>
 #include <vector>
@@ -9,7 +9,11 @@
 #include "image_comparison_test_utils.hpp"
 #include "opengl_wrapper_test_utils.hpp"
 
-#if defined(_WIN32) && defined(SPARKLE_GPU_BACKEND_OPENGL)
+using BufferObject = spk::BufferObject;
+using DrawArraysCommand = spk::DrawArraysCommand;
+using Primitive = spk::Primitive;
+using VertexArrayObject = spk::VertexArrayObject;
+using VertexBufferObject = spk::VertexBufferObject;
 
 namespace
 {
@@ -17,9 +21,9 @@ namespace
 	{
 	private:
 		std::shared_ptr<spk::Program> _program;
-		std::shared_ptr<spk::OpenGL::VertexArrayObject> _vertexArray;
+		std::shared_ptr<VertexArrayObject> _vertexArray;
 
-		static std::shared_ptr<spk::OpenGL::VertexArrayObject> makeSquareVAO(const std::array<float, 3>& p_color)
+		static std::shared_ptr<VertexArrayObject> makeSquareVAO(const std::array<float, 3>& p_color)
 		{
 			const std::array<sparkle_test::TestVertex, 6> vertices = {
 				sparkle_test::TestVertex{{-1.0f, -1.0f}, p_color},
@@ -30,15 +34,15 @@ namespace
 				sparkle_test::TestVertex{{-1.0f, 1.0f}, p_color}
 			};
 
-			auto vertexBuffer = std::make_shared<spk::OpenGL::VertexBufferObject>(
-				spk::OpenGL::BufferObject::Usage::StaticDraw,
+			auto vertexBuffer = std::make_shared<VertexBufferObject>(
+				BufferObject::Usage::StaticDraw,
 				sizeof(vertices));
 			vertexBuffer->edit(vertices.data(), sizeof(vertices));
 
-			auto vertexArray = std::make_shared<spk::OpenGL::VertexArrayObject>();
+			auto vertexArray = std::make_shared<VertexArrayObject>();
 			vertexArray->addVertexBuffer(
 				vertexBuffer,
-				spk::OpenGL::VertexArrayObject::Attribute{
+				VertexArrayObject::Attribute{
 					.index = 0,
 					.componentCount = 2,
 					.componentType = GL_FLOAT,
@@ -48,7 +52,7 @@ namespace
 				});
 			vertexArray->addVertexBuffer(
 				vertexBuffer,
-				spk::OpenGL::VertexArrayObject::Attribute{
+				VertexArrayObject::Attribute{
 					.index = 1,
 					.componentCount = 3,
 					.componentType = GL_FLOAT,
@@ -63,8 +67,8 @@ namespace
 		spk::RenderUnit _buildRenderUnit() const override
 		{
 			spk::RenderUnitBuilder builder;
-			builder.emplace<spk::OpenGL::DrawArraysCommand>(
-				spk::OpenGL::Primitive::Triangles,
+			builder.emplace<DrawArraysCommand>(
+				Primitive::Triangles,
 				_program,
 				_vertexArray,
 				0,
@@ -222,7 +226,7 @@ TEST(OpenGLWidgetViewportScissorTest, VisualHierarchyIsClippedByParentScissors)
 	constexpr int height = 20;
 
 	sparkle_test::OpenGLTestContext context(spk::Rect2D(0, 0, width, height));
-	spk::IRenderContext& renderContext = context.renderContext();
+	spk::RenderContext& renderContext = context.renderContext();
 
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT);
@@ -252,7 +256,7 @@ TEST(OpenGLWidgetViewportScissorTest, VisualHierarchyUsesUpdatedAbsoluteGeometry
 	constexpr int height = 20;
 
 	sparkle_test::OpenGLTestContext context(spk::Rect2D(0, 0, width, height));
-	spk::IRenderContext& renderContext = context.renderContext();
+	spk::RenderContext& renderContext = context.renderContext();
 
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT);
@@ -278,4 +282,3 @@ TEST(OpenGLWidgetViewportScissorTest, VisualHierarchyUsesUpdatedAbsoluteGeometry
 	EXPECT_EQ(result.differentPixelCount, 0);
 }
 
-#endif

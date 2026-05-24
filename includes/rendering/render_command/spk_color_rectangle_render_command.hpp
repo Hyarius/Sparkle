@@ -1,7 +1,5 @@
 #pragma once
 
-#if defined(SPARKLE_GPU_BACKEND_OPENGL)
-
 #include <memory>
 
 #include "math/spk_rect_2d.hpp"
@@ -22,8 +20,6 @@ namespace spk
 			spk::Color p_color,
 			float p_depth = 0.0f);
 
-		void execute(spk::IRenderContext& p_renderContext) override;
+		void execute(spk::RenderContext& p_renderContext) override;
 	};
 }
-
-#endif

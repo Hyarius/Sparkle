@@ -1,6 +1,5 @@
 ﻿#include <gtest/gtest.h>
 
-#ifdef _WIN32
 
 #include <memory>
 #include <vector>
@@ -55,9 +54,9 @@ namespace
 
 TEST(WinAPIFrameTest, TranslatesFrameMessages)
 {
-	spk::WinAPI::PlatformRuntime runtime;
+	spk::PlatformRuntime runtime;
 	std::unique_ptr<spk::IFrame> baseFrame = runtime.createFrame(spk::Rect2D(100, 100, 128, 96), "FrameMessages");
-	auto& frame = dynamic_cast<spk::WinAPI::Frame&>(*baseFrame);
+	auto& frame = dynamic_cast<spk::Frame&>(*baseFrame);
 	std::vector<spk::FrameEventRecord> events;
 	auto contract = frame.subscribeToFrameEvents([&](const spk::FrameEventRecord& p_event)
 	{
@@ -99,9 +98,9 @@ TEST(WinAPIFrameTest, TranslatesFrameMessages)
 
 TEST(WinAPIFrameTest, TranslatesMouseMessagesAndSignedCoordinates)
 {
-	spk::WinAPI::PlatformRuntime runtime;
+	spk::PlatformRuntime runtime;
 	std::unique_ptr<spk::IFrame> baseFrame = runtime.createFrame(spk::Rect2D(150, 150, 128, 96), "MouseMessages");
-	auto& frame = dynamic_cast<spk::WinAPI::Frame&>(*baseFrame);
+	auto& frame = dynamic_cast<spk::Frame&>(*baseFrame);
 	std::vector<spk::MouseEventRecord> events;
 	auto contract = frame.subscribeToMouseEvents([&](const spk::MouseEventRecord& p_event)
 	{
@@ -162,9 +161,9 @@ TEST(WinAPIFrameTest, TranslatesMouseMessagesAndSignedCoordinates)
 
 TEST(WinAPIFrameTest, TranslatesKeyboardMessagesIncludingRepeatAndUnknownKeys)
 {
-	spk::WinAPI::PlatformRuntime runtime;
+	spk::PlatformRuntime runtime;
 	std::unique_ptr<spk::IFrame> baseFrame = runtime.createFrame(spk::Rect2D(200, 200, 128, 96), "KeyboardMessages");
-	auto& frame = dynamic_cast<spk::WinAPI::Frame&>(*baseFrame);
+	auto& frame = dynamic_cast<spk::Frame&>(*baseFrame);
 	std::vector<spk::KeyboardEventRecord> events;
 	auto contract = frame.subscribeToKeyboardEvents([&](const spk::KeyboardEventRecord& p_event)
 	{
@@ -200,9 +199,9 @@ TEST(WinAPIFrameTest, TranslatesKeyboardMessagesIncludingRepeatAndUnknownKeys)
 
 TEST(WinAPIFrameTest, TitleAndDeviceContextAccessorsReflectNativeWindow)
 {
-	spk::WinAPI::PlatformRuntime runtime;
+	spk::PlatformRuntime runtime;
 	std::unique_ptr<spk::IFrame> baseFrame = runtime.createFrame(spk::Rect2D(220, 220, 128, 96), "InitialFrameTitle");
-	auto& frame = dynamic_cast<spk::WinAPI::Frame&>(*baseFrame);
+	auto& frame = dynamic_cast<spk::Frame&>(*baseFrame);
 
 	EXPECT_EQ(frame.title(), "InitialFrameTitle");
 
@@ -218,4 +217,3 @@ TEST(WinAPIFrameTest, TitleAndDeviceContextAccessorsReflectNativeWindow)
 	pumpWinApiMessages();
 }
 
-#endif

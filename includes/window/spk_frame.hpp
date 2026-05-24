@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include <memory>
 #include <string>
@@ -29,10 +29,10 @@ namespace spk
 		MouseEventContractProvider _mouseEventContractProvider;
 		KeyboardEventContractProvider _keyboardEventContractProvider;
 		FrameEventContractProvider _frameEventContractProvider;
-		std::shared_ptr<ISurfaceState> _surfaceState;
+		std::shared_ptr<SurfaceState> _surfaceState;
 
 	protected:
-		explicit IFrame(std::shared_ptr<ISurfaceState> p_surfaceState);
+		explicit IFrame(std::shared_ptr<SurfaceState> p_surfaceState);
 
 		void _emitMouseEvent(const spk::MouseEventRecord& p_event);
 		void _emitKeyboardEvent(const spk::KeyboardEventRecord& p_event);
@@ -49,7 +49,7 @@ namespace spk
 
 		[[nodiscard]] virtual spk::Rect2D rect() const = 0;
 		[[nodiscard]] virtual std::string title() const = 0;
-		[[nodiscard]] std::shared_ptr<ISurfaceState> surfaceState() const;
+		[[nodiscard]] std::shared_ptr<SurfaceState> surfaceState() const;
 
 		MouseEventContract subscribeToMouseEvents(MouseEventCallback p_callback);
 		KeyboardEventContract subscribeToKeyboardEvents(KeyboardEventCallback p_callback);

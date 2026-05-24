@@ -1,7 +1,5 @@
 #include "rendering/spk_image.hpp"
 
-#if defined(SPARKLE_GPU_BACKEND_OPENGL)
-
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
@@ -89,5 +87,3 @@ namespace spk
 		}
 	}
 }
-
-#endif

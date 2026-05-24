@@ -1,6 +1,4 @@
-﻿#pragma once
-
-#if defined(SPARKLE_GPU_BACKEND_OPENGL)
+#pragma once
 
 #include <cstddef>
 #include <memory>
@@ -13,7 +11,7 @@
 #include "opengl/spk_opengl_vertex_buffer_object.hpp"
 #include "traits/spk_synchronizable_trait.hpp"
 
-namespace spk::OpenGL
+namespace spk
 {
 	class VertexArrayObject : public spk::SynchronizableTrait
 	{
@@ -69,5 +67,3 @@ namespace spk::OpenGL
 		void deactivate() const;
 	};
 }
-
-#endif

@@ -1,6 +1,5 @@
-#include <gtest/gtest.h>
+﻿#include <gtest/gtest.h>
 
-#if defined(_WIN32) && defined(SPARKLE_GPU_BACKEND_OPENGL)
 
 #include "opengl_wrapper_test_utils.hpp"
 #include "render_command_test_utils.hpp"
@@ -184,7 +183,7 @@ TEST(FontTest, FromRawDataLoadsGlyphsAndNotifiesAtlasSubscribers)
 
 	EXPECT_GE(notificationCount, 2);
 	EXPECT_GT(glyph.size.x, 0u);
-	EXPECT_NE(atlas.glId(), spk::OpenGL::Texture::InvalidGLId);
+	EXPECT_FALSE(atlas.pixels().empty());
 	EXPECT_FALSE(atlas.needsSynchronization());
 }
 
@@ -236,4 +235,3 @@ TEST(FontTest, AtlasLoadsAllRenderableGlyphs)
 	EXPECT_GT(atlas.computeCharSize(U'A').x, 0u);
 }
 
-#endif

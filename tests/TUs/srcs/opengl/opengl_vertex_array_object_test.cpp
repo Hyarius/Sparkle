@@ -1,9 +1,8 @@
-#include <gtest/gtest.h>
+﻿#include <gtest/gtest.h>
 
 #include "image_comparison_test_utils.hpp"
 #include "opengl_wrapper_test_utils.hpp"
 
-#if defined(_WIN32) && defined(SPARKLE_GPU_BACKEND_OPENGL)
 
 #include "opengl/spk_opengl_viewport.hpp"
 #include "rendering/render_command/spk_viewport_render_command.hpp"
@@ -34,17 +33,17 @@ TEST(OpenGLVertexArrayObjectTest, RendersTriangleWithConfiguredVBO)
 	constexpr int width = 24;
 	constexpr int height = 24;
 	sparkle_test::OpenGLTestContext context(spk::Rect2D(0, 0, width, height));
-	spk::IRenderContext& renderContext = context.renderContext();
+	spk::RenderContext& renderContext = context.renderContext();
 
 	const auto program = sparkle_test::makeColorProgram();
 	const auto vertexArray = sparkle_test::makeTriangleVAO(
 		sparkle_test::fullScreenTriangle({0.0f, 1.0f, 0.0f}));
 
 	spk::RenderUnitBuilder builder;
-	spk::OpenGL::Viewport viewport(spk::Rect2D(0, 0, width, height));
+	spk::Viewport viewport(spk::Rect2D(0, 0, width, height));
 	builder.emplace<spk::ViewportCommand>(viewport);
-	builder.emplace<spk::OpenGL::ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
-	builder.emplace<spk::OpenGL::DrawArraysCommand>(spk::OpenGL::Primitive::Triangles, program, vertexArray, 0, 3);
+	builder.emplace<spk::ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
+	builder.emplace<spk::DrawArraysCommand>(spk::Primitive::Triangles, program, vertexArray, 0, 3);
 
 	spk::RenderUnit unit = builder.build();
 	unit.execute(renderContext);
@@ -76,8 +75,8 @@ TEST(OpenGLVertexArrayObjectTest, MutationHelpersRequestSynchronization)
 	vertexArray->activate();
 	EXPECT_FALSE(vertexArray->needsSynchronization());
 
-	auto indexBuffer = std::make_shared<spk::OpenGL::IndexBufferObject>(
-		spk::OpenGL::BufferObject::Usage::StaticDraw,
+	auto indexBuffer = std::make_shared<spk::IndexBufferObject>(
+		spk::BufferObject::Usage::StaticDraw,
 		0);
 	vertexArray->setIndexBuffer(indexBuffer);
 	EXPECT_EQ(vertexArray->indexBuffer(), indexBuffer);
@@ -98,12 +97,12 @@ TEST(OpenGLVertexArrayObjectTest, RejectsNullVertexBuffer)
 	sparkle_test::OpenGLTestContext context;
 	(void)context;
 
-	spk::OpenGL::VertexArrayObject vertexArray;
+	spk::VertexArrayObject vertexArray;
 
 	EXPECT_THROW(
 		vertexArray.addVertexBuffer(
 			nullptr,
-			spk::OpenGL::VertexArrayObject::Attribute{
+			spk::VertexArrayObject::Attribute{
 				.index = 0,
 				.componentCount = 2,
 				.componentType = GL_FLOAT,
@@ -114,4 +113,3 @@ TEST(OpenGLVertexArrayObjectTest, RejectsNullVertexBuffer)
 		std::runtime_error);
 }
 
-#endif

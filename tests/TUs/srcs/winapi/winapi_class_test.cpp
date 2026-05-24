@@ -1,6 +1,5 @@
 ﻿#include <gtest/gtest.h>
 
-#ifdef _WIN32
 
 #include <atomic>
 #include <stdexcept>
@@ -27,28 +26,28 @@ namespace
 
 TEST(WinAPIClassTest, ConstructorRejectsInvalidInputs)
 {
-	EXPECT_THROW(spk::WinAPI::Class("InvalidInstance", &testWindowProcedure, nullptr), std::invalid_argument);
-	EXPECT_THROW(spk::WinAPI::Class("", &testWindowProcedure), std::invalid_argument);
-	EXPECT_THROW(spk::WinAPI::Class("InvalidProcedure", nullptr), std::invalid_argument);
+	EXPECT_THROW(spk::WindowClass("InvalidInstance", &testWindowProcedure, nullptr), std::invalid_argument);
+	EXPECT_THROW(spk::WindowClass("", &testWindowProcedure), std::invalid_argument);
+	EXPECT_THROW(spk::WindowClass("InvalidProcedure", nullptr), std::invalid_argument);
 }
 
 TEST(WinAPIClassTest, RegistersDuplicateClassAndMoveTransfersOwnership)
 {
 	const std::string className = uniqueClassName("Sparkle.Test.Class");
 
-	spk::WinAPI::Class registeredClass(className, &testWindowProcedure);
+	spk::WindowClass registeredClass(className, &testWindowProcedure);
 	EXPECT_EQ(registeredClass.name(), className);
 	EXPECT_EQ(registeredClass.instance(), GetModuleHandleW(nullptr));
 
-	spk::WinAPI::Class duplicateClass(className, &testWindowProcedure);
+	spk::WindowClass duplicateClass(className, &testWindowProcedure);
 	EXPECT_EQ(duplicateClass.name(), className);
 
-	spk::WinAPI::Class movedClass(std::move(registeredClass));
+	spk::WindowClass movedClass(std::move(registeredClass));
 	EXPECT_EQ(movedClass.name(), className);
 	EXPECT_EQ(movedClass.instance(), GetModuleHandleW(nullptr));
 	EXPECT_EQ(registeredClass.instance(), nullptr);
 
-	spk::WinAPI::Class assignedClass(uniqueClassName("Sparkle.Test.Assigned"), &testWindowProcedure);
+	spk::WindowClass assignedClass(uniqueClassName("Sparkle.Test.Assigned"), &testWindowProcedure);
 	assignedClass = std::move(movedClass);
 	EXPECT_EQ(assignedClass.name(), className);
 	EXPECT_EQ(assignedClass.instance(), GetModuleHandleW(nullptr));
@@ -59,11 +58,10 @@ TEST(WinAPIClassTest, SelfMoveAssignmentPreservesRegisteredClass)
 {
 	const std::string className = uniqueClassName("Sparkle.Test.Class.SelfMove");
 
-	spk::WinAPI::Class windowClass(className, &testWindowProcedure);
+	spk::WindowClass windowClass(className, &testWindowProcedure);
 	windowClass = std::move(windowClass);
 
 	EXPECT_EQ(windowClass.name(), className);
 	EXPECT_EQ(windowClass.instance(), GetModuleHandleW(nullptr));
 }
 
-#endif

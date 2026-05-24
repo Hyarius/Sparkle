@@ -8,12 +8,9 @@
 #include "rendering/spk_render_unit_builder.hpp"
 #include "spk_widget_visual_test_helpers.hpp"
 
-#if defined(_WIN32) && defined(SPARKLE_GPU_BACKEND_OPENGL)
 #include <Windows.h>
 #include <GL/gl.h>
-#endif
 
-#if defined(_WIN32) && defined(SPARKLE_GPU_BACKEND_OPENGL)
 namespace
 {
 	class ClearColorCommand : public spk::RenderCommand
@@ -33,7 +30,7 @@ namespace
 		{
 		}
 
-		void execute(spk::IRenderContext& p_renderContext) override
+		void execute(spk::RenderContext& p_renderContext) override
 		{
 			(void)p_renderContext;
 			glClearColor(_red, _green, _blue, _alpha);
@@ -102,4 +99,3 @@ TEST(WidgetVisualTestHelpers, CompareSnapshotSupportsWidgetStyleVisualTests)
 	EXPECT_TRUE(result.matches);
 	EXPECT_EQ(result.differentPixelCount, 0);
 }
-#endif

@@ -180,7 +180,7 @@ TEST(IFrameTest, MultipleSubscribersReceiveSameFrameEvent)
 TEST(IFrameTest, DestroyedFrameEventInvalidatesSurfaceStateBeforeSubscribersAreNotified)
 {
 	sparkle_test::TestFrame frame(sparkle_test::defaultRect(), "Frame");
-	std::shared_ptr<spk::ISurfaceState> surfaceState = frame.surfaceState();
+	std::shared_ptr<spk::SurfaceState> surfaceState = frame.surfaceState();
 	bool surfaceWasInvalidInsideCallback = false;
 
 	ASSERT_NE(surfaceState, nullptr);
@@ -207,7 +207,7 @@ TEST(IFrameTest, ConstructingFrameWithoutSurfaceStateThrows)
 
 TEST(IFrameTest, DestroyingFrameInvalidatesItsSurfaceState)
 {
-	std::shared_ptr<spk::ISurfaceState> surfaceState;
+	std::shared_ptr<spk::SurfaceState> surfaceState;
 
 	{
 		sparkle_test::TestFrame frame(sparkle_test::defaultRect(), "Frame");

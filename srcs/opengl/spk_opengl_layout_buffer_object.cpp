@@ -1,12 +1,10 @@
-﻿#include "opengl/spk_opengl_layout_buffer_object.hpp"
-
-#if defined(SPARKLE_GPU_BACKEND_OPENGL)
+#include "opengl/spk_opengl_layout_buffer_object.hpp"
 
 #include <algorithm>
 #include <stdexcept>
 #include <string>
 
-namespace spk::OpenGL
+namespace spk
 {
 	std::size_t LayoutBufferObject::Attribute::typeSize(Type p_type)
 	{
@@ -34,7 +32,7 @@ namespace spk::OpenGL
 		case Type::Vector4UInt:
 			return 4;
 		}
-		throw std::runtime_error("spk::OpenGL::LayoutBufferObject::Attribute has an unsupported component count");
+		throw std::runtime_error("spk::LayoutBufferObject::Attribute has an unsupported component count");
 	}
 
 	GLenum LayoutBufferObject::Attribute::componentType(Type p_type)
@@ -57,13 +55,13 @@ namespace spk::OpenGL
 		case Type::Vector4UInt:
 			return GL_UNSIGNED_INT;
 		}
-		throw std::runtime_error("spk::OpenGL::LayoutBufferObject::Attribute has an unsupported component type");
+		throw std::runtime_error("spk::LayoutBufferObject::Attribute has an unsupported component type");
 	}
 
 	LayoutBufferObject::LayoutBufferObject() :
-		_vertexBuffer(std::make_shared<spk::OpenGL::VertexBufferObject>()),
-		_indexBuffer(std::make_shared<spk::OpenGL::IndexBufferObject>()),
-		_vertexArray(std::make_shared<spk::OpenGL::VertexArrayObject>())
+		_vertexBuffer(std::make_shared<spk::VertexBufferObject>()),
+		_indexBuffer(std::make_shared<spk::IndexBufferObject>()),
+		_vertexArray(std::make_shared<spk::VertexArrayObject>())
 	{
 	}
 
@@ -90,7 +88,7 @@ namespace spk::OpenGL
 		{
 			_vertexArray->addVertexBuffer(
 				_vertexBuffer,
-				spk::OpenGL::VertexArrayObject::Attribute{
+				spk::VertexArrayObject::Attribute{
 					.index = attribute.index,
 					.componentCount = Attribute::componentCount(attribute.type),
 					.componentType = Attribute::componentType(attribute.type),
@@ -122,7 +120,7 @@ namespace spk::OpenGL
 	{
 		if (hasAttribute(p_attribute.index) == true)
 		{
-			throw std::runtime_error("spk::OpenGL::LayoutBufferObject already contains attribute index " + std::to_string(p_attribute.index));
+			throw std::runtime_error("spk::LayoutBufferObject already contains attribute index " + std::to_string(p_attribute.index));
 		}
 
 		_attributes.push_back(p_attribute);
@@ -173,12 +171,12 @@ namespace spk::OpenGL
 	{
 		if (_vertexSize == 0 && p_size != 0)
 		{
-			throw std::runtime_error("spk::OpenGL::LayoutBufferObject requires at least one attribute before vertex upload");
+			throw std::runtime_error("spk::LayoutBufferObject requires at least one attribute before vertex upload");
 		}
 		if (_vertexSize != 0 && p_size % _vertexSize != 0)
 		{
 			throw std::runtime_error(
-				"spk::OpenGL::LayoutBufferObject vertex data size [" + std::to_string(p_size) +
+				"spk::LayoutBufferObject vertex data size [" + std::to_string(p_size) +
 				"] is not aligned with its vertex layout [" + std::to_string(_vertexSize) + "]");
 		}
 
@@ -212,5 +210,3 @@ namespace spk::OpenGL
 		_vertexArray->deactivate();
 	}
 }
-
-#endif

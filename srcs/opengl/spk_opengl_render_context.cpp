@@ -1,6 +1,6 @@
-﻿#include "opengl/spk_opengl_render_context.hpp"
+#include "opengl/spk_opengl_render_context.hpp"
 
-#if defined(_WIN32) && defined(SPARKLE_GPU_BACKEND_OPENGL)
+#ifdef _WIN32
 
 #include <stdexcept>
 
@@ -32,30 +32,41 @@ namespace
 		const int pixelFormat = ChoosePixelFormat(p_deviceContext, &descriptor);
 		if (pixelFormat == 0)
 		{
-			spk::WinAPI::throwLastError("ChoosePixelFormat");
+			spk::throwLastError("ChoosePixelFormat");
 		}
 
 		if (SetPixelFormat(p_deviceContext, pixelFormat, &descriptor) == FALSE)
 		{
-			spk::WinAPI::throwLastError("SetPixelFormat");
+			spk::throwLastError("SetPixelFormat");
 		}
 	}
 }
 
-namespace spk::OpenGL
+namespace spk
 {
-	RenderContext::RenderContext(spk::WinAPI::Frame& p_frame) :
-		spk::IRenderContext(p_frame.surfaceState()),
+	RenderContext::RenderContext(std::shared_ptr<SurfaceState> p_surfaceState) :
+		_surfaceState(std::move(p_surfaceState)),
+		_valid(false)
+	{
+	}
+
+	RenderContext::RenderContext(spk::Frame& p_frame) :
+		_surfaceState(p_frame.surfaceState()),
+		_valid(true),
 		_windowHandle(p_frame.handle()),
 		_deviceContext(GetDC(_windowHandle))
 	{
+		if (_surfaceState == nullptr)
+		{
+			throw std::invalid_argument("spk::RenderContext requires a valid surface state");
+		}
 		if (_windowHandle == nullptr)
 		{
-			throw std::runtime_error("spk::OpenGL::RenderContext requires a valid WinAPI frame window");
+			throw std::runtime_error("spk::RenderContext requires a valid WinAPI frame window");
 		}
 		if (_deviceContext == nullptr)
 		{
-			spk::WinAPI::throwLastError("GetDC");
+			spk::throwLastError("GetDC");
 		}
 
 		configurePixelFormat(_deviceContext);
@@ -63,7 +74,7 @@ namespace spk::OpenGL
 		_renderContext = wglCreateContext(_deviceContext);
 		if (_renderContext == nullptr)
 		{
-			spk::WinAPI::throwLastError("wglCreateContext");
+			spk::throwLastError("wglCreateContext");
 		}
 
 		makeCurrent();
@@ -73,7 +84,7 @@ namespace spk::OpenGL
 		if (glewResult != GLEW_OK)
 		{
 			throw std::runtime_error(
-				"spk::OpenGL::RenderContext failed to initialize GLEW: " +
+				"spk::RenderContext failed to initialize GLEW: " +
 				std::string(reinterpret_cast<const char*>(glewGetErrorString(glewResult))));
 		}
 	}
@@ -97,30 +108,44 @@ namespace spk::OpenGL
 		}
 	}
 
+	std::shared_ptr<SurfaceState> RenderContext::surfaceState() const
+	{
+		return _surfaceState;
+	}
+
 	void RenderContext::invalidate()
 	{
-		IRenderContext::invalidate();
+		_valid = false;
 		_windowHandle = nullptr;
+		if (_surfaceState != nullptr)
+		{
+			_surfaceState->invalidate();
+		}
 	}
 
 	bool RenderContext::isValid() const
 	{
-		return IRenderContext::isValid() == true &&
+		return _valid &&
 			   _windowHandle != nullptr &&
 			   _deviceContext != nullptr &&
 			   _renderContext != nullptr;
+	}
+
+	bool RenderContext::supportsOpenGLCommands() const
+	{
+		return _renderContext != nullptr;
 	}
 
 	void RenderContext::makeCurrent()
 	{
 		if (isValid() == false)
 		{
-			throw std::runtime_error("spk::OpenGL::RenderContext::makeCurrent called on an invalid context");
+			throw std::runtime_error("spk::RenderContext::makeCurrent called on an invalid context");
 		}
 
 		if (wglMakeCurrent(_deviceContext, _renderContext) == FALSE)
 		{
-			spk::WinAPI::throwLastError("wglMakeCurrent");
+			spk::throwLastError("wglMakeCurrent");
 		}
 	}
 

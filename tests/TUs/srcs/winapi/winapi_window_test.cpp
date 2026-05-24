@@ -1,6 +1,5 @@
 ﻿#include <gtest/gtest.h>
 
-#ifdef _WIN32
 
 #include <atomic>
 #include <memory>
@@ -31,14 +30,14 @@ namespace
 TEST(WinAPIWindowTest, ConstructorRejectsMissingClass)
 {
 	EXPECT_THROW(
-		spk::WinAPI::Window(nullptr, spk::Rect2D(10, 20, 100, 80), "MissingClass"),
+		spk::WindowRuntime(nullptr, spk::Rect2D(10, 20, 100, 80), "MissingClass"),
 		std::invalid_argument);
 }
 
 TEST(WinAPIWindowTest, WindowTracksTitleGeometryMoveAndDestroyedState)
 {
-	auto windowClass = std::make_shared<spk::WinAPI::Class>(uniqueClassName("Sparkle.Test.Window"), &testWindowProcedure);
-	spk::WinAPI::Window window(
+	auto windowClass = std::make_shared<spk::WindowClass>(uniqueClassName("Sparkle.Test.Window"), &testWindowProcedure);
+	spk::WindowRuntime window(
 		windowClass,
 		spk::Rect2D(40, 50, 160, 120),
 		"Initial");
@@ -66,14 +65,14 @@ TEST(WinAPIWindowTest, WindowTracksTitleGeometryMoveAndDestroyedState)
 	EXPECT_EQ(window.clientRect().height(), 140u);
 
 	const HWND originalHandle = window.handle();
-	spk::WinAPI::Window movedWindow(std::move(window));
+	spk::WindowRuntime movedWindow(std::move(window));
 	EXPECT_EQ(window.handle(), nullptr);
 	EXPECT_EQ(movedWindow.handle(), originalHandle);
 
 	movedWindow.hide();
 	EXPECT_FALSE(IsWindowVisible(movedWindow.handle()));
-	EXPECT_NO_THROW(movedWindow.setCursor(spk::WinAPI::Cursor{}));
-	EXPECT_NO_THROW(movedWindow.setCursor(spk::WinAPI::Cursor::arrow()));
+	EXPECT_NO_THROW(movedWindow.setCursor(spk::Cursor{}));
+	EXPECT_NO_THROW(movedWindow.setCursor(spk::Cursor::arrow()));
 
 	movedWindow.destroy();
 	EXPECT_FALSE(movedWindow.isValid());
@@ -92,9 +91,9 @@ TEST(WinAPIWindowTest, WindowTracksTitleGeometryMoveAndDestroyedState)
 
 TEST(WinAPIWindowTest, MoveAssignmentTransfersNativeHandleAndSelfMoveIsNoOp)
 {
-	auto windowClass = std::make_shared<spk::WinAPI::Class>(uniqueClassName("Sparkle.Test.Window.MoveAssignment"), &testWindowProcedure);
-	spk::WinAPI::Window sourceWindow(windowClass, spk::Rect2D(30, 30, 80, 60), "Source");
-	spk::WinAPI::Window assignedWindow(windowClass, spk::Rect2D(40, 40, 90, 70), "Assigned");
+	auto windowClass = std::make_shared<spk::WindowClass>(uniqueClassName("Sparkle.Test.Window.MoveAssignment"), &testWindowProcedure);
+	spk::WindowRuntime sourceWindow(windowClass, spk::Rect2D(30, 30, 80, 60), "Source");
+	spk::WindowRuntime assignedWindow(windowClass, spk::Rect2D(40, 40, 90, 70), "Assigned");
 
 	const HWND sourceHandle = sourceWindow.handle();
 	ASSERT_NE(sourceHandle, nullptr);
@@ -116,4 +115,3 @@ TEST(WinAPIWindowTest, MoveAssignmentTransfersNativeHandleAndSelfMoveIsNoOp)
 	assignedWindow.destroy();
 }
 
-#endif

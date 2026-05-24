@@ -1,15 +1,13 @@
 #pragma once
 
-#if defined(SPARKLE_GPU_BACKEND_OPENGL)
-
 #include <GL/glew.h>
 #include <GL/gl.h>
 
 #include "rendering/spk_texture.hpp"
 
-namespace spk::OpenGL
+namespace spk
 {
-	class Texture : public spk::Texture
+	class GPUTexture : public spk::Texture
 	{
 	public:
 		static constexpr GLuint InvalidGLId = 0;
@@ -26,17 +24,15 @@ namespace spk::OpenGL
 		void _synchronize() const override;
 
 	public:
-		Texture();
-		~Texture() override;
+		GPUTexture();
+		~GPUTexture() override;
 
-		Texture(const Texture&) = delete;
-		Texture& operator=(const Texture&) = delete;
+		GPUTexture(const GPUTexture&) = delete;
+		GPUTexture& operator=(const GPUTexture&) = delete;
 
-		Texture(Texture&&) noexcept;
-		Texture& operator=(Texture&&) noexcept;
+		GPUTexture(GPUTexture&&) noexcept;
+		GPUTexture& operator=(GPUTexture&&) noexcept;
 
 		GLuint glId() const;
 	};
 }
-
-#endif

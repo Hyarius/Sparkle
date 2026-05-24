@@ -1,6 +1,4 @@
-﻿#include "opengl/spk_opengl_vertex_array_object.hpp"
-
-#if defined(SPARKLE_GPU_BACKEND_OPENGL)
+#include "opengl/spk_opengl_vertex_array_object.hpp"
 
 #include <stdexcept>
 
@@ -20,7 +18,7 @@ namespace
 	}
 }
 
-namespace spk::OpenGL
+namespace spk
 {
 	VertexArrayObject::VertexArrayObject()
 	{
@@ -58,7 +56,7 @@ namespace spk::OpenGL
 		{
 			if (binding.buffer == nullptr)
 			{
-				throw std::runtime_error("spk::OpenGL::VertexArrayObject contains a null vertex buffer binding");
+				throw std::runtime_error("spk::VertexArrayObject contains a null vertex buffer binding");
 			}
 
 			binding.buffer->activate();
@@ -94,7 +92,7 @@ namespace spk::OpenGL
 	{
 		if (p_buffer == nullptr)
 		{
-			throw std::runtime_error("spk::OpenGL::VertexArrayObject::addVertexBuffer requires a valid buffer");
+			throw std::runtime_error("spk::VertexArrayObject::addVertexBuffer requires a valid buffer");
 		}
 
 		_vertexBufferBindings.push_back(VertexBufferBinding{
@@ -146,5 +144,3 @@ namespace spk::OpenGL
 		glBindVertexArray(0);
 	}
 }
-
-#endif

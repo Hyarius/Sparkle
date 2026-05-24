@@ -1,25 +1,27 @@
-﻿#pragma once
+#pragma once
 
 #ifdef _WIN32
 
 #include <memory>
+#include <string>
 
-#include "application/spk_platform_runtime.hpp"
+#include "math/spk_rect_2d.hpp"
+#include "window/spk_frame.hpp"
 #include "winapi/spk_winapi_class.hpp"
 
-namespace spk::WinAPI
+namespace spk
 {
-	class PlatformRuntime : public spk::IPlatformRuntime
+	class PlatformRuntime
 	{
 	private:
-		std::shared_ptr<Class> _windowClass;
+		std::shared_ptr<WindowClass> _windowClass;
 
 	public:
 		PlatformRuntime();
-		~PlatformRuntime() override;
+		virtual ~PlatformRuntime();
 
-		std::unique_ptr<spk::IFrame> createFrame(const spk::Rect2D& p_rect, const std::string& p_title) override;
-		void pollEvents() override;
+		virtual std::unique_ptr<IFrame> createFrame(const spk::Rect2D& p_rect, const std::string& p_title);
+		virtual void pollEvents();
 	};
 }
 
