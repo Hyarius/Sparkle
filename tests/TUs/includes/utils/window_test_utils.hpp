@@ -234,6 +234,11 @@ namespace sparkle_test
 				_stats->lastSetTitleThreadID = lastSetTitleThreadID;
 			}
 		}
+		
+		void hide() override
+		{
+
+		}
 
 		void requestClosure() override
 		{

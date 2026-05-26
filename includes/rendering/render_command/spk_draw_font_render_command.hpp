@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <string_view>
 #include <vector>
 
@@ -24,16 +25,18 @@ namespace spk
 		const spk::Color _outlineColor;
 		const float _outlineThickness;
 
-		spk::Program _program;
+		static inline std::unique_ptr<spk::Program> _program;
+		static inline std::unique_ptr<spk::Vector4Uniform> _colorUniform;
+		static inline std::unique_ptr<spk::Vector4Uniform> _outlineColorUniform;
+		static inline std::unique_ptr<spk::FloatUniform> _outlineThicknessUniform;
+
 		spk::SamplerObject _sampler;
-		spk::Vector4Uniform _colorUniform;
-		spk::Vector4Uniform _outlineColorUniform;
-		spk::FloatUniform _outlineThicknessUniform;
 
 		std::vector<float> _vertexData;
 		spk::LayoutBufferObject _layoutBuffer;
 		bool _layoutBufferDirty;
 
+		static void _ensureProgram();
 		void _uploadMesh();
 
 	public:

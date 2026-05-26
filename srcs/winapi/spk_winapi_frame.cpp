@@ -220,6 +220,11 @@ namespace spk
 		_title = p_title;
 	}
 
+	void Frame::hide()
+	{
+		_window.hide();
+	}
+
 	void Frame::requestClosure()
 	{
 		if (_window.isValid() == true)

@@ -19,6 +19,11 @@ namespace
 		void setTitle(const std::string&) override
 		{
 		}
+		
+		void hide() override 
+		{
+
+		}
 
 		void requestClosure() override
 		{

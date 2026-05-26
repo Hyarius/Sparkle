@@ -21,38 +21,54 @@ namespace sparkle_test
 	class OpenGLTestContext
 	{
 	private:
-		spk::PlatformRuntime _platformRuntime;
-		spk::GPUPlatformRuntime _gpuRuntime;
-		std::unique_ptr<spk::IFrame> _frame;
-		std::unique_ptr<spk::RenderContext> _renderContext;
+		static inline spk::PlatformRuntime* s_platformRuntime = nullptr;
+		static inline spk::GPUPlatformRuntime* s_gpuRuntime = nullptr;
+		static inline spk::IFrame* s_frame = nullptr;
+		static inline spk::RenderContext* s_renderContext = nullptr;
 
 	public:
-		explicit OpenGLTestContext(const spk::Rect2D& p_rect = spk::Rect2D(0, 0, 32, 32)) :
-			_frame(_platformRuntime.createFrame(p_rect, "Sparkle OpenGL wrapper test"))
+		explicit OpenGLTestContext(const spk::Rect2D& p_rect = spk::Rect2D(0, 0, 32, 32))
 		{
-			_renderContext = _gpuRuntime.createRenderContext(*_frame);
-			_renderContext->makeCurrent();
-			_renderContext->notifyResize(p_rect.atOrigin());
+			if (s_platformRuntime == nullptr)
+			{
+				s_platformRuntime = new spk::PlatformRuntime();
+				s_gpuRuntime = new spk::GPUPlatformRuntime();
+				s_frame = s_platformRuntime->createFrame(spk::Rect2D(0, 0, 1024, 1024), "Sparkle OpenGL wrapper test").release();
+				s_frame->hide();
+				s_renderContext = s_gpuRuntime->createRenderContext(*s_frame).release();
+			}
+			s_renderContext->makeCurrent();
+			s_renderContext->notifyResize(p_rect.atOrigin());
 		}
 
-		~OpenGLTestContext()
+		~OpenGLTestContext() = default;
+
+		static void tearDownGlobal()
 		{
-			if (_frame != nullptr)
+			if (s_platformRuntime != nullptr)
 			{
-				_frame->validateClosure();
-				_platformRuntime.pollEvents();
+				s_frame->validateClosure();
+				s_platformRuntime->pollEvents();
+				delete s_renderContext;
+				delete s_gpuRuntime;
+				delete s_frame;
+				delete s_platformRuntime;
+				s_renderContext = nullptr;
+				s_gpuRuntime = nullptr;
+				s_frame = nullptr;
+				s_platformRuntime = nullptr;
 			}
 		}
 
 		spk::RenderContext& renderContext()
 		{
-			_renderContext->makeCurrent();
-			return *_renderContext;
+			s_renderContext->makeCurrent();
+			return *s_renderContext;
 		}
 
 		spk::GPUPlatformRuntime& gpuRuntime()
 		{
-			return _gpuRuntime;
+			return *s_gpuRuntime;
 		}
 	};
 

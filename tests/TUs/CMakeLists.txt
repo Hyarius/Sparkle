@@ -28,7 +28,6 @@ endif()
 target_link_libraries(SparkleTest PRIVATE
 	Sparkle
 	GTest::GTest
-	GTest::Main
 )
 target_include_directories(SparkleTest PRIVATE ${Stb_INCLUDE_DIR})
 

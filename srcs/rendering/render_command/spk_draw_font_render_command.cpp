@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cstdint>
+#include <memory>
 #include <span>
 
 #include <GL/glew.h>
@@ -40,6 +41,19 @@ namespace
 
 namespace spk
 {
+	void DrawFontRenderCommand::_ensureProgram()
+	{
+		if (_program == nullptr)
+		{
+			_program = std::make_unique<spk::Program>(
+				SPARKLE_GET_RESOURCE_AS_STRING("resources/shaders/font/draw_font.vert"),
+				SPARKLE_GET_RESOURCE_AS_STRING("resources/shaders/font/draw_font.frag"));
+			_colorUniform = std::make_unique<spk::Vector4Uniform>("uColor", *_program);
+			_outlineColorUniform = std::make_unique<spk::Vector4Uniform>("uOutlineColor", *_program);
+			_outlineThicknessUniform = std::make_unique<spk::FloatUniform>("uOutlineThickness", *_program);
+		}
+	}
+
 	DrawFontRenderCommand::DrawFontRenderCommand(
 		const spk::Font& p_font,
 		spk::Font::Text p_text,
@@ -52,17 +66,9 @@ namespace spk
 		_color(p_color),
 		_outlineColor(p_outlineColor),
 		_outlineThickness(outlineThickness(p_size)),
-		_program(),
 		_sampler("uTexture", spk::SamplerObject::Type::Texture2D, 0),
-		_colorUniform("uColor", _program),
-		_outlineColorUniform("uOutlineColor", _program),
-		_outlineThicknessUniform("uOutlineThickness", _program),
 		_layoutBufferDirty(true)
 	{
-		_program.setSources(
-			SPARKLE_GET_RESOURCE_AS_STRING("resources/shaders/font/draw_font.vert"),
-			SPARKLE_GET_RESOURCE_AS_STRING("resources/shaders/font/draw_font.frag"));
-
 		_layoutBuffer.addAttribute(0, spk::LayoutBufferObject::Attribute::Type::Vector3);
 		_layoutBuffer.addAttribute(1, spk::LayoutBufferObject::Attribute::Type::Vector2);
 
@@ -163,6 +169,7 @@ namespace spk
 	{
 		(void)p_renderContext;
 
+		_ensureProgram();
 		_uploadMesh();
 
 		if (_layoutBuffer.vertexCount() == 0)
@@ -174,31 +181,31 @@ namespace spk
 		_sampler.bind(_atlas);
 
 		_layoutBuffer.activate();
-		_program.activate();
+		_program->activate();
 		viewportUniformBuffer().activate();
 
 		_sampler.activate();
 
-		_colorUniform.set(_color.values());
-		_colorUniform.activate();
+		_colorUniform->set(_color.values());
+		_colorUniform->activate();
 
-		_outlineColorUniform.set(_outlineColor.values());
-		_outlineColorUniform.activate();
+		_outlineColorUniform->set(_outlineColor.values());
+		_outlineColorUniform->activate();
 
-		_outlineThicknessUniform.set(_outlineThickness);
-		_outlineThicknessUniform.activate();
+		_outlineThicknessUniform->set(_outlineThickness);
+		_outlineThicknessUniform->activate();
 
 		if (_layoutBuffer.isIndexed() == true)
 		{
-			_program.render(spk::Primitive::Triangles, 0, _layoutBuffer.indexCount());
+			_program->render(spk::Primitive::Triangles, 0, _layoutBuffer.indexCount());
 		}
 		else
 		{
-			_program.renderRaw(spk::Primitive::Triangles, 0, _layoutBuffer.vertexCount());
+			_program->renderRaw(spk::Primitive::Triangles, 0, _layoutBuffer.vertexCount());
 		}
 
 		_sampler.deactivate();
 		_layoutBuffer.deactivate();
-		_program.deactivate();
+		_program->deactivate();
 	}
 }

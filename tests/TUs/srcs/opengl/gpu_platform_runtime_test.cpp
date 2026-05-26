@@ -20,6 +20,7 @@ namespace
 		FrameA() : spk::IFrame(std::make_shared<TestSurfaceState>()) {}
 		void resize(const spk::Rect2D&) override {}
 		void setTitle(const std::string&) override {}
+		void hide() override {}
 		void requestClosure() override {}
 		void validateClosure() override {}
 		[[nodiscard]] spk::Rect2D rect() const override { return {}; }
@@ -32,6 +33,7 @@ namespace
 		FrameB() : spk::IFrame(std::make_shared<TestSurfaceState>()) {}
 		void resize(const spk::Rect2D&) override {}
 		void setTitle(const std::string&) override {}
+		void hide() override {}
 		void requestClosure() override {}
 		void validateClosure() override {}
 		[[nodiscard]] spk::Rect2D rect() const override { return {}; }
