@@ -9,7 +9,7 @@ namespace spk
 	{
 	}
 
-	void SamplerObject::bind(const spk::GPUTexture& p_texture)
+	void SamplerObject::bind(const spk::Texture& p_texture)
 	{
 		_texture = &p_texture;
 	}

@@ -5,6 +5,9 @@
 #include <filesystem>
 #include <vector>
 
+#include <GL/glew.h>
+#include <GL/gl.h>
+
 #include "math/spk_vector2.hpp"
 #include "traits/spk_synchronizable_trait.hpp"
 
@@ -16,6 +19,7 @@ namespace spk
 		using ID = long;
 
 		static constexpr ID InvalidID = -1;
+		static constexpr GLuint InvalidGLId = 0;
 
 		enum class Format
 		{
@@ -76,8 +80,12 @@ namespace spk
 		Filtering _filtering;
 		Wrap _wrap;
 		Mipmap _mipmap;
+		mutable GLuint _glId = InvalidGLId;
 
 		size_t _getBytesPerPixel(Format p_format) const;
+		static void _setupTextureParameters(Filtering p_filtering, Wrap p_wrap, Mipmap p_mipmap);
+		static void _convertFormat(Format p_format, GLint& p_internalFormat, GLenum& p_externalFormat);
+		void _uploadToGPU() const;
 
 	protected:
 		void _synchronize() const override;
@@ -121,6 +129,7 @@ namespace spk
 		Filtering filtering() const;
 		Wrap wrap() const;
 		Mipmap mipmap() const;
+		GLuint glId() const;
 
 		void saveAsPng(const std::filesystem::path& p_path) const;
 	};

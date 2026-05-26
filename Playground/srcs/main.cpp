@@ -1,48 +1,48 @@
 #include <iostream>
 
 #include <sparkle.hpp>
+#include "rendering/render_command/spk_color_rectangle_render_command.hpp"
 #include "rendering/render_command/spk_text_render_command.hpp"
 #include "spk_generated_resources.hpp"
 
 namespace
 {
-	const spk::Font::Size PlaygroundFontSize(48, 4);
+	// const spk::Font::Size PlaygroundFontSize(48, 4);
 
-	[[nodiscard]] spk::Font loadPlaygroundFont()
-	{
-		return spk::Font::fromRawData(SPARKLE_GET_RESOURCE("resources/fonts/arial.ttf"));
-	}
+	// [[nodiscard]] spk::Font loadPlaygroundFont()
+	// {
+	// 	return spk::Font::fromRawData(SPARKLE_GET_RESOURCE("resources/fonts/arial.ttf"));
+	// }
 
 	class PlaygroundWidget : public spk::Widget
 	{
 	private:
-		spk::Font _font;
+		//spk::Font _font;
 
 	protected:
 		spk::RenderUnit _buildRenderUnit() const override
 		{
-			const spk::Rect2D widgetGeometry = geometry();
-			const spk::Vector2Int center =
-				widgetGeometry.anchor + static_cast<spk::Vector2Int>(widgetGeometry.size) / 2;
-
 			spk::RenderUnitBuilder builder;
-			builder.emplace<spk::TextRenderCommand>(
-				_font,
-				"Hello, world!",
-				PlaygroundFontSize,
-				spk::Color(0.0f, 1.0f, 0.0f, 1.0f),
-				spk::Color(1.0f, 0.0f, 0.0f, 1.0f),
-				0.0f,
-				center,
-				spk::HorizontalAlignment::Centered,
-				spk::VerticalAlignment::Centered);
+			builder.emplace<spk::ColorRectangleRenderCommand>(
+				geometry().shrink({50, 50}),
+				spk::Color(1.0f, 0.0f, 0.0f, 1.0f));
+			// builder.emplace<spk::TextRenderCommand>(
+			// 	_font,
+			// 	"Hello, world!",
+			// 	PlaygroundFontSize,
+			// 	spk::Color(0.0f, 1.0f, 0.0f, 1.0f),
+			// 	spk::Color(1.0f, 0.0f, 0.0f, 1.0f),
+			// 	0.0f,
+			// 	center,
+			// 	spk::HorizontalAlignment::Centered,
+			// 	spk::VerticalAlignment::Centered);
 			return builder.build();
 		}
 
 	public:
 		explicit PlaygroundWidget(spk::Widget* p_parent) :
-			spk::Widget("PlaygroundWidget", p_parent),
-			_font(loadPlaygroundFont())
+			spk::Widget("PlaygroundWidget", p_parent)
+			//, _font(loadPlaygroundFont())
 		{
 			activate();
 		}

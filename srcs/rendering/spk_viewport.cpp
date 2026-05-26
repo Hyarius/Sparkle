@@ -30,7 +30,6 @@ namespace spk
 			- _scissor.y()
 			- static_cast<GLint>(_scissor.height());
 
-		glEnable(GL_SCISSOR_TEST);
 		glScissor(
 			static_cast<GLint>(_scissor.x()),
 			scissorGLY,
@@ -47,7 +46,7 @@ namespace spk
 			const float top    = 0.0f;
 			const float bottom = static_cast<float>(_geometry.height());
 
-			return spk::Matrix4x4::ortho(left, right, bottom, top, -_maxLayer, _maxLayer);
+			return spk::Matrix4x4::ortho(left, right, bottom, top, _maxLayer, 0);
 		});
 	}
 

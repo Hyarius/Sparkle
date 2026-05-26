@@ -5,12 +5,9 @@
 #include <utility>
 #include <vector>
 
-#include <GL/glew.h>
-
 #include "opengl/spk_opengl_gpu_data_buffer_center.hpp"
 #include "opengl/spk_opengl_layout_buffer_object.hpp"
 #include "opengl/spk_opengl_program.hpp"
-#include "opengl/spk_opengl_texture.hpp"
 #include "opengl/spk_opengl_uniform_buffer_object.hpp"
 #include "spk_generated_resources.hpp"
 
@@ -27,15 +24,11 @@ namespace spk
 	DrawTextureMeshRenderCommand::DrawTextureMeshRenderCommand(const spk::Texture& p_texture, spk::TextureMesh2D p_mesh) :
 		_texture(p_texture),
 		_mesh(std::move(p_mesh)),
-		_gpuTexture(),
-		_texturePixels(),
-		_textureSize{},
-		_textureFormat(spk::Texture::Format::Error),
-		_textureFiltering(spk::Texture::Filtering::Nearest),
-		_textureWrap(spk::Texture::Wrap::ClampToEdge),
-		_textureMipmap(spk::Texture::Mipmap::Enable),
+		_sampler("uTexture", spk::SamplerObject::Type::Texture2D, 0),
 		_layoutBufferDirty(true)
 	{
+		_sampler.bind(_texture);
+
 		_layoutBuffer.addAttribute(0, spk::LayoutBufferObject::Attribute::Type::Vector3);
 		_layoutBuffer.addAttribute(1, spk::LayoutBufferObject::Attribute::Type::Vector2);
 	}
@@ -47,7 +40,6 @@ namespace spk
 			_program = std::make_shared<spk::Program>(
 				SPARKLE_GET_RESOURCE_AS_STRING("resources/shaders/texture_mesh/draw_texture_mesh.vert"),
 				SPARKLE_GET_RESOURCE_AS_STRING("resources/shaders/texture_mesh/draw_texture_mesh.frag"));
-			_textureUniformLocation = glGetUniformLocation(_program->id(), "uTexture");
 		}
 	}
 
@@ -107,25 +99,8 @@ namespace spk
 			return;
 		}
 
-		// Synchronize texture
-		if (_texturePixels != _texture.pixels() ||
-			_textureSize != _texture.size() ||
-			_textureFormat != _texture.format() ||
-			_textureFiltering != _texture.filtering() ||
-			_textureWrap != _texture.wrap() ||
-			_textureMipmap != _texture.mipmap())
-		{
-			_texturePixels = _texture.pixels();
-			_textureSize = _texture.size();
-			_textureFormat = _texture.format();
-			_textureFiltering = _texture.filtering();
-			_textureWrap = _texture.wrap();
-			_textureMipmap = _texture.mipmap();
-			_gpuTexture.setPixels(_texturePixels, _textureSize, _textureFormat, _textureFiltering, _textureWrap, _textureMipmap);
-		}
-
-		_gpuTexture.synchronize();
-		if (_gpuTexture.glId() == spk::GPUTexture::InvalidGLId)
+		_texture.synchronize();
+		if (_texture.glId() == spk::Texture::InvalidGLId)
 		{
 			throw std::runtime_error("DrawTextureMeshRenderCommand received a texture without GPU storage");
 		}
@@ -134,15 +109,7 @@ namespace spk
 		_program->activate();
 		viewportUniformBuffer().activate();
 
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, _gpuTexture.glId());
-		if (_textureUniformLocation >= 0)
-		{
-			glUniform1i(_textureUniformLocation, 0);
-		}
-
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		_sampler.activate();
 
 		if (_layoutBuffer.isIndexed() == true)
 		{
@@ -153,7 +120,7 @@ namespace spk
 			_program->renderRaw(spk::Primitive::Triangles, 0, _layoutBuffer.vertexCount());
 		}
 
-		glBindTexture(GL_TEXTURE_2D, 0);
+		_sampler.deactivate();
 		_layoutBuffer.deactivate();
 		_program->deactivate();
 	}

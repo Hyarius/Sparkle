@@ -14,6 +14,8 @@
 #include "opengl/spk_opengl_uniform_buffer_object.hpp"
 #include "spk_generated_resources.hpp"
 
+#include <iostream>
+
 namespace
 {
 	spk::UniformBufferObject& viewportUniformBuffer()
@@ -25,16 +27,12 @@ namespace
 namespace spk
 {
 	DrawColorMeshRenderCommand::DrawColorMeshRenderCommand(
-		spk::Mesh2D p_mesh,
-		spk::Color p_color,
-		spk::Matrix3x3 p_transformation) :
+		spk::ColorMesh2D p_mesh) :
 		_mesh(std::move(p_mesh)),
-		_color(p_color),
-		_transformation(p_transformation),
-		_layoutBuffer(),
-		_layoutBufferDirty(true)
+		_layoutBuffer()
 	{
-		_layoutBuffer.addAttribute({0, spk::LayoutBufferObject::Attribute::Type::Vector2});
+		_layoutBuffer.addAttribute({0, spk::LayoutBufferObject::Attribute::Type::Vector3});
+		_layoutBuffer.addAttribute({1, spk::LayoutBufferObject::Attribute::Type::Vector4});
 	}
 
 	void DrawColorMeshRenderCommand::_ensureProgram()
@@ -44,65 +42,41 @@ namespace spk
 			_program = std::make_shared<spk::Program>(
 				SPARKLE_GET_RESOURCE_AS_STRING("resources/shaders/color_mesh/draw_color_mesh.vert"),
 				SPARKLE_GET_RESOURCE_AS_STRING("resources/shaders/color_mesh/draw_color_mesh.frag"));
-			_colorUniformLocation = glGetUniformLocation(_program->id(), "uColor");
 		}
 	}
 
 	void DrawColorMeshRenderCommand::_uploadMesh()
 	{
-		if (_layoutBufferDirty == false)
-		{
-			return;
-		}
-		_layoutBufferDirty = false;
-
 		if (_mesh.buffer().vertices.empty() == true)
 		{
 			return;
 		}
 
-		std::vector<spk::Vector2> transformedVertices;
-		transformedVertices.reserve(_mesh.buffer().vertices.size());
-		for (const spk::Vertex2D& vertex : _mesh.buffer().vertices)
-		{
-			transformedVertices.push_back(_transformation * vertex.position);
-		}
-
-		_layoutBuffer.setVertices(std::span<const spk::Vector2>(transformedVertices.data(), transformedVertices.size()));
+		_layoutBuffer.setVertices(std::span<const spk::ColorMesh2D::Vertex>(_mesh.buffer().vertices.data(), _mesh.buffer().vertices.size()));
 		_layoutBuffer.setIndexes(std::span<const std::uint32_t>(_mesh.buffer().indexes.data(), _mesh.buffer().indexes.size()));
 	}
 
 	void DrawColorMeshRenderCommand::execute(spk::RenderContext& p_renderContext)
 	{
-		(void)p_renderContext;
+		if (_mesh.buffer().indexes.empty() == true)
+		{
+			return ;
+		}
 
 		_ensureProgram();
-		_uploadMesh();
 
-		if (_layoutBuffer.vertexCount() == 0)
+
+		if (_layoutBuffer.indexCount() == 0)
 		{
-			return;
+			_uploadMesh();
 		}
 
-		_layoutBuffer.activate();
 		_program->activate();
+		_layoutBuffer.activate();
 		viewportUniformBuffer().activate();
 
-		if (_colorUniformLocation >= 0)
-		{
-			const std::array<float, 4> color = _color.values();
-			glUniform4fv(_colorUniformLocation, 1, color.data());
-		}
-
-		if (_layoutBuffer.isIndexed() == true)
-		{
-			_program->render(spk::Primitive::Triangles, 0, _layoutBuffer.indexCount());
-		}
-		else
-		{
-			_program->renderRaw(spk::Primitive::Triangles, 0, _layoutBuffer.vertexCount());
-		}
-
+		_program->render(spk::Primitive::Triangles, 0, _layoutBuffer.indexCount());
+		
 		_layoutBuffer.deactivate();
 		_program->deactivate();
 	}

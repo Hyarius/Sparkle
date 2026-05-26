@@ -120,7 +120,7 @@ TEST(OpenGLViewportTest, ConvertScreenToOpenGLWithLayerReturnsVector3)
 	viewport.activate(*renderContext.surfaceState());
 
 	const spk::Vector3 result3 = spk::Viewport::convertScreenToOpenGL(spk::Vector2Int{0, 0}, 0.0f);
-	EXPECT_FLOAT_EQ(result3.z, 0.0f);
+	EXPECT_FLOAT_EQ(result3.z, 1.0f);
 
 	const spk::Vector3 result3xy = spk::Viewport::convertScreenToOpenGL(0, 0, 0.0f);
 	EXPECT_FLOAT_EQ(result3.x, result3xy.x);

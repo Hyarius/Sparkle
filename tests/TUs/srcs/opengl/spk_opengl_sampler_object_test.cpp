@@ -5,7 +5,7 @@
 #include "opengl/spk_opengl_sampler_object.hpp"
 
 using SamplerObject = spk::SamplerObject;
-using Texture = spk::GPUTexture;
+using Texture = spk::Texture;
 
 TEST(OpenGLSamplerObjectTest, DefaultConstructionProducesInvalidBindingPoint)
 {

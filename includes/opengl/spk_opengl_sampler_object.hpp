@@ -5,7 +5,7 @@
 #include <GL/glew.h>
 #include <GL/gl.h>
 
-#include "opengl/spk_opengl_texture.hpp"
+#include "rendering/spk_texture.hpp"
 
 namespace spk
 {
@@ -23,7 +23,7 @@ namespace spk
 		using BindingPoint = int;
 
 	private:
-		const spk::GPUTexture* _texture = nullptr;
+		const spk::Texture* _texture = nullptr;
 		std::string _designator;
 		BindingPoint _bindingPoint = -1;
 		GLint _uniformDestination = -1;
@@ -33,7 +33,7 @@ namespace spk
 		SamplerObject() = default;
 		SamplerObject(const std::string& p_name, Type p_type, BindingPoint p_bindingPoint);
 
-		void bind(const spk::GPUTexture& p_texture);
+		void bind(const spk::Texture& p_texture);
 
 		BindingPoint bindingPoint() const;
 		void setBindingPoint(BindingPoint p_bindingPoint);

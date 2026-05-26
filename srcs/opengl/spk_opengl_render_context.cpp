@@ -87,6 +87,28 @@ namespace spk
 				"spk::RenderContext failed to initialize GLEW: " +
 				std::string(reinterpret_cast<const char*>(glewGetErrorString(glewResult))));
 		}
+
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+		glBlendFuncSeparate(
+			GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+
+		glEnable(GL_CULL_FACE);
+		glCullFace(GL_BACK);
+		glFrontFace(GL_CCW);
+
+		glEnable(GL_DEPTH_TEST);
+		glDepthMask(GL_TRUE);
+		glClearDepth(1.0f);
+		glDepthFunc(GL_LEQUAL);
+
+		glDisable(GL_STENCIL_TEST);
+		glStencilFunc(GL_ALWAYS, 0, 0xFF);
+		glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+		glStencilMask(0xFF);
+
+		glEnable(GL_SCISSOR_TEST);
 	}
 
 	RenderContext::~RenderContext()

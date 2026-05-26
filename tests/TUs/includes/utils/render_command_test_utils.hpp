@@ -13,7 +13,6 @@
 #include "test_resource_path_utils.hpp"
 
 #include <GL/glew.h>
-#include "opengl/spk_opengl_texture.hpp"
 
 namespace sparkle_test
 {
@@ -64,7 +63,7 @@ namespace sparkle_test
 		return result;
 	}
 
-	[[nodiscard]] inline std::shared_ptr<spk::GPUTexture> makeSolidTexture(
+	[[nodiscard]] inline std::shared_ptr<spk::Texture> makeSolidTexture(
 		const spk::Vector2UInt& p_size,
 		std::uint8_t p_red,
 		std::uint8_t p_green,
@@ -81,7 +80,7 @@ namespace sparkle_test
 			pixels[i + 3] = p_alpha;
 		}
 
-		auto texture = std::make_shared<spk::GPUTexture>();
+		auto texture = std::make_shared<spk::Texture>();
 		texture->setPixels(
 			pixels,
 			p_size,

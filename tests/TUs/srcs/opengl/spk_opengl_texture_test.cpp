@@ -2,9 +2,9 @@
 
 
 #include "opengl_wrapper_test_utils.hpp"
-#include "opengl/spk_opengl_texture.hpp"
+#include "rendering/spk_texture.hpp"
 
-using Texture = spk::GPUTexture;
+using Texture = spk::Texture;
 
 TEST(OpenGLTextureTest, DefaultConstructionProducesInvalidGLId)
 {
@@ -16,7 +16,7 @@ TEST(OpenGLTextureTest, DefaultConstructionProducesInvalidGLId)
 	EXPECT_EQ(tex.glId(), Texture::InvalidGLId);
 }
 
-TEST(OpenGLTextureTest, InheritsFromSpkTexture)
+TEST(OpenGLTextureTest, HasApplicationTextureID)
 {
 	sparkle_test::OpenGLTestContext context;
 	(void)context;

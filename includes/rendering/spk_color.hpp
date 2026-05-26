@@ -1,6 +1,8 @@
 #pragma once
 
 #include <array>
+#include <iostream>
+#include <sstream>
 
 namespace spk
 {
@@ -23,6 +25,19 @@ namespace spk
 		[[nodiscard]] constexpr std::array<float, 4> values() const noexcept
 		{
 			return {r, g, b, a};
+		}
+
+		friend std::ostream& operator<<(std::ostream& p_outputStream, const Color& p_color)
+		{
+			p_outputStream << "[" << p_color.r << " - " << p_color.g << " - " << p_color.b << " - " << p_color.a << "]";
+			return p_outputStream;
+		}
+
+		[[nodiscard]] std::string toString() const
+		{
+			std::ostringstream outputStream;
+			outputStream << *this;
+			return outputStream.str();
 		}
 	};
 }

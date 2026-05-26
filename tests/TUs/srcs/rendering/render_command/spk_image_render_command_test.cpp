@@ -18,7 +18,7 @@
 #include "rendering/spk_render_unit_builder.hpp"
 
 using ClearCommand = spk::ClearCommand;
-using Texture = spk::GPUTexture;
+using Texture = spk::Texture;
 using Viewport = spk::Viewport;
 
 TEST(ImageRenderCommandTest, DrawsFullTextureWithWholeSection)

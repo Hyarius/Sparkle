@@ -7,10 +7,10 @@
 #include "rendering/spk_font.hpp"
 #include "rendering/spk_render_command.hpp"
 #include "rendering/spk_texture_mesh_2d.hpp"
+
 #include "opengl/spk_opengl_layout_buffer_object.hpp"
 #include "opengl/spk_opengl_program.hpp"
 #include "opengl/spk_opengl_sampler_object.hpp"
-#include "opengl/spk_opengl_texture.hpp"
 #include "opengl/spk_opengl_uniform.hpp"
 
 namespace spk
@@ -19,13 +19,7 @@ namespace spk
 	{
 	private:
 		spk::Font::Atlas& _atlas;
-		spk::GPUTexture _atlasTexture;
-		std::vector<uint8_t> _atlasPixels;
-		spk::Vector2UInt _atlasSize{};
-		spk::Texture::Format _atlasFormat = spk::Texture::Format::Error;
-		spk::Texture::Filtering _atlasFiltering = spk::Texture::Filtering::Nearest;
-		spk::Texture::Wrap _atlasWrap = spk::Texture::Wrap::ClampToEdge;
-		spk::Texture::Mipmap _atlasMipmap = spk::Texture::Mipmap::Enable;
+
 		const spk::Color _color;
 		const spk::Color _outlineColor;
 		const float _outlineThickness;

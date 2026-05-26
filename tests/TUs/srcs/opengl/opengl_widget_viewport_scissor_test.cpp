@@ -229,7 +229,7 @@ TEST(OpenGLWidgetViewportScissorTest, VisualHierarchyIsClippedByParentScissors)
 	spk::RenderContext& renderContext = context.renderContext();
 
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-	glClear(GL_COLOR_BUFFER_BIT);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	ViewportScissorHierarchy hierarchy;
 	spk::RenderSnapshotBuilder snapshotBuilder;
@@ -259,7 +259,7 @@ TEST(OpenGLWidgetViewportScissorTest, VisualHierarchyUsesUpdatedAbsoluteGeometry
 	spk::RenderContext& renderContext = context.renderContext();
 
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-	glClear(GL_COLOR_BUFFER_BIT);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	ViewportScissorHierarchy hierarchy;
 	hierarchy.parent.setGeometry(spk::Rect2D(0, 0, 12, 12));
