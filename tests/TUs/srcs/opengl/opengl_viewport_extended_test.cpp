@@ -5,7 +5,6 @@
 
 #include "opengl/spk_opengl_viewport.hpp"
 
-using Runtime = spk::GPUPlatformRuntime;
 using Viewport = spk::Viewport;
 
 TEST(OpenGLViewportTest, TwoArgConstructorSetsGeometryAndScissorIndependently)
@@ -24,40 +23,26 @@ TEST(OpenGLViewportTest, TwoArgConstructorSetsGeometryAndScissorIndependently)
 
 TEST(OpenGLViewportTest, ActivateThrowsWhenWindowWidthIsZero)
 {
-	spk::PlatformRuntime platformRuntime;
-	Runtime gpuRuntime;
-	auto frame = platformRuntime.createFrame(spk::Rect2D(0, 0, 32, 32), "ZeroWidth");
-	auto renderContext = gpuRuntime.createRenderContext(*frame);
-	renderContext->makeCurrent();
-	renderContext->notifyResize(spk::Rect2D(0, 0, 0, 32));
+	sparkle_test::OpenGLTestContext context(spk::Rect2D(0, 0, 0, 32));
+	spk::RenderContext& renderContext = context.renderContext();
 
 	Viewport viewport(spk::Rect2D(0, 0, 10, 10));
 
 	EXPECT_THROW(
-		viewport.activate(*renderContext->surfaceState()),
+		viewport.activate(*renderContext.surfaceState()),
 		std::runtime_error);
-
-	frame->validateClosure();
-	platformRuntime.pollEvents();
 }
 
 TEST(OpenGLViewportTest, ActivateThrowsWhenWindowHeightIsZero)
 {
-	spk::PlatformRuntime platformRuntime;
-	Runtime gpuRuntime;
-	auto frame = platformRuntime.createFrame(spk::Rect2D(0, 0, 32, 32), "ZeroHeight");
-	auto renderContext = gpuRuntime.createRenderContext(*frame);
-	renderContext->makeCurrent();
-	renderContext->notifyResize(spk::Rect2D(0, 0, 32, 0));
+	sparkle_test::OpenGLTestContext context(spk::Rect2D(0, 0, 32, 0));
+	spk::RenderContext& renderContext = context.renderContext();
 
 	Viewport viewport(spk::Rect2D(0, 0, 10, 10));
 
 	EXPECT_THROW(
-		viewport.activate(*renderContext->surfaceState()),
+		viewport.activate(*renderContext.surfaceState()),
 		std::runtime_error);
-
-	frame->validateClosure();
-	platformRuntime.pollEvents();
 }
 
 TEST(OpenGLViewportTest, ActivateSetsActiveViewportPointer)
