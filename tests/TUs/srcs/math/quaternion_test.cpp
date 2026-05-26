@@ -66,3 +66,56 @@ TEST(QuaternionTest, NormalizingZeroLengthThrows)
 {
 	EXPECT_THROW(static_cast<void>(spk::Quaternion(0.0f, 0.0f, 0.0f, 0.0f).normalized()), std::runtime_error);
 }
+
+TEST(QuaternionTest, ConstructsFromAxisAngleInDegrees)
+{
+	const spk::Quaternion quaternion = spk::Quaternion::fromAxisAngle(spk::Vector3(0.0f, 0.0f, 1.0f), 180.0f);
+
+	EXPECT_NEAR(quaternion.x, 0.0f, 0.000001f);
+	EXPECT_NEAR(quaternion.y, 0.0f, 0.000001f);
+	EXPECT_NEAR(quaternion.z, 1.0f, 0.000001f);
+	EXPECT_NEAR(quaternion.w, 0.0f, 0.000001f);
+	EXPECT_THROW(static_cast<void>(spk::Quaternion::fromAxisAngle(spk::Vector3::Zero, 30.0f)), std::runtime_error);
+}
+
+TEST(QuaternionTest, ConvertsEulerAnglesRoundTrip)
+{
+	const spk::Vector3 angles(20.0f, -15.0f, 30.0f);
+	const spk::Vector3 converted = spk::Quaternion::fromEuler(angles).toEuler();
+
+	EXPECT_NEAR(converted.x, angles.x, 0.00001f);
+	EXPECT_NEAR(converted.y, angles.y, 0.00001f);
+	EXPECT_NEAR(converted.z, angles.z, 0.00001f);
+}
+
+TEST(QuaternionTest, SlerpInterpolatesAxisRotation)
+{
+	const spk::Quaternion halfway = spk::Quaternion::slerp(
+		spk::Quaternion::identity(),
+		spk::Quaternion::fromAxisAngle(spk::Vector3(0.0f, 0.0f, 1.0f), 180.0f),
+		0.5f);
+
+	EXPECT_NEAR(std::fabs(halfway.z), std::sqrt(0.5f), 0.000001f);
+	EXPECT_NEAR(halfway.w, std::sqrt(0.5f), 0.000001f);
+}
+
+TEST(QuaternionTest, LookAtReturnsIdentityForDefaultForwardDirection)
+{
+	const spk::Quaternion orientation = spk::Quaternion::lookAt(
+		spk::Vector3::Zero,
+		spk::Vector3(0.0f, 0.0f, -1.0f));
+
+	expectQuaternionNear(orientation, spk::Quaternion::identity());
+	EXPECT_THROW(
+		static_cast<void>(spk::Quaternion::lookAt(spk::Vector3::Zero, spk::Vector3::Zero)),
+		std::runtime_error);
+}
+
+TEST(QuaternionTest, LookAtAcceptsDirectionParallelToRequestedUp)
+{
+	const spk::Quaternion orientation = spk::Quaternion::lookAt(
+		spk::Vector3::Zero,
+		spk::Vector3(0.0f, 1.0f, 0.0f));
+
+	EXPECT_NEAR(orientation.dot(orientation), 1.0f, 0.000001f);
+}

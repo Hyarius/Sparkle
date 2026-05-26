@@ -62,6 +62,22 @@ TEST(Vector4ArithmeticTest, DivisionRejectsZero)
 	EXPECT_THROW(static_cast<void>(20 / spk::Vector4Int(1, 0, 1, 1)), std::invalid_argument);
 }
 
+TEST(Vector4ArithmeticTest, SupportsFloatOperationsUsedBySIMDPath)
+{
+	spk::Vector4 value(8.0f, 12.0f, 16.0f, 20.0f);
+
+	EXPECT_EQ(value + spk::Vector4(1.0f, 2.0f, 3.0f, 4.0f), spk::Vector4(9.0f, 14.0f, 19.0f, 24.0f));
+	EXPECT_EQ(value - spk::Vector4(1.0f), spk::Vector4(7.0f, 11.0f, 15.0f, 19.0f));
+	EXPECT_EQ(value * 0.5f, spk::Vector4(4.0f, 6.0f, 8.0f, 10.0f));
+	EXPECT_EQ(value / spk::Vector4(2.0f, 3.0f, 4.0f, 5.0f), spk::Vector4(4.0f));
+	EXPECT_FLOAT_EQ(value.dot(spk::Vector4(1.0f, 2.0f, 3.0f, 4.0f)), 160.0f);
+	EXPECT_FLOAT_EQ(value.squaredLength(), 864.0f);
+
+	value += 2.0f;
+	value *= spk::Vector4(2.0f);
+	EXPECT_EQ(value, spk::Vector4(20.0f, 28.0f, 36.0f, 44.0f));
+}
+
 TEST(Vector4GeometryTest, SupportsGeometryHelpers)
 {
 	const spk::Vector4Int value(1, 2, 4, 8);
