@@ -5,7 +5,7 @@ skinparam classAttributeIconSize 0
 
 namespace spk {
 	class BinaryField {
-		- shared_ptr<vector<Section>> _sections
+		- shared_ptr<Layout> _layout
 		- size_t _sectionID
 		+ BinaryField(data, size)
 		+ addValue(name, offset, size) : BinaryField
@@ -23,17 +23,23 @@ namespace spk {
 	class "BinaryField::Section" as Section {
 		- string name
 		- Kind kind
-		- uint8_t* data
 		- size_t size
 		- size_t offset
+		- size_t absoluteOffset
 		- size_t elementSize
 		- size_t count
 		- size_t parent
 		- vector<size_t> children
 	}
+
+	class "BinaryField::Layout" as Layout {
+		- uint8_t* data
+		- vector<Section> sections
+	}
 }
 
-spk.BinaryField *-- Section : shared section registry
+spk.BinaryField *-- Layout : shared layout
+Layout *-- Section
 
 note right of spk.BinaryField
 BinaryField is a non-owning byte view.

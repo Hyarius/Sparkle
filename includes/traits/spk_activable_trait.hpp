@@ -1,7 +1,6 @@
 ﻿#pragma once
 
 #include <functional>
-#include <optional>
 #include <utility>
 
 #include "traits/spk_blockable_trait.hpp"
@@ -18,16 +17,12 @@ namespace spk
 
 	private:
 		bool _isActivated = false;
-		std::optional<bool> _pendingActivationState;
-
 		ContractProvider<> _activationProvider;
 		ContractProvider<> _deactivationProvider;
 
 	protected:
 		ActivableTrait() = default;
 		~ActivableTrait() = default;
-
-		void flushPending() override;
 
 	public:
 		ActivableTrait(const ActivableTrait&) = delete;

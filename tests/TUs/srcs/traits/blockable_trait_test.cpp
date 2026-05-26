@@ -16,19 +16,16 @@ namespace
 	private:
 		int _flushCount = 0;
 
-	protected:
-		void flushPending() override
-		{
-			++_flushCount;
-		}
-
 	public:
 		TestBlockable() = default;
 		~TestBlockable() = default;
 
 		void markPending()
 		{
-			setPending();
+			deferUntilUnblocked([this]()
+			{
+				++_flushCount;
+			});
 		}
 
 		int flushCount() const

@@ -19,14 +19,14 @@ Contract -> Blocker : create for Link
 Subscriber -> Provider : trigger(args...)
 alt provider is blocked
 	Provider -> Provider : store _lastTriggerArguments
-	Provider -> Provider : setPending()
+	Provider -> Provider : deferUntilUnblocked(trigger stored args)
 else provider/link not blocked
 	Provider -> Callback : callback(args...)
 	Provider -> Provider : cleanup resigned links
 end
 
 Subscriber -> Blocker : release()
-Blocker -> Provider : flushPending()
+Blocker -> Provider : run delayed operation
 Provider -> Provider : trigger(stored args)
 Provider -> Callback : callback(stored args)
 

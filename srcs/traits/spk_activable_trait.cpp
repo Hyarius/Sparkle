@@ -4,26 +4,6 @@
 
 namespace spk
 {
-	void ActivableTrait::flushPending()
-	{
-		if (_pendingActivationState.has_value() == false)
-		{
-			return;
-		}
-
-		const bool shouldActivate = *_pendingActivationState;
-		_pendingActivationState.reset();
-
-		if (shouldActivate == true)
-		{
-			activate();
-		}
-		else
-		{
-			deactivate();
-		}
-	}
-
 	bool ActivableTrait::isActivated() const
 	{
 		return _isActivated;
@@ -40,8 +20,10 @@ namespace spk
 		{
 			if (isDelayBlocked() == true)
 			{
-				_pendingActivationState = true;
-				setPending();
+				deferUntilUnblocked([this]()
+				{
+					activate();
+				});
 			}
 
 			return;
@@ -62,8 +44,10 @@ namespace spk
 		{
 			if (isDelayBlocked() == true)
 			{
-				_pendingActivationState = false;
-				setPending();
+				deferUntilUnblocked([this]()
+				{
+					deactivate();
+				});
 			}
 
 			return;

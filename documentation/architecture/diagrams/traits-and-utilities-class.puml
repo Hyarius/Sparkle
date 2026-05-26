@@ -4,11 +4,10 @@ title Traits and Utility Templates - Class View
 skinparam classAttributeIconSize 0
 
 namespace spk {
-	abstract class BlockableTrait {
+	class BlockableTrait {
 		+ block(mode) : Blocker
 		+ isBlocked() : bool
-		# setPending()
-		# flushPending()
+		# deferUntilUnblocked(operation)
 	}
 
 	class "BlockableTrait::Blocker" as Blocker {
@@ -23,7 +22,7 @@ namespace spk {
 		+ subscribe(callback) : Contract
 		+ trigger(arguments...)
 		+ invalidateAllContracts()
-		# flushPending()
+		- _triggerDeferred()
 	}
 
 	class "ContractProvider::Contract" as Contract {
@@ -57,7 +56,7 @@ namespace spk {
 	}
 
 	class "ObjectPool<T>" as ObjectPool {
-		+ configure(generator, cleaner, realDestructor)
+		+ configure(generator, onObtain)
 		+ reserve(count)
 		+ obtain() : Handle
 		+ release()

@@ -31,9 +31,9 @@ namespace spk
 			std::string name;
 			Kind kind = Kind::Value;
 
-			std::uint8_t* data = nullptr;
 			std::size_t size = 0;
 			std::size_t offset = 0;
+			std::size_t absoluteOffset = 0;
 
 			std::size_t elementSize = 0;
 			std::size_t count = 0;
@@ -42,10 +42,16 @@ namespace spk
 			std::vector<std::size_t> children;
 		};
 
-		std::shared_ptr<std::vector<Section>> _sections;
+		struct Layout
+		{
+			std::uint8_t* data = nullptr;
+			std::vector<Section> sections;
+		};
+
+		std::shared_ptr<Layout> _layout;
 		std::size_t _sectionID = invalidSectionID;
 
-		BinaryField(const std::shared_ptr<std::vector<Section>>& p_sections, std::size_t p_sectionID);
+		BinaryField(const std::shared_ptr<Layout>& p_layout, std::size_t p_sectionID);
 
 		Section& _section();
 		const Section& _section() const;
@@ -64,7 +70,7 @@ namespace spk
 				throw std::runtime_error("BinaryField assignment received a value with the wrong size.");
 			}
 
-			std::memcpy(section.data, &p_value, sizeof(TValueType));
+			std::memcpy(data(), &p_value, sizeof(TValueType));
 		}
 
 	public:
@@ -106,7 +112,7 @@ namespace spk
 				throw std::runtime_error("BinaryField array assignment received values with the wrong size.");
 			}
 
-			std::memcpy(section.data, p_values.data(), sizeof(TValueType) * NSize);
+			std::memcpy(data(), p_values.data(), sizeof(TValueType) * NSize);
 			return *this;
 		}
 
@@ -129,7 +135,7 @@ namespace spk
 			}
 
 			TValueType result;
-			std::memcpy(&result, section.data, sizeof(TValueType));
+			std::memcpy(&result, data(), sizeof(TValueType));
 			return result;
 		}
 

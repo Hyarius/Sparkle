@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <functional>
 #include <memory>
 
 namespace spk
@@ -17,11 +18,9 @@ namespace spk
 	private:
 		struct State
 		{
-			BlockableTrait* owner = nullptr;
 			size_t nbIgnoreBlocks = 0;
 			size_t nbDelayBlocks = 0;
-			bool pending = false;
-			bool alive = true;
+			std::function<void()> delayedOperation = nullptr;
 		};
 
 		std::shared_ptr<State> _state = std::make_shared<State>();
@@ -30,9 +29,7 @@ namespace spk
 		BlockableTrait();
 		virtual ~BlockableTrait();
 
-		virtual void flushPending() = 0;
-
-		void setPending();
+		void deferUntilUnblocked(std::function<void()> p_operation);
 
 	public:
 		class Blocker
@@ -41,7 +38,7 @@ namespace spk
 			std::weak_ptr<State> _state;
 			Mode _mode = Mode::Ignore;
 
-			void _tryFlushDelayed(State& p_state);
+			void _tryRunDelayedOperation(State& p_state);
 
 		public:
 			Blocker() = default;

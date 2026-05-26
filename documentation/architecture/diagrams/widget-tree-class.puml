@@ -15,7 +15,6 @@ namespace spk {
 
 	class ActivableTrait {
 		- bool _isActivated
-		- optional<bool> _pendingActivationState
 		+ activate()
 		+ deactivate()
 		+ isActivated() : bool

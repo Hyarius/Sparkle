@@ -26,11 +26,6 @@ namespace spk
 		struct Link : public BlockableTrait
 		{
 			Callback function = nullptr;
-
-		protected:
-			void flushPending() override
-			{
-			}
 		};
 
 		class TriggerGuard
@@ -158,8 +153,7 @@ namespace spk
 				_links.end());
 		}
 
-	protected:
-		void flushPending() override
+		void _triggerDeferred()
 		{
 			if (_lastTriggerArguments.has_value() == false)
 			{
@@ -201,8 +195,15 @@ namespace spk
 		{
 			if (isBlocked())
 			{
-				_lastTriggerArguments.emplace(p_arguments...);
-				setPending();
+				if (isDelayBlocked())
+				{
+					_lastTriggerArguments.emplace(p_arguments...);
+					deferUntilUnblocked([this]()
+					{
+						_triggerDeferred();
+					});
+				}
+
 				return;
 			}
 

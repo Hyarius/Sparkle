@@ -4,8 +4,8 @@
 
 namespace spk
 {
-	BinaryField::BinaryField(const std::shared_ptr<std::vector<Section>>& p_sections, std::size_t p_sectionID) :
-		_sections(p_sections),
+	BinaryField::BinaryField(const std::shared_ptr<Layout>& p_layout, std::size_t p_sectionID) :
+		_layout(p_layout),
 		_sectionID(p_sectionID)
 	{
 	}
@@ -17,7 +17,7 @@ namespace spk
 			throw std::runtime_error("Invalid BinaryField.");
 		}
 
-		return (*_sections)[_sectionID];
+		return _layout->sections[_sectionID];
 	}
 
 	const BinaryField::Section& BinaryField::_section() const
@@ -27,7 +27,7 @@ namespace spk
 			throw std::runtime_error("Invalid BinaryField.");
 		}
 
-		return (*_sections)[_sectionID];
+		return _layout->sections[_sectionID];
 	}
 
 	std::size_t BinaryField::_findChild(std::string_view p_name) const
@@ -35,7 +35,7 @@ namespace spk
 		const Section& parent = _section();
 		for (const std::size_t childID : parent.children)
 		{
-			const Section& child = (*_sections)[childID];
+			const Section& child = _layout->sections[childID];
 			if (child.name == p_name)
 			{
 				return childID;
@@ -53,8 +53,8 @@ namespace spk
 	{
 		const Section& parent = _section();
 		const Kind parentKind = parent.kind;
-		std::uint8_t* const parentData = parent.data;
 		const std::size_t parentSize = parent.size;
+		const std::size_t parentAbsoluteOffset = parent.absoluteOffset;
 
 		if (parentKind == Kind::Value)
 		{
@@ -86,18 +86,18 @@ namespace spk
 			throw std::runtime_error("BinaryField child exceeds parent bounds.");
 		}
 
-		const std::size_t sectionID = _sections->size();
-		_sections->emplace_back();
-		Section& section = (*_sections)[sectionID];
+		const std::size_t sectionID = _layout->sections.size();
+		_layout->sections.emplace_back();
+		Section& section = _layout->sections[sectionID];
 		section.name = std::string(p_name);
 		section.kind = p_kind;
-		section.data = parentData + p_offset;
 		section.size = p_size;
 		section.offset = p_offset;
+		section.absoluteOffset = parentAbsoluteOffset + p_offset;
 		section.parent = _sectionID;
 
-		(*_sections)[_sectionID].children.push_back(sectionID);
-		return BinaryField(_sections, sectionID);
+		_layout->sections[_sectionID].children.push_back(sectionID);
+		return BinaryField(_layout, sectionID);
 	}
 
 	BinaryField::BinaryField(std::uint8_t* p_data, std::size_t p_size)
@@ -107,19 +107,20 @@ namespace spk
 			throw std::runtime_error("BinaryField cannot be constructed with null data and non-zero size.");
 		}
 
-		_sections = std::make_shared<std::vector<Section>>();
-		Section& root = _sections->emplace_back();
+		_layout = std::make_shared<Layout>();
+		_layout->data = p_data;
+		Section& root = _layout->sections.emplace_back();
 		root.name = "<root>";
 		root.kind = Kind::Object;
-		root.data = p_data;
 		root.size = p_size;
 		root.offset = 0;
+		root.absoluteOffset = 0;
 		_sectionID = 0;
 	}
 
 	bool BinaryField::isValid() const
 	{
-		return _sections != nullptr && _sectionID < _sections->size();
+		return _layout != nullptr && _sectionID < _layout->sections.size();
 	}
 
 	std::string_view BinaryField::name() const
@@ -149,12 +150,14 @@ namespace spk
 
 	std::uint8_t* BinaryField::data()
 	{
-		return _section().data;
+		const Section& section = _section();
+		return (_layout->data == nullptr) ? nullptr : _layout->data + section.absoluteOffset;
 	}
 
 	const std::uint8_t* BinaryField::data() const
 	{
-		return _section().data;
+		const Section& section = _section();
+		return (_layout->data == nullptr) ? nullptr : _layout->data + section.absoluteOffset;
 	}
 
 	BinaryField BinaryField::addValue(std::string_view p_name, std::size_t p_offset, std::size_t p_size)
@@ -186,14 +189,14 @@ namespace spk
 
 		for (std::size_t index = 0; index < p_count; ++index)
 		{
-			const std::size_t sectionID = _sections->size();
-			_sections->emplace_back();
-			Section& element = (*_sections)[sectionID];
+			const std::size_t sectionID = _layout->sections.size();
+			_layout->sections.emplace_back();
+			Section& element = _layout->sections[sectionID];
 			element.name = std::to_string(index);
 			element.kind = Kind::Value;
-			element.data = array._section().data + index * p_elementSize;
 			element.size = p_elementSize;
 			element.offset = index * p_elementSize;
+			element.absoluteOffset = array._section().absoluteOffset + element.offset;
 			element.parent = array._sectionID;
 			array._section().children.push_back(sectionID);
 		}
@@ -215,7 +218,7 @@ namespace spk
 			throw std::runtime_error("BinaryField named lookup could not find the requested child.");
 		}
 
-		return BinaryField(_sections, childID);
+		return BinaryField(_layout, childID);
 	}
 
 	BinaryField BinaryField::operator[](std::size_t p_index)
@@ -231,18 +234,16 @@ namespace spk
 			throw std::runtime_error("BinaryField indexed lookup received an out of range index.");
 		}
 
-		return BinaryField(_sections, section.children[p_index]);
+		return BinaryField(_layout, section.children[p_index]);
 	}
 
 	std::span<std::uint8_t> BinaryField::bytes()
 	{
-		Section& section = _section();
-		return std::span<std::uint8_t>(section.data, section.size);
+		return std::span<std::uint8_t>(data(), size());
 	}
 
 	std::span<const std::uint8_t> BinaryField::bytes() const
 	{
-		const Section& section = _section();
-		return std::span<const std::uint8_t>(section.data, section.size);
+		return std::span<const std::uint8_t>(data(), size());
 	}
 }

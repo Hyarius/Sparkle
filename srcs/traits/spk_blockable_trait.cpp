@@ -6,20 +6,17 @@ namespace spk
 {
 	BlockableTrait::BlockableTrait()
 	{
-		_state->owner = this;
 	}
 
 	BlockableTrait::~BlockableTrait()
 	{
 		if (_state != nullptr)
 		{
-			_state->alive = false;
-			_state->owner = nullptr;
-			_state->pending = false;
+			_state->delayedOperation = nullptr;
 		}
 	}
 
-	void BlockableTrait::setPending()
+	void BlockableTrait::deferUntilUnblocked(std::function<void()> p_operation)
 	{
 		if (_state == nullptr)
 		{
@@ -28,15 +25,13 @@ namespace spk
 
 		if (_state->nbDelayBlocks > 0)
 		{
-			_state->pending = true;
+			_state->delayedOperation = std::move(p_operation);
 		}
 	}
 
-	void BlockableTrait::Blocker::_tryFlushDelayed(State& p_state)
+	void BlockableTrait::Blocker::_tryRunDelayedOperation(State& p_state)
 	{
-		if (p_state.alive == false ||
-			p_state.owner == nullptr ||
-			p_state.pending == false)
+		if (p_state.delayedOperation == nullptr)
 		{
 			return;
 		}
@@ -46,8 +41,9 @@ namespace spk
 			return;
 		}
 
-		p_state.pending = false;
-		p_state.owner->flushPending();
+		std::function<void()> delayedOperation = std::move(p_state.delayedOperation);
+		p_state.delayedOperation = nullptr;
+		delayedOperation();
 	}
 
 	BlockableTrait::Blocker::Blocker(const std::shared_ptr<State>& p_state, Mode p_mode) :
@@ -113,7 +109,7 @@ namespace spk
 				}
 			}
 
-			_tryFlushDelayed(*state);
+			_tryRunDelayedOperation(*state);
 		}
 
 		_state.reset();

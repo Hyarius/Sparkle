@@ -69,10 +69,10 @@ TEST_F(ObjectPoolTest, defaultConstructedPool_ShouldBeEmptyAndUnconfigured)
 	EXPECT_EQ(pool.size(), 0u);
 	EXPECT_FALSE(pool.isClosed());
 	EXPECT_FALSE(pool.hasGenerator());
-	EXPECT_FALSE(pool.hasCleaner());
+	EXPECT_FALSE(pool.hasOnObtain());
 }
 
-TEST_F(ObjectPoolTest, configure_ShouldRegisterGeneratorAndCleaner)
+TEST_F(ObjectPoolTest, configure_ShouldRegisterGeneratorAndOnObtainCallback)
 {
 	spk::ObjectPool<TrackedObject> pool;
 
@@ -88,7 +88,7 @@ TEST_F(ObjectPoolTest, configure_ShouldRegisterGeneratorAndCleaner)
 		});
 
 	EXPECT_TRUE(pool.hasGenerator());
-	EXPECT_TRUE(pool.hasCleaner());
+	EXPECT_TRUE(pool.hasOnObtain());
 	EXPECT_FALSE(pool.isClosed());
 }
 
@@ -164,18 +164,18 @@ TEST_F(ObjectPoolTest, obtain_ShouldReuseReturnedObject)
 	EXPECT_EQ(TrackedObject::constructorCount, 1);
 }
 
-TEST_F(ObjectPoolTest, cleaner_ShouldBeCalledWhenObtainingReusedObject)
+TEST_F(ObjectPoolTest, onObtain_ShouldBeCalledForFreshAndReusedObjects)
 {
-	int cleanerCallCount = 0;
+	int onObtainCallCount = 0;
 
 	spk::ObjectPool<TrackedObject> pool(
 		[]()
 		{
 			return std::make_unique<TrackedObject>(5, "generated");
 		},
-		[&cleanerCallCount](TrackedObject& p_object)
+		[&onObtainCallCount](TrackedObject& p_object)
 		{
-			++cleanerCallCount;
+			++onObtainCallCount;
 			p_object.value = 0;
 			p_object.text = "clean";
 		});
@@ -195,7 +195,7 @@ TEST_F(ObjectPoolTest, cleaner_ShouldBeCalledWhenObtainingReusedObject)
 		EXPECT_EQ(object->text, "clean");
 	}
 
-	EXPECT_EQ(cleanerCallCount, 2);
+	EXPECT_EQ(onObtainCallCount, 2);
 }
 
 TEST_F(ObjectPoolTest, reserve_ShouldPreallocateObjectsUsingGenerator)
@@ -287,41 +287,27 @@ TEST_F(ObjectPoolTest, release_ShouldClearAvailableObjects)
 	EXPECT_TRUE(pool.empty());
 }
 
-TEST_F(ObjectPoolTest, release_ShouldInvokeRealDestructorOnStoredObjects)
+TEST_F(ObjectPoolTest, release_ShouldDestroyStoredObjects)
 {
-	int realDestructorCallCount = 0;
-
 	spk::ObjectPool<TrackedObject> pool(
 		[]()
 		{
 			return std::make_unique<TrackedObject>(3);
-		},
-		nullptr,
-		[&realDestructorCallCount](TrackedObject&)
-		{
-			++realDestructorCallCount;
 		});
 
 	pool.reserve(4);
 	pool.release();
 
-	EXPECT_EQ(realDestructorCallCount, 4);
+	EXPECT_EQ(TrackedObject::destructorCount, 4);
 	EXPECT_EQ(pool.size(), 0u);
 }
 
 TEST_F(ObjectPoolTest, configure_ShouldReleaseExistingStoredObjectsBeforeReplacingCallbacks)
 {
-	int firstDestructorCallCount = 0;
-
 	spk::ObjectPool<TrackedObject> pool(
 		[]()
 		{
 			return std::make_unique<TrackedObject>(1);
-		},
-		nullptr,
-		[&firstDestructorCallCount](TrackedObject&)
-		{
-			++firstDestructorCallCount;
 		});
 
 	pool.reserve(3);
@@ -333,10 +319,10 @@ TEST_F(ObjectPoolTest, configure_ShouldReleaseExistingStoredObjectsBeforeReplaci
 			return std::make_unique<TrackedObject>(9);
 		});
 
-	EXPECT_EQ(firstDestructorCallCount, 3);
+	EXPECT_EQ(TrackedObject::destructorCount, 3);
 	EXPECT_EQ(pool.size(), 0u);
 	EXPECT_TRUE(pool.hasGenerator());
-	EXPECT_FALSE(pool.hasCleaner());
+	EXPECT_FALSE(pool.hasOnObtain());
 }
 
 TEST_F(ObjectPoolTest, obtain_ShouldThrowIfGeneratorReturnsNullptr)
@@ -451,21 +437,13 @@ TEST_F(ObjectPoolTest, closedPool_ShouldRejectRelease)
 
 TEST_F(ObjectPoolTest, returnedHandleAfterPoolClose_ShouldDeleteObjectInsteadOfRecyclingIt)
 {
-	int realDestructorCallCount = 0;
-
 	spk::ObjectPool<TrackedObject> pool(
 		[]()
 		{
 			return std::make_unique<TrackedObject>(8);
-		},
-		nullptr,
-		[&realDestructorCallCount](TrackedObject&)
-		{
-			++realDestructorCallCount;
 		});
 
 	auto object = pool.obtain();
-	TrackedObject* objectAddress = object.get();
 
 	pool.close();
 
@@ -473,23 +451,15 @@ TEST_F(ObjectPoolTest, returnedHandleAfterPoolClose_ShouldDeleteObjectInsteadOfR
 
 	EXPECT_TRUE(pool.isClosed());
 	EXPECT_EQ(pool.size(), 0u);
-	EXPECT_EQ(realDestructorCallCount, 0);
-	(void)objectAddress;
+	EXPECT_EQ(TrackedObject::destructorCount, 1);
 }
 
 TEST_F(ObjectPoolTest, returnedHandle_WhenPoolIsFull_ShouldDeleteObjectInsteadOfCachingIt)
 {
-	int realDestructorCallCount = 0;
-
 	spk::ObjectPool<TrackedObject> pool(
 		[]()
 		{
 			return std::make_unique<TrackedObject>(8);
-		},
-		nullptr,
-		[&realDestructorCallCount](TrackedObject&)
-		{
-			++realDestructorCallCount;
 		});
 
 	pool.setMaximumCachedObjectCount(0);
@@ -500,7 +470,7 @@ TEST_F(ObjectPoolTest, returnedHandle_WhenPoolIsFull_ShouldDeleteObjectInsteadOf
 	}
 
 	EXPECT_EQ(pool.size(), 0u);
-	EXPECT_EQ(realDestructorCallCount, 1);
+	EXPECT_EQ(TrackedObject::destructorCount, 1);
 }
 
 TEST_F(ObjectPoolTest, objectPoolConstructor_ShouldConfigureCallbacksImmediately)
@@ -516,7 +486,7 @@ TEST_F(ObjectPoolTest, objectPoolConstructor_ShouldConfigureCallbacksImmediately
 		});
 
 	EXPECT_TRUE(pool.hasGenerator());
-	EXPECT_TRUE(pool.hasCleaner());
+	EXPECT_TRUE(pool.hasOnObtain());
 
 	auto object = pool.obtain();
 

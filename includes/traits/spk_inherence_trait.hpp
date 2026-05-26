@@ -30,10 +30,25 @@ namespace spk
 		{
 			if (_parent != nullptr)
 			{
-				_parent->removeChild(static_cast<TType*>(this));
+				auto iterator = std::find(_parent->_children.begin(), _parent->_children.end(), static_cast<TType*>(this));
+				if (iterator != _parent->_children.end())
+				{
+					_parent->_children.erase(iterator);
+				}
+
+				_parent = nullptr;
 			}
 
-			clearChildren();
+			for (TType* child : _children)
+			{
+				if (child != nullptr && child->_parent == static_cast<TType*>(this))
+				{
+					child->_parent = nullptr;
+					static_cast<InherenceTrait<TType>*>(child)->onParentChanged(static_cast<TType*>(this), nullptr);
+				}
+			}
+
+			_children.clear();
 		}
 
 		virtual void onChildAdded(TType* p_child) {}

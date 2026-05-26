@@ -1,5 +1,6 @@
 ﻿#include <gtest/gtest.h>
 
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -296,6 +297,35 @@ TEST(InherenceTraitTest, ParentDestructionClearsParentPointerOfChildren)
 	EXPECT_FALSE(childB.hasParent());
 	EXPECT_TRUE(childA.isRoot());
 	EXPECT_TRUE(childB.isRoot());
+}
+
+TEST(InherenceTraitTest, DestructionDetachesRelationshipsWithoutInvokingCallbacksOnDyingNodes)
+{
+	CallbackTestNode parent;
+	auto child = std::make_unique<CallbackTestNode>();
+
+	parent.addChild(child.get());
+	parent.events.clear();
+	child->events.clear();
+
+	child.reset();
+
+	EXPECT_TRUE(parent.children().empty());
+	EXPECT_TRUE(parent.events.empty());
+}
+
+TEST(InherenceTraitTest, ParentDestructionNotifiesStillLiveChildrenOfDetachment)
+{
+	CallbackTestNode child;
+
+	{
+		auto parent = std::make_unique<CallbackTestNode>();
+		parent->addChild(&child);
+		child.events.clear();
+	}
+
+	ASSERT_EQ(child.events.size(), 1u);
+	EXPECT_EQ(child.events[0], "parent_changed:parent->null");
 }
 
 TEST(InherenceTraitTest, ReparentingSeveralChildrenKeepsBothParentsConsistent)

@@ -17,8 +17,7 @@ namespace spk
 
 	public:
 		using Generator = std::function<std::unique_ptr<TType>()>;
-		using Cleaner = std::function<void(TType&)>;
-		using RealDestructor = std::function<void(TType&)>;
+		using OnObtain = std::function<void(TType&)>;
 
 		class ReturnToPoolDeleter
 		{
@@ -50,11 +49,6 @@ namespace spk
 
 				if (data->availableObjects.size() >= data->maximumCachedObjectCount)
 				{
-					if (data->realDestructor != nullptr)
-					{
-						data->realDestructor(*p_ptr);
-					}
-
 					delete p_ptr;
 					return;
 				}
@@ -69,8 +63,7 @@ namespace spk
 		struct Data
 		{
 			Generator generator = nullptr;
-			Cleaner cleaner = nullptr;
-			RealDestructor realDestructor = nullptr;
+			OnObtain onObtain = nullptr;
 
 			std::vector<std::unique_ptr<TType>> availableObjects;
 			size_t maximumCachedObjectCount = std::numeric_limits<size_t>::max();
@@ -110,9 +103,9 @@ namespace spk
 				_data->availableObjects.pop_back();
 			}
 
-			if (_data->cleaner != nullptr)
+			if (_data->onObtain != nullptr)
 			{
-				_data->cleaner(*result);
+				_data->onObtain(*result);
 			}
 
 			return result;
@@ -124,10 +117,10 @@ namespace spk
 		{
 		}
 
-		explicit ObjectPool(Generator p_generator, Cleaner p_cleaner = nullptr, RealDestructor p_realDestructor = nullptr) :
+		explicit ObjectPool(Generator p_generator, OnObtain p_onObtain = nullptr) :
 			_data(std::make_shared<Data>())
 		{
-			configure(std::move(p_generator), std::move(p_cleaner), std::move(p_realDestructor));
+			configure(std::move(p_generator), std::move(p_onObtain));
 		}
 
 		~ObjectPool()
@@ -141,7 +134,7 @@ namespace spk
 		ObjectPool(ObjectPool&&) = delete;
 		ObjectPool& operator=(ObjectPool&&) = delete;
 
-		void configure(Generator p_generator, Cleaner p_cleaner = nullptr, RealDestructor p_realDestructor = nullptr)
+		void configure(Generator p_generator, OnObtain p_onObtain = nullptr)
 		{
 			if (_data->closed == true)
 			{
@@ -151,8 +144,7 @@ namespace spk
 			release();
 
 			_data->generator = std::move(p_generator);
-			_data->cleaner = std::move(p_cleaner);
-			_data->realDestructor = std::move(p_realDestructor);
+			_data->onObtain = std::move(p_onObtain);
 		}
 
 		void setMaximumCachedObjectCount(size_t p_count)
@@ -166,11 +158,6 @@ namespace spk
 
 			while (_data->availableObjects.size() > _data->maximumCachedObjectCount)
 			{
-				if (_data->realDestructor != nullptr)
-				{
-					_data->realDestructor(*_data->availableObjects.back());
-				}
-
 				_data->availableObjects.pop_back();
 			}
 		}
@@ -195,9 +182,9 @@ namespace spk
 			return (_data->generator != nullptr);
 		}
 
-		[[nodiscard]] bool hasCleaner() const noexcept
+		[[nodiscard]] bool hasOnObtain() const noexcept
 		{
-			return (_data->cleaner != nullptr);
+			return (_data->onObtain != nullptr);
 		}
 
 		void reserve(size_t p_count)
@@ -234,17 +221,6 @@ namespace spk
 			if (_data->closed == true)
 			{
 				throw std::runtime_error("Can't release a closed ObjectPool");
-			}
-
-			if (_data->realDestructor != nullptr)
-			{
-				for (std::unique_ptr<TType>& element : _data->availableObjects)
-				{
-					if (element != nullptr)
-					{
-						_data->realDestructor(*element);
-					}
-				}
 			}
 
 			_data->availableObjects.clear();
