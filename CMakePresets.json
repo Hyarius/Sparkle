@@ -13,7 +13,7 @@
 			"binaryDir": "${sourceDir}/build/${presetName}",
 			"toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
 			"cacheVariables": {
-				"CMAKE_CXX_STANDARD": "20",
+				"CMAKE_CXX_STANDARD": "23",
 				"CMAKE_CXX_STANDARD_REQUIRED": "ON",
 				"VCPKG_TARGET_TRIPLET": "x64-windows",
 				"CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
@@ -49,11 +49,28 @@
 		{
 			"name": "coverage",
 			"inherits": "default",
-			"description": "Configure for Debug test build with LLVM coverage instrumentation",
+			"description": "Configure for Debug test build with LLVM coverage instrumentation. Requires a Clang/LLVM compiler.",
 			"cacheVariables": {
 				"ENABLE_TESTS": "ON",
 				"ENABLE_COVERAGE": "ON",
 				"CMAKE_BUILD_TYPE": "Debug"
+			}
+		},
+		{
+			"name": "coverage-clang",
+			"inherits": "coverage",
+			"description": "Configure for Debug test build with LLVM coverage instrumentation using clang from PATH",
+			"cacheVariables": {
+				"CMAKE_CXX_COMPILER": "clang++"
+			}
+		},
+		{
+			"name": "clang-tidy",
+			"inherits": "default",
+			"description": "Configure for Debug build with clang-tidy analysis during compilation",
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "Debug",
+				"CMAKE_CXX_CLANG_TIDY": "clang-tidy"
 			}
 		},
 		{
@@ -92,6 +109,20 @@
 			]
 		},
 		{
+			"name": "coverage-clang",
+			"configurePreset": "coverage-clang",
+			"targets": [
+				"coverage"
+			]
+		},
+		{
+			"name": "clang-tidy",
+			"configurePreset": "clang-tidy",
+			"targets": [
+				"Sparkle"
+			]
+		},
+		{
 			"name": "playground",
 			"configurePreset": "playground",
 			"targets": [
@@ -120,6 +151,10 @@
 		{
 			"name": "coverage",
 			"configurePreset": "coverage"
+		},
+		{
+			"name": "coverage-clang",
+			"configurePreset": "coverage-clang"
 		},
 		{
 			"name": "playground",

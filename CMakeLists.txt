@@ -110,7 +110,7 @@ endif()
 add_dependencies(Sparkle SparkleResourcesHeaderTarget)
 target_sources(Sparkle PRIVATE "${SPARKLE_RESOURCES_HEADER}")
 
-target_compile_features(Sparkle PUBLIC cxx_std_20)
+target_compile_features(Sparkle PUBLIC cxx_std_23)
 
 target_include_directories(Sparkle
     PUBLIC
@@ -172,10 +172,24 @@ configure_package_config_file(
     INSTALL_DESTINATION ${INSTALL_CONFIGDIR}
 )
 
+write_basic_package_version_file(
+    "${CMAKE_CURRENT_BINARY_DIR}/sparkle-config-version.cmake"
+    VERSION ${PROJECT_VERSION}
+    COMPATIBILITY SameMajorVersion
+)
+
+configure_package_config_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/SparkleConfig.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/sparkle-config.cmake"
+    INSTALL_DESTINATION ${INSTALL_CONFIGDIR}
+)
+
 install(
     FILES
         "${CMAKE_CURRENT_BINARY_DIR}/SparkleConfig.cmake"
         "${CMAKE_CURRENT_BINARY_DIR}/SparkleConfigVersion.cmake"
+        "${CMAKE_CURRENT_BINARY_DIR}/sparkle-config.cmake"
+        "${CMAKE_CURRENT_BINARY_DIR}/sparkle-config-version.cmake"
     DESTINATION ${INSTALL_CONFIGDIR}
 )
 
@@ -194,3 +208,11 @@ endif()
 if (ENABLE_PLAYGROUND)
 	add_subdirectory(Playground)
 endif()
+
+set(CPACK_PACKAGE_NAME "Sparkle")
+set(CPACK_PACKAGE_VENDOR "EreliaStudio")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "A C++23 OpenGL rendering library.")
+set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
+set(CPACK_RESOURCE_FILE_README "${CMAKE_CURRENT_SOURCE_DIR}/README.md")
+set(CPACK_GENERATOR "ZIP")
+include(CPack)

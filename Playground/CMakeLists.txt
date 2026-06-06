@@ -14,4 +14,4 @@ target_link_libraries(SparklePlayground
 		Sparkle::Sparkle
 )
 
-target_compile_features(SparklePlayground PRIVATE cxx_std_20)
+target_compile_features(SparklePlayground PRIVATE cxx_std_23)
