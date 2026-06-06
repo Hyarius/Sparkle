@@ -1,8 +1,10 @@
 ﻿#pragma once
 
 #include <array>
+#include <optional>
 #include <ostream>
 #include <string>
+#include <string_view>
 
 #include "input/spk_input_state.hpp"
 
@@ -172,10 +174,11 @@ namespace spk
 		}
 	};
 
-	std::string toString(const Keyboard::Key &p_key);
-	std::wstring toWstring(const Keyboard::Key &p_key);
+	std::string toString(Keyboard::Key p_key);
+	std::wstring toWstring(Keyboard::Key p_key);
+	std::optional<Keyboard::Key> fromString(std::string_view p_keyName);
 
-	std::ostream &operator<<(std::ostream &p_stream, const Keyboard::Key &p_key);
-	std::wostream &operator<<(std::wostream &p_stream, const Keyboard::Key &p_key);
+	std::ostream &operator<<(std::ostream &p_stream, Keyboard::Key p_key);
+	std::wostream &operator<<(std::wostream &p_stream, Keyboard::Key p_key);
 
 }
