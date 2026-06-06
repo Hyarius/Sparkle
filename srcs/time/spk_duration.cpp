@@ -114,6 +114,11 @@ namespace spk
 		return _secondsCache.get();
 	}
 
+	std::chrono::nanoseconds Duration::toChronoNanoseconds() const noexcept
+	{
+		return std::chrono::nanoseconds(_nanoseconds);
+	}
+
 	Duration Duration::operator-() const noexcept
 	{
 		Duration result;

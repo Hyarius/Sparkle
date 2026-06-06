@@ -1,5 +1,7 @@
 ﻿#include <gtest/gtest.h>
 
+#include <chrono>
+#include <thread>
 #include <utility>
 
 #include "time/spk_duration.hpp"
@@ -41,6 +43,24 @@ TEST(Duration_ConstructionTest, ConstructFromSecondsStoresCorrectValue)
 	EXPECT_EQ(duration.nanoseconds(), 1500000000LL);
 	EXPECT_EQ(duration.milliseconds(), 1500LL);
 	EXPECT_DOUBLE_EQ(duration.seconds(), 1.5);
+}
+
+TEST(Duration_ConstructionTest, ConstructFromChronoDurationStoresCorrectValue)
+{
+	const spk::Duration duration(std::chrono::milliseconds(250));
+
+	EXPECT_EQ(duration.nanoseconds(), 250000000LL);
+	EXPECT_EQ(duration.milliseconds(), 250LL);
+	EXPECT_DOUBLE_EQ(duration.seconds(), 0.25);
+}
+
+TEST(Duration_ConstructionTest, ConstructFromFractionalChronoDurationStoresCorrectValue)
+{
+	const spk::Duration duration(std::chrono::duration<double, std::milli>(1.5));
+
+	EXPECT_EQ(duration.nanoseconds(), 1500000LL);
+	EXPECT_EQ(duration.milliseconds(), 1LL);
+	EXPECT_DOUBLE_EQ(duration.seconds(), 0.0015);
 }
 
 TEST(Duration_ConstructionTest, CopyConstructorPreservesValue)
@@ -241,4 +261,27 @@ TEST(Duration_CacheBehaviorTest, CacheStaysCorrectAfterMutation)
 	EXPECT_EQ(duration.nanoseconds(), 1500000000LL);
 	EXPECT_EQ(duration.milliseconds(), 1500LL);
 	EXPECT_DOUBLE_EQ(duration.seconds(), 1.5);
+}
+
+TEST(Duration_ChronoInteropTest, ConvertsToChronoNanoseconds)
+{
+	const spk::Duration duration(1.5L, spk::TimeUnit::Millisecond);
+	const std::chrono::nanoseconds result = duration.toChronoNanoseconds();
+
+	EXPECT_EQ(result.count(), 1500000LL);
+}
+
+TEST(Duration_ChronoInteropTest, ConvertsToRequestedChronoDuration)
+{
+	const spk::Duration duration(1500.0L, spk::TimeUnit::Millisecond);
+	const std::chrono::seconds result = duration.toChrono<std::chrono::seconds>();
+
+	EXPECT_EQ(result.count(), 1LL);
+}
+
+TEST(Duration_ChronoInteropTest, ConvertedDurationCanBeUsedByStandardSleepFor)
+{
+	const spk::Duration duration;
+
+	EXPECT_NO_THROW(std::this_thread::sleep_for(duration.toChronoNanoseconds()));
 }

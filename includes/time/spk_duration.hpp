@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+#include <chrono>
 #include <cstdint>
 
 #include "utils/spk_cached_data.hpp"
@@ -21,6 +22,12 @@ namespace spk
 	public:
 		Duration();
 		Duration(long double p_value, TimeUnit p_unit);
+		template <typename TRep, typename TPeriod>
+		explicit Duration(const std::chrono::duration<TRep, TPeriod>& p_duration) :
+			_nanoseconds(std::chrono::duration_cast<std::chrono::nanoseconds>(p_duration).count())
+		{
+			_rebindCaches();
+		}
 
 		Duration(const Duration& p_other);
 		Duration(Duration&& p_other) noexcept;
@@ -31,6 +38,12 @@ namespace spk
 		long long nanoseconds() const noexcept;
 		long long milliseconds() const;
 		double seconds() const;
+		std::chrono::nanoseconds toChronoNanoseconds() const noexcept;
+		template <typename TDuration>
+		[[nodiscard]] TDuration toChrono() const noexcept
+		{
+			return std::chrono::duration_cast<TDuration>(toChronoNanoseconds());
+		}
 
 		Duration operator-() const noexcept;
 
