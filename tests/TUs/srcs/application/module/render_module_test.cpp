@@ -10,7 +10,7 @@ namespace
 {
 	void publishAndRender(spk::RenderModule& p_module, spk::RenderSnapshot p_snapshot)
 	{
-		sparkle_test::TestRenderContext renderContext(std::make_shared<sparkle_test::TestSurfaceState>());
+		sparkle_test::TestRenderContext renderContext(std::make_shared<spk::SurfaceState>());
 
 		p_module.publishSnapshot(std::make_shared<spk::RenderSnapshot>(std::move(p_snapshot)));
 		p_module.render(renderContext);
@@ -44,7 +44,7 @@ TEST(RenderModuleTest, RenderUnitBuilderPreservesCommandInsertionOrder)
 	builder.emplace<sparkle_test::CallbackRenderCommand>([&calls]() { calls.push_back(3); });
 
 	spk::RenderUnit unit = builder.build();
-	sparkle_test::TestRenderContext renderContext(std::make_shared<sparkle_test::TestSurfaceState>());
+	sparkle_test::TestRenderContext renderContext(std::make_shared<spk::SurfaceState>());
 	unit.execute(renderContext);
 
 	EXPECT_EQ(calls, std::vector<int>({1, 2, 3}));
@@ -130,7 +130,7 @@ TEST(RenderModuleTest, RenderCommandReceivesRenderContext)
 {
 	spk::RenderModule module;
 	spk::RenderUnitBuilder builder;
-	sparkle_test::TestRenderContext renderContext(std::make_shared<sparkle_test::TestSurfaceState>());
+	sparkle_test::TestRenderContext renderContext(std::make_shared<spk::SurfaceState>());
 	spk::RenderContext* seenContext = nullptr;
 
 	builder.emplace<sparkle_test::CallbackRenderCommand>(

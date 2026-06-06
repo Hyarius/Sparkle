@@ -6,7 +6,7 @@
 
 namespace spk
 {
-	class SurfaceState
+	class SurfaceState final
 	{
 	private:
 		std::atomic<bool> _isValid = true;

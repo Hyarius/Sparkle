@@ -10,14 +10,10 @@
 
 namespace
 {
-	class TestSurfaceState : public spk::SurfaceState
-	{
-	};
-
 	class FrameA : public spk::IFrame
 	{
 	public:
-		FrameA() : spk::IFrame(std::make_shared<TestSurfaceState>()) {}
+		FrameA() : spk::IFrame(std::make_shared<spk::SurfaceState>()) {}
 		void resize(const spk::Rect2D&) override {}
 		void setTitle(const std::string&) override {}
 		void hide() override {}
@@ -30,7 +26,7 @@ namespace
 	class FrameB : public spk::IFrame
 	{
 	public:
-		FrameB() : spk::IFrame(std::make_shared<TestSurfaceState>()) {}
+		FrameB() : spk::IFrame(std::make_shared<spk::SurfaceState>()) {}
 		void resize(const spk::Rect2D&) override {}
 		void setTitle(const std::string&) override {}
 		void hide() override {}

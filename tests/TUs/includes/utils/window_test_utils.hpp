@@ -138,10 +138,6 @@ namespace sparkle_test
 		}
 	};
 
-	class TestSurfaceState : public spk::SurfaceState
-	{
-
-	};
 
 	struct TestFrameStats
 	{
@@ -181,7 +177,7 @@ namespace sparkle_test
 
 	public:
 		TestFrame(const spk::Rect2D& p_rect, std::string p_title, std::shared_ptr<TestFrameStats> p_stats = std::make_shared<TestFrameStats>()) :
-			spk::IFrame(std::make_shared<TestSurfaceState>()),
+			spk::IFrame(std::make_shared<spk::SurfaceState>()),
 			_stats(std::move(p_stats)),
 			currentRect(p_rect),
 			currentTitle(std::move(p_title))

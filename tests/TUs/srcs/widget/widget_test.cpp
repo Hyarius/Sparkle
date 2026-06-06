@@ -11,7 +11,7 @@ namespace
 {
 	void publishAndRender(spk::RenderModule& p_module, spk::RenderSnapshot p_snapshot)
 	{
-		sparkle_test::TestRenderContext renderContext(std::make_shared<sparkle_test::TestSurfaceState>());
+		sparkle_test::TestRenderContext renderContext(std::make_shared<spk::SurfaceState>());
 
 		p_module.publishSnapshot(std::make_shared<spk::RenderSnapshot>(std::move(p_snapshot)));
 		p_module.render(renderContext);
@@ -134,7 +134,7 @@ TEST(WidgetTest, OldSnapshotsKeepTheirPreviousRenderUnitsAfterWidgetRebuilds)
 	widget.appendRenderUnits(secondBuilder);
 	std::shared_ptr<spk::RenderSnapshot> secondSnapshot =
 		std::make_shared<spk::RenderSnapshot>(secondBuilder.build());
-	sparkle_test::TestRenderContext renderContext(std::make_shared<sparkle_test::TestSurfaceState>());
+	sparkle_test::TestRenderContext renderContext(std::make_shared<spk::SurfaceState>());
 
 	renderModule.publishSnapshot(firstSnapshot);
 	renderModule.render(renderContext);
@@ -450,7 +450,7 @@ TEST(WidgetTest, AppendRenderUnitsSkipsWhenScissorIsEmptyButGeometryIsNot)
 	EXPECT_FALSE(child.absoluteGeometryForTest().empty());
 
 	child.appendRenderUnits(builder);
-	sparkle_test::TestRenderContext renderContext(std::make_shared<sparkle_test::TestSurfaceState>());
+	sparkle_test::TestRenderContext renderContext(std::make_shared<spk::SurfaceState>());
 	renderModule.publishSnapshot(std::make_shared<spk::RenderSnapshot>(builder.build()));
 	renderModule.render(renderContext);
 

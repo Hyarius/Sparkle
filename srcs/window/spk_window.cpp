@@ -5,10 +5,6 @@
 
 #include <memory>
 
-#include "opengl/spk_opengl_clear_command.hpp"
-#include "rendering/render_command/spk_viewport_render_command.hpp"
-#include "rendering/spk_render_unit_builder.hpp"
-
 namespace spk
 {
 	namespace
@@ -30,13 +26,6 @@ namespace spk
 			return result;
 		}
 
-		std::shared_ptr<spk::RenderUnit> _createRenderPassPreparationUnit(const spk::Viewport& p_viewport)
-		{
-			spk::RenderUnitBuilder builder;
-			builder.emplace<spk::ViewportCommand>(p_viewport);
-			builder.emplace<spk::ClearCommand>();
-			return std::make_shared<spk::RenderUnit>(builder.build());
-		}
 	}
 
 	void Window::_enqueueFrameEvent(spk::FrameEventRecord p_event)
@@ -137,14 +126,7 @@ namespace spk
 
 	void Window::_rebuildRenderSnapshot()
 	{
-		spk::RenderSnapshotBuilder builder;
-		builder.append(_createRenderPassPreparationUnit(_rootWidget.viewport()));
-		_rootWidget.appendRenderUnits(builder);
-
-		std::shared_ptr<spk::RenderSnapshot> snapshot =
-			std::make_shared<spk::RenderSnapshot>(builder.build());
-			
-		_renderModule.publishSnapshot(std::move(snapshot));
+		_snapshotManager.rebuild(_rootWidget, _renderModule);
 	}
 
 	void Window::_executePlatformAction(const PlatformAction &p_action)

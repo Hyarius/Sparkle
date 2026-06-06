@@ -6,11 +6,6 @@
 
 namespace
 {
-	class TestSurfaceState : public spk::SurfaceState {};
-}
-
-namespace
-{
 	using ConcreteViewport = spk::Viewport;
 }
 
@@ -60,7 +55,7 @@ TEST(ViewportTest, ConvertLayerToOpenGLScalesByMaxLayer)
 TEST(ViewportTest, ActivateThrowsWhenGeometryWidthIsZero)
 {
 	ConcreteViewport viewport(spk::Rect2D(0, 0, 0, 50), spk::Rect2D(0, 0, 10, 10));
-	TestSurfaceState surfaceState;
+	spk::SurfaceState surfaceState;
 
 	EXPECT_THROW(viewport.activate(surfaceState), std::runtime_error);
 }
@@ -68,7 +63,7 @@ TEST(ViewportTest, ActivateThrowsWhenGeometryWidthIsZero)
 TEST(ViewportTest, ActivateThrowsWhenGeometryHeightIsZero)
 {
 	ConcreteViewport viewport(spk::Rect2D(0, 0, 50, 0), spk::Rect2D(0, 0, 10, 10));
-	TestSurfaceState surfaceState;
+	spk::SurfaceState surfaceState;
 
 	EXPECT_THROW(viewport.activate(surfaceState), std::runtime_error);
 }
@@ -76,7 +71,7 @@ TEST(ViewportTest, ActivateThrowsWhenGeometryHeightIsZero)
 TEST(ViewportTest, ActivateThrowsWhenScissorWidthIsZero)
 {
 	ConcreteViewport viewport(spk::Rect2D(0, 0, 50, 50), spk::Rect2D(0, 0, 0, 10));
-	TestSurfaceState surfaceState;
+	spk::SurfaceState surfaceState;
 
 	EXPECT_THROW(viewport.activate(surfaceState), std::runtime_error);
 }
@@ -84,7 +79,7 @@ TEST(ViewportTest, ActivateThrowsWhenScissorWidthIsZero)
 TEST(ViewportTest, ActivateThrowsWhenScissorHeightIsZero)
 {
 	ConcreteViewport viewport(spk::Rect2D(0, 0, 50, 50), spk::Rect2D(0, 0, 10, 0));
-	TestSurfaceState surfaceState;
+	spk::SurfaceState surfaceState;
 
 	EXPECT_THROW(viewport.activate(surfaceState), std::runtime_error);
 }
@@ -92,7 +87,7 @@ TEST(ViewportTest, ActivateThrowsWhenScissorHeightIsZero)
 TEST(ViewportTest, ActivateSetsActiveViewport)
 {
 	ConcreteViewport viewport(spk::Rect2D(0, 0, 100, 100));
-	TestSurfaceState surfaceState;
+	spk::SurfaceState surfaceState;
 	surfaceState.setRect(spk::Rect2D(0, 0, 100, 100));
 
 	viewport.activate(surfaceState);

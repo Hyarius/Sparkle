@@ -32,7 +32,7 @@ namespace
 
 TEST(RenderContextTest, TestRenderContextTracksAllOperations)
 {
-	sparkle_test::TestRenderContext context(std::make_shared<sparkle_test::TestSurfaceState>());
+	sparkle_test::TestRenderContext context(std::make_shared<spk::SurfaceState>());
 	const spk::Rect2D resizedRect(3, 4, 1280, 720);
 
 	context.makeCurrent();
@@ -52,7 +52,7 @@ TEST(RenderContextTest, TestRenderContextTracksAllOperations)
 
 TEST(RenderContextTest, InvalidateMarksContextAsInvalid)
 {
-	sparkle_test::TestRenderContext context(std::make_shared<sparkle_test::TestSurfaceState>());
+	sparkle_test::TestRenderContext context(std::make_shared<spk::SurfaceState>());
 
 	EXPECT_TRUE(context.isValid());
 
@@ -70,7 +70,7 @@ TEST(RenderContextTest, ConstructingRenderContextWithoutSurfaceStateIsInvalid)
 
 TEST(RenderContextTest, ConstructingWithSurfaceStateSharesValidityWithTheSurface)
 {
-	auto surfaceState = std::make_shared<sparkle_test::TestSurfaceState>();
+	auto surfaceState = std::make_shared<spk::SurfaceState>();
 	sparkle_test::TestRenderContext context(surfaceState);
 
 	EXPECT_EQ(context.surfaceState(), surfaceState);

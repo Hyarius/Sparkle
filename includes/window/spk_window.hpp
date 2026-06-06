@@ -14,11 +14,11 @@
 #include "application/module/spk_mouse_module.hpp"
 #include "application/spk_platform_runtime.hpp"
 #include "application/module/spk_render_module.hpp"
-#include "rendering/spk_render_snapshot_builder.hpp"
 #include "utils/spk_thread_safe_contract.hpp"
 #include "utils/spk_thread_safe_deque.hpp"
 #include "application/module/spk_update_module.hpp"
 #include "window/spk_window_host.hpp"
+#include "window/spk_window_snapshot_manager.hpp"
 
 namespace spk
 {
@@ -75,6 +75,7 @@ namespace spk
 		KeyboardModule _keyboardModule;
 		UpdateModule _updateModule;
 		RenderModule _renderModule;
+		WindowSnapshotManager _snapshotManager;
 
 		spk::ThreadSafeDeque<PlatformAction> _pendingPlatformActions;
 		spk::ThreadSafeDeque<RenderAction> _pendingRenderActions;
