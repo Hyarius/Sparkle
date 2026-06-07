@@ -1,0 +1,86 @@
+@startuml
+title Texture, Image, SpriteSheet, and Font Resources - Class View
+
+skinparam classAttributeIconSize 0
+
+namespace spk {
+	class Texture {
+		- ID _id
+		- vector<uint8_t> _pixels
+		- Vector2UInt _size
+		- Format _format
+		- Filtering _filtering
+		- Wrap _wrap
+		- Mipmap _mipmap
+		- GLuint _glId
+		+ setPixels(data, size, format)
+		+ setProperties(filtering, wrap, mipmap)
+		+ glId() : GLuint
+		+ saveAsPng(path)
+	}
+
+	class Image {
+		+ loadFromFile(path)
+		+ loadFromData(data)
+	}
+
+	class SpriteSheet {
+		- Vector2UInt _nbSprite
+		- Vector2 _unit
+		- vector<Texture::Section> _sprites
+		- _buildSprites(spriteCount)
+		+ loadFromFile(path, spriteCount)
+		+ loadFromData(data, spriteCount)
+		+ spriteID(coord) : size_t
+		+ sprite(id) : Texture::Section
+	}
+
+	class Font {
+		- map<Size, Atlas> _atlases
+		- Data _fontData
+		- stbtt_fontinfo _fontInfo
+		+ atlas(size) : Atlas&
+		+ computeStringSize(text, size) : Vector2UInt
+		+ computeStringBaselineOffset(text, size) : Vector2Int
+		+ computeOptimalTextSize(text, outlineRatio, area) : Size
+	}
+
+	class "Font::Atlas" as Atlas {
+		- ContractProvider<> _onEditionContractProvider
+		- unordered_map<Codepoint, Glyph> _glyphs
+		- vector<uint8_t> _atlasPixels
+		+ subscribe(job) : Contract
+		+ loadGlyphs(text)
+		+ loadAllRenderableGlyphs()
+		+ glyph(codepoint) : Glyph
+		+ computeStringSize(text) : Vector2UInt
+	}
+
+	class "Font::Glyph" as Glyph
+	class "Font::Size" as FontSize
+	class "Texture::Section" as TextureSection
+	class SynchronizableTrait
+	class ContractProvider
+}
+
+spk.SynchronizableTrait <|-- spk.Texture
+spk.Texture <|-- spk.Image
+spk.Image <|-- spk.SpriteSheet
+spk.Texture <|-- spk.Atlas
+spk.SpriteSheet *-- spk.TextureSection
+spk.Font *-- "0..*" spk.Atlas
+spk.Font *-- spk.FontSize
+spk.Atlas *-- "0..*" spk.Glyph
+spk.Atlas *-- spk.ContractProvider
+
+note right of spk.Texture
+Texture owns CPU pixels and lazily synchronizes
+an OpenGL texture id through SynchronizableTrait.
+end note
+
+note bottom of spk.SpriteSheet
+SpriteSheet hides raw Image loaders and rebuilds
+normalized UV sections from a sprite grid.
+end note
+
+@enduml

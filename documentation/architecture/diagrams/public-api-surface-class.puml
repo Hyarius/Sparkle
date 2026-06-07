@@ -1,0 +1,98 @@
+@startuml
+title Public API Surface from sparkle.hpp
+
+skinparam classAttributeIconSize 0
+
+package "Traits and utilities" {
+	class ActivableTrait
+	class InherenceTrait
+	class SynchronizableTrait
+	class BinaryField
+	class ContractProvider
+	class ThreadSafeDeque
+	class ObservableValue
+}
+
+package "Math and time" {
+	class Vector2
+	class Vector3
+	class Vector4
+	class Rect2D
+	class Matrix
+	class Quaternion
+	class Duration
+	class Timestamp
+	class Timer
+	class Chronometer
+}
+
+package "Input and events" {
+	class Mouse
+	class Keyboard
+	class EventView
+	class DeviceEventView
+	class FrameEventRecord
+	class MouseEventRecord
+	class KeyboardEventRecord
+}
+
+package "Application and windowing" {
+	class Application
+	class PlatformRuntime
+	class GPUPlatformRuntime
+	class IFrame
+	class SurfaceState
+	class Window
+	class WindowHandle
+	class WindowHost
+	class Widget
+}
+
+package "Rendering" {
+	class RenderContext
+	class RenderCommand
+	class RenderUnit
+	class RenderSnapshot
+	class RenderModule
+	class Texture
+	class Image
+	class SpriteSheet
+	class Font
+	class GenericMesh
+	class Mesh2D
+	class ColorMesh2D
+	class TextureMesh2D
+}
+
+package "OpenGL wrappers" {
+	class Program
+	class BufferObject
+	class VertexArrayObject
+	class LayoutBufferObject
+	class ClearCommand
+	class DrawArraysCommand
+	class DrawElementsCommand
+}
+
+Application --> WindowHandle
+WindowHandle --> Widget
+Widget --> RenderUnit
+RenderModule --> RenderSnapshot
+RenderSnapshot --> RenderUnit
+RenderUnit --> RenderCommand
+RenderCommand --> RenderContext
+Image --|> Texture
+SpriteSheet --|> Image
+Mesh2D --|> GenericMesh
+ColorMesh2D --|> GenericMesh
+EventView --> FrameEventRecord
+DeviceEventView --> Mouse
+DeviceEventView --> Keyboard
+
+note bottom
+This diagram tracks the umbrella include shape,
+not ownership. It is useful for seeing what a
+consumer gets from #include "sparkle.hpp".
+end note
+
+@enduml

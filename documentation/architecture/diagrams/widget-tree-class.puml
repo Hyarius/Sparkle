@@ -27,14 +27,26 @@ namespace spk {
 		- bool _renderCommandsDirty
 		- shared_ptr<RenderUnit> _renderUnit
 		- Rect2D _geometry
+		- Rect2D _absoluteGeometry
+		- Rect2D _scissor
+		- unique_ptr<Viewport> _viewport
+		- _updateAbsoluteGeometryAndScissor()
+		- _propagate(event, handler)
 		# _buildRenderUnit() : RenderUnit
+		# _onGeometryChange()
+		# onParentChanged(oldParent, newParent)
 		# _onUpdate(tick)
 		# _onWindow*Event(event)
 		# _onMouse*Event(event)
 		# _onKey/Text*Event(event)
+		+ name() : string
+		+ setGeometry(rect)
+		+ geometry() : Rect2D
+		+ viewport() : Viewport
 		+ renderUnit() : shared_ptr<RenderUnit>
 		+ appendRenderUnits(builder)
 		+ invalidateRenderUnit()
+		+ invalidateRenderUnitTree()
 		+ update(tick)
 		+ dispatchFrameEvent(event)
 		+ dispatchMouseEvent(event, mouse)
@@ -46,6 +58,7 @@ namespace spk {
 	class UpdateTick
 	class EventView
 	class Rect2D
+	class Viewport
 }
 
 spk.InherenceTraitWidget <|-- spk.Widget
@@ -56,12 +69,16 @@ spk.Widget o-- spk.RenderUnit
 spk.Widget --> spk.UpdateTick
 spk.Widget --> spk.EventView
 spk.Widget --> spk.Rect2D
+spk.Widget *-- spk.Viewport
 
 note right of spk.Widget
 Traversal is child-first for update and events.
-Render unit collection is self first, then children.
+Render unit collection appends a viewport unit,
+the widget render unit, then each child subtree.
 Dirty widgets replace their cached render unit.
 Inactive widgets stop propagation at their subtree.
+Geometry changes recalculate absolute geometry,
+scissor, and child viewports recursively.
 end note
 
 @enduml

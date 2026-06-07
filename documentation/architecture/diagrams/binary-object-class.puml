@@ -13,6 +13,13 @@ namespace spk {
 		+ addArray(name, offset, count, elementSize) : BinaryField
 		+ operator[](name) : BinaryField
 		+ operator[](index) : BinaryField
+		+ isValid() : bool
+		+ name() : string_view
+		+ size() : size_t
+		+ offset() : size_t
+		+ count() : size_t
+		+ elementSize() : size_t
+		+ data() : uint8_t*
 		+ operator=<TValueType>(value) : BinaryField&
 		+ operator=<TValueType, N>(array) : BinaryField&
 		+ set<TValueType>(value) : BinaryField&
@@ -45,6 +52,8 @@ note right of spk.BinaryField
 BinaryField is a non-owning byte view.
 Sections are explicit byte ranges inside their parent.
 Assignment requires exact byte-size matches.
+Arrays create one value child section per index.
+Named children can be added only to object sections.
 end note
 
 @enduml

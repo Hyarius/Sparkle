@@ -47,7 +47,7 @@ namespace spk {
 		- mutex _snapshotMutex
 		- shared_ptr<RenderSnapshot> _currentSnapshot
 		+ publishSnapshot(snapshot)
-		+ currentSnapshot() : shared_ptr<RenderSnapshot>
+		+ currentSnapshot() : shared_ptr<RenderSnapshot> const
 		+ render(renderContext)
 	}
 
@@ -55,9 +55,12 @@ namespace spk {
 		- deque<T> _values
 		- mutex _mutex
 		+ pushBack(value)
+		+ pushFront(value)
 		+ popFront(output) : bool
 		+ drain() : vector<T>
 		+ clear()
+		+ empty() : bool
+		+ size() : size_t
 	}
 
 	class Window {
@@ -66,6 +69,16 @@ namespace spk {
 		- KeyboardModule _keyboardModule
 		- UpdateModule _updateModule
 		- RenderModule _renderModule
+		- WindowSnapshotManager _snapshotManager
+		- ThreadSafeDeque<PlatformAction> _pendingPlatformActions
+		- ThreadSafeDeque<RenderAction> _pendingRenderActions
+		+ update()
+		+ render()
+		+ executePendingPlatformActions()
+	}
+
+	class WindowSnapshotManager {
+		+ rebuild(rootWidget, renderModule)
 	}
 
 	class Widget {
@@ -94,14 +107,17 @@ spk.Window *-- spk.MouseModule
 spk.Window *-- spk.KeyboardModule
 spk.Window *-- spk.UpdateModule
 spk.Window *-- spk.RenderModule
+spk.Window *-- spk.WindowSnapshotManager
 
 spk.IModule --> spk.Widget : bound root
 spk.FrameModule *-- spk.ThreadSafeDeque
 spk.MouseModule *-- spk.ThreadSafeDeque
 spk.KeyboardModule *-- spk.ThreadSafeDeque
+spk.Window *-- spk.ThreadSafeDeque : platform/render actions
 spk.UpdateModule --> spk.Mouse
 spk.UpdateModule --> spk.Keyboard
 spk.RenderModule o-- spk.RenderSnapshot
+spk.WindowSnapshotManager ..> spk.RenderSnapshotBuilder
 spk.Widget --> spk.RenderSnapshotBuilder
 spk.Widget o-- spk.RenderUnit
 
@@ -114,6 +130,11 @@ note bottom of spk.FrameModule
 Modules consume already separated event
 families from their own thread-safe queues.
 They do not reclassify a generic payload event.
+end note
+
+note bottom of spk.RenderModule
+Render snapshots are published by update()
+and read by render() behind a mutex.
 end note
 
 @enduml

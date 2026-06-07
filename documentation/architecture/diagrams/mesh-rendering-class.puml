@@ -1,0 +1,80 @@
+@startuml
+title Mesh Types and Draw Command Consumers - Class View
+
+skinparam classAttributeIconSize 0
+
+namespace spk {
+	class "GenericMesh<TVertex>" as GenericMesh {
+		- Buffer _buffer
+		- unordered_map<Vertex, Index> _vertexLookup
+		- vector<Shape> _shapes
+		+ clear()
+		+ reserve(vertexCount, indexCount)
+		+ addShape(vertices)
+		+ nbShape() : size_t
+		+ shapes() : vector<Shape>
+		+ buffer() : Buffer
+	}
+
+	class "GenericMesh<T>::Buffer" as GenericBuffer {
+		+ vector<Vertex> vertices
+		+ vector<Index> indexes
+	}
+
+	class Mesh2D
+	class ColorMesh2D
+	class TextureMesh2D {
+		- Buffer _buffer
+		- vector<Shape> _shapes
+		+ clear()
+		+ reserve(vertexCount, indexCount)
+		+ addShape(vertices)
+		+ buffer() : Buffer
+	}
+
+	struct Vertex2D {
+		+ Vector2 position
+		+ Vector2 uv
+	}
+
+	struct ColorVertex2D {
+		+ Vector3 position
+		+ Color color
+	}
+
+	struct TextureVertex2D {
+		+ Vector3 position
+		+ Vector2 uv
+	}
+
+	class DrawColorMeshRenderCommand
+	class DrawTextureMeshRenderCommand
+	class DrawFontRenderCommand
+	class Texture
+	class Font
+}
+
+spk.GenericMesh *-- spk.GenericBuffer
+spk.GenericMesh <|-- spk.Mesh2D
+spk.GenericMesh <|-- spk.ColorMesh2D
+spk.Mesh2D --> spk.Vertex2D
+spk.ColorMesh2D --> spk.ColorVertex2D
+spk.TextureMesh2D --> spk.TextureVertex2D
+spk.DrawColorMeshRenderCommand --> spk.ColorMesh2D
+spk.DrawTextureMeshRenderCommand --> spk.TextureMesh2D
+spk.DrawTextureMeshRenderCommand --> spk.Texture
+spk.DrawFontRenderCommand --> spk.Font
+
+note right of spk.GenericMesh
+GenericMesh deduplicates vertices through a
+hash lookup, stores shapes, and triangulates
+polygon inputs into an index buffer.
+end note
+
+note bottom of spk.TextureMesh2D
+TextureMesh2D keeps every submitted vertex.
+It does not deduplicate vertices because UV
+and ordering are often draw-specific.
+end note
+
+@enduml

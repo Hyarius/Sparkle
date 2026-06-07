@@ -1,0 +1,68 @@
+@startuml
+title Test Architecture - Class and Resource View
+
+skinparam classAttributeIconSize 0
+
+package "tests/TUs" {
+	class "GoogleTest test sources" as Tests
+	class "OpenGLTestContext" as GLContext {
+		- static PlatformRuntime* s_platformRuntime
+		- static GPUPlatformRuntime* s_gpuRuntime
+		- static IFrame* s_frame
+		- static RenderContext* s_renderContext
+		+ renderContext() : RenderContext&
+		+ gpuRuntime() : GPUPlatformRuntime&
+		+ tearDownGlobal()
+	}
+
+	class "Widget visual helpers" as WidgetHelpers {
+		+ compareSnapshot(widget, widgetName, variant, rect)
+	}
+
+	class "Image comparison utils" as ImageCompare {
+		+ compareImages(actual, expected, diff, options)
+	}
+
+	class "Test resource paths" as ResourcePaths
+}
+
+package "Library under test" {
+	class PlatformRuntime
+	class GPUPlatformRuntime
+	class IFrame
+	class RenderContext
+	class Widget
+	class RenderCommand
+}
+
+class "tests/TUs/resources" as TestResources
+class "expectedImages" as ExpectedImages
+class "result/diff images" as ResultImages
+
+Tests --> GLContext
+Tests --> WidgetHelpers
+Tests --> ImageCompare
+Tests --> ResourcePaths
+GLContext --> PlatformRuntime
+GLContext --> GPUPlatformRuntime
+GLContext --> IFrame
+GLContext --> RenderContext
+WidgetHelpers --> Widget
+WidgetHelpers --> ImageCompare
+ImageCompare --> ExpectedImages
+ImageCompare --> ResultImages
+ResourcePaths --> TestResources
+Tests --> RenderCommand
+
+note right of GLContext
+OpenGL wrapper tests share one hidden frame
+and render context. tearDownGlobal() validates
+closure and releases the global runtime objects.
+end note
+
+note bottom of ImageCompare
+Visual tests write actual/diff images and compare
+against checked-in expected PNG resources.
+end note
+
+@enduml

@@ -1,0 +1,115 @@
+@startuml
+title Render Commands and OpenGL Resources - Class View
+
+skinparam classAttributeIconSize 0
+
+namespace spk {
+	abstract class RenderCommand {
+		+ execute(renderContext)
+	}
+
+	class ViewportCommand
+	class ClearCommand
+	class DrawArraysCommand
+	class DrawElementsCommand
+	class DrawElementsInstancedCommand
+
+	class ColorRectangleRenderCommand
+	class ImageRenderCommand
+	class SpriteRenderCommand
+	class NineSliceRenderCommand
+	class TextRenderCommand
+	class DrawColorMeshRenderCommand
+	class DrawTextureMeshRenderCommand
+	class DrawFontRenderCommand
+
+	class RenderContext {
+		+ supportsOpenGLCommands() : bool
+		+ makeCurrent()
+		+ present()
+	}
+
+	class ColorMesh2D
+	class TextureMesh2D
+	class Mesh2D
+	class Texture
+	class SpriteSheet
+	class Font
+	class Image
+	class Viewport
+	class SynchronizableTrait
+
+	class Program
+	class VertexArrayObject
+	class BufferObject
+	class VertexBufferObject
+	class IndexBufferObject
+	class UniformBufferObject
+	class ShaderStorageBufferObject
+	class LayoutBufferObject
+	class SamplerObject
+}
+
+spk.RenderCommand <|-- spk.ViewportCommand
+spk.RenderCommand <|-- spk.ClearCommand
+spk.RenderCommand <|-- spk.DrawArraysCommand
+spk.RenderCommand <|-- spk.DrawElementsCommand
+spk.RenderCommand <|-- spk.DrawElementsInstancedCommand
+spk.RenderCommand <|-- spk.ColorRectangleRenderCommand
+spk.RenderCommand <|-- spk.ImageRenderCommand
+spk.RenderCommand <|-- spk.SpriteRenderCommand
+spk.RenderCommand <|-- spk.NineSliceRenderCommand
+spk.RenderCommand <|-- spk.TextRenderCommand
+spk.RenderCommand <|-- spk.DrawColorMeshRenderCommand
+spk.RenderCommand <|-- spk.DrawTextureMeshRenderCommand
+spk.RenderCommand <|-- spk.DrawFontRenderCommand
+
+spk.RenderCommand ..> spk.RenderContext : execute(context)
+spk.ViewportCommand --> spk.Viewport
+
+spk.ColorRectangleRenderCommand ..> spk.DrawColorMeshRenderCommand : builds
+spk.ImageRenderCommand ..> spk.DrawTextureMeshRenderCommand : builds
+spk.SpriteRenderCommand ..> spk.DrawTextureMeshRenderCommand : builds
+spk.NineSliceRenderCommand ..> spk.DrawTextureMeshRenderCommand : builds
+spk.TextRenderCommand ..> spk.DrawFontRenderCommand : builds
+
+spk.DrawColorMeshRenderCommand --> spk.ColorMesh2D
+spk.DrawTextureMeshRenderCommand --> spk.TextureMesh2D
+spk.DrawTextureMeshRenderCommand --> spk.Texture
+spk.DrawFontRenderCommand --> spk.Font
+spk.ImageRenderCommand --> spk.Image
+spk.SpriteRenderCommand --> spk.SpriteSheet
+spk.TextRenderCommand --> spk.Font
+
+spk.BufferObject <|-- spk.VertexBufferObject
+spk.BufferObject <|-- spk.IndexBufferObject
+spk.BufferObject <|-- spk.UniformBufferObject
+spk.BufferObject <|-- spk.ShaderStorageBufferObject
+spk.VertexArrayObject --> spk.LayoutBufferObject
+spk.VertexArrayObject --> spk.VertexBufferObject
+spk.VertexArrayObject --> spk.IndexBufferObject
+spk.Program --> spk.UniformBufferObject
+spk.DrawArraysCommand --> spk.VertexArrayObject
+spk.DrawElementsCommand --> spk.VertexArrayObject
+spk.DrawElementsInstancedCommand --> spk.VertexArrayObject
+spk.Texture <|-- spk.Image
+spk.SynchronizableTrait <|-- spk.Texture
+spk.DrawColorMeshRenderCommand --> spk.LayoutBufferObject
+spk.DrawTextureMeshRenderCommand --> spk.LayoutBufferObject
+spk.DrawFontRenderCommand --> spk.LayoutBufferObject
+spk.DrawTextureMeshRenderCommand --> spk.SamplerObject
+
+note right of spk.RenderCommand
+RenderUnit owns commands polymorphically.
+Each command receives the active RenderContext
+from the render thread during snapshot execution.
+end note
+
+note bottom of spk.ColorRectangleRenderCommand
+Convenience commands convert higher-level drawing
+requests into mesh/font/texture draw commands.
+Concrete OpenGL commands and resource wrappers
+hold backend state used by those draws.
+end note
+
+@enduml

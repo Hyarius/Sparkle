@@ -1,0 +1,108 @@
+@startuml
+title Window Actions, Events, and Disposal - Class View
+
+skinparam classAttributeIconSize 0
+
+namespace spk {
+	class Window {
+		- ThreadSafeDeque<PlatformAction> _pendingPlatformActions
+		- ThreadSafeDeque<RenderAction> _pendingRenderActions
+		- atomic<bool> _isClosed
+		- atomic<bool> _closureRequested
+		- atomic<bool> _closureNotificationPending
+		- atomic<bool> _renderResourcesReleased
+		- atomic<bool> _platformResourcesReleased
+		- IFrame::FrameEventContract _frameEventQueueContract
+		- IFrame::MouseEventContract _mouseEventQueueContract
+		- IFrame::KeyboardEventContract _keyboardEventQueueContract
+		- ClosureEventProvider _closureEventProvider
+		- _enqueueFrameEvent(event)
+		- _enqueueMouseEvent(event)
+		- _enqueueKeyboardEvent(event)
+		- _enqueuePlatformAction(action)
+		- _enqueueRenderAction(action)
+		- _drainPendingPlatformActions() : vector<PlatformAction>
+		- _drainPendingRenderActions() : vector<RenderAction>
+		- _treatProcessedFrameEvent(event, isConsumed)
+		- _executePlatformAction(action)
+		- _executeRenderAction(action)
+		- _triggerClosureNotificationIfPending()
+		- _releasePlatformResourcesIfReady()
+		- _releaseRenderResources()
+		+ executePendingPlatformActions()
+		+ update()
+		+ render()
+		+ requestClosure()
+		+ subscribeToClosure(callback) : ClosureContract
+		+ isReadyForDisposal() : bool
+	}
+
+	enum PlatformActionType {
+		RequestClosure
+		ValidateClosure
+		SetTitle
+		ResizeFrame
+	}
+
+	class PlatformAction {
+		+ PlatformActionType type
+		+ optional<Rect2D> rect
+		+ optional<string> title
+	}
+
+	enum RenderActionType {
+		NotifyResize
+		SetVSync
+	}
+
+	class RenderAction {
+		+ RenderActionType type
+		+ optional<Rect2D> rect
+		+ optional<bool> vSyncEnabled
+	}
+
+	class FrameModule
+	class MouseModule
+	class KeyboardModule
+	class RenderModule
+	class WindowSnapshotManager
+	class WindowHost
+	class "ThreadSafeDeque<T>" as ThreadSafeDeque
+	class ContractProvider
+}
+
+spk.Window *-- spk.ThreadSafeDeque : pending actions
+spk.Window *-- spk.PlatformAction
+spk.Window *-- spk.RenderAction
+spk.PlatformAction *-- spk.PlatformActionType
+spk.RenderAction *-- spk.RenderActionType
+spk.Window *-- spk.FrameModule
+spk.Window *-- spk.MouseModule
+spk.Window *-- spk.KeyboardModule
+spk.Window *-- spk.RenderModule
+spk.Window *-- spk.WindowSnapshotManager
+spk.Window --> spk.WindowHost
+spk.Window *-- spk.ContractProvider : closure notifications
+
+note right of spk.Window
+Platform callbacks only enqueue event records.
+The update loop processes frame/mouse/keyboard
+queues, updates widgets, and publishes snapshots.
+WindowHandle mutators enqueue platform or render
+actions; the owning loop executes each action type.
+end note
+
+note bottom of spk.RenderAction
+NotifyResize and SetVSync are coalesced during
+_drainPendingRenderActions(); only the latest
+value of each type is applied by the render loop.
+end note
+
+note bottom of spk.Window
+Disposal waits for all three facts to be true:
+the platform reported the window closed, render
+resources were released on the render thread, and
+the frame was released on the platform thread.
+end note
+
+@enduml

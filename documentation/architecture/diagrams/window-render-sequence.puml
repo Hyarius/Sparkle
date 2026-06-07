@@ -6,8 +6,8 @@ skinparam ParticipantPadding 8
 participant "Render loop" as RenderLoop
 participant "Window" as Window
 participant "WindowHost" as Host
-participant "IGPUPlatformRuntime" as GPURuntime
-participant "IRenderContext" as Context
+participant "GPUPlatformRuntime" as GPURuntime
+participant "RenderContext" as Context
 participant "RenderModule" as RenderModule
 participant "RenderSnapshot" as Snapshot
 participant "RenderUnit" as Unit
@@ -21,11 +21,21 @@ alt window is closed
 	Window --> RenderLoop
 else window is open
 	Window -> Window : _drainPendingRenderActions()
+	note right of Window
+	NotifyResize and SetVSync are coalesced;
+	only the latest value of each action type
+	is kept for this render pass.
+	end note
 	Window -> Host : makeCurrent()
 	activate Host
+	Host -> Host : bind or validate render thread
 	alt render context missing and surface valid
 		Host -> GPURuntime : createRenderContext(frame)
-		GPURuntime --> Host : unique_ptr<IRenderContext>
+		GPURuntime --> Host : unique_ptr<RenderContext>
+		Host -> Context : surfaceState().setRect(frame.rect())
+	else surface invalid
+		Host --> Window : false
+		Window --> RenderLoop
 	end
 	Host -> Context : makeCurrent()
 	Host --> Window : true
@@ -42,14 +52,16 @@ else window is open
 	end
 
 	Window -> Host : renderContext()
-	Host --> Window : IRenderContext&
+	Host --> Window : RenderContext&
 	Window -> RenderModule : render(context)
 	RenderModule -> RenderModule : currentSnapshot()
-	RenderModule -> Snapshot : execute(context)
-	loop each render unit
-		Snapshot -> Unit : execute(context)
-		loop each command
-			Unit -> Command : execute(context)
+	alt snapshot exists
+		RenderModule -> Snapshot : execute(context)
+		loop each render unit
+			Snapshot -> Unit : execute(context)
+			loop each command
+				Unit -> Command : execute(context)
+			end
 		end
 	end
 	Window -> Host : present()

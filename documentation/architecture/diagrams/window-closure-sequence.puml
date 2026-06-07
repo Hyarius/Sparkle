@@ -13,7 +13,11 @@ participant "Render loop" as RenderLoop
 participant "Closure subscribers" as Subscribers
 
 Caller -> Window : requestClosure()
+alt already closed or closure already requested
+	Window --> Caller : no-op
+else first request
 Window -> Window : enqueue PlatformAction.RequestClosure
+end
 
 EventLoop -> Window : executePendingPlatformActions()
 Window -> Host : requestClosure()
@@ -35,9 +39,11 @@ Host -> Frame : validateClosure()
 Frame -> Window : emits WindowDestroyedRecord\nvia frame event queue
 UpdateLoop -> Window : update()
 Window -> Window : _isClosed = true\n_closureNotificationPending = true
+Window --> UpdateLoop : skip remaining update work
 
 RenderLoop -> Window : render()
 Window -> Host : releaseRenderContext()
+Window -> Window : _renderResourcesReleased = true
 
 EventLoop -> Window : executePendingPlatformActions()
 Window -> Subscribers : closureEventProvider.trigger(this)
@@ -45,6 +51,10 @@ alt render resources released
 	Window -> Host : releaseFrame()
 	Host -> Frame : surfaceState().invalidate()
 	Host -> Host : reset frame
+	Window -> Window : _platformResourcesReleased = true
 end
+
+EventLoop -> Window : isReadyForDisposal()
+EventLoop -> EventLoop : WindowRegistry.removeClosedWindows()
 
 @enduml

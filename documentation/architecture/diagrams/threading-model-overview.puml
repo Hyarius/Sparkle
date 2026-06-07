@@ -1,0 +1,50 @@
+@startuml
+title Threading Model Overview
+
+skinparam ParticipantPadding 8
+
+actor "External caller" as Caller
+participant "Application owner/platform thread" as PlatformThread
+participant "WindowRegistry" as Registry
+participant "PlatformRuntime / IFrame" as Platform
+participant "Window event queues" as EventQueues
+participant "Update jthread" as UpdateThread
+participant "Render jthread" as RenderThread
+participant "WindowHost" as Host
+participant "RenderModule snapshot mutex" as SnapshotMutex
+
+Caller -> PlatformThread : createWindow(), run(), quit()
+PlatformThread -> Registry : create/store Window
+PlatformThread -> Platform : pollEvents()
+Platform -> EventQueues : enqueue Frame/Mouse/Keyboard records
+
+par update thread
+	UpdateThread -> Registry : windows()
+	UpdateThread -> EventQueues : drain family queues
+	UpdateThread -> UpdateThread : update input state and widget tree
+	UpdateThread -> SnapshotMutex : publish new RenderSnapshot
+else render thread
+	RenderThread -> Registry : windows()
+	RenderThread -> Host : makeCurrent()
+	Host -> Host : bind/validate render thread id
+	RenderThread -> SnapshotMutex : read current RenderSnapshot
+	RenderThread -> RenderThread : execute commands and present
+else platform thread
+	PlatformThread -> EventQueues : drain PlatformAction queue
+	PlatformThread -> Host : resize/title/requestClosure/validateClosure/releaseFrame
+end
+
+note right of EventQueues
+Cross-thread handoff is explicit:
+platform callbacks enqueue records,
+WindowHandle mutators enqueue actions,
+and snapshots are swapped under RenderModule's mutex.
+end note
+
+note over Host
+WindowHost separates platform-thread frame access
+from render-thread context access. SurfaceState
+invalidation lets the render thread stop safely.
+end note
+
+@enduml

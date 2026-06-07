@@ -9,13 +9,18 @@ participant "Render jthread" as RenderThread
 participant "Update jthread" as UpdateThread
 participant "Event loop\n(owner thread)" as EventLoop
 participant "WindowRegistry" as Registry
-participant "IPlatformRuntime" as Platform
+participant "PlatformRuntime" as Platform
 participant "Window" as Window
 
 User -> App : run()
 activate App
 App -> App : validate owner thread
+alt runtime missing and windows exist
+	App -> App : create default PlatformRuntime / GPUPlatformRuntime
+end
 App -> App : set _isRunning = true
+App -> App : reset stop/shutdown/exit state
+App -> App : rethrow stale recorded failure, if any
 App -> RenderThread : start _runRenderLoop()
 App -> UpdateThread : start _runUpdateLoop()
 App -> EventLoop : _runEventLoop()
@@ -27,10 +32,22 @@ The embedding executable owns OS signal/message translation
 end note
 
 loop until stop requested
+	alt shutdown requested
+		EventLoop -> Registry : windows()
+		loop each window
+			EventLoop -> Window : requestClosure()
+		end
+	end
+	EventLoop -> Registry : size()
+	alt no windows and shutdown/stopWhenNoWindows
+		EventLoop --> App : return
+	else no windows
+		EventLoop -> EventLoop : sleep for event polling interval
+	end
 	EventLoop -> Platform : pollEvents()
-	Platform -> Window : enqueue Frame/Mouse/Keyboard events
+	Platform -> Window : frame callbacks enqueue events
 	EventLoop -> Registry : windows()
-	Registry --> EventLoop : shared windows
+	Registry --> EventLoop : weak windows
 	loop each window
 		EventLoop -> Window : executePendingPlatformActions()
 	end
@@ -41,6 +58,9 @@ end
 par render loop
 	loop until stop requested
 		RenderThread -> Registry : windows()
+		alt no windows and shutdown/stopWhenNoWindows
+			RenderThread --> App : return
+		end
 		loop each window
 			RenderThread -> Window : render()
 		end
@@ -49,6 +69,9 @@ par render loop
 else update loop
 	loop until stop requested
 		UpdateThread -> Registry : windows()
+		alt no windows and shutdown/stopWhenNoWindows
+			UpdateThread --> App : return
+		end
 		loop each window
 			UpdateThread -> Window : update()
 			Window -> Window : drain and process event queues

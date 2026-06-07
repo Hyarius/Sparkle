@@ -1,0 +1,46 @@
+@startuml
+title Render Command Execution
+
+skinparam ParticipantPadding 8
+
+participant "Window::render()" as Window
+participant "RenderModule" as RenderModule
+participant "RenderSnapshot" as Snapshot
+participant "RenderUnit" as Unit
+participant "RenderCommand" as Command
+participant "Draw*RenderCommand" as DrawCommand
+participant "OpenGL wrappers" as GLWrappers
+participant "RenderContext" as Context
+
+Window -> RenderModule : render(context)
+RenderModule -> RenderModule : currentSnapshot()
+alt no snapshot
+	RenderModule --> Window : return
+else snapshot exists
+	RenderModule -> Snapshot : execute(context)
+	loop each shared RenderUnit
+		Snapshot -> Unit : execute(context)
+		loop each owned RenderCommand
+			Unit -> Command : execute(context)
+			alt viewport or clear command
+				Command -> Context : supportsOpenGLCommands()
+				Command -> GLWrappers : glViewport/glScissor/glClear...
+			else mesh/font/texture draw command
+				Command -> DrawCommand : execute(context)
+				DrawCommand -> DrawCommand : ensure static Program
+				DrawCommand -> GLWrappers : upload mesh if dirty
+				DrawCommand -> GLWrappers : bind program, layout, buffers, texture/sampler
+				DrawCommand -> GLWrappers : issue DrawArrays/DrawElements command
+			end
+		end
+	end
+end
+
+note over DrawCommand
+High-level commands hold mesh, texture, font,
+program, layout buffer, and sampler state as
+needed. OpenGL wrappers synchronize backend
+objects lazily before drawing.
+end note
+
+@enduml

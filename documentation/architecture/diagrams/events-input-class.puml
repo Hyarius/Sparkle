@@ -40,25 +40,34 @@ namespace spk {
 		+ Vector2Int delta
 	}
 
+	struct MouseWheelScrolledRecord {
+		+ Vector2 delta
+	}
+
 	struct KeyPressedRecord {
 		+ Keyboard::Key key
 		+ bool isRepeated
 	}
 
+	struct TextInputRecord {
+		+ char32_t glyph
+	}
+
 	class "EventView<TRecord>" as EventView {
 		- bool _isConsumed
-		- TRecord* _record
-		+ record() : TRecord&
-		+ data() : TRecord&
-		+ operator->() : TRecord*
+		- const TRecord* _record
+		+ record() : const TRecord&
+		+ data() : const TRecord&
+		+ operator->() : const TRecord*
+		+ operator*() : const TRecord&
 		+ consume()
 		+ isConsumed() : bool
 		+ timestamp() : Timestamp
 	}
 
 	class "DeviceEventView<TRecord,TDevice>" as DeviceEventView {
-		- TDevice* _device
-		+ device() : TDevice&
+		- const TDevice* _device
+		+ device() : const TDevice&
 	}
 
 	class "variant FrameEventRecord" as FrameEventRecord {
@@ -94,7 +103,9 @@ spk.Keyboard *-- spk.InputState
 spk.WindowMovedRecord --|> spk.EventRecord
 spk.WindowResizedRecord --|> spk.EventRecord
 spk.MouseMovedRecord --|> spk.EventRecord
+spk.MouseWheelScrolledRecord --|> spk.EventRecord
 spk.KeyPressedRecord --|> spk.EventRecord
+spk.TextInputRecord --|> spk.EventRecord
 spk.EventView --> spk.EventRecord
 spk.DeviceEventView --|> spk.EventView
 spk.DeviceEventView --> spk.Mouse
@@ -110,8 +121,14 @@ end note
 
 note right of spk.EventView
 Views are created only while dispatching.
-They expose immutable record data and
-own the temporary consumed flag.
+They expose const record data and own
+the temporary consumed flag.
+end note
+
+note bottom of spk.DeviceEventView
+Mouse and keyboard events carry a const
+view of the module-maintained device state
+after the module applies the received record.
 end note
 
 @enduml

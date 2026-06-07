@@ -20,8 +20,21 @@ User -> Field : addValue("x", offset, sizeof(float))
 Field -> Sections : validate parent bounds
 Field -> Sections : append value section
 
+User -> Field : addArray("bones", offset, count, elementSize)
+Field -> Sections : validate element size and overflow
+Field -> Sections : validate parent bounds
+Field -> Sections : append array section
+loop each index
+	Field -> Sections : append value child section named index
+end
+
 User -> Field : operator[]("transform")["x"]
 Field -> Sections : lookup child section
+Field --> User : BinaryField
+
+User -> Field : operator[]("bones")[0]
+Field -> Sections : named lookup on object
+Field -> Sections : indexed lookup on array
 Field --> User : BinaryField
 
 User -> Field : operator=<float>(value)

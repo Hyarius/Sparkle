@@ -1,34 +1,44 @@
 @startuml
-title Application and Windowing - Class View
+title Application and Windowing - Overview
 
 skinparam classAttributeIconSize 0
 
 namespace spk {
 	class Application {
 		- Configuration _configuration
-		- shared_ptr<IPlatformRuntime> _platformRuntime
-		- shared_ptr<IGPUPlatformRuntime> _gpuPlatformRuntime
 		- WindowRegistry _windowRegistry
-		- atomic<bool> _isRunning
-		- atomic<bool> _shutdownRequested
-		- atomic<bool> _stopRequested
-		- atomic<int> _exitCode
-		+ createWindow(id, configuration) : shared_ptr<Window>
+		- shared_ptr<PlatformRuntime> _platformRuntime
+		- shared_ptr<GPUPlatformRuntime> _gpuPlatformRuntime
+		+ createWindow(id, configuration) : WindowHandle
+		+ window(id) : WindowHandle
+		+ containsWindow(id) : bool
 		+ requestWindowClosing(id)
 		+ quit(exitCode)
 		+ stop()
 		+ run() : int
-		- _runRenderLoop()
-		- _runUpdateLoop()
-		- _runEventLoop()
 	}
 
 	class WindowRegistry {
 		- unordered_map<WindowID, Entry> _windows
-		+ createWindow(id, platformRuntime, gpuRuntime, configuration) : shared_ptr<Window>
-		+ windows() : vector<shared_ptr<Window>>
+		+ createWindow(id, platformRuntime, gpuRuntime, configuration) : WindowHandle
+		+ window(id) : WindowHandle
+		+ contains(id) : bool
+		+ size() : size_t
 		+ removeClosedWindows()
 		+ requestWindowClosing(id)
+	}
+
+	class WindowHandle {
+		- weak_ptr<Window> _window
+		+ isValid() : bool
+		+ expired() : bool
+		+ isClosed() : bool
+		+ requestClosure()
+		+ setTitle(title)
+		+ resize(rect)
+		+ setVSync(enabled)
+		+ rect() : Rect2D
+		+ centralWidget() : Widget&
 	}
 
 	class Window {
@@ -39,88 +49,70 @@ namespace spk {
 		- KeyboardModule _keyboardModule
 		- UpdateModule _updateModule
 		- RenderModule _renderModule
-		- ThreadSafeDeque<PlatformAction> _pendingPlatformActions
-		- ThreadSafeDeque<RenderAction> _pendingRenderActions
-		- _enqueueFrameEvent(FrameEventRecord)
-		- _enqueueMouseEvent(MouseEventRecord)
-		- _enqueueKeyboardEvent(KeyboardEventRecord)
-		- _rebuildRenderSnapshot()
 		+ executePendingPlatformActions()
 		+ update()
 		+ render()
 		+ requestClosure()
+		+ isClosed() : bool
 		+ isReadyForDisposal() : bool
 	}
 
 	class WindowHost {
-		- unique_ptr<IFrame> _frame
-		- shared_ptr<IGPUPlatformRuntime> _gpuPlatformRuntime
-		- unique_ptr<IRenderContext> _renderContext
+		+ resize(rect)
+		+ setTitle(title)
 		+ requestClosure()
 		+ validateClosure()
 		+ makeCurrent() : bool
-		+ renderContext() : IRenderContext&
+		+ renderContext() : RenderContext&
 		+ present()
 		+ releaseFrame()
 		+ releaseRenderContext()
 	}
 
-	class FrameModule {
-		- ThreadSafeDeque<FrameEventRecord> _events
-		+ pushEvent(event)
-		+ processEvents(callback)
-	}
-
-	class MouseModule {
-		- ThreadSafeDeque<MouseEventRecord> _events
-		+ pushEvent(event)
-		+ processEvents()
-	}
-
-	class KeyboardModule {
-		- ThreadSafeDeque<KeyboardEventRecord> _events
-		+ pushEvent(event)
-		+ processEvents()
-	}
-
-	interface IPlatformRuntime {
+	class PlatformRuntime {
 		+ createFrame(rect, title) : unique_ptr<IFrame>
 		+ pollEvents()
 	}
 
-	interface IGPUPlatformRuntime {
-		+ createRenderContext(frame) : unique_ptr<IRenderContext>
+	class GPUPlatformRuntime {
+		+ createRenderContext(frame) : unique_ptr<RenderContext>
+		+ waitUntilWorkDone()
 	}
+
+	class Widget
+	class IFrame
+	class RenderContext
 }
 
 spk.Application *-- spk.WindowRegistry
-spk.Application --> spk.IPlatformRuntime
-spk.Application --> spk.IGPUPlatformRuntime
+spk.Application --> spk.PlatformRuntime
+spk.Application --> spk.GPUPlatformRuntime
 spk.WindowRegistry o-- "0..*" spk.Window
+spk.WindowRegistry ..> spk.WindowHandle : returns
+spk.WindowHandle ..> spk.Window : weak reference
 spk.Window *-- spk.WindowHost
+spk.Window *-- spk.Widget
 spk.Window *-- spk.FrameModule
 spk.Window *-- spk.MouseModule
 spk.Window *-- spk.KeyboardModule
 spk.Window *-- spk.UpdateModule
 spk.Window *-- spk.RenderModule
 spk.WindowHost --> spk.IFrame
-spk.WindowHost --> spk.IGPUPlatformRuntime
-spk.WindowHost --> spk.IRenderContext
+spk.WindowHost --> spk.GPUPlatformRuntime
+spk.WindowHost --> spk.RenderContext
+spk.PlatformRuntime --> spk.IFrame : creates
+spk.GPUPlatformRuntime --> spk.RenderContext : creates
 
 note right of spk.Application
-run() owns the event loop on the owner thread
-and starts separate render/update jthreads.
-quit() is the thread-safe external shutdown
-entry point. Embedding code forwards OS signals
-or WM_QUIT-style messages to quit().
-Worker failures are first-exception-wins under
-the application failure mutex.
+Application owns the registry and runtime loops.
+It returns WindowHandle values so callers do not
+own Window lifetime directly.
 end note
 
-note right of spk.Window
-Platform callbacks only enqueue into
-module-owned family queues. update()
-asks modules to process them later.
+note bottom of spk.Window
+Detailed module queues, render snapshots,
+actions, closure state, and host threading
+are documented in the focused window diagrams.
 end note
 
 @enduml

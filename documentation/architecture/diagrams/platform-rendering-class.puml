@@ -4,7 +4,8 @@ title Platform and Rendering Abstractions - Class View
 skinparam classAttributeIconSize 0
 
 namespace spk {
-	interface IPlatformRuntime {
+	class PlatformRuntime {
+		- shared_ptr<WindowClass> _windowClass
 		+ createFrame(rect, title) : unique_ptr<IFrame>
 		+ pollEvents()
 	}
@@ -13,32 +14,42 @@ namespace spk {
 		- EventContractProvider _mouseEventContractProvider
 		- EventContractProvider _keyboardEventContractProvider
 		- EventContractProvider _frameEventContractProvider
-		- shared_ptr<ISurfaceState> _surfaceState
+		- shared_ptr<SurfaceState> _surfaceState
 		# _emitMouseEvent(event)
 		# _emitKeyboardEvent(event)
 		# _emitFrameEvent(event)
 		# _invalidateSurfaceState()
 		+ resize(rect)
 		+ setTitle(title)
+		+ hide()
 		+ requestClosure()
 		+ validateClosure()
-		+ surfaceState() : shared_ptr<ISurfaceState>
+		+ rect() : Rect2D
+		+ title() : string
+		+ surfaceState() : shared_ptr<SurfaceState>
 	}
 
-	class ISurfaceState {
+	class SurfaceState {
 		- atomic<bool> _isValid
+		- Rect2D _rect
 		+ invalidate()
 		+ isValid() : bool
+		+ setRect(rect)
+		+ rect() : Rect2D
 	}
 
-	interface IGPUPlatformRuntime {
-		+ createRenderContext(frame) : unique_ptr<IRenderContext>
+	class GPUPlatformRuntime {
+		+ createRenderContext(frame) : unique_ptr<RenderContext>
+		+ waitUntilWorkDone()
+		+ saveScreenshot(path, rect)
 	}
 
-	abstract class IRenderContext {
-		- shared_ptr<ISurfaceState> _surfaceState
+	class RenderContext {
+		- shared_ptr<SurfaceState> _surfaceState
+		- bool _valid
 		+ invalidate()
 		+ isValid() : bool
+		+ supportsOpenGLCommands() : bool
 		+ makeCurrent()
 		+ present()
 		+ setVSync(enabled)
@@ -51,25 +62,36 @@ namespace spk {
 
 	class RenderUnit {
 		- vector<unique_ptr<RenderCommand>> _commands
-		+ commands() : vector<unique_ptr<RenderCommand>>&
+		+ empty() : bool
+		+ size() : size_t
+		+ commands() : const vector<unique_ptr<RenderCommand>>&
 		+ execute(renderContext)
 	}
 
 	class RenderUnitBuilder {
 		- vector<unique_ptr<RenderCommand>> _commands
+		+ clear()
+		+ empty() : bool
+		+ size() : size_t
 		+ emplace<TCommand>(args...) : TCommand&
 		+ build() : RenderUnit
 	}
 
 	class RenderSnapshot {
 		- vector<shared_ptr<RenderUnit>> _units
-		+ units() : vector<shared_ptr<RenderUnit>>&
+		+ empty() : bool
+		+ size() : size_t
+		+ units() : const vector<shared_ptr<RenderUnit>>&
 		+ execute(renderContext)
 	}
 
 	class RenderSnapshotBuilder {
 		- vector<shared_ptr<RenderUnit>> _units
+		+ clear()
 		+ append(unit)
+		+ empty() : bool
+		+ size() : size_t
+		+ units() : const vector<shared_ptr<RenderUnit>>&
 		+ build() : RenderSnapshot
 	}
 
@@ -82,12 +104,12 @@ namespace spk {
 	}
 }
 
-spk.IPlatformRuntime --> spk.IFrame : creates
-spk.IFrame *-- spk.ISurfaceState
-spk.IGPUPlatformRuntime --> spk.IRenderContext : creates
-spk.IGPUPlatformRuntime --> spk.IFrame : reads backend data from
-spk.IRenderContext --> spk.ISurfaceState
-spk.RenderCommand ..> spk.IRenderContext : receives during execution
+spk.PlatformRuntime --> spk.IFrame : creates
+spk.IFrame *-- spk.SurfaceState
+spk.GPUPlatformRuntime --> spk.RenderContext : creates
+spk.GPUPlatformRuntime --> spk.IFrame : reads backend data from
+spk.RenderContext --> spk.SurfaceState
+spk.RenderCommand ..> spk.RenderContext : receives during execution
 spk.RenderUnit *-- "0..*" spk.RenderCommand
 spk.RenderUnitBuilder *-- "0..*" spk.RenderCommand
 spk.RenderUnitBuilder ..> spk.RenderUnit : builds
@@ -96,7 +118,7 @@ spk.RenderSnapshotBuilder o-- "0..*" spk.RenderUnit
 spk.RenderSnapshotBuilder ..> spk.RenderSnapshot : builds
 spk.RenderModule o-- spk.RenderSnapshot
 
-note bottom of spk.ISurfaceState
+note bottom of spk.SurfaceState
 Surface invalidation is a cross-thread signal.
 The render thread still owns render-context teardown.
 end note

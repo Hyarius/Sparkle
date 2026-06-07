@@ -1,0 +1,57 @@
+@startuml
+title OpenGL Context and Surface Resource Lifecycle
+
+skinparam ParticipantPadding 8
+
+participant "Render loop" as RenderLoop
+participant "Window" as Window
+participant "WindowHost" as Host
+participant "IFrame" as Frame
+participant "SurfaceState" as Surface
+participant "GPUPlatformRuntime" as GPURuntime
+participant "RenderContext" as Context
+participant "Event/platform loop" as EventLoop
+
+RenderLoop -> Window : render()
+Window -> Host : makeCurrent()
+activate Host
+Host -> Host : bind or validate render thread
+Host -> Frame : surfaceState()
+Frame --> Host : SurfaceState
+Host -> Surface : isValid()
+alt context missing and surface valid
+	Host -> GPURuntime : createRenderContext(frame)
+	GPURuntime --> Host : unique_ptr<RenderContext>
+	Host -> Frame : rect()
+	Host -> Surface : setRect(rect)
+end
+Host -> Context : isValid()
+Host -> Context : makeCurrent()
+Host --> Window : true
+deactivate Host
+
+Window -> Host : renderContext()
+Window -> Window : execute render snapshot
+Window -> Host : present()
+Host -> Context : present()
+
+... resize event processed by update loop ...
+Window -> Window : enqueue RenderAction.NotifyResize
+RenderLoop -> Window : render()
+Window -> Host : notifyFrameResized(rect)
+Host -> Context : notifyResize(rect)
+
+... closure / destruction ...
+EventLoop -> Frame : validateClosure() / destroy()
+Frame -> Surface : invalidate()
+RenderLoop -> Window : render()
+alt window closed
+	Window -> Host : releaseRenderContext()
+	Host -> Context : reset unique_ptr
+end
+EventLoop -> Window : executePendingPlatformActions()
+Window -> Host : releaseFrame()
+Host -> Surface : invalidate()
+Host -> Host : reset frame
+
+@enduml

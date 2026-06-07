@@ -1,0 +1,56 @@
+@startuml
+title WinAPI Message to Sparkle Event Translation
+
+skinparam ParticipantPadding 8
+
+participant "Windows" as OS
+participant "WindowRuntime::_staticWindowProcedure" as StaticProc
+participant "WindowRuntime" as Runtime
+participant "Frame::_windowProcedure" as Frame
+participant "IFrame event providers" as Providers
+participant "Window subscribed callbacks" as Window
+
+OS -> StaticProc : HWND, UINT, WPARAM, LPARAM
+StaticProc -> Runtime : lookup GWLP_USERDATA
+Runtime -> Frame : procedure(handle, message, wParam, lParam)
+
+alt WM_CLOSE
+	Frame -> Providers : _emitFrameEvent(WindowCloseRequestedRecord)
+else WM_DESTROY
+	Frame -> Providers : _emitFrameEvent(WindowDestroyedRecord)
+else WM_MOVE
+	Frame -> Runtime : clientRect()
+	Frame -> Frame : update _rect and SurfaceState
+	Frame -> Providers : _emitFrameEvent(WindowMovedRecord)
+else WM_SIZE
+	Frame -> Runtime : clientRect()
+	Frame -> Frame : update _rect and SurfaceState
+	Frame -> Providers : _emitFrameEvent(WindowResizedRecord)
+else focus/show
+	Frame -> Providers : _emitFrameEvent(Focus/Shown/Hidden record)
+else WM_MOUSEMOVE
+	alt first move after enter
+		Frame -> Frame : TrackMouseEvent(TME_LEAVE)
+		Frame -> Providers : _emitMouseEvent(MouseEnteredRecord)
+	end
+	Frame -> Providers : _emitMouseEvent(MouseMovedRecord)
+else WM_MOUSELEAVE or WM_MOUSEWHEEL
+	Frame -> Providers : _emitMouseEvent(MouseLeft/Wheel record)
+else mouse button messages
+	Frame -> Providers : _emitMouseEvent(ButtonPressed/Released/DoubleClicked record)
+else key or text messages
+	Frame -> Providers : _emitKeyboardEvent(KeyPressed/KeyReleased/TextInput record)
+else unhandled message
+	Frame --> OS : DefWindowProcW(...)
+end
+
+Providers -> Window : subscribed callback(record)
+Window -> Window : enqueue family event record
+
+note over Frame
+WinAPI translation happens on the platform
+polling path. Widget dispatch and device-state
+mutation happen later on the update loop.
+end note
+
+@enduml

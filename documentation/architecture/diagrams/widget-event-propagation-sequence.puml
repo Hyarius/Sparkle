@@ -1,0 +1,51 @@
+@startuml
+title Widget Event Propagation
+
+skinparam ParticipantPadding 8
+
+participant "Frame/Mouse/Keyboard Module" as Module
+participant "Root Widget" as Root
+participant "Child Widget" as Child
+participant "Leaf Widget" as Leaf
+participant "EventView<T>" as Event
+
+Module -> Root : dispatch*Event(record, optional device)
+Root -> Event : create typed EventView
+Root -> Root : _propagate(event, handler)
+
+alt root inactive or event already consumed
+	Root --> Module : stop
+else active
+	Root -> Child : _propagate(event, handler)
+	alt child inactive
+		Child --> Root : skip child subtree
+	else child active
+		Child -> Leaf : _propagate(event, handler)
+		Leaf -> Leaf : _on*Event(event)
+		alt leaf consumes
+			Leaf -> Event : consume()
+			Leaf --> Child : consumed
+			Child --> Root : consumed
+			Root --> Module : consumed
+		else not consumed
+			Leaf --> Child
+			Child -> Child : _on*Event(event)
+			Child --> Root
+			Root -> Root : _on*Event(event)
+		end
+	end
+end
+
+note right of Event
+EventView owns the consumed flag for this
+dispatch only. Record data and device state
+are exposed through const views.
+end note
+
+note over Root
+Propagation is child-first. A consumed event
+stops traversal before parent handlers that
+have not yet run.
+end note
+
+@enduml

@@ -1,0 +1,54 @@
+@startuml
+title Render Snapshot Rebuild
+
+skinparam ParticipantPadding 8
+
+participant "Update loop" as UpdateLoop
+participant "Window" as Window
+participant "WindowSnapshotManager" as Manager
+participant "RenderSnapshotBuilder" as SnapshotBuilder
+participant "RenderUnitBuilder" as UnitBuilder
+participant "Root Widget" as Root
+participant "Widget subtree" as Widget
+participant "RenderModule" as RenderModule
+
+UpdateLoop -> Window : update()
+Window -> Window : _processPendingEvents()
+Window -> Window : _updateModule.update()
+Window -> Window : _rebuildRenderSnapshot()
+Window -> Manager : rebuild(rootWidget, renderModule)
+activate Manager
+
+Manager -> SnapshotBuilder : create
+Manager -> UnitBuilder : create render-pass prep unit
+UnitBuilder -> UnitBuilder : emplace<ViewportCommand>(root.viewport())
+UnitBuilder -> UnitBuilder : emplace<ClearCommand>()
+Manager -> SnapshotBuilder : append(preparation unit)
+
+Manager -> Root : appendRenderUnits(builder)
+Root -> Root : append viewport unit
+Root -> Root : append renderUnit()
+loop each active child
+	Root -> Widget : appendRenderUnits(builder)
+	Widget -> Widget : append viewport unit
+	Widget -> Widget : append renderUnit()
+end
+
+Manager -> SnapshotBuilder : build()
+SnapshotBuilder --> Manager : RenderSnapshot
+Manager -> RenderModule : publishSnapshot(shared snapshot)
+deactivate Manager
+
+note right of Root
+Dirty widgets rebuild their cached RenderUnit.
+Inactive widgets and fully clipped subtrees
+do not append render units.
+end note
+
+note over RenderModule
+publishSnapshot() swaps the shared snapshot
+under a mutex. The render thread later reads
+the latest snapshot through currentSnapshot().
+end note
+
+@enduml

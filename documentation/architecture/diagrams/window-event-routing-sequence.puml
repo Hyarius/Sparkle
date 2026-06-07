@@ -47,7 +47,16 @@ loop each frame event, FIFO inside frame family
 	end
 	alt WindowCloseRequestedRecord and not consumed
 		Window -> Window : enqueue PlatformAction.ValidateClosure
+	else WindowCloseRequestedRecord consumed
+		Window -> Window : _closureRequested = false
+	else WindowDestroyedRecord
+		Window -> Window : _isClosed = true
+		Window -> Window : _closureNotificationPending = true
 	end
+end
+
+alt window became closed
+	Window --> UpdateThread : skip mouse/keyboard/update/snapshot
 end
 
 Window -> Module : MouseModule.processEvents()
@@ -67,5 +76,6 @@ end
 Window -> Module : UpdateModule.update()
 Module -> Widget : update(UpdateTick)
 Window -> Window : _rebuildRenderSnapshot()
+Window -> Window : WindowSnapshotManager.rebuild(root, renderModule)
 
 @enduml

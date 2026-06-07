@@ -1,0 +1,92 @@
+@startuml
+title WindowHost Threading and Resources - Class View
+
+skinparam classAttributeIconSize 0
+
+namespace spk {
+	class WindowHost {
+		- unique_ptr<IFrame> _frame
+		- shared_ptr<GPUPlatformRuntime> _gpuPlatformRuntime
+		- unique_ptr<RenderContext> _renderContext
+		- thread::id _platformThreadID
+		- mutex _renderThreadMutex
+		- optional<thread::id> _renderThreadID
+		- _bindOrValidatePlatformThread(operation)
+		- _bindOrValidateRenderThreadLocked(operation)
+		- _validateRenderThreadLocked(operation)
+		- _ensureRenderContextLocked() : bool
+		+ isPlatformThread() : bool
+		+ isRenderThread() : bool
+		+ resize(rect)
+		+ notifyFrameResized(rect)
+		+ setTitle(title)
+		+ requestClosure()
+		+ validateClosure()
+		+ releaseFrame()
+		+ makeCurrent() : bool
+		+ renderContext() : RenderContext&
+		+ present()
+		+ setVSync(enabled)
+		+ releaseRenderContext()
+		+ subscribeToMouseEvents(callback)
+		+ subscribeToKeyboardEvents(callback)
+		+ subscribeToFrameEvents(callback)
+	}
+
+	abstract class IFrame {
+		+ resize(rect)
+		+ setTitle(title)
+		+ requestClosure()
+		+ validateClosure()
+		+ rect() : Rect2D
+		+ title() : string
+		+ surfaceState() : shared_ptr<SurfaceState>
+	}
+
+	class SurfaceState {
+		- atomic<bool> _isValid
+		- Rect2D _rect
+		+ invalidate()
+		+ isValid() : bool
+		+ setRect(rect)
+		+ rect() : Rect2D
+	}
+
+	class GPUPlatformRuntime {
+		+ createRenderContext(frame) : unique_ptr<RenderContext>
+		+ waitUntilWorkDone()
+	}
+
+	class RenderContext {
+		- shared_ptr<SurfaceState> _surfaceState
+		+ invalidate()
+		+ isValid() : bool
+		+ makeCurrent()
+		+ notifyResize(rect)
+		+ setVSync(enabled)
+		+ present()
+	}
+}
+
+spk.WindowHost *-- spk.IFrame
+spk.WindowHost --> spk.GPUPlatformRuntime
+spk.WindowHost *-- spk.RenderContext
+spk.GPUPlatformRuntime --> spk.RenderContext : creates lazily
+spk.IFrame *-- spk.SurfaceState
+spk.RenderContext --> spk.SurfaceState
+
+note right of spk.WindowHost
+Frame operations are platform-thread only.
+Render operations bind the first render thread
+that calls makeCurrent() and validate later
+render-context access against that thread.
+end note
+
+note bottom of spk.WindowHost
+_ensureRenderContextLocked() creates the render
+context only when the frame still exists and its
+SurfaceState is valid. releaseFrame() invalidates
+the SurfaceState so future render calls can stop.
+end note
+
+@enduml
