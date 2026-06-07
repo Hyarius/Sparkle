@@ -20,6 +20,12 @@ App -> RenderThread : start _runRenderLoop()
 App -> UpdateThread : start _runUpdateLoop()
 App -> EventLoop : _runEventLoop()
 
+note right of App
+External shutdown is requested with Application::quit(exitCode).
+The embedding executable owns OS signal/message translation
+(for example SIGINT or WM_QUIT) and forwards it to quit().
+end note
+
 loop until stop requested
 	EventLoop -> Platform : pollEvents()
 	Platform -> Window : enqueue Frame/Mouse/Keyboard events
@@ -55,6 +61,13 @@ note over EventLoop,UpdateThread
 The event loop receives platform events and enqueues them only.
 The update loop performs effective event use: module state updates,
 widget dispatch, and render snapshot rebuild.
+end note
+
+note over App,UpdateThread
+Worker exceptions are captured as std::exception_ptr.
+If render and update fail concurrently, the first exception recorded
+under Application's failure mutex is rethrown by run(); later concurrent
+failures are discarded.
 end note
 
 App -> RenderThread : join()

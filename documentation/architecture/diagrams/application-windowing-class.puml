@@ -110,6 +110,11 @@ spk.WindowHost --> spk.IRenderContext
 note right of spk.Application
 run() owns the event loop on the owner thread
 and starts separate render/update jthreads.
+quit() is the thread-safe external shutdown
+entry point. Embedding code forwards OS signals
+or WM_QUIT-style messages to quit().
+Worker failures are first-exception-wins under
+the application failure mutex.
 end note
 
 note right of spk.Window

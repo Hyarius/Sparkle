@@ -1,12 +1,80 @@
 ﻿#include <gtest/gtest.h>
 
 #include <atomic>
+#include <barrier>
+#include <memory>
+#include <stdexcept>
+#include <string>
 #include <thread>
 
 #define private public
 #include "application/spk_application.hpp"
 #undef private
 #include "window_test_utils.hpp"
+
+namespace
+{
+	class ThrowingPresentRenderContext : public sparkle_test::TestRenderContext
+	{
+	private:
+		std::barrier<>* _failureBarrier = nullptr;
+		std::atomic<bool>* _renderFailureReached = nullptr;
+
+	public:
+		ThrowingPresentRenderContext(
+			std::shared_ptr<spk::SurfaceState> p_surfaceState,
+			std::shared_ptr<sparkle_test::TestRenderContextStats> p_stats,
+			std::barrier<>* p_failureBarrier,
+			std::atomic<bool>* p_renderFailureReached) :
+			sparkle_test::TestRenderContext(std::move(p_surfaceState), std::move(p_stats)),
+			_failureBarrier(p_failureBarrier),
+			_renderFailureReached(p_renderFailureReached)
+		{
+		}
+
+		void present() override
+		{
+			_renderFailureReached->store(true);
+			_failureBarrier->arrive_and_wait();
+			throw std::runtime_error("render failure");
+		}
+	};
+
+	class ThrowingPresentGPUPlatformRuntime : public sparkle_test::TestGPUPlatformRuntime
+	{
+	private:
+		std::barrier<>* _failureBarrier = nullptr;
+		std::atomic<bool>* _renderFailureReached = nullptr;
+
+	public:
+		ThrowingPresentGPUPlatformRuntime(
+			std::barrier<>* p_failureBarrier,
+			std::atomic<bool>* p_renderFailureReached) :
+			_failureBarrier(p_failureBarrier),
+			_renderFailureReached(p_renderFailureReached)
+		{
+		}
+
+		std::unique_ptr<spk::RenderContext> createRenderContext(spk::IFrame& p_frame) override
+		{
+			++createRenderContextCount;
+			lastFrame = &p_frame;
+			lastCreateRenderContextThreadID = std::this_thread::get_id();
+
+			contextStats = std::make_shared<sparkle_test::TestRenderContextStats>();
+			auto result = std::make_unique<ThrowingPresentRenderContext>(
+				p_frame.surfaceState(),
+				contextStats,
+				_failureBarrier,
+				_renderFailureReached);
+			result->creationThreadID = std::this_thread::get_id();
+			contextStats->creationThreadID = result->creationThreadID;
+			createdContext = result.get();
+			return result;
+		}
+	};
+
+}
 
 TEST(ApplicationTest, CreateWindowAndLookupReturnTheManagedWindow)
 {
@@ -252,6 +320,118 @@ TEST(ApplicationTest, RunRethrowsWorkerThreadFailuresOnTheCallerThread)
 
 	EXPECT_THROW(application.run(), std::runtime_error);
 	EXPECT_FALSE(application.isRunning());
+}
+
+TEST(ApplicationTest, RunRethrowsOneWorkerFailureWhenRenderAndUpdateFailConcurrently)
+{
+	const spk::Duration step(1.0L, spk::TimeUnit::Millisecond);
+	std::barrier failureBarrier(2);
+	std::atomic<bool> updateFailureReached = false;
+	std::atomic<bool> renderFailureReached = false;
+	auto platformRuntime = std::make_shared<sparkle_test::TestPlatformRuntime>();
+	auto gpuPlatformRuntime = std::make_shared<ThrowingPresentGPUPlatformRuntime>(
+		&failureBarrier,
+		&renderFailureReached);
+
+	spk::Application application(
+		spk::Application::Configuration{
+			.platformRuntime = platformRuntime,
+			.gpuPlatformRuntime = gpuPlatformRuntime,
+			.renderInterval = step,
+			.updateInterval = step,
+			.eventPollingInterval = step,
+			.stopWhenNoWindows = false
+		});
+
+	application.createWindow(
+		"main",
+		spk::Window::Configuration{
+			.rect = sparkle_test::defaultRect(),
+			.title = "Main"
+		});
+
+	std::shared_ptr<spk::Window> window = application._windowRegistry._windows.at("main").window;
+	ASSERT_NE(window, nullptr);
+
+	sparkle_test::CallbackWidget probe("Probe", &sparkle_test::WindowAccess::rootWidget(*window));
+	probe.activate();
+	probe.onUpdate = [&](const spk::UpdateTick&)
+	{
+		updateFailureReached.store(true);
+		failureBarrier.arrive_and_wait();
+		throw std::runtime_error("update failure");
+	};
+
+	try
+	{
+		application.run();
+		FAIL() << "Expected one worker exception to be rethrown";
+	}
+	catch (const std::runtime_error& exception)
+	{
+		const std::string message = exception.what();
+		EXPECT_TRUE(message == "update failure" || message == "render failure");
+	}
+
+	EXPECT_TRUE(updateFailureReached.load());
+	EXPECT_TRUE(renderFailureReached.load());
+	EXPECT_FALSE(application.isRunning());
+	EXPECT_EQ(application._failure, nullptr);
+}
+
+TEST(ApplicationTest, ExternalQuitGracefullyClosesWindows)
+{
+	const spk::Duration step(1.0L, spk::TimeUnit::Millisecond);
+	auto platformRuntime = std::make_shared<sparkle_test::TestPlatformRuntime>();
+	auto gpuPlatformRuntime = std::make_shared<sparkle_test::TestGPUPlatformRuntime>();
+	auto* platformRuntimePtr = platformRuntime.get();
+	std::atomic<bool> sawClosureRequest = false;
+	std::atomic<bool> destroyQueued = false;
+
+	spk::Application application(
+		spk::Application::Configuration{
+			.platformRuntime = platformRuntime,
+			.gpuPlatformRuntime = gpuPlatformRuntime,
+			.renderInterval = step,
+			.updateInterval = step,
+			.eventPollingInterval = step,
+			.stopWhenNoWindows = false
+		});
+
+	application.createWindow(
+		"main",
+		spk::Window::Configuration{
+			.rect = sparkle_test::defaultRect(),
+			.title = "Main"
+		});
+
+	std::jthread externalQuitThread([&]()
+	{
+		while (application.isRunning() == false)
+		{
+			std::this_thread::yield();
+		}
+
+		application.quit(17);
+	});
+
+	platformRuntimePtr->onPollEvents = [&](sparkle_test::TestPlatformRuntime&)
+	{
+		if (destroyQueued.load() == false &&
+			platformRuntimePtr->createdFrame != nullptr &&
+			platformRuntimePtr->createdFrame->requestClosureCount > 0)
+		{
+			sawClosureRequest.store(true);
+			destroyQueued.store(true);
+			platformRuntimePtr->queueFrameEvent(spk::WindowDestroyedRecord{});
+		}
+	};
+
+	EXPECT_EQ(application.run(), 17);
+	externalQuitThread.join();
+
+	EXPECT_TRUE(sawClosureRequest.load());
+	EXPECT_FALSE(application.containsWindow("main"));
 }
 
 TEST(ApplicationTest, StopRequestsClosureAndWaitsForWindowDisposal)
