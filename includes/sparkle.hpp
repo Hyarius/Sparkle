@@ -105,7 +105,11 @@
 #include "structures/application/module/spk_update_module.hpp"
 
 // Widget system
+#include "structures/widget/spk_panel.hpp"
+#include "structures/widget/spk_push_button.hpp"
+#include "structures/widget/spk_text_label.hpp"
 #include "structures/widget/spk_widget.hpp"
+#include "structures/widget/spk_widget_style.hpp"
 
 // Window & application
 #include "structures/system/device/window/spk_window_host.hpp"
