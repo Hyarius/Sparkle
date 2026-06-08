@@ -1,0 +1,32 @@
+@startuml
+title Viewport and Clipping - Practical Flow
+
+skinparam ParticipantPadding 8
+
+participant "Window" as Window
+participant "Root Widget" as Root
+participant "Child Widget" as Child
+participant "RenderSnapshotBuilder" as SnapshotBuilder
+participant "RenderCommand" as Command
+participant "GPU" as GPU
+
+Window -> Root : prepare root viewport from frame size
+Root -> Child : provide parent viewport
+Child -> Child : intersect geometry with parent viewport
+
+Root -> SnapshotBuilder : append viewport command
+Root -> SnapshotBuilder : append drawing commands
+Child -> SnapshotBuilder : append clipped viewport
+Child -> SnapshotBuilder : append child drawing commands
+
+SnapshotBuilder -> Command : build snapshot commands
+Command -> GPU : set viewport/scissor
+Command -> GPU : draw only visible pixels
+
+note bottom
+Widget geometry limits where child widgets can draw.
+The render path turns that visible area into viewport
+and clipping commands.
+end note
+
+@enduml

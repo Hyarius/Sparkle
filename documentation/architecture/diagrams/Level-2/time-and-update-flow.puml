@@ -1,0 +1,28 @@
+@startuml
+title Time and Update - Practical Flow
+
+skinparam ParticipantPadding 8
+
+participant "Application update loop" as Loop
+participant "Timestamp" as Timestamp
+participant "Duration" as Duration
+participant "UpdateTick" as Tick
+participant "Timer / Chronometer" as Tools
+participant "Widget" as Widget
+
+Loop -> Timestamp : read current time
+Loop -> Duration : compute elapsed time
+Loop -> Tick : create update tick
+Loop -> Widget : update(tick)
+
+Widget -> Tick : read elapsed time
+Widget -> Tools : advance timers
+Tools -> Duration : compare thresholds
+Tools --> Widget : elapsed/finished state
+
+note bottom
+Update code receives explicit time values so movement,
+animation, and timers are independent from frame rate.
+end note
+
+@enduml

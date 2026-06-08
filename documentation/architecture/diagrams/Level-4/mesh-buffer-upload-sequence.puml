@@ -1,0 +1,30 @@
+@startuml
+title Mesh Buffer Upload - Sequence View
+
+skinparam ParticipantPadding 8
+
+participant "RenderCommand" as Command
+participant "Mesh" as Mesh
+participant "OpenGLRenderContext" as Context
+participant "OpenGLGPUDataBufferCenter" as BufferCenter
+participant "OpenGLVertexBufferObject" as VBO
+participant "OpenGLIndexBufferObject" as IBO
+participant "OpenGLVertexArrayObject" as VAO
+participant "OpenGLDrawElementsCommand" as Draw
+
+Command -> Mesh : vertices() and indices()
+Command -> Context : request GPU buffers for mesh
+Context -> BufferCenter : get or create mesh buffers
+BufferCenter -> VBO : upload vertex bytes
+BufferCenter -> IBO : upload index bytes
+BufferCenter -> VAO : configure vertex layout
+Command -> VAO : bind()
+Command -> Draw : execute primitive draw
+Draw -> Context : glDrawElements
+
+note bottom
+Mesh commands convert stable CPU mesh data into OpenGL
+buffer objects before issuing draw calls.
+end note
+
+@enduml

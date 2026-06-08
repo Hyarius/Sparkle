@@ -1,0 +1,32 @@
+@startuml
+title Widget Geometry and Viewport - Sequence View
+
+skinparam ParticipantPadding 8
+
+participant "FrameModule" as FrameModule
+participant "Root Widget" as Root
+participant "Parent Widget" as Parent
+participant "Child Widget" as Child
+participant "Viewport" as Viewport
+participant "RenderSnapshotBuilder" as Builder
+
+FrameModule -> Root : dispatch WindowResizedEvent
+Root -> Root : update root geometry from frame
+Root -> Parent : notify parent geometry changed
+Parent -> Parent : recompute global rect
+Parent -> Child : notify parent geometry changed
+Child -> Child : recompute global rect
+
+Root -> Viewport : create from frame rect
+Root -> Builder : append viewport command
+Parent -> Viewport : intersect parent rect
+Parent -> Builder : append parent viewport
+Child -> Viewport : intersect child rect with parent viewport
+Child -> Builder : append child viewport
+
+note bottom
+Each child is clipped by its own geometry and by every
+ancestor viewport before its drawing commands execute.
+end note
+
+@enduml

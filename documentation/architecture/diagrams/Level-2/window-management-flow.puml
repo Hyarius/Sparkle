@@ -1,0 +1,41 @@
+@startuml
+title Window Management - Practical Flow
+
+skinparam ParticipantPadding 8
+
+actor "User code" as User
+participant "Application" as App
+participant "WindowRegistry" as Registry
+participant "WindowHandle" as Handle
+participant "Window" as Window
+participant "Platform frame" as Frame
+
+User -> App : createWindow(rect, title)
+App -> Registry : create and store window
+Registry -> Window : construct
+Window -> Frame : create native frame
+Registry --> App : WindowHandle
+App --> User : handle
+
+User -> Handle : access widget/window operations
+Handle -> Registry : resolve live window
+Registry --> Handle : shared window, if still alive
+
+alt resize or title change
+	User -> Handle : request change
+	Handle -> Window : enqueue platform action
+	Window -> Frame : apply on platform thread
+end
+
+alt close requested
+	Frame -> Window : close event
+	Window -> Window : ask widgets to validate closure
+	alt accepted
+		Window -> Frame : release platform resources
+		Registry -> Registry : remove closed window
+	else consumed
+		Window --> Frame : keep window open
+	end
+end
+
+@enduml

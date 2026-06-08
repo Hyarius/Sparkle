@@ -1,0 +1,32 @@
+@startuml
+title Rendering Basics - Beginner Flow
+
+skinparam ParticipantPadding 8
+
+participant "Widget tree" as Widgets
+participant "RenderSnapshotBuilder" as Builder
+participant "RenderSnapshot" as Snapshot
+participant "Render thread" as RenderThread
+participant "RenderContext" as Context
+participant "GPU" as GPU
+
+Widgets -> Builder : append render units
+Builder -> Snapshot : build immutable snapshot
+
+... render tick ...
+
+RenderThread -> Context : make current
+RenderThread -> Snapshot : execute(context)
+loop each render command
+	Snapshot -> Context : execute command
+	Context -> GPU : draw
+end
+RenderThread -> Context : present()
+
+note right of Snapshot
+A snapshot is a prepared list of drawing work.
+It lets updating widgets and rendering frames
+stay separated.
+end note
+
+@enduml

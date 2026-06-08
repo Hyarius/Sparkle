@@ -1,0 +1,36 @@
+@startuml
+title Widget Update Traversal - Sequence View
+
+skinparam ParticipantPadding 8
+
+participant "UpdateModule" as UpdateModule
+participant "Root Widget" as Root
+participant "Parent Widget" as Parent
+participant "Child Widget" as Child
+participant "UpdateTick" as Tick
+participant "Mouse" as Mouse
+participant "Keyboard" as Keyboard
+
+UpdateModule -> UpdateModule : compute UpdateTick
+UpdateModule -> Root : update(tick)
+Root -> Root : skip if inactive or blocked
+Root -> Root : _onUpdate(tick)
+Root -> Parent : update(tick)
+Parent -> Parent : _onUpdate(tick)
+
+alt child active
+	Parent -> Child : update(tick)
+	Child -> Child : _onUpdate(tick)
+else child inactive
+	Parent -> Child : skip subtree
+end
+
+UpdateModule -> Mouse : expose current state to widgets
+UpdateModule -> Keyboard : expose current state to widgets
+
+note bottom
+Update traversal is separate from event dispatch. Input state
+has already been updated by the mouse and keyboard modules.
+end note
+
+@enduml

@@ -1,0 +1,67 @@
+@startuml
+title Application Runtime - Class View
+
+skinparam classAttributeIconSize 0
+
+namespace spk {
+	class Application {
+		- WindowRegistry _windowRegistry
+		- unique_ptr<PlatformRuntime> _platformRuntime
+		- unique_ptr<GPUPlatformRuntime> _gpuRuntime
+		- atomic<bool> _isRunning
+		+ createWindow(rect, title) : WindowHandle
+		+ run() : int
+		+ quit(exitCode)
+	}
+
+	class WindowRegistry {
+		+ createWindow(...)
+		+ windows()
+		+ removeClosedWindows()
+	}
+
+	class PlatformRuntime {
+		+ createFrame(rect, title)
+		+ pollEvents()
+	}
+
+	class GPUPlatformRuntime {
+		+ createRenderContext(frame)
+		+ waitUntilWorkDone()
+	}
+
+	class Window {
+		+ update()
+		+ render()
+		+ requestClosure()
+	}
+
+	class WindowHost
+	class WindowHandle
+	class FrameModule
+	class MouseModule
+	class KeyboardModule
+	class UpdateModule
+	class RenderModule
+}
+
+spk.Application *-- spk.WindowRegistry
+spk.Application *-- spk.PlatformRuntime
+spk.Application *-- spk.GPUPlatformRuntime
+spk.WindowRegistry o-- "0..*" spk.Window
+spk.WindowRegistry ..> spk.WindowHandle : creates
+spk.Window *-- spk.WindowHost
+spk.Window *-- spk.FrameModule
+spk.Window *-- spk.MouseModule
+spk.Window *-- spk.KeyboardModule
+spk.Window *-- spk.UpdateModule
+spk.Window *-- spk.RenderModule
+spk.WindowHost --> spk.PlatformRuntime
+spk.WindowHost --> spk.GPUPlatformRuntime
+
+note bottom of spk.Application
+Application owns the three runtime loops and coordinates
+platform events, updates, rendering, and shutdown.
+end note
+
+@enduml

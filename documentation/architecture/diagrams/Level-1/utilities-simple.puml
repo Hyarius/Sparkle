@@ -1,0 +1,33 @@
+@startuml
+title Utilities - Level 1
+
+skinparam classAttributeIconSize 0
+
+package "Reusable helpers" {
+	class Traits
+	class Flags
+	class CachedData
+	class Contracts
+	class BinaryField
+}
+
+package "Used by library systems" {
+	class Widgets
+	class Input
+	class Rendering
+	class Threads
+}
+
+Widgets --> Traits : activation and ownership behavior
+Input --> Contracts : event subscriptions
+Rendering --> CachedData : rebuild only when dirty
+Threads --> Contracts : safe delayed notifications
+Rendering --> Flags : option sets
+BinaryField --> Rendering : structured bytes when needed
+
+note bottom
+Utilities are not a separate feature for beginners.
+They are reusable building blocks used by the larger systems.
+end note
+
+@enduml

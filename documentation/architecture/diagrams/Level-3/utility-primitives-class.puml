@@ -1,0 +1,39 @@
+@startuml
+title Utility Primitives - Class View
+
+skinparam classAttributeIconSize 0
+
+namespace spk {
+	class CachedData<T> {
+		- bool _isDirty
+		+ invalidate()
+		+ get()
+	}
+
+	class Flags<TEnum>
+	class ObjectPool<T>
+	class ObservableValue<T>
+	class ContractProvider<T>
+	class ThreadSafeContract<T>
+	class ThreadSafeDeque<T>
+	class BinaryField
+	class ActivableTrait
+	class BlockableTrait
+	class InherenceTrait
+	class SynchronizableTrait
+}
+
+spk.ObservableValue --> spk.ContractProvider : emits changes through
+spk.ThreadSafeContract --> spk.ContractProvider : synchronizes callbacks
+spk.ThreadSafeDeque ..> spk.SynchronizableTrait
+spk.ObjectPool ..> spk.CachedData : reusable cached ownership pattern
+spk.BinaryField ..> spk.Flags : structured option bytes when needed
+spk.ActivableTrait ..> spk.Widget : used by widgets
+spk.InherenceTrait ..> spk.Widget : parent ownership pattern
+
+note bottom
+Utility primitives are independent, but many library systems
+reuse them for state, subscriptions, ownership, and queues.
+end note
+
+@enduml

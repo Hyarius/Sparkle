@@ -1,0 +1,33 @@
+@startuml
+title Mesh and Shape Drawing - Practical Flow
+
+skinparam ParticipantPadding 8
+
+actor "User code" as User
+participant "ColorMesh2D" as ColorMesh
+participant "TextureMesh2D" as TextureMesh
+participant "Image/Sprite/NineSlice command" as ImageCommands
+participant "RenderUnitBuilder" as Builder
+participant "RenderContext" as RenderContext
+
+User -> ColorMesh : define colored vertices
+User -> TextureMesh : define textured vertices
+User -> Builder : add rectangle / mesh / image commands
+Builder -> ImageCommands : create command objects
+
+alt color shape
+	ImageCommands -> ColorMesh : use color geometry
+else textured shape
+	ImageCommands -> TextureMesh : use UV geometry
+end
+
+ImageCommands -> RenderContext : execute()
+RenderContext -> RenderContext : upload or bind mesh buffers
+RenderContext -> RenderContext : draw triangles
+
+note bottom
+Rectangles, sprites, images, nine-slices, and meshes
+all become render commands that draw triangle data.
+end note
+
+@enduml

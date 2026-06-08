@@ -1,0 +1,56 @@
+@startuml
+title Window Registry and Handles - Class View
+
+skinparam classAttributeIconSize 0
+
+namespace spk {
+	class WindowRegistry {
+		- vector<shared_ptr<Window>> _windows
+		+ createWindow(rect, title) : WindowHandle
+		+ windows() : vector<weak_ptr<Window>>
+		+ removeClosedWindows()
+		+ size() : size_t
+	}
+
+	class WindowHandle {
+		- weak_ptr<Window> _window
+		+ expired() : bool
+		+ window() : shared_ptr<Window>
+		+ widget() : Widget&
+	}
+
+	class Window {
+		- unique_ptr<WindowHost> _host
+		- Widget _rootWidget
+		- bool _closed
+		+ requestClosure()
+		+ isClosed() : bool
+		+ rootWidget() : Widget&
+	}
+
+	class WindowHost {
+		- unique_ptr<IFrame> _frame
+		- unique_ptr<RenderContext> _renderContext
+		+ executePlatformAction(action)
+		+ executeRenderAction(action)
+	}
+
+	class Widget
+	class IFrame
+	class RenderContext
+}
+
+spk.WindowRegistry o-- "0..*" spk.Window
+spk.WindowRegistry ..> spk.WindowHandle : returns weak access
+spk.WindowHandle ..> spk.Window : resolves
+spk.Window *-- spk.WindowHost
+spk.Window *-- spk.Widget : root
+spk.WindowHost *-- spk.IFrame
+spk.WindowHost *-- spk.RenderContext
+
+note bottom
+Handles let user code refer to windows without owning their lifetime.
+The registry remains the authoritative owner of live windows.
+end note
+
+@enduml

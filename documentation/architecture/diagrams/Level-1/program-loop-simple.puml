@@ -1,0 +1,28 @@
+@startuml
+title Program Loop - Level 1
+
+skinparam ParticipantPadding 8
+
+actor "User code" as User
+participant "Sparkle" as Sparkle
+participant "Window" as Window
+
+User -> Sparkle : create application
+User -> Sparkle : create window
+User -> Sparkle : run()
+
+loop until the program stops
+	Sparkle -> Window : check messages
+	Sparkle -> Window : update
+	Sparkle -> Window : draw
+end
+
+Sparkle --> User : return exit code
+
+note over Sparkle,Window
+At the simplest level, Sparkle repeatedly
+checks what happened, updates the program,
+and draws the next image.
+end note
+
+@enduml

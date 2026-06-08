@@ -1,0 +1,45 @@
+@startuml
+title Test Support - Class View
+
+skinparam classAttributeIconSize 0
+
+package "GoogleTest suites" {
+	class "Application tests" as ApplicationTests
+	class "Window tests" as WindowTests
+	class "Rendering tests" as RenderingTests
+	class "OpenGL tests" as OpenGLTests
+	class "Utility tests" as UtilityTests
+}
+
+package "Test helpers" {
+	class WindowTestUtils
+	class OpenGLWrapperTestUtils
+	class RenderCommandTestUtils
+	class ImageComparisonTestUtils
+	class WidgetVisualTestHelpers
+	class TestResourcePathUtils
+}
+
+package "Resources" {
+	class ExpectedImages
+	class Fonts
+}
+
+ApplicationTests --> WindowTestUtils
+WindowTests --> WindowTestUtils
+RenderingTests --> RenderCommandTestUtils
+RenderingTests --> ImageComparisonTestUtils
+OpenGLTests --> OpenGLWrapperTestUtils
+OpenGLTests --> ImageComparisonTestUtils
+UtilityTests --> TestResourcePathUtils
+WidgetVisualTestHelpers --> WindowTestUtils
+ImageComparisonTestUtils --> ExpectedImages
+RenderCommandTestUtils --> ExpectedImages
+RenderingTests --> Fonts
+
+note bottom
+Visual tests render into controlled OpenGL contexts and compare
+the captured pixels with expected image resources.
+end note
+
+@enduml

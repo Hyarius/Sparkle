@@ -1,0 +1,24 @@
+@startuml
+title Assets - Level 1
+
+skinparam classAttributeIconSize 0
+
+class "Image" as Image
+class "Sprite sheet" as SpriteSheet
+class "Font" as Font
+class "Mesh" as Mesh
+class "Widget" as Widget
+class "Drawing command" as DrawingCommand
+
+Widget --> DrawingCommand : creates
+DrawingCommand --> Image : can use
+DrawingCommand --> SpriteSheet : can use
+DrawingCommand --> Font : can use
+DrawingCommand --> Mesh : can use
+
+note bottom
+Assets are reusable data. Widgets combine assets
+with drawing commands to display something.
+end note
+
+@enduml

@@ -1,0 +1,53 @@
+@startuml
+title OpenGL Buffer Resources - Class View
+
+skinparam classAttributeIconSize 0
+
+namespace spk {
+	abstract class OpenGLBufferObject {
+		- GLuint _id
+		- GLenum _target
+		+ bind()
+		+ unbind()
+		+ upload(bytes)
+	}
+
+	class OpenGLVertexBufferObject
+	class OpenGLIndexBufferObject
+	class OpenGLUniformBufferObject
+	class OpenGLShaderStorageBufferObject
+	class OpenGLLayoutBufferObject {
+		+ attributes()
+	}
+
+	class OpenGLVertexArrayObject {
+		- GLuint _id
+		+ bind()
+		+ attach(layout, vertexBuffer, indexBuffer)
+	}
+
+	class OpenGLGPUDataBufferCenter {
+		+ vertexBufferFor(mesh)
+		+ indexBufferFor(mesh)
+		+ vertexArrayFor(mesh)
+	}
+}
+
+spk.OpenGLVertexBufferObject --|> spk.OpenGLBufferObject
+spk.OpenGLIndexBufferObject --|> spk.OpenGLBufferObject
+spk.OpenGLUniformBufferObject --|> spk.OpenGLBufferObject
+spk.OpenGLShaderStorageBufferObject --|> spk.OpenGLBufferObject
+spk.OpenGLLayoutBufferObject --|> spk.OpenGLBufferObject
+spk.OpenGLVertexArrayObject --> spk.OpenGLLayoutBufferObject
+spk.OpenGLVertexArrayObject --> spk.OpenGLVertexBufferObject
+spk.OpenGLVertexArrayObject --> spk.OpenGLIndexBufferObject
+spk.OpenGLGPUDataBufferCenter o-- spk.OpenGLVertexBufferObject
+spk.OpenGLGPUDataBufferCenter o-- spk.OpenGLIndexBufferObject
+spk.OpenGLGPUDataBufferCenter o-- spk.OpenGLVertexArrayObject
+
+note bottom
+Buffer objects own OpenGL ids. The buffer center provides
+the cache that lets repeated render commands reuse GPU data.
+end note
+
+@enduml

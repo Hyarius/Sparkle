@@ -1,0 +1,33 @@
+@startuml
+title Utility Patterns - Practical Flow
+
+skinparam classAttributeIconSize 0
+
+class ObservableValue
+class ContractProvider
+class CachedData
+class Flags
+class ObjectPool
+class BinaryField
+class ThreadSafeDeque
+
+class "Event listeners" as Listeners
+class "Dirty render data" as DirtyData
+class "Option sets" as Options
+class "Reusable objects" as Objects
+class "Cross-thread queues" as Queues
+
+ObservableValue --> Listeners : notifies changes
+ContractProvider --> Listeners : manages subscriptions
+CachedData --> DirtyData : rebuilds on demand
+Flags --> Options : stores named bits
+ObjectPool --> Objects : reuses allocations
+BinaryField --> Objects : exposes typed byte sections
+ThreadSafeDeque --> Queues : passes work between loops
+
+note bottom
+Utility types appear throughout Sparkle where a small,
+reusable behavior is clearer than duplicating local code.
+end note
+
+@enduml

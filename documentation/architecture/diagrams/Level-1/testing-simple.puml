@@ -1,0 +1,40 @@
+@startuml
+title Testing - Level 1
+
+skinparam classAttributeIconSize 0
+
+package "Tests" {
+	class "Unit tests" as UnitTests
+	class "Window tests" as WindowTests
+	class "Rendering tests" as RenderingTests
+	class "Utility tests" as UtilityTests
+}
+
+package "Sparkle library" {
+	class Application
+	class Widget
+	class RenderCommand
+	class OpenGL
+	class Utils
+}
+
+package "Expected resources" {
+	class Images
+	class Fonts
+}
+
+UnitTests --> Application
+UnitTests --> Widget
+UtilityTests --> Utils
+WindowTests --> Application
+RenderingTests --> RenderCommand
+RenderingTests --> OpenGL
+RenderingTests --> Images : compares pixels
+RenderingTests --> Fonts : loads text assets
+
+note bottom
+Tests check small classes directly and also compare
+rendered output against expected images.
+end note
+
+@enduml

@@ -1,0 +1,37 @@
+@startuml
+title Window Snapshot Manager - Sequence View
+
+skinparam ParticipantPadding 8
+
+participant "Update thread" as UpdateThread
+participant "Window" as Window
+participant "WindowSnapshotManager" as Manager
+participant "Root Widget" as Root
+participant "RenderSnapshotBuilder" as SnapshotBuilder
+participant "RenderModule" as RenderModule
+participant "Render thread" as RenderThread
+participant "RenderContext" as RenderContext
+
+UpdateThread -> Window : update()
+Window -> Manager : rebuild(rootWidget, renderModule)
+Manager -> SnapshotBuilder : clear()
+Manager -> Root : prepare root viewport
+Root -> SnapshotBuilder : append viewport/render units
+Root -> Root : visit active children
+Root -> SnapshotBuilder : append child render units
+Manager -> SnapshotBuilder : build()
+SnapshotBuilder --> Manager : RenderSnapshot
+Manager -> RenderModule : publishSnapshot(snapshot)
+
+RenderThread -> Window : render()
+Window -> RenderModule : render(renderContext)
+RenderModule -> RenderModule : lock snapshot mutex
+RenderModule -> RenderContext : execute current snapshot
+RenderModule -> RenderModule : unlock snapshot mutex
+
+note bottom
+The update thread rebuilds immutable snapshots. The render thread
+reads the latest published snapshot without walking widgets.
+end note
+
+@enduml

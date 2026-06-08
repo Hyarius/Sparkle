@@ -1,0 +1,47 @@
+@startuml
+title OpenGL Runtime - Class View
+
+skinparam classAttributeIconSize 0
+
+namespace spk {
+	class GPUPlatformRuntime
+	class OpenGLRuntime {
+		+ createRenderContext(frame)
+		+ waitUntilWorkDone()
+		+ saveScreenshot(path, rect)
+	}
+
+	class OpenGLRenderContext {
+		+ makeCurrent()
+		+ present()
+		+ notifyResize(rect)
+		+ setVSync(enabled)
+	}
+
+	class OpenGLGPUDataBufferCenter {
+		+ bind()
+		+ upload()
+	}
+
+	class IFrame
+	class SurfaceState
+	class OpenGLTexture
+	class OpenGLProgram
+	class OpenGLVertexArrayObject
+}
+
+spk.OpenGLRuntime --|> spk.GPUPlatformRuntime
+spk.OpenGLRuntime --> spk.IFrame : creates context for
+spk.OpenGLRuntime --> spk.OpenGLRenderContext
+spk.OpenGLRenderContext --> spk.SurfaceState
+spk.OpenGLRenderContext *-- spk.OpenGLGPUDataBufferCenter
+spk.OpenGLRenderContext ..> spk.OpenGLTexture
+spk.OpenGLRenderContext ..> spk.OpenGLProgram
+spk.OpenGLRenderContext ..> spk.OpenGLVertexArrayObject
+
+note bottom of spk.OpenGLRenderContext
+The OpenGL render context owns backend state that render
+commands need after the platform frame is current.
+end note
+
+@enduml

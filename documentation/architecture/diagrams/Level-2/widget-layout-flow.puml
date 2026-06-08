@@ -1,0 +1,38 @@
+@startuml
+title Widget Layout - Practical Flow
+
+skinparam ParticipantPadding 8
+
+actor "User widget" as UserWidget
+participant "Parent Widget" as Parent
+participant "Child Widget" as Child
+participant "UpdateModule" as UpdateModule
+participant "RenderUnitBuilder" as Builder
+
+UserWidget -> Parent : create child widgets
+Parent -> Child : owns through parent-child tree
+
+loop each update tick
+	UpdateModule -> Parent : update(tick)
+	Parent -> Parent : run custom update
+	Parent -> Child : update(tick)
+	Child -> Child : run custom update
+end
+
+alt widget geometry changes
+	Parent -> Child : notify inherited geometry
+	Child -> Child : recompute local/global area
+end
+
+loop render snapshot rebuild
+	Parent -> Builder : append own drawing
+	Parent -> Child : appendRenderUnits(builder)
+	Child -> Builder : append child drawing
+end
+
+note over Parent,Child
+User widgets customize behavior by overriding event,
+update, and render-unit creation hooks.
+end note
+
+@enduml

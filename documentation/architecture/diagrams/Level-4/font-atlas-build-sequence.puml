@@ -1,0 +1,30 @@
+@startuml
+title Font Atlas Build - Sequence View
+
+skinparam ParticipantPadding 8
+
+actor "User code" as User
+participant "Font" as Font
+participant "TrueType loader" as Loader
+participant "Glyph cache" as GlyphCache
+participant "Atlas pixels" as AtlasPixels
+participant "Texture" as Texture
+participant "TextRenderCommand" as TextCommand
+
+User -> Font : load(path, size)
+Font -> Loader : read font data
+Loader --> Font : font face and metrics
+
+User -> TextCommand : draw text with font
+TextCommand -> Font : glyphsFor(text)
+loop each missing glyph
+	Font -> Loader : rasterize glyph
+	Loader --> Font : bitmap and metrics
+	Font -> AtlasPixels : pack bitmap
+	Font -> GlyphCache : store glyph atlas rect
+end
+Font -> Texture : setPixels(atlasPixels, GreyLevel)
+TextCommand -> GlyphCache : read metrics and UV rects
+TextCommand -> TextCommand : build textured quads
+
+@enduml

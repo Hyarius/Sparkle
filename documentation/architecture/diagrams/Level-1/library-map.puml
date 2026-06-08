@@ -1,0 +1,64 @@
+@startuml
+title Sparkle Library Map - Beginner View
+
+skinparam classAttributeIconSize 0
+
+package "Your program" {
+	class "main.cpp" as Main
+}
+
+package "Application" {
+	class Application
+	class WindowHandle
+}
+
+package "Window and widgets" {
+	class Window
+	class Widget
+}
+
+package "Input" {
+	class Mouse
+	class Keyboard
+	class Events
+}
+
+package "Rendering" {
+	class RenderCommand
+	class Image
+	class SpriteSheet
+	class Font
+	class Mesh
+}
+
+package "Math and time" {
+	class Vector2
+	class Rect2D
+	class Duration
+	class UpdateTick
+}
+
+Main --> Application : creates and runs
+Application --> WindowHandle : returns
+WindowHandle --> Widget : gives access to central widget
+Window --> Widget : owns root widget
+Widget --> Events : receives
+Widget --> RenderCommand : produces
+Widget --> UpdateTick : updates with
+Events --> Mouse
+Events --> Keyboard
+RenderCommand --> Image
+RenderCommand --> SpriteSheet
+RenderCommand --> Font
+RenderCommand --> Mesh
+Widget --> Rect2D : geometry
+Widget --> Vector2 : positions and sizes
+Application --> Duration : loop intervals
+
+note bottom
+Begin here: Application owns the running program,
+WindowHandle is what user code keeps, Widget is where
+updates, input, and drawing behavior are customized.
+end note
+
+@enduml

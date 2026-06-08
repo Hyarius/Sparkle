@@ -1,0 +1,55 @@
+@startuml
+title WinAPI Platform - Class View
+
+skinparam classAttributeIconSize 0
+
+namespace spk {
+	class PlatformRuntime
+	class WinAPICursor
+	class WinAPIPlatformRuntime {
+		- shared_ptr<WinAPIClass> _windowClass
+		+ createFrame(rect, title)
+		+ pollEvents()
+	}
+
+	class WinAPIClass {
+		+ registerClass()
+		+ className()
+	}
+
+	class WinAPIWindow {
+		+ resize(rect)
+		+ setTitle(title)
+		+ requestClosure()
+		+ validateClosure()
+	}
+
+	class WinAPIFrame {
+		+ rect()
+		+ surfaceState()
+	}
+
+	class WinAPIHelpers
+	class IFrame
+	class FrameEventRecord
+	class MouseEventRecord
+	class KeyboardEventRecord
+}
+
+spk.WinAPIPlatformRuntime --|> spk.PlatformRuntime
+spk.WinAPIPlatformRuntime *-- spk.WinAPIClass
+spk.WinAPIPlatformRuntime --> spk.WinAPIWindow : creates
+spk.WinAPIWindow --|> spk.IFrame
+spk.WinAPIWindow *-- spk.WinAPIFrame
+spk.WinAPIWindow --> spk.WinAPICursor
+spk.WinAPIWindow ..> spk.WinAPIHelpers
+spk.WinAPIWindow ..> spk.FrameEventRecord
+spk.WinAPIWindow ..> spk.MouseEventRecord
+spk.WinAPIWindow ..> spk.KeyboardEventRecord
+
+note bottom
+The WinAPI layer translates native messages into Sparkle's
+platform-independent frame, mouse, and keyboard records.
+end note
+
+@enduml

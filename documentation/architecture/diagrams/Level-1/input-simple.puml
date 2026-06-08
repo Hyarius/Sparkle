@@ -1,0 +1,26 @@
+@startuml
+title Input - Level 1
+
+skinparam ParticipantPadding 8
+
+actor "Player / user" as User
+participant "Operating system" as OS
+participant "Sparkle" as Sparkle
+participant "Widget" as Widget
+
+User -> OS : moves mouse or presses key
+OS -> Sparkle : sends input message
+Sparkle -> Widget : calls the matching event method
+
+alt widget handles it
+	Widget --> Sparkle : event consumed
+else widget ignores it
+	Widget --> Sparkle : event continues
+end
+
+note over Sparkle,Widget
+Sparkle turns platform messages into easier
+C++ events that widgets can react to.
+end note
+
+@enduml

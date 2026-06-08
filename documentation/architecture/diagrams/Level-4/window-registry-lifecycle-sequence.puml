@@ -1,0 +1,38 @@
+@startuml
+title Window Registry Lifecycle - Sequence View
+
+skinparam ParticipantPadding 8
+
+actor "User code" as User
+participant "Application" as App
+participant "WindowRegistry" as Registry
+participant "PlatformRuntime" as Platform
+participant "GPUPlatformRuntime" as GPU
+participant "Window" as Window
+participant "WindowHost" as Host
+participant "WindowHandle" as Handle
+
+User -> App : createWindow(rect, title)
+App -> Registry : createWindow(platform, gpu, rect, title)
+Registry -> Window : construct
+Window -> Host : construct(platform, gpu, rect, title)
+Host -> Platform : createFrame(rect, title)
+Platform --> Host : IFrame
+Registry -> Registry : store shared_ptr<Window>
+Registry -> Handle : construct weak_ptr<Window>
+Registry --> App : handle
+App --> User : handle
+
+User -> Handle : widget()
+Handle -> Registry : resolve weak window
+Registry --> Handle : live window
+Handle -> Window : rootWidget()
+Window --> User : Widget&
+
+Window -> Window : requestClosure()
+Window -> Host : request frame closure
+Host -> Host : release platform/render resources when safe
+Registry -> Registry : removeClosedWindows()
+Handle -> Handle : weak pointer may expire
+
+@enduml

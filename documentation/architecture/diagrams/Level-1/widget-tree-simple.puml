@@ -1,0 +1,26 @@
+@startuml
+title Widget Tree - Level 1
+
+skinparam classAttributeIconSize 0
+
+class "Root widget" as Root
+class "Panel widget" as Panel
+class "Button widget" as Button
+class "Text widget" as Text
+
+Root o-- Panel
+Panel o-- Button
+Panel o-- Text
+
+note right of Root
+A window starts with a root widget.
+You can add child widgets to build
+an interface as a tree.
+end note
+
+note bottom of Panel
+Moving, hiding, or disabling a parent
+can affect the widgets inside it.
+end note
+
+@enduml

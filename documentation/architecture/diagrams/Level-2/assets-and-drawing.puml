@@ -1,0 +1,45 @@
+@startuml
+title Assets and Drawing - Beginner View
+
+skinparam classAttributeIconSize 0
+
+class Image {
+	+ loadFromFile(path)
+}
+
+class SpriteSheet {
+	+ sprite(coord)
+}
+
+class Font {
+	+ atlas(size)
+	+ computeStringSize(text, size)
+}
+
+class Mesh {
+	+ addShape(...)
+}
+
+class RenderCommand
+class "ImageRenderCommand" as ImageCommand
+class "SpriteRenderCommand" as SpriteCommand
+class "TextRenderCommand" as TextCommand
+class "Draw*MeshRenderCommand" as MeshCommand
+
+Image <|-- SpriteSheet
+RenderCommand <|-- ImageCommand
+RenderCommand <|-- SpriteCommand
+RenderCommand <|-- TextCommand
+RenderCommand <|-- MeshCommand
+ImageCommand --> Image
+SpriteCommand --> SpriteSheet
+TextCommand --> Font
+MeshCommand --> Mesh
+
+note bottom
+Assets hold data such as pixels, sprites, glyphs,
+or vertices. Render commands describe how those
+assets should be drawn during a frame.
+end note
+
+@enduml

@@ -1,0 +1,31 @@
+@startuml
+title Observable Values and Cached Data - Sequence View
+
+skinparam ParticipantPadding 8
+
+participant "Owner object" as Owner
+participant "ObservableValue<T>" as Observable
+participant "ContractProvider<T>" as Contracts
+participant "Subscriber" as Subscriber
+participant "CachedData<T>" as Cache
+participant "Builder function" as Builder
+
+Subscriber -> Observable : subscribe(callback)
+Observable -> Contracts : store contract
+
+Owner -> Observable : set(newValue)
+Observable -> Contracts : trigger(newValue)
+Contracts -> Subscriber : callback(newValue)
+Subscriber -> Cache : invalidate()
+
+Owner -> Cache : get()
+alt dirty
+	Cache -> Builder : rebuild()
+	Builder --> Cache : new value
+	Cache -> Cache : store clean value
+else clean
+	Cache -> Cache : return stored value
+end
+Cache --> Owner : value
+
+@enduml

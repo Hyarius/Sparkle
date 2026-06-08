@@ -1,0 +1,30 @@
+@startuml
+title Text and Font - Practical Flow
+
+skinparam ParticipantPadding 8
+
+actor "User code" as User
+participant "Font" as Font
+participant "Glyph atlas" as Atlas
+participant "Texture" as Texture
+participant "TextRenderCommand" as TextCommand
+participant "RenderContext" as RenderContext
+
+User -> Font : load font file
+Font -> Font : rasterize requested glyphs
+Font -> Atlas : place glyph pixels
+Atlas -> Texture : upload atlas image
+
+User -> TextCommand : create text command
+TextCommand -> Font : request glyph metrics and atlas areas
+TextCommand -> TextCommand : build quads with alignment
+TextCommand -> RenderContext : execute()
+RenderContext -> Texture : bind atlas
+RenderContext -> RenderContext : draw text mesh
+
+note bottom
+Text drawing is regular rendering: font data creates
+an atlas texture, then text commands draw textured quads.
+end note
+
+@enduml

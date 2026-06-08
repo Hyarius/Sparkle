@@ -1,0 +1,40 @@
+@startuml
+title Input State Update - Sequence View
+
+skinparam ParticipantPadding 8
+
+participant "Platform frame" as Frame
+participant "MouseModule" as MouseModule
+participant "KeyboardModule" as KeyboardModule
+participant "FrameModule" as FrameModule
+participant "Mouse" as Mouse
+participant "Keyboard" as Keyboard
+participant "Root Widget" as Widget
+
+Frame -> MouseModule : pushEvent(MouseEventRecord)
+Frame -> KeyboardModule : pushEvent(KeyboardEventRecord)
+Frame -> FrameModule : pushEvent(FrameEventRecord)
+
+MouseModule -> MouseModule : drain queue
+loop each mouse event
+	MouseModule -> Mouse : update position/buttons
+	MouseModule -> Widget : dispatchMouseEvent(event, mouse)
+end
+
+KeyboardModule -> KeyboardModule : drain queue
+loop each keyboard event
+	KeyboardModule -> Keyboard : update key state
+	KeyboardModule -> Widget : dispatchKeyboardEvent(event, keyboard)
+end
+
+FrameModule -> FrameModule : drain queue
+loop each frame event
+	FrameModule -> Widget : dispatchFrameEvent(event)
+end
+
+note over Frame,Widget
+Event records are queued by the platform thread and consumed
+by the update thread in family-specific modules.
+end note
+
+@enduml

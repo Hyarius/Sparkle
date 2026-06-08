@@ -1,0 +1,61 @@
+@startuml
+title Render Context and Viewport - Class View
+
+skinparam classAttributeIconSize 0
+
+namespace spk {
+	class RenderContext {
+		+ makeCurrent()
+		+ present()
+		+ notifyResize(rect)
+		+ supportsOpenGLCommands() : bool
+	}
+
+	class Viewport {
+		- Rect2D _area
+		+ area() : Rect2D
+		+ intersection(other) : Viewport
+	}
+
+	class RenderSnapshot {
+		+ execute(renderContext)
+	}
+
+	class RenderUnit {
+		+ execute(renderContext)
+	}
+
+	abstract class RenderCommand {
+		+ execute(renderContext)
+	}
+
+	class ViewportRenderCommand {
+		- Viewport _viewport
+		+ execute(renderContext)
+	}
+
+	class Widget {
+		+ viewport() : Viewport
+		+ appendRenderUnits(builder)
+	}
+
+	class RenderSnapshotBuilder
+	class RenderUnitBuilder
+}
+
+spk.Widget --> spk.Viewport
+spk.Widget --> spk.RenderUnitBuilder
+spk.RenderSnapshotBuilder o-- spk.RenderUnit
+spk.RenderSnapshot o-- spk.RenderUnit
+spk.RenderUnit o-- spk.RenderCommand
+spk.ViewportRenderCommand --|> spk.RenderCommand
+spk.ViewportRenderCommand --> spk.Viewport
+spk.RenderCommand ..> spk.RenderContext
+spk.RenderContext ..> spk.Viewport : applies clipping state
+
+note bottom
+Viewport state is generated from widget geometry and later
+executed as render commands against the active render context.
+end note
+
+@enduml

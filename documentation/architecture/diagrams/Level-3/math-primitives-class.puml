@@ -1,0 +1,42 @@
+@startuml
+title Math Primitives - Class View
+
+skinparam classAttributeIconSize 0
+
+namespace spk {
+	class Vector2<T> {
+		+ x : T
+		+ y : T
+	}
+
+	class Vector3<T>
+	class Vector4<T>
+
+	class Rect2D {
+		+ position : Vector2
+		+ size : Vector2
+		+ contains(point)
+		+ intersection(rect)
+	}
+
+	class Matrix
+	class Quaternion
+	class ApproxValue<T>
+	class Constants
+	class Math
+}
+
+spk.Rect2D *-- spk.Vector2
+spk.Matrix ..> spk.Vector2
+spk.Matrix ..> spk.Vector3
+spk.Matrix ..> spk.Vector4
+spk.Quaternion ..> spk.Vector3
+spk.Math ..> spk.Constants
+spk.Math ..> spk.ApproxValue
+
+note bottom
+Math primitives are value types. Higher-level systems depend
+on them, but they avoid owning application or rendering state.
+end note
+
+@enduml

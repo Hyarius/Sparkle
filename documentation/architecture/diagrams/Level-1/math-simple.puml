@@ -1,0 +1,35 @@
+@startuml
+title Math Values - Level 1
+
+skinparam classAttributeIconSize 0
+
+package "Values used everywhere" {
+	class Vector2
+	class Rect2D
+	class Color
+	class Duration
+}
+
+package "Widgets" {
+	class Widget
+}
+
+package "Rendering" {
+	class RenderCommand
+	class Mesh
+	class Image
+}
+
+Widget --> Rect2D : position and size
+Widget --> Vector2 : points and movement
+Widget --> Duration : update time
+RenderCommand --> Color : tint or fill
+Mesh --> Vector2 : vertices
+Image --> Rect2D : source area
+
+note bottom
+Sparkle's small value types keep geometry, color,
+and time explicit instead of passing raw numbers around.
+end note
+
+@enduml

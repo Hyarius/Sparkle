@@ -1,0 +1,27 @@
+@startuml
+title Sprite Sheet Rendering - Sequence View
+
+skinparam ParticipantPadding 8
+
+actor "User code" as User
+participant "Image" as Image
+participant "Texture" as Texture
+participant "SpriteSheet" as SpriteSheet
+participant "SpriteRenderCommand" as SpriteCommand
+participant "TextureMesh2D" as Mesh
+participant "RenderContext" as RenderContext
+
+User -> Image : load image file
+Image -> Texture : upload pixels
+User -> SpriteSheet : create(image, sprite size)
+SpriteSheet -> SpriteSheet : compute sprite rectangles
+
+User -> SpriteCommand : draw selected sprite
+SpriteCommand -> SpriteSheet : spriteRect(index)
+SpriteSheet --> SpriteCommand : source rect
+SpriteCommand -> Mesh : build quad with UVs
+SpriteCommand -> RenderContext : execute()
+RenderContext -> Texture : bind image texture
+RenderContext -> Mesh : draw quad
+
+@enduml

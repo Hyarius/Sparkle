@@ -1,0 +1,39 @@
+@startuml
+title Application Lifecycle - Beginner Flow
+
+skinparam ParticipantPadding 8
+
+actor "User code" as User
+participant "Application" as App
+participant "Window" as Window
+participant "Widgets" as Widgets
+
+User -> App : create windows
+User -> App : run()
+
+loop until quit or no windows remain
+	App -> Window : poll platform events
+	App -> Widgets : update
+	App -> Widgets : collect drawing
+	App -> Window : render frame
+end
+
+alt user closes a window
+	Window -> Widgets : close requested event
+	alt event consumed
+		Widgets --> Window : keep open
+	else not consumed
+		Window -> Window : close and release resources
+	end
+end
+
+User -> App : quit(exitCode)
+App --> User : run() returns exitCode
+
+note over User,Widgets
+Beginner rule of thumb: build windows before run(),
+customize widgets, and call quit() when your program
+should stop from user code or host integration.
+end note
+
+@enduml

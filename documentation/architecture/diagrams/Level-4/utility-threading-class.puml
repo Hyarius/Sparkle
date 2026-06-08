@@ -1,0 +1,53 @@
+@startuml
+title Utility Threading - Class View
+
+skinparam classAttributeIconSize 0
+
+namespace spk {
+	class SynchronizableTrait {
+		- mutable mutex _mutex
+	}
+
+	class ThreadSafeDeque<T> {
+		- deque<T> _values
+		- mutex _mutex
+		+ pushBack(value)
+		+ popFront(output) : bool
+		+ drain() : vector<T>
+	}
+
+	class ContractProvider<T> {
+		+ subscribe(callback)
+		+ trigger(value)
+	}
+
+	class ThreadSafeContract<T> {
+		- mutex _mutex
+		+ trigger(value)
+		+ flush()
+	}
+
+	class BlockableTrait {
+		+ block()
+		+ unblock()
+		+ isBlocked()
+	}
+
+	class ActivableTrait {
+		+ activate()
+		+ deactivate()
+		+ isActive()
+	}
+}
+
+spk.ThreadSafeDeque ..> spk.SynchronizableTrait : same locking pattern
+spk.ThreadSafeContract --> spk.ContractProvider
+spk.ThreadSafeContract ..> spk.BlockableTrait : delayed flush behavior
+spk.ActivableTrait ..> spk.BlockableTrait : state gating concept
+
+note bottom
+Threading utilities provide small synchronized containers and
+callback lifetimes used by runtime modules and platform events.
+end note
+
+@enduml

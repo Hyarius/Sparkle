@@ -1,0 +1,33 @@
+@startuml
+title Input Reaches Widgets - Beginner Flow
+
+skinparam ParticipantPadding 8
+
+participant "Operating system" as OS
+participant "Sparkle platform layer" as Platform
+participant "Window event queues" as Queues
+participant "Input modules" as Modules
+participant "Widget tree" as Widgets
+
+OS -> Platform : mouse, keyboard, resize, close messages
+Platform -> Queues : stores Sparkle event records
+
+... next update tick ...
+
+Modules -> Queues : read pending events
+Modules -> Modules : update Mouse / Keyboard state
+Modules -> Widgets : dispatch typed events
+
+alt widget consumes event
+	Widgets --> Modules : stop propagation
+else not consumed
+	Widgets -> Widgets : continue through tree
+end
+
+note over OS,Widgets
+The operating system is translated into Sparkle events.
+Widgets see typed events such as mouse move, key press,
+text input, resize, and close requested.
+end note
+
+@enduml

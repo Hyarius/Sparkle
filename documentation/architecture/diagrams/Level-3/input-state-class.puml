@@ -1,0 +1,68 @@
+@startuml
+title Input State - Class View
+
+skinparam classAttributeIconSize 0
+
+namespace spk {
+	class InputState {
+		- Mouse _mouse
+		- Keyboard _keyboard
+		+ mouse() : Mouse&
+		+ keyboard() : Keyboard&
+	}
+
+	class Mouse {
+		+ position()
+		+ isButtonPressed(button)
+		+ press(button)
+		+ release(button)
+		+ move(position)
+	}
+
+	class Keyboard {
+		+ isKeyPressed(key)
+		+ press(key)
+		+ release(key)
+	}
+
+	class MouseEventRecord
+	class KeyboardEventRecord
+	class FrameEventRecord
+
+	class MouseModule {
+		- Mouse _mouse
+		+ pushEvent(MouseEventRecord)
+		+ processEvents()
+	}
+
+	class KeyboardModule {
+		- Keyboard _keyboard
+		+ pushEvent(KeyboardEventRecord)
+		+ processEvents()
+	}
+
+	class FrameModule {
+		+ pushEvent(FrameEventRecord)
+		+ processEvents(callback)
+	}
+
+	class Widget
+}
+
+spk.InputState *-- spk.Mouse
+spk.InputState *-- spk.Keyboard
+spk.MouseModule *-- spk.Mouse
+spk.KeyboardModule *-- spk.Keyboard
+spk.MouseModule ..> spk.MouseEventRecord
+spk.KeyboardModule ..> spk.KeyboardEventRecord
+spk.FrameModule ..> spk.FrameEventRecord
+spk.MouseModule --> spk.Widget : dispatches mouse events
+spk.KeyboardModule --> spk.Widget : dispatches keyboard events
+spk.FrameModule --> spk.Widget : dispatches frame events
+
+note bottom
+Modules mutate input state first, then dispatch typed
+event records into the widget tree.
+end note
+
+@enduml

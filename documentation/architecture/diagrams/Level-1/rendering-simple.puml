@@ -1,0 +1,21 @@
+@startuml
+title Rendering - Level 1
+
+skinparam ParticipantPadding 8
+
+participant "Widget" as Widget
+participant "Sparkle" as Sparkle
+participant "Screen" as Screen
+
+Widget -> Sparkle : describes what to draw
+Sparkle -> Sparkle : prepares drawing commands
+Sparkle -> Screen : shows the frame
+
+note over Widget,Screen
+Widgets do not draw directly to the screen.
+They describe drawing work via RenderUnit,
+and Sparkle performs it during the render
+step.
+end note
+
+@enduml

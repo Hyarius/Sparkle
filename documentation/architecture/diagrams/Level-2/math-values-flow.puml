@@ -1,0 +1,39 @@
+@startuml
+title Math Values - Practical Flow
+
+skinparam classAttributeIconSize 0
+
+class Vector2 {
+	+ x
+	+ y
+}
+
+class Vector3
+class Vector4
+class Rect2D {
+	+ position
+	+ size
+}
+class Matrix
+class Quaternion
+class ApproxValue
+
+class Widget
+class Mesh
+class RenderCommand
+class Tests
+
+Widget --> Vector2 : position and size
+Widget --> Rect2D : local/global bounds
+Mesh --> Vector2 : 2D vertices
+Mesh --> Vector3 : 3D-compatible data
+RenderCommand --> Matrix : transforms when needed
+RenderCommand --> Quaternion : orientation math when needed
+Tests --> ApproxValue : tolerant comparisons
+
+note bottom
+The math layer provides plain value types used by
+widgets, rendering data, and tests.
+end note
+
+@enduml

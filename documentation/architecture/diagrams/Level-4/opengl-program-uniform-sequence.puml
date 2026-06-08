@@ -1,0 +1,30 @@
+@startuml
+title OpenGL Program and Uniforms - Sequence View
+
+skinparam ParticipantPadding 8
+
+participant "RenderCommand" as Command
+participant "OpenGLProgram" as Program
+participant "OpenGLUniform" as Uniform
+participant "OpenGLTexture" as Texture
+participant "OpenGLSamplerObject" as Sampler
+participant "OpenGLRenderContext" as Context
+
+Command -> Program : bind()
+Program -> Program : compile/link if needed
+Command -> Program : uniform(\"matrix\")
+Program --> Command : OpenGLUniform
+Command -> Uniform : set(matrix)
+Command -> Program : uniform(\"color\")
+Program --> Command : OpenGLUniform
+Command -> Uniform : set(color)
+
+alt textured command
+	Command -> Texture : bind(texture unit)
+	Command -> Sampler : bind(texture unit)
+	Command -> Uniform : set(texture unit)
+end
+
+Command -> Context : issue draw call
+
+@enduml

@@ -1,0 +1,35 @@
+@startuml
+title Creating and Running a Window - Beginner Flow
+
+skinparam ParticipantPadding 8
+
+actor "User code" as User
+participant "Application" as App
+participant "WindowHandle" as Handle
+participant "Widget tree" as Widgets
+participant "Sparkle runtime" as Runtime
+
+User -> App : create Application
+User -> App : createWindow(id, rect/title)
+App --> User : WindowHandle
+User -> Handle : centralWidget()
+Handle --> User : root widget
+User -> Widgets : add child widgets or customize behavior
+
+User -> App : run()
+activate App
+loop while the app is running
+	Runtime -> Widgets : deliver input events
+	Runtime -> Widgets : update(UpdateTick)
+	Runtime -> Widgets : collect render commands
+	Runtime -> Runtime : draw and present
+end
+App --> User : exit code
+deactivate App
+
+note right of Handle
+User code normally keeps WindowHandle,
+not the internal Window object.
+end note
+
+@enduml

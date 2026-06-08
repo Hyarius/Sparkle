@@ -1,0 +1,44 @@
+@startuml
+title Widget Basics - Beginner View
+
+skinparam classAttributeIconSize 0
+
+class Widget {
+	+ setGeometry(rect)
+	+ activate()
+	+ deactivate()
+	+ update(tick)
+	+ appendRenderUnits(builder)
+	# _onUpdate(tick)
+	# _onMouse*Event(event)
+	# _onKey*Event(event)
+	# _buildRenderUnit() : RenderUnit
+}
+
+class "Parent widget" as Parent
+class "Child widget" as Child
+class Rect2D
+class UpdateTick
+class EventView
+class RenderUnit
+
+Widget <|-- Parent
+Widget <|-- Child
+Parent o-- Child : owns child relationship
+Widget --> Rect2D : geometry
+Widget --> UpdateTick : receives
+Widget --> EventView : receives
+Widget --> RenderUnit : builds
+
+note right of Widget
+A widget is the main extension point.
+Override update, event, and render methods
+to create application-specific behavior.
+end note
+
+note bottom of Parent
+Widgets form a tree. Geometry and activation
+affect every child below a widget.
+end note
+
+@enduml

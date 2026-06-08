@@ -1,0 +1,35 @@
+@startuml
+title Platform - Level 1
+
+skinparam classAttributeIconSize 0
+
+package "Your program" {
+	class "main.cpp" as Main
+}
+
+package "Sparkle" {
+	class Application
+	class Window
+	class Widget
+	class Rendering
+}
+
+package "Computer" {
+	class "Operating system" as OS
+	class "GPU" as GPU
+}
+
+Main --> Application : starts
+Application --> Window : creates
+Window --> OS : owns a real window
+OS --> Window : sends close, resize, mouse, keyboard
+Widget --> Rendering : describes drawing
+Rendering --> GPU : draws pixels
+GPU --> Window : presents frame
+
+note bottom
+Beginner rule of thumb: user code works with Sparkle
+objects. Sparkle talks to the operating system and GPU.
+end note
+
+@enduml

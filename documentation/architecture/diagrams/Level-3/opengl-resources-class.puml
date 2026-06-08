@@ -1,0 +1,53 @@
+@startuml
+title OpenGL Resources - Class View
+
+skinparam classAttributeIconSize 0
+
+namespace spk {
+	class OpenGLBufferObject {
+		- GLuint _id
+		+ bind()
+		+ upload(data)
+	}
+
+	class OpenGLVertexBufferObject
+	class OpenGLIndexBufferObject
+	class OpenGLUniformBufferObject
+	class OpenGLShaderStorageBufferObject
+	class OpenGLLayoutBufferObject
+
+	class OpenGLVertexArrayObject {
+		+ bind()
+		+ attach(layout)
+	}
+
+	class OpenGLProgram {
+		+ bind()
+		+ uniform(name)
+	}
+
+	class OpenGLUniform {
+		+ set(value)
+	}
+
+	class OpenGLSamplerObject
+	class OpenGLTexture
+}
+
+spk.OpenGLVertexBufferObject --|> spk.OpenGLBufferObject
+spk.OpenGLIndexBufferObject --|> spk.OpenGLBufferObject
+spk.OpenGLUniformBufferObject --|> spk.OpenGLBufferObject
+spk.OpenGLShaderStorageBufferObject --|> spk.OpenGLBufferObject
+spk.OpenGLLayoutBufferObject --|> spk.OpenGLBufferObject
+spk.OpenGLVertexArrayObject --> spk.OpenGLLayoutBufferObject
+spk.OpenGLVertexArrayObject --> spk.OpenGLVertexBufferObject
+spk.OpenGLVertexArrayObject --> spk.OpenGLIndexBufferObject
+spk.OpenGLProgram --> spk.OpenGLUniform
+spk.OpenGLTexture --> spk.OpenGLSamplerObject
+
+note bottom
+Resource wrappers isolate OpenGL object ids and binding rules
+from higher-level rendering code.
+end note
+
+@enduml

@@ -1,0 +1,67 @@
+@startuml
+title Math Value Types - Detailed Class View
+
+skinparam classAttributeIconSize 0
+
+namespace spk {
+	class Vector2<T> {
+		+ x : T
+		+ y : T
+		+ norm()
+		+ normalize()
+	}
+
+	class Vector3<T> {
+		+ x : T
+		+ y : T
+		+ z : T
+	}
+
+	class Vector4<T> {
+		+ x : T
+		+ y : T
+		+ z : T
+		+ w : T
+	}
+
+	class Rect2D {
+		+ position : Vector2
+		+ size : Vector2
+		+ contains(point)
+		+ intersection(rect)
+	}
+
+	class Matrix {
+		+ identity()
+		+ translation()
+		+ scale()
+	}
+
+	class Quaternion {
+		+ identity()
+		+ normalize()
+	}
+
+	class ApproxValue<T> {
+		+ value
+		+ epsilon
+	}
+
+	class Constants
+	class Math
+}
+
+spk.Rect2D *-- spk.Vector2
+spk.Matrix ..> spk.Vector2
+spk.Matrix ..> spk.Vector3
+spk.Matrix ..> spk.Vector4
+spk.Quaternion ..> spk.Vector3
+spk.Math ..> spk.Constants
+spk.ApproxValue ..> spk.Math
+
+note bottom
+The math layer is intentionally value-oriented: objects are
+copied, compared, and passed into rendering or widget APIs.
+end note
+
+@enduml
