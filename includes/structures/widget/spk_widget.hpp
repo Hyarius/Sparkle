@@ -16,7 +16,16 @@ namespace spk
 {
 	class Widget : public spk::HierarchyTrait<Widget>, public spk::ActivableTrait
 	{
+	public:
+		enum class FocusType
+		{
+			Keyboard = 0,
+			Mouse = 1
+		};
+
 	private:
+		static inline Widget* _focusedWidgets[2] = {nullptr, nullptr};
+
 		std::string _name;
 		mutable bool _renderCommandsDirty = true;
 		mutable std::shared_ptr<spk::RenderUnit> _renderUnit = nullptr;
@@ -89,6 +98,13 @@ namespace spk
 		virtual ~Widget();
 
 		[[nodiscard]] const std::string& name() const;
+
+		static Widget* focusedWidget(FocusType p_focusType);
+		void takeFocus(FocusType p_focusType);
+		void releaseFocus(FocusType p_focusType);
+		[[nodiscard]] bool hasFocus(FocusType p_focusType) const;
+		void takeAllFocus();
+		void releaseAllFocus();
 
 		void setGeometry(const spk::Rect2D& p_geometry);
 		void invalidateRenderUnit() const;

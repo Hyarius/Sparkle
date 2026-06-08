@@ -11,6 +11,11 @@ namespace
 		spk::Vector2Int _inset;
 
 	protected:
+		void _onWindowResizedEvent(spk::WindowResizedEvent& p_event) override
+		{
+			setGeometry(p_event->rect.atOrigin());
+		}
+
 		void _onGeometryChange() override
 		{
 			++geometryChangeCount;

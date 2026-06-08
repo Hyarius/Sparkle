@@ -52,10 +52,7 @@ namespace spk
 	void Widget::_onWindowCloseRequestedEvent(spk::WindowCloseRequestedEvent &p_event) { (void)p_event; }
 	void Widget::_onWindowDestroyedEvent(spk::WindowDestroyedEvent &p_event) { (void)p_event; }
 	void Widget::_onWindowMovedEvent(spk::WindowMovedEvent &p_event) { (void)p_event; }
-	void Widget::_onWindowResizedEvent(spk::WindowResizedEvent &p_event)
-	{
-		setGeometry(p_event->rect.atOrigin());
-	}
+	void Widget::_onWindowResizedEvent(spk::WindowResizedEvent &p_event) { (void)p_event; }
 	void Widget::_onWindowFocusGainedEvent(spk::WindowFocusGainedEvent &p_event) { (void)p_event; }
 	void Widget::_onWindowFocusLostEvent(spk::WindowFocusLostEvent &p_event) { (void)p_event; }
 	void Widget::_onWindowShownEvent(spk::WindowShownEvent &p_event) { (void)p_event; }
@@ -78,7 +75,46 @@ namespace spk
 		_updateAbsoluteGeometryAndScissor();
 	}
 
-	Widget::~Widget() = default;
+	Widget::~Widget()
+	{
+		releaseAllFocus();
+	}
+
+	Widget* Widget::focusedWidget(FocusType p_focusType)
+	{
+		return _focusedWidgets[static_cast<int>(p_focusType)];
+	}
+
+	void Widget::takeFocus(FocusType p_focusType)
+	{
+		_focusedWidgets[static_cast<int>(p_focusType)] = this;
+	}
+
+	void Widget::releaseFocus(FocusType p_focusType)
+	{
+		int idx = static_cast<int>(p_focusType);
+		if (_focusedWidgets[idx] == this)
+		{
+			_focusedWidgets[idx] = nullptr;
+		}
+	}
+
+	bool Widget::hasFocus(FocusType p_focusType) const
+	{
+		return _focusedWidgets[static_cast<int>(p_focusType)] == this;
+	}
+
+	void Widget::takeAllFocus()
+	{
+		takeFocus(FocusType::Keyboard);
+		takeFocus(FocusType::Mouse);
+	}
+
+	void Widget::releaseAllFocus()
+	{
+		releaseFocus(FocusType::Keyboard);
+		releaseFocus(FocusType::Mouse);
+	}
 
 	const std::string &Widget::name() const
 	{
