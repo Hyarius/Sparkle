@@ -38,6 +38,13 @@ namespace spk
 		_configureMatrix();
 	}
 
+	Viewport::Viewport(const Viewport& p_other) :
+		_geometry(p_other._geometry),
+		_scissor(p_other._scissor)
+	{
+		_configureMatrix();
+	}
+
 	void Viewport::setGeometry(const spk::Rect2D& p_geometry)
 	{
 		_geometry = p_geometry;

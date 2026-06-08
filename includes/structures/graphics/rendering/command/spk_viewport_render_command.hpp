@@ -8,7 +8,7 @@ namespace spk
 	class ViewportCommand : public spk::RenderCommand
 	{
 	private:
-		const spk::Viewport& _viewport;
+		spk::Viewport _viewport;
 
 	public:
 		explicit ViewportCommand(const spk::Viewport& p_viewport);

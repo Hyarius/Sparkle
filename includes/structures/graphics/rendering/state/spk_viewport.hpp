@@ -28,6 +28,7 @@ namespace spk
 		Viewport();
 		explicit Viewport(const spk::Rect2D& p_geometry);
 		Viewport(const spk::Rect2D& p_geometry, const spk::Rect2D& p_scissor);
+		Viewport(const Viewport& p_other);
 		~Viewport() = default;
 
 		void setGeometry(const spk::Rect2D& p_geometry);
