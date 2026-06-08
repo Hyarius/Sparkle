@@ -1,0 +1,46 @@
+#pragma once
+
+#include <memory>
+#include <string>
+#include <string_view>
+
+#include "structures/math/spk_vector2.hpp"
+#include "structures/graphics/rendering/command/spk_draw_font_render_command.hpp"
+#include "structures/graphics/geometry/spk_color.hpp"
+#include "structures/graphics/texture/spk_font.hpp"
+#include "type/spk_horizontal_alignment.hpp"
+#include "structures/graphics/rendering/command/spk_render_command.hpp"
+#include "type/spk_vertical_alignment.hpp"
+
+namespace spk
+{
+	class TextRenderCommand : public spk::RenderCommand
+	{
+	private:
+		std::unique_ptr<spk::DrawFontRenderCommand> _fontCommand;
+
+	public:
+		TextRenderCommand(
+			const spk::Font& p_font,
+			spk::Font::Text p_text,
+			spk::Font::Size p_size,
+			spk::Color p_glyphColor,
+			spk::Color p_outlineColor,
+			float p_depth,
+			spk::Vector2Int p_anchor,
+			spk::HorizontalAlignment p_horizontalAlignment = spk::HorizontalAlignment::Left,
+			spk::VerticalAlignment p_verticalAlignment = spk::VerticalAlignment::Top);
+		TextRenderCommand(
+			const spk::Font& p_font,
+			std::string_view p_text,
+			spk::Font::Size p_size,
+			spk::Color p_glyphColor,
+			spk::Color p_outlineColor,
+			float p_depth,
+			spk::Vector2Int p_anchor,
+			spk::HorizontalAlignment p_horizontalAlignment = spk::HorizontalAlignment::Left,
+			spk::VerticalAlignment p_verticalAlignment = spk::VerticalAlignment::Top);
+
+		void execute(spk::RenderContext& p_renderContext) override;
+	};
+}

@@ -1,12 +1,12 @@
-﻿#include <filesystem>
+#include <filesystem>
 #include <memory>
 #include <vector>
 
 #include <gtest/gtest.h>
 #include <stb_image_write.h>
 
-#include "rendering/spk_render_unit_builder.hpp"
-#include "spk_widget_visual_test_helpers.hpp"
+#include "structures/graphics/rendering/unit/spk_render_unit_builder.hpp"
+#include "structures/widget/spk_widget_visual_test_helpers.hpp"
 
 #include <Windows.h>
 #include <GL/gl.h>

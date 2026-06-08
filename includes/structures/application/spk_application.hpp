@@ -1,0 +1,78 @@
+#pragma once
+
+#include <atomic>
+#include <exception>
+#include <memory>
+#include <mutex>
+#include <thread>
+
+#include "structures/system/time/spk_duration.hpp"
+#include "structures/system/device/runtime/spk_opengl_runtime.hpp"
+#include "structures/system/device/runtime/spk_platform_runtime.hpp"
+#include "structures/system/device/window/spk_window_handle.hpp"
+#include "structures/system/device/window/spk_window_registry.hpp"
+
+namespace spk
+{
+	class Application
+	{
+	public:
+		using WindowID = spk::WindowRegistry::WindowID;
+
+		struct Configuration
+		{
+			std::shared_ptr<PlatformRuntime> platformRuntime = nullptr;
+			std::shared_ptr<GPUPlatformRuntime> gpuPlatformRuntime = nullptr;
+			spk::Duration renderInterval = 16_ms;
+			spk::Duration updateInterval = 16_ms;
+			spk::Duration eventPollingInterval = 1_ms;
+			bool stopWhenNoWindows = true;
+		};
+
+	private:
+		Configuration _configuration;
+		std::shared_ptr<PlatformRuntime> _platformRuntime;
+		std::shared_ptr<GPUPlatformRuntime> _gpuPlatformRuntime;
+		spk::WindowRegistry _windowRegistry;
+		std::thread::id _ownerThreadID;
+		std::atomic<bool> _isRunning = false;
+		std::atomic<bool> _shutdownRequested = false;
+		std::atomic<bool> _stopRequested = false;
+		std::atomic<int> _exitCode = 0;
+		std::mutex _failureMutex;
+		std::exception_ptr _failure = nullptr;
+
+	private:
+		static std::shared_ptr<PlatformRuntime> _createDefaultPlatformRuntime();
+		static std::shared_ptr<GPUPlatformRuntime> _createDefaultGPUPlatformRuntime();
+		void _bindOrValidateOwnerThread(const char* p_operation);
+		void _recordFailure(std::exception_ptr p_failure);
+		void _rethrowFailureIfAny();
+
+		void _runRenderLoop();
+		void _runUpdateLoop();
+		void _runEventLoop();
+
+	public:
+		Application();
+		explicit Application(Configuration p_configuration);
+
+		spk::WindowHandle createWindow(const WindowID& p_id, spk::Window::Configuration p_configuration);
+
+		[[nodiscard]] spk::WindowHandle window(const WindowID& p_id);
+		[[nodiscard]] spk::WindowHandle window(const WindowID& p_id) const;
+		[[nodiscard]] bool containsWindow(const WindowID& p_id) const;
+		[[nodiscard]] bool isRunning() const;
+
+		void requestWindowClosing(const WindowID& p_id);
+		// Thread-safe external shutdown entry point. Applications that translate
+		// SIGINT, WM_QUIT, or other host signals should call quit() from their
+		// signal/message bridge instead of relying on widget-tree events.
+		void quit(int p_exitCode);
+		void stop();
+		// Worker-loop failures are transported with std::exception_ptr. If several
+		// worker loops fail concurrently, the first exception recorded under
+		// _failureMutex is rethrown by run(); later concurrent failures are ignored.
+		int run();
+	};
+}

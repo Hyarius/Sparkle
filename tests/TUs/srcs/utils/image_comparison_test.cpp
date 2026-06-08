@@ -6,8 +6,8 @@
 #include <stb_image.h>
 #include <stb_image_write.h>
 
-#include "image_comparison_test_utils.hpp"
-#include "test_resource_path_utils.hpp"
+#include "utils/image_comparison_test_utils.hpp"
+#include "utils/test_resource_path_utils.hpp"
 
 namespace
 {

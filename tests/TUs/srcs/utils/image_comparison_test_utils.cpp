@@ -1,4 +1,4 @@
-#include "image_comparison_test_utils.hpp"
+#include "utils/image_comparison_test_utils.hpp"
 
 #include <algorithm>
 #include <cstdlib>

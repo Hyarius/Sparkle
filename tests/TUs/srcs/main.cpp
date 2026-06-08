@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "opengl_wrapper_test_utils.hpp"
+#include "structures/graphics/opengl/opengl_wrapper_test_utils.hpp"
 
 class OpenGLGlobalEnvironment : public ::testing::Environment
 {

@@ -1,4 +1,4 @@
-#include "test_resource_path_utils.hpp"
+#include "utils/test_resource_path_utils.hpp"
 
 namespace spk::test
 {

@@ -1,8 +1,8 @@
 #include <iostream>
 
 #include <sparkle.hpp>
-#include "rendering/render_command/spk_color_rectangle_render_command.hpp"
-#include "rendering/render_command/spk_text_render_command.hpp"
+#include "structures/graphics/rendering/command/spk_color_rectangle_render_command.hpp"
+#include "structures/graphics/rendering/command/spk_text_render_command.hpp"
 #include "spk_generated_resources.hpp"
 
 namespace
