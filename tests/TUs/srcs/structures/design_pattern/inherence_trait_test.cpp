@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
@@ -8,14 +9,20 @@
 
 namespace
 {
-	class TestNode : public spk::InherenceTrait<TestNode>
+	class TestNode : public spk::HierarchyTrait<TestNode>
 	{
 	public:
 		TestNode() = default;
 		~TestNode() = default;
+
+		void runDuringTraversal(const std::function<void()>& p_callback)
+		{
+			spk::HierarchyTrait<TestNode>::HierarchyMutationGuard guard(this);
+			p_callback();
+		}
 	};
 
-	class CallbackTestNode : public spk::InherenceTrait<CallbackTestNode>
+	class CallbackTestNode : public spk::HierarchyTrait<CallbackTestNode>
 	{
 	public:
 		std::vector<std::string> events;
@@ -53,7 +60,7 @@ namespace
 	};
 }
 
-TEST(InherenceTraitTest, FreshNodeStartsWithoutParentOrChildren)
+TEST(HierarchyTraitTest, FreshNodeStartsWithoutParentOrChildren)
 {
 	TestNode node;
 
@@ -65,7 +72,7 @@ TEST(InherenceTraitTest, FreshNodeStartsWithoutParentOrChildren)
 	EXPECT_TRUE(node.isLeaf());
 }
 
-TEST(InherenceTraitTest, AddChildSetsParentAndAddsChildToChildrenList)
+TEST(HierarchyTraitTest, AddChildSetsParentAndAddsChildToChildrenList)
 {
 	TestNode parent;
 	TestNode child;
@@ -84,7 +91,7 @@ TEST(InherenceTraitTest, AddChildSetsParentAndAddsChildToChildrenList)
 	EXPECT_FALSE(parent.isLeaf());
 }
 
-TEST(InherenceTraitTest, AddChildIgnoresNullptr)
+TEST(HierarchyTraitTest, AddChildIgnoresNullptr)
 {
 	TestNode parent;
 
@@ -97,7 +104,7 @@ TEST(InherenceTraitTest, AddChildIgnoresNullptr)
 	EXPECT_TRUE(parent.isLeaf());
 }
 
-TEST(InherenceTraitTest, AddChildIgnoresSelf)
+TEST(HierarchyTraitTest, AddChildIgnoresSelf)
 {
 	TestNode node;
 
@@ -111,7 +118,7 @@ TEST(InherenceTraitTest, AddChildIgnoresSelf)
 	EXPECT_TRUE(node.isLeaf());
 }
 
-TEST(InherenceTraitTest, AddChildDoesNotDuplicateExistingChild)
+TEST(HierarchyTraitTest, AddChildDoesNotDuplicateExistingChild)
 {
 	TestNode parent;
 	TestNode child;
@@ -124,7 +131,7 @@ TEST(InherenceTraitTest, AddChildDoesNotDuplicateExistingChild)
 	EXPECT_EQ(child.parent(), &parent);
 }
 
-TEST(InherenceTraitTest, RemoveChildClearsParentAndRemovesFromChildrenList)
+TEST(HierarchyTraitTest, RemoveChildClearsParentAndRemovesFromChildrenList)
 {
 	TestNode parent;
 	TestNode child;
@@ -144,7 +151,7 @@ TEST(InherenceTraitTest, RemoveChildClearsParentAndRemovesFromChildrenList)
 	EXPECT_TRUE(child.isRoot());
 }
 
-TEST(InherenceTraitTest, RemoveChildIgnoresNullptr)
+TEST(HierarchyTraitTest, RemoveChildIgnoresNullptr)
 {
 	TestNode parent;
 	TestNode child;
@@ -158,7 +165,7 @@ TEST(InherenceTraitTest, RemoveChildIgnoresNullptr)
 	EXPECT_EQ(child.parent(), &parent);
 }
 
-TEST(InherenceTraitTest, RemoveChildIgnoresNodeThatIsNotAChild)
+TEST(HierarchyTraitTest, RemoveChildIgnoresNodeThatIsNotAChild)
 {
 	TestNode parent;
 	TestNode childA;
@@ -174,7 +181,7 @@ TEST(InherenceTraitTest, RemoveChildIgnoresNodeThatIsNotAChild)
 	EXPECT_EQ(childB.parent(), nullptr);
 }
 
-TEST(InherenceTraitTest, ReparentingRemovesChildFromPreviousParent)
+TEST(HierarchyTraitTest, ReparentingRemovesChildFromPreviousParent)
 {
 	TestNode firstParent;
 	TestNode secondParent;
@@ -193,7 +200,7 @@ TEST(InherenceTraitTest, ReparentingRemovesChildFromPreviousParent)
 	EXPECT_EQ(secondParent.children()[0], &child);
 }
 
-TEST(InherenceTraitTest, ClearChildrenRemovesAllChildrenAndClearsTheirParentPointers)
+TEST(HierarchyTraitTest, ClearChildrenRemovesAllChildrenAndClearsTheirParentPointers)
 {
 	TestNode parent;
 	TestNode firstChild;
@@ -227,7 +234,7 @@ TEST(InherenceTraitTest, ClearChildrenRemovesAllChildrenAndClearsTheirParentPoin
 	EXPECT_TRUE(thirdChild.isRoot());
 }
 
-TEST(InherenceTraitTest, HasChildReturnsTrueOnlyForCurrentChildren)
+TEST(HierarchyTraitTest, HasChildReturnsTrueOnlyForCurrentChildren)
 {
 	TestNode parent;
 	TestNode child;
@@ -242,7 +249,7 @@ TEST(InherenceTraitTest, HasChildReturnsTrueOnlyForCurrentChildren)
 	EXPECT_FALSE(parent.hasChild(&other));
 }
 
-TEST(InherenceTraitTest, ChildrenAccessorReturnsConstReferenceToChildrenList)
+TEST(HierarchyTraitTest, ChildrenAccessorReturnsConstReferenceToChildrenList)
 {
 	TestNode parent;
 	TestNode childA;
@@ -259,7 +266,7 @@ TEST(InherenceTraitTest, ChildrenAccessorReturnsConstReferenceToChildrenList)
 	EXPECT_EQ(children[1], &childB);
 }
 
-TEST(InherenceTraitTest, ChildDestructionRemovesItselfFromParent)
+TEST(HierarchyTraitTest, ChildDestructionRemovesItselfFromParent)
 {
 	TestNode parent;
 
@@ -276,7 +283,7 @@ TEST(InherenceTraitTest, ChildDestructionRemovesItselfFromParent)
 	EXPECT_TRUE(parent.isLeaf());
 }
 
-TEST(InherenceTraitTest, ParentDestructionClearsParentPointerOfChildren)
+TEST(HierarchyTraitTest, ParentDestructionClearsParentPointerOfChildren)
 {
 	TestNode childA;
 	TestNode childB;
@@ -299,7 +306,7 @@ TEST(InherenceTraitTest, ParentDestructionClearsParentPointerOfChildren)
 	EXPECT_TRUE(childB.isRoot());
 }
 
-TEST(InherenceTraitTest, DestructionDetachesRelationshipsWithoutInvokingCallbacksOnDyingNodes)
+TEST(HierarchyTraitTest, ChildDestructionNotifiesStillLiveParentOfDetachment)
 {
 	CallbackTestNode parent;
 	auto child = std::make_unique<CallbackTestNode>();
@@ -311,10 +318,11 @@ TEST(InherenceTraitTest, DestructionDetachesRelationshipsWithoutInvokingCallback
 	child.reset();
 
 	EXPECT_TRUE(parent.children().empty());
-	EXPECT_TRUE(parent.events.empty());
+	ASSERT_EQ(parent.events.size(), 1u);
+	EXPECT_EQ(parent.events[0], "child_removed");
 }
 
-TEST(InherenceTraitTest, ParentDestructionNotifiesStillLiveChildrenOfDetachment)
+TEST(HierarchyTraitTest, ParentDestructionNotifiesStillLiveChildrenOfDetachment)
 {
 	CallbackTestNode child;
 
@@ -328,7 +336,7 @@ TEST(InherenceTraitTest, ParentDestructionNotifiesStillLiveChildrenOfDetachment)
 	EXPECT_EQ(child.events[0], "parent_changed:parent->null");
 }
 
-TEST(InherenceTraitTest, ReparentingSeveralChildrenKeepsBothParentsConsistent)
+TEST(HierarchyTraitTest, ReparentingSeveralChildrenKeepsBothParentsConsistent)
 {
 	TestNode firstParent;
 	TestNode secondParent;
@@ -361,7 +369,7 @@ TEST(InherenceTraitTest, ReparentingSeveralChildrenKeepsBothParentsConsistent)
 	EXPECT_FALSE(secondParent.hasChild(&childC));
 }
 
-TEST(InherenceTraitTest, RemoveChildAfterReparentingDoesNotAffectPreviousParent)
+TEST(HierarchyTraitTest, RemoveChildAfterReparentingDoesNotAffectPreviousParent)
 {
 	TestNode firstParent;
 	TestNode secondParent;
@@ -381,7 +389,7 @@ TEST(InherenceTraitTest, RemoveChildAfterReparentingDoesNotAffectPreviousParent)
 	EXPECT_EQ(child.parent(), &secondParent);
 }
 
-TEST(InherenceTraitTest, ClearChildrenOnEmptyNodeIsSafe)
+TEST(HierarchyTraitTest, ClearChildrenOnEmptyNodeIsSafe)
 {
 	TestNode parent;
 
@@ -394,7 +402,7 @@ TEST(InherenceTraitTest, ClearChildrenOnEmptyNodeIsSafe)
 	EXPECT_TRUE(parent.isLeaf());
 }
 
-TEST(InherenceTraitTest, RemoveOnlyOneChildKeepsRemainingChildrenUntouched)
+TEST(HierarchyTraitTest, RemoveOnlyOneChildKeepsRemainingChildrenUntouched)
 {
 	TestNode parent;
 	TestNode childA;
@@ -419,7 +427,7 @@ TEST(InherenceTraitTest, RemoveOnlyOneChildKeepsRemainingChildrenUntouched)
 	EXPECT_EQ(childC.parent(), &parent);
 }
 
-TEST(InherenceTraitTest, ParentPointerUpdatesCorrectlyAcrossMultipleReparentings)
+TEST(HierarchyTraitTest, ParentPointerUpdatesCorrectlyAcrossMultipleReparentings)
 {
 	TestNode firstParent;
 	TestNode secondParent;
@@ -446,7 +454,7 @@ TEST(InherenceTraitTest, ParentPointerUpdatesCorrectlyAcrossMultipleReparentings
 	EXPECT_TRUE(thirdParent.hasChild(&child));
 }
 
-TEST(InherenceTraitTest, NbChildrenMatchesActualChildrenCount)
+TEST(HierarchyTraitTest, NbChildrenMatchesActualChildrenCount)
 {
 	TestNode parent;
 	TestNode childA;
@@ -467,7 +475,7 @@ TEST(InherenceTraitTest, NbChildrenMatchesActualChildrenCount)
 	EXPECT_EQ(parent.nbChildren(), 0u);
 }
 
-TEST(InherenceTraitTest, SetParentAttachesNodeToParent)
+TEST(HierarchyTraitTest, SetParentAttachesNodeToParent)
 {
 	TestNode parent;
 	TestNode child;
@@ -479,7 +487,7 @@ TEST(InherenceTraitTest, SetParentAttachesNodeToParent)
 	EXPECT_EQ(parent.nbChildren(), 1u);
 }
 
-TEST(InherenceTraitTest, SetParentToNullDetachesNodeFromParent)
+TEST(HierarchyTraitTest, SetParentToNullDetachesNodeFromParent)
 {
 	TestNode parent;
 	TestNode child;
@@ -496,7 +504,7 @@ TEST(InherenceTraitTest, SetParentToNullDetachesNodeFromParent)
 	EXPECT_FALSE(parent.hasChild(&child));
 }
 
-TEST(InherenceTraitTest, SetParentToSameParentDoesNothing)
+TEST(HierarchyTraitTest, SetParentToSameParentDoesNothing)
 {
 	TestNode parent;
 	TestNode child;
@@ -512,7 +520,7 @@ TEST(InherenceTraitTest, SetParentToSameParentDoesNothing)
 	EXPECT_TRUE(parent.hasChild(&child));
 }
 
-TEST(InherenceTraitTest, IsAncestorOfReturnsTrueForDirectAndIndirectAncestors)
+TEST(HierarchyTraitTest, IsAncestorOfReturnsTrueForDirectAndIndirectAncestors)
 {
 	TestNode root;
 	TestNode middle;
@@ -530,7 +538,7 @@ TEST(InherenceTraitTest, IsAncestorOfReturnsTrueForDirectAndIndirectAncestors)
 	EXPECT_FALSE(leaf.isAncestorOf(&root));
 }
 
-TEST(InherenceTraitTest, IsDescendantOfReturnsTrueForDirectAndIndirectParents)
+TEST(HierarchyTraitTest, IsDescendantOfReturnsTrueForDirectAndIndirectParents)
 {
 	TestNode root;
 	TestNode middle;
@@ -548,21 +556,21 @@ TEST(InherenceTraitTest, IsDescendantOfReturnsTrueForDirectAndIndirectParents)
 	EXPECT_FALSE(middle.isDescendantOf(&leaf));
 }
 
-TEST(InherenceTraitTest, IsAncestorOfReturnsFalseForNullptr)
+TEST(HierarchyTraitTest, IsAncestorOfReturnsFalseForNullptr)
 {
 	TestNode node;
 
 	EXPECT_FALSE(node.isAncestorOf(nullptr));
 }
 
-TEST(InherenceTraitTest, IsDescendantOfReturnsFalseForNullptr)
+TEST(HierarchyTraitTest, IsDescendantOfReturnsFalseForNullptr)
 {
 	TestNode node;
 
 	EXPECT_FALSE(node.isDescendantOf(nullptr));
 }
 
-TEST(InherenceTraitTest, AddChildPreventsDirectCycle)
+TEST(HierarchyTraitTest, AddChildPreventsDirectCycle)
 {
 	TestNode parent;
 	TestNode child;
@@ -578,7 +586,7 @@ TEST(InherenceTraitTest, AddChildPreventsDirectCycle)
 	EXPECT_EQ(child.nbChildren(), 0u);
 }
 
-TEST(InherenceTraitTest, AddChildPreventsIndirectCycle)
+TEST(HierarchyTraitTest, AddChildPreventsIndirectCycle)
 {
 	TestNode root;
 	TestNode middle;
@@ -602,7 +610,7 @@ TEST(InherenceTraitTest, AddChildPreventsIndirectCycle)
 	EXPECT_EQ(leaf.nbChildren(), 0u);
 }
 
-TEST(InherenceTraitTest, SetParentPreventsCycle)
+TEST(HierarchyTraitTest, SetParentPreventsCycle)
 {
 	TestNode root;
 	TestNode middle;
@@ -618,7 +626,7 @@ TEST(InherenceTraitTest, SetParentPreventsCycle)
 	EXPECT_EQ(leaf.parent(), &middle);
 }
 
-TEST(InherenceTraitTest, RootAndLeafStateUpdatesCorrectlyAcrossHierarchyChanges)
+TEST(HierarchyTraitTest, RootAndLeafStateUpdatesCorrectlyAcrossHierarchyChanges)
 {
 	TestNode root;
 	TestNode child;
@@ -644,7 +652,7 @@ TEST(InherenceTraitTest, RootAndLeafStateUpdatesCorrectlyAcrossHierarchyChanges)
 	EXPECT_TRUE(grandChild.isLeaf());
 }
 
-TEST(InherenceTraitTest, CallbackOnChildAddedIsCalled)
+TEST(HierarchyTraitTest, CallbackOnChildAddedIsCalled)
 {
 	CallbackTestNode parent;
 	CallbackTestNode child;
@@ -655,7 +663,7 @@ TEST(InherenceTraitTest, CallbackOnChildAddedIsCalled)
 	EXPECT_EQ(parent.events[0], "child_added");
 }
 
-TEST(InherenceTraitTest, CallbackOnChildRemovedIsCalled)
+TEST(HierarchyTraitTest, CallbackOnChildRemovedIsCalled)
 {
 	CallbackTestNode parent;
 	CallbackTestNode child;
@@ -669,7 +677,7 @@ TEST(InherenceTraitTest, CallbackOnChildRemovedIsCalled)
 	EXPECT_EQ(parent.events[0], "child_removed");
 }
 
-TEST(InherenceTraitTest, CallbackOnParentChangedIsCalledWhenAttached)
+TEST(HierarchyTraitTest, CallbackOnParentChangedIsCalledWhenAttached)
 {
 	CallbackTestNode parent;
 	CallbackTestNode child;
@@ -680,7 +688,7 @@ TEST(InherenceTraitTest, CallbackOnParentChangedIsCalledWhenAttached)
 	EXPECT_EQ(child.events[0], "parent_changed:null->parent");
 }
 
-TEST(InherenceTraitTest, CallbackOnParentChangedIsCalledWhenDetached)
+TEST(HierarchyTraitTest, CallbackOnParentChangedIsCalledWhenDetached)
 {
 	CallbackTestNode parent;
 	CallbackTestNode child;
@@ -694,7 +702,7 @@ TEST(InherenceTraitTest, CallbackOnParentChangedIsCalledWhenDetached)
 	EXPECT_EQ(child.events[0], "parent_changed:parent->null");
 }
 
-TEST(InherenceTraitTest, ReparentingTriggersRemoveAddAndParentChangedCallbacks)
+TEST(HierarchyTraitTest, ReparentingTriggersRemoveAddAndParentChangedCallbacks)
 {
 	CallbackTestNode firstParent;
 	CallbackTestNode secondParent;
@@ -716,4 +724,238 @@ TEST(InherenceTraitTest, ReparentingTriggersRemoveAddAndParentChangedCallbacks)
 
 	ASSERT_EQ(child.events.size(), 1u);
 	EXPECT_EQ(child.events[0], "parent_changed:parent->parent");
+}
+
+TEST(HierarchyTraitTest, SetParentDuringTraversalIsDeferredUntilTraversalEnds)
+{
+	TestNode firstParent;
+	TestNode secondParent;
+	TestNode child;
+
+	firstParent.addChild(&child);
+
+	firstParent.runDuringTraversal(
+		[&]()
+		{
+			child.setParent(&secondParent);
+
+			EXPECT_EQ(child.parent(), &firstParent);
+			EXPECT_TRUE(firstParent.hasChild(&child));
+			EXPECT_FALSE(secondParent.hasChild(&child));
+		});
+
+	EXPECT_EQ(child.parent(), &secondParent);
+	EXPECT_FALSE(firstParent.hasChild(&child));
+	EXPECT_TRUE(secondParent.hasChild(&child));
+}
+
+TEST(HierarchyTraitTest, ClearChildrenDuringTraversalIsDeferredUntilTraversalEnds)
+{
+	TestNode parent;
+	TestNode firstChild;
+	TestNode secondChild;
+
+	parent.addChild(&firstChild);
+	parent.addChild(&secondChild);
+
+	parent.runDuringTraversal(
+		[&]()
+		{
+			parent.clearChildren();
+
+			EXPECT_EQ(parent.nbChildren(), 2u);
+			EXPECT_EQ(firstChild.parent(), &parent);
+			EXPECT_EQ(secondChild.parent(), &parent);
+		});
+
+	EXPECT_TRUE(parent.children().empty());
+	EXPECT_EQ(firstChild.parent(), nullptr);
+	EXPECT_EQ(secondChild.parent(), nullptr);
+}
+
+TEST(HierarchyTraitTest, HierarchyMutationGuardOnlyDefersMutationsTouchingGuardedTree)
+{
+	TestNode blockedParent;
+	TestNode blockedChild;
+	TestNode unrelatedParent;
+	TestNode unrelatedChild;
+
+	blockedParent.addChild(&blockedChild);
+
+	blockedParent.runDuringTraversal(
+		[&]()
+		{
+			blockedChild.setParent(nullptr);
+			unrelatedChild.setParent(&unrelatedParent);
+
+			EXPECT_EQ(blockedChild.parent(), &blockedParent);
+			EXPECT_TRUE(blockedParent.hasChild(&blockedChild));
+
+			EXPECT_EQ(unrelatedChild.parent(), &unrelatedParent);
+			EXPECT_TRUE(unrelatedParent.hasChild(&unrelatedChild));
+		});
+
+	EXPECT_EQ(blockedChild.parent(), nullptr);
+	EXPECT_FALSE(blockedParent.hasChild(&blockedChild));
+	EXPECT_EQ(unrelatedChild.parent(), &unrelatedParent);
+	EXPECT_TRUE(unrelatedParent.hasChild(&unrelatedChild));
+}
+
+
+TEST(HierarchyTraitTest, BlockHierarchyMutationsCanBeReleasedManually)
+{
+	TestNode firstParent;
+	TestNode secondParent;
+	TestNode child;
+
+	firstParent.addChild(&child);
+
+	spk::HierarchyTrait<TestNode>::HierarchyMutationGuard guard(&firstParent);
+	child.setParent(&secondParent);
+
+	EXPECT_EQ(child.parent(), &firstParent);
+	EXPECT_TRUE(firstParent.hasChild(&child));
+	EXPECT_FALSE(secondParent.hasChild(&child));
+
+	guard.release();
+
+	EXPECT_EQ(child.parent(), &secondParent);
+	EXPECT_FALSE(firstParent.hasChild(&child));
+	EXPECT_TRUE(secondParent.hasChild(&child));
+}
+
+TEST(HierarchyTraitTest, MovedHierarchyMutationGuardKeepsDeferredMutationsBlockedUntilMovedGuardIsReleased)
+{
+	TestNode firstParent;
+	TestNode secondParent;
+	TestNode child;
+
+	firstParent.addChild(&child);
+
+	spk::HierarchyTrait<TestNode>::HierarchyMutationGuard guard(&firstParent);
+	auto movedGuard = std::move(guard);
+
+	child.setParent(&secondParent);
+
+	EXPECT_EQ(child.parent(), &firstParent);
+	EXPECT_TRUE(firstParent.hasChild(&child));
+	EXPECT_FALSE(secondParent.hasChild(&child));
+
+	movedGuard.release();
+
+	EXPECT_EQ(child.parent(), &secondParent);
+	EXPECT_FALSE(firstParent.hasChild(&child));
+	EXPECT_TRUE(secondParent.hasChild(&child));
+}
+
+TEST(HierarchyTraitTest, MoveAssigningHierarchyMutationGuardReleasesPreviousGuard)
+{
+	TestNode firstParent;
+	TestNode secondParent;
+	TestNode child;
+
+	firstParent.addChild(&child);
+
+	spk::HierarchyTrait<TestNode>::HierarchyMutationGuard firstGuard(&firstParent);
+	spk::HierarchyTrait<TestNode>::HierarchyMutationGuard secondGuard(&secondParent);
+
+	child.setParent(&secondParent);
+
+	EXPECT_EQ(child.parent(), &firstParent);
+	EXPECT_TRUE(firstParent.hasChild(&child));
+	EXPECT_FALSE(secondParent.hasChild(&child));
+
+	secondGuard = std::move(firstGuard);
+
+	EXPECT_EQ(child.parent(), &firstParent);
+	EXPECT_TRUE(firstParent.hasChild(&child));
+	EXPECT_FALSE(secondParent.hasChild(&child));
+
+	secondGuard.release();
+
+	EXPECT_EQ(child.parent(), &secondParent);
+	EXPECT_FALSE(firstParent.hasChild(&child));
+	EXPECT_TRUE(secondParent.hasChild(&child));
+}
+
+TEST(HierarchyTraitTest, DeferredSetParentUsesLatestParentForSameNode)
+{
+	TestNode firstParent;
+	TestNode secondParent;
+	TestNode thirdParent;
+	TestNode child;
+
+	firstParent.addChild(&child);
+
+	firstParent.runDuringTraversal(
+		[&]()
+		{
+			child.setParent(&secondParent);
+			child.setParent(&thirdParent);
+
+			EXPECT_EQ(child.parent(), &firstParent);
+			EXPECT_TRUE(firstParent.hasChild(&child));
+			EXPECT_FALSE(secondParent.hasChild(&child));
+			EXPECT_FALSE(thirdParent.hasChild(&child));
+		});
+
+	EXPECT_EQ(child.parent(), &thirdParent);
+	EXPECT_FALSE(firstParent.hasChild(&child));
+	EXPECT_FALSE(secondParent.hasChild(&child));
+	EXPECT_TRUE(thirdParent.hasChild(&child));
+}
+
+TEST(HierarchyTraitTest, DeferredSetParentIsIgnoredWhenTargetNodeWasDestroyedBeforeFlush)
+{
+	TestNode guardedParent;
+	TestNode newParent;
+	auto child = std::make_unique<TestNode>();
+
+	guardedParent.addChild(child.get());
+
+	ASSERT_EQ(child->parent(), &guardedParent);
+	ASSERT_TRUE(guardedParent.hasChild(child.get()));
+
+	guardedParent.runDuringTraversal(
+		[&]()
+		{
+			child->setParent(&newParent);
+
+			EXPECT_EQ(child->parent(), &guardedParent);
+			EXPECT_TRUE(guardedParent.hasChild(child.get()));
+			EXPECT_FALSE(newParent.hasChild(child.get()));
+
+			child.reset();
+
+			EXPECT_TRUE(guardedParent.children().empty());
+			EXPECT_EQ(newParent.nbChildren(), 0u);
+		});
+
+	EXPECT_TRUE(guardedParent.children().empty());
+	EXPECT_EQ(newParent.nbChildren(), 0u);
+}
+
+TEST(HierarchyTraitTest, DeferredSetParentIsIgnoredWhenTargetParentWasDestroyedBeforeFlush)
+{
+	TestNode guardedParent;
+	TestNode child;
+
+	guardedParent.addChild(&child);
+
+	guardedParent.runDuringTraversal(
+		[&]()
+		{
+			auto newParent = std::make_unique<TestNode>();
+
+			child.setParent(newParent.get());
+
+			EXPECT_EQ(child.parent(), &guardedParent);
+			EXPECT_TRUE(guardedParent.hasChild(&child));
+			EXPECT_TRUE(newParent->children().empty());
+
+			newParent.reset();
+		});
+
+	EXPECT_EQ(child.parent(), &guardedParent);
+	EXPECT_TRUE(guardedParent.hasChild(&child));
 }

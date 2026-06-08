@@ -71,7 +71,7 @@ namespace spk
 	void Widget::_onKeyReleasedEvent(spk::KeyReleasedEvent &p_event) { (void)p_event; }
 	void Widget::_onTextInputEvent(spk::TextInputEvent &p_event) { (void)p_event; }
 
-	Widget::Widget(const std::string &p_name, spk::Widget *p_parent) : spk::InherenceTrait<Widget>(p_parent),
+	Widget::Widget(const std::string &p_name, spk::Widget *p_parent) : spk::HierarchyTrait<Widget>(p_parent),
 																	   _name(p_name),
 																	   _viewport(makeViewport())
 	{
@@ -100,6 +100,8 @@ namespace spk
 
 	void Widget::_updateAbsoluteGeometryAndScissor()
 	{
+		spk::HierarchyTrait<Widget>::HierarchyMutationGuard guard(this);
+
 		_absoluteGeometry = _geometry;
 		if (parent() != nullptr)
 		{
@@ -133,6 +135,8 @@ namespace spk
 
 	void Widget::invalidateRenderUnitTree() const
 	{
+		spk::HierarchyTrait<Widget>::HierarchyMutationGuard guard(this);
+
 		invalidateRenderUnit();
 
 		for (const auto* child : children())
@@ -183,6 +187,8 @@ namespace spk
 
 	void Widget::appendRenderUnits(spk::RenderSnapshotBuilder &p_builder) const
 	{
+		spk::HierarchyTrait<Widget>::HierarchyMutationGuard guard(this);
+
 		if (isActivated() == false)
 		{
 			return;
@@ -212,6 +218,8 @@ namespace spk
 
 	void Widget::update(const spk::UpdateTick &p_tick)
 	{
+		spk::HierarchyTrait<Widget>::HierarchyMutationGuard guard(this);
+
 		if (isActivated() == false)
 		{
 			return;

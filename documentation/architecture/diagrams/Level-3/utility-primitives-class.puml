@@ -19,7 +19,7 @@ namespace spk {
 	class BinaryField
 	class ActivableTrait
 	class BlockableTrait
-	class InherenceTrait
+	class HierarchyTrait
 	class SynchronizableTrait
 }
 
@@ -29,7 +29,7 @@ spk.ThreadSafeDeque ..> spk.SynchronizableTrait
 spk.ObjectPool ..> spk.CachedData : reusable cached ownership pattern
 spk.BinaryField ..> spk.Flags : structured option bytes when needed
 spk.ActivableTrait ..> spk.Widget : used by widgets
-spk.InherenceTrait ..> spk.Widget : parent ownership pattern
+spk.HierarchyTrait ..> spk.Widget : parent ownership pattern
 
 note bottom
 Utility primitives are independent, but many library systems

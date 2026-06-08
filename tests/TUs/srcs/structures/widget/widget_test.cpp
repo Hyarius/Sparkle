@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include <functional>
 #include <memory>
 #include <utility>
 #include <vector>
@@ -16,6 +17,25 @@ namespace
 		p_module.publishSnapshot(std::make_shared<spk::RenderSnapshot>(std::move(p_snapshot)));
 		p_module.render(renderContext);
 	}
+
+	class MutatingFrameWidget : public sparkle_test::RecordingWidget
+	{
+	public:
+		using sparkle_test::RecordingWidget::RecordingWidget;
+
+		std::function<void()> onWindowShown = nullptr;
+
+	protected:
+		void _onWindowShownEvent(spk::WindowShownEvent& p_event) override
+		{
+			sparkle_test::RecordingWidget::_onWindowShownEvent(p_event);
+
+			if (onWindowShown != nullptr)
+			{
+				onWindowShown();
+			}
+		}
+	};
 }
 
 TEST(WidgetTest, ConstructionStoresNameAndOptionalParent)
@@ -506,4 +526,118 @@ TEST(WidgetTest, DeactivatedWidgetSkipsRenderCommandAppendUpdateAndEventDispatch
 	EXPECT_EQ(widget.frameEventCount, 0);
 	EXPECT_EQ(widget.mouseEventCount, 0);
 	EXPECT_EQ(widget.keyboardEventCount, 0);
+}
+
+TEST(WidgetTest, ReparentingDuringUpdateIsDeferredUntilTraversalEndsAndDoesNotSkipSiblings)
+{
+	sparkle_test::CallbackWidget parent("Parent");
+	sparkle_test::CallbackWidget secondParent("SecondParent");
+	sparkle_test::CallbackWidget firstChild("FirstChild", &parent);
+	sparkle_test::CallbackWidget secondChild("SecondChild", &parent);
+	std::vector<std::string> callLog;
+
+	parent.activate();
+	secondParent.activate();
+	firstChild.activate();
+	secondChild.activate();
+
+	parent.onUpdate = [&callLog](const spk::UpdateTick&) { callLog.push_back("parent"); };
+	firstChild.onUpdate =
+		[&](const spk::UpdateTick&)
+		{
+			callLog.push_back("first_child");
+			firstChild.setParent(&secondParent);
+
+			EXPECT_EQ(firstChild.parent(), &parent);
+			EXPECT_TRUE(parent.hasChild(&firstChild));
+			EXPECT_FALSE(secondParent.hasChild(&firstChild));
+		};
+	secondChild.onUpdate = [&callLog](const spk::UpdateTick&) { callLog.push_back("second_child"); };
+
+	spk::UpdateTick tick;
+	parent.update(tick);
+
+	EXPECT_EQ(callLog, std::vector<std::string>({"first_child", "second_child", "parent"}));
+	EXPECT_EQ(firstChild.parent(), &secondParent);
+	EXPECT_FALSE(parent.hasChild(&firstChild));
+	EXPECT_TRUE(parent.hasChild(&secondChild));
+	EXPECT_TRUE(secondParent.hasChild(&firstChild));
+}
+
+TEST(WidgetTest, ReparentingDuringRenderUnitAppendIsDeferredUntilTraversalEndsAndDoesNotSkipSiblings)
+{
+	sparkle_test::CallbackWidget parent("Parent");
+	sparkle_test::CallbackWidget secondParent("SecondParent");
+	sparkle_test::CallbackWidget firstChild("FirstChild", &parent);
+	sparkle_test::CallbackWidget secondChild("SecondChild", &parent);
+	spk::RenderSnapshotBuilder builder;
+	std::vector<std::string> callLog;
+
+	parent.activate();
+	secondParent.activate();
+	firstChild.activate();
+	secondChild.activate();
+
+	parent.onAppendRenderCommands = [&callLog]() { callLog.push_back("parent"); };
+	firstChild.onAppendRenderCommands =
+		[&]()
+		{
+			callLog.push_back("first_child");
+			firstChild.setParent(&secondParent);
+
+			EXPECT_EQ(firstChild.parent(), &parent);
+			EXPECT_TRUE(parent.hasChild(&firstChild));
+			EXPECT_FALSE(secondParent.hasChild(&firstChild));
+		};
+	secondChild.onAppendRenderCommands = [&callLog]() { callLog.push_back("second_child"); };
+
+	parent.appendRenderUnits(builder);
+
+	EXPECT_EQ(callLog, std::vector<std::string>({"parent", "first_child", "second_child"}));
+	EXPECT_EQ(firstChild.parent(), &secondParent);
+	EXPECT_FALSE(parent.hasChild(&firstChild));
+	EXPECT_TRUE(parent.hasChild(&secondChild));
+	EXPECT_TRUE(secondParent.hasChild(&firstChild));
+}
+
+TEST(WidgetTest, ReparentingDuringEventPropagationIsDeferredUntilPropagationEndsAndDoesNotSkipSiblings)
+{
+	MutatingFrameWidget parent("Parent");
+	MutatingFrameWidget firstChild("FirstChild", &parent);
+	MutatingFrameWidget secondChild("SecondChild", &parent);
+	MutatingFrameWidget secondParent("SecondParent");
+	std::vector<std::string> callLog;
+
+	parent.bindSharedCallLog(&callLog);
+	firstChild.bindSharedCallLog(&callLog);
+	secondChild.bindSharedCallLog(&callLog);
+
+	parent.activate();
+	firstChild.activate();
+	secondChild.activate();
+	secondParent.activate();
+
+	firstChild.onWindowShown =
+		[&]()
+		{
+			firstChild.setParent(&secondParent);
+
+			EXPECT_EQ(firstChild.parent(), &parent);
+			EXPECT_TRUE(parent.hasChild(&firstChild));
+			EXPECT_FALSE(secondParent.hasChild(&firstChild));
+		};
+
+	spk::FrameEventRecord shownEvent = spk::FrameEventRecord(spk::makeEventRecord(spk::WindowShownRecord{}));
+	parent.dispatchFrameEvent(shownEvent);
+
+	EXPECT_EQ(
+		callLog,
+		std::vector<std::string>({
+			"FirstChild:frame:WindowShown",
+			"SecondChild:frame:WindowShown",
+			"Parent:frame:WindowShown"}));
+	EXPECT_EQ(firstChild.parent(), &secondParent);
+	EXPECT_FALSE(parent.hasChild(&firstChild));
+	EXPECT_TRUE(parent.hasChild(&secondChild));
+	EXPECT_TRUE(secondParent.hasChild(&firstChild));
 }

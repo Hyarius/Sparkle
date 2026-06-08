@@ -5,7 +5,7 @@ skinparam classAttributeIconSize 0
 
 package "Traits and utilities" {
 	class ActivableTrait
-	class InherenceTrait
+	class HierarchyTrait
 	class SynchronizableTrait
 	class BinaryField
 	class ContractProvider

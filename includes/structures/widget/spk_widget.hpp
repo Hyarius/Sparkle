@@ -14,7 +14,7 @@
 
 namespace spk
 {
-	class Widget : public spk::InherenceTrait<Widget>, public spk::ActivableTrait
+	class Widget : public spk::HierarchyTrait<Widget>, public spk::ActivableTrait
 	{
 	private:
 		std::string _name;
@@ -31,6 +31,8 @@ namespace spk
 		template <typename TEvent>
 		void _propagate(TEvent& p_event, void (spk::Widget::*p_handler)(TEvent&))
 		{
+			spk::HierarchyTrait<Widget>::HierarchyMutationGuard guard(this);
+
 			if (isActivated() == false || p_event.isConsumed() == true)
 			{
 				return;

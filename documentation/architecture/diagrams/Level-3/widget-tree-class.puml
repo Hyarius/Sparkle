@@ -4,7 +4,7 @@ title Widget Tree - Class View
 skinparam classAttributeIconSize 0
 
 namespace spk {
-	class "InherenceTrait<Widget>" as InherenceTraitWidget {
+	class "HierarchyTrait<Widget>" as HierarchyTraitWidget {
 		- Widget* _parent
 		- vector<Widget*> _children
 		+ setParent(parent)
@@ -61,7 +61,7 @@ namespace spk {
 	class Viewport
 }
 
-spk.InherenceTraitWidget <|-- spk.Widget
+spk.HierarchyTraitWidget <|-- spk.Widget
 spk.ActivableTrait <|-- spk.Widget
 spk.Widget "1" o-- "0..*" spk.Widget : children
 spk.Widget --> spk.RenderSnapshotBuilder
