@@ -1,53 +1,5 @@
 #include <iostream>
-
 #include <sparkle.hpp>
-#include "structures/graphics/rendering/command/spk_color_rectangle_render_command.hpp"
-#include "structures/graphics/rendering/command/spk_text_render_command.hpp"
-#include "spk_generated_resources.hpp"
-
-namespace
-{
-	// const spk::Font::Size PlaygroundFontSize(48, 4);
-
-	// [[nodiscard]] spk::Font loadPlaygroundFont()
-	// {
-	// 	return spk::Font::fromRawData(SPARKLE_GET_RESOURCE("resources/fonts/arial.ttf"));
-	// }
-
-	class PlaygroundWidget : public spk::Widget
-	{
-	private:
-		//spk::Font _font;
-
-	protected:
-		spk::RenderUnit _buildRenderUnit() const override
-		{
-			spk::RenderUnitBuilder builder;
-			builder.emplace<spk::ColorRectangleRenderCommand>(
-				geometry().shrink({50, 50}),
-				spk::Color(1.0f, 0.0f, 0.0f, 1.0f));
-			// builder.emplace<spk::TextRenderCommand>(
-			// 	_font,
-			// 	"Hello, world!",
-			// 	PlaygroundFontSize,
-			// 	spk::Color(0.0f, 1.0f, 0.0f, 1.0f),
-			// 	spk::Color(1.0f, 0.0f, 0.0f, 1.0f),
-			// 	0.0f,
-			// 	center,
-			// 	spk::HorizontalAlignment::Centered,
-			// 	spk::VerticalAlignment::Centered);
-			return builder.build();
-		}
-
-	public:
-		explicit PlaygroundWidget(spk::Widget* p_parent) :
-			spk::Widget("PlaygroundWidget", p_parent)
-			//, _font(loadPlaygroundFont())
-		{
-			activate();
-		}
-	};
-}
 
 int main()
 {
@@ -58,18 +10,46 @@ int main()
 		spk::WindowHandle window = application.createWindow(
 			"main window",
 			spk::Window::Configuration{
-				.rect = spk::Rect2D(100, 100, 800, 600),
-				.title = "Sparkle Playground"});
+				.rect = spk::Rect2D(100, 100, 600, 500),
+				.title = "Widget Playground"});
 
-		PlaygroundWidget widget(&window.centralWidget());
-		widget.setGeometry(window.rect().atOrigin());
+		spk::WidgetStyle panelStyle = spk::WidgetStyle::makeDefault();
 
-		std::cout << "Sparkle playground window opened. Close the window to stop the application." << std::endl;
+		spk::Panel panel("Panel", panelStyle, &window.centralWidget());
+		panel.setGeometry(spk::Rect2D(20, 20, 260, 120));
+
+		spk::WidgetStyle labelStyle = spk::WidgetStyle::makeDefault();
+		labelStyle.setTextSize(spk::Font::Size(18, 2));
+		labelStyle.setGlyphColor(spk::Color(1.0f, 1.0f, 1.0f, 1.0f));
+		labelStyle.setOutlineColor(spk::Color(0.0f, 0.0f, 0.0f, 1.0f));
+
+		spk::TextLabel label("Label", "Hello, Sparkle!", labelStyle, &window.centralWidget());
+		label.setGeometry(spk::Rect2D(20, 160, 260, 60));
+
+		spk::WidgetStyle buttonReleased = spk::WidgetStyle::makeDefault();
+		buttonReleased.setTextSize(spk::Font::Size(16, 2));
+		buttonReleased.setGlyphColor(spk::Color(0.0f, 0.0f, 0.0f, 1.0f));
+		buttonReleased.setTextPadding(spk::Vector2Int(8, 4));
+
+		spk::WidgetStyle buttonPressed = spk::WidgetStyle::makeDefaultPressed();
+		buttonPressed.setTextSize(spk::Font::Size(16, 2));
+		buttonPressed.setGlyphColor(spk::Color(1.0f, 1.0f, 1.0f, 1.0f));
+		buttonPressed.setTextPadding(spk::Vector2Int(8, 4));
+
+		spk::PushButton button("Button", "Click Me!", buttonReleased, buttonPressed, &window.centralWidget());
+		button.setGeometry(spk::Rect2D(20, 240, 200, 60));
+
+		auto clickContract = button.subscribeToClick([]()
+		{
+			std::cout << "Button clicked!" << std::endl;
+		});
+
+		std::cout << "Widget playground opened. Close the window to exit." << std::endl;
 		return application.run();
 	}
 	catch (const std::exception& exception)
 	{
-		std::cerr << "Sparkle playground failed: " << exception.what() << std::endl;
+		std::cerr << "Playground failed: " << exception.what() << std::endl;
 		return 1;
 	}
 }
