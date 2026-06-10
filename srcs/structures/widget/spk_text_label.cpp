@@ -50,11 +50,11 @@ namespace spk
 	{
 		_styleEditionContract = p_style.subscribeToEdition([this](const spk::WidgetStyle& p_editedStyle)
 		{
-			_applyStyle(p_editedStyle);
+			applyStyle(p_editedStyle);
 		});
 	}
 
-	void TextLabel::_applyStyle(const spk::WidgetStyle& p_style)
+	void TextLabel::applyStyle(const spk::WidgetStyle& p_style)
 	{
 		setFont(p_style.font());
 		setTextSize(p_style.textSize());
@@ -66,13 +66,13 @@ namespace spk
 	void TextLabel::useDefaultStyle()
 	{
 		_bindStyle(spk::WidgetStyle::Collection::style(spk::WidgetStyle::Collection::Default));
-		_applyStyle(spk::WidgetStyle::Collection::style(spk::WidgetStyle::Collection::Default));
+		applyStyle(spk::WidgetStyle::Collection::style(spk::WidgetStyle::Collection::Default));
 	}
 
 	void TextLabel::useStyle(const spk::WidgetStyle& p_style)
 	{
 		_bindStyle(p_style);
-		_applyStyle(p_style);
+		applyStyle(p_style);
 	}
 
 	spk::Vector2Int TextLabel::_textAnchor() const

@@ -21,7 +21,6 @@ namespace spk::test
 		const auto expectedDir = expectedDirectory() / p_widgetName;
 		const auto resultDir = resultDirectory() / p_widgetName;
 		std::filesystem::create_directories(expectedDir);
-		std::filesystem::create_directories(resultDir);
 
 		const auto expectedPath = expectedDir / (p_variant + ".png");
 		const auto actualPath = resultDir / (p_variant + "_actual.png");
@@ -41,11 +40,10 @@ namespace spk::test
 		snapshot.execute(renderContext);
 		context.gpuRuntime().waitUntilWorkDone();
 
-		context.gpuRuntime().saveScreenshot(actualPath, p_captureRect.atOrigin());
-
 		if (std::filesystem::exists(expectedPath) == false)
 		{
-			ADD_FAILURE() << "Missing expected image at " << expectedPath.string() << ". Saved actual output to " << actualPath.string();
+			context.gpuRuntime().saveScreenshot(expectedPath, p_captureRect.atOrigin());
+			ADD_FAILURE() << "No expected image — rendered output saved to " << expectedPath.string() << ". Review and re-run.";
 			return sparkle_test::ImageComparisonResult{
 				.matches = false,
 				.actualWidth = static_cast<int>(p_captureRect.width()),
@@ -56,8 +54,17 @@ namespace spk::test
 			};
 		}
 
+		std::filesystem::create_directories(resultDir);
+		context.gpuRuntime().saveScreenshot(actualPath, p_captureRect.atOrigin());
+
 		sparkle_test::ImageComparisonResult result = sparkle_test::compareImages(actualPath, expectedPath, diffPath);
-		if (result.matches == false)
+		if (result.matches)
+		{
+			std::filesystem::remove(actualPath);
+			if (std::filesystem::is_empty(resultDir))
+				std::filesystem::remove(resultDir);
+		}
+		else
 		{
 			ADD_FAILURE() << "Visual mismatch for " << p_widgetName << " (" << p_variant << ")"
 						  << ". Diff: " << diffPath.string()

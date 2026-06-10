@@ -125,9 +125,16 @@ namespace sparkle_test
 
 		result.matches = result.differentPixelCount == 0;
 
-		if (stbi_write_png(p_differencePath.string().c_str(), diffWidth, diffHeight, 4, difference.data(), diffWidth * 4) == 0)
+		if (result.matches == false)
 		{
-			throw std::runtime_error("Failed to write image comparison diff [" + p_differencePath.string() + "]");
+			if (stbi_write_png(p_differencePath.string().c_str(), diffWidth, diffHeight, 4, difference.data(), diffWidth * 4) == 0)
+			{
+				throw std::runtime_error("Failed to write image comparison diff [" + p_differencePath.string() + "]");
+			}
+		}
+		else
+		{
+			std::filesystem::remove(p_actualPath);
 		}
 
 		return result;

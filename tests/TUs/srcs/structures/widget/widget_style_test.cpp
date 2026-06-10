@@ -147,6 +147,48 @@ TEST(WidgetStyleTest, TextLabelSubscribedToCollectionStyleUpdatesWhenStyleChange
 	EXPECT_TRUE(sameColor(label.outlineColor(), spk::Color(0.4f, 0.5f, 0.6f, 1.0f)));
 }
 
+TEST(WidgetStyleTest, ExplicitStyleIsAppliedOnConstruction)
+{
+	spk::WidgetStyle style = spk::WidgetStyle::makeDefault();
+	style.setNineSliceCornerSize({4, 5});
+	style.setTextSize(spk::Font::Size(24, 2));
+
+	spk::Panel panel("Panel", style);
+	spk::TextLabel label("Label", "Hello", style);
+
+	EXPECT_EQ(panel.cornerSize(), spk::Vector2Int(4, 5));
+	EXPECT_EQ(label.textSize(), spk::Font::Size(24, 2));
+}
+
+TEST(WidgetStyleTest, DefaultStyleRefreshesWidgetsWhenReplaced)
+{
+	spk::WidgetStyle originalStyle = spk::WidgetStyle::Collection::style(spk::WidgetStyle::Collection::Default);
+	spk::WidgetStyle firstStyle = originalStyle;
+	spk::WidgetStyle secondStyle = originalStyle;
+
+	firstStyle.setTextSize(spk::Font::Size(18, 1));
+	spk::WidgetStyle::Collection::setStyle(spk::WidgetStyle::Collection::Default, firstStyle);
+	spk::TextLabel label("Label", "Hello");
+	ASSERT_EQ(label.textSize(), spk::Font::Size(18, 1));
+
+	secondStyle.setTextSize(spk::Font::Size(30, 3));
+	spk::WidgetStyle::Collection::setStyle(spk::WidgetStyle::Collection::Default, secondStyle);
+
+	EXPECT_EQ(label.textSize(), spk::Font::Size(30, 3));
+	spk::WidgetStyle::Collection::setStyle(spk::WidgetStyle::Collection::Default, originalStyle);
+}
+
+TEST(WidgetStyleTest, DefaultStyleRefreshesWidgetsWhenEdited)
+{
+	spk::WidgetStyle originalStyle = spk::WidgetStyle::Collection::style(spk::WidgetStyle::Collection::Default);
+	spk::TextLabel label("Label", "Hello");
+
+	spk::WidgetStyle::Collection::style(spk::WidgetStyle::Collection::Default).setTextSize(spk::Font::Size(28, 2));
+
+	EXPECT_EQ(label.textSize(), spk::Font::Size(28, 2));
+	spk::WidgetStyle::Collection::setStyle(spk::WidgetStyle::Collection::Default, originalStyle);
+}
+
 TEST(WidgetStyleTest, PushButtonTracksReleasedAndPressedStylesIndependently)
 {
 	spk::WidgetStyle released = spk::WidgetStyle::makeDefault();
@@ -157,21 +199,13 @@ TEST(WidgetStyleTest, PushButtonTracksReleasedAndPressedStylesIndependently)
 	pressed.setTextPadding({3, 4});
 
 	spk::PushButton button("Button", "OK", released, pressed);
-	button.setGeometry(spk::Rect2D(10, 10, 80, 30));
 
-	EXPECT_EQ(button.textSize(), spk::Font::Size(12, 0));
-	EXPECT_EQ(button.textPadding(), spk::Vector2Int(1, 2));
-
-	spk::Mouse mouse;
-	mouse.position = {20, 20};
-	spk::MouseEventRecord pressEvent = spk::MouseEventRecord(spk::makeEventRecord(spk::MouseButtonPressedRecord{
-		.button = spk::Mouse::Left}));
-	button.dispatchMouseEvent(pressEvent, mouse);
-
-	EXPECT_EQ(button.textSize(), spk::Font::Size(18, 2));
-	EXPECT_EQ(button.textPadding(), spk::Vector2Int(3, 4));
+	EXPECT_EQ(button.releasedLabel().textSize(), spk::Font::Size(12, 0));
+	EXPECT_EQ(button.releasedLabel().padding(), spk::Vector2Int(1, 2));
+	EXPECT_EQ(button.pressedLabel().textSize(), spk::Font::Size(18, 2));
+	EXPECT_EQ(button.pressedLabel().padding(), spk::Vector2Int(3, 4));
 
 	pressed.setTextSize(spk::Font::Size(20, 1));
 
-	EXPECT_EQ(button.textSize(), spk::Font::Size(20, 1));
+	EXPECT_EQ(button.pressedLabel().textSize(), spk::Font::Size(20, 1));
 }

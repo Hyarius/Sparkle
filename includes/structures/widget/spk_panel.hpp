@@ -21,7 +21,6 @@ namespace spk
 		void _bindStyle(const spk::WidgetStyle& p_style);
 
 	protected:
-		virtual void _applyStyle(const spk::WidgetStyle& p_style);
 		[[nodiscard]] spk::RenderUnit _buildRenderUnit() const override;
 
 	public:
@@ -35,6 +34,7 @@ namespace spk
 			std::shared_ptr<spk::SpriteSheet> p_spriteSheet,
 			spk::Widget* p_parent = nullptr);
 
+		void applyStyle(const spk::WidgetStyle& p_style) override;
 		void useDefaultStyle();
 		void useStyle(const spk::WidgetStyle& p_style);
 		void setSpriteSheet(std::shared_ptr<spk::SpriteSheet> p_spriteSheet);

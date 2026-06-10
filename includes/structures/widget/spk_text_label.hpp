@@ -23,15 +23,14 @@ namespace spk
 		spk::Color _glyphColor;
 		spk::Color _outlineColor;
 		float _depth = 0.0f;
-		spk::HorizontalAlignment _horizontalAlignment = spk::HorizontalAlignment::Left;
-		spk::VerticalAlignment _verticalAlignment = spk::VerticalAlignment::Top;
+		spk::HorizontalAlignment _horizontalAlignment = spk::HorizontalAlignment::Centered;
+		spk::VerticalAlignment _verticalAlignment = spk::VerticalAlignment::Centered;
 		spk::Vector2Int _padding = {0, 0};
 		spk::WidgetStyle::Contract _styleEditionContract;
 
 		void _bindStyle(const spk::WidgetStyle& p_style);
 
 	protected:
-		virtual void _applyStyle(const spk::WidgetStyle& p_style);
 		[[nodiscard]] spk::Vector2Int _textAnchor() const;
 		[[nodiscard]] spk::RenderUnit _buildRenderUnit() const override;
 
@@ -47,6 +46,7 @@ namespace spk
 			const spk::WidgetStyle& p_style,
 			spk::Widget* p_parent = nullptr);
 
+		void applyStyle(const spk::WidgetStyle& p_style) override;
 		void useDefaultStyle();
 		void useStyle(const spk::WidgetStyle& p_style);
 		void setFont(std::shared_ptr<spk::Font> p_font);

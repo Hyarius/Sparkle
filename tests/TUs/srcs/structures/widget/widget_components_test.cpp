@@ -1,164 +1,318 @@
 #include <gtest/gtest.h>
 
-#include "structures/widget/spk_panel.hpp"
-#include "structures/widget/spk_push_button.hpp"
-#include "structures/widget/spk_text_label.hpp"
-#include "structures/widget/spk_widget_style.hpp"
+#include "structures/widget/spk_widget.hpp"
+#include "structures/system/device/window/window_test_utils.hpp"
 
-TEST(WidgetComponentsTest, PanelBuildsNineSliceRenderCommandFromDefaultStyle)
+namespace
 {
-	spk::Panel panel("Panel");
-	panel.setGeometry(spk::Rect2D(0, 0, 96, 48));
-
-	std::shared_ptr<spk::RenderUnit> renderUnit = panel.renderUnit();
-
-	ASSERT_NE(renderUnit, nullptr);
-	EXPECT_EQ(renderUnit->size(), 1u);
-	EXPECT_TRUE(panel.isActivated());
-}
-
-TEST(WidgetComponentsTest, TextLabelBuildsTextRenderCommandWhenTextIsNotEmpty)
-{
-	spk::TextLabel label("Label", "Hello");
-	label.setGeometry(spk::Rect2D(0, 0, 120, 40));
-	label.setAlignment(spk::HorizontalAlignment::Centered, spk::VerticalAlignment::Centered);
-
-	std::shared_ptr<spk::RenderUnit> renderUnit = label.renderUnit();
-
-	ASSERT_NE(renderUnit, nullptr);
-	EXPECT_EQ(renderUnit->size(), 1u);
-	EXPECT_TRUE(label.isActivated());
-}
-
-TEST(WidgetComponentsTest, PushButtonBuildsSkinAndTextRenderCommands)
-{
-	spk::PushButton button("Button", "OK");
-	button.setGeometry(spk::Rect2D(0, 0, 120, 40));
-
-	std::shared_ptr<spk::RenderUnit> renderUnit = button.renderUnit();
-
-	ASSERT_NE(renderUnit, nullptr);
-	EXPECT_EQ(renderUnit->size(), 2u);
-	EXPECT_TRUE(button.isActivated());
-}
-
-TEST(WidgetComponentsTest, PushButtonTriggersClickOnLeftPressAndReleaseInside)
-{
-	spk::PushButton button("Button", "OK");
-	button.setGeometry(spk::Rect2D(10, 10, 120, 40));
-
-	int clickCount = 0;
-	auto contract = button.subscribeToClick([&clickCount]()
+	class WidgetFocusTest : public ::testing::Test
 	{
-		++clickCount;
-	});
+	protected:
+		void SetUp() override
+		{
+			spk::Widget cleanup("__cleanup__");
+			cleanup.takeAllFocus();
+		}
+	};
+
+	spk::KeyboardEventRecord makeKeyPress()
+	{
+		return spk::KeyboardEventRecord(spk::makeEventRecord(spk::KeyPressedRecord{
+			.key = spk::Keyboard::Return,
+			.isRepeated = false}));
+	}
+
+	spk::MouseEventRecord makeMousePress()
+	{
+		return spk::MouseEventRecord(spk::makeEventRecord(spk::MouseButtonPressedRecord{
+			.button = spk::Mouse::Left}));
+	}
+}
+
+// --- Static focus management ---
+
+TEST_F(WidgetFocusTest, TakeFocusKeyboardSetsGlobalSlot)
+{
+	sparkle_test::RecordingWidget widget("Widget");
+
+	widget.takeFocus(spk::Widget::FocusType::Keyboard);
+
+	EXPECT_EQ(spk::Widget::focusedWidget(spk::Widget::FocusType::Keyboard), &widget);
+	EXPECT_EQ(spk::Widget::focusedWidget(spk::Widget::FocusType::Mouse), nullptr);
+}
+
+TEST_F(WidgetFocusTest, TakeFocusMouseSetsGlobalSlot)
+{
+	sparkle_test::RecordingWidget widget("Widget");
+
+	widget.takeFocus(spk::Widget::FocusType::Mouse);
+
+	EXPECT_EQ(spk::Widget::focusedWidget(spk::Widget::FocusType::Mouse), &widget);
+	EXPECT_EQ(spk::Widget::focusedWidget(spk::Widget::FocusType::Keyboard), nullptr);
+}
+
+TEST_F(WidgetFocusTest, TakeFocusTransfersOwnershipFromPreviousHolder)
+{
+	sparkle_test::RecordingWidget first("First");
+	sparkle_test::RecordingWidget second("Second");
+
+	first.takeFocus(spk::Widget::FocusType::Keyboard);
+	ASSERT_EQ(spk::Widget::focusedWidget(spk::Widget::FocusType::Keyboard), &first);
+
+	second.takeFocus(spk::Widget::FocusType::Keyboard);
+
+	EXPECT_EQ(spk::Widget::focusedWidget(spk::Widget::FocusType::Keyboard), &second);
+	EXPECT_FALSE(first.hasFocus(spk::Widget::FocusType::Keyboard));
+}
+
+TEST_F(WidgetFocusTest, ReleaseFocusKeyboardClearsSlot)
+{
+	sparkle_test::RecordingWidget widget("Widget");
+
+	widget.takeFocus(spk::Widget::FocusType::Keyboard);
+	widget.releaseFocus(spk::Widget::FocusType::Keyboard);
+
+	EXPECT_EQ(spk::Widget::focusedWidget(spk::Widget::FocusType::Keyboard), nullptr);
+}
+
+TEST_F(WidgetFocusTest, ReleaseFocusMouseClearsSlot)
+{
+	sparkle_test::RecordingWidget widget("Widget");
+
+	widget.takeFocus(spk::Widget::FocusType::Mouse);
+	widget.releaseFocus(spk::Widget::FocusType::Mouse);
+
+	EXPECT_EQ(spk::Widget::focusedWidget(spk::Widget::FocusType::Mouse), nullptr);
+}
+
+TEST_F(WidgetFocusTest, ReleaseFocusIgnoresNonOwner)
+{
+	sparkle_test::RecordingWidget owner("Owner");
+	sparkle_test::RecordingWidget other("Other");
+
+	owner.takeFocus(spk::Widget::FocusType::Keyboard);
+	other.releaseFocus(spk::Widget::FocusType::Keyboard);
+
+	EXPECT_EQ(spk::Widget::focusedWidget(spk::Widget::FocusType::Keyboard), &owner);
+}
+
+TEST_F(WidgetFocusTest, HasFocusReturnsTrueForOwnerFalseForOthers)
+{
+	sparkle_test::RecordingWidget owner("Owner");
+	sparkle_test::RecordingWidget other("Other");
+
+	owner.takeFocus(spk::Widget::FocusType::Keyboard);
+
+	EXPECT_TRUE(owner.hasFocus(spk::Widget::FocusType::Keyboard));
+	EXPECT_FALSE(other.hasFocus(spk::Widget::FocusType::Keyboard));
+	EXPECT_FALSE(owner.hasFocus(spk::Widget::FocusType::Mouse));
+}
+
+TEST_F(WidgetFocusTest, TakeAllFocusSetsKeyboardAndMouse)
+{
+	sparkle_test::RecordingWidget widget("Widget");
+
+	widget.takeAllFocus();
+
+	EXPECT_EQ(spk::Widget::focusedWidget(spk::Widget::FocusType::Keyboard), &widget);
+	EXPECT_EQ(spk::Widget::focusedWidget(spk::Widget::FocusType::Mouse), &widget);
+}
+
+TEST_F(WidgetFocusTest, ReleaseAllFocusClearsBothTypes)
+{
+	sparkle_test::RecordingWidget widget("Widget");
+
+	widget.takeAllFocus();
+	widget.releaseAllFocus();
+
+	EXPECT_EQ(spk::Widget::focusedWidget(spk::Widget::FocusType::Keyboard), nullptr);
+	EXPECT_EQ(spk::Widget::focusedWidget(spk::Widget::FocusType::Mouse), nullptr);
+}
+
+TEST_F(WidgetFocusTest, DestructorAutomaticallyReleasesFocus)
+{
+	{
+		sparkle_test::RecordingWidget widget("Widget");
+		widget.takeAllFocus();
+
+		ASSERT_EQ(spk::Widget::focusedWidget(spk::Widget::FocusType::Keyboard), &widget);
+		ASSERT_EQ(spk::Widget::focusedWidget(spk::Widget::FocusType::Mouse), &widget);
+	}
+
+	EXPECT_EQ(spk::Widget::focusedWidget(spk::Widget::FocusType::Keyboard), nullptr);
+	EXPECT_EQ(spk::Widget::focusedWidget(spk::Widget::FocusType::Mouse), nullptr);
+}
+
+// --- Event routing with keyboard focus ---
+
+TEST_F(WidgetFocusTest, KeyboardFocusRoutesEventToFocusedWidget)
+{
+	sparkle_test::RecordingWidget root("Root");
+	sparkle_test::RecordingWidget focused("Focused", &root);
+
+	root.activate();
+	focused.activate();
+
+	focused.takeFocus(spk::Widget::FocusType::Keyboard);
+
+	spk::Keyboard keyboard;
+	spk::KeyboardEventRecord event = makeKeyPress();
+	root.dispatchKeyboardEvent(event, keyboard);
+
+	EXPECT_EQ(focused.keyboardEventCount, 1);
+	EXPECT_EQ(root.keyboardEventCount, 0);
+}
+
+TEST_F(WidgetFocusTest, KeyboardFocusAlsoRoutesToDescendantsOfFocusedWidget)
+{
+	sparkle_test::RecordingWidget root("Root");
+	sparkle_test::RecordingWidget focused("Focused", &root);
+	sparkle_test::RecordingWidget child("Child", &focused);
+
+	root.activate();
+	focused.activate();
+	child.activate();
+
+	focused.takeFocus(spk::Widget::FocusType::Keyboard);
+
+	spk::Keyboard keyboard;
+	spk::KeyboardEventRecord event = makeKeyPress();
+	root.dispatchKeyboardEvent(event, keyboard);
+
+	EXPECT_EQ(child.keyboardEventCount, 1);
+	EXPECT_EQ(focused.keyboardEventCount, 1);
+	EXPECT_EQ(root.keyboardEventCount, 0);
+}
+
+TEST_F(WidgetFocusTest, KeyboardFocusBypassesSiblingWidgets)
+{
+	sparkle_test::RecordingWidget root("Root");
+	sparkle_test::RecordingWidget sibling("Sibling", &root);
+	sparkle_test::RecordingWidget focused("Focused", &root);
+
+	root.activate();
+	sibling.activate();
+	focused.activate();
+
+	focused.takeFocus(spk::Widget::FocusType::Keyboard);
+
+	spk::Keyboard keyboard;
+	spk::KeyboardEventRecord event = makeKeyPress();
+	root.dispatchKeyboardEvent(event, keyboard);
+
+	EXPECT_EQ(focused.keyboardEventCount, 1);
+	EXPECT_EQ(sibling.keyboardEventCount, 0);
+	EXPECT_EQ(root.keyboardEventCount, 0);
+}
+
+TEST_F(WidgetFocusTest, WithoutKeyboardFocusEventsPropagateThroughAllWidgets)
+{
+	sparkle_test::RecordingWidget root("Root");
+	sparkle_test::RecordingWidget child("Child", &root);
+
+	root.activate();
+	child.activate();
+
+	spk::Keyboard keyboard;
+	spk::KeyboardEventRecord event = makeKeyPress();
+	root.dispatchKeyboardEvent(event, keyboard);
+
+	EXPECT_EQ(root.keyboardEventCount, 1);
+	EXPECT_EQ(child.keyboardEventCount, 1);
+}
+
+// --- Event routing with mouse focus ---
+
+TEST_F(WidgetFocusTest, MouseFocusRoutesEventToFocusedWidget)
+{
+	sparkle_test::RecordingWidget root("Root");
+	sparkle_test::RecordingWidget focused("Focused", &root);
+
+	root.activate();
+	focused.activate();
+
+	focused.takeFocus(spk::Widget::FocusType::Mouse);
 
 	spk::Mouse mouse;
-	mouse.position = {20, 20};
+	spk::MouseEventRecord event = makeMousePress();
+	root.dispatchMouseEvent(event, mouse);
 
-	spk::MouseEventRecord pressEvent = spk::MouseEventRecord(spk::makeEventRecord(spk::MouseButtonPressedRecord{
-		.button = spk::Mouse::Left}));
-	button.dispatchMouseEvent(pressEvent, mouse);
-
-	EXPECT_TRUE(button.isPressed());
-
-	spk::MouseEventRecord releaseEvent = spk::MouseEventRecord(spk::makeEventRecord(spk::MouseButtonReleasedRecord{
-		.button = spk::Mouse::Left}));
-	button.dispatchMouseEvent(releaseEvent, mouse);
-
-	EXPECT_FALSE(button.isPressed());
-	EXPECT_EQ(clickCount, 1);
+	EXPECT_EQ(focused.mouseEventCount, 1);
+	EXPECT_EQ(root.mouseEventCount, 0);
 }
 
-TEST(WidgetComponentsTest, ExplicitStyleIsAppliedOnConstruction)
+TEST_F(WidgetFocusTest, MouseFocusAlsoRoutesToDescendantsOfFocusedWidget)
 {
-	spk::WidgetStyle style = spk::WidgetStyle::makeDefault();
-	style.setNineSliceCornerSize({4, 5});
-	style.setTextSize(spk::Font::Size(24, 2));
+	sparkle_test::RecordingWidget root("Root");
+	sparkle_test::RecordingWidget focused("Focused", &root);
+	sparkle_test::RecordingWidget child("Child", &focused);
 
-	spk::Panel panel("Panel", style);
-	spk::TextLabel label("Label", "Hello", style);
+	root.activate();
+	focused.activate();
+	child.activate();
 
-	EXPECT_EQ(panel.cornerSize(), spk::Vector2Int(4, 5));
-	EXPECT_EQ(label.textSize(), spk::Font::Size(24, 2));
-}
-
-TEST(WidgetComponentsTest, WidgetFollowingDefaultStyleRefreshesWhenDefaultStyleIsReplaced)
-{
-	spk::WidgetStyle originalStyle = spk::WidgetStyle::Collection::style(spk::WidgetStyle::Collection::Default);
-	spk::WidgetStyle firstStyle = originalStyle;
-	spk::WidgetStyle secondStyle = originalStyle;
-
-	firstStyle.setTextSize(spk::Font::Size(18, 1));
-	spk::WidgetStyle::Collection::setStyle(spk::WidgetStyle::Collection::Default, firstStyle);
-	spk::TextLabel label("Label", "Hello");
-	ASSERT_EQ(label.textSize(), spk::Font::Size(18, 1));
-
-	secondStyle.setTextSize(spk::Font::Size(30, 3));
-	spk::WidgetStyle::Collection::setStyle(spk::WidgetStyle::Collection::Default, secondStyle);
-
-	EXPECT_EQ(label.textSize(), spk::Font::Size(30, 3));
-	spk::WidgetStyle::Collection::setStyle(spk::WidgetStyle::Collection::Default, originalStyle);
-}
-
-TEST(WidgetComponentsTest, WidgetFollowingDefaultStyleRefreshesWhenDefaultStyleIsEdited)
-{
-	spk::WidgetStyle originalStyle = spk::WidgetStyle::Collection::style(spk::WidgetStyle::Collection::Default);
-	spk::TextLabel label("Label", "Hello");
-
-	spk::WidgetStyle::Collection::style(spk::WidgetStyle::Collection::Default).setTextSize(spk::Font::Size(28, 2));
-
-	EXPECT_EQ(label.textSize(), spk::Font::Size(28, 2));
-	spk::WidgetStyle::Collection::setStyle(spk::WidgetStyle::Collection::Default, originalStyle);
-}
-
-TEST(WidgetComponentsTest, StyleEditionCallbackReceivesEditedStyle)
-{
-	spk::WidgetStyle style = spk::WidgetStyle::makeDefault();
-	spk::Font::Size receivedSize;
-
-	auto contract = style.subscribeToEdition([&receivedSize](const spk::WidgetStyle& p_style)
-	{
-		receivedSize = p_style.textSize();
-	});
-
-	style.setTextSize(spk::Font::Size(20, 1));
-
-	EXPECT_EQ(receivedSize, spk::Font::Size(20, 1));
-}
-
-TEST(WidgetComponentsTest, CollectionCreatesAndReturnsNamedStyles)
-{
-	spk::WidgetStyle& style = spk::WidgetStyle::Collection::style("warning");
-	style.setTextSize(spk::Font::Size(22, 1));
-
-	spk::TextLabel label("Label", "Careful", style);
-
-	EXPECT_TRUE(spk::WidgetStyle::Collection::contains("warning"));
-	EXPECT_EQ(label.textSize(), spk::Font::Size(22, 1));
-}
-
-TEST(WidgetComponentsTest, PushButtonUsesReleasedAndPressedStyles)
-{
-	spk::WidgetStyle releasedStyle = spk::WidgetStyle::makeDefault();
-	spk::WidgetStyle pressedStyle = spk::WidgetStyle::makeDefaultPressed();
-	releasedStyle.setTextSize(spk::Font::Size(16, 0));
-	pressedStyle.setTextSize(spk::Font::Size(24, 1));
-
-	spk::PushButton button("Button", "OK", releasedStyle, pressedStyle);
-	button.setGeometry(spk::Rect2D(10, 10, 120, 40));
-
-	EXPECT_EQ(button.textSize(), spk::Font::Size(16, 0));
+	focused.takeFocus(spk::Widget::FocusType::Mouse);
 
 	spk::Mouse mouse;
-	mouse.position = {20, 20};
-	spk::MouseEventRecord pressEvent = spk::MouseEventRecord(spk::makeEventRecord(spk::MouseButtonPressedRecord{
-		.button = spk::Mouse::Left}));
-	button.dispatchMouseEvent(pressEvent, mouse);
+	spk::MouseEventRecord event = makeMousePress();
+	root.dispatchMouseEvent(event, mouse);
 
-	EXPECT_EQ(button.textSize(), spk::Font::Size(24, 1));
+	EXPECT_EQ(child.mouseEventCount, 1);
+	EXPECT_EQ(focused.mouseEventCount, 1);
+	EXPECT_EQ(root.mouseEventCount, 0);
+}
 
-	pressedStyle.setTextSize(spk::Font::Size(28, 2));
+TEST_F(WidgetFocusTest, MouseFocusBypassesSiblingWidgets)
+{
+	sparkle_test::RecordingWidget root("Root");
+	sparkle_test::RecordingWidget sibling("Sibling", &root);
+	sparkle_test::RecordingWidget focused("Focused", &root);
 
-	EXPECT_EQ(button.textSize(), spk::Font::Size(28, 2));
+	root.activate();
+	sibling.activate();
+	focused.activate();
+
+	focused.takeFocus(spk::Widget::FocusType::Mouse);
+
+	spk::Mouse mouse;
+	spk::MouseEventRecord event = makeMousePress();
+	root.dispatchMouseEvent(event, mouse);
+
+	EXPECT_EQ(focused.mouseEventCount, 1);
+	EXPECT_EQ(sibling.mouseEventCount, 0);
+	EXPECT_EQ(root.mouseEventCount, 0);
+}
+
+TEST_F(WidgetFocusTest, WithoutMouseFocusEventsPropagateThroughAllWidgets)
+{
+	sparkle_test::RecordingWidget root("Root");
+	sparkle_test::RecordingWidget child("Child", &root);
+
+	root.activate();
+	child.activate();
+
+	spk::Mouse mouse;
+	spk::MouseEventRecord event = makeMousePress();
+	root.dispatchMouseEvent(event, mouse);
+
+	EXPECT_EQ(root.mouseEventCount, 1);
+	EXPECT_EQ(child.mouseEventCount, 1);
+}
+
+// --- Focus types are independent ---
+
+TEST_F(WidgetFocusTest, KeyboardAndMouseFocusAreIndependent)
+{
+	sparkle_test::RecordingWidget keyboardHolder("KeyboardHolder");
+	sparkle_test::RecordingWidget mouseHolder("MouseHolder");
+
+	keyboardHolder.takeFocus(spk::Widget::FocusType::Keyboard);
+	mouseHolder.takeFocus(spk::Widget::FocusType::Mouse);
+
+	EXPECT_EQ(spk::Widget::focusedWidget(spk::Widget::FocusType::Keyboard), &keyboardHolder);
+	EXPECT_EQ(spk::Widget::focusedWidget(spk::Widget::FocusType::Mouse), &mouseHolder);
+	EXPECT_TRUE(keyboardHolder.hasFocus(spk::Widget::FocusType::Keyboard));
+	EXPECT_FALSE(keyboardHolder.hasFocus(spk::Widget::FocusType::Mouse));
+	EXPECT_TRUE(mouseHolder.hasFocus(spk::Widget::FocusType::Mouse));
+	EXPECT_FALSE(mouseHolder.hasFocus(spk::Widget::FocusType::Keyboard));
 }

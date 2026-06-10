@@ -11,18 +11,21 @@
 
 namespace
 {
-	[[nodiscard]] std::filesystem::path imageComparisonExpectedDirectory()
+	[[nodiscard]] std::filesystem::path imageComparisonTempDirectory()
 	{
-		std::filesystem::path result = spk::test::expectedDirectory() / "ImageComparison";
+		std::filesystem::path result = std::filesystem::temp_directory_path() / "sparkle_image_comparison_tests";
 		std::filesystem::create_directories(result);
 		return result;
 	}
 
+	[[nodiscard]] std::filesystem::path imageComparisonExpectedDirectory()
+	{
+		return imageComparisonTempDirectory();
+	}
+
 	[[nodiscard]] std::filesystem::path imageComparisonResultDirectory()
 	{
-		std::filesystem::path result = spk::test::resultDirectory() / "ImageComparison";
-		std::filesystem::create_directories(result);
-		return result;
+		return imageComparisonTempDirectory();
 	}
 
 	void writePng(const std::filesystem::path& p_path, int p_width, int p_height, const std::vector<unsigned char>& p_pixels)
@@ -31,7 +34,7 @@ namespace
 	}
 }
 
-TEST(ImageComparisonTest, MatchingImagesProduceBlackDifferenceImage)
+TEST(ImageComparisonTest, MatchingImagesLeaveNoArtifacts)
 {
 	const std::filesystem::path actualPath = imageComparisonResultDirectory() / "matching_actual.png";
 	const std::filesystem::path expectedPath = imageComparisonExpectedDirectory() / "matching_expected.png";
@@ -51,24 +54,8 @@ TEST(ImageComparisonTest, MatchingImagesProduceBlackDifferenceImage)
 
 	EXPECT_TRUE(result.matches);
 	EXPECT_EQ(result.differentPixelCount, 0);
-
-	int width = 0;
-	int height = 0;
-	int channels = 0;
-	unsigned char* diffPixels = stbi_load(diffPath.string().c_str(), &width, &height, &channels, 4);
-	ASSERT_NE(diffPixels, nullptr);
-	ASSERT_EQ(width, 2);
-	ASSERT_EQ(height, 2);
-
-	for (int index = 0; index < width * height * 4; index += 4)
-	{
-		EXPECT_EQ(diffPixels[index + 0], 0);
-		EXPECT_EQ(diffPixels[index + 1], 0);
-		EXPECT_EQ(diffPixels[index + 2], 0);
-		EXPECT_EQ(diffPixels[index + 3], 255);
-	}
-
-	stbi_image_free(diffPixels);
+	EXPECT_FALSE(std::filesystem::exists(actualPath));
+	EXPECT_FALSE(std::filesystem::exists(diffPath));
 }
 
 TEST(ImageComparisonTest, RgbDifferenceAtToleranceMatchesAndAboveToleranceDiffers)

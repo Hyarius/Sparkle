@@ -37,6 +37,10 @@ namespace spk
 	{
 	}
 
+	void Widget::applyStyle(const spk::WidgetStyle&)
+	{
+	}
+
 	void Widget::onParentChanged(spk::Widget* p_oldParent, spk::Widget* p_newParent)
 	{
 		(void)p_oldParent;
@@ -297,35 +301,41 @@ namespace spk
 
 	void Widget::dispatchMouseEvent(spk::MouseEventRecord &p_event, spk::Mouse &p_mouse)
 	{
+		Widget* focused = _focusedWidgets[static_cast<int>(FocusType::Mouse)];
+		Widget* target = (focused != nullptr) ? focused : this;
+
 		std::visit(
 			spk::Overloaded{
-				[this, &p_mouse](const spk::MouseEnteredRecord &p_record)
-				{ spk::MouseEnteredWindowEvent event(p_record, p_mouse); _propagate(event, &spk::Widget::_onMouseEnteredEvent); },
-				[this, &p_mouse](const spk::MouseLeftRecord &p_record)
-				{ spk::MouseLeftWindowEvent event(p_record, p_mouse); _propagate(event, &spk::Widget::_onMouseLeftEvent); },
-				[this, &p_mouse](const spk::MouseMovedRecord &p_record)
-				{ spk::MouseMovedEvent event(p_record, p_mouse); _propagate(event, &spk::Widget::_onMouseMovedEvent); },
-				[this, &p_mouse](const spk::MouseWheelScrolledRecord &p_record)
-				{ spk::MouseWheelScrolledEvent event(p_record, p_mouse); _propagate(event, &spk::Widget::_onMouseWheelScrolledEvent); },
-				[this, &p_mouse](const spk::MouseButtonPressedRecord &p_record)
-				{ spk::MouseButtonPressedEvent event(p_record, p_mouse); _propagate(event, &spk::Widget::_onMouseButtonPressedEvent); },
-				[this, &p_mouse](const spk::MouseButtonReleasedRecord &p_record)
-				{ spk::MouseButtonReleasedEvent event(p_record, p_mouse); _propagate(event, &spk::Widget::_onMouseButtonReleasedEvent); },
-				[this, &p_mouse](const spk::MouseButtonDoubleClickedRecord &p_record)
-				{ spk::MouseButtonDoubleClickedEvent event(p_record, p_mouse); _propagate(event, &spk::Widget::_onMouseButtonDoubleClickedEvent); }},
+				[target, &p_mouse](const spk::MouseEnteredRecord &p_record)
+				{ spk::MouseEnteredWindowEvent event(p_record, p_mouse); target->_propagate(event, &spk::Widget::_onMouseEnteredEvent); },
+				[target, &p_mouse](const spk::MouseLeftRecord &p_record)
+				{ spk::MouseLeftWindowEvent event(p_record, p_mouse); target->_propagate(event, &spk::Widget::_onMouseLeftEvent); },
+				[target, &p_mouse](const spk::MouseMovedRecord &p_record)
+				{ spk::MouseMovedEvent event(p_record, p_mouse); target->_propagate(event, &spk::Widget::_onMouseMovedEvent); },
+				[target, &p_mouse](const spk::MouseWheelScrolledRecord &p_record)
+				{ spk::MouseWheelScrolledEvent event(p_record, p_mouse); target->_propagate(event, &spk::Widget::_onMouseWheelScrolledEvent); },
+				[target, &p_mouse](const spk::MouseButtonPressedRecord &p_record)
+				{ spk::MouseButtonPressedEvent event(p_record, p_mouse); target->_propagate(event, &spk::Widget::_onMouseButtonPressedEvent); },
+				[target, &p_mouse](const spk::MouseButtonReleasedRecord &p_record)
+				{ spk::MouseButtonReleasedEvent event(p_record, p_mouse); target->_propagate(event, &spk::Widget::_onMouseButtonReleasedEvent); },
+				[target, &p_mouse](const spk::MouseButtonDoubleClickedRecord &p_record)
+				{ spk::MouseButtonDoubleClickedEvent event(p_record, p_mouse); target->_propagate(event, &spk::Widget::_onMouseButtonDoubleClickedEvent); }},
 			p_event);
 	}
 
 	void Widget::dispatchKeyboardEvent(spk::KeyboardEventRecord &p_event, spk::Keyboard &p_keyboard)
 	{
+		Widget* focused = _focusedWidgets[static_cast<int>(FocusType::Keyboard)];
+		Widget* target = (focused != nullptr) ? focused : this;
+
 		std::visit(
 			spk::Overloaded{
-				[this, &p_keyboard](const spk::KeyPressedRecord &p_record)
-				{ spk::KeyPressedEvent event(p_record, p_keyboard); _propagate(event, &spk::Widget::_onKeyPressedEvent); },
-				[this, &p_keyboard](const spk::KeyReleasedRecord &p_record)
-				{ spk::KeyReleasedEvent event(p_record, p_keyboard); _propagate(event, &spk::Widget::_onKeyReleasedEvent); },
-				[this, &p_keyboard](const spk::TextInputRecord &p_record)
-				{ spk::TextInputEvent event(p_record, p_keyboard); _propagate(event, &spk::Widget::_onTextInputEvent); }},
+				[target, &p_keyboard](const spk::KeyPressedRecord &p_record)
+				{ spk::KeyPressedEvent event(p_record, p_keyboard); target->_propagate(event, &spk::Widget::_onKeyPressedEvent); },
+				[target, &p_keyboard](const spk::KeyReleasedRecord &p_record)
+				{ spk::KeyReleasedEvent event(p_record, p_keyboard); target->_propagate(event, &spk::Widget::_onKeyReleasedEvent); },
+				[target, &p_keyboard](const spk::TextInputRecord &p_record)
+				{ spk::TextInputEvent event(p_record, p_keyboard); target->_propagate(event, &spk::Widget::_onTextInputEvent); }},
 			p_event);
 	}
 }

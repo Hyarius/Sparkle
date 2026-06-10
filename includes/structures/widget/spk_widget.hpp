@@ -14,6 +14,8 @@
 
 namespace spk
 {
+	class WidgetStyle;
+
 	class Widget : public spk::HierarchyTrait<Widget>, public spk::ActivableTrait
 	{
 	public:
@@ -98,6 +100,8 @@ namespace spk
 		virtual ~Widget();
 
 		[[nodiscard]] const std::string& name() const;
+
+		virtual void applyStyle(const spk::WidgetStyle& p_style);
 
 		static Widget* focusedWidget(FocusType p_focusType);
 		void takeFocus(FocusType p_focusType);

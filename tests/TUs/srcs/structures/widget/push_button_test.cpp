@@ -1,0 +1,415 @@
+#include <gtest/gtest.h>
+
+#include <string_view>
+
+#include "structures/widget/spk_push_button.hpp"
+#include "structures/widget/spk_widget_style.hpp"
+
+TEST(PushButtonTest, BuildsSkinAndTextRenderCommands)
+{
+	spk::PushButton button("Button", "OK");
+	button.setGeometry(spk::Rect2D(0, 0, 120, 40));
+
+	auto releasedBgUnit = button.releasedBackground().renderUnit();
+	auto releasedLabelUnit = button.releasedLabel().renderUnit();
+
+	ASSERT_NE(releasedBgUnit, nullptr);
+	ASSERT_NE(releasedLabelUnit, nullptr);
+	EXPECT_EQ(releasedBgUnit->size(), 1u);
+	EXPECT_EQ(releasedLabelUnit->size(), 1u);
+	EXPECT_TRUE(button.isActivated());
+}
+
+TEST(PushButtonTest, TriggersClickOnLeftPressAndReleaseInside)
+{
+	spk::PushButton button("Button", "OK");
+	button.setGeometry(spk::Rect2D(10, 10, 120, 40));
+
+	int clickCount = 0;
+	auto contract = button.subscribeToClick([&clickCount]()
+	{
+		++clickCount;
+	});
+
+	spk::Mouse mouse;
+	mouse.position = {20, 20};
+
+	spk::MouseEventRecord pressEvent = spk::MouseEventRecord(spk::makeEventRecord(spk::MouseButtonPressedRecord{
+		.button = spk::Mouse::Left}));
+	button.dispatchMouseEvent(pressEvent, mouse);
+
+	EXPECT_TRUE(button.isPressed());
+
+	spk::MouseEventRecord releaseEvent = spk::MouseEventRecord(spk::makeEventRecord(spk::MouseButtonReleasedRecord{
+		.button = spk::Mouse::Left}));
+	button.dispatchMouseEvent(releaseEvent, mouse);
+
+	EXPECT_FALSE(button.isPressed());
+	EXPECT_EQ(clickCount, 1);
+}
+
+TEST(PushButtonTest, UsesReleasedAndPressedStyles)
+{
+	spk::WidgetStyle releasedStyle = spk::WidgetStyle::makeDefault();
+	spk::WidgetStyle pressedStyle = spk::WidgetStyle::makeDefaultPressed();
+	releasedStyle.setTextSize(spk::Font::Size(16, 0));
+	pressedStyle.setTextSize(spk::Font::Size(24, 1));
+
+	spk::PushButton button("Button", "OK", releasedStyle, pressedStyle);
+	button.setGeometry(spk::Rect2D(10, 10, 120, 40));
+
+	EXPECT_EQ(button.releasedLabel().textSize(), spk::Font::Size(16, 0));
+	EXPECT_EQ(button.pressedLabel().textSize(), spk::Font::Size(24, 1));
+
+	spk::Mouse mouse;
+	mouse.position = {20, 20};
+	spk::MouseEventRecord pressEvent = spk::MouseEventRecord(spk::makeEventRecord(spk::MouseButtonPressedRecord{
+		.button = spk::Mouse::Left}));
+	button.dispatchMouseEvent(pressEvent, mouse);
+
+	EXPECT_TRUE(button.isPressed());
+	EXPECT_TRUE(button.pressedLabel().isActivated());
+	EXPECT_FALSE(button.releasedLabel().isActivated());
+
+	pressedStyle.setTextSize(spk::Font::Size(28, 2));
+
+	EXPECT_EQ(button.pressedLabel().textSize(), spk::Font::Size(28, 2));
+}
+
+TEST(PushButtonTest, NameOnlyConstructorActivates)
+{
+	spk::PushButton button("Button");
+
+	EXPECT_TRUE(button.isActivated());
+	EXPECT_TRUE(button.releasedLabel().text().empty());
+	EXPECT_TRUE(button.pressedLabel().text().empty());
+}
+
+TEST(PushButtonTest, SingleStyleConstructorAppliesStyle)
+{
+	spk::WidgetStyle style = spk::WidgetStyle::makeDefault();
+	style.setTextSize(spk::Font::Size(20, 1));
+
+	spk::PushButton button("Button", "OK", style);
+
+	EXPECT_EQ(button.releasedLabel().textSize(), spk::Font::Size(20, 1));
+	EXPECT_EQ(button.pressedLabel().textSize(), spk::Font::Size(20, 1));
+	EXPECT_TRUE(button.isActivated());
+}
+
+TEST(PushButtonTest, ReleasedBackgroundUpdatesWhenStyleChanges)
+{
+	spk::WidgetStyle releasedStyle = spk::WidgetStyle::makeDefault();
+	const auto newSheet = spk::WidgetStyle::makeDefaultPressed().nineSliceSpriteSheet();
+	releasedStyle.setNineSliceSpriteSheet(newSheet);
+
+	spk::PushButton button("Button", "OK", releasedStyle, spk::WidgetStyle::makeDefaultPressed());
+
+	EXPECT_EQ(button.releasedBackground().spriteSheet(), newSheet);
+}
+
+TEST(PushButtonTest, PressedBackgroundIsActiveWhenPressed)
+{
+	spk::PushButton button("Button", "OK");
+	button.setGeometry(spk::Rect2D(10, 10, 120, 40));
+
+	EXPECT_TRUE(button.releasedBackground().isActivated());
+	EXPECT_FALSE(button.pressedBackground().isActivated());
+
+	spk::Mouse mouse;
+	mouse.position = {20, 20};
+	spk::MouseEventRecord pressEvent = spk::MouseEventRecord(spk::makeEventRecord(spk::MouseButtonPressedRecord{
+		.button = spk::Mouse::Left}));
+	button.dispatchMouseEvent(pressEvent, mouse);
+
+	EXPECT_FALSE(button.releasedBackground().isActivated());
+	EXPECT_TRUE(button.pressedBackground().isActivated());
+}
+
+TEST(PushButtonTest, SetFontNullThrows)
+{
+	spk::PushButton button("Button", "OK");
+
+	EXPECT_THROW(button.releasedLabel().setFont(nullptr), std::invalid_argument);
+	EXPECT_THROW(button.pressedLabel().setFont(nullptr), std::invalid_argument);
+}
+
+TEST(PushButtonTest, SetFontUpdatesSuccessfully)
+{
+	spk::PushButton button("Button", "OK");
+	auto font = spk::WidgetStyle::makeDefault().font();
+
+	button.releasedLabel().setFont(font);
+	button.pressedLabel().setFont(font);
+
+	EXPECT_EQ(button.releasedLabel().font(), font);
+	EXPECT_EQ(button.pressedLabel().font(), font);
+}
+
+TEST(PushButtonTest, SetTextSameIsNoOp)
+{
+	spk::PushButton button("Button", "Hello");
+	const auto currentText = button.releasedLabel().text();
+
+	button.setText(currentText);
+
+	EXPECT_EQ(button.releasedLabel().text(), currentText);
+	EXPECT_EQ(button.pressedLabel().text(), currentText);
+}
+
+TEST(PushButtonTest, SetTextDifferentUpdates)
+{
+	spk::PushButton button("Button", "Hello");
+	const auto newText = spk::Font::textFromUTF8("World");
+
+	button.setText(newText);
+
+	EXPECT_EQ(button.releasedLabel().text(), newText);
+	EXPECT_EQ(button.pressedLabel().text(), newText);
+}
+
+TEST(PushButtonTest, SetTextStringViewUpdates)
+{
+	spk::PushButton button("Button", "Hello");
+
+	button.setText(std::string_view("Updated"));
+
+	EXPECT_EQ(button.releasedLabel().text(), spk::Font::textFromUTF8("Updated"));
+	EXPECT_EQ(button.pressedLabel().text(), spk::Font::textFromUTF8("Updated"));
+}
+
+TEST(PushButtonTest, SetTextSizeSameIsNoOp)
+{
+	spk::PushButton button("Button", "OK");
+	const auto currentSize = button.releasedLabel().textSize();
+
+	button.releasedLabel().setTextSize(currentSize);
+
+	EXPECT_EQ(button.releasedLabel().textSize(), currentSize);
+}
+
+TEST(PushButtonTest, SetGlyphColorSameIsNoOp)
+{
+	spk::PushButton button("Button", "OK");
+	const auto currentColor = button.releasedLabel().glyphColor();
+
+	button.releasedLabel().setGlyphColor(currentColor);
+
+	EXPECT_EQ(button.releasedLabel().glyphColor().r, currentColor.r);
+	EXPECT_EQ(button.releasedLabel().glyphColor().g, currentColor.g);
+}
+
+TEST(PushButtonTest, SetOutlineColorSameIsNoOp)
+{
+	spk::PushButton button("Button", "OK");
+	const auto currentColor = button.releasedLabel().outlineColor();
+
+	button.releasedLabel().setOutlineColor(currentColor);
+
+	EXPECT_EQ(button.releasedLabel().outlineColor().r, currentColor.r);
+	EXPECT_EQ(button.releasedLabel().outlineColor().g, currentColor.g);
+}
+
+TEST(PushButtonTest, SetPaddingSameIsNoOp)
+{
+	spk::PushButton button("Button", "OK");
+	const auto currentPadding = button.releasedLabel().padding();
+
+	button.releasedLabel().setPadding(currentPadding);
+
+	EXPECT_EQ(button.releasedLabel().padding(), currentPadding);
+}
+
+TEST(PushButtonTest, SetPaddingDifferentUpdates)
+{
+	spk::PushButton button("Button", "OK");
+	const spk::Vector2Int newPadding = {12, 8};
+
+	button.releasedLabel().setPadding(newPadding);
+
+	EXPECT_EQ(button.releasedLabel().padding(), newPadding);
+}
+
+TEST(PushButtonTest, SetDepthSameIsNoOp)
+{
+	spk::PushButton button("Button", "OK");
+
+	button.releasedLabel().setDepth(0.0f);
+
+	EXPECT_FLOAT_EQ(button.releasedLabel().depth(), 0.0f);
+}
+
+TEST(PushButtonTest, SetDepthUpdates)
+{
+	spk::PushButton button("Button", "OK");
+	button.setGeometry(spk::Rect2D(0, 0, 120, 40));
+
+	button.releasedLabel().setDepth(2.5f);
+
+	EXPECT_FLOAT_EQ(button.releasedLabel().depth(), 2.5f);
+	EXPECT_NE(button.releasedLabel().renderUnit(), nullptr);
+}
+
+TEST(PushButtonTest, GettersReturnCorrectValues)
+{
+	spk::PushButton button("Button", "Hello");
+
+	EXPECT_FALSE(button.isHovered());
+	EXPECT_FALSE(button.isPressed());
+	EXPECT_EQ(button.releasedLabel().text(), spk::Font::textFromUTF8("Hello"));
+	EXPECT_EQ(button.pressedLabel().text(), spk::Font::textFromUTF8("Hello"));
+	EXPECT_EQ(button.releasedLabel().padding(), spk::Vector2Int(0, 0));
+}
+
+TEST(PushButtonTest, MouseMovedEventUpdatesHoverState)
+{
+	spk::PushButton button("Button", "OK");
+	button.setGeometry(spk::Rect2D(10, 10, 120, 40));
+
+	spk::Mouse mouse;
+	mouse.position = {20, 20};
+	spk::MouseEventRecord movedInside = spk::MouseEventRecord(spk::makeEventRecord(spk::MouseMovedRecord{.position = {20, 20}}));
+	button.dispatchMouseEvent(movedInside, mouse);
+	EXPECT_TRUE(button.isHovered());
+
+	mouse.position = {200, 200};
+	spk::MouseEventRecord movedOutside = spk::MouseEventRecord(spk::makeEventRecord(spk::MouseMovedRecord{.position = {200, 200}}));
+	button.dispatchMouseEvent(movedOutside, mouse);
+	EXPECT_FALSE(button.isHovered());
+}
+
+TEST(PushButtonTest, MouseLeftEventEarlyReturnWhenNeitherHoveredNorPressed)
+{
+	spk::PushButton button("Button", "OK");
+
+	spk::Mouse mouse;
+	spk::MouseEventRecord leftEvent = spk::MouseEventRecord(spk::makeEventRecord(spk::MouseLeftRecord{}));
+	button.dispatchMouseEvent(leftEvent, mouse);
+
+	EXPECT_FALSE(button.isHovered());
+	EXPECT_FALSE(button.isPressed());
+}
+
+TEST(PushButtonTest, MouseLeftEventResetsStateWhenHovered)
+{
+	spk::PushButton button("Button", "OK");
+	button.setGeometry(spk::Rect2D(10, 10, 120, 40));
+
+	spk::Mouse mouse;
+	mouse.position = {20, 20};
+	spk::MouseEventRecord movedEvent = spk::MouseEventRecord(spk::makeEventRecord(spk::MouseMovedRecord{.position = {20, 20}}));
+	button.dispatchMouseEvent(movedEvent, mouse);
+	ASSERT_TRUE(button.isHovered());
+
+	mouse.position = {200, 20};
+	spk::MouseEventRecord movedEventOutOfWidget = spk::MouseEventRecord(spk::makeEventRecord(spk::MouseMovedRecord{.position = {200, 20}}));
+	button.dispatchMouseEvent(movedEventOutOfWidget, mouse);
+
+	EXPECT_FALSE(button.isHovered());
+	EXPECT_FALSE(button.isPressed());
+}
+
+TEST(PushButtonTest, MousePressedNonLeftButtonIsIgnored)
+{
+	spk::PushButton button("Button", "OK");
+	button.setGeometry(spk::Rect2D(10, 10, 120, 40));
+
+	spk::Mouse mouse;
+	mouse.position = {20, 20};
+	spk::MouseEventRecord rightPressEvent = spk::MouseEventRecord(spk::makeEventRecord(spk::MouseButtonPressedRecord{
+		.button = spk::Mouse::Right}));
+	button.dispatchMouseEvent(rightPressEvent, mouse);
+
+	EXPECT_FALSE(button.isPressed());
+}
+
+TEST(PushButtonTest, MousePressedOutsideGeometryIsIgnored)
+{
+	spk::PushButton button("Button", "OK");
+	button.setGeometry(spk::Rect2D(10, 10, 120, 40));
+
+	spk::Mouse mouse;
+	mouse.position = {200, 200};
+	spk::MouseEventRecord pressEvent = spk::MouseEventRecord(spk::makeEventRecord(spk::MouseButtonPressedRecord{
+		.button = spk::Mouse::Left}));
+	button.dispatchMouseEvent(pressEvent, mouse);
+
+	EXPECT_FALSE(button.isPressed());
+}
+
+TEST(PushButtonTest, MouseReleasedWhenNotPressedIsIgnored)
+{
+	spk::PushButton button("Button", "OK");
+	button.setGeometry(spk::Rect2D(10, 10, 120, 40));
+
+	int clickCount = 0;
+	auto contract = button.subscribeToClick([&clickCount]() { ++clickCount; });
+
+	spk::Mouse mouse;
+	mouse.position = {20, 20};
+	spk::MouseEventRecord releaseEvent = spk::MouseEventRecord(spk::makeEventRecord(spk::MouseButtonReleasedRecord{
+		.button = spk::Mouse::Left}));
+	button.dispatchMouseEvent(releaseEvent, mouse);
+
+	EXPECT_EQ(clickCount, 0);
+}
+
+TEST(PushButtonTest, MouseReleasedOutsideBoundsDoesNotTriggerClick)
+{
+	spk::PushButton button("Button", "OK");
+	button.setGeometry(spk::Rect2D(10, 10, 120, 40));
+
+	int clickCount = 0;
+	auto contract = button.subscribeToClick([&clickCount]() { ++clickCount; });
+
+	spk::Mouse mouse;
+	mouse.position = {20, 20};
+	spk::MouseEventRecord pressEvent = spk::MouseEventRecord(spk::makeEventRecord(spk::MouseButtonPressedRecord{
+		.button = spk::Mouse::Left}));
+	button.dispatchMouseEvent(pressEvent, mouse);
+	ASSERT_TRUE(button.isPressed());
+
+	mouse.position = {200, 200};
+	spk::MouseEventRecord releaseEvent = spk::MouseEventRecord(spk::makeEventRecord(spk::MouseButtonReleasedRecord{
+		.button = spk::Mouse::Left}));
+	button.dispatchMouseEvent(releaseEvent, mouse);
+
+	EXPECT_EQ(clickCount, 0);
+	EXPECT_FALSE(button.isPressed());
+}
+
+TEST(PushButtonTest, ReleasedStyleSubscriptionRefreshesWhenNotPressed)
+{
+	spk::WidgetStyle releasedStyle = spk::WidgetStyle::makeDefault();
+	spk::WidgetStyle pressedStyle = spk::WidgetStyle::makeDefaultPressed();
+	releasedStyle.setTextSize(spk::Font::Size(12, 0));
+	pressedStyle.setTextSize(spk::Font::Size(18, 1));
+
+	spk::PushButton button("Button", "OK", releasedStyle, pressedStyle);
+
+	releasedStyle.setTextSize(spk::Font::Size(14, 0));
+
+	EXPECT_EQ(button.releasedLabel().textSize(), spk::Font::Size(14, 0));
+}
+
+TEST(PushButtonTest, PressedStyleSubscriptionRefreshesWhenPressed)
+{
+	spk::WidgetStyle releasedStyle = spk::WidgetStyle::makeDefault();
+	spk::WidgetStyle pressedStyle = spk::WidgetStyle::makeDefaultPressed();
+	releasedStyle.setTextSize(spk::Font::Size(12, 0));
+	pressedStyle.setTextSize(spk::Font::Size(18, 1));
+
+	spk::PushButton button("Button", "OK", releasedStyle, pressedStyle);
+	button.setGeometry(spk::Rect2D(10, 10, 120, 40));
+
+	spk::Mouse mouse;
+	mouse.position = {20, 20};
+	spk::MouseEventRecord pressEvent = spk::MouseEventRecord(spk::makeEventRecord(spk::MouseButtonPressedRecord{
+		.button = spk::Mouse::Left}));
+	button.dispatchMouseEvent(pressEvent, mouse);
+	ASSERT_TRUE(button.isPressed());
+
+	pressedStyle.setTextSize(spk::Font::Size(22, 2));
+
+	EXPECT_EQ(button.pressedLabel().textSize(), spk::Font::Size(22, 2));
+}
