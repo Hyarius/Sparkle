@@ -15,6 +15,9 @@
 namespace spk
 {
 	class WidgetStyle;
+	class FrameModule;
+	class MouseModule;
+	class KeyboardModule;
 
 	class Widget : public spk::HierarchyTrait<Widget>, public spk::ActivableTrait
 	{
@@ -26,6 +29,10 @@ namespace spk
 		};
 
 	private:
+		friend class FrameModule;
+		friend class MouseModule;
+		friend class KeyboardModule;
+
 		static inline Widget* _focusedWidgets[2] = {nullptr, nullptr};
 
 		std::string _name;
@@ -63,6 +70,10 @@ namespace spk
 
 			(this->*p_handler)(p_event);
 		}
+
+		bool dispatchFrameEvent(spk::FrameEventRecord& p_event);
+		void dispatchMouseEvent(spk::MouseEventRecord& p_event, spk::Mouse& p_mouse);
+		void dispatchKeyboardEvent(spk::KeyboardEventRecord& p_event, spk::Keyboard& p_keyboard);
 
 	protected:
 		void onParentChanged(spk::Widget* p_oldParent, spk::Widget* p_newParent) override;
@@ -121,9 +132,5 @@ namespace spk
 		[[nodiscard]] std::shared_ptr<spk::RenderUnit> renderUnit() const;
 		void appendRenderUnits(spk::RenderSnapshotBuilder& p_builder) const;
 		void update(const spk::UpdateTick& p_tick);
-
-		bool dispatchFrameEvent(spk::FrameEventRecord& p_event);
-		void dispatchMouseEvent(spk::MouseEventRecord& p_event, spk::Mouse& p_mouse);
-		void dispatchKeyboardEvent(spk::KeyboardEventRecord& p_event, spk::Keyboard& p_keyboard);
 	};
 }

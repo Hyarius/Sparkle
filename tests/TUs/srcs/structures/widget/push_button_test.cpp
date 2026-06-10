@@ -4,6 +4,8 @@
 
 #include "structures/widget/spk_push_button.hpp"
 #include "structures/widget/spk_widget_style.hpp"
+#include "structures/application/module/spk_mouse_module.hpp"
+#include "structures/system/device/window/window_test_utils.hpp"
 
 TEST(PushButtonTest, BuildsSkinAndTextRenderCommands)
 {
@@ -31,18 +33,16 @@ TEST(PushButtonTest, TriggersClickOnLeftPressAndReleaseInside)
 		++clickCount;
 	});
 
-	spk::Mouse mouse;
-	mouse.position = {20, 20};
-
-	spk::MouseEventRecord pressEvent = spk::MouseEventRecord(spk::makeEventRecord(spk::MouseButtonPressedRecord{
-		.button = spk::Mouse::Left}));
-	button.dispatchMouseEvent(pressEvent, mouse);
+	spk::MouseModule mouseModule;
+	mouseModule.bind(&button);
+	mouseModule.pushEvent(spk::MouseEventRecord(spk::makeEventRecord(spk::MouseMovedRecord{.position = {20, 20}})));
+	mouseModule.pushEvent(spk::MouseEventRecord(spk::makeEventRecord(spk::MouseButtonPressedRecord{.button = spk::Mouse::Left})));
+	mouseModule.processEvents();
 
 	EXPECT_TRUE(button.isPressed());
 
-	spk::MouseEventRecord releaseEvent = spk::MouseEventRecord(spk::makeEventRecord(spk::MouseButtonReleasedRecord{
-		.button = spk::Mouse::Left}));
-	button.dispatchMouseEvent(releaseEvent, mouse);
+	mouseModule.pushEvent(spk::MouseEventRecord(spk::makeEventRecord(spk::MouseButtonReleasedRecord{.button = spk::Mouse::Left})));
+	mouseModule.processEvents();
 
 	EXPECT_FALSE(button.isPressed());
 	EXPECT_EQ(clickCount, 1);
@@ -61,11 +61,11 @@ TEST(PushButtonTest, UsesReleasedAndPressedStyles)
 	EXPECT_EQ(button.releasedLabel().textSize(), spk::Font::Size(16, 0));
 	EXPECT_EQ(button.pressedLabel().textSize(), spk::Font::Size(24, 1));
 
-	spk::Mouse mouse;
-	mouse.position = {20, 20};
-	spk::MouseEventRecord pressEvent = spk::MouseEventRecord(spk::makeEventRecord(spk::MouseButtonPressedRecord{
-		.button = spk::Mouse::Left}));
-	button.dispatchMouseEvent(pressEvent, mouse);
+	spk::MouseModule mouseModule;
+	mouseModule.bind(&button);
+	mouseModule.pushEvent(spk::MouseEventRecord(spk::makeEventRecord(spk::MouseMovedRecord{.position = {20, 20}})));
+	mouseModule.pushEvent(spk::MouseEventRecord(spk::makeEventRecord(spk::MouseButtonPressedRecord{.button = spk::Mouse::Left})));
+	mouseModule.processEvents();
 
 	EXPECT_TRUE(button.isPressed());
 	EXPECT_TRUE(button.pressedLabel().isActivated());
@@ -116,11 +116,11 @@ TEST(PushButtonTest, PressedBackgroundIsActiveWhenPressed)
 	EXPECT_TRUE(button.releasedBackground().isActivated());
 	EXPECT_FALSE(button.pressedBackground().isActivated());
 
-	spk::Mouse mouse;
-	mouse.position = {20, 20};
-	spk::MouseEventRecord pressEvent = spk::MouseEventRecord(spk::makeEventRecord(spk::MouseButtonPressedRecord{
-		.button = spk::Mouse::Left}));
-	button.dispatchMouseEvent(pressEvent, mouse);
+	spk::MouseModule mouseModule;
+	mouseModule.bind(&button);
+	mouseModule.pushEvent(spk::MouseEventRecord(spk::makeEventRecord(spk::MouseMovedRecord{.position = {20, 20}})));
+	mouseModule.pushEvent(spk::MouseEventRecord(spk::makeEventRecord(spk::MouseButtonPressedRecord{.button = spk::Mouse::Left})));
+	mouseModule.processEvents();
 
 	EXPECT_FALSE(button.releasedBackground().isActivated());
 	EXPECT_TRUE(button.pressedBackground().isActivated());
@@ -266,15 +266,10 @@ TEST(PushButtonTest, MouseMovedEventUpdatesHoverState)
 	spk::PushButton button("Button", "OK");
 	button.setGeometry(spk::Rect2D(10, 10, 120, 40));
 
-	spk::Mouse mouse;
-	mouse.position = {20, 20};
-	spk::MouseEventRecord movedInside = spk::MouseEventRecord(spk::makeEventRecord(spk::MouseMovedRecord{.position = {20, 20}}));
-	button.dispatchMouseEvent(movedInside, mouse);
+	sparkle_test::sendMouseEvent(button, spk::MouseEventRecord(spk::makeEventRecord(spk::MouseMovedRecord{.position = {20, 20}})));
 	EXPECT_TRUE(button.isHovered());
 
-	mouse.position = {200, 200};
-	spk::MouseEventRecord movedOutside = spk::MouseEventRecord(spk::makeEventRecord(spk::MouseMovedRecord{.position = {200, 200}}));
-	button.dispatchMouseEvent(movedOutside, mouse);
+	sparkle_test::sendMouseEvent(button, spk::MouseEventRecord(spk::makeEventRecord(spk::MouseMovedRecord{.position = {200, 200}})));
 	EXPECT_FALSE(button.isHovered());
 }
 
@@ -282,9 +277,7 @@ TEST(PushButtonTest, MouseLeftEventEarlyReturnWhenNeitherHoveredNorPressed)
 {
 	spk::PushButton button("Button", "OK");
 
-	spk::Mouse mouse;
-	spk::MouseEventRecord leftEvent = spk::MouseEventRecord(spk::makeEventRecord(spk::MouseLeftRecord{}));
-	button.dispatchMouseEvent(leftEvent, mouse);
+	sparkle_test::sendMouseEvent(button, spk::MouseEventRecord(spk::makeEventRecord(spk::MouseLeftRecord{})));
 
 	EXPECT_FALSE(button.isHovered());
 	EXPECT_FALSE(button.isPressed());
@@ -295,15 +288,10 @@ TEST(PushButtonTest, MouseLeftEventResetsStateWhenHovered)
 	spk::PushButton button("Button", "OK");
 	button.setGeometry(spk::Rect2D(10, 10, 120, 40));
 
-	spk::Mouse mouse;
-	mouse.position = {20, 20};
-	spk::MouseEventRecord movedEvent = spk::MouseEventRecord(spk::makeEventRecord(spk::MouseMovedRecord{.position = {20, 20}}));
-	button.dispatchMouseEvent(movedEvent, mouse);
+	sparkle_test::sendMouseEvent(button, spk::MouseEventRecord(spk::makeEventRecord(spk::MouseMovedRecord{.position = {20, 20}})));
 	ASSERT_TRUE(button.isHovered());
 
-	mouse.position = {200, 20};
-	spk::MouseEventRecord movedEventOutOfWidget = spk::MouseEventRecord(spk::makeEventRecord(spk::MouseMovedRecord{.position = {200, 20}}));
-	button.dispatchMouseEvent(movedEventOutOfWidget, mouse);
+	sparkle_test::sendMouseEvent(button, spk::MouseEventRecord(spk::makeEventRecord(spk::MouseMovedRecord{.position = {200, 20}})));
 
 	EXPECT_FALSE(button.isHovered());
 	EXPECT_FALSE(button.isPressed());
@@ -314,11 +302,11 @@ TEST(PushButtonTest, MousePressedNonLeftButtonIsIgnored)
 	spk::PushButton button("Button", "OK");
 	button.setGeometry(spk::Rect2D(10, 10, 120, 40));
 
-	spk::Mouse mouse;
-	mouse.position = {20, 20};
-	spk::MouseEventRecord rightPressEvent = spk::MouseEventRecord(spk::makeEventRecord(spk::MouseButtonPressedRecord{
-		.button = spk::Mouse::Right}));
-	button.dispatchMouseEvent(rightPressEvent, mouse);
+	spk::MouseModule mouseModule;
+	mouseModule.bind(&button);
+	mouseModule.pushEvent(spk::MouseEventRecord(spk::makeEventRecord(spk::MouseMovedRecord{.position = {20, 20}})));
+	mouseModule.pushEvent(spk::MouseEventRecord(spk::makeEventRecord(spk::MouseButtonPressedRecord{.button = spk::Mouse::Right})));
+	mouseModule.processEvents();
 
 	EXPECT_FALSE(button.isPressed());
 }
@@ -328,11 +316,11 @@ TEST(PushButtonTest, MousePressedOutsideGeometryIsIgnored)
 	spk::PushButton button("Button", "OK");
 	button.setGeometry(spk::Rect2D(10, 10, 120, 40));
 
-	spk::Mouse mouse;
-	mouse.position = {200, 200};
-	spk::MouseEventRecord pressEvent = spk::MouseEventRecord(spk::makeEventRecord(spk::MouseButtonPressedRecord{
-		.button = spk::Mouse::Left}));
-	button.dispatchMouseEvent(pressEvent, mouse);
+	spk::MouseModule mouseModule;
+	mouseModule.bind(&button);
+	mouseModule.pushEvent(spk::MouseEventRecord(spk::makeEventRecord(spk::MouseMovedRecord{.position = {200, 200}})));
+	mouseModule.pushEvent(spk::MouseEventRecord(spk::makeEventRecord(spk::MouseButtonPressedRecord{.button = spk::Mouse::Left})));
+	mouseModule.processEvents();
 
 	EXPECT_FALSE(button.isPressed());
 }
@@ -345,11 +333,7 @@ TEST(PushButtonTest, MouseReleasedWhenNotPressedIsIgnored)
 	int clickCount = 0;
 	auto contract = button.subscribeToClick([&clickCount]() { ++clickCount; });
 
-	spk::Mouse mouse;
-	mouse.position = {20, 20};
-	spk::MouseEventRecord releaseEvent = spk::MouseEventRecord(spk::makeEventRecord(spk::MouseButtonReleasedRecord{
-		.button = spk::Mouse::Left}));
-	button.dispatchMouseEvent(releaseEvent, mouse);
+	sparkle_test::sendMouseEvent(button, spk::MouseEventRecord(spk::makeEventRecord(spk::MouseButtonReleasedRecord{.button = spk::Mouse::Left})));
 
 	EXPECT_EQ(clickCount, 0);
 }
@@ -362,17 +346,16 @@ TEST(PushButtonTest, MouseReleasedOutsideBoundsDoesNotTriggerClick)
 	int clickCount = 0;
 	auto contract = button.subscribeToClick([&clickCount]() { ++clickCount; });
 
-	spk::Mouse mouse;
-	mouse.position = {20, 20};
-	spk::MouseEventRecord pressEvent = spk::MouseEventRecord(spk::makeEventRecord(spk::MouseButtonPressedRecord{
-		.button = spk::Mouse::Left}));
-	button.dispatchMouseEvent(pressEvent, mouse);
+	spk::MouseModule mouseModule;
+	mouseModule.bind(&button);
+	mouseModule.pushEvent(spk::MouseEventRecord(spk::makeEventRecord(spk::MouseMovedRecord{.position = {20, 20}})));
+	mouseModule.pushEvent(spk::MouseEventRecord(spk::makeEventRecord(spk::MouseButtonPressedRecord{.button = spk::Mouse::Left})));
+	mouseModule.processEvents();
 	ASSERT_TRUE(button.isPressed());
 
-	mouse.position = {200, 200};
-	spk::MouseEventRecord releaseEvent = spk::MouseEventRecord(spk::makeEventRecord(spk::MouseButtonReleasedRecord{
-		.button = spk::Mouse::Left}));
-	button.dispatchMouseEvent(releaseEvent, mouse);
+	mouseModule.pushEvent(spk::MouseEventRecord(spk::makeEventRecord(spk::MouseMovedRecord{.position = {200, 200}})));
+	mouseModule.pushEvent(spk::MouseEventRecord(spk::makeEventRecord(spk::MouseButtonReleasedRecord{.button = spk::Mouse::Left})));
+	mouseModule.processEvents();
 
 	EXPECT_EQ(clickCount, 0);
 	EXPECT_FALSE(button.isPressed());
@@ -402,11 +385,11 @@ TEST(PushButtonTest, PressedStyleSubscriptionRefreshesWhenPressed)
 	spk::PushButton button("Button", "OK", releasedStyle, pressedStyle);
 	button.setGeometry(spk::Rect2D(10, 10, 120, 40));
 
-	spk::Mouse mouse;
-	mouse.position = {20, 20};
-	spk::MouseEventRecord pressEvent = spk::MouseEventRecord(spk::makeEventRecord(spk::MouseButtonPressedRecord{
-		.button = spk::Mouse::Left}));
-	button.dispatchMouseEvent(pressEvent, mouse);
+	spk::MouseModule mouseModule;
+	mouseModule.bind(&button);
+	mouseModule.pushEvent(spk::MouseEventRecord(spk::makeEventRecord(spk::MouseMovedRecord{.position = {20, 20}})));
+	mouseModule.pushEvent(spk::MouseEventRecord(spk::makeEventRecord(spk::MouseButtonPressedRecord{.button = spk::Mouse::Left})));
+	mouseModule.processEvents();
 	ASSERT_TRUE(button.isPressed());
 
 	pressedStyle.setTextSize(spk::Font::Size(22, 2));

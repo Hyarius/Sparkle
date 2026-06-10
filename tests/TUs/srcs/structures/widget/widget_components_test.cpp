@@ -155,9 +155,8 @@ TEST_F(WidgetFocusTest, KeyboardFocusRoutesEventToFocusedWidget)
 
 	focused.takeFocus(spk::Widget::FocusType::Keyboard);
 
-	spk::Keyboard keyboard;
 	spk::KeyboardEventRecord event = makeKeyPress();
-	root.dispatchKeyboardEvent(event, keyboard);
+	sparkle_test::sendKeyboardEvent(root, event);
 
 	EXPECT_EQ(focused.keyboardEventCount, 1);
 	EXPECT_EQ(root.keyboardEventCount, 0);
@@ -175,9 +174,8 @@ TEST_F(WidgetFocusTest, KeyboardFocusAlsoRoutesToDescendantsOfFocusedWidget)
 
 	focused.takeFocus(spk::Widget::FocusType::Keyboard);
 
-	spk::Keyboard keyboard;
 	spk::KeyboardEventRecord event = makeKeyPress();
-	root.dispatchKeyboardEvent(event, keyboard);
+	sparkle_test::sendKeyboardEvent(root, event);
 
 	EXPECT_EQ(child.keyboardEventCount, 1);
 	EXPECT_EQ(focused.keyboardEventCount, 1);
@@ -196,9 +194,8 @@ TEST_F(WidgetFocusTest, KeyboardFocusBypassesSiblingWidgets)
 
 	focused.takeFocus(spk::Widget::FocusType::Keyboard);
 
-	spk::Keyboard keyboard;
 	spk::KeyboardEventRecord event = makeKeyPress();
-	root.dispatchKeyboardEvent(event, keyboard);
+	sparkle_test::sendKeyboardEvent(root, event);
 
 	EXPECT_EQ(focused.keyboardEventCount, 1);
 	EXPECT_EQ(sibling.keyboardEventCount, 0);
@@ -213,9 +210,8 @@ TEST_F(WidgetFocusTest, WithoutKeyboardFocusEventsPropagateThroughAllWidgets)
 	root.activate();
 	child.activate();
 
-	spk::Keyboard keyboard;
 	spk::KeyboardEventRecord event = makeKeyPress();
-	root.dispatchKeyboardEvent(event, keyboard);
+	sparkle_test::sendKeyboardEvent(root, event);
 
 	EXPECT_EQ(root.keyboardEventCount, 1);
 	EXPECT_EQ(child.keyboardEventCount, 1);
@@ -233,9 +229,8 @@ TEST_F(WidgetFocusTest, MouseFocusRoutesEventToFocusedWidget)
 
 	focused.takeFocus(spk::Widget::FocusType::Mouse);
 
-	spk::Mouse mouse;
 	spk::MouseEventRecord event = makeMousePress();
-	root.dispatchMouseEvent(event, mouse);
+	sparkle_test::sendMouseEvent(root, event);
 
 	EXPECT_EQ(focused.mouseEventCount, 1);
 	EXPECT_EQ(root.mouseEventCount, 0);
@@ -253,9 +248,8 @@ TEST_F(WidgetFocusTest, MouseFocusAlsoRoutesToDescendantsOfFocusedWidget)
 
 	focused.takeFocus(spk::Widget::FocusType::Mouse);
 
-	spk::Mouse mouse;
 	spk::MouseEventRecord event = makeMousePress();
-	root.dispatchMouseEvent(event, mouse);
+	sparkle_test::sendMouseEvent(root, event);
 
 	EXPECT_EQ(child.mouseEventCount, 1);
 	EXPECT_EQ(focused.mouseEventCount, 1);
@@ -274,9 +268,8 @@ TEST_F(WidgetFocusTest, MouseFocusBypassesSiblingWidgets)
 
 	focused.takeFocus(spk::Widget::FocusType::Mouse);
 
-	spk::Mouse mouse;
 	spk::MouseEventRecord event = makeMousePress();
-	root.dispatchMouseEvent(event, mouse);
+	sparkle_test::sendMouseEvent(root, event);
 
 	EXPECT_EQ(focused.mouseEventCount, 1);
 	EXPECT_EQ(sibling.mouseEventCount, 0);
@@ -291,9 +284,8 @@ TEST_F(WidgetFocusTest, WithoutMouseFocusEventsPropagateThroughAllWidgets)
 	root.activate();
 	child.activate();
 
-	spk::Mouse mouse;
 	spk::MouseEventRecord event = makeMousePress();
-	root.dispatchMouseEvent(event, mouse);
+	sparkle_test::sendMouseEvent(root, event);
 
 	EXPECT_EQ(root.mouseEventCount, 1);
 	EXPECT_EQ(child.mouseEventCount, 1);

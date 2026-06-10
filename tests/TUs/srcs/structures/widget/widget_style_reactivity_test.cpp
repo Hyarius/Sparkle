@@ -5,6 +5,7 @@
 #include "structures/widget/spk_text_label.hpp"
 #include "structures/widget/spk_widget_style.hpp"
 #include "structures/widget/spk_widget_visual_test_helpers.hpp"
+#include "structures/application/module/spk_mouse_module.hpp"
 
 TEST(WidgetStyleReactivityTest, PanelVisualRefreshesWhenSubscribedStyleChanges)
 {
@@ -48,11 +49,11 @@ TEST(WidgetStyleReactivityTest, PushButtonPressedVisualRefreshesWhenPressedStyle
 	spk::PushButton button("Button", text, releasedStyle, pressedStyle);
 	button.setGeometry(captureRect);
 
-	spk::Mouse mouse;
-	mouse.position = {10, 10};
-	spk::MouseEventRecord pressEvent = spk::MouseEventRecord(spk::makeEventRecord(spk::MouseButtonPressedRecord{
-		.button = spk::Mouse::Left}));
-	button.dispatchMouseEvent(pressEvent, mouse);
+	spk::MouseModule mouseModule;
+	mouseModule.bind(&button);
+	mouseModule.pushEvent(spk::MouseEventRecord(spk::makeEventRecord(spk::MouseMovedRecord{.position = {10, 10}})));
+	mouseModule.pushEvent(spk::MouseEventRecord(spk::makeEventRecord(spk::MouseButtonPressedRecord{.button = spk::Mouse::Left})));
+	mouseModule.processEvents();
 
 	pressedStyle.setNineSliceSpriteSheet(spk::WidgetStyle::makeDefault().nineSliceSpriteSheet());
 	pressedStyle.setNineSliceCornerSize({9, 11});

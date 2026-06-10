@@ -23,6 +23,9 @@
 #include "structures/widget/spk_widget.hpp"
 #include "structures/system/device/window/spk_window.hpp"
 #include "structures/system/device/window/spk_window_host.hpp"
+#include "structures/application/module/spk_frame_module.hpp"
+#include "structures/application/module/spk_mouse_module.hpp"
+#include "structures/application/module/spk_keyboard_module.hpp"
 
 namespace sparkle_test
 {
@@ -827,5 +830,29 @@ namespace sparkle_test
 			});
 
 		return result;
+	}
+
+	inline void sendFrameEvent(spk::Widget& p_widget, spk::FrameEventRecord p_event)
+	{
+		spk::FrameModule module;
+		module.bind(&p_widget);
+		module.pushEvent(std::move(p_event));
+		module.processEvents();
+	}
+
+	inline void sendMouseEvent(spk::Widget& p_widget, spk::MouseEventRecord p_event)
+	{
+		spk::MouseModule module;
+		module.bind(&p_widget);
+		module.pushEvent(std::move(p_event));
+		module.processEvents();
+	}
+
+	inline void sendKeyboardEvent(spk::Widget& p_widget, spk::KeyboardEventRecord p_event)
+	{
+		spk::KeyboardModule module;
+		module.bind(&p_widget);
+		module.pushEvent(std::move(p_event));
+		module.processEvents();
 	}
 }

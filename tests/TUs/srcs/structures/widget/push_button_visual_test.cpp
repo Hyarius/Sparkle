@@ -5,6 +5,7 @@
 #include "structures/widget/spk_widget_visual_test_helpers.hpp"
 #include "type/spk_horizontal_alignment.hpp"
 #include "type/spk_vertical_alignment.hpp"
+#include "structures/application/module/spk_mouse_module.hpp"
 
 namespace
 {
@@ -143,11 +144,11 @@ TEST(PushButtonVisualTest, AlignmentPreservedWhenPressed)
 	button.setAlignment(spk::HorizontalAlignment::Left, spk::VerticalAlignment::Top);
 	button.setGeometry(captureRect);
 
-	spk::Mouse mouse;
-	mouse.position = {10, 10};
-	spk::MouseEventRecord pressEvent = spk::MouseEventRecord(spk::makeEventRecord(spk::MouseButtonPressedRecord{
-		.button = spk::Mouse::Left}));
-	button.dispatchMouseEvent(pressEvent, mouse);
+	spk::MouseModule mouseModule;
+	mouseModule.bind(&button);
+	mouseModule.pushEvent(spk::MouseEventRecord(spk::makeEventRecord(spk::MouseMovedRecord{.position = {10, 10}})));
+	mouseModule.pushEvent(spk::MouseEventRecord(spk::makeEventRecord(spk::MouseButtonPressedRecord{.button = spk::Mouse::Left})));
+	mouseModule.processEvents();
 
 	const sparkle_test::ImageComparisonResult result =
 		spk::test::compareSnapshot(button, "PushButtonVisual", "pressed_left_top", captureRect);
