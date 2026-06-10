@@ -170,16 +170,12 @@ namespace sparkle_test
 
 	inline std::filesystem::path expectedImagePath(const std::string& p_name)
 	{
-		std::filesystem::path directory = spk::test::expectedDirectory() / "OpenGLWrappers";
-		std::filesystem::create_directories(directory);
-		return directory / (p_name + ".png");
+		return spk::test::expectedDirectory() / "OpenGLWrappers" / (p_name + ".png");
 	}
 
 	inline std::filesystem::path resultImagePath(const std::string& p_name)
 	{
-		std::filesystem::path directory = spk::test::resultDirectory() / "OpenGLWrappers";
-		std::filesystem::create_directories(directory);
-		return directory / (p_name + ".png");
+		return spk::test::resultDirectory() / "OpenGLWrappers" / (p_name + ".png");
 	}
 
 	inline void writeSolidExpectedImage(const std::filesystem::path& p_path, int p_width, int p_height, std::array<unsigned char, 4> p_color)

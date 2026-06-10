@@ -390,6 +390,7 @@ namespace spk
 			throw std::runtime_error("Unsupported texture format for PNG export.");
 		}
 
+		std::filesystem::create_directories(p_path.parent_path());
 		const int stride = static_cast<int>(_size.x) * channels;
 		if (stbi_write_png(p_path.string().c_str(), static_cast<int>(_size.x), static_cast<int>(_size.y), channels, _pixels.data(), stride) == 0)
 		{

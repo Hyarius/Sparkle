@@ -38,6 +38,8 @@ namespace spk
 			throw std::runtime_error("spk::GPUPlatformRuntime::saveScreenshot requires a non-empty capture rect");
 		}
 
+		std::filesystem::create_directories(p_outputPath.parent_path());
+
 		std::vector<std::uint8_t> pixels(static_cast<std::size_t>(width) * static_cast<std::size_t>(height) * 4);
 		std::vector<std::uint8_t> flipped(pixels.size());
 
