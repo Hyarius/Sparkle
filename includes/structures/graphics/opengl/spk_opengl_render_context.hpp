@@ -2,7 +2,11 @@
 
 #ifdef _WIN32
 
+#include <cstdint>
 #include <memory>
+#include <unordered_map>
+
+#include "structures/graphics/opengl/spk_opengl_program.hpp"
 
 #include <Windows.h>
 
@@ -15,6 +19,14 @@ namespace spk
 	class RenderContext
 	{
 	private:
+		struct CompiledProgramEntry
+		{
+			std::uint64_t version = 0;
+			std::unique_ptr<spk::OpenGL::Program> program;
+		};
+
+		static inline thread_local RenderContext* s_current = nullptr;
+
 		std::shared_ptr<SurfaceState> _surfaceState;
 		bool _valid = true;
 
@@ -22,12 +34,19 @@ namespace spk
 		HDC _deviceContext = nullptr;
 		HGLRC _renderContext = nullptr;
 
+		std::unordered_map<std::uint64_t, CompiledProgramEntry> _compiledPrograms;
+
 	protected:
 		explicit RenderContext(std::shared_ptr<SurfaceState> p_surfaceState);
 
 	public:
 		explicit RenderContext(spk::Frame& p_frame);
 		virtual ~RenderContext();
+
+		[[nodiscard]] static RenderContext* current() noexcept;
+
+		[[nodiscard]] spk::OpenGL::Program& compiledProgram(const spk::Program& p_program);
+		[[nodiscard]] bool hasCompiledProgram(const spk::Program& p_program) const noexcept;
 
 		[[nodiscard]] std::shared_ptr<SurfaceState> surfaceState() const;
 		virtual void invalidate();

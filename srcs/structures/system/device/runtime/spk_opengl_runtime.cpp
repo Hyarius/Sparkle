@@ -43,7 +43,9 @@ namespace spk
 		std::vector<std::uint8_t> pixels(static_cast<std::size_t>(width) * static_cast<std::size_t>(height) * 4);
 		std::vector<std::uint8_t> flipped(pixels.size());
 
-		glReadBuffer(GL_BACK);
+		GLint readFramebuffer = 0;
+		glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &readFramebuffer);
+		glReadBuffer(readFramebuffer == 0 ? GL_BACK : GL_COLOR_ATTACHMENT0);
 		glPixelStorei(GL_PACK_ALIGNMENT, 1);
 		glReadPixels(p_rect.x(), p_rect.y(), width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
 

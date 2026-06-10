@@ -4,8 +4,9 @@
 #include <memory>
 #include <stdexcept>
 
+#include <GL/glew.h>
+
 #include <Windows.h>
-#include <GL/gl.h>
 
 #include "structures/graphics/opengl/spk_opengl_render_context.hpp"
 #include "structures/system/win32/spk_winapi_frame.hpp"

@@ -9,6 +9,7 @@
 #include "structures/graphics/opengl/spk_opengl_layout_buffer_object.hpp"
 #include "structures/graphics/opengl/spk_opengl_program.hpp"
 #include "structures/graphics/opengl/spk_opengl_uniform_buffer_object.hpp"
+#include "structures/graphics/rendering/context/spk_render_context.hpp"
 #include "spk_generated_resources.hpp"
 
 namespace
@@ -33,14 +34,12 @@ namespace spk
 		_layoutBuffer.addAttribute(1, spk::LayoutBufferObject::Attribute::Type::Vector2);
 	}
 
-	void DrawTextureMeshRenderCommand::_ensureProgram()
+	spk::Program& DrawTextureMeshRenderCommand::_sharedProgram()
 	{
-		if (_program == nullptr)
-		{
-			_program = std::make_shared<spk::Program>(
-				SPARKLE_GET_RESOURCE_AS_STRING("resources/shaders/texture_mesh/draw_texture_mesh.vert"),
-				SPARKLE_GET_RESOURCE_AS_STRING("resources/shaders/texture_mesh/draw_texture_mesh.frag"));
-		}
+		static spk::Program program(
+			SPARKLE_GET_RESOURCE_AS_STRING("resources/shaders/texture_mesh/draw_texture_mesh.vert"),
+			SPARKLE_GET_RESOURCE_AS_STRING("resources/shaders/texture_mesh/draw_texture_mesh.frag"));
+		return program;
 	}
 
 	void DrawTextureMeshRenderCommand::_uploadMesh()
@@ -89,15 +88,14 @@ namespace spk
 
 	void DrawTextureMeshRenderCommand::execute(spk::RenderContext& p_renderContext)
 	{
-		(void)p_renderContext;
-
-		_ensureProgram();
 		_uploadMesh();
 
 		if (_layoutBuffer.vertexCount() == 0)
 		{
 			return;
 		}
+
+		spk::OpenGL::Program& program = p_renderContext.compiledProgram(_sharedProgram());
 
 		_texture.synchronize();
 		if (_texture.glId() == spk::Texture::InvalidGLId)
@@ -106,22 +104,22 @@ namespace spk
 		}
 
 		_layoutBuffer.activate();
-		_program->activate();
+		program.activate();
 		viewportUniformBuffer().activate();
 
 		_sampler.activate();
 
 		if (_layoutBuffer.isIndexed() == true)
 		{
-			_program->render(spk::Primitive::Triangles, 0, _layoutBuffer.indexCount());
+			program.render(spk::Primitive::Triangles, 0, _layoutBuffer.indexCount());
 		}
 		else
 		{
-			_program->renderRaw(spk::Primitive::Triangles, 0, _layoutBuffer.vertexCount());
+			program.renderRaw(spk::Primitive::Triangles, 0, _layoutBuffer.vertexCount());
 		}
 
 		_sampler.deactivate();
 		_layoutBuffer.deactivate();
-		_program->deactivate();
+		program.deactivate();
 	}
 }

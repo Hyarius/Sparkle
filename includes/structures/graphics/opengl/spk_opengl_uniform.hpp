@@ -22,6 +22,7 @@ namespace spk
 		std::string _name;
 		spk::Program& _program;
 		mutable GLint _location = -1;
+		mutable GLuint _resolvedProgramId = 0;
 		mutable bool _locationResolved = false;
 		mutable bool _validated = false;
 
@@ -51,10 +52,15 @@ namespace spk
 	private:
 		void _synchronize() const final override
 		{
-			if (_locationResolved == false)
+			// The compiled program is owned by the render context: a context
+			// recreation or source update yields a new id and new locations.
+			const GLuint programId = _program.id();
+			if (_locationResolved == false || _resolvedProgramId != programId)
 			{
-				_location = _findUniformLocation(_program.id(), _name);
+				_location = _findUniformLocation(programId, _name);
 				_locationResolved = true;
+				_resolvedProgramId = programId;
+				_validated = false;
 				if (_location == -1)
 				{
 					throw std::runtime_error(

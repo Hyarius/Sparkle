@@ -25,10 +25,9 @@ namespace spk
 		const spk::Color _outlineColor;
 		const float _outlineThickness;
 
-		std::unique_ptr<spk::Program> _program;
-		std::unique_ptr<spk::Vector4Uniform> _colorUniform;
-		std::unique_ptr<spk::Vector4Uniform> _outlineColorUniform;
-		std::unique_ptr<spk::FloatUniform> _outlineThicknessUniform;
+		spk::Vector4Uniform _colorUniform;
+		spk::Vector4Uniform _outlineColorUniform;
+		spk::FloatUniform _outlineThicknessUniform;
 
 		spk::SamplerObject _sampler;
 
@@ -36,7 +35,7 @@ namespace spk
 		spk::LayoutBufferObject _layoutBuffer;
 		bool _layoutBufferDirty;
 
-		void _ensureProgram();
+		[[nodiscard]] static spk::Program& _sharedProgram();
 		void _uploadMesh();
 
 	public:

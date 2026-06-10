@@ -18,9 +18,8 @@ namespace spk
 		spk::SamplerObject _sampler;
 		spk::LayoutBufferObject _layoutBuffer;
 		bool _layoutBufferDirty;
-		std::shared_ptr<spk::Program> _program;
 
-		void _ensureProgram();
+		[[nodiscard]] static spk::Program& _sharedProgram();
 		void _uploadMesh();
 
 	public:

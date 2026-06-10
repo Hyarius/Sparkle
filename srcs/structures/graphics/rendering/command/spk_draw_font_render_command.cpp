@@ -9,6 +9,7 @@
 
 #include "structures/graphics/opengl/spk_opengl_gpu_data_buffer_center.hpp"
 #include "structures/graphics/opengl/spk_opengl_uniform_buffer_object.hpp"
+#include "structures/graphics/rendering/context/spk_render_context.hpp"
 #include "spk_generated_resources.hpp"
 
 namespace
@@ -41,17 +42,12 @@ namespace
 
 namespace spk
 {
-	void DrawFontRenderCommand::_ensureProgram()
+	spk::Program& DrawFontRenderCommand::_sharedProgram()
 	{
-		if (_program == nullptr)
-		{
-			_program = std::make_unique<spk::Program>(
-				SPARKLE_GET_RESOURCE_AS_STRING("resources/shaders/font/draw_font.vert"),
-				SPARKLE_GET_RESOURCE_AS_STRING("resources/shaders/font/draw_font.frag"));
-			_colorUniform = std::make_unique<spk::Vector4Uniform>("uColor", *_program);
-			_outlineColorUniform = std::make_unique<spk::Vector4Uniform>("uOutlineColor", *_program);
-			_outlineThicknessUniform = std::make_unique<spk::FloatUniform>("uOutlineThickness", *_program);
-		}
+		static spk::Program program(
+			SPARKLE_GET_RESOURCE_AS_STRING("resources/shaders/font/draw_font.vert"),
+			SPARKLE_GET_RESOURCE_AS_STRING("resources/shaders/font/draw_font.frag"));
+		return program;
 	}
 
 	DrawFontRenderCommand::DrawFontRenderCommand(
@@ -66,6 +62,9 @@ namespace spk
 		_color(p_color),
 		_outlineColor(p_outlineColor),
 		_outlineThickness(outlineThickness(p_size)),
+		_colorUniform("uColor", _sharedProgram()),
+		_outlineColorUniform("uOutlineColor", _sharedProgram()),
+		_outlineThicknessUniform("uOutlineThickness", _sharedProgram()),
 		_sampler("uTexture", spk::SamplerObject::Type::Texture2D, 0),
 		_layoutBufferDirty(true)
 	{
@@ -167,9 +166,6 @@ namespace spk
 
 	void DrawFontRenderCommand::execute(spk::RenderContext& p_renderContext)
 	{
-		(void)p_renderContext;
-
-		_ensureProgram();
 		_uploadMesh();
 
 		if (_layoutBuffer.vertexCount() == 0)
@@ -177,35 +173,39 @@ namespace spk
 			return;
 		}
 
+		spk::OpenGL::Program& program = p_renderContext.compiledProgram(_sharedProgram());
+
 		_atlas.synchronize();
 		_sampler.bind(_atlas);
 
 		_layoutBuffer.activate();
-		_program->activate();
+		program.activate();
 		viewportUniformBuffer().activate();
 
 		_sampler.activate();
 
-		_colorUniform->set(_color.values());
-		_colorUniform->activate();
+		// The program is shared between every font command: this instance's values
+		// must be re-uploaded on every draw, not only when they change.
+		_colorUniform.set(_color.values());
+		_colorUniform.forceActivation();
 
-		_outlineColorUniform->set(_outlineColor.values());
-		_outlineColorUniform->activate();
+		_outlineColorUniform.set(_outlineColor.values());
+		_outlineColorUniform.forceActivation();
 
-		_outlineThicknessUniform->set(_outlineThickness);
-		_outlineThicknessUniform->activate();
+		_outlineThicknessUniform.set(_outlineThickness);
+		_outlineThicknessUniform.forceActivation();
 
 		if (_layoutBuffer.isIndexed() == true)
 		{
-			_program->render(spk::Primitive::Triangles, 0, _layoutBuffer.indexCount());
+			program.render(spk::Primitive::Triangles, 0, _layoutBuffer.indexCount());
 		}
 		else
 		{
-			_program->renderRaw(spk::Primitive::Triangles, 0, _layoutBuffer.vertexCount());
+			program.renderRaw(spk::Primitive::Triangles, 0, _layoutBuffer.vertexCount());
 		}
 
 		_sampler.deactivate();
 		_layoutBuffer.deactivate();
-		_program->deactivate();
+		program.deactivate();
 	}
 }

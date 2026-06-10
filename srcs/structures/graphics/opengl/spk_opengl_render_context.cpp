@@ -115,12 +115,35 @@ namespace spk
 	{
 		if (_renderContext != nullptr)
 		{
-			if (wglGetCurrentContext() == _renderContext)
+			// Compiled programs belong to this context and must be released while it
+			// is current; a program id would name an unrelated object in another context.
+			HDC previousDeviceContext = wglGetCurrentDC();
+			HGLRC previousRenderContext = wglGetCurrentContext();
+
+			if (wglMakeCurrent(_deviceContext, _renderContext) == FALSE)
+			{
+				// Could not bind this context: unbind entirely so the program
+				// destructors do not delete ids belonging to another context.
+				wglMakeCurrent(nullptr, nullptr);
+			}
+			_compiledPrograms.clear();
+
+			if (previousRenderContext != nullptr && previousRenderContext != _renderContext)
+			{
+				wglMakeCurrent(previousDeviceContext, previousRenderContext);
+			}
+			else
 			{
 				wglMakeCurrent(nullptr, nullptr);
 			}
+
 			wglDeleteContext(_renderContext);
 			_renderContext = nullptr;
+		}
+
+		if (s_current == this)
+		{
+			s_current = nullptr;
 		}
 
 		if (_windowHandle != nullptr && _deviceContext != nullptr)
@@ -128,6 +151,39 @@ namespace spk
 			ReleaseDC(_windowHandle, _deviceContext);
 			_deviceContext = nullptr;
 		}
+	}
+
+	RenderContext* RenderContext::current() noexcept
+	{
+		return s_current;
+	}
+
+	spk::OpenGL::Program& RenderContext::compiledProgram(const spk::Program& p_program)
+	{
+		if (supportsOpenGLCommands() == false)
+		{
+			throw std::runtime_error("spk::RenderContext::compiledProgram called on a context without OpenGL support");
+		}
+
+		CompiledProgramEntry& entry = _compiledPrograms[p_program.key()];
+		if (entry.program == nullptr || entry.version != p_program.version())
+		{
+			auto compiled = std::make_unique<spk::OpenGL::Program>(
+				p_program.vertexShaderSource(),
+				p_program.fragmentShaderSource());
+			entry.program = std::move(compiled);
+			entry.version = p_program.version();
+		}
+
+		return *entry.program;
+	}
+
+	bool RenderContext::hasCompiledProgram(const spk::Program& p_program) const noexcept
+	{
+		const auto it = _compiledPrograms.find(p_program.key());
+		return it != _compiledPrograms.end() &&
+			   it->second.program != nullptr &&
+			   it->second.version == p_program.version();
 	}
 
 	std::shared_ptr<SurfaceState> RenderContext::surfaceState() const
@@ -169,6 +225,8 @@ namespace spk
 		{
 			spk::throwLastError("wglMakeCurrent");
 		}
+
+		s_current = this;
 	}
 
 	void RenderContext::present()

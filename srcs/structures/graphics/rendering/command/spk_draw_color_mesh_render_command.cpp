@@ -12,6 +12,7 @@
 #include "structures/graphics/opengl/spk_opengl_layout_buffer_object.hpp"
 #include "structures/graphics/opengl/spk_opengl_program.hpp"
 #include "structures/graphics/opengl/spk_opengl_uniform_buffer_object.hpp"
+#include "structures/graphics/rendering/context/spk_render_context.hpp"
 #include "spk_generated_resources.hpp"
 
 #include <iostream>
@@ -35,14 +36,12 @@ namespace spk
 		_layoutBuffer.addAttribute({1, spk::LayoutBufferObject::Attribute::Type::Vector4});
 	}
 
-	void DrawColorMeshRenderCommand::_ensureProgram()
+	spk::Program& DrawColorMeshRenderCommand::_sharedProgram()
 	{
-		if (_program == nullptr)
-		{
-			_program = std::make_shared<spk::Program>(
-				SPARKLE_GET_RESOURCE_AS_STRING("resources/shaders/color_mesh/draw_color_mesh.vert"),
-				SPARKLE_GET_RESOURCE_AS_STRING("resources/shaders/color_mesh/draw_color_mesh.frag"));
-		}
+		static spk::Program program(
+			SPARKLE_GET_RESOURCE_AS_STRING("resources/shaders/color_mesh/draw_color_mesh.vert"),
+			SPARKLE_GET_RESOURCE_AS_STRING("resources/shaders/color_mesh/draw_color_mesh.frag"));
+		return program;
 	}
 
 	void DrawColorMeshRenderCommand::_uploadMesh()
@@ -63,21 +62,20 @@ namespace spk
 			return ;
 		}
 
-		_ensureProgram();
-
+		spk::OpenGL::Program& program = p_renderContext.compiledProgram(_sharedProgram());
 
 		if (_layoutBuffer.indexCount() == 0)
 		{
 			_uploadMesh();
 		}
 
-		_program->activate();
+		program.activate();
 		_layoutBuffer.activate();
 		viewportUniformBuffer().activate();
 
-		_program->render(spk::Primitive::Triangles, 0, _layoutBuffer.indexCount());
-		
+		program.render(spk::Primitive::Triangles, 0, _layoutBuffer.indexCount());
+
 		_layoutBuffer.deactivate();
-		_program->deactivate();
+		program.deactivate();
 	}
 }

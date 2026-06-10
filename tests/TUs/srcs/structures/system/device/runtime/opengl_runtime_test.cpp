@@ -5,8 +5,9 @@
 #include <memory>
 #include <stdexcept>
 
+#include <GL/glew.h>
+
 #include <Windows.h>
-#include <GL/gl.h>
 
 #include "structures/system/device/runtime/spk_opengl_runtime.hpp"
 #include "structures/system/win32/spk_winapi_platform_runtime.hpp"
