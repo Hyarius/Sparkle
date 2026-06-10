@@ -24,6 +24,7 @@ namespace spk
 	private:
 		std::shared_ptr<spk::SpriteSheet> _nineSliceSpriteSheet;
 		spk::Vector2Int _nineSliceCornerSize;
+		std::shared_ptr<spk::SpriteSheet> _iconSpriteSheet;
 
 		std::shared_ptr<spk::Font> _font;
 		spk::Font::Size _textSize;
@@ -44,12 +45,16 @@ namespace spk
 
 		static WidgetStyle makeDefault();
 		static WidgetStyle makeDefaultPressed();
+		static WidgetStyle makeDefaultLight();
+		static WidgetStyle makeDefaultDark();
+		static WidgetStyle makeDefaultSliderBody();
 
 		void notifyEdition() const;
 		Contract subscribeToEdition(Callback p_callback) const;
 
 		void setNineSliceSpriteSheet(std::shared_ptr<spk::SpriteSheet> p_spriteSheet);
 		void setNineSliceCornerSize(const spk::Vector2Int& p_cornerSize);
+		void setIconSpriteSheet(std::shared_ptr<spk::SpriteSheet> p_spriteSheet);
 		void setFont(std::shared_ptr<spk::Font> p_font);
 		void setTextSize(const spk::Font::Size& p_textSize);
 		void setGlyphColor(const spk::Color& p_color);
@@ -58,6 +63,7 @@ namespace spk
 
 		[[nodiscard]] const std::shared_ptr<spk::SpriteSheet>& nineSliceSpriteSheet() const;
 		[[nodiscard]] const spk::Vector2Int& nineSliceCornerSize() const;
+		[[nodiscard]] const std::shared_ptr<spk::SpriteSheet>& iconSpriteSheet() const;
 		[[nodiscard]] const std::shared_ptr<spk::Font>& font() const;
 		[[nodiscard]] const spk::Font::Size& textSize() const;
 		[[nodiscard]] const spk::Color& glyphColor() const;
@@ -75,6 +81,9 @@ namespace spk
 	public:
 		static constexpr std::string_view Default = "default";
 		static constexpr std::string_view DefaultPressed = "default.pressed";
+		static constexpr std::string_view DefaultLight = "default.light";
+		static constexpr std::string_view DefaultDark = "default.dark";
+		static constexpr std::string_view DefaultSliderBody = "default.sliderBody";
 
 		Collection(const Collection&) = delete;
 		Collection& operator=(const Collection&) = delete;

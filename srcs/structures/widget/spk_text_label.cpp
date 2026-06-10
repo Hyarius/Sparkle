@@ -1,5 +1,6 @@
 #include "structures/widget/spk_text_label.hpp"
 
+#include <algorithm>
 #include <stdexcept>
 #include <utility>
 
@@ -30,6 +31,7 @@ namespace spk
 		spk::Widget(p_name, p_parent),
 		_text(spk::Font::textFromUTF8(p_text))
 	{
+		_configureSizeHint();
 		useDefaultStyle();
 		activate();
 	}
@@ -42,6 +44,7 @@ namespace spk
 		spk::Widget(p_name, p_parent),
 		_text(spk::Font::textFromUTF8(p_text))
 	{
+		_configureSizeHint();
 		useStyle(p_style);
 		activate();
 	}
@@ -73,6 +76,22 @@ namespace spk
 	{
 		_bindStyle(p_style);
 		applyStyle(p_style);
+	}
+
+	void TextLabel::_configureSizeHint()
+	{
+		sizeHint().configureMinimalGenerator([this]() {
+			spk::Vector2UInt result = {0, 0};
+
+			if (_font != nullptr && _text.empty() == false)
+			{
+				const spk::Vector2UInt textSize = _font->computeStringSize(_text, _textSize);
+				result.x = textSize.x + static_cast<unsigned int>(_padding.x * 2);
+				result.y = textSize.y + static_cast<unsigned int>(_padding.y * 2);
+			}
+
+			return result;
+		});
 	}
 
 	spk::Vector2Int TextLabel::_textAnchor() const

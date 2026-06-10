@@ -39,6 +39,7 @@ namespace spk
 		void resize(const spk::Rect2D& p_rect);
 		void notifyFrameResized(const spk::Rect2D& p_rect);
 		void setTitle(const std::string& p_title);
+		void setCursor(const std::string& p_name);
 		void requestClosure();
 		void validateClosure();
 		void releaseFrame();

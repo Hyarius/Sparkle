@@ -138,6 +138,46 @@ namespace spk
 		invalidateRenderUnit();
 	}
 
+	void Widget::place(const spk::Vector2Int &p_anchor)
+	{
+		setGeometry(spk::Rect2D(p_anchor, _geometry.size));
+	}
+
+	void Widget::move(const spk::Vector2Int &p_delta)
+	{
+		setGeometry(spk::Rect2D(_geometry.anchor + p_delta, _geometry.size));
+	}
+
+	void Widget::setMinimalSize(const spk::Vector2UInt &p_size)
+	{
+		sizeHint().setMinimal(p_size);
+	}
+
+	void Widget::setFixedSize(const spk::Vector2UInt &p_size)
+	{
+		sizeHint().setDesired(p_size);
+	}
+
+	void Widget::setMaximalSize(const spk::Vector2UInt &p_size)
+	{
+		sizeHint().setMaximal(p_size);
+	}
+
+	spk::Vector2UInt Widget::minimalSize() const
+	{
+		return sizeHint().minimal();
+	}
+
+	spk::Vector2UInt Widget::fixedSize() const
+	{
+		return sizeHint().desired();
+	}
+
+	spk::Vector2UInt Widget::maximalSize() const
+	{
+		return sizeHint().maximal();
+	}
+
 	void Widget::_updateAbsoluteGeometryAndScissor()
 	{
 		spk::HierarchyTrait<Widget>::HierarchyMutationGuard guard(this);
@@ -171,6 +211,14 @@ namespace spk
 	void Widget::invalidateRenderUnit() const
 	{
 		_renderCommandsDirty = true;
+
+		// A change affecting rendering usually affects size hints too; releasing up the
+		// hierarchy keeps cached parent hints (which aggregate child hints) consistent.
+		sizeHint().release();
+		for (Widget *ancestor = parent(); ancestor != nullptr; ancestor = ancestor->parent())
+		{
+			ancestor->sizeHint().release();
+		}
 	}
 
 	void Widget::invalidateRenderUnitTree() const

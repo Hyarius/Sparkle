@@ -29,6 +29,7 @@ namespace spk
 		spk::WidgetStyle::Contract _styleEditionContract;
 
 		void _bindStyle(const spk::WidgetStyle& p_style);
+		void _configureSizeHint();
 
 	protected:
 		[[nodiscard]] spk::Vector2Int _textAnchor() const;

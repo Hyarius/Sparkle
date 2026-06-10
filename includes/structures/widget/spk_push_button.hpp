@@ -6,6 +6,8 @@
 
 #include "structures/design_pattern/spk_contract_provider.hpp"
 #include "structures/graphics/texture/spk_font.hpp"
+#include "structures/graphics/texture/spk_sprite_sheet.hpp"
+#include "structures/widget/spk_image_label.hpp"
 #include "structures/widget/spk_panel.hpp"
 #include "structures/widget/spk_text_label.hpp"
 #include "structures/widget/spk_widget.hpp"
@@ -30,8 +32,13 @@ namespace spk
 		spk::Panel _pressedBackground;
 		spk::TextLabel _releasedLabel;
 		spk::TextLabel _pressedLabel;
+		spk::ImageLabel _releasedIcon;
+		spk::ImageLabel _pressedIcon;
+		bool _hasIcon = false;
+		bool _isFlat = false;
 
 		void _refreshState();
+		void _refreshIconGeometry();
 
 	protected:
 		void _onGeometryChange() override;
@@ -65,6 +72,13 @@ namespace spk
 		void setText(const spk::Font::Text& p_text);
 		void setText(std::string_view p_text);
 		void setAlignment(spk::HorizontalAlignment p_horizontal, spk::VerticalAlignment p_vertical);
+		void setIcon(std::shared_ptr<spk::Texture> p_texture, const spk::Texture::Section& p_section = {{0.0f, 0.0f}, {1.0f, 1.0f}});
+		void setIcon(std::shared_ptr<spk::SpriteSheet> p_spriteSheet, size_t p_spriteID);
+		void removeIcon();
+		void setFlat(bool p_state);
+
+		[[nodiscard]] bool hasIcon() const;
+		[[nodiscard]] bool isFlat() const;
 
 		[[nodiscard]] bool isHovered() const;
 		[[nodiscard]] bool isPressed() const;
@@ -77,5 +91,9 @@ namespace spk
 		[[nodiscard]] const spk::TextLabel& releasedLabel() const;
 		[[nodiscard]] spk::TextLabel& pressedLabel();
 		[[nodiscard]] const spk::TextLabel& pressedLabel() const;
+		[[nodiscard]] spk::ImageLabel& releasedIcon();
+		[[nodiscard]] const spk::ImageLabel& releasedIcon() const;
+		[[nodiscard]] spk::ImageLabel& pressedIcon();
+		[[nodiscard]] const spk::ImageLabel& pressedIcon() const;
 	};
 }

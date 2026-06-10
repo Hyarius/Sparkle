@@ -1,5 +1,7 @@
 #include "structures/widget/spk_push_button.hpp"
 
+#include <algorithm>
+#include <stdexcept>
 #include <utility>
 
 namespace spk
@@ -41,10 +43,29 @@ namespace spk
 		_releasedBackground(p_name + "::releasedBackground", p_releasedStyle, this),
 		_pressedBackground(p_name + "::pressedBackground", p_pressedStyle, this),
 		_releasedLabel(p_name + "::releasedLabel", p_text, p_releasedStyle, this),
-		_pressedLabel(p_name + "::pressedLabel", p_text, p_pressedStyle, this)
+		_pressedLabel(p_name + "::pressedLabel", p_text, p_pressedStyle, this),
+		_releasedIcon(p_name + "::releasedIcon", this),
+		_pressedIcon(p_name + "::pressedIcon", this)
 	{
 		_pressedBackground.deactivate();
 		_pressedLabel.deactivate();
+		_releasedIcon.deactivate();
+		_pressedIcon.deactivate();
+
+		sizeHint().configureMinimalGenerator([this]() {
+			const spk::Vector2UInt releasedSize = _releasedLabel.minimalSize();
+			const spk::Vector2UInt pressedSize = _pressedLabel.minimalSize();
+			const spk::Vector2Int cornerSize = _releasedBackground.cornerSize();
+
+			return spk::Vector2UInt(
+				std::max(
+					releasedSize.x + static_cast<unsigned int>(cornerSize.x * 2),
+					pressedSize.x + static_cast<unsigned int>(cornerSize.x * 2)),
+				std::max(
+					releasedSize.y + static_cast<unsigned int>(cornerSize.y * 2),
+					pressedSize.y + static_cast<unsigned int>(cornerSize.y * 2)));
+		});
+
 		activate();
 	}
 
@@ -67,16 +88,42 @@ namespace spk
 		{
 			_releasedBackground.deactivate();
 			_releasedLabel.deactivate();
-			_pressedBackground.activate();
+			_releasedIcon.deactivate();
+			if (_isFlat == false)
+			{
+				_pressedBackground.activate();
+			}
 			_pressedLabel.activate();
+			if (_hasIcon == true)
+			{
+				_pressedIcon.activate();
+			}
 		}
 		else
 		{
-			_releasedBackground.activate();
+			if (_isFlat == false)
+			{
+				_releasedBackground.activate();
+			}
 			_releasedLabel.activate();
+			if (_hasIcon == true)
+			{
+				_releasedIcon.activate();
+			}
 			_pressedBackground.deactivate();
 			_pressedLabel.deactivate();
+			_pressedIcon.deactivate();
 		}
+	}
+
+	void PushButton::_refreshIconGeometry()
+	{
+		const spk::Vector2Int cornerSize = _releasedBackground.cornerSize();
+		const spk::Rect2D childRect(0, 0, geometry().width(), geometry().height());
+		const spk::Rect2D iconRect = childRect.shrink(cornerSize);
+
+		_releasedIcon.setGeometry(iconRect);
+		_pressedIcon.setGeometry(iconRect);
 	}
 
 	void PushButton::_onGeometryChange()
@@ -86,6 +133,7 @@ namespace spk
 		_pressedBackground.setGeometry(childRect);
 		_releasedLabel.setGeometry(childRect);
 		_pressedLabel.setGeometry(childRect);
+		_refreshIconGeometry();
 	}
 
 	PushButton::Contract PushButton::subscribeToClick(PushButton::Callback p_callback)
@@ -115,6 +163,62 @@ namespace spk
 	{
 		_releasedLabel.setAlignment(p_horizontal, p_vertical);
 		_pressedLabel.setAlignment(p_horizontal, p_vertical);
+	}
+
+	void PushButton::setIcon(std::shared_ptr<spk::Texture> p_texture, const spk::Texture::Section& p_section)
+	{
+		_releasedIcon.setTexture(p_texture);
+		_releasedIcon.setSection(p_section);
+		_pressedIcon.setTexture(std::move(p_texture));
+		_pressedIcon.setSection(p_section);
+
+		_hasIcon = true;
+		_refreshIconGeometry();
+		_refreshState();
+	}
+
+	void PushButton::setIcon(std::shared_ptr<spk::SpriteSheet> p_spriteSheet, size_t p_spriteID)
+	{
+		if (p_spriteSheet == nullptr)
+		{
+			throw std::invalid_argument("PushButton icon sprite sheet cannot be null");
+		}
+
+		const spk::SpriteSheet::Sprite& sprite = p_spriteSheet->sprite(p_spriteID);
+		setIcon(std::move(p_spriteSheet), sprite);
+	}
+
+	void PushButton::removeIcon()
+	{
+		_hasIcon = false;
+		_releasedIcon.deactivate();
+		_pressedIcon.deactivate();
+	}
+
+	void PushButton::setFlat(bool p_state)
+	{
+		if (_isFlat == p_state)
+		{
+			return;
+		}
+
+		_isFlat = p_state;
+		if (_isFlat == true)
+		{
+			_releasedBackground.deactivate();
+			_pressedBackground.deactivate();
+		}
+		_refreshState();
+	}
+
+	bool PushButton::hasIcon() const
+	{
+		return _hasIcon;
+	}
+
+	bool PushButton::isFlat() const
+	{
+		return _isFlat;
 	}
 
 	bool PushButton::isHovered() const
@@ -167,6 +271,26 @@ namespace spk
 		return _pressedLabel;
 	}
 
+	spk::ImageLabel& PushButton::releasedIcon()
+	{
+		return _releasedIcon;
+	}
+
+	const spk::ImageLabel& PushButton::releasedIcon() const
+	{
+		return _releasedIcon;
+	}
+
+	spk::ImageLabel& PushButton::pressedIcon()
+	{
+		return _pressedIcon;
+	}
+
+	const spk::ImageLabel& PushButton::pressedIcon() const
+	{
+		return _pressedIcon;
+	}
+
 	void PushButton::_onMouseMovedEvent(spk::MouseMovedEvent& p_event)
 	{
 		const bool hovered = absoluteGeometry().contains(p_event.device().position);
@@ -199,6 +323,7 @@ namespace spk
 
 		_isPressed = false;
 		_isHovered = absoluteGeometry().contains(p_event.device().position);
+		releaseFocus(FocusType::Mouse);
 		_refreshState();
 
 		if (_isHovered == true)

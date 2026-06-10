@@ -44,6 +44,7 @@ namespace spk
 
 		virtual void resize(const spk::Rect2D& p_rect) = 0;
 		virtual void setTitle(const std::string& p_title) = 0;
+		virtual void setCursor(const std::string& p_name);
 		virtual void hide() = 0;
 		virtual void requestClosure() = 0;
 		virtual void validateClosure() = 0;

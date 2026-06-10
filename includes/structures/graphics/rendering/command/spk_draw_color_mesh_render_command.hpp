@@ -16,7 +16,7 @@ namespace spk
 	private:
 		spk::ColorMesh2D _mesh;
 		spk::LayoutBufferObject _layoutBuffer;
-		static inline std::shared_ptr<spk::Program> _program;
+		std::shared_ptr<spk::Program> _program;
 
 		void _ensureProgram();
 		void _uploadMesh();

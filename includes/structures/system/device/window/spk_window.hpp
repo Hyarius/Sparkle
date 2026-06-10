@@ -37,7 +37,8 @@ namespace spk
 			RequestClosure,
 			ValidateClosure,
 			SetTitle,
-			ResizeFrame
+			ResizeFrame,
+			SetCursor
 		};
 
 		struct PlatformAction
@@ -45,6 +46,7 @@ namespace spk
 			PlatformActionType type;
 			std::optional<spk::Rect2D> rect = std::nullopt;
 			std::optional<std::string> title = std::nullopt;
+			std::optional<std::string> cursorShape = std::nullopt;
 		};
 
 		enum class RenderActionType
@@ -79,6 +81,8 @@ namespace spk
 
 		spk::ThreadSafeDeque<PlatformAction> _pendingPlatformActions;
 		spk::ThreadSafeDeque<RenderAction> _pendingRenderActions;
+
+		std::string _appliedCursorShape = "Arrow";
 
 		std::atomic<bool> _isClosed = false;
 		std::atomic<bool> _closureRequested = false;

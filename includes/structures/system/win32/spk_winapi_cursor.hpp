@@ -2,6 +2,8 @@
 
 #ifdef _WIN32
 
+#include <string>
+
 #include <Windows.h>
 
 namespace spk
@@ -29,6 +31,14 @@ namespace spk
 		[[nodiscard]] static Cursor hand();
 		[[nodiscard]] static Cursor cross();
 		[[nodiscard]] static Cursor wait();
+		[[nodiscard]] static Cursor resizeNS();
+		[[nodiscard]] static Cursor resizeWE();
+		[[nodiscard]] static Cursor resizeNWSE();
+		[[nodiscard]] static Cursor resizeNESW();
+		[[nodiscard]] static Cursor resizeAll();
+
+		static void registerCursor(const std::string& p_name, const Cursor& p_cursor);
+		[[nodiscard]] static Cursor get(const std::string& p_name);
 
 		void activate() const;
 		void activate(const spk::WindowRuntime& p_window) const;

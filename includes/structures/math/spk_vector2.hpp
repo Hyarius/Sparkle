@@ -446,4 +446,25 @@ namespace std
 			return h;
 		}
 	};
+
+	template <typename TType>
+	struct numeric_limits<spk::IVector2<TType>> : std::numeric_limits<TType>
+	{
+		static constexpr bool is_specialized = true;
+
+		[[nodiscard]] static constexpr spk::IVector2<TType> min() noexcept
+		{
+			return spk::IVector2<TType>(std::numeric_limits<TType>::min(), std::numeric_limits<TType>::min());
+		}
+
+		[[nodiscard]] static constexpr spk::IVector2<TType> max() noexcept
+		{
+			return spk::IVector2<TType>(std::numeric_limits<TType>::max(), std::numeric_limits<TType>::max());
+		}
+
+		[[nodiscard]] static constexpr spk::IVector2<TType> lowest() noexcept
+		{
+			return spk::IVector2<TType>(std::numeric_limits<TType>::lowest(), std::numeric_limits<TType>::lowest());
+		}
+	};
 }

@@ -18,6 +18,11 @@ namespace spk
 		_invalidateSurfaceState();
 	}
 
+	void IFrame::setCursor(const std::string& p_name)
+	{
+		(void)p_name;
+	}
+
 	void IFrame::_emitMouseEvent(const spk::MouseEventRecord& p_event)
 	{
 		_mouseEventContractProvider.trigger(p_event);

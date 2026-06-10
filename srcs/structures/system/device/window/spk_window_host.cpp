@@ -150,6 +150,18 @@ namespace spk
 		_frame->setTitle(p_title);
 	}
 
+	void WindowHost::setCursor(const std::string& p_name)
+	{
+		_bindOrValidatePlatformThread(__FUNCTION__);
+
+		if (_frame == nullptr)
+		{
+			throw std::runtime_error("spk::WindowHost::setCursor called after its frame has been released");
+		}
+
+		_frame->setCursor(p_name);
+	}
+
 	void WindowHost::requestClosure()
 	{
 		_bindOrValidatePlatformThread(__FUNCTION__);

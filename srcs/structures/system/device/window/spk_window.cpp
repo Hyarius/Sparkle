@@ -151,6 +151,12 @@ namespace spk
 				_host.resize(p_action.rect.value());
 			}
 			break;
+		case PlatformActionType::SetCursor:
+			if (p_action.cursorShape.has_value() == true)
+			{
+				_host.setCursor(p_action.cursorShape.value());
+			}
+			break;
 		}
 	}
 
@@ -194,6 +200,15 @@ namespace spk
 	void Window::_processPendingMouseEvents()
 	{
 		_mouseModule.processEvents();
+
+		const std::string requestedShape = _mouseModule.mouse().requestedCursorShape;
+		if (requestedShape != _appliedCursorShape)
+		{
+			_appliedCursorShape = requestedShape;
+			_enqueuePlatformAction(PlatformAction{
+				.type = PlatformActionType::SetCursor,
+				.cursorShape = requestedShape});
+		}
 	}
 
 	void Window::_processPendingKeyboardEvents()

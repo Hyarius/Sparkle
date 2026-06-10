@@ -220,6 +220,13 @@ namespace spk
 		_title = p_title;
 	}
 
+	void Frame::setCursor(const std::string& p_name)
+	{
+		spk::Cursor cursor = spk::Cursor::get(p_name);
+		_window.setCursor(cursor);
+		cursor.activate();
+	}
+
 	void Frame::hide()
 	{
 		_window.hide();

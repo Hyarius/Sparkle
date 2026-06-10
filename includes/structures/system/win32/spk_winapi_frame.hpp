@@ -34,6 +34,7 @@ namespace spk
 
 		void resize(const spk::Rect2D& p_rect) override;
 		void setTitle(const std::string& p_title) override;
+		void setCursor(const std::string& p_name) override;
 		void hide() override;
 		void requestClosure() override;
 		void validateClosure() override;

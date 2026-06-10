@@ -109,3 +109,57 @@ TEST(WinAPICursorTest, ActivateOnWindowSetsWindowCursorAndActivatesIt)
 	window.destroy();
 }
 
+TEST(WinAPICursorTest, ResizeCursorFactoriesAreValid)
+{
+	EXPECT_TRUE(spk::Cursor::resizeNS().isValid());
+	EXPECT_TRUE(spk::Cursor::resizeWE().isValid());
+	EXPECT_TRUE(spk::Cursor::resizeNWSE().isValid());
+	EXPECT_TRUE(spk::Cursor::resizeNESW().isValid());
+	EXPECT_TRUE(spk::Cursor::resizeAll().isValid());
+}
+
+TEST(WinAPICursorTest, NonOwningCursorDoesNotDestroyOnDestruction)
+{
+	HCURSOR handle = createOwnedTestCursor();
+	ASSERT_NE(handle, nullptr);
+
+	{
+		spk::Cursor nonOwning(handle, false);
+		EXPECT_TRUE(nonOwning.isValid());
+		EXPECT_EQ(nonOwning.handle(), handle);
+	}
+
+	EXPECT_NE(handle, nullptr);
+	DestroyCursor(handle);
+}
+
+TEST(WinAPICursorTest, RegisterAndGetCursorRoundTrip)
+{
+	spk::Cursor arrow = spk::Cursor::arrow();
+	const std::string name = "TestCursor_" + std::to_string(GetCurrentProcessId());
+
+	spk::Cursor::registerCursor(name, arrow);
+
+	spk::Cursor retrieved = spk::Cursor::get(name);
+	EXPECT_TRUE(retrieved.isValid());
+	EXPECT_NE(retrieved.handle(), nullptr);
+}
+
+TEST(WinAPICursorTest, RegisterCursorOverwriteWorks)
+{
+	const std::string name = "OverwriteCursor_" + std::to_string(GetCurrentProcessId());
+	spk::Cursor::registerCursor(name, spk::Cursor::arrow());
+	HCURSOR firstHandle = spk::Cursor::get(name).handle();
+
+	spk::Cursor::registerCursor(name, spk::Cursor::hand());
+	HCURSOR secondHandle = spk::Cursor::get(name).handle();
+
+	EXPECT_NE(firstHandle, nullptr);
+	EXPECT_NE(secondHandle, nullptr);
+}
+
+TEST(WinAPICursorTest, GetUnknownCursorNameThrows)
+{
+	EXPECT_THROW(spk::Cursor::get("__nonexistent_cursor_xyz__"), std::invalid_argument);
+}
+

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <limits>
 #include <memory>
 #include <string>
 
@@ -7,6 +8,7 @@
 #include "structures/system/event/spk_events.hpp"
 #include "structures/design_pattern/spk_inherence_trait.hpp"
 #include "structures/math/spk_rect_2d.hpp"
+#include "structures/widget/spk_resizable_element.hpp"
 #include "structures/graphics/rendering/snapshot/spk_render_snapshot_builder.hpp"
 #include "structures/graphics/rendering/unit/spk_render_unit_builder.hpp"
 #include "structures/graphics/rendering/state/spk_viewport.hpp"
@@ -19,7 +21,7 @@ namespace spk
 	class MouseModule;
 	class KeyboardModule;
 
-	class Widget : public spk::HierarchyTrait<Widget>, public spk::ActivableTrait
+	class Widget : public spk::HierarchyTrait<Widget>, public spk::ActivableTrait, public spk::ResizableElement
 	{
 	public:
 		enum class FocusType
@@ -121,7 +123,18 @@ namespace spk
 		void takeAllFocus();
 		void releaseAllFocus();
 
-		void setGeometry(const spk::Rect2D& p_geometry);
+		void setGeometry(const spk::Rect2D& p_geometry) override;
+		void place(const spk::Vector2Int& p_anchor);
+		void move(const spk::Vector2Int& p_delta);
+
+		void setMinimalSize(const spk::Vector2UInt& p_size);
+		void setFixedSize(const spk::Vector2UInt& p_size);
+		void setMaximalSize(const spk::Vector2UInt& p_size);
+
+		[[nodiscard]] spk::Vector2UInt minimalSize() const;
+		[[nodiscard]] spk::Vector2UInt fixedSize() const;
+		[[nodiscard]] spk::Vector2UInt maximalSize() const;
+
 		void invalidateRenderUnit() const;
 		void invalidateRenderUnitTree() const;
 
