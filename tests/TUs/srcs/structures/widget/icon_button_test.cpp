@@ -31,6 +31,16 @@ TEST(IconButtonTest, ConstructionUsesDefaultIconset)
 	EXPECT_EQ(button.iconSpriteID(), 0u);
 }
 
+TEST(IconButtonTest, MinimalSizeAccountsForIconAndFrame)
+{
+	spk::IconButton button("Icon");
+
+	const spk::Vector2UInt minimalSize = button.minimalSize();
+
+	EXPECT_GT(minimalSize.x, button.releasedBackground().cornerSize().x * 2u);
+	EXPECT_GT(minimalSize.y, button.releasedBackground().cornerSize().y * 2u);
+}
+
 TEST(IconButtonTest, SetIconSpriteIDUpdatesIconSection)
 {
 	spk::IconButton button("Icon");

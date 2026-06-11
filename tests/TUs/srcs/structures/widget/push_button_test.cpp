@@ -261,7 +261,7 @@ TEST(PushButtonTest, GettersReturnCorrectValues)
 	EXPECT_FALSE(button.isPressed());
 	EXPECT_EQ(button.releasedLabel().text(), spk::Font::textFromUTF8("Hello"));
 	EXPECT_EQ(button.pressedLabel().text(), spk::Font::textFromUTF8("Hello"));
-	EXPECT_EQ(button.releasedLabel().padding(), spk::Vector2Int(0, 0));
+	EXPECT_EQ(button.releasedLabel().padding(), spk::Vector2Int(16, 16));
 }
 
 TEST(PushButtonTest, MouseMovedEventUpdatesHoverState)
@@ -490,6 +490,41 @@ TEST(PushButtonTest, SetIconWithSpriteSetsHasIcon)
 	EXPECT_TRUE(button.hasIcon());
 	EXPECT_TRUE(button.releasedIcon().isActivated());
 	EXPECT_FALSE(button.pressedIcon().isActivated());
+}
+
+TEST(PushButtonTest, SetIconSizeOverridesIconGeometryAndMinimalSize)
+{
+	spk::PushButton button("Button");
+	button.setGeometry(spk::Rect2D(0, 0, 48, 48));
+	button.setIcon(spk::WidgetStyle::makeDefault().iconSpriteSheet(), 0u);
+
+	const spk::Vector2UInt initialSize = button.minimalSize();
+
+	button.setIconSize({12, 12});
+
+	ASSERT_TRUE(button.iconSize().has_value());
+	EXPECT_EQ(*button.iconSize(), spk::Vector2UInt(12, 12));
+	EXPECT_LT(button.minimalSize().x, initialSize.x);
+	EXPECT_LT(button.minimalSize().y, initialSize.y);
+	EXPECT_EQ(button.releasedIcon().geometry().size, spk::Vector2UInt(12, 12));
+}
+
+TEST(PushButtonTest, SetIconPaddingOverridesIconInset)
+{
+	spk::PushButton button("Button");
+	button.setGeometry(spk::Rect2D(0, 0, 48, 48));
+	button.setIcon(spk::WidgetStyle::makeDefault().iconSpriteSheet(), 0u);
+	button.setIconSize({12, 12});
+
+	const spk::Vector2UInt defaultPaddingSize = button.minimalSize();
+
+	button.setIconPadding({2, 2});
+
+	ASSERT_TRUE(button.iconPadding().has_value());
+	EXPECT_EQ(*button.iconPadding(), spk::Vector2UInt(2, 2));
+	EXPECT_LT(button.minimalSize().x, defaultPaddingSize.x);
+	EXPECT_LT(button.minimalSize().y, defaultPaddingSize.y);
+	EXPECT_EQ(button.releasedIcon().geometry(), spk::Rect2D(18, 18, 12, 12));
 }
 
 TEST(PushButtonTest, SetIconNullSpriteSheetThrows)

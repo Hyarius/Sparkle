@@ -1,6 +1,7 @@
 #pragma once
 
 #include <functional>
+#include <optional>
 #include <string>
 #include <string_view>
 
@@ -36,6 +37,8 @@ namespace spk
 		spk::ImageLabel _pressedIcon;
 		bool _hasIcon = false;
 		bool _isFlat = false;
+		std::optional<spk::Vector2UInt> _iconSize;
+		std::optional<spk::Vector2UInt> _iconPadding;
 
 		void _refreshState();
 		void _refreshIconGeometry();
@@ -74,10 +77,16 @@ namespace spk
 		void setAlignment(spk::HorizontalAlignment p_horizontal, spk::VerticalAlignment p_vertical);
 		void setIcon(std::shared_ptr<spk::Texture> p_texture, const spk::Texture::Section& p_section = {{0.0f, 0.0f}, {1.0f, 1.0f}});
 		void setIcon(std::shared_ptr<spk::SpriteSheet> p_spriteSheet, size_t p_spriteID);
+		void setIconSize(const spk::Vector2UInt& p_iconSize);
+		void resetIconSize();
+		void setIconPadding(const spk::Vector2UInt& p_iconPadding);
+		void resetIconPadding();
 		void removeIcon();
 		void setFlat(bool p_state);
 
 		[[nodiscard]] bool hasIcon() const;
+		[[nodiscard]] const std::optional<spk::Vector2UInt>& iconSize() const;
+		[[nodiscard]] const std::optional<spk::Vector2UInt>& iconPadding() const;
 		[[nodiscard]] bool isFlat() const;
 
 		[[nodiscard]] bool isHovered() const;

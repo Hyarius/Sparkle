@@ -6,6 +6,22 @@
 
 namespace spk
 {
+	namespace
+	{
+		[[nodiscard]] unsigned int scaledLength(unsigned int p_totalLength, float p_scale)
+		{
+			return static_cast<unsigned int>(static_cast<float>(p_totalLength) * p_scale);
+		}
+
+		[[nodiscard]] unsigned int effectiveBodyLength(
+			unsigned int p_totalLength,
+			unsigned int p_crossLength,
+			float p_scale)
+		{
+			return std::min(p_totalLength, std::max(scaledLength(p_totalLength, p_scale), p_crossLength));
+		}
+	}
+
 	SliderBar::SliderBar(const std::string& p_name, spk::Widget* p_parent) :
 		SliderBar(p_name, spk::Orientation::Horizontal, p_parent)
 	{
@@ -48,22 +64,28 @@ namespace spk
 		{
 		case spk::Orientation::Horizontal:
 		{
+			const unsigned int bodyLength = effectiveBodyLength(geometry().width(), geometry().height(), _scale);
+			const unsigned int range = geometry().width() - bodyLength;
+
 			bodySize = {
-				static_cast<unsigned int>(static_cast<float>(geometry().width()) * _scale),
+				bodyLength,
 				geometry().height()};
 			bodyAnchor = {
-				static_cast<int>(static_cast<float>(geometry().width()) * (1.0f - _scale) * _ratio),
+				static_cast<int>(static_cast<float>(range) * _ratio),
 				0};
 			break;
 		}
 		case spk::Orientation::Vertical:
 		{
+			const unsigned int bodyLength = effectiveBodyLength(geometry().height(), geometry().width(), _scale);
+			const unsigned int range = geometry().height() - bodyLength;
+
 			bodySize = {
 				geometry().width(),
-				static_cast<unsigned int>(static_cast<float>(geometry().height()) * _scale)};
+				bodyLength};
 			bodyAnchor = {
 				0,
-				static_cast<int>(static_cast<float>(geometry().height()) * (1.0f - _scale) * _ratio)};
+				static_cast<int>(static_cast<float>(range) * _ratio)};
 			break;
 		}
 		}
@@ -81,14 +103,14 @@ namespace spk
 	{
 		const bool horizontal = (_orientation == spk::Orientation::Horizontal);
 
-		const float bodyLength =
+		const unsigned int bodyLength =
 			horizontal
-				? static_cast<float>(geometry().width()) * _scale
-				: static_cast<float>(geometry().height()) * _scale;
+				? effectiveBodyLength(geometry().width(), geometry().height(), _scale)
+				: effectiveBodyLength(geometry().height(), geometry().width(), _scale);
 		const float range =
 			horizontal
-				? static_cast<float>(geometry().width()) - bodyLength
-				: static_cast<float>(geometry().height()) - bodyLength;
+				? static_cast<float>(geometry().width() - bodyLength)
+				: static_cast<float>(geometry().height() - bodyLength);
 
 		if (range <= 0.0f)
 		{
@@ -100,7 +122,7 @@ namespace spk
 				? static_cast<float>(p_position.x - absoluteGeometry().left())
 				: static_cast<float>(p_position.y - absoluteGeometry().top());
 
-		return std::clamp((localPosition - bodyLength / 2.0f) / range, 0.0f, 1.0f);
+		return std::clamp((localPosition - static_cast<float>(bodyLength) / 2.0f) / range, 0.0f, 1.0f);
 	}
 
 	void SliderBar::_onMouseButtonPressedEvent(spk::MouseButtonPressedEvent& p_event)
@@ -147,10 +169,14 @@ namespace spk
 			return;
 		}
 
+		const unsigned int bodyLength =
+			(_orientation == spk::Orientation::Horizontal)
+				? effectiveBodyLength(geometry().width(), geometry().height(), _scale)
+				: effectiveBodyLength(geometry().height(), geometry().width(), _scale);
 		const float range =
 			(_orientation == spk::Orientation::Horizontal)
-				? static_cast<float>(geometry().width()) * (1.0f - _scale)
-				: static_cast<float>(geometry().height()) * (1.0f - _scale);
+				? static_cast<float>(geometry().width() - bodyLength)
+				: static_cast<float>(geometry().height() - bodyLength);
 
 		if (range <= 0.0f)
 		{

@@ -48,11 +48,13 @@ namespace spk
 		static WidgetStyle makeDefaultLight();
 		static WidgetStyle makeDefaultDark();
 		static WidgetStyle makeDefaultSliderBody();
+		static WidgetStyle makeDefaultInterfaceWindowTitle();
 
 		void notifyEdition() const;
 		Contract subscribeToEdition(Callback p_callback) const;
 
 		void setNineSliceSpriteSheet(std::shared_ptr<spk::SpriteSheet> p_spriteSheet);
+		void setCornerSize(const spk::Vector2Int& p_cornerSize);
 		void setNineSliceCornerSize(const spk::Vector2Int& p_cornerSize);
 		void setIconSpriteSheet(std::shared_ptr<spk::SpriteSheet> p_spriteSheet);
 		void setFont(std::shared_ptr<spk::Font> p_font);
@@ -62,6 +64,7 @@ namespace spk
 		void setTextPadding(const spk::Vector2Int& p_padding);
 
 		[[nodiscard]] const std::shared_ptr<spk::SpriteSheet>& nineSliceSpriteSheet() const;
+		[[nodiscard]] const spk::Vector2Int& cornerSize() const;
 		[[nodiscard]] const spk::Vector2Int& nineSliceCornerSize() const;
 		[[nodiscard]] const std::shared_ptr<spk::SpriteSheet>& iconSpriteSheet() const;
 		[[nodiscard]] const std::shared_ptr<spk::Font>& font() const;
@@ -84,6 +87,7 @@ namespace spk
 		static constexpr std::string_view DefaultLight = "default.light";
 		static constexpr std::string_view DefaultDark = "default.dark";
 		static constexpr std::string_view DefaultSliderBody = "default.sliderBody";
+		static constexpr std::string_view DefaultInterfaceWindowTitle = "default.interfaceWindow.title";
 
 		Collection(const Collection&) = delete;
 		Collection& operator=(const Collection&) = delete;

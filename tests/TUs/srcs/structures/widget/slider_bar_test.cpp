@@ -25,11 +25,11 @@ TEST(SliderBarTest, GeometryPositionsBodyAccordingToRatio)
 	spk::SliderBar slider("Slider");
 	slider.setGeometry(spk::Rect2D(0, 0, 100, 20));
 
-	EXPECT_EQ(slider.body().geometry(), spk::Rect2D(0, 0, 10, 20));
+	EXPECT_EQ(slider.body().geometry(), spk::Rect2D(0, 0, 20, 20));
 
 	slider.setRatio(1.0f);
 
-	EXPECT_EQ(slider.body().geometry(), spk::Rect2D(90, 0, 10, 20));
+	EXPECT_EQ(slider.body().geometry(), spk::Rect2D(80, 0, 20, 20));
 }
 
 TEST(SliderBarTest, SetRatioClampsAndTriggersContract)
@@ -98,8 +98,8 @@ TEST(SliderBarTest, DraggingBodyUpdatesRatio)
 	mouseModule.processEvents();
 
 	EXPECT_FALSE(slider.isDragged());
-	EXPECT_FLOAT_EQ(slider.ratio(), 0.5f);
-	EXPECT_FLOAT_EQ(lastRatio, 0.5f);
+	EXPECT_FLOAT_EQ(slider.ratio(), 45.0f / 80.0f);
+	EXPECT_FLOAT_EQ(lastRatio, 45.0f / 80.0f);
 }
 
 TEST(SliderBarTest, PressOnTrackJumpsToPositionAndStartsDrag)
@@ -114,7 +114,7 @@ TEST(SliderBarTest, PressOnTrackJumpsToPositionAndStartsDrag)
 	mouseModule.processEvents();
 
 	EXPECT_TRUE(slider.isDragged());
-	EXPECT_NEAR(slider.ratio(), (80.0f - 5.0f) / 90.0f, 0.001f);
+	EXPECT_NEAR(slider.ratio(), (80.0f - 10.0f) / 80.0f, 0.001f);
 
 	mouseModule.pushEvent(spk::MouseEventRecord(spk::makeEventRecord(spk::MouseButtonReleasedRecord{.button = spk::Mouse::Left})));
 	mouseModule.processEvents();
@@ -143,7 +143,7 @@ TEST(SliderBarTest, VerticalOrientationMovesBodyAlongHeight)
 	slider.setRatio(1.0f);
 
 	EXPECT_EQ(slider.orientation(), spk::Orientation::Vertical);
-	EXPECT_EQ(slider.body().geometry(), spk::Rect2D(0, 90, 20, 10));
+	EXPECT_EQ(slider.body().geometry(), spk::Rect2D(0, 80, 20, 20));
 }
 
 TEST(SliderBarVisualTest, RendersHorizontalAtZero)

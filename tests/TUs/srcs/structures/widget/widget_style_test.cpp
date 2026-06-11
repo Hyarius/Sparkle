@@ -66,6 +66,22 @@ TEST(WidgetStyleTest, SettersUpdateValuesAndNotifySubscribers)
 	EXPECT_EQ(style.textPadding(), spk::Vector2Int(3, 4));
 }
 
+TEST(WidgetStyleTest, DefaultStyleUsesFixedCornerSizeAndDerivedTextPadding)
+{
+	const spk::WidgetStyle style = spk::WidgetStyle::makeDefault();
+
+	EXPECT_EQ(style.nineSliceCornerSize(), spk::Vector2Int(8, 8));
+	EXPECT_EQ(style.textPadding(), spk::Vector2Int(16, 16));
+}
+
+TEST(WidgetStyleTest, InterfaceWindowTitleStyleUsesCompactText)
+{
+	const spk::WidgetStyle style = spk::WidgetStyle::makeDefaultInterfaceWindowTitle();
+
+	EXPECT_EQ(style.textSize(), spk::Font::Size(12, 0));
+	EXPECT_EQ(style.textPadding(), spk::Vector2Int(3, 0));
+}
+
 TEST(WidgetStyleTest, SettersSkipNotificationWhenValueIsUnchanged)
 {
 	spk::WidgetStyle style = spk::WidgetStyle::makeDefault();
@@ -79,6 +95,16 @@ TEST(WidgetStyleTest, SettersSkipNotificationWhenValueIsUnchanged)
 	style.setTextPadding(style.textPadding());
 
 	EXPECT_EQ(notificationCount, 0);
+}
+
+TEST(WidgetStyleTest, SettingNineSliceSpriteSheetPreservesConfiguredCornerSize)
+{
+	spk::WidgetStyle style = spk::WidgetStyle::makeDefault();
+	style.setNineSliceCornerSize({5, 6});
+
+	style.setNineSliceSpriteSheet(loadNineSlice("resources/textures/default_nine_slice_darker.png"));
+
+	EXPECT_EQ(style.nineSliceCornerSize(), spk::Vector2Int(5, 6));
 }
 
 TEST(WidgetStyleTest, RejectsInvalidStyleValues)

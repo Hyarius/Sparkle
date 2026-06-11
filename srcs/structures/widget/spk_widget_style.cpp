@@ -13,13 +13,7 @@ namespace
 		return std::string(p_name);
 	}
 
-	[[nodiscard]] spk::Vector2Int spriteCornerSize(const spk::SpriteSheet& p_spriteSheet)
-	{
-		return {
-			static_cast<int>(p_spriteSheet.size().x / p_spriteSheet.nbSprite().x),
-			static_cast<int>(p_spriteSheet.size().y / p_spriteSheet.nbSprite().y)
-		};
-	}
+	constexpr spk::Vector2Int DefaultNineSliceCornerSize = {8, 8};
 
 	void validateSpriteSheet(const std::shared_ptr<spk::SpriteSheet>& p_spriteSheet, const char* p_name)
 	{
@@ -54,10 +48,11 @@ namespace
 namespace spk
 {
 	WidgetStyle::WidgetStyle() :
+		_nineSliceCornerSize(DefaultNineSliceCornerSize),
 		_textSize(16, 0),
 		_glyphColor(1.0f, 1.0f, 1.0f, 1.0f),
 		_outlineColor(0.0f, 0.0f, 0.0f, 0.0f),
-		_textPadding(0, 0)
+		_textPadding(DefaultNineSliceCornerSize * 2)
 	{
 	}
 
@@ -117,7 +112,6 @@ namespace spk
 			spk::SpriteSheet::fromRawData(
 				SPARKLE_GET_RESOURCE("resources/textures/default_nine_slice.png"),
 				spk::Vector2UInt{3, 3}));
-		result._nineSliceCornerSize = spriteCornerSize(*result._nineSliceSpriteSheet);
 		result._iconSpriteSheet = std::make_shared<spk::SpriteSheet>(
 			spk::SpriteSheet::fromRawData(
 				SPARKLE_GET_RESOURCE("resources/textures/default_iconset.png"),
@@ -163,6 +157,14 @@ namespace spk
 		return makeNineSliceVariant("resources/textures/default_slider_body.png");
 	}
 
+	WidgetStyle WidgetStyle::makeDefaultInterfaceWindowTitle()
+	{
+		WidgetStyle result = spk::WidgetStyle::makeDefault();
+		result.setTextSize(spk::Font::Size(12, 0));
+		result.setTextPadding({3, 0});
+		return result;
+	}
+
 	void WidgetStyle::notifyEdition() const
 	{
 		_editionProvider.trigger(this);
@@ -184,8 +186,12 @@ namespace spk
 	{
 		validateSpriteSheet(p_spriteSheet, "WidgetStyle nine-slice sprite sheet");
 		_nineSliceSpriteSheet = std::move(p_spriteSheet);
-		_nineSliceCornerSize = spriteCornerSize(*_nineSliceSpriteSheet);
 		notifyEdition();
+	}
+
+	void WidgetStyle::setCornerSize(const spk::Vector2Int& p_cornerSize)
+	{
+		setNineSliceCornerSize(p_cornerSize);
 	}
 
 	void WidgetStyle::setNineSliceCornerSize(const spk::Vector2Int& p_cornerSize)
@@ -260,6 +266,7 @@ namespace spk
 	}
 
 	const std::shared_ptr<spk::SpriteSheet>& WidgetStyle::nineSliceSpriteSheet() const { return _nineSliceSpriteSheet; }
+	const spk::Vector2Int& WidgetStyle::cornerSize() const { return _nineSliceCornerSize; }
 	const spk::Vector2Int& WidgetStyle::nineSliceCornerSize() const { return _nineSliceCornerSize; }
 	const std::shared_ptr<spk::SpriteSheet>& WidgetStyle::iconSpriteSheet() const { return _iconSpriteSheet; }
 	const std::shared_ptr<spk::Font>& WidgetStyle::font() const { return _font; }
@@ -275,6 +282,7 @@ namespace spk
 		_styles.emplace(std::string(DefaultLight), spk::WidgetStyle::makeDefaultLight());
 		_styles.emplace(std::string(DefaultDark), spk::WidgetStyle::makeDefaultDark());
 		_styles.emplace(std::string(DefaultSliderBody), spk::WidgetStyle::makeDefaultSliderBody());
+		_styles.emplace(std::string(DefaultInterfaceWindowTitle), spk::WidgetStyle::makeDefaultInterfaceWindowTitle());
 	}
 
 	WidgetStyle::Collection& WidgetStyle::Collection::instance()

@@ -31,6 +31,7 @@ namespace spk
 		newLabel->setGlyphColor(_glyphColor);
 		newLabel->setOutlineColor(_outlineColor);
 		newLabel->setAlignment(spk::HorizontalAlignment::Left, spk::VerticalAlignment::Centered);
+		newLabel->setPadding({0, 0});
 		return newLabel;
 	}
 

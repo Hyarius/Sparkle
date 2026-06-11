@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+#include <optional>
 #include <string>
 #include <type_traits>
 
@@ -19,6 +21,16 @@ namespace spk
 		using ResizeCallback = ResizeContractProvider::Callback;
 		using EventContract = spk::ContractProvider<>::Contract;
 		using EventCallback = spk::ContractProvider<>::Callback;
+
+		struct ContentPadding
+		{
+			std::uint32_t left = 0;
+			std::uint32_t top = 0;
+			std::uint32_t right = 0;
+			std::uint32_t bottom = 0;
+
+			[[nodiscard]] bool operator==(const ContentPadding&) const noexcept = default;
+		};
 
 		enum class Event
 		{
@@ -47,6 +59,7 @@ namespace spk
 			spk::PushButton _maximizeButton;
 			spk::PushButton _closeButton;
 
+			[[nodiscard]] unsigned int _minimumControlButtonSize() const;
 			[[nodiscard]] unsigned int _controlButtonSize() const;
 
 			void _onGeometryChange() override;
@@ -72,6 +85,7 @@ namespace spk
 		spk::Panel _minimizedBackgroundFrame;
 		MenuBar _menuBar;
 		spk::Widget* _content = nullptr;
+		std::optional<ContentPadding> _contentPadding;
 
 		unsigned int _menuHeight = 20;
 
@@ -88,6 +102,9 @@ namespace spk
 		spk::Rect2D _previousGeometry;
 
 	protected:
+		[[nodiscard]] unsigned int _effectiveMenuHeight() const;
+		[[nodiscard]] ContentPadding _effectiveContentPadding() const;
+
 		void _onGeometryChange() override;
 		void _onMouseMovedEvent(spk::MouseMovedEvent& p_event) override;
 		void _onMouseButtonPressedEvent(spk::MouseButtonPressedEvent& p_event) override;
@@ -111,8 +128,11 @@ namespace spk
 		[[nodiscard]] const spk::Widget* content() const;
 
 		void setTitle(std::string_view p_title);
+		void setContentPadding(const ContentPadding& p_padding);
+		void resetContentPadding();
 		void setMinimumContentSize(const spk::Vector2UInt& p_minimumContentSize);
 		void setMenuHeight(unsigned int p_menuHeight);
+		[[nodiscard]] ContentPadding contentPadding() const;
 		[[nodiscard]] unsigned int menuHeight() const;
 		[[nodiscard]] spk::Vector2UInt contentSize() const;
 

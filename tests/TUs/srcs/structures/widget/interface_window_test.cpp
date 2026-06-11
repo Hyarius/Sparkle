@@ -26,18 +26,84 @@ TEST(InterfaceWindowTest, SetTitleUpdatesTitleLabel)
 	EXPECT_EQ(window.menuBar().titleLabel().text(), spk::Font::textFromUTF8("My Window"));
 }
 
-TEST(InterfaceWindowTest, ContentGeometryExcludesMenuAndCorners)
+TEST(InterfaceWindowTest, TitleLabelUsesCompactInterfaceWindowStyle)
+{
+	spk::InterfaceWindow<spk::Panel> window("Window");
+
+	EXPECT_EQ(window.menuBar().titleLabel().textSize(), spk::Font::Size(12, 0));
+	EXPECT_EQ(window.menuBar().titleLabel().padding(), spk::Vector2Int(3, 0));
+
+	window.setGeometry(spk::Rect2D(0, 0, 300, 200));
+
+	EXPECT_EQ(window.menuBar().titleLabel().textSize(), spk::Font::Size(12, 0));
+}
+
+TEST(InterfaceWindowTest, TitleButtonsUseCompactIconSize)
+{
+	spk::InterfaceWindow<spk::Panel> window("Window");
+	window.setGeometry(spk::Rect2D(0, 0, 300, 200));
+
+	const spk::PushButton& closeButton = window.menuBar().closeButton();
+
+	ASSERT_TRUE(closeButton.iconSize().has_value());
+	EXPECT_EQ(*closeButton.iconSize(), spk::Vector2UInt(12, 12));
+	ASSERT_TRUE(closeButton.iconPadding().has_value());
+	EXPECT_EQ(*closeButton.iconPadding(), spk::Vector2UInt(4, 4));
+	EXPECT_EQ(closeButton.releasedBackground().cornerSize(), spk::Vector2Int(2, 2));
+	EXPECT_EQ(closeButton.pressedBackground().cornerSize(), spk::Vector2Int(2, 2));
+	EXPECT_EQ(closeButton.releasedIcon().geometry().size, spk::Vector2UInt(12, 12));
+}
+
+TEST(InterfaceWindowTest, ContentGeometryExcludesMenuAndDefaultPadding)
 {
 	spk::InterfaceWindow<spk::Panel> window("Window");
 	window.setGeometry(spk::Rect2D(0, 0, 300, 200));
 
 	const spk::Vector2Int cornerSize = window.backgroundFrame().cornerSize();
+	const spk::IInterfaceWindow::ContentPadding padding = window.contentPadding();
 	const spk::Rect2D contentGeometry = window.contentObject().geometry();
 
-	EXPECT_EQ(contentGeometry.x(), cornerSize.x);
-	EXPECT_EQ(contentGeometry.y(), static_cast<int>(window.menuHeight()) + cornerSize.y);
-	EXPECT_EQ(contentGeometry.width(), 300u - static_cast<unsigned int>(cornerSize.x * 2));
-	EXPECT_EQ(contentGeometry.height(), 200u - window.menuHeight() - static_cast<unsigned int>(cornerSize.y * 2));
+	EXPECT_EQ(padding.left, static_cast<uint32_t>(cornerSize.x + 2));
+	EXPECT_EQ(padding.top, 0u);
+	EXPECT_EQ(padding.right, static_cast<uint32_t>(cornerSize.y + 2));
+	EXPECT_EQ(padding.bottom, static_cast<uint32_t>(cornerSize.y + 2));
+	EXPECT_EQ(contentGeometry.x(), static_cast<int>(padding.left));
+	EXPECT_EQ(contentGeometry.y(), static_cast<int>(window.menuHeight() + padding.top));
+	EXPECT_EQ(contentGeometry.width(), 300u - padding.left - padding.right);
+	EXPECT_EQ(contentGeometry.height(), 200u - window.menuHeight() - padding.top - padding.bottom);
+}
+
+TEST(InterfaceWindowTest, ContentPaddingCanBeConfiguredPerSide)
+{
+	spk::InterfaceWindow<spk::Panel> window("Window");
+	window.setContentPadding({4, 1, 12, 9});
+	window.setGeometry(spk::Rect2D(0, 0, 300, 200));
+
+	const spk::Rect2D contentGeometry = window.contentObject().geometry();
+
+	EXPECT_EQ(window.contentPadding(), (spk::IInterfaceWindow::ContentPadding{4, 1, 12, 9}));
+	EXPECT_EQ(contentGeometry.x(), 4);
+	EXPECT_EQ(contentGeometry.y(), static_cast<int>(window.menuHeight() + 1));
+	EXPECT_EQ(contentGeometry.width(), 300u - 4u - 12u);
+	EXPECT_EQ(contentGeometry.height(), 200u - window.menuHeight() - 1u - 9u);
+	EXPECT_EQ(window.contentSize(), spk::Vector2UInt(300u - 4u - 12u, 200u - window.menuHeight() - 1u - 9u));
+}
+
+TEST(InterfaceWindowTest, ResetContentPaddingRestoresDefault)
+{
+	spk::InterfaceWindow<spk::Panel> window("Window");
+	window.setContentPadding({4, 1, 12, 9});
+	window.resetContentPadding();
+	window.setGeometry(spk::Rect2D(0, 0, 300, 200));
+
+	const spk::Vector2Int cornerSize = window.backgroundFrame().cornerSize();
+
+	EXPECT_EQ(window.contentPadding(), (spk::IInterfaceWindow::ContentPadding{
+		static_cast<uint32_t>(cornerSize.x + 2),
+		0,
+		static_cast<uint32_t>(cornerSize.y + 2),
+		static_cast<uint32_t>(cornerSize.y + 2)}));
+	EXPECT_EQ(window.contentObject().geometry().anchor, spk::Vector2Int(cornerSize.x + 2, static_cast<int>(window.menuHeight())));
 }
 
 TEST(InterfaceWindowTest, MinimizeTogglesBackgroundFrames)
@@ -234,10 +300,14 @@ TEST(InterfaceWindowTest, SetMenuHeightUpdatesLayout)
 	window.setGeometry(spk::Rect2D(0, 0, 300, 200));
 
 	const unsigned int originalHeight = window.menuHeight();
-	window.setMenuHeight(40);
+	window.setMenuHeight(originalHeight + 10);
 
-	EXPECT_EQ(window.menuHeight(), 40u);
+	EXPECT_EQ(window.menuHeight(), originalHeight + 10);
 	EXPECT_NE(window.menuHeight(), originalHeight);
+
+	window.setMenuHeight(1);
+
+	EXPECT_EQ(window.menuHeight(), originalHeight);
 }
 
 TEST(InterfaceWindowTest, SetContentNullptrIsAllowed)

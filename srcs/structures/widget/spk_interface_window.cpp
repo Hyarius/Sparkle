@@ -12,6 +12,9 @@ namespace
 	constexpr size_t MaximizeIconID = 1;
 	constexpr size_t RestoreIconID = 2;
 	constexpr size_t MinimizeIconID = 3;
+	constexpr spk::Vector2UInt TitleButtonIconSize = {12, 12};
+	constexpr spk::Vector2UInt TitleButtonIconPadding = {4, 4};
+	constexpr spk::Vector2Int TitleButtonCornerSize = {2, 2};
 
 	[[nodiscard]] std::shared_ptr<spk::SpriteSheet> defaultIconset()
 	{
@@ -35,16 +38,30 @@ namespace spk
 		_maximizeButton(p_name + "::maximizeButton", this),
 		_closeButton(p_name + "::closeButton", this)
 	{
+		_titleLabel.useStyle(spk::WidgetStyle::Collection::style(
+			spk::WidgetStyle::Collection::DefaultInterfaceWindowTitle));
 		_titleLabel.setAlignment(spk::HorizontalAlignment::Left, spk::VerticalAlignment::Centered);
-		_titleLabel.setPadding({Margin, 0});
 
 		_minimizeButton.setIcon(defaultIconset(), MinimizeIconID);
 		_maximizeButton.setIcon(defaultIconset(), MaximizeIconID);
 		_closeButton.setIcon(defaultIconset(), CloseIconID);
+		_minimizeButton.setIconSize(TitleButtonIconSize);
+		_maximizeButton.setIconSize(TitleButtonIconSize);
+		_closeButton.setIconSize(TitleButtonIconSize);
+
+		_minimizeButton.setIconPadding(TitleButtonIconPadding);
+		_maximizeButton.setIconPadding(TitleButtonIconPadding);
+		_closeButton.setIconPadding(TitleButtonIconPadding);
+		_minimizeButton.releasedBackground().setCornerSize(TitleButtonCornerSize);
+		_minimizeButton.pressedBackground().setCornerSize(TitleButtonCornerSize);
+		_maximizeButton.releasedBackground().setCornerSize(TitleButtonCornerSize);
+		_maximizeButton.pressedBackground().setCornerSize(TitleButtonCornerSize);
+		_closeButton.releasedBackground().setCornerSize(TitleButtonCornerSize);
+		_closeButton.pressedBackground().setCornerSize(TitleButtonCornerSize);
 
 		sizeHint().configureMinimalGenerator([this]() {
 			const spk::Vector2UInt titleSize = _titleLabel.minimalSize();
-			const unsigned int buttonSize = std::max(1u, _controlButtonSize());
+			const unsigned int buttonSize = _minimumControlButtonSize();
 
 			return spk::Vector2UInt(
 				titleSize.x + buttonSize * 3 + static_cast<unsigned int>(Margin) * 5,
@@ -54,10 +71,24 @@ namespace spk
 		activate();
 	}
 
+	unsigned int IInterfaceWindow::MenuBar::_minimumControlButtonSize() const
+	{
+		return std::max({
+			1u,
+			_minimizeButton.minimalSize().x,
+			_minimizeButton.minimalSize().y,
+			_maximizeButton.minimalSize().x,
+			_maximizeButton.minimalSize().y,
+			_closeButton.minimalSize().x,
+			_closeButton.minimalSize().y});
+	}
+
 	unsigned int IInterfaceWindow::MenuBar::_controlButtonSize() const
 	{
 		const unsigned int height = geometry().height();
-		return (height > static_cast<unsigned int>(Margin * 2)) ? height - Margin * 2 : height;
+		const unsigned int availableSize =
+			(height > static_cast<unsigned int>(Margin * 2)) ? height - Margin * 2 : height;
+		return std::max(_minimumControlButtonSize(), availableSize);
 	}
 
 	void IInterfaceWindow::MenuBar::_onGeometryChange()
@@ -72,7 +103,6 @@ namespace spk
 		const int usedWidth = activeCount * static_cast<int>(buttonSize) + (activeCount + 1) * Margin;
 		const int titleWidth = std::max(0, static_cast<int>(geometry().width()) - usedWidth - Margin);
 
-		_titleLabel.setTextSize(spk::Font::Size(std::max(1u, buttonSize), 0));
 		_titleLabel.setGeometry(spk::Rect2D(Margin, Margin, static_cast<unsigned int>(titleWidth), buttonSize));
 
 		int anchorX = Margin + titleWidth + Margin;
@@ -215,19 +245,41 @@ namespace spk
 
 	spk::Vector2UInt IInterfaceWindow::contentSize() const
 	{
-		const spk::Vector2Int cornerSize = _backgroundFrame.cornerSize();
-		const unsigned int horizontalMargin = static_cast<unsigned int>(cornerSize.x * 2);
-		const unsigned int verticalMargin = _menuHeight + static_cast<unsigned int>(cornerSize.y * 2);
+		const ContentPadding padding = _effectiveContentPadding();
+		const uint32_t horizontalMargin = safeAdd(padding.left, padding.right);
+		const uint32_t verticalMargin = safeAdd(_effectiveMenuHeight(), safeAdd(padding.top, padding.bottom));
 
 		return {
 			(geometry().width() > horizontalMargin) ? geometry().width() - horizontalMargin : 0,
 			(geometry().height() > verticalMargin) ? geometry().height() - verticalMargin : 0};
 	}
 
+	unsigned int IInterfaceWindow::_effectiveMenuHeight() const
+	{
+		return std::max(_menuHeight, _menuBar.minimalSize().y);
+	}
+
+	IInterfaceWindow::ContentPadding IInterfaceWindow::_effectiveContentPadding() const
+	{
+		if (_contentPadding.has_value() == true)
+		{
+			return *_contentPadding;
+		}
+
+		const spk::Vector2Int cornerSize = _backgroundFrame.cornerSize();
+		return ContentPadding{
+			static_cast<uint32_t>(std::max(0, cornerSize.x + 2)),
+			0,
+			static_cast<uint32_t>(std::max(0, cornerSize.y + 2)),
+			static_cast<uint32_t>(std::max(0, cornerSize.y + 2))};
+	}
+
 	void IInterfaceWindow::_onGeometryChange()
 	{
-		const spk::Vector2UInt menuSize = {geometry().width(), _menuHeight};
+		const unsigned int menuHeight = _effectiveMenuHeight();
+		const spk::Vector2UInt menuSize = {geometry().width(), menuHeight};
 		const spk::Vector2UInt frameSize = contentSize();
+		const ContentPadding padding = _effectiveContentPadding();
 
 		_onResizeProvider.trigger(frameSize);
 
@@ -237,9 +289,8 @@ namespace spk
 
 		if (_content != nullptr)
 		{
-			const spk::Vector2Int cornerSize = _backgroundFrame.cornerSize();
 			_content->setGeometry(spk::Rect2D(
-				{cornerSize.x, static_cast<int>(_menuHeight) + cornerSize.y},
+				{static_cast<int>(padding.left), static_cast<int>(menuHeight + padding.top)},
 				frameSize));
 		}
 	}
@@ -360,13 +411,50 @@ namespace spk
 		_menuBar.titleLabel().setText(p_title);
 	}
 
+	void IInterfaceWindow::setContentPadding(const ContentPadding& p_padding)
+	{
+		if (_contentPadding.has_value() == true && *_contentPadding == p_padding)
+		{
+			return;
+		}
+
+		_contentPadding = p_padding;
+
+		if (_content != nullptr)
+		{
+			setMinimumContentSize(_content->minimalSize());
+		}
+
+		_onGeometryChange();
+	}
+
+	void IInterfaceWindow::resetContentPadding()
+	{
+		if (_contentPadding.has_value() == false)
+		{
+			return;
+		}
+
+		_contentPadding.reset();
+
+		if (_content != nullptr)
+		{
+			setMinimumContentSize(_content->minimalSize());
+		}
+
+		_onGeometryChange();
+	}
+
 	void IInterfaceWindow::setMinimumContentSize(const spk::Vector2UInt& p_minimumContentSize)
 	{
 		const spk::Vector2UInt menuBarSize = _menuBar.minimalSize();
-		const uint32_t extra = static_cast<uint32_t>(_backgroundFrame.cornerSize().y * 2);
+		const unsigned int menuHeight = _effectiveMenuHeight();
+		const ContentPadding padding = _effectiveContentPadding();
+		const uint32_t horizontalPadding = safeAdd(padding.left, padding.right);
+		const uint32_t verticalPadding = safeAdd(padding.top, padding.bottom);
 
-		const uint32_t width = std::max(safeAdd(p_minimumContentSize.x, extra), menuBarSize.x);
-		const uint32_t height = safeAdd(_menuHeight, safeAdd(p_minimumContentSize.y, extra));
+		const uint32_t width = std::max(safeAdd(p_minimumContentSize.x, horizontalPadding), menuBarSize.x);
+		const uint32_t height = safeAdd(menuHeight, safeAdd(p_minimumContentSize.y, verticalPadding));
 
 		// Re-applies the current geometry through setGeometry so the new minimum can clamp it;
 		// setGeometry early-returns when nothing changes, which keeps resize callbacks from recursing.
@@ -386,9 +474,14 @@ namespace spk
 		_onGeometryChange();
 	}
 
+	IInterfaceWindow::ContentPadding IInterfaceWindow::contentPadding() const
+	{
+		return _effectiveContentPadding();
+	}
+
 	unsigned int IInterfaceWindow::menuHeight() const
 	{
-		return _menuHeight;
+		return _effectiveMenuHeight();
 	}
 
 	void IInterfaceWindow::minimize()
