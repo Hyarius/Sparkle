@@ -1,20 +1,21 @@
 #pragma once
 
-#include <atomic>
 #include <cstdint>
 #include <deque>
 #include <filesystem>
 #include <vector>
 
+#include "structures/graphics/opengl/spk_cached_opengl_object_collection.hpp"
 #include "structures/math/spk_vector2.hpp"
 #include "structures/design_pattern/spk_synchronizable_trait.hpp"
 
 namespace spk
 {
-	// Context-free CPU-side texture: pixel data, format, and sampling properties.
-	// Each RenderContext creates and caches its own spk::OpenGL::Texture for a given
-	// handle, keyed by _key. Copying produces an independent deep copy with its own
-	// key and pixel buffer; moving transfers ownership without a new GPU upload.
+	namespace OpenGL
+	{
+		class Texture;
+	}
+
 	class Texture : public SynchronizableTrait
 	{
 	public:
@@ -67,16 +68,15 @@ namespace spk
 		};
 
 	private:
-		static inline std::atomic<std::uint64_t> s_nextKey = 1;
-
 		static std::deque<ID>& _availableIDs();
 		static ID& _nextID();
 		static ID _takeId();
 		static void _releaseId(ID p_id);
 
-		std::uint64_t _key;
 		std::uint64_t _version = 0;
 		ID _id;
+
+		mutable spk::CachedOpenGLObjectCollection<spk::OpenGL::Texture> _gpu;
 
 		std::vector<uint8_t> _pixels;
 		spk::Vector2UInt _size;
@@ -122,8 +122,12 @@ namespace spk
 
 		void setProperties(Filtering p_filtering, Wrap p_wrap, Mipmap p_mipmap);
 
-		[[nodiscard]] std::uint64_t key() const noexcept;
 		[[nodiscard]] std::uint64_t version() const noexcept;
+
+		// Resolves (uploading if needed) this texture's GPU copy for p_context.
+		// p_context must be the current context.
+		[[nodiscard]] spk::OpenGL::Texture& gpu(const spk::RenderContext& p_context) const;
+		[[nodiscard]] bool hasGpu(const spk::RenderContext& p_context) const noexcept;
 
 		ID id() const;
 		const std::vector<uint8_t>& pixels() const;

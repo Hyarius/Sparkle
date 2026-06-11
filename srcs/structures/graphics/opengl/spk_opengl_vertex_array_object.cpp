@@ -1,22 +1,9 @@
-#include "structures/graphics/opengl/spk_opengl_vertex_array_object.hpp"
+#include "structures/graphics/spk_vertex_array_object.hpp"
 
+#include <memory>
 #include <stdexcept>
 
-#if defined(_WIN32)
-#include <Windows.h>
-#endif
-
-namespace
-{
-	bool hasCurrentOpenGLContext()
-	{
-#if defined(_WIN32)
-		return wglGetCurrentContext() != nullptr;
-#else
-		return true;
-#endif
-	}
-}
+#include "structures/graphics/rendering/context/spk_render_context.hpp"
 
 namespace spk
 {
@@ -25,67 +12,75 @@ namespace spk
 		requestSynchronization();
 	}
 
-	VertexArrayObject::~VertexArrayObject()
+	std::uint64_t VertexArrayObject::_effectiveVersion() const
 	{
-		_release();
-	}
-
-	void VertexArrayObject::_allocate() const
-	{
-		if (_id == 0)
+		std::uint64_t version = _layoutVersion;
+		for (const VertexBufferBinding& binding : _vertexBufferBindings)
 		{
-			glGenVertexArrays(1, &_id);
+			if (binding.buffer != nullptr)
+			{
+				version += binding.buffer->structureVersion();
+			}
 		}
-	}
-
-	void VertexArrayObject::_release() const
-	{
-		if (_id != 0 && hasCurrentOpenGLContext() == true)
+		if (_indexBuffer != nullptr)
 		{
-			glDeleteVertexArrays(1, &_id);
+			version += _indexBuffer->structureVersion();
 		}
-		_id = 0;
+		return version;
 	}
 
 	void VertexArrayObject::_synchronize() const
 	{
-		_allocate();
-		glBindVertexArray(_id);
-
-		for (const VertexBufferBinding& binding : _vertexBufferBindings)
+		spk::RenderContext* ctx = spk::RenderContext::current();
+		if (ctx != nullptr && ctx->supportsOpenGLCommands() == true)
 		{
-			if (binding.buffer == nullptr)
+			(void)gpu(*ctx);
+		}
+	}
+
+	spk::OpenGL::VertexArray& VertexArrayObject::gpu(const spk::RenderContext& p_context) const
+	{
+		return _gpu.resolve(
+			p_context,
+			_effectiveVersion(),
+			[this, &p_context]()
 			{
-				throw std::runtime_error("spk::VertexArrayObject contains a null vertex buffer binding");
-			}
+				auto vertexArray = std::make_unique<spk::OpenGL::VertexArray>();
+				glBindVertexArray(vertexArray->id());
 
-			binding.buffer->activate();
-			const Attribute& attribute = binding.attribute;
+				for (const VertexBufferBinding& binding : _vertexBufferBindings)
+				{
+					if (binding.buffer == nullptr)
+					{
+						throw std::runtime_error("spk::VertexArrayObject contains a null vertex buffer binding");
+					}
 
-			glEnableVertexAttribArray(attribute.index);
-			glVertexAttribPointer(
-				attribute.index,
-				attribute.componentCount,
-				attribute.componentType,
-				attribute.normalized == true ? GL_TRUE : GL_FALSE,
-				attribute.stride,
-				reinterpret_cast<const void*>(attribute.offset));
-		}
+					binding.buffer->activate(p_context);
+					const Attribute& attribute = binding.attribute;
 
-		if (_indexBuffer != nullptr)
-		{
-			_indexBuffer->activate();
-		}
+					glEnableVertexAttribArray(attribute.index);
+					glVertexAttribPointer(
+						attribute.index,
+						attribute.componentCount,
+						attribute.componentType,
+						attribute.normalized == true ? GL_TRUE : GL_FALSE,
+						attribute.stride,
+						reinterpret_cast<const void*>(attribute.offset));
+				}
+
+				if (_indexBuffer != nullptr)
+				{
+					_indexBuffer->activate(p_context);
+				}
+
+				return vertexArray;
+			});
 	}
 
-	GLuint VertexArrayObject::id() const noexcept
+	bool VertexArrayObject::hasGpu(const spk::RenderContext& p_context) const noexcept
 	{
-		return _id;
-	}
-
-	bool VertexArrayObject::isAllocated() const noexcept
-	{
-		return _id != 0;
+		const spk::OpenGL::VertexArray* object = _gpu.find(p_context);
+		return object != nullptr && object->version() == _effectiveVersion();
 	}
 
 	void VertexArrayObject::addVertexBuffer(std::shared_ptr<VertexBufferObject> p_buffer, Attribute p_attribute)
@@ -99,24 +94,28 @@ namespace spk
 			.buffer = std::move(p_buffer),
 			.attribute = p_attribute
 		});
+		++_layoutVersion;
 		requestSynchronization();
 	}
 
 	void VertexArrayObject::clearVertexBuffers()
 	{
 		_vertexBufferBindings.clear();
+		++_layoutVersion;
 		requestSynchronization();
 	}
 
 	void VertexArrayObject::setIndexBuffer(std::shared_ptr<IndexBufferObject> p_buffer)
 	{
 		_indexBuffer = std::move(p_buffer);
+		++_layoutVersion;
 		requestSynchronization();
 	}
 
 	void VertexArrayObject::clearIndexBuffer()
 	{
 		_indexBuffer = nullptr;
+		++_layoutVersion;
 		requestSynchronization();
 	}
 
@@ -125,18 +124,29 @@ namespace spk
 		return _indexBuffer;
 	}
 
-	void VertexArrayObject::activate()
+	void VertexArrayObject::activate(const spk::RenderContext& p_context)
 	{
 		if (needsSynchronization() == true)
 		{
 			synchronize();
 		}
-		else
+
+		// Child content refreshes (glBufferSubData, same id) happen with no VAO
+		// bound: an ELEMENT_ARRAY rebind would otherwise leak into the bound VAO.
+		glBindVertexArray(0);
+		for (const VertexBufferBinding& binding : _vertexBufferBindings)
 		{
-			_allocate();
+			if (binding.buffer != nullptr)
+			{
+				(void)binding.buffer->gpu(p_context);
+			}
+		}
+		if (_indexBuffer != nullptr)
+		{
+			(void)_indexBuffer->gpu(p_context);
 		}
 
-		glBindVertexArray(_id);
+		glBindVertexArray(gpu(p_context).id());
 	}
 
 	void VertexArrayObject::deactivate() const

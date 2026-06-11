@@ -9,12 +9,14 @@
 
 #include <GL/glew.h>
 
-#include "structures/graphics/opengl/spk_opengl_index_buffer_object.hpp"
-#include "structures/graphics/opengl/spk_opengl_vertex_array_object.hpp"
-#include "structures/graphics/opengl/spk_opengl_vertex_buffer_object.hpp"
+#include "structures/graphics/spk_index_buffer_object.hpp"
+#include "structures/graphics/spk_vertex_array_object.hpp"
+#include "structures/graphics/spk_vertex_buffer_object.hpp"
 
 namespace spk
 {
+	class RenderContext;
+
 	class LayoutBufferObject
 	{
 	public:
@@ -87,7 +89,7 @@ namespace spk
 
 		void setIndexes(std::span<const std::uint32_t> p_indexes);
 
-		void activate();
+		void activate(const spk::RenderContext& p_context);
 		void deactivate() const;
 	};
 }

@@ -4,7 +4,7 @@
 #include "structures/graphics/opengl/opengl_wrapper_test_utils.hpp"
 
 
-#include "structures/graphics/opengl/spk_opengl_gpu_data_buffer_center.hpp"
+#include "structures/graphics/spk_gpu_data_buffer_center.hpp"
 
 namespace
 {
@@ -68,7 +68,7 @@ TEST_F(GPUDataBufferCenterFixture, AddSSBOStoresAndGetSSBORetrieves)
 
 	EXPECT_TRUE(spk::GPUDataBufferCenter::contains("TestSSBO"));
 	spk::ShaderStorageBufferObject& retrieved = spk::GPUDataBufferCenter::getSSBO("TestSSBO");
-	EXPECT_EQ(retrieved.id(), ssbo->id());
+	EXPECT_EQ(&retrieved, ssbo.get());
 }
 
 TEST_F(GPUDataBufferCenterFixture, GetSSBOThrowsWhenNameNotFound)

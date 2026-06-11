@@ -4,7 +4,7 @@
 #include "structures/graphics/opengl/opengl_wrapper_test_utils.hpp"
 
 
-#include "structures/graphics/opengl/spk_opengl_layout_buffer_object.hpp"
+#include "structures/graphics/spk_layout_buffer_object.hpp"
 
 using namespace spk;
 using LBO = spk::LayoutBufferObject;
@@ -220,7 +220,7 @@ TEST_F(LBOFixture, ActivateAndDeactivateDoNotThrow)
 	LBO lbo;
 	lbo.addAttribute(0, Attr::Type::Vector2, false);
 
-	EXPECT_NO_THROW(lbo.activate());
+	EXPECT_NO_THROW(lbo.activate(context.renderContext()));
 	EXPECT_NO_THROW(lbo.deactivate());
 }
 

@@ -9,7 +9,7 @@
 #include <vector>
 
 #include <Windows.h>
-#include <GL/gl.h>
+#include <GL/glew.h>
 
 #include <stb_image_write.h>
 

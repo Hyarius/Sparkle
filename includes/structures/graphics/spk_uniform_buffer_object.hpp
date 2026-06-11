@@ -2,7 +2,7 @@
 
 #include <GL/glew.h>
 
-#include "structures/graphics/opengl/spk_opengl_buffer_object.hpp"
+#include "structures/graphics/spk_buffer_object.hpp"
 
 namespace spk
 {
@@ -22,6 +22,6 @@ namespace spk
 		[[nodiscard]] GLuint bindingPoint() const noexcept;
 
 		void validateFor(spk::Program& p_program) const;
-		void activate() override;
+		void activate(const spk::RenderContext& p_context) override;
 	};
 }

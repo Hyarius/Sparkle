@@ -6,8 +6,8 @@
 #include "structures/math/spk_matrix.hpp"
 #include "structures/graphics/geometry/spk_color_mesh_2d.hpp"
 #include "structures/graphics/rendering/command/spk_render_command.hpp"
-#include "structures/graphics/opengl/spk_opengl_layout_buffer_object.hpp"
-#include "structures/graphics/opengl/spk_opengl_program.hpp"
+#include "structures/graphics/spk_layout_buffer_object.hpp"
+#include "structures/graphics/spk_program.hpp"
 
 namespace spk
 {

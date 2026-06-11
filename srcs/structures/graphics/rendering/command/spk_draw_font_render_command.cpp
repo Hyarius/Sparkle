@@ -7,8 +7,8 @@
 
 #include <GL/glew.h>
 
-#include "structures/graphics/opengl/spk_opengl_gpu_data_buffer_center.hpp"
-#include "structures/graphics/opengl/spk_opengl_uniform_buffer_object.hpp"
+#include "structures/graphics/spk_gpu_data_buffer_center.hpp"
+#include "structures/graphics/spk_uniform_buffer_object.hpp"
 #include "structures/graphics/rendering/context/spk_render_context.hpp"
 #include "spk_generated_resources.hpp"
 
@@ -173,16 +173,16 @@ namespace spk
 			return;
 		}
 
-		spk::OpenGL::Program& program = p_renderContext.compiledProgram(_sharedProgram());
+		spk::OpenGL::Program& program = _sharedProgram().gpu(p_renderContext);
 
 		_atlas.synchronize();
 		_sampler.bind(_atlas);
 
-		_layoutBuffer.activate();
+		_layoutBuffer.activate(p_renderContext);
 		program.activate();
-		viewportUniformBuffer().activate();
+		viewportUniformBuffer().activate(p_renderContext);
 
-		_sampler.activate();
+		_sampler.activate(p_renderContext);
 
 		// The program is shared between every font command: this instance's values
 		// must be re-uploaded on every draw, not only when they change.

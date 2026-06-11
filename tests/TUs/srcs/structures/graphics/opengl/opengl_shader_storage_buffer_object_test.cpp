@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+﻿#include <gtest/gtest.h>
 
 #include "structures/graphics/opengl/opengl_wrapper_test_utils.hpp"
 
@@ -14,11 +14,11 @@ TEST(OpenGLShaderStorageBufferObjectTest, BindsConfiguredBindingPointWhenSupport
 	}
 
 	spk::ShaderStorageBufferObject storageBuffer(4, spk::BufferObject::Usage::DynamicDraw, 16);
-	storageBuffer.activate();
+	storageBuffer.activate(context.renderContext());
 
 	GLint boundBuffer = 0;
 	glGetIntegeri_v(GL_SHADER_STORAGE_BUFFER_BINDING, 4, &boundBuffer);
-	EXPECT_EQ(static_cast<GLuint>(boundBuffer), storageBuffer.id());
+	EXPECT_EQ(static_cast<GLuint>(boundBuffer), storageBuffer.gpu(context.renderContext()).id());
 	EXPECT_EQ(storageBuffer.bindingPoint().value(), 4u);
 }
 

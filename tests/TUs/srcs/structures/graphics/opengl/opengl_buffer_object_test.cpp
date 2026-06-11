@@ -1,4 +1,4 @@
-#include <array>
+﻿#include <array>
 #include <cstdint>
 
 #include <gtest/gtest.h>
@@ -24,14 +24,14 @@ TEST(OpenGLBufferObjectTest, SynchronizesBinaryFieldToGPU)
 	}
 
 	buffer.synchronize();
-	buffer.activate();
+	buffer.activate(context.renderContext());
 
 	std::array<std::uint32_t, 4> gpuValues = {};
 	glGetBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(gpuValues), gpuValues.data());
 
 	EXPECT_EQ(gpuValues, values);
 	EXPECT_FALSE(buffer.needsSynchronization());
-	EXPECT_TRUE(buffer.isAllocated());
+	EXPECT_TRUE(buffer.hasGpu(context.renderContext()));
 }
 
 TEST(OpenGLBufferObjectTest, EditAppendResizeAndUsageRequestSynchronization)
@@ -54,7 +54,7 @@ TEST(OpenGLBufferObjectTest, EditAppendResizeAndUsageRequestSynchronization)
 
 	std::array<std::uint8_t, 2> patch = {9, 8};
 	buffer.edit(patch.data(), patch.size(), 1);
-	buffer.activate();
+	buffer.activate(context.renderContext());
 
 	std::array<std::uint8_t, 4> gpuValues = {};
 	glGetBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(gpuValues), gpuValues.data());
@@ -155,15 +155,15 @@ TEST(OpenGLBufferObjectTest, ActivationHelpersBindBaseAndRange)
 		values.size());
 	buffer.edit(values.data(), values.size());
 
-	buffer.activateBase(0);
+	buffer.activateBase(context.renderContext(), 0);
 	GLint boundBase = 0;
 	glGetIntegeri_v(GL_UNIFORM_BUFFER_BINDING, 0, &boundBase);
-	EXPECT_EQ(static_cast<GLuint>(boundBase), buffer.id());
+	EXPECT_EQ(static_cast<GLuint>(boundBase), buffer.gpu(context.renderContext()).id());
 
-	buffer.activateRange(1, 0, static_cast<GLsizeiptr>(values.size()));
+	buffer.activateRange(context.renderContext(), 1, 0, static_cast<GLsizeiptr>(values.size()));
 	GLint boundRange = 0;
 	glGetIntegeri_v(GL_UNIFORM_BUFFER_BINDING, 1, &boundRange);
-	EXPECT_EQ(static_cast<GLuint>(boundRange), buffer.id());
+	EXPECT_EQ(static_cast<GLuint>(boundRange), buffer.gpu(context.renderContext()).id());
 
 	buffer.deactivate();
 	GLint boundUniform = 1;

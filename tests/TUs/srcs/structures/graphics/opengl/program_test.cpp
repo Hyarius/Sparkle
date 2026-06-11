@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+﻿#include <gtest/gtest.h>
 
 #include <array>
 #include <cstdint>
@@ -15,7 +15,7 @@ TEST(ProgramTest, CompilesLinksActivatesAndDeactivates)
 	(void)context;
 
 	std::shared_ptr<spk::Program> program = sparkle_test::makeSolidProgram(1.0f, 0.0f, 0.0f);
-	program->activate();
+	program->activate(context.renderContext());
 
 	GLint currentProgram = 0;
 	glGetIntegerv(GL_CURRENT_PROGRAM, &currentProgram);
@@ -33,12 +33,12 @@ TEST(ProgramTest, RelinksAfterSourceUpdateAndRejectsInvalidSource)
 	(void)context;
 
 	std::shared_ptr<spk::Program> program = sparkle_test::makeSolidProgram(1.0f, 0.0f, 0.0f);
-	program->activate();
+	program->activate(context.renderContext());
 	program->setSources(
 		sparkle_test::makeSolidProgram(0.0f, 1.0f, 0.0f)->vertexShaderSource(),
 		sparkle_test::makeSolidProgram(0.0f, 1.0f, 0.0f)->fragmentShaderSource());
 	EXPECT_TRUE(program->needsSynchronization());
-	program->activate();
+	program->activate(context.renderContext());
 	EXPECT_FALSE(program->needsSynchronization());
 	EXPECT_TRUE(program->isLinked());
 
@@ -63,9 +63,9 @@ TEST(ProgramTest, RenderHelpersIssueDrawCalls)
 	indexBuffer->setCount(indexes.size());
 	indexBuffer->edit(indexes.data(), sizeof(indexes));
 	vertexArray->setIndexBuffer(indexBuffer);
-	vertexArray->activate();
+	vertexArray->activate(context.renderContext());
 
-	EXPECT_NO_THROW(program->renderRaw(Primitive::Triangles, 0, 3));
-	EXPECT_NO_THROW(program->render(Primitive::Triangles, 0, 3));
+	EXPECT_NO_THROW(program->renderRaw(context.renderContext(), Primitive::Triangles, 0, 3));
+	EXPECT_NO_THROW(program->render(context.renderContext(), Primitive::Triangles, 0, 3));
 }
 

@@ -1,74 +1,66 @@
 #include "structures/graphics/opengl/spk_opengl_sampler_object.hpp"
 
+#include <stdexcept>
+
+#include "structures/graphics/spk_sampler_object.hpp"
+#include "structures/graphics/opengl/spk_opengl_texture.hpp"
 #include "structures/graphics/rendering/context/spk_render_context.hpp"
 
-namespace spk
+namespace spk::OpenGL
 {
-	SamplerObject::SamplerObject(const std::string& p_name, Type p_type, BindingPoint p_bindingPoint) :
-		_designator(p_name),
-		_bindingPoint(p_bindingPoint),
-		_type(p_type)
+	GLenum samplerType(spk::SamplerObject::Type p_type)
 	{
+		switch (p_type)
+		{
+		case spk::SamplerObject::Type::Texture1D:
+			return GL_TEXTURE_1D;
+		case spk::SamplerObject::Type::Texture2D:
+			return GL_TEXTURE_2D;
+		case spk::SamplerObject::Type::Texture3D:
+			return GL_TEXTURE_3D;
+		case spk::SamplerObject::Type::TextureCubeMap:
+			return GL_TEXTURE_CUBE_MAP;
+		}
+
+		throw std::runtime_error("Unsupported sampler type");
 	}
 
-	void SamplerObject::bind(const spk::Texture& p_texture)
+	void SamplerObject::invalidateUniformLocation() noexcept
 	{
-		_texture = &p_texture;
-	}
-
-	SamplerObject::BindingPoint SamplerObject::bindingPoint() const
-	{
-		return _bindingPoint;
-	}
-
-	void SamplerObject::setBindingPoint(BindingPoint p_bindingPoint)
-	{
-		_bindingPoint = p_bindingPoint;
 		_uniformDestination = -1;
+		_uniformContextId = 0;
+		_uniformProgramId = 0;
 	}
 
-	SamplerObject::Type SamplerObject::type() const
+	void SamplerObject::activate(const spk::RenderContext& p_context, const spk::SamplerObject& p_sampler)
 	{
-		return _type;
-	}
+		glActiveTexture(GL_TEXTURE0 + p_sampler.bindingPoint());
 
-	void SamplerObject::setType(Type p_type)
-	{
-		_type = p_type;
-	}
-
-	void SamplerObject::activate()
-	{
-		glActiveTexture(GL_TEXTURE0 + _bindingPoint);
-
-		if (_texture == nullptr)
+		if (p_sampler.texture() == nullptr)
 		{
-			glBindTexture(static_cast<GLenum>(_type), 0);
+			glBindTexture(samplerType(p_sampler.type()), 0);
 			return;
 		}
 
-		if (_uniformDestination == -1)
+		GLint prog = 0;
+		glGetIntegerv(GL_CURRENT_PROGRAM, &prog);
+		if (_uniformDestination == -1 ||
+			_uniformContextId != p_context.id() ||
+			_uniformProgramId != static_cast<GLuint>(prog))
 		{
-			GLint prog = 0;
-			glGetIntegerv(GL_CURRENT_PROGRAM, &prog);
-			_uniformDestination = glGetUniformLocation(prog, _designator.c_str());
-			glUniform1i(_uniformDestination, _bindingPoint);
+			_uniformDestination = glGetUniformLocation(prog, p_sampler.designator().c_str());
+			_uniformContextId = p_context.id();
+			_uniformProgramId = static_cast<GLuint>(prog);
 		}
+		glUniform1i(_uniformDestination, p_sampler.bindingPoint());
 
-		spk::RenderContext* ctx = spk::RenderContext::current();
-		if (ctx == nullptr)
-		{
-			glBindTexture(static_cast<GLenum>(_type), 0);
-			return;
-		}
-
-		const spk::OpenGL::Texture& glTex = ctx->compiledTexture(*_texture);
-		glBindTexture(static_cast<GLenum>(_type), glTex.id());
+		const spk::OpenGL::Texture& glTex = p_sampler.texture()->gpu(p_context);
+		glBindTexture(samplerType(p_sampler.type()), glTex.id());
 	}
 
-	void SamplerObject::deactivate()
+	void SamplerObject::deactivate(const spk::SamplerObject& p_sampler)
 	{
-		glActiveTexture(GL_TEXTURE0 + _bindingPoint);
-		glBindTexture(static_cast<GLenum>(_type), 0);
+		glActiveTexture(GL_TEXTURE0 + p_sampler.bindingPoint());
+		glBindTexture(samplerType(p_sampler.type()), 0);
 	}
 }

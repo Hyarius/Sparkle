@@ -5,7 +5,7 @@
 #include "structures/math/spk_rect_2d.hpp"
 #include "structures/graphics/rendering/command/spk_draw_texture_mesh_render_command.hpp"
 #include "structures/graphics/rendering/command/spk_render_command.hpp"
-#include "structures/graphics/texture/spk_texture.hpp"
+#include "structures/graphics/spk_texture.hpp"
 
 namespace spk
 {

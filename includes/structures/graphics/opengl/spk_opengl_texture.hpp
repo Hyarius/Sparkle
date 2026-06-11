@@ -2,15 +2,16 @@
 
 #include <GL/glew.h>
 
-#include "structures/graphics/texture/spk_texture.hpp"
+#include "structures/graphics/opengl/spk_opengl_object.hpp"
+#include "structures/graphics/spk_texture.hpp"
 
 namespace spk
 {
 	namespace OpenGL
 	{
-		// GPU-side texture. Owned by the RenderContext that uploaded it and only
+		// GPU-side texture. Bound to the RenderContext that uploaded it and only
 		// usable while that context is current.
-		class Texture
+		class Texture : public Object
 		{
 		private:
 			GLuint _id = 0;

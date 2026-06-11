@@ -10,7 +10,7 @@
 
 #include "stb_truetype.h"
 
-#include "structures/graphics/texture/spk_texture.hpp"
+#include "structures/graphics/spk_texture.hpp"
 #include "structures/design_pattern/spk_contract_provider.hpp"
 #include "structures/math/spk_vector2.hpp"
 

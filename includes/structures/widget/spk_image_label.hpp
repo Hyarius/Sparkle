@@ -3,7 +3,7 @@
 #include <memory>
 #include <string>
 
-#include "structures/graphics/texture/spk_texture.hpp"
+#include "structures/graphics/spk_texture.hpp"
 #include "structures/widget/spk_widget.hpp"
 
 namespace spk

@@ -4,7 +4,7 @@
 
 #include <GL/glew.h>
 
-#include "structures/graphics/opengl/spk_opengl_buffer_object.hpp"
+#include "structures/graphics/spk_buffer_object.hpp"
 
 namespace spk
 {

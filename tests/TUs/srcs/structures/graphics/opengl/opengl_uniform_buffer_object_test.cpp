@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+﻿#include <gtest/gtest.h>
 
 #include "structures/graphics/opengl/opengl_wrapper_test_utils.hpp"
 
@@ -11,11 +11,11 @@ TEST(OpenGLUniformBufferObjectTest, BindsConfiguredBindingPoint)
 	(void)context;
 
 	UniformBufferObject uniformBuffer(3, BufferObject::Usage::DynamicDraw, 16);
-	uniformBuffer.activate();
+	uniformBuffer.activate(context.renderContext());
 
 	GLint boundBuffer = 0;
 	glGetIntegeri_v(GL_UNIFORM_BUFFER_BINDING, 3, &boundBuffer);
-	EXPECT_EQ(static_cast<GLuint>(boundBuffer), uniformBuffer.id());
+	EXPECT_EQ(static_cast<GLuint>(boundBuffer), uniformBuffer.gpu(context.renderContext()).id());
 	EXPECT_EQ(uniformBuffer.bindingPoint(), 3u);
 }
 

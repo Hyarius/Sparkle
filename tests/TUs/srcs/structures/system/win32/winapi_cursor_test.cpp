@@ -160,6 +160,6 @@ TEST(WinAPICursorTest, RegisterCursorOverwriteWorks)
 
 TEST(WinAPICursorTest, GetUnknownCursorNameThrows)
 {
-	EXPECT_THROW(spk::Cursor::get("__nonexistent_cursor_xyz__"), std::invalid_argument);
+	EXPECT_THROW(static_cast<void>(spk::Cursor::get("__nonexistent_cursor_xyz__")), std::invalid_argument);
 }
 

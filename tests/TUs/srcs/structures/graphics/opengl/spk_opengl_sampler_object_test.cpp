@@ -2,7 +2,7 @@
 
 
 #include "structures/graphics/opengl/opengl_wrapper_test_utils.hpp"
-#include "structures/graphics/opengl/spk_opengl_sampler_object.hpp"
+#include "structures/graphics/spk_sampler_object.hpp"
 
 using SamplerObject = spk::SamplerObject;
 using Texture = spk::Texture;
@@ -87,7 +87,7 @@ TEST(OpenGLSamplerObjectTest, ActivateAndDeactivateDoNotThrow)
 	SamplerObject sampler("uTex", SamplerObject::Type::Texture2D, 0);
 	sampler.bind(*tex);
 
-	EXPECT_NO_THROW(sampler.activate());
+	EXPECT_NO_THROW(sampler.activate(context.renderContext()));
 	EXPECT_NO_THROW(sampler.deactivate());
 }
 

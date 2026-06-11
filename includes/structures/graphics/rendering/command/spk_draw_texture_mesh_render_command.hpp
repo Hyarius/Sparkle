@@ -2,11 +2,11 @@
 
 #include <memory>
 #include "structures/graphics/rendering/command/spk_render_command.hpp"
-#include "structures/graphics/texture/spk_texture.hpp"
+#include "structures/graphics/spk_texture.hpp"
 #include "structures/graphics/geometry/spk_texture_mesh_2d.hpp"
-#include "structures/graphics/opengl/spk_opengl_layout_buffer_object.hpp"
-#include "structures/graphics/opengl/spk_opengl_program.hpp"
-#include "structures/graphics/opengl/spk_opengl_sampler_object.hpp"
+#include "structures/graphics/spk_layout_buffer_object.hpp"
+#include "structures/graphics/spk_program.hpp"
+#include "structures/graphics/spk_sampler_object.hpp"
 
 namespace spk
 {

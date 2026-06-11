@@ -2,7 +2,7 @@
 
 #include "structures/graphics/opengl/opengl_wrapper_test_utils.hpp"
 #include "structures/graphics/opengl/spk_opengl_texture.hpp"
-#include "structures/graphics/texture/spk_texture.hpp"
+#include "structures/graphics/spk_texture.hpp"
 
 TEST(OpenGLTextureTest, DefaultConstructionProducesNoGPUUpload)
 {
@@ -10,7 +10,7 @@ TEST(OpenGLTextureTest, DefaultConstructionProducesNoGPUUpload)
 
 	spk::Texture tex;
 
-	EXPECT_FALSE(context.renderContext().hasCompiledTexture(tex));
+	EXPECT_FALSE(tex.hasGpu(context.renderContext()));
 }
 
 TEST(OpenGLTextureTest, HasApplicationTextureID)
@@ -23,7 +23,7 @@ TEST(OpenGLTextureTest, HasApplicationTextureID)
 	EXPECT_NE(tex.id(), spk::Texture::InvalidID);
 }
 
-TEST(OpenGLTextureTest, CompiledTextureAfterSetPixelsHasValidGLId)
+TEST(OpenGLTextureTest, GpuTextureAfterSetPixelsHasValidGLId)
 {
 	sparkle_test::OpenGLTestContext context;
 	std::vector<uint8_t> pixels(4 * 4 * 4, 255);
@@ -31,10 +31,10 @@ TEST(OpenGLTextureTest, CompiledTextureAfterSetPixelsHasValidGLId)
 	spk::Texture tex;
 	tex.setPixels(pixels, {4, 4}, spk::Texture::Format::RGBA);
 
-	spk::OpenGL::Texture& glTex = context.renderContext().compiledTexture(tex);
+	spk::OpenGL::Texture& glTex = tex.gpu(context.renderContext());
 
 	EXPECT_NE(glTex.id(), 0u);
-	EXPECT_TRUE(context.renderContext().hasCompiledTexture(tex));
+	EXPECT_TRUE(tex.hasGpu(context.renderContext()));
 }
 
 TEST(OpenGLTextureTest, SynchronizeWithContextUploadsToGPU)
@@ -49,11 +49,11 @@ TEST(OpenGLTextureTest, SynchronizeWithContextUploadsToGPU)
 	tex.synchronize();
 
 	EXPECT_FALSE(tex.needsSynchronization());
-	EXPECT_TRUE(context.renderContext().hasCompiledTexture(tex));
-	EXPECT_NE(context.renderContext().compiledTexture(tex).id(), 0u);
+	EXPECT_TRUE(tex.hasGpu(context.renderContext()));
+	EXPECT_NE(tex.gpu(context.renderContext()).id(), 0u);
 }
 
-TEST(OpenGLTextureTest, CompiledTextureSameVersionReturnsCachedEntry)
+TEST(OpenGLTextureTest, GpuTextureSameVersionReturnsCachedEntry)
 {
 	sparkle_test::OpenGLTestContext context;
 	std::vector<uint8_t> pixels(2 * 2 * 3, 128);
@@ -61,8 +61,8 @@ TEST(OpenGLTextureTest, CompiledTextureSameVersionReturnsCachedEntry)
 	spk::Texture tex;
 	tex.setPixels(pixels, {2, 2}, spk::Texture::Format::RGB);
 
-	const GLuint firstId = context.renderContext().compiledTexture(tex).id();
-	const GLuint secondId = context.renderContext().compiledTexture(tex).id();
+	const GLuint firstId = tex.gpu(context.renderContext()).id();
+	const GLuint secondId = tex.gpu(context.renderContext()).id();
 
 	EXPECT_EQ(firstId, secondId);
 }
@@ -74,12 +74,16 @@ TEST(OpenGLTextureTest, SetPixelsBumpsVersionAndInvalidatesCache)
 
 	spk::Texture tex;
 	tex.setPixels(pixels, {2, 2}, spk::Texture::Format::RGBA);
-	const GLuint firstId = context.renderContext().compiledTexture(tex).id();
+	const std::uint64_t firstVersion = tex.gpu(context.renderContext()).version();
+	ASSERT_TRUE(tex.hasGpu(context.renderContext()));
 
 	tex.setPixels(pixels, {2, 2}, spk::Texture::Format::RGBA);
-	const GLuint secondId = context.renderContext().compiledTexture(tex).id();
+	EXPECT_FALSE(tex.hasGpu(context.renderContext()));
 
-	EXPECT_NE(firstId, secondId);
+	spk::OpenGL::Texture& refreshedTexture = tex.gpu(context.renderContext());
+	EXPECT_NE(firstVersion, refreshedTexture.version());
+	EXPECT_EQ(refreshedTexture.version(), tex.version());
+	EXPECT_TRUE(tex.hasGpu(context.renderContext()));
 }
 
 TEST(OpenGLTextureTest, CopyProducesIndependentGPUTexture)
@@ -89,33 +93,29 @@ TEST(OpenGLTextureTest, CopyProducesIndependentGPUTexture)
 
 	spk::Texture src;
 	src.setPixels(pixels, {2, 2}, spk::Texture::Format::RGBA);
-	const GLuint srcId = context.renderContext().compiledTexture(src).id();
+	const GLuint srcId = src.gpu(context.renderContext()).id();
 
 	spk::Texture dst(src);
-	const GLuint dstId = context.renderContext().compiledTexture(dst).id();
+	const GLuint dstId = dst.gpu(context.renderContext()).id();
 
 	EXPECT_NE(dst.id(), src.id());
-	EXPECT_NE(dst.key(), src.key());
 	EXPECT_NE(srcId, dstId);
 	EXPECT_NE(dstId, 0u);
 }
 
-TEST(OpenGLTextureTest, MoveTransfersCacheKeyToDestination)
+TEST(OpenGLTextureTest, MoveTransfersGpuCopiesToDestination)
 {
 	sparkle_test::OpenGLTestContext context;
 	std::vector<uint8_t> pixels(2 * 2 * 4, 200);
 
 	spk::Texture src;
 	src.setPixels(pixels, {2, 2}, spk::Texture::Format::RGBA);
-	const std::uint64_t originalKey = src.key();
-	const GLuint originalId = context.renderContext().compiledTexture(src).id();
+	const GLuint originalId = src.gpu(context.renderContext()).id();
 	ASSERT_NE(originalId, 0u);
 
 	spk::Texture dst(std::move(src));
 
-	EXPECT_EQ(dst.key(), originalKey);
-	EXPECT_EQ(src.key(), 0u);
-	EXPECT_EQ(context.renderContext().compiledTexture(dst).id(), originalId);
+	EXPECT_EQ(dst.gpu(context.renderContext()).id(), originalId);
 }
 
 TEST(OpenGLTextureTest, ForceSynchronizationUploadsToGPU)
@@ -129,10 +129,10 @@ TEST(OpenGLTextureTest, ForceSynchronizationUploadsToGPU)
 	tex.forceSynchronization();
 
 	EXPECT_FALSE(tex.needsSynchronization());
-	EXPECT_NE(context.renderContext().compiledTexture(tex).id(), 0u);
+	EXPECT_NE(tex.gpu(context.renderContext()).id(), 0u);
 }
 
-TEST(OpenGLTextureTest, CompiledTextureCoversAllSupportedPixelFormats)
+TEST(OpenGLTextureTest, GpuTextureCoversAllSupportedPixelFormats)
 {
 	sparkle_test::OpenGLTestContext context;
 
@@ -159,7 +159,7 @@ TEST(OpenGLTextureTest, CompiledTextureCoversAllSupportedPixelFormats)
 			spk::Texture::Wrap::ClampToBorder,
 			spk::Texture::Mipmap::Disable);
 
-		EXPECT_NE(context.renderContext().compiledTexture(tex).id(), 0u);
+		EXPECT_NE(tex.gpu(context.renderContext()).id(), 0u);
 	}
 }
 
@@ -168,29 +168,26 @@ TEST(OpenGLTextureTest, EmptyTextureProducesGLIdZero)
 	sparkle_test::OpenGLTestContext context;
 
 	spk::Texture empty;
-	EXPECT_EQ(context.renderContext().compiledTexture(empty).id(), 0u);
+	EXPECT_EQ(empty.gpu(context.renderContext()).id(), 0u);
 
 	spk::Texture invalidFormat;
 	invalidFormat.setPixels(std::vector<uint8_t>{255}, {1, 1}, spk::Texture::Format::Error);
-	EXPECT_EQ(context.renderContext().compiledTexture(invalidFormat).id(), 0u);
+	EXPECT_EQ(invalidFormat.gpu(context.renderContext()).id(), 0u);
 }
 
-TEST(OpenGLTextureTest, MoveAssignmentTransfersCacheKey)
+TEST(OpenGLTextureTest, MoveAssignmentTransfersGpuCopies)
 {
 	sparkle_test::OpenGLTestContext context;
 
 	spk::Texture src;
 	src.setPixels(std::vector<uint8_t>(4, 80), {1, 1}, spk::Texture::Format::RGBA);
-	const std::uint64_t srcKey = src.key();
-	const GLuint srcGlId = context.renderContext().compiledTexture(src).id();
+	const GLuint srcGlId = src.gpu(context.renderContext()).id();
 
 	spk::Texture dst;
 	dst.setPixels(std::vector<uint8_t>(4, 160), {1, 1}, spk::Texture::Format::RGBA);
-	(void)context.renderContext().compiledTexture(dst);
+	(void)dst.gpu(context.renderContext());
 
 	dst = std::move(src);
 
-	EXPECT_EQ(dst.key(), srcKey);
-	EXPECT_EQ(src.key(), 0u);
-	EXPECT_EQ(context.renderContext().compiledTexture(dst).id(), srcGlId);
+	EXPECT_EQ(dst.gpu(context.renderContext()).id(), srcGlId);
 }

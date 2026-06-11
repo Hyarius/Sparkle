@@ -1,4 +1,4 @@
-#include <array>
+﻿#include <array>
 
 #include <gtest/gtest.h>
 
@@ -15,7 +15,7 @@ TEST(OpenGLVertexBufferObjectTest, DefaultsToArrayBufferTargetAndUploadsVertexDa
 	auto vertexBuffer = sparkle_test::makeTriangleVBO(vertices);
 
 	EXPECT_EQ(vertexBuffer->target(), spk::BufferObject::Target::Array);
-	vertexBuffer->activate();
+	vertexBuffer->activate(context.renderContext());
 
 	std::array<sparkle_test::TestVertex, 3> gpuVertices = {};
 	glGetBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(gpuVertices), gpuVertices.data());

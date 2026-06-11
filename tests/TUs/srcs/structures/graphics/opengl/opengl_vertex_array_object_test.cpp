@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+﻿#include <gtest/gtest.h>
 
 #include "utils/image_comparison_test_utils.hpp"
 #include "structures/graphics/opengl/opengl_wrapper_test_utils.hpp"
@@ -14,7 +14,7 @@ TEST(OpenGLVertexArrayObjectTest, ActivatesConfiguredVertexAttributes)
 
 	auto vertexArray = sparkle_test::makeTriangleVAO(
 		sparkle_test::fullScreenTriangle({0.0f, 1.0f, 0.0f}));
-	vertexArray->activate();
+	vertexArray->activate(context.renderContext());
 
 	GLint currentVertexArray = 0;
 	GLint positionEnabled = 0;
@@ -23,7 +23,7 @@ TEST(OpenGLVertexArrayObjectTest, ActivatesConfiguredVertexAttributes)
 	glGetVertexAttribiv(0, GL_VERTEX_ATTRIB_ARRAY_ENABLED, &positionEnabled);
 	glGetVertexAttribiv(1, GL_VERTEX_ATTRIB_ARRAY_ENABLED, &colorEnabled);
 
-	EXPECT_EQ(static_cast<GLuint>(currentVertexArray), vertexArray->id());
+	EXPECT_EQ(static_cast<GLuint>(currentVertexArray), vertexArray->gpu(context.renderContext()).id());
 	EXPECT_EQ(positionEnabled, GL_TRUE);
 	EXPECT_EQ(colorEnabled, GL_TRUE);
 }
@@ -66,13 +66,13 @@ TEST(OpenGLVertexArrayObjectTest, MutationHelpersRequestSynchronization)
 
 	auto vertexArray = sparkle_test::makeTriangleVAO(
 		sparkle_test::fullScreenTriangle({1.0f, 0.0f, 0.0f}));
-	vertexArray->activate();
-	ASSERT_TRUE(vertexArray->isAllocated());
+	vertexArray->activate(context.renderContext());
+	ASSERT_TRUE(vertexArray->hasGpu(context.renderContext()));
 	ASSERT_FALSE(vertexArray->needsSynchronization());
 
 	vertexArray->clearVertexBuffers();
 	EXPECT_TRUE(vertexArray->needsSynchronization());
-	vertexArray->activate();
+	vertexArray->activate(context.renderContext());
 	EXPECT_FALSE(vertexArray->needsSynchronization());
 
 	auto indexBuffer = std::make_shared<spk::IndexBufferObject>(

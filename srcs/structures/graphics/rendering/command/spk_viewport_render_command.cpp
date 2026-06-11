@@ -5,9 +5,9 @@
 #include "structures/graphics/rendering/context/spk_render_context.hpp"
 #include "structures/system/device/window/spk_surface_state.hpp"
 
-#include "structures/graphics/opengl/spk_opengl_gpu_data_buffer_center.hpp"
+#include "structures/graphics/spk_gpu_data_buffer_center.hpp"
 #include "structures/graphics/opengl/spk_opengl_viewport.hpp"
-#include "structures/graphics/opengl/spk_opengl_uniform_buffer_object.hpp"
+#include "structures/graphics/spk_uniform_buffer_object.hpp"
 
 namespace
 {
@@ -57,6 +57,6 @@ namespace spk
 		spk::UniformBufferObject& viewportBuffer = viewportUniformBuffer();
 		const spk::Matrix4x4& viewportMatrix = _viewport.matrix();
 		viewportBuffer.edit(&viewportMatrix, sizeof(viewportMatrix));
-		viewportBuffer.activate();
+		viewportBuffer.activate(p_renderContext);
 	}
 }

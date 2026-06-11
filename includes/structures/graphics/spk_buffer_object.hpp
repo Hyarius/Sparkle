@@ -9,10 +9,14 @@
 #include <GL/glew.h>
 
 #include "structures/container/spk_binary_field.hpp"
+#include "structures/graphics/opengl/spk_cached_opengl_object_collection.hpp"
+#include "structures/graphics/opengl/spk_opengl_buffer.hpp"
 #include "structures/design_pattern/spk_synchronizable_trait.hpp"
 
 namespace spk
 {
+	class RenderContext;
+
 	class BufferObject : public spk::SynchronizableTrait
 	{
 	public:
@@ -45,16 +49,17 @@ namespace spk
 
 	private:
 		mutable std::mutex _mutex;
-		mutable GLuint _id = 0;
 		Target _target = Target::Array;
 		Usage _usage = Usage::DynamicDraw;
 		std::vector<std::uint8_t> _cpuBuffer;
 		spk::BinaryField _field;
-		mutable std::size_t _allocatedSize = 0;
+
+		std::uint64_t _structureVersion = 1; // target / usage
+		std::uint64_t _contentVersion = 1;   // bytes / size
+
+		mutable spk::CachedOpenGLObjectCollection<spk::OpenGL::Buffer> _gpu;
 
 	protected:
-		void _allocate() const;
-		void _release() const;
 		void _resetField();
 		void _synchronize() const override;
 
@@ -63,18 +68,24 @@ namespace spk
 			Target p_target = Target::Array,
 			Usage p_usage = Usage::DynamicDraw,
 			std::size_t p_size = 0);
-		~BufferObject();
+		~BufferObject() = default;
 
 		BufferObject(const BufferObject&) = delete;
 		BufferObject& operator=(const BufferObject&) = delete;
 		BufferObject(BufferObject&&) noexcept = delete;
 		BufferObject& operator=(BufferObject&&) noexcept = delete;
 
-		[[nodiscard]] GLuint id() const noexcept;
 		[[nodiscard]] Target target() const noexcept;
 		[[nodiscard]] Usage usage() const noexcept;
 		[[nodiscard]] std::size_t size() const noexcept;
-		[[nodiscard]] bool isAllocated() const noexcept;
+
+		[[nodiscard]] std::uint64_t structureVersion() const noexcept;
+		[[nodiscard]] std::uint64_t contentVersion() const noexcept;
+
+		// Resolves (uploading if needed) this buffer's GPU copy for p_context.
+		// p_context must be the current context.
+		[[nodiscard]] spk::OpenGL::Buffer& gpu(const spk::RenderContext& p_context) const;
+		[[nodiscard]] bool hasGpu(const spk::RenderContext& p_context) const noexcept;
 
 		void setTarget(Target p_target);
 		void setUsage(Usage p_usage);
@@ -91,9 +102,9 @@ namespace spk
 		[[nodiscard]] spk::BinaryField& field();
 		[[nodiscard]] const spk::BinaryField& field() const;
 
-		virtual void activate();
+		virtual void activate(const spk::RenderContext& p_context);
 		virtual void deactivate() const;
-		void activateBase(GLuint p_bindingPoint);
-		void activateRange(GLuint p_bindingPoint, GLintptr p_offset, GLsizeiptr p_size);
+		void activateBase(const spk::RenderContext& p_context, GLuint p_bindingPoint);
+		void activateRange(const spk::RenderContext& p_context, GLuint p_bindingPoint, GLintptr p_offset, GLsizeiptr p_size);
 	};
 }

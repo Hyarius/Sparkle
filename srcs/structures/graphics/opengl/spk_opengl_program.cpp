@@ -1,25 +1,14 @@
-#include "structures/graphics/opengl/spk_opengl_program.hpp"
+#include "structures/graphics/spk_program.hpp"
 
+#include <memory>
 #include <stdexcept>
 #include <utility>
 
-#if defined(_WIN32)
-#include <Windows.h>
-#endif
-
+#include "structures/graphics/opengl/spk_opengl_primitive.hpp"
 #include "structures/graphics/opengl/spk_opengl_render_context.hpp"
 
 namespace
 {
-	bool hasCurrentOpenGLContext()
-	{
-#if defined(_WIN32)
-		return wglGetCurrentContext() != nullptr;
-#else
-		return true;
-#endif
-	}
-
 	spk::RenderContext& currentRenderContext()
 	{
 		spk::RenderContext* context = spk::RenderContext::current();
@@ -65,7 +54,7 @@ namespace spk
 
 		Program::~Program()
 		{
-			if (_id != 0 && hasCurrentOpenGLContext() == true)
+			if (_id != 0 && _ownsCurrentContext() == true)
 			{
 				glDeleteProgram(_id);
 			}
@@ -112,7 +101,7 @@ namespace spk
 		{
 			activate();
 			glDrawArrays(
-				static_cast<GLenum>(p_primitive),
+				spk::OpenGL::primitiveType(p_primitive),
 				static_cast<GLint>(p_firstVertex),
 				static_cast<GLsizei>(p_vertexCount));
 		}
@@ -121,7 +110,7 @@ namespace spk
 		{
 			activate();
 			glDrawElements(
-				static_cast<GLenum>(p_primitive),
+				spk::OpenGL::primitiveType(p_primitive),
 				static_cast<GLsizei>(p_indexCount),
 				GL_UNSIGNED_INT,
 				reinterpret_cast<const void*>(static_cast<std::uintptr_t>(p_firstIndex) * sizeof(std::uint32_t)));
@@ -138,18 +127,31 @@ namespace spk
 
 	void Program::_synchronize() const
 	{
-		(void)currentRenderContext().compiledProgram(*this);
+		(void)gpu(currentRenderContext());
 	}
 
-	std::uint64_t Program::key() const noexcept
+	std::uint64_t Program::version() const noexcept
 	{
-		return _key;
+		return _version.load();
 	}
 
-	std::uint64_t Program::version() const
+	spk::OpenGL::Program& Program::gpu(const spk::RenderContext& p_context) const
 	{
-		std::scoped_lock lock(_sourceMutex);
-		return _version;
+		return _gpu.resolve(
+			p_context,
+			version(),
+			[this]()
+			{
+				return std::make_unique<spk::OpenGL::Program>(
+					vertexShaderSource(),
+					fragmentShaderSource());
+			});
+	}
+
+	bool Program::hasGpu(const spk::RenderContext& p_context) const noexcept
+	{
+		const spk::OpenGL::Program* object = _gpu.find(p_context);
+		return object != nullptr && object->version() == version();
 	}
 
 	void Program::setSources(std::string p_vertexShaderSource, std::string p_fragmentShaderSource)
@@ -158,7 +160,7 @@ namespace spk
 			std::scoped_lock lock(_sourceMutex);
 			_vertexShaderSource = std::move(p_vertexShaderSource);
 			_fragmentShaderSource = std::move(p_fragmentShaderSource);
-			++_version;
+			_version.fetch_add(1);
 		}
 		requestSynchronization();
 	}
@@ -178,19 +180,19 @@ namespace spk
 	GLuint Program::id() const
 	{
 		synchronize();
-		return currentRenderContext().compiledProgram(*this).id();
+		return gpu(currentRenderContext()).id();
 	}
 
 	bool Program::isLinked() const noexcept
 	{
 		spk::RenderContext* context = spk::RenderContext::current();
-		return context != nullptr && context->hasCompiledProgram(*this) == true;
+		return context != nullptr && hasGpu(*context) == true;
 	}
 
-	void Program::activate()
+	void Program::activate(const spk::RenderContext& p_context)
 	{
 		synchronize();
-		currentRenderContext().compiledProgram(*this).activate();
+		gpu(p_context).activate();
 	}
 
 	void Program::deactivate() const
@@ -198,15 +200,15 @@ namespace spk
 		glUseProgram(0);
 	}
 
-	void Program::renderRaw(spk::Primitive p_primitive, std::size_t p_firstVertex, std::size_t p_vertexCount)
+	void Program::renderRaw(const spk::RenderContext& p_context, spk::Primitive p_primitive, std::size_t p_firstVertex, std::size_t p_vertexCount)
 	{
 		synchronize();
-		currentRenderContext().compiledProgram(*this).renderRaw(p_primitive, p_firstVertex, p_vertexCount);
+		gpu(p_context).renderRaw(p_primitive, p_firstVertex, p_vertexCount);
 	}
 
-	void Program::render(spk::Primitive p_primitive, std::size_t p_firstIndex, std::size_t p_indexCount)
+	void Program::render(const spk::RenderContext& p_context, spk::Primitive p_primitive, std::size_t p_firstIndex, std::size_t p_indexCount)
 	{
 		synchronize();
-		currentRenderContext().compiledProgram(*this).render(p_primitive, p_firstIndex, p_indexCount);
+		gpu(p_context).render(p_primitive, p_firstIndex, p_indexCount);
 	}
 }

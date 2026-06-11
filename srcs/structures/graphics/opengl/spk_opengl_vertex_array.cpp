@@ -1,0 +1,25 @@
+#include "structures/graphics/opengl/spk_opengl_vertex_array.hpp"
+
+namespace spk
+{
+	namespace OpenGL
+	{
+		VertexArray::VertexArray()
+		{
+			glGenVertexArrays(1, &_id);
+		}
+
+		VertexArray::~VertexArray()
+		{
+			if (_id != 0 && _ownsCurrentContext() == true)
+			{
+				glDeleteVertexArrays(1, &_id);
+			}
+		}
+
+		GLuint VertexArray::id() const noexcept
+		{
+			return _id;
+		}
+	}
+}

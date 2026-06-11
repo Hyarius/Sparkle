@@ -1,9 +1,9 @@
-#include "structures/graphics/opengl/spk_opengl_uniform_buffer_object.hpp"
+#include "structures/graphics/spk_uniform_buffer_object.hpp"
 
 #include <stdexcept>
 #include <string>
 
-#include "structures/graphics/opengl/spk_opengl_program.hpp"
+#include "structures/graphics/spk_program.hpp"
 
 namespace spk
 {
@@ -42,9 +42,9 @@ namespace spk
 			std::to_string(_bindingPoint) + "]");
 	}
 
-	void UniformBufferObject::activate()
+	void UniformBufferObject::activate(const spk::RenderContext& p_context)
 	{
-		BufferObject::activate();
-		glBindBufferBase(GL_UNIFORM_BUFFER, _bindingPoint, id());
+		BufferObject::activate(p_context);
+		glBindBufferBase(GL_UNIFORM_BUFFER, _bindingPoint, gpu(p_context).id());
 	}
 }

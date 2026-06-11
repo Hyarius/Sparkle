@@ -2,6 +2,8 @@
 
 #include <utility>
 
+#include "structures/graphics/opengl/spk_opengl_primitive.hpp"
+
 namespace spk
 {
 	DrawArraysCommand::DrawArraysCommand(Primitive p_primitive, GLint p_first, GLsizei p_count) :
@@ -27,17 +29,15 @@ namespace spk
 
 	void DrawArraysCommand::execute(spk::RenderContext& p_renderContext)
 	{
-		(void)p_renderContext;
-
 		if (_program != nullptr)
 		{
-			_program->activate();
+			_program->activate(p_renderContext);
 		}
 		if (_vertexArray != nullptr)
 		{
-			_vertexArray->activate();
+			_vertexArray->activate(p_renderContext);
 		}
 
-		glDrawArrays(static_cast<GLenum>(_primitive), _first, _count);
+		glDrawArrays(spk::OpenGL::primitiveType(_primitive), _first, _count);
 	}
 }

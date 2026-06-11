@@ -1,21 +1,5 @@
 #include "structures/graphics/opengl/spk_opengl_texture.hpp"
 
-#if defined(_WIN32)
-#include <Windows.h>
-#endif
-
-namespace
-{
-	bool hasCurrentOpenGLContext()
-	{
-#if defined(_WIN32)
-		return wglGetCurrentContext() != nullptr;
-#else
-		return true;
-#endif
-	}
-}
-
 namespace spk
 {
 	namespace OpenGL
@@ -150,7 +134,7 @@ namespace spk
 
 		Texture::~Texture()
 		{
-			if (_id != 0 && hasCurrentOpenGLContext() == true)
+			if (_id != 0 && _ownsCurrentContext() == true)
 			{
 				glDeleteTextures(1, &_id);
 			}

@@ -1,4 +1,4 @@
-#include "structures/graphics/opengl/spk_opengl_layout_buffer_object.hpp"
+#include "structures/graphics/spk_layout_buffer_object.hpp"
 
 #include <algorithm>
 #include <stdexcept>
@@ -200,9 +200,9 @@ namespace spk
 		_rebuildVertexArray();
 	}
 
-	void LayoutBufferObject::activate()
+	void LayoutBufferObject::activate(const spk::RenderContext& p_context)
 	{
-		_vertexArray->activate();
+		_vertexArray->activate(p_context);
 	}
 
 	void LayoutBufferObject::deactivate() const

@@ -3,6 +3,8 @@
 #include <stdexcept>
 #include <utility>
 
+#include "structures/graphics/opengl/spk_opengl_primitive.hpp"
+
 namespace spk
 {
 	DrawElementsInstancedCommand::DrawElementsInstancedCommand(
@@ -39,8 +41,6 @@ namespace spk
 
 	void DrawElementsInstancedCommand::execute(spk::RenderContext& p_renderContext)
 	{
-		(void)p_renderContext;
-
 		if (_indexBuffer == nullptr)
 		{
 			throw std::runtime_error("spk::DrawElementsInstancedCommand requires a valid index buffer");
@@ -48,17 +48,17 @@ namespace spk
 
 		if (_program != nullptr)
 		{
-			_program->activate();
+			_program->activate(p_renderContext);
 		}
 		if (_vertexArray != nullptr)
 		{
-			_vertexArray->activate();
+			_vertexArray->activate(p_renderContext);
 		}
-		_indexBuffer->activate();
+		_indexBuffer->activate(p_renderContext);
 
 		const GLsizei count = _count.value_or(static_cast<GLsizei>(_indexBuffer->count()));
 		glDrawElementsInstanced(
-			static_cast<GLenum>(_primitive),
+			spk::OpenGL::primitiveType(_primitive),
 			count,
 			_indexBuffer->elementType(),
 			reinterpret_cast<const void*>(_offset),

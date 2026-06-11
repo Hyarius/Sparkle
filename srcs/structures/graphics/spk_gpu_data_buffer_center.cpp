@@ -1,4 +1,4 @@
-#include "structures/graphics/opengl/spk_opengl_gpu_data_buffer_center.hpp"
+#include "structures/graphics/spk_gpu_data_buffer_center.hpp"
 
 #include <stdexcept>
 #include <utility>

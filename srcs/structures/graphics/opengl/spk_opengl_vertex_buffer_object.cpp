@@ -1,4 +1,4 @@
-#include "structures/graphics/opengl/spk_opengl_vertex_buffer_object.hpp"
+#include "structures/graphics/spk_vertex_buffer_object.hpp"
 
 namespace spk
 {

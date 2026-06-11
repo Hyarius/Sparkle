@@ -1,4 +1,4 @@
-#include "structures/graphics/opengl/spk_opengl_index_buffer_object.hpp"
+#include "structures/graphics/spk_index_buffer_object.hpp"
 
 namespace spk
 {

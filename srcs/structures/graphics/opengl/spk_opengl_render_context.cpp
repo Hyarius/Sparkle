@@ -3,6 +3,8 @@
 #ifdef _WIN32
 
 #include <stdexcept>
+#include <unordered_map>
+#include <utility>
 
 #include <GL/glew.h>
 
@@ -11,6 +13,23 @@
 namespace
 {
 	using WGLSwapIntervalEXTPtr = BOOL(WINAPI*)(int);
+
+	// Live-context registry: lets handle destructors route GPU objects to their
+	// owning context (or detect it died). The storage intentionally survives
+	// process teardown because static GPU handles may release after normal static
+	// objects have already been destroyed.
+	std::mutex& contextRegistryMutex()
+	{
+		static std::mutex* mutex = new std::mutex();
+		return *mutex;
+	}
+
+	std::unordered_map<std::uint64_t, spk::RenderContext*>& contextRegistry()
+	{
+		static std::unordered_map<std::uint64_t, spk::RenderContext*>* registry =
+			new std::unordered_map<std::uint64_t, spk::RenderContext*>();
+		return *registry;
+	}
 
 	void configurePixelFormat(HDC p_deviceContext)
 	{
@@ -44,10 +63,23 @@ namespace
 
 namespace spk
 {
+	void RenderContext::_registerSelf()
+	{
+		std::scoped_lock lock(contextRegistryMutex());
+		contextRegistry()[_id] = this;
+	}
+
+	void RenderContext::_unregisterSelf()
+	{
+		std::scoped_lock lock(contextRegistryMutex());
+		contextRegistry().erase(_id);
+	}
+
 	RenderContext::RenderContext(std::shared_ptr<SurfaceState> p_surfaceState) :
 		_surfaceState(std::move(p_surfaceState)),
 		_valid(false)
 	{
+		_registerSelf();
 	}
 
 	RenderContext::RenderContext(spk::Frame& p_frame) :
@@ -109,33 +141,42 @@ namespace spk
 		glStencilMask(0xFF);
 
 		glEnable(GL_SCISSOR_TEST);
+
+		// Registered last: a half-constructed context must not be reachable through
+		// fromId() (the destructor does not run when the constructor throws).
+		_registerSelf();
 	}
 
 	RenderContext::~RenderContext()
 	{
+		// Unregister first: handles releasing GPU objects from now on see this
+		// context as dead and drop their wrappers without GL calls.
+		_unregisterSelf();
+
 		if (_renderContext != nullptr)
 		{
-			// Compiled programs belong to this context and must be released while it
-			// is current; a program id would name an unrelated object in another context.
+			// Queued GPU objects belong to this context and must be released while it
+			// is current; their ids would name unrelated objects in another context.
 			HDC previousDeviceContext = wglGetCurrentDC();
 			HGLRC previousRenderContext = wglGetCurrentContext();
 
-			if (wglMakeCurrent(_deviceContext, _renderContext) == FALSE)
+			RenderContext* previousCurrent = s_current;
+
+			if (wglMakeCurrent(_deviceContext, _renderContext) == TRUE)
 			{
-				// Could not bind this context: unbind entirely so the program
-				// destructors do not delete ids belonging to another context.
-				wglMakeCurrent(nullptr, nullptr);
+				s_current = this;
+				flushReleaseQueue();
 			}
-			_compiledPrograms.clear();
-			_compiledTextures.clear();
 
 			if (previousRenderContext != nullptr && previousRenderContext != _renderContext)
 			{
 				wglMakeCurrent(previousDeviceContext, previousRenderContext);
+				s_current = previousCurrent != this ? previousCurrent : nullptr;
 			}
 			else
 			{
 				wglMakeCurrent(nullptr, nullptr);
+				s_current = nullptr;
 			}
 
 			wglDeleteContext(_renderContext);
@@ -159,57 +200,38 @@ namespace spk
 		return s_current;
 	}
 
-	spk::OpenGL::Program& RenderContext::compiledProgram(const spk::Program& p_program)
+	RenderContext* RenderContext::fromId(std::uint64_t p_id) noexcept
 	{
-		if (supportsOpenGLCommands() == false)
-		{
-			throw std::runtime_error("spk::RenderContext::compiledProgram called on a context without OpenGL support");
-		}
-
-		CompiledProgramEntry& entry = _compiledPrograms[p_program.key()];
-		if (entry.program == nullptr || entry.version != p_program.version())
-		{
-			auto compiled = std::make_unique<spk::OpenGL::Program>(
-				p_program.vertexShaderSource(),
-				p_program.fragmentShaderSource());
-			entry.program = std::move(compiled);
-			entry.version = p_program.version();
-		}
-
-		return *entry.program;
+		std::scoped_lock lock(contextRegistryMutex());
+		const auto it = contextRegistry().find(p_id);
+		return it != contextRegistry().end() ? it->second : nullptr;
 	}
 
-	bool RenderContext::hasCompiledProgram(const spk::Program& p_program) const noexcept
+	std::uint64_t RenderContext::id() const noexcept
 	{
-		const auto it = _compiledPrograms.find(p_program.key());
-		return it != _compiledPrograms.end() &&
-			   it->second.program != nullptr &&
-			   it->second.version == p_program.version();
+		return _id;
 	}
 
-	spk::OpenGL::Texture& RenderContext::compiledTexture(const spk::Texture& p_texture)
+	void RenderContext::scheduleRelease(std::unique_ptr<spk::OpenGL::Object> p_object)
 	{
-		if (supportsOpenGLCommands() == false)
+		if (p_object == nullptr)
 		{
-			throw std::runtime_error("spk::RenderContext::compiledTexture called on a context without OpenGL support");
+			return;
 		}
 
-		CompiledTextureEntry& entry = _compiledTextures[p_texture.key()];
-		if (entry.texture == nullptr || entry.version != p_texture.version())
-		{
-			entry.texture = std::make_unique<spk::OpenGL::Texture>(p_texture);
-			entry.version = p_texture.version();
-		}
-
-		return *entry.texture;
+		std::scoped_lock lock(_releaseQueueMutex);
+		_releaseQueue.push_back(std::move(p_object));
 	}
 
-	bool RenderContext::hasCompiledTexture(const spk::Texture& p_texture) const noexcept
+	void RenderContext::flushReleaseQueue()
 	{
-		const auto it = _compiledTextures.find(p_texture.key());
-		return it != _compiledTextures.end() &&
-			   it->second.texture != nullptr &&
-			   it->second.version == p_texture.version();
+		std::vector<std::unique_ptr<spk::OpenGL::Object>> pending;
+		{
+			std::scoped_lock lock(_releaseQueueMutex);
+			pending.swap(_releaseQueue);
+		}
+		// Destructors run GL calls: outside the lock, with this context current.
+		pending.clear();
 	}
 
 	std::shared_ptr<SurfaceState> RenderContext::surfaceState() const
@@ -253,6 +275,8 @@ namespace spk
 		}
 
 		s_current = this;
+
+		flushReleaseQueue();
 	}
 
 	void RenderContext::present()

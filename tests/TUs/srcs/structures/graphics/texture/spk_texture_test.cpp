@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <filesystem>
 
-#include "structures/graphics/texture/spk_texture.hpp"
+#include "structures/graphics/spk_texture.hpp"
 
 namespace
 {
@@ -92,15 +92,12 @@ TEST(TextureTest, MoveConstructionTransfersOwnership)
 	auto pixels = makePixels(3, 3, 4);
 	src.setPixels(pixels, {3, 3}, spk::Texture::Format::RGBA);
 	const auto srcId = src.id();
-	const auto srcKey = src.key();
 
 	spk::Texture dst(std::move(src));
 
 	EXPECT_EQ(dst.id(), srcId);
-	EXPECT_EQ(dst.key(), srcKey);
 	EXPECT_EQ(dst.size(), (spk::Vector2UInt{3, 3}));
 	EXPECT_EQ(src.id(), spk::Texture::InvalidID);
-	EXPECT_EQ(src.key(), 0u);
 }
 
 TEST(TextureTest, MoveAssignmentTransfersOwnership)
@@ -109,16 +106,13 @@ TEST(TextureTest, MoveAssignmentTransfersOwnership)
 	auto pixels = makePixels(1, 1, 4);
 	src.setPixels(pixels, {1, 1}, spk::Texture::Format::RGBA);
 	const auto srcId = src.id();
-	const auto srcKey = src.key();
 
 	spk::Texture dst;
 	dst = std::move(src);
 
 	EXPECT_EQ(dst.id(), srcId);
-	EXPECT_EQ(dst.key(), srcKey);
 	EXPECT_EQ(dst.size(), (spk::Vector2UInt{1, 1}));
 	EXPECT_EQ(src.id(), spk::Texture::InvalidID);
-	EXPECT_EQ(src.key(), 0u);
 }
 
 TEST(TextureTest, CopyConstructionProducesDeepCopy)
@@ -133,7 +127,6 @@ TEST(TextureTest, CopyConstructionProducesDeepCopy)
 	spk::Texture dst(src);
 
 	EXPECT_NE(dst.id(), src.id());
-	EXPECT_NE(dst.key(), src.key());
 	EXPECT_EQ(dst.pixels(), src.pixels());
 	EXPECT_EQ(dst.size(), src.size());
 	EXPECT_EQ(dst.format(), src.format());
@@ -152,7 +145,6 @@ TEST(TextureTest, CopyAssignmentProducesDeepCopy)
 	dst = src;
 
 	EXPECT_NE(dst.id(), src.id());
-	EXPECT_NE(dst.key(), src.key());
 	EXPECT_EQ(dst.pixels(), src.pixels());
 	EXPECT_EQ(dst.size(), src.size());
 	EXPECT_EQ(dst.format(), src.format());
@@ -180,7 +172,6 @@ TEST(TextureTest, CopyOfEmptyTextureHasNoPixelData)
 	spk::Texture dst(src);
 
 	EXPECT_NE(dst.id(), src.id());
-	EXPECT_NE(dst.key(), src.key());
 	EXPECT_TRUE(dst.pixels().empty());
 	EXPECT_EQ(dst.size(), (spk::Vector2UInt{0, 0}));
 	EXPECT_FALSE(dst.needsSynchronization());
@@ -204,16 +195,6 @@ TEST(TextureTest, SetPropertiesBumpsVersion)
 	spk::Texture tex;
 	tex.setProperties(spk::Texture::Filtering::Linear, spk::Texture::Wrap::Repeat, spk::Texture::Mipmap::Disable);
 	EXPECT_EQ(tex.version(), 1u);
-}
-
-TEST(TextureTest, UniqueKeysAssignedOnConstruction)
-{
-	spk::Texture a;
-	spk::Texture b;
-
-	EXPECT_NE(a.key(), 0u);
-	EXPECT_NE(b.key(), 0u);
-	EXPECT_NE(a.key(), b.key());
 }
 
 TEST(TextureTest, SectionDefaultConstructionProducesZeroAnchorAndSize)

@@ -1,24 +1,10 @@
-#include "structures/graphics/opengl/spk_opengl_buffer_object.hpp"
+#include "structures/graphics/spk_buffer_object.hpp"
 
-#include <algorithm>
 #include <cstring>
+#include <memory>
 #include <stdexcept>
 
-#if defined(_WIN32)
-#include <Windows.h>
-#endif
-
-namespace
-{
-	bool hasCurrentOpenGLContext()
-	{
-#if defined(_WIN32)
-		return wglGetCurrentContext() != nullptr;
-#else
-		return true;
-#endif
-	}
-}
+#include "structures/graphics/rendering/context/spk_render_context.hpp"
 
 namespace spk
 {
@@ -31,35 +17,6 @@ namespace spk
 		requestSynchronization();
 	}
 
-	BufferObject::~BufferObject()
-	{
-		_release();
-	}
-
-	void BufferObject::_allocate() const
-	{
-		if (_id != 0 && glIsBuffer(_id) == GL_FALSE)
-		{
-			_id = 0;
-			_allocatedSize = 0;
-		}
-
-		if (_id == 0)
-		{
-			glGenBuffers(1, &_id);
-		}
-	}
-
-	void BufferObject::_release() const
-	{
-		if (_id != 0 && hasCurrentOpenGLContext() == true)
-		{
-			glDeleteBuffers(1, &_id);
-		}
-		_id = 0;
-		_allocatedSize = 0;
-	}
-
 	void BufferObject::_resetField()
 	{
 		_field = spk::BinaryField(_cpuBuffer.data(), _cpuBuffer.size());
@@ -67,34 +24,11 @@ namespace spk
 
 	void BufferObject::_synchronize() const
 	{
-		std::scoped_lock lock(_mutex);
-		_allocate();
-
-		const GLenum glTarget = static_cast<GLenum>(_target);
-		glBindBuffer(glTarget, _id);
-
-		if (_allocatedSize != _cpuBuffer.size())
+		spk::RenderContext* ctx = spk::RenderContext::current();
+		if (ctx != nullptr && ctx->supportsOpenGLCommands() == true)
 		{
-			glBufferData(
-				glTarget,
-				static_cast<GLsizeiptr>(_cpuBuffer.size()),
-				_cpuBuffer.empty() == true ? nullptr : _cpuBuffer.data(),
-				static_cast<GLenum>(_usage));
-			_allocatedSize = _cpuBuffer.size();
+			(void)gpu(*ctx);
 		}
-		else if (_cpuBuffer.empty() == false)
-		{
-			glBufferSubData(
-				glTarget,
-				0,
-				static_cast<GLsizeiptr>(_cpuBuffer.size()),
-				_cpuBuffer.data());
-		}
-	}
-
-	GLuint BufferObject::id() const noexcept
-	{
-		return _id;
 	}
 
 	BufferObject::Target BufferObject::target() const noexcept
@@ -112,9 +46,46 @@ namespace spk
 		return _cpuBuffer.size();
 	}
 
-	bool BufferObject::isAllocated() const noexcept
+	std::uint64_t BufferObject::structureVersion() const noexcept
 	{
-		return _id != 0;
+		return _structureVersion;
+	}
+
+	std::uint64_t BufferObject::contentVersion() const noexcept
+	{
+		return _contentVersion;
+	}
+
+	spk::OpenGL::Buffer& BufferObject::gpu(const spk::RenderContext& p_context) const
+	{
+		std::scoped_lock lock(_mutex);
+		return _gpu.resolve(
+			p_context,
+			_structureVersion,
+			_contentVersion,
+			[this]()
+			{
+				return std::make_unique<spk::OpenGL::Buffer>(
+					static_cast<GLenum>(_target),
+					static_cast<GLenum>(_usage),
+					_cpuBuffer.empty() == true ? nullptr : _cpuBuffer.data(),
+					_cpuBuffer.size());
+			},
+			[this](spk::OpenGL::Buffer& p_buffer)
+			{
+				p_buffer.upload(
+					_cpuBuffer.empty() == true ? nullptr : _cpuBuffer.data(),
+					_cpuBuffer.size());
+			});
+	}
+
+	bool BufferObject::hasGpu(const spk::RenderContext& p_context) const noexcept
+	{
+		std::scoped_lock lock(_mutex);
+		const spk::OpenGL::Buffer* object = _gpu.find(p_context);
+		return object != nullptr &&
+			   object->version() == _structureVersion &&
+			   object->contentVersion() == _contentVersion;
 	}
 
 	void BufferObject::setTarget(Target p_target)
@@ -125,7 +96,7 @@ namespace spk
 		}
 
 		_target = p_target;
-		_allocatedSize = 0;
+		++_structureVersion;
 		requestSynchronization();
 	}
 
@@ -137,7 +108,7 @@ namespace spk
 		}
 
 		_usage = p_usage;
-		_allocatedSize = 0;
+		++_structureVersion;
 		requestSynchronization();
 	}
 
@@ -146,6 +117,7 @@ namespace spk
 		std::scoped_lock lock(_mutex);
 		_cpuBuffer.resize(p_size);
 		_resetField();
+		++_contentVersion;
 		requestSynchronization();
 	}
 
@@ -171,6 +143,7 @@ namespace spk
 		{
 			std::memcpy(_cpuBuffer.data() + p_offset, p_data, p_size);
 		}
+		++_contentVersion;
 		requestSynchronization();
 	}
 
@@ -189,11 +162,13 @@ namespace spk
 			std::memcpy(_cpuBuffer.data() + offset, p_data, p_size);
 		}
 		_resetField();
+		++_contentVersion;
 		requestSynchronization();
 	}
 
 	std::uint8_t* BufferObject::data()
 	{
+		++_contentVersion;
 		requestSynchronization();
 		return _cpuBuffer.data();
 	}
@@ -205,6 +180,7 @@ namespace spk
 
 	std::span<std::uint8_t> BufferObject::bytes()
 	{
+		++_contentVersion;
 		requestSynchronization();
 		return std::span<std::uint8_t>(_cpuBuffer.data(), _cpuBuffer.size());
 	}
@@ -216,6 +192,7 @@ namespace spk
 
 	spk::BinaryField& BufferObject::field()
 	{
+		++_contentVersion;
 		requestSynchronization();
 		return _field;
 	}
@@ -225,18 +202,14 @@ namespace spk
 		return _field;
 	}
 
-	void BufferObject::activate()
+	void BufferObject::activate(const spk::RenderContext& p_context)
 	{
 		if (needsSynchronization() == true)
 		{
 			synchronize();
 		}
-		else
-		{
-			_allocate();
-		}
 
-		glBindBuffer(static_cast<GLenum>(_target), _id);
+		glBindBuffer(static_cast<GLenum>(_target), gpu(p_context).id());
 	}
 
 	void BufferObject::deactivate() const
@@ -244,31 +217,23 @@ namespace spk
 		glBindBuffer(static_cast<GLenum>(_target), 0);
 	}
 
-	void BufferObject::activateBase(GLuint p_bindingPoint)
+	void BufferObject::activateBase(const spk::RenderContext& p_context, GLuint p_bindingPoint)
 	{
 		if (needsSynchronization() == true)
 		{
 			synchronize();
 		}
-		else
-		{
-			_allocate();
-		}
 
-		glBindBufferBase(static_cast<GLenum>(_target), p_bindingPoint, _id);
+		glBindBufferBase(static_cast<GLenum>(_target), p_bindingPoint, gpu(p_context).id());
 	}
 
-	void BufferObject::activateRange(GLuint p_bindingPoint, GLintptr p_offset, GLsizeiptr p_size)
+	void BufferObject::activateRange(const spk::RenderContext& p_context, GLuint p_bindingPoint, GLintptr p_offset, GLsizeiptr p_size)
 	{
 		if (needsSynchronization() == true)
 		{
 			synchronize();
 		}
-		else
-		{
-			_allocate();
-		}
 
-		glBindBufferRange(static_cast<GLenum>(_target), p_bindingPoint, _id, p_offset, p_size);
+		glBindBufferRange(static_cast<GLenum>(_target), p_bindingPoint, gpu(p_context).id(), p_offset, p_size);
 	}
 }

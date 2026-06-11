@@ -1,4 +1,4 @@
-#include "structures/graphics/opengl/spk_opengl_shader_storage_buffer_object.hpp"
+#include "structures/graphics/spk_shader_storage_buffer_object.hpp"
 
 namespace spk
 {
@@ -28,12 +28,12 @@ namespace spk
 		return _bindingPoint;
 	}
 
-	void ShaderStorageBufferObject::activate()
+	void ShaderStorageBufferObject::activate(const spk::RenderContext& p_context)
 	{
-		BufferObject::activate();
+		BufferObject::activate(p_context);
 		if (_bindingPoint.has_value() == true)
 		{
-			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, _bindingPoint.value(), id());
+			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, _bindingPoint.value(), gpu(p_context).id());
 		}
 	}
 }

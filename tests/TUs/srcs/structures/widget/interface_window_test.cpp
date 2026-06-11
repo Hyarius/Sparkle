@@ -330,17 +330,19 @@ TEST(InterfaceWindowTest, SetMenuHeightUpdatesLayout)
 TEST(InterfaceWindowTest, SetContentNullptrIsAllowed)
 {
 	spk::InterfaceWindow<spk::Panel> window("Window");
+	spk::IInterfaceWindow& interfaceWindow = window;
 
-	EXPECT_NO_THROW(window.setContent(nullptr));
+	EXPECT_NO_THROW(interfaceWindow.setContent(nullptr));
 	EXPECT_EQ(window.content(), nullptr);
 }
 
 TEST(InterfaceWindowTest, SetContentWrongParentThrows)
 {
 	spk::InterfaceWindow<spk::Panel> window("Window");
+	spk::IInterfaceWindow& interfaceWindow = window;
 	spk::Widget stranger("Stranger");
 
-	EXPECT_THROW(window.setContent(&stranger), std::invalid_argument);
+	EXPECT_THROW(interfaceWindow.setContent(&stranger), std::invalid_argument);
 }
 
 TEST(InterfaceWindowTest, ConstAccessorsReturnSameObjects)

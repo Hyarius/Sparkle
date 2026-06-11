@@ -1,11 +1,13 @@
-#include "structures/graphics/texture/spk_texture.hpp"
+#include "structures/graphics/spk_texture.hpp"
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb_image_write.h>
 
+#include <memory>
 #include <stdexcept>
 #include <utility>
 
+#include "structures/graphics/opengl/spk_opengl_texture.hpp"
 #include "structures/graphics/rendering/context/spk_render_context.hpp"
 
 namespace spk
@@ -65,10 +67,27 @@ namespace spk
 	void Texture::_synchronize() const
 	{
 		spk::RenderContext* ctx = spk::RenderContext::current();
-		if (ctx != nullptr)
+		if (ctx != nullptr && ctx->supportsOpenGLCommands() == true)
 		{
-			(void)ctx->compiledTexture(*this);
+			(void)gpu(*ctx);
 		}
+	}
+
+	spk::OpenGL::Texture& Texture::gpu(const spk::RenderContext& p_context) const
+	{
+		return _gpu.resolve(
+			p_context,
+			_version,
+			[this]()
+			{
+				return std::make_unique<spk::OpenGL::Texture>(*this);
+			});
+	}
+
+	bool Texture::hasGpu(const spk::RenderContext& p_context) const noexcept
+	{
+		const spk::OpenGL::Texture* object = _gpu.find(p_context);
+		return object != nullptr && object->version() == _version;
 	}
 
 	const Texture::Section Texture::Section::whole = Texture::Section({0.0f, 0.0f}, {1.0f, 1.0f});
@@ -96,7 +115,6 @@ namespace spk
 	}
 
 	Texture::Texture() :
-		_key(s_nextKey.fetch_add(1)),
 		_version(0),
 		_id(_takeId()),
 		_size{0, 0},
@@ -113,7 +131,6 @@ namespace spk
 	}
 
 	Texture::Texture(const Texture& p_other) :
-		_key(s_nextKey.fetch_add(1)),
 		_version(p_other._version > 0 ? 1u : 0u),
 		_id(_takeId()),
 		_pixels(p_other._pixels),
@@ -135,7 +152,9 @@ namespace spk
 		{
 			_releaseId(_id);
 
-			_key = s_nextKey.fetch_add(1);
+			// The version restarts: drop the GPU copies so a stale upload cannot
+			// match the new version by accident.
+			_gpu.release();
 			_version = p_other._version > 0 ? 1u : 0u;
 			_id = _takeId();
 			_pixels = p_other._pixels;
@@ -155,9 +174,9 @@ namespace spk
 
 	Texture::Texture(Texture&& p_other) noexcept :
 		SynchronizableTrait(std::move(p_other)),
-		_key(p_other._key),
 		_version(p_other._version),
 		_id(p_other._id),
+		_gpu(std::move(p_other._gpu)),
 		_pixels(std::move(p_other._pixels)),
 		_size(p_other._size),
 		_format(p_other._format),
@@ -165,7 +184,6 @@ namespace spk
 		_wrap(p_other._wrap),
 		_mipmap(p_other._mipmap)
 	{
-		p_other._key = 0;
 		p_other._version = 0;
 		p_other._id = InvalidID;
 	}
@@ -177,9 +195,9 @@ namespace spk
 			_releaseId(_id);
 
 			SynchronizableTrait::operator=(std::move(p_other));
-			_key = p_other._key;
 			_version = p_other._version;
 			_id = p_other._id;
+			_gpu = std::move(p_other._gpu);
 			_pixels = std::move(p_other._pixels);
 			_size = p_other._size;
 			_format = p_other._format;
@@ -187,7 +205,6 @@ namespace spk
 			_wrap = p_other._wrap;
 			_mipmap = p_other._mipmap;
 
-			p_other._key = 0;
 			p_other._version = 0;
 			p_other._id = InvalidID;
 		}
@@ -273,11 +290,6 @@ namespace spk
 		_mipmap = p_mipmap;
 		++_version;
 		requestSynchronization();
-	}
-
-	std::uint64_t Texture::key() const noexcept
-	{
-		return _key;
 	}
 
 	std::uint64_t Texture::version() const noexcept

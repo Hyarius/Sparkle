@@ -4,7 +4,7 @@
 #include <vector>
 #include <cstdint>
 
-#include "structures/graphics/texture/spk_texture.hpp"
+#include "structures/graphics/spk_texture.hpp"
 
 namespace spk
 {

@@ -8,10 +8,10 @@
 
 #include <GL/glew.h>
 
-#include "structures/graphics/opengl/spk_opengl_gpu_data_buffer_center.hpp"
-#include "structures/graphics/opengl/spk_opengl_layout_buffer_object.hpp"
-#include "structures/graphics/opengl/spk_opengl_program.hpp"
-#include "structures/graphics/opengl/spk_opengl_uniform_buffer_object.hpp"
+#include "structures/graphics/spk_gpu_data_buffer_center.hpp"
+#include "structures/graphics/spk_layout_buffer_object.hpp"
+#include "structures/graphics/spk_program.hpp"
+#include "structures/graphics/spk_uniform_buffer_object.hpp"
 #include "structures/graphics/rendering/context/spk_render_context.hpp"
 #include "spk_generated_resources.hpp"
 
@@ -62,7 +62,7 @@ namespace spk
 			return ;
 		}
 
-		spk::OpenGL::Program& program = p_renderContext.compiledProgram(_sharedProgram());
+		spk::OpenGL::Program& program = _sharedProgram().gpu(p_renderContext);
 
 		if (_layoutBuffer.indexCount() == 0)
 		{
@@ -70,8 +70,8 @@ namespace spk
 		}
 
 		program.activate();
-		_layoutBuffer.activate();
-		viewportUniformBuffer().activate();
+		_layoutBuffer.activate(p_renderContext);
+		viewportUniformBuffer().activate(p_renderContext);
 
 		program.render(spk::Primitive::Triangles, 0, _layoutBuffer.indexCount());
 

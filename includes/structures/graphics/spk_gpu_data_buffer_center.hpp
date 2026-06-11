@@ -7,8 +7,8 @@
 #include <unordered_map>
 #include <variant>
 
-#include "structures/graphics/opengl/spk_opengl_shader_storage_buffer_object.hpp"
-#include "structures/graphics/opengl/spk_opengl_uniform_buffer_object.hpp"
+#include "structures/graphics/spk_shader_storage_buffer_object.hpp"
+#include "structures/graphics/spk_uniform_buffer_object.hpp"
 
 namespace spk
 {

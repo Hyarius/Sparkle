@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
 
 #include "structures/graphics/opengl/opengl_wrapper_test_utils.hpp"
-#include "structures/graphics/opengl/spk_opengl_uniform.hpp"
-#include "structures/graphics/opengl/spk_opengl_program.hpp"
+#include "structures/graphics/spk_uniform.hpp"
+#include "structures/graphics/spk_program.hpp"
 
 
 namespace
@@ -71,7 +71,7 @@ TEST(OpenGLUniformTest, ScalarUniformsActivateAndStoreValues)
 	sparkle_test::OpenGLTestContext context;
 	(void)context;
 	const auto program = makeUniformProgram();
-	program->activate();
+	program->activate(context.renderContext());
 
 	spk::FloatUniform uFloat("uFloat", *program);
 	spk::BoolUniform uBool("uBool", *program);
@@ -135,7 +135,7 @@ TEST(OpenGLUniformTest, ArrayUniformsActivateFromVectorAndInitializerList)
 	sparkle_test::OpenGLTestContext context;
 	(void)context;
 	const auto program = makeUniformProgram();
-	program->activate();
+	program->activate(context.renderContext());
 
 	spk::FloatArrayUniform aFloat("aFloat", *program, 2);
 	spk::BoolArrayUniform aBool("aBool", *program, 2);
@@ -202,7 +202,7 @@ TEST(OpenGLUniformTest, ValidationErrorsAreReported)
 	sparkle_test::OpenGLTestContext context;
 	(void)context;
 	const auto program = makeUniformProgram();
-	program->activate();
+	program->activate(context.renderContext());
 
 	{
 		spk::FloatUniform missing("missingUniform", *program);
