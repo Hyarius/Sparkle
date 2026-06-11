@@ -101,7 +101,7 @@ namespace spk
 
 	spk::Rect2D TextArea::_innerGeometry() const
 	{
-		return absoluteGeometry().shrink(_cornerSize);
+		return geometry().shrink(_cornerSize);
 	}
 
 	unsigned int TextArea::_lineHeight() const
@@ -173,7 +173,7 @@ namespace spk
 	{
 		spk::RenderUnitBuilder builder;
 
-		if (absoluteGeometry().empty() == true)
+		if (geometry().empty() == true)
 		{
 			return builder.build();
 		}
@@ -182,7 +182,7 @@ namespace spk
 		{
 			builder.emplace<spk::NineSliceRenderCommand>(
 				*_spriteSheet,
-				absoluteGeometry(),
+				geometry(),
 				_cornerSize,
 				_depth);
 		}

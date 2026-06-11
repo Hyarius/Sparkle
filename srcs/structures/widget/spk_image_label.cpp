@@ -27,12 +27,12 @@ namespace spk
 	{
 		spk::RenderUnitBuilder builder;
 
-		if (_texture != nullptr && absoluteGeometry().empty() == false)
+		if (_texture != nullptr && geometry().empty() == false)
 		{
 			builder.emplace<spk::ImageRenderCommand>(
 				*_texture,
 				_section,
-				absoluteGeometry(),
+				geometry(),
 				_depth);
 		}
 

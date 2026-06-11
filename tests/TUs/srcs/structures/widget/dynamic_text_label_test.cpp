@@ -3,6 +3,8 @@
 #include <string>
 
 #include "structures/widget/spk_dynamic_text_label.hpp"
+#include "structures/widget/spk_widget_style.hpp"
+#include "structures/widget/spk_widget_visual_test_helpers.hpp"
 
 namespace
 {
@@ -90,4 +92,45 @@ TEST(DynamicTextLabelTest, UpdateDoesNotRefreshBeforeTimeout)
 	label.update(tick);
 
 	EXPECT_EQ(callCount, 1);
+}
+
+namespace
+{
+	spk::WidgetStyle makeVisualTestStyle()
+	{
+		spk::WidgetStyle style = spk::WidgetStyle::makeDefault();
+		style.setTextSize(spk::Font::Size(16, 2));
+		style.setGlyphColor(spk::Color(1.0f, 1.0f, 1.0f, 1.0f));
+		style.setOutlineColor(spk::Color(0.0f, 0.0f, 0.0f, 1.0f));
+		style.setTextPadding({0, 0});
+		return style;
+	}
+}
+
+TEST(DynamicTextLabelVisualTest, RendersProducerTextAfterRefresh)
+{
+	const spk::Rect2D captureRect(0, 0, 240, 60);
+
+	spk::DynamicTextLabel label("DynLabel");
+	label.applyStyle(makeVisualTestStyle());
+	label.setTextProducer([]() { return "Hello World"; });
+	label.refresh();
+
+	const sparkle_test::ImageComparisonResult result =
+		spk::test::compareSnapshot(label, "DynamicTextLabelVisual", "after_refresh", captureRect);
+
+	EXPECT_TRUE(result.matches);
+}
+
+TEST(DynamicTextLabelVisualTest, RendersEmptyBeforeRefresh)
+{
+	const spk::Rect2D captureRect(0, 0, 240, 60);
+
+	spk::DynamicTextLabel label("DynLabel");
+	label.applyStyle(makeVisualTestStyle());
+
+	const sparkle_test::ImageComparisonResult result =
+		spk::test::compareSnapshot(label, "DynamicTextLabelVisual", "before_refresh", captureRect);
+
+	EXPECT_TRUE(result.matches);
 }

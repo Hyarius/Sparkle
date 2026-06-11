@@ -85,12 +85,12 @@ namespace spk
 	{
 		spk::RenderUnitBuilder builder;
 
-		if (_spriteSheet != nullptr && absoluteGeometry().empty() == false)
+		if (_spriteSheet != nullptr && geometry().empty() == false)
 		{
 			builder.emplace<spk::NineSliceRenderCommand>(
 				*_spriteSheet,
-				absoluteGeometry(),
-				clampedCornerSize(_cornerSize, absoluteGeometry()),
+				geometry(),
+				clampedCornerSize(_cornerSize, geometry()),
 				_depth);
 		}
 

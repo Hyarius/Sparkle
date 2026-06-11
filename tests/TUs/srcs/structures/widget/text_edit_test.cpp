@@ -4,6 +4,7 @@
 
 #include "structures/widget/spk_text_edit.hpp"
 #include "structures/widget/spk_widget_style.hpp"
+#include "structures/widget/spk_widget_visual_test_helpers.hpp"
 #include "structures/system/device/window/window_test_utils.hpp"
 
 namespace
@@ -245,4 +246,47 @@ TEST(TextEditTest, StyleEditionRefreshesProperties)
 	style.setTextSize(spk::Font::Size(24, 2));
 
 	EXPECT_EQ(textEdit.textSize(), spk::Font::Size(24, 2));
+}
+
+TEST(TextEditVisualTest, RendersEmptyWithPlaceholder)
+{
+	const spk::Rect2D captureRect(0, 0, 240, 48);
+
+	spk::TextEdit edit("Edit");
+	edit.applyStyle(spk::WidgetStyle::makeDefault());
+	edit.setPlaceholder("Enter text here");
+
+	const sparkle_test::ImageComparisonResult result =
+		spk::test::compareSnapshot(edit, "TextEditVisual", "empty_placeholder", captureRect);
+
+	EXPECT_TRUE(result.matches);
+}
+
+TEST(TextEditVisualTest, RendersWithText)
+{
+	const spk::Rect2D captureRect(0, 0, 240, 48);
+
+	spk::TextEdit edit("Edit");
+	edit.applyStyle(spk::WidgetStyle::makeDefault());
+	edit.setText("Hello World");
+
+	const sparkle_test::ImageComparisonResult result =
+		spk::test::compareSnapshot(edit, "TextEditVisual", "with_text", captureRect);
+
+	EXPECT_TRUE(result.matches);
+}
+
+TEST(TextEditVisualTest, RendersObscuredText)
+{
+	const spk::Rect2D captureRect(0, 0, 240, 48);
+
+	spk::TextEdit edit("Edit");
+	edit.applyStyle(spk::WidgetStyle::makeDefault());
+	edit.setText("password");
+	edit.setObscured(true);
+
+	const sparkle_test::ImageComparisonResult result =
+		spk::test::compareSnapshot(edit, "TextEditVisual", "obscured", captureRect);
+
+	EXPECT_TRUE(result.matches);
 }

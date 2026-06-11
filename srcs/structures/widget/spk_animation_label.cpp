@@ -29,7 +29,7 @@ namespace spk
 
 		if (_spriteSheet != nullptr &&
 			_spriteSheet->sprites().empty() == false &&
-			absoluteGeometry().empty() == false)
+			geometry().empty() == false)
 		{
 			const spk::Vector2UInt spriteCoordinates = {
 				static_cast<unsigned int>(_currentSprite % _spriteSheet->nbSprite().x),
@@ -39,7 +39,7 @@ namespace spk
 			builder.emplace<spk::SpriteRenderCommand>(
 				*_spriteSheet,
 				spriteCoordinates,
-				absoluteGeometry(),
+				geometry(),
 				_depth);
 		}
 

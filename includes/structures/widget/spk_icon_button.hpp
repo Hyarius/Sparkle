@@ -26,6 +26,9 @@ namespace spk
 			size_t p_iconSpriteID,
 			spk::Widget* p_parent = nullptr);
 
+		using spk::PushButton::applyStyle;
+		void applyStyle(const spk::WidgetStyle& p_style) override;
+
 		void setIconset(std::shared_ptr<spk::SpriteSheet> p_iconset);
 		void setIconSpriteID(size_t p_spriteID);
 		void setIconSpriteID(const spk::Vector2UInt& p_spriteCoordinates);

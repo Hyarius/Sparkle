@@ -3,6 +3,7 @@
 #include <stdexcept>
 
 #include "structures/widget/spk_command_panel.hpp"
+#include "structures/widget/spk_widget_visual_test_helpers.hpp"
 #include "structures/application/module/spk_mouse_module.hpp"
 #include "structures/system/device/window/window_test_utils.hpp"
 
@@ -96,4 +97,47 @@ TEST(CommandPanelTest, MinimalSizeAccountsForButtonsAndPadding)
 
 	EXPECT_GT(minimalSize.x, 0u);
 	EXPECT_GT(minimalSize.y, 0u);
+}
+
+TEST(CommandPanelVisualTest, RendersSingleButton)
+{
+	const spk::Rect2D captureRect(0, 0, 300, 48);
+
+	spk::CommandPanel panel("Panel");
+	panel.addButton("ok", "OK");
+
+	const sparkle_test::ImageComparisonResult result =
+		spk::test::compareSnapshot(panel, "CommandPanelVisual", "single_button", captureRect);
+
+	EXPECT_TRUE(result.matches);
+}
+
+TEST(CommandPanelVisualTest, RendersMultipleButtons)
+{
+	const spk::Rect2D captureRect(0, 0, 300, 48);
+
+	spk::CommandPanel panel("Panel");
+	panel.addButton("yes", "Yes");
+	panel.addButton("no", "No");
+	panel.addButton("cancel", "Cancel");
+
+	const sparkle_test::ImageComparisonResult result =
+		spk::test::compareSnapshot(panel, "CommandPanelVisual", "three_buttons", captureRect);
+
+	EXPECT_TRUE(result.matches);
+}
+
+TEST(CommandPanelVisualTest, RendersExtendSizePolicy)
+{
+	const spk::Rect2D captureRect(0, 0, 300, 48);
+
+	spk::CommandPanel panel("Panel");
+	panel.setSizePolicy(spk::Layout::SizePolicy::Extend);
+	panel.addButton("ok", "OK");
+	panel.addButton("cancel", "Cancel");
+
+	const sparkle_test::ImageComparisonResult result =
+		spk::test::compareSnapshot(panel, "CommandPanelVisual", "extend_policy", captureRect);
+
+	EXPECT_TRUE(result.matches);
 }

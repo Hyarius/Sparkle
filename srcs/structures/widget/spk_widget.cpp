@@ -1,5 +1,6 @@
 #include "structures/widget/spk_widget.hpp"
 
+#include <algorithm>
 #include <memory>
 #include "structures/graphics/rendering/unit/spk_render_unit_builder.hpp"
 #include "structures/graphics/rendering/command/spk_viewport_render_command.hpp"
@@ -13,17 +14,16 @@ namespace spk
 			return std::make_unique<spk::Viewport>();
 		}
 
-		std::shared_ptr<spk::RenderUnit> makeViewportUnit(const spk::Viewport* p_viewport)
+		std::shared_ptr<spk::RenderUnit> makeViewportUnit(const spk::Viewport& p_viewport)
 		{
-			if (p_viewport == nullptr ||
-				p_viewport->geometry().empty() == true ||
-				p_viewport->scissor().empty() == true)
+			if (p_viewport.geometry().empty() == true ||
+				p_viewport.scissor().empty() == true)
 			{
 				return nullptr;
 			}
 
 			spk::RenderUnitBuilder builder;
-			builder.emplace<spk::ViewportCommand>(*p_viewport);
+			builder.emplace<spk::ViewportCommand>(p_viewport);
 			return std::make_shared<spk::RenderUnit>(builder.build());
 		}
 	}
@@ -289,16 +289,25 @@ namespace spk
 			return;
 		}
 
-		std::shared_ptr<spk::RenderUnit> viewportUnit = makeViewportUnit(_viewport.get());
-		p_builder.append(viewportUnit);
+		// A widget draws inside its parent's viewport: its render commands emit vertices
+		// in pixels relative to the parent viewport anchor, while the scissor stays the
+		// widget's own visible region. A parentless widget is framed from the window
+		// origin so that its own anchor places it correctly.
+		const spk::Rect2D frameGeometry =
+			(parent() != nullptr)
+				? parent()->absoluteGeometry()
+				: spk::Rect2D(
+					0, 0,
+					static_cast<unsigned int>(std::max(_absoluteGeometry.right(), 1)),
+					static_cast<unsigned int>(std::max(_absoluteGeometry.bottom(), 1)));
 
+		p_builder.append(makeViewportUnit(spk::Viewport(frameGeometry, _scissor)));
 		p_builder.append(renderUnit());
 
 		for (const auto *child : children())
 		{
 			if (child != nullptr)
 			{
-				p_builder.append(viewportUnit);
 				child->appendRenderUnits(p_builder);
 			}
 		}

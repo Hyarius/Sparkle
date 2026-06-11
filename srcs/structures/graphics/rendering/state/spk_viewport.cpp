@@ -8,6 +8,8 @@ namespace spk
 	{
 		_matrix.configure([this]() -> spk::Matrix4x4
 		{
+			// Vertices are expressed in pixels relative to the viewport anchor: (0,0) is
+			// the top-left corner of the rect covered by glViewport, not the window origin.
 			const float left   = 0.0f;
 			const float right  = static_cast<float>(_geometry.width());
 			const float top    = 0.0f;

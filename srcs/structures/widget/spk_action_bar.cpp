@@ -45,12 +45,12 @@ namespace spk
 	{
 		spk::RenderUnitBuilder builder;
 
-		if (_spriteSheet == nullptr || absoluteGeometry().empty() == true)
+		if (_spriteSheet == nullptr || geometry().empty() == true)
 		{
 			return builder.build();
 		}
 
-		const spk::Rect2D& rect = absoluteGeometry();
+		const spk::Rect2D& rect = geometry();
 		const unsigned int capSize = std::min(_height, rect.width() / 2);
 		const unsigned int middleWidth = rect.width() - capSize * 2;
 

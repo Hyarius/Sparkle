@@ -4,6 +4,7 @@
 
 #include "structures/widget/spk_animation_label.hpp"
 #include "structures/widget/spk_widget_style.hpp"
+#include "structures/widget/spk_widget_visual_test_helpers.hpp"
 
 namespace
 {
@@ -156,4 +157,31 @@ TEST(AnimationLabelTest, SetDepthDifferentValueUpdates)
 	label.setDepth(3.0f);
 
 	EXPECT_FLOAT_EQ(label.depth(), 3.0f);
+}
+
+TEST(AnimationLabelVisualTest, RendersFirstFrame)
+{
+	const spk::Rect2D captureRect(0, 0, 96, 96);
+
+	spk::AnimationLabel label("Anim", makeSpriteSheet());
+
+	const sparkle_test::ImageComparisonResult result =
+		spk::test::compareSnapshot(label, "AnimationLabelVisual", "frame_0", captureRect);
+
+	EXPECT_TRUE(result.matches);
+}
+
+TEST(AnimationLabelVisualTest, RendersSecondFrame)
+{
+	const spk::Rect2D captureRect(0, 0, 96, 96);
+
+	spk::AnimationLabel label("Anim", makeSpriteSheet());
+	label.setLoopSpeed(spk::Duration(0.0L, spk::TimeUnit::Millisecond));
+	spk::UpdateTick tick{};
+	label.update(tick);
+
+	const sparkle_test::ImageComparisonResult result =
+		spk::test::compareSnapshot(label, "AnimationLabelVisual", "frame_1", captureRect);
+
+	EXPECT_TRUE(result.matches);
 }

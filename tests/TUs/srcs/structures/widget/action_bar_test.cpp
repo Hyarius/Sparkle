@@ -3,6 +3,7 @@
 #include <stdexcept>
 
 #include "structures/widget/spk_action_bar.hpp"
+#include "structures/widget/spk_widget_visual_test_helpers.hpp"
 #include "structures/application/module/spk_mouse_module.hpp"
 #include "structures/system/device/window/window_test_utils.hpp"
 
@@ -201,4 +202,50 @@ TEST(MenuBarTest, AddItemWithNullCallbackDoesNotCrashOnClick)
 		mouseModule.pushEvent(spk::MouseEventRecord(spk::makeEventRecord(spk::MouseButtonReleasedRecord{.button = spk::Mouse::Left})));
 		mouseModule.processEvents();
 	});
+}
+
+TEST(MenuBarVisualTest, RendersBareBar)
+{
+	const spk::Rect2D captureRect(0, 0, 400, 28);
+
+	spk::MenuBar bar("MenuBar");
+
+	const sparkle_test::ImageComparisonResult result =
+		spk::test::compareSnapshot(bar, "MenuBarVisual", "bare", captureRect);
+
+	EXPECT_TRUE(result.matches);
+}
+
+TEST(MenuBarVisualTest, RendersWithMenuButtons)
+{
+	const spk::Rect2D captureRect(0, 0, 400, 28);
+
+	spk::MenuBar bar("MenuBar");
+	bar.addMenu("File");
+	bar.addMenu("Edit");
+	bar.addMenu("View");
+
+	const sparkle_test::ImageComparisonResult result =
+		spk::test::compareSnapshot(bar, "MenuBarVisual", "three_menus", captureRect);
+
+	EXPECT_TRUE(result.matches);
+}
+
+TEST(MenuBarVisualTest, RendersOpenMenu)
+{
+	const spk::Rect2D captureRect(0, 0, 400, 160);
+
+	spk::MenuBar bar("MenuBar");
+	spk::MenuBar::Menu* menu = bar.addMenu("File");
+	menu->addItem("New", []() {});
+	menu->addItem("Open", []() {});
+	menu->addBreak();
+	menu->addItem("Quit", []() {});
+	menu->activate();
+	bar.setGeometry(captureRect.atOrigin());
+
+	const sparkle_test::ImageComparisonResult result =
+		spk::test::compareSnapshot(bar, "MenuBarVisual", "open_menu", captureRect);
+
+	EXPECT_TRUE(result.matches);
 }

@@ -2,6 +2,7 @@
 
 #include "structures/application/module/spk_mouse_module.hpp"
 #include "structures/system/device/window/window_test_utils.hpp"
+#include "structures/widget/spk_widget_visual_test_helpers.hpp"
 
 // Included last so its MessageBox macro #undef wins over <Windows.h> pulled by the test utils.
 #include "structures/widget/spk_message_box.hpp"
@@ -193,4 +194,45 @@ TEST(RequestMessageBoxTest, NullActionsInConfigureAreHandledSafely)
 	mouseModule.processEvents();
 
 	EXPECT_FALSE(messageBox.isActivated());
+}
+
+TEST(MessageBoxVisualTest, RendersWithText)
+{
+	const spk::Rect2D captureRect(0, 0, 400, 200);
+
+	spk::MessageBox box("MessageBox");
+	box.setText("Something went wrong. Please try again.");
+	box.addButton("ok", "OK");
+
+	const sparkle_test::ImageComparisonResult result =
+		spk::test::compareSnapshot(box, "MessageBoxVisual", "with_text", captureRect);
+
+	EXPECT_TRUE(result.matches);
+}
+
+TEST(InformationMessageBoxVisualTest, RendersDefault)
+{
+	const spk::Rect2D captureRect(0, 0, 400, 200);
+
+	spk::InformationMessageBox box("InfoBox");
+	box.setText("Operation completed successfully.");
+
+	const sparkle_test::ImageComparisonResult result =
+		spk::test::compareSnapshot(box, "InformationMessageBoxVisual", "default", captureRect);
+
+	EXPECT_TRUE(result.matches);
+}
+
+TEST(RequestMessageBoxVisualTest, RendersDefault)
+{
+	const spk::Rect2D captureRect(0, 0, 400, 200);
+
+	spk::RequestMessageBox box("RequestBox");
+	box.setText("Are you sure you want to proceed?");
+	box.configure("Yes", []() {}, "No", []() {});
+
+	const sparkle_test::ImageComparisonResult result =
+		spk::test::compareSnapshot(box, "RequestMessageBoxVisual", "default", captureRect);
+
+	EXPECT_TRUE(result.matches);
 }

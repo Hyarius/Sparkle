@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "structures/widget/spk_numeric_spin_box.hpp"
+#include "structures/widget/spk_widget_visual_test_helpers.hpp"
 #include "structures/application/module/spk_mouse_module.hpp"
 #include "structures/system/device/window/window_test_utils.hpp"
 
@@ -128,4 +129,42 @@ TEST(NumericSpinBoxTest, SetValueRefreshesText)
 	spinBox.setValue(123);
 
 	EXPECT_EQ(spinBox.valueEdit().text(), spk::Font::textFromUTF8("123"));
+}
+
+TEST(NumericSpinBoxVisualTest, RendersIntSpinBoxDefault)
+{
+	const spk::Rect2D captureRect(0, 0, 200, 40);
+
+	spk::IntSpinBox spinBox("SpinBox");
+
+	const sparkle_test::ImageComparisonResult result =
+		spk::test::compareSnapshot(spinBox, "NumericSpinBoxVisual", "int_default", captureRect);
+
+	EXPECT_TRUE(result.matches);
+}
+
+TEST(NumericSpinBoxVisualTest, RendersWithCustomValue)
+{
+	const spk::Rect2D captureRect(0, 0, 200, 40);
+
+	spk::IntSpinBox spinBox("SpinBox");
+	spinBox.setValue(42);
+
+	const sparkle_test::ImageComparisonResult result =
+		spk::test::compareSnapshot(spinBox, "NumericSpinBoxVisual", "int_value_42", captureRect);
+
+	EXPECT_TRUE(result.matches);
+}
+
+TEST(NumericSpinBoxVisualTest, RendersFloatSpinBox)
+{
+	const spk::Rect2D captureRect(0, 0, 200, 40);
+
+	spk::FloatSpinBox spinBox("SpinBox");
+	spinBox.setValue(3.14f);
+
+	const sparkle_test::ImageComparisonResult result =
+		spk::test::compareSnapshot(spinBox, "NumericSpinBoxVisual", "float_pi", captureRect);
+
+	EXPECT_TRUE(result.matches);
 }

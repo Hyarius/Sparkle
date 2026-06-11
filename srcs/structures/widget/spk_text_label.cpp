@@ -96,7 +96,7 @@ namespace spk
 
 	spk::Vector2Int TextLabel::_textAnchor() const
 	{
-		const spk::Rect2D& rect = absoluteGeometry();
+		const spk::Rect2D& rect = geometry();
 
 		int x = rect.left() + _padding.x;
 		if (_horizontalAlignment == spk::HorizontalAlignment::Centered)
@@ -125,7 +125,7 @@ namespace spk
 	{
 		spk::RenderUnitBuilder builder;
 
-		if (_font != nullptr && _text.empty() == false && absoluteGeometry().empty() == false)
+		if (_font != nullptr && _text.empty() == false && geometry().empty() == false)
 		{
 			builder.emplace<spk::TextRenderCommand>(
 				*_font,

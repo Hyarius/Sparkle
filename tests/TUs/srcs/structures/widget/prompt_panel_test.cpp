@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "structures/widget/spk_prompt_panel.hpp"
+#include "structures/widget/spk_widget_visual_test_helpers.hpp"
 #include "structures/application/module/spk_mouse_module.hpp"
 #include "structures/system/device/window/window_test_utils.hpp"
 
@@ -112,4 +113,32 @@ TEST(PromptPanelTest, ButtonGetterReturnsAddedButton)
 	spk::PushButton* added = panel.addButton("ok", "OK");
 
 	EXPECT_EQ(panel.button("ok"), added);
+}
+
+TEST(PromptPanelVisualTest, RendersWithMessageAndButton)
+{
+	const spk::Rect2D captureRect(0, 0, 320, 140);
+
+	spk::PromptPanel panel("Prompt");
+	panel.setMessage("Please confirm your action.");
+	panel.addButton("ok", "OK");
+	panel.addButton("cancel", "Cancel");
+
+	const sparkle_test::ImageComparisonResult result =
+		spk::test::compareSnapshot(panel, "PromptPanelVisual", "message_and_buttons", captureRect);
+
+	EXPECT_TRUE(result.matches);
+}
+
+TEST(PromptPanelVisualTest, RendersEmptyPrompt)
+{
+	const spk::Rect2D captureRect(0, 0, 320, 80);
+
+	spk::PromptPanel panel("Prompt");
+	panel.addButton("close", "Close");
+
+	const sparkle_test::ImageComparisonResult result =
+		spk::test::compareSnapshot(panel, "PromptPanelVisual", "button_only", captureRect);
+
+	EXPECT_TRUE(result.matches);
 }

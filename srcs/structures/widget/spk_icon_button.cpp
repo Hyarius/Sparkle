@@ -38,6 +38,17 @@ namespace spk
 		setIcon(_iconset, _iconSpriteID);
 	}
 
+	void IconButton::applyStyle(const spk::WidgetStyle& p_style)
+	{
+		spk::PushButton::applyStyle(p_style);
+
+		if (p_style.iconSpriteSheet() != nullptr)
+		{
+			_iconset = p_style.iconSpriteSheet();
+			_refreshIcon();
+		}
+	}
+
 	void IconButton::setIconset(std::shared_ptr<spk::SpriteSheet> p_iconset)
 	{
 		if (p_iconset == nullptr)
