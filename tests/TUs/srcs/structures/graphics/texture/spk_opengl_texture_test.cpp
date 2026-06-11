@@ -1,19 +1,16 @@
 #include <gtest/gtest.h>
 
-
 #include "structures/graphics/opengl/opengl_wrapper_test_utils.hpp"
+#include "structures/graphics/opengl/spk_opengl_texture.hpp"
 #include "structures/graphics/texture/spk_texture.hpp"
 
-using Texture = spk::Texture;
-
-TEST(OpenGLTextureTest, DefaultConstructionProducesInvalidGLId)
+TEST(OpenGLTextureTest, DefaultConstructionProducesNoGPUUpload)
 {
 	sparkle_test::OpenGLTestContext context;
-	(void)context;
 
-	Texture tex;
+	spk::Texture tex;
 
-	EXPECT_EQ(tex.glId(), Texture::InvalidGLId);
+	EXPECT_FALSE(context.renderContext().hasCompiledTexture(tex));
 }
 
 TEST(OpenGLTextureTest, HasApplicationTextureID)
@@ -21,99 +18,123 @@ TEST(OpenGLTextureTest, HasApplicationTextureID)
 	sparkle_test::OpenGLTestContext context;
 	(void)context;
 
-	Texture tex;
+	spk::Texture tex;
 
 	EXPECT_NE(tex.id(), spk::Texture::InvalidID);
 }
 
-TEST(OpenGLTextureTest, SynchronizeAfterSetPixelsUploadsToGPU)
+TEST(OpenGLTextureTest, CompiledTextureAfterSetPixelsHasValidGLId)
 {
 	sparkle_test::OpenGLTestContext context;
-	(void)context;
-
-	Texture tex;
 	std::vector<uint8_t> pixels(4 * 4 * 4, 255);
 
+	spk::Texture tex;
+	tex.setPixels(pixels, {4, 4}, spk::Texture::Format::RGBA);
+
+	spk::OpenGL::Texture& glTex = context.renderContext().compiledTexture(tex);
+
+	EXPECT_NE(glTex.id(), 0u);
+	EXPECT_TRUE(context.renderContext().hasCompiledTexture(tex));
+}
+
+TEST(OpenGLTextureTest, SynchronizeWithContextUploadsToGPU)
+{
+	sparkle_test::OpenGLTestContext context;
+	std::vector<uint8_t> pixels(4 * 4 * 4, 255);
+
+	spk::Texture tex;
 	tex.setPixels(pixels, {4, 4}, spk::Texture::Format::RGBA);
 	ASSERT_TRUE(tex.needsSynchronization());
 
 	tex.synchronize();
 
 	EXPECT_FALSE(tex.needsSynchronization());
-	EXPECT_NE(tex.glId(), Texture::InvalidGLId);
+	EXPECT_TRUE(context.renderContext().hasCompiledTexture(tex));
+	EXPECT_NE(context.renderContext().compiledTexture(tex).id(), 0u);
 }
 
-TEST(OpenGLTextureTest, SynchronizeCalledTwiceDoesNotReuploadUnlessNewData)
+TEST(OpenGLTextureTest, CompiledTextureSameVersionReturnsCachedEntry)
 {
 	sparkle_test::OpenGLTestContext context;
-	(void)context;
-
-	Texture tex;
 	std::vector<uint8_t> pixels(2 * 2 * 3, 128);
+
+	spk::Texture tex;
 	tex.setPixels(pixels, {2, 2}, spk::Texture::Format::RGB);
-	tex.synchronize();
 
-	GLuint firstId = tex.glId();
+	const GLuint firstId = context.renderContext().compiledTexture(tex).id();
+	const GLuint secondId = context.renderContext().compiledTexture(tex).id();
 
-	tex.synchronize();
-
-	EXPECT_EQ(tex.glId(), firstId);
+	EXPECT_EQ(firstId, secondId);
 }
 
-TEST(OpenGLTextureTest, MoveConstructionPreservesGLIdAndInvalidatesSource)
+TEST(OpenGLTextureTest, SetPixelsBumpsVersionAndInvalidatesCache)
 {
 	sparkle_test::OpenGLTestContext context;
-	(void)context;
-
-	Texture src;
 	std::vector<uint8_t> pixels(2 * 2 * 4, 200);
-	src.setPixels(pixels, {2, 2}, spk::Texture::Format::RGBA);
-	src.synchronize();
-	GLuint originalId = src.glId();
-	ASSERT_NE(originalId, Texture::InvalidGLId);
 
-	Texture dst(std::move(src));
+	spk::Texture tex;
+	tex.setPixels(pixels, {2, 2}, spk::Texture::Format::RGBA);
+	const GLuint firstId = context.renderContext().compiledTexture(tex).id();
 
-	EXPECT_EQ(dst.glId(), originalId);
-	EXPECT_EQ(src.glId(), Texture::InvalidGLId);
+	tex.setPixels(pixels, {2, 2}, spk::Texture::Format::RGBA);
+	const GLuint secondId = context.renderContext().compiledTexture(tex).id();
+
+	EXPECT_NE(firstId, secondId);
 }
 
-TEST(OpenGLTextureTest, MoveAssignmentPreservesGLId)
+TEST(OpenGLTextureTest, CopyProducesIndependentGPUTexture)
 {
 	sparkle_test::OpenGLTestContext context;
-	(void)context;
-
-	Texture src;
 	std::vector<uint8_t> pixels(2 * 2 * 4, 100);
+
+	spk::Texture src;
 	src.setPixels(pixels, {2, 2}, spk::Texture::Format::RGBA);
-	src.synchronize();
-	GLuint originalId = src.glId();
+	const GLuint srcId = context.renderContext().compiledTexture(src).id();
 
-	Texture dst;
-	dst = std::move(src);
+	spk::Texture dst(src);
+	const GLuint dstId = context.renderContext().compiledTexture(dst).id();
 
-	EXPECT_EQ(dst.glId(), originalId);
+	EXPECT_NE(dst.id(), src.id());
+	EXPECT_NE(dst.key(), src.key());
+	EXPECT_NE(srcId, dstId);
+	EXPECT_NE(dstId, 0u);
+}
+
+TEST(OpenGLTextureTest, MoveTransfersCacheKeyToDestination)
+{
+	sparkle_test::OpenGLTestContext context;
+	std::vector<uint8_t> pixels(2 * 2 * 4, 200);
+
+	spk::Texture src;
+	src.setPixels(pixels, {2, 2}, spk::Texture::Format::RGBA);
+	const std::uint64_t originalKey = src.key();
+	const GLuint originalId = context.renderContext().compiledTexture(src).id();
+	ASSERT_NE(originalId, 0u);
+
+	spk::Texture dst(std::move(src));
+
+	EXPECT_EQ(dst.key(), originalKey);
+	EXPECT_EQ(src.key(), 0u);
+	EXPECT_EQ(context.renderContext().compiledTexture(dst).id(), originalId);
 }
 
 TEST(OpenGLTextureTest, ForceSynchronizationUploadsToGPU)
 {
 	sparkle_test::OpenGLTestContext context;
-	(void)context;
-
-	Texture tex;
 	std::vector<uint8_t> pixels(2 * 2 * 4, 255);
+
+	spk::Texture tex;
 	tex.setPixels(pixels, {2, 2}, spk::Texture::Format::RGBA);
 
 	tex.forceSynchronization();
 
-	EXPECT_NE(tex.glId(), Texture::InvalidGLId);
 	EXPECT_FALSE(tex.needsSynchronization());
+	EXPECT_NE(context.renderContext().compiledTexture(tex).id(), 0u);
 }
 
-TEST(OpenGLTextureTest, SynchronizeCoversSupportedPixelFormats)
+TEST(OpenGLTextureTest, CompiledTextureCoversAllSupportedPixelFormats)
 {
 	sparkle_test::OpenGLTestContext context;
-	(void)context;
 
 	const struct FormatCase
 	{
@@ -126,58 +147,50 @@ TEST(OpenGLTextureTest, SynchronizeCoversSupportedPixelFormats)
 		{spk::Texture::Format::DualChannel, 2}
 	};
 
-	for (const FormatCase& formatCase : cases)
+	for (const FormatCase& fc : cases)
 	{
-		Texture tex;
-		std::vector<uint8_t> pixels(formatCase.bytesPerPixel, 255);
-
+		spk::Texture tex;
+		std::vector<uint8_t> pixels(fc.bytesPerPixel, 255);
 		tex.setPixels(
 			pixels,
 			{1, 1},
-			formatCase.format,
+			fc.format,
 			spk::Texture::Filtering::Linear,
 			spk::Texture::Wrap::ClampToBorder,
 			spk::Texture::Mipmap::Disable);
-		tex.synchronize();
 
-		EXPECT_NE(tex.glId(), Texture::InvalidGLId);
-		EXPECT_FALSE(tex.needsSynchronization());
+		EXPECT_NE(context.renderContext().compiledTexture(tex).id(), 0u);
 	}
 }
 
-TEST(OpenGLTextureTest, SynchronizeReturnsWithoutUploadingInvalidTextureData)
+TEST(OpenGLTextureTest, EmptyTextureProducesGLIdZero)
 {
 	sparkle_test::OpenGLTestContext context;
-	(void)context;
 
-	Texture empty;
-	empty.synchronize();
-	EXPECT_EQ(empty.glId(), Texture::InvalidGLId);
+	spk::Texture empty;
+	EXPECT_EQ(context.renderContext().compiledTexture(empty).id(), 0u);
 
-	Texture invalidFormat;
+	spk::Texture invalidFormat;
 	invalidFormat.setPixels(std::vector<uint8_t>{255}, {1, 1}, spk::Texture::Format::Error);
-	invalidFormat.synchronize();
-	EXPECT_EQ(invalidFormat.glId(), Texture::InvalidGLId);
+	EXPECT_EQ(context.renderContext().compiledTexture(invalidFormat).id(), 0u);
 }
 
-TEST(OpenGLTextureTest, MoveAssignmentDeletesExistingTextureBeforeTakingSource)
+TEST(OpenGLTextureTest, MoveAssignmentTransfersCacheKey)
 {
 	sparkle_test::OpenGLTestContext context;
-	(void)context;
 
-	Texture src;
+	spk::Texture src;
 	src.setPixels(std::vector<uint8_t>(4, 80), {1, 1}, spk::Texture::Format::RGBA);
-	src.synchronize();
-	const GLuint srcId = src.glId();
+	const std::uint64_t srcKey = src.key();
+	const GLuint srcGlId = context.renderContext().compiledTexture(src).id();
 
-	Texture dst;
+	spk::Texture dst;
 	dst.setPixels(std::vector<uint8_t>(4, 160), {1, 1}, spk::Texture::Format::RGBA);
-	dst.synchronize();
-	ASSERT_NE(dst.glId(), Texture::InvalidGLId);
+	(void)context.renderContext().compiledTexture(dst);
 
 	dst = std::move(src);
 
-	EXPECT_EQ(dst.glId(), srcId);
-	EXPECT_EQ(src.glId(), Texture::InvalidGLId);
+	EXPECT_EQ(dst.key(), srcKey);
+	EXPECT_EQ(src.key(), 0u);
+	EXPECT_EQ(context.renderContext().compiledTexture(dst).id(), srcGlId);
 }
-

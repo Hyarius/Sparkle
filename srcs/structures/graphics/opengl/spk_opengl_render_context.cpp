@@ -127,6 +127,7 @@ namespace spk
 				wglMakeCurrent(nullptr, nullptr);
 			}
 			_compiledPrograms.clear();
+			_compiledTextures.clear();
 
 			if (previousRenderContext != nullptr && previousRenderContext != _renderContext)
 			{
@@ -184,6 +185,31 @@ namespace spk
 		return it != _compiledPrograms.end() &&
 			   it->second.program != nullptr &&
 			   it->second.version == p_program.version();
+	}
+
+	spk::OpenGL::Texture& RenderContext::compiledTexture(const spk::Texture& p_texture)
+	{
+		if (supportsOpenGLCommands() == false)
+		{
+			throw std::runtime_error("spk::RenderContext::compiledTexture called on a context without OpenGL support");
+		}
+
+		CompiledTextureEntry& entry = _compiledTextures[p_texture.key()];
+		if (entry.texture == nullptr || entry.version != p_texture.version())
+		{
+			entry.texture = std::make_unique<spk::OpenGL::Texture>(p_texture);
+			entry.version = p_texture.version();
+		}
+
+		return *entry.texture;
+	}
+
+	bool RenderContext::hasCompiledTexture(const spk::Texture& p_texture) const noexcept
+	{
+		const auto it = _compiledTextures.find(p_texture.key());
+		return it != _compiledTextures.end() &&
+			   it->second.texture != nullptr &&
+			   it->second.version == p_texture.version();
 	}
 
 	std::shared_ptr<SurfaceState> RenderContext::surfaceState() const

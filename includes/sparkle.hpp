@@ -81,6 +81,7 @@
 #include "structures/graphics/texture/spk_image.hpp"
 #include "structures/graphics/texture/spk_sprite_sheet.hpp"
 #include "structures/graphics/opengl/spk_opengl_program.hpp"
+#include "structures/graphics/opengl/spk_opengl_texture.hpp"
 #include "structures/graphics/opengl/spk_opengl_buffer_object.hpp"
 #include "structures/graphics/opengl/spk_opengl_clear_command.hpp"
 #include "structures/graphics/opengl/spk_opengl_draw_arrays_command.hpp"

@@ -91,12 +91,16 @@ TEST(TextureTest, MoveConstructionTransfersOwnership)
 	spk::Texture src;
 	auto pixels = makePixels(3, 3, 4);
 	src.setPixels(pixels, {3, 3}, spk::Texture::Format::RGBA);
-	auto srcId = src.id();
+	const auto srcId = src.id();
+	const auto srcKey = src.key();
 
 	spk::Texture dst(std::move(src));
 
 	EXPECT_EQ(dst.id(), srcId);
+	EXPECT_EQ(dst.key(), srcKey);
 	EXPECT_EQ(dst.size(), (spk::Vector2UInt{3, 3}));
+	EXPECT_EQ(src.id(), spk::Texture::InvalidID);
+	EXPECT_EQ(src.key(), 0u);
 }
 
 TEST(TextureTest, MoveAssignmentTransfersOwnership)
@@ -104,13 +108,112 @@ TEST(TextureTest, MoveAssignmentTransfersOwnership)
 	spk::Texture src;
 	auto pixels = makePixels(1, 1, 4);
 	src.setPixels(pixels, {1, 1}, spk::Texture::Format::RGBA);
-	auto srcId = src.id();
+	const auto srcId = src.id();
+	const auto srcKey = src.key();
 
 	spk::Texture dst;
 	dst = std::move(src);
 
 	EXPECT_EQ(dst.id(), srcId);
+	EXPECT_EQ(dst.key(), srcKey);
 	EXPECT_EQ(dst.size(), (spk::Vector2UInt{1, 1}));
+	EXPECT_EQ(src.id(), spk::Texture::InvalidID);
+	EXPECT_EQ(src.key(), 0u);
+}
+
+TEST(TextureTest, CopyConstructionProducesDeepCopy)
+{
+	spk::Texture src;
+	auto pixels = makePixels(2, 2, 4);
+	src.setPixels(pixels, {2, 2}, spk::Texture::Format::RGBA,
+		spk::Texture::Filtering::Linear,
+		spk::Texture::Wrap::Repeat,
+		spk::Texture::Mipmap::Enable);
+
+	spk::Texture dst(src);
+
+	EXPECT_NE(dst.id(), src.id());
+	EXPECT_NE(dst.key(), src.key());
+	EXPECT_EQ(dst.pixels(), src.pixels());
+	EXPECT_EQ(dst.size(), src.size());
+	EXPECT_EQ(dst.format(), src.format());
+	EXPECT_EQ(dst.filtering(), src.filtering());
+	EXPECT_EQ(dst.wrap(), src.wrap());
+	EXPECT_EQ(dst.mipmap(), src.mipmap());
+}
+
+TEST(TextureTest, CopyAssignmentProducesDeepCopy)
+{
+	spk::Texture src;
+	auto pixels = makePixels(3, 3, 3);
+	src.setPixels(pixels, {3, 3}, spk::Texture::Format::RGB);
+
+	spk::Texture dst;
+	dst = src;
+
+	EXPECT_NE(dst.id(), src.id());
+	EXPECT_NE(dst.key(), src.key());
+	EXPECT_EQ(dst.pixels(), src.pixels());
+	EXPECT_EQ(dst.size(), src.size());
+	EXPECT_EQ(dst.format(), src.format());
+}
+
+TEST(TextureTest, CopyIsIndependentOfSource)
+{
+	spk::Texture src;
+	auto pixels = makePixels(1, 1, 4);
+	src.setPixels(pixels, {1, 1}, spk::Texture::Format::RGBA);
+
+	spk::Texture dst(src);
+
+	auto newPixels = makePixels(4, 4, 4);
+	src.setPixels(newPixels, {4, 4}, spk::Texture::Format::RGBA);
+
+	EXPECT_EQ(dst.size(), (spk::Vector2UInt{1, 1}));
+	EXPECT_EQ(dst.pixels(), pixels);
+}
+
+TEST(TextureTest, CopyOfEmptyTextureHasNoPixelData)
+{
+	spk::Texture src;
+
+	spk::Texture dst(src);
+
+	EXPECT_NE(dst.id(), src.id());
+	EXPECT_NE(dst.key(), src.key());
+	EXPECT_TRUE(dst.pixels().empty());
+	EXPECT_EQ(dst.size(), (spk::Vector2UInt{0, 0}));
+	EXPECT_FALSE(dst.needsSynchronization());
+}
+
+TEST(TextureTest, SetPixelsBumpsVersion)
+{
+	spk::Texture tex;
+	EXPECT_EQ(tex.version(), 0u);
+
+	auto pixels = makePixels(1, 1, 4);
+	tex.setPixels(pixels, {1, 1}, spk::Texture::Format::RGBA);
+	EXPECT_EQ(tex.version(), 1u);
+
+	tex.setPixels(pixels, {1, 1}, spk::Texture::Format::RGBA);
+	EXPECT_EQ(tex.version(), 2u);
+}
+
+TEST(TextureTest, SetPropertiesBumpsVersion)
+{
+	spk::Texture tex;
+	tex.setProperties(spk::Texture::Filtering::Linear, spk::Texture::Wrap::Repeat, spk::Texture::Mipmap::Disable);
+	EXPECT_EQ(tex.version(), 1u);
+}
+
+TEST(TextureTest, UniqueKeysAssignedOnConstruction)
+{
+	spk::Texture a;
+	spk::Texture b;
+
+	EXPECT_NE(a.key(), 0u);
+	EXPECT_NE(b.key(), 0u);
+	EXPECT_NE(a.key(), b.key());
 }
 
 TEST(TextureTest, SectionDefaultConstructionProducesZeroAnchorAndSize)

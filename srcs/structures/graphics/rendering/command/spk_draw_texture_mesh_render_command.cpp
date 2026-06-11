@@ -97,12 +97,6 @@ namespace spk
 
 		spk::OpenGL::Program& program = p_renderContext.compiledProgram(_sharedProgram());
 
-		_texture.synchronize();
-		if (_texture.glId() == spk::Texture::InvalidGLId)
-		{
-			throw std::runtime_error("DrawTextureMeshRenderCommand received a texture without GPU storage");
-		}
-
 		_layoutBuffer.activate();
 		program.activate();
 		viewportUniformBuffer().activate();

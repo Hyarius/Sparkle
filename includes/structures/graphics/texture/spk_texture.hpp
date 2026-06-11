@@ -1,25 +1,26 @@
 #pragma once
 
+#include <atomic>
 #include <cstdint>
 #include <deque>
 #include <filesystem>
 #include <vector>
-
-#include <GL/glew.h>
-#include <GL/gl.h>
 
 #include "structures/math/spk_vector2.hpp"
 #include "structures/design_pattern/spk_synchronizable_trait.hpp"
 
 namespace spk
 {
+	// Context-free CPU-side texture: pixel data, format, and sampling properties.
+	// Each RenderContext creates and caches its own spk::OpenGL::Texture for a given
+	// handle, keyed by _key. Copying produces an independent deep copy with its own
+	// key and pixel buffer; moving transfers ownership without a new GPU upload.
 	class Texture : public SynchronizableTrait
 	{
 	public:
 		using ID = long;
 
 		static constexpr ID InvalidID = -1;
-		static constexpr GLuint InvalidGLId = 0;
 
 		enum class Format
 		{
@@ -66,12 +67,15 @@ namespace spk
 		};
 
 	private:
+		static inline std::atomic<std::uint64_t> s_nextKey = 1;
+
 		static std::deque<ID>& _availableIDs();
 		static ID& _nextID();
-
 		static ID _takeId();
 		static void _releaseId(ID p_id);
 
+		std::uint64_t _key;
+		std::uint64_t _version = 0;
 		ID _id;
 
 		std::vector<uint8_t> _pixels;
@@ -80,12 +84,8 @@ namespace spk
 		Filtering _filtering;
 		Wrap _wrap;
 		Mipmap _mipmap;
-		mutable GLuint _glId = InvalidGLId;
 
 		size_t _getBytesPerPixel(Format p_format) const;
-		static void _setupTextureParameters(Filtering p_filtering, Wrap p_wrap, Mipmap p_mipmap);
-		static void _convertFormat(Format p_format, GLint& p_internalFormat, GLenum& p_externalFormat);
-		void _uploadToGPU() const;
 
 	protected:
 		void _synchronize() const override;
@@ -94,11 +94,11 @@ namespace spk
 		Texture();
 		virtual ~Texture();
 
-		Texture(const Texture&) = delete;
-		Texture& operator=(const Texture&) = delete;
+		Texture(const Texture& p_other);
+		Texture& operator=(const Texture& p_other);
 
-		Texture(Texture&&) noexcept;
-		Texture& operator=(Texture&&) noexcept;
+		Texture(Texture&& p_other) noexcept;
+		Texture& operator=(Texture&& p_other) noexcept;
 
 		void setPixels(
 			const std::vector<uint8_t>& p_data,
@@ -122,6 +122,9 @@ namespace spk
 
 		void setProperties(Filtering p_filtering, Wrap p_wrap, Mipmap p_mipmap);
 
+		[[nodiscard]] std::uint64_t key() const noexcept;
+		[[nodiscard]] std::uint64_t version() const noexcept;
+
 		ID id() const;
 		const std::vector<uint8_t>& pixels() const;
 		const spk::Vector2UInt& size() const;
@@ -129,7 +132,6 @@ namespace spk
 		Filtering filtering() const;
 		Wrap wrap() const;
 		Mipmap mipmap() const;
-		GLuint glId() const;
 
 		void saveAsPng(const std::filesystem::path& p_path) const;
 	};

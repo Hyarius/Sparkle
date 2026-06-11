@@ -1,5 +1,7 @@
 #include "structures/graphics/opengl/spk_opengl_sampler_object.hpp"
 
+#include "structures/graphics/rendering/context/spk_render_context.hpp"
+
 namespace spk
 {
 	SamplerObject::SamplerObject(const std::string& p_name, Type p_type, BindingPoint p_bindingPoint) :
@@ -53,9 +55,15 @@ namespace spk
 			glUniform1i(_uniformDestination, _bindingPoint);
 		}
 
-		_texture->synchronize();
+		spk::RenderContext* ctx = spk::RenderContext::current();
+		if (ctx == nullptr)
+		{
+			glBindTexture(static_cast<GLenum>(_type), 0);
+			return;
+		}
 
-		glBindTexture(static_cast<GLenum>(_type), _texture->glId());
+		const spk::OpenGL::Texture& glTex = ctx->compiledTexture(*_texture);
+		glBindTexture(static_cast<GLenum>(_type), glTex.id());
 	}
 
 	void SamplerObject::deactivate()
