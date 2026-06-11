@@ -73,6 +73,23 @@ TEST(InterfaceWindowTest, ContentGeometryExcludesMenuAndDefaultPadding)
 	EXPECT_EQ(contentGeometry.height(), 200u - window.menuHeight() - padding.top - padding.bottom);
 }
 
+TEST(InterfaceWindowTest, DefaultContentPaddingUsesMatchingCornerAxis)
+{
+	spk::InterfaceWindow<spk::Panel> window("Window");
+	window.backgroundFrame().setCornerSize({12, 8});
+	window.setGeometry(spk::Rect2D(0, 0, 300, 200));
+
+	const spk::IInterfaceWindow::ContentPadding padding = window.contentPadding();
+	const spk::Rect2D contentGeometry = window.contentObject().geometry();
+
+	EXPECT_EQ(padding.left, 14u);
+	EXPECT_EQ(padding.top, 0u);
+	EXPECT_EQ(padding.right, 14u);
+	EXPECT_EQ(padding.bottom, 10u);
+	EXPECT_EQ(contentGeometry.x(), 14);
+	EXPECT_EQ(contentGeometry.width(), 300u - 14u - 14u);
+}
+
 TEST(InterfaceWindowTest, ContentPaddingCanBeConfiguredPerSide)
 {
 	spk::InterfaceWindow<spk::Panel> window("Window");

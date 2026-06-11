@@ -49,6 +49,22 @@ TEST(MessageBoxTest, SetMinimalWidthGrowsMinimalSize)
 	EXPECT_GE(messageBox.geometry().width(), 400u);
 }
 
+TEST(MessageBoxTest, UsesInterfaceWindowContentPaddingAndPlacesButtonsBottomRight)
+{
+	spk::MessageBox messageBox("MessageBox");
+	messageBox.setText("Something went wrong. Please try again.");
+	messageBox.addButton("ok", "OK");
+	messageBox.setGeometry(spk::Rect2D(0, 0, 400, 200));
+
+	const spk::IInterfaceWindow::ContentPadding padding = messageBox.contentPadding();
+	const spk::Rect2D buttonRect = messageBox.button("ok")->viewport().geometry();
+
+	EXPECT_EQ(messageBox.backgroundFrame().cornerSize(), spk::Vector2Int(8, 8));
+	EXPECT_EQ(padding, (spk::IInterfaceWindow::ContentPadding{10, 0, 10, 10}));
+	EXPECT_EQ(buttonRect.right(), static_cast<int>(messageBox.geometry().width() - padding.right));
+	EXPECT_EQ(buttonRect.bottom(), static_cast<int>(messageBox.geometry().height() - padding.bottom));
+}
+
 TEST(InformationMessageBoxTest, HasCloseButtonThatDeactivates)
 {
 	spk::InformationMessageBox messageBox("InfoBox");

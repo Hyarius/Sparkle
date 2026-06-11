@@ -118,6 +118,8 @@ TEST(MenuBarTest, BreakSetHeightUpdatesGetter)
 	spk::MenuBar::Menu* menu = menuBar.addMenu("File");
 	spk::MenuBar::Menu::Break* breakItem = menu->addBreak();
 
+	EXPECT_LE(breakItem->height(), 2u);
+
 	breakItem->setHeight(6);
 
 	EXPECT_EQ(breakItem->height(), 6u);
@@ -153,6 +155,26 @@ TEST(MenuBarTest, ClickingMenuButtonWithNoItemsDoesNotOpenMenu)
 	mouseModule.processEvents();
 
 	EXPECT_FALSE(menu->isActivated());
+}
+
+TEST(MenuBarTest, OpenMenuKeepsMenuButtonMinimalWidth)
+{
+	spk::MenuBar menuBar("MenuBar");
+	menuBar.setGeometry(spk::Rect2D(0, 0, 400, 300));
+
+	spk::MenuBar::Menu* menu = menuBar.addMenu("File");
+	spk::MenuBar::Menu::Item* item = menu->addItem("Open", []() {});
+	menu->activate();
+	menuBar.setGeometry(spk::Rect2D(0, 0, 400, 300));
+
+	const spk::Rect2D buttonRect = menuBar.menuButton(0)->viewport().geometry();
+
+	EXPECT_LT(buttonRect.width(), menuBar.geometry().width());
+	EXPECT_LE(buttonRect.height(), menuBar.height());
+	EXPECT_LE(menuBar.menuButton(0)->minimalSize().y, menuBar.height());
+	EXPECT_LE(menuBar.menuButton(0)->releasedLabel().textSize().glyph, menuBar.height() / 2u);
+	EXPECT_LE(item->minimalSize().y, menuBar.height());
+	EXPECT_LE(item->releasedLabel().textSize().glyph, menuBar.height() / 2u);
 }
 
 TEST(MenuBarTest, ClickOutsideOpenMenuClosesIt)

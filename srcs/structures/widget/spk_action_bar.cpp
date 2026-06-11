@@ -20,6 +20,30 @@ namespace
 	}
 
 	constexpr int ItemSpacing = 5;
+	constexpr int BarContentInset = 2;
+
+	[[nodiscard]] spk::Font::Size compactTextSize(unsigned int p_controlHeight)
+	{
+		return spk::Font::Size(std::max(8u, p_controlHeight / 2u), 0u);
+	}
+
+	[[nodiscard]] spk::Vector2Int compactTextPadding(unsigned int p_controlHeight)
+	{
+		return spk::Vector2Int(
+			static_cast<int>(std::max(4u, p_controlHeight / 4u)),
+			static_cast<int>(std::max(1u, p_controlHeight / 12u)));
+	}
+
+	void applyCompactMetrics(spk::PushButton& p_button, unsigned int p_controlHeight)
+	{
+		const spk::Font::Size textSize = compactTextSize(p_controlHeight);
+		const spk::Vector2Int textPadding = compactTextPadding(p_controlHeight);
+
+		p_button.releasedLabel().setTextSize(textSize);
+		p_button.pressedLabel().setTextSize(textSize);
+		p_button.releasedLabel().setPadding(textPadding);
+		p_button.pressedLabel().setPadding(textPadding);
+	}
 }
 
 namespace spk
@@ -130,6 +154,24 @@ namespace spk
 		});
 	}
 
+	void MenuBar::Menu::_setControlHeight(unsigned int p_controlHeight)
+	{
+		if (_controlHeight == p_controlHeight)
+		{
+			return;
+		}
+
+		_controlHeight = p_controlHeight;
+		for (const auto& element : _elements)
+		{
+			if (auto* button = dynamic_cast<spk::PushButton*>(element.item.get()); button != nullptr)
+			{
+				applyCompactMetrics(*button, _controlHeight);
+			}
+		}
+		sizeHint().releaseMinimal();
+	}
+
 	void MenuBar::Menu::_onGeometryChange()
 	{
 		_backgroundFrame.setGeometry(geometry().atOrigin());
@@ -169,6 +211,7 @@ namespace spk
 		auto item = std::make_unique<Item>(name() + "::" + std::string(p_itemName), this);
 
 		item->setText(p_itemName);
+		applyCompactMetrics(*item, _controlHeight);
 
 		spk::PushButton::Contract contract = item->subscribeToClick(
 			[this, callback = std::move(p_callback)]()
@@ -230,9 +273,13 @@ namespace spk
 		for (auto& entry : _menus)
 		{
 			const unsigned int buttonHeight =
-				(_height > static_cast<unsigned int>(cornerSize.y * 2))
-					? _height - static_cast<unsigned int>(cornerSize.y * 2)
+				(_height > static_cast<unsigned int>(BarContentInset * 2))
+					? _height - static_cast<unsigned int>(BarContentInset * 2)
 					: _height;
+			anchor.y = BarContentInset;
+
+			applyCompactMetrics(*entry->menuButton, _height);
+			entry->menu->_setControlHeight(_height);
 
 			const spk::Vector2UInt buttonMinimal = entry->menuButton->minimalSize();
 			const spk::Vector2UInt buttonSize = {buttonMinimal.x + static_cast<unsigned int>(ItemSpacing * 2), buttonHeight};

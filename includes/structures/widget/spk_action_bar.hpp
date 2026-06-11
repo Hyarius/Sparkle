@@ -17,6 +17,8 @@ namespace spk
 	public:
 		class Menu : public spk::Widget
 		{
+			friend class MenuBar;
+
 		public:
 			class Item : public spk::PushButton
 			{
@@ -28,7 +30,7 @@ namespace spk
 			{
 			private:
 				std::shared_ptr<spk::SpriteSheet> _spriteSheet;
-				unsigned int _height = 5;
+				unsigned int _height = 2;
 
 			protected:
 				[[nodiscard]] spk::RenderUnit _buildRenderUnit() const override;
@@ -50,8 +52,10 @@ namespace spk
 
 			spk::Panel _backgroundFrame;
 			std::vector<Element> _elements;
+			unsigned int _controlHeight = 25;
 
 			void _refreshOwningBar();
+			void _setControlHeight(unsigned int p_controlHeight);
 
 		protected:
 			void _onGeometryChange() override;

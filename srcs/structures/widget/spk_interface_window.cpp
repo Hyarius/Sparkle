@@ -270,7 +270,7 @@ namespace spk
 		return ContentPadding{
 			static_cast<uint32_t>(std::max(0, cornerSize.x + 2)),
 			0,
-			static_cast<uint32_t>(std::max(0, cornerSize.y + 2)),
+			static_cast<uint32_t>(std::max(0, cornerSize.x + 2)),
 			static_cast<uint32_t>(std::max(0, cornerSize.y + 2))};
 	}
 
