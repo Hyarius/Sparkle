@@ -10,6 +10,8 @@
 #include <stb_image.h>
 #include <stb_image_write.h>
 
+#include "utils/test_resource_path_utils.hpp"
+
 namespace
 {
 	struct LoadedImage
@@ -135,6 +137,7 @@ namespace sparkle_test
 		else
 		{
 			std::filesystem::remove(p_actualPath);
+			spk::test::removeEmptyResultDirectories(p_actualPath.parent_path());
 		}
 
 		return result;

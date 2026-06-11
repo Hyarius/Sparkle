@@ -126,15 +126,7 @@ namespace spk::test
 		}
 
 		sparkle_test::ImageComparisonResult result = sparkle_test::compareImages(actualPath, expectedPath, diffPath);
-		if (result.matches)
-		{
-			std::filesystem::remove(actualPath);
-			if (std::filesystem::is_empty(resultDir))
-			{
-				std::filesystem::remove(resultDir);
-			}
-		}
-		else
+		if (result.matches == false)
 		{
 			ADD_FAILURE() << "Visual mismatch for " << p_widgetName << " (" << p_variant << ")"
 						  << ". Diff: " << diffPath.string()

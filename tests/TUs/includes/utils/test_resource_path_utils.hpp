@@ -14,4 +14,5 @@ namespace spk::test
 	[[nodiscard]] std::filesystem::path resultImagePath(
 		const std::filesystem::path& p_category,
 		const std::string& p_name);
+	void removeEmptyResultDirectories(const std::filesystem::path& p_startingPath);
 }
