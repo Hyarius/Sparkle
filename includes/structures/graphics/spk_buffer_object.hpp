@@ -87,9 +87,6 @@ namespace spk
 		[[nodiscard]] spk::OpenGL::Buffer& gpu(const spk::RenderContext& p_context) const;
 		[[nodiscard]] bool hasGpu(const spk::RenderContext& p_context) const noexcept;
 
-		void setTarget(Target p_target);
-		void setUsage(Usage p_usage);
-
 		void resize(std::size_t p_size);
 		void clear();
 		void edit(const void* p_data, std::size_t p_size, std::size_t p_offset = 0);

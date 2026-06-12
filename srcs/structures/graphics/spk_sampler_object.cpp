@@ -4,10 +4,15 @@
 
 namespace spk
 {
-	SamplerObject::SamplerObject(const std::string& p_name, Type p_type, BindingPoint p_bindingPoint) :
+	SamplerObject::SamplerObject(
+		const std::string& p_name,
+		Type p_type,
+		BindingPoint p_bindingPoint,
+		const spk::Program& p_program) :
 		_designator(p_name),
 		_bindingPoint(p_bindingPoint),
-		_type(p_type)
+		_type(p_type),
+		_program(p_program)
 	{
 	}
 
@@ -26,25 +31,19 @@ namespace spk
 		return _designator;
 	}
 
-	SamplerObject::BindingPoint SamplerObject::bindingPoint() const
+	const spk::Program& SamplerObject::program() const noexcept
+	{
+		return _program;
+	}
+
+	SamplerObject::BindingPoint SamplerObject::bindingPoint() const noexcept
 	{
 		return _bindingPoint;
 	}
 
-	void SamplerObject::setBindingPoint(BindingPoint p_bindingPoint)
-	{
-		_bindingPoint = p_bindingPoint;
-		_gpu.invalidateUniformLocation();
-	}
-
-	SamplerObject::Type SamplerObject::type() const
+	SamplerObject::Type SamplerObject::type() const noexcept
 	{
 		return _type;
-	}
-
-	void SamplerObject::setType(Type p_type)
-	{
-		_type = p_type;
 	}
 
 	void SamplerObject::activate(const spk::RenderContext& p_context)

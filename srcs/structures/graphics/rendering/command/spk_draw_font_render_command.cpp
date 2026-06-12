@@ -65,7 +65,7 @@ namespace spk
 		_colorUniform("uColor", _sharedProgram()),
 		_outlineColorUniform("uOutlineColor", _sharedProgram()),
 		_outlineThicknessUniform("uOutlineThickness", _sharedProgram()),
-		_sampler("uTexture", spk::SamplerObject::Type::Texture2D, 0),
+		_sampler("uTexture", spk::SamplerObject::Type::Texture2D, 0, _sharedProgram()),
 		_layoutBufferDirty(true)
 	{
 		_layoutBuffer.addAttribute(0, spk::LayoutBufferObject::Attribute::Type::Vector3);

@@ -49,6 +49,11 @@ namespace spk::OpenGL
 		return spk::RenderContext::fromId(p_contextId) != nullptr;
 	}
 
+	std::uint64_t contextDeathGeneration() noexcept
+	{
+		return spk::RenderContext::deathGeneration();
+	}
+
 	void releaseObject(std::unique_ptr<Object> p_object)
 	{
 		if (p_object == nullptr)

@@ -88,30 +88,6 @@ namespace spk
 			   object->contentVersion() == _contentVersion;
 	}
 
-	void BufferObject::setTarget(Target p_target)
-	{
-		if (_target == p_target)
-		{
-			return;
-		}
-
-		_target = p_target;
-		++_structureVersion;
-		requestSynchronization();
-	}
-
-	void BufferObject::setUsage(Usage p_usage)
-	{
-		if (_usage == p_usage)
-		{
-			return;
-		}
-
-		_usage = p_usage;
-		++_structureVersion;
-		requestSynchronization();
-	}
-
 	void BufferObject::resize(std::size_t p_size)
 	{
 		std::scoped_lock lock(_mutex);

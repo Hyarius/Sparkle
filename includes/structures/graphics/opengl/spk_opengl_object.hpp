@@ -45,6 +45,7 @@ namespace spk
 		[[nodiscard]] std::uint64_t contextIdOf(const spk::RenderContext& p_context) noexcept;
 		[[nodiscard]] bool isContextCurrent(const spk::RenderContext& p_context) noexcept;
 		[[nodiscard]] bool isContextAlive(std::uint64_t p_contextId) noexcept;
+		[[nodiscard]] std::uint64_t contextDeathGeneration() noexcept;
 
 		void releaseObject(std::unique_ptr<Object> p_object);
 	}

@@ -152,6 +152,7 @@ namespace spk
 		// Unregister first: handles releasing GPU objects from now on see this
 		// context as dead and drop their wrappers without GL calls.
 		_unregisterSelf();
+		s_deathGeneration.fetch_add(1, std::memory_order_relaxed);
 
 		if (_renderContext != nullptr)
 		{
@@ -205,6 +206,11 @@ namespace spk
 		std::scoped_lock lock(contextRegistryMutex());
 		const auto it = contextRegistry().find(p_id);
 		return it != contextRegistry().end() ? it->second : nullptr;
+	}
+
+	std::uint64_t RenderContext::deathGeneration() noexcept
+	{
+		return s_deathGeneration.load(std::memory_order_relaxed);
 	}
 
 	std::uint64_t RenderContext::id() const noexcept

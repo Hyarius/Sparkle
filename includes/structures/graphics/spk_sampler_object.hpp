@@ -7,6 +7,7 @@
 namespace spk
 {
 	class RenderContext;
+	class Program;
 	class Texture;
 
 	class SamplerObject
@@ -25,24 +26,21 @@ namespace spk
 	private:
 		const spk::Texture* _texture = nullptr;
 		std::string _designator;
-		BindingPoint _bindingPoint = -1;
-		Type _type = Type::Texture2D;
+		BindingPoint _bindingPoint;
+		Type _type;
+		const spk::Program& _program;
 		mutable spk::OpenGL::SamplerObject _gpu;
 
 	public:
-		SamplerObject() = default;
-		SamplerObject(const std::string& p_name, Type p_type, BindingPoint p_bindingPoint);
+		SamplerObject(const std::string& p_name, Type p_type, BindingPoint p_bindingPoint, const spk::Program& p_program);
 
 		void bind(const spk::Texture& p_texture);
 
 		[[nodiscard]] const spk::Texture* texture() const noexcept;
 		[[nodiscard]] const std::string& designator() const noexcept;
-
-		BindingPoint bindingPoint() const;
-		void setBindingPoint(BindingPoint p_bindingPoint);
-
-		Type type() const;
-		void setType(Type p_type);
+		[[nodiscard]] const spk::Program& program() const noexcept;
+		[[nodiscard]] BindingPoint bindingPoint() const noexcept;
+		[[nodiscard]] Type type() const noexcept;
 
 		void activate(const spk::RenderContext& p_context);
 		void deactivate();

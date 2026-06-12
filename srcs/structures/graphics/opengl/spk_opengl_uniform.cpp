@@ -53,30 +53,15 @@ namespace spk::OpenGL
 		GLuint uniformIndex = GL_INVALID_INDEX;
 
 		{
-			const GLchar* uniformNames[] = {
-				normalizedName.c_str()
-			};
-
-			glGetUniformIndices(
-				p_programId,
-				1,
-				uniformNames,
-				&uniformIndex);
+			const GLchar* uniformNames[] = {normalizedName.c_str()};
+			glGetUniformIndices(p_programId, 1, uniformNames, &uniformIndex);
 		}
 
 		if (uniformIndex == GL_INVALID_INDEX)
 		{
 			const std::string arrayElementName = normalizedName + "[0]";
-
-			const GLchar* uniformNames[] = {
-				arrayElementName.c_str()
-			};
-
-			glGetUniformIndices(
-				p_programId,
-				1,
-				uniformNames,
-				&uniformIndex);
+			const GLchar* uniformNames[] = {arrayElementName.c_str()};
+			glGetUniformIndices(p_programId, 1, uniformNames, &uniformIndex);
 		}
 
 		if (uniformIndex == GL_INVALID_INDEX)
@@ -87,13 +72,7 @@ namespace spk::OpenGL
 		}
 
 		GLint activeType = 0;
-
-		glGetActiveUniformsiv(
-			p_programId,
-			1,
-			&uniformIndex,
-			GL_UNIFORM_TYPE,
-			&activeType);
+		glGetActiveUniformsiv(p_programId, 1, &uniformIndex, GL_UNIFORM_TYPE, &activeType);
 
 		if (static_cast<GLenum>(activeType) != p_expectedType)
 		{
@@ -104,19 +83,12 @@ namespace spk::OpenGL
 		}
 
 		GLint activeSize = 0;
-
-		glGetActiveUniformsiv(
-			p_programId,
-			1,
-			&uniformIndex,
-			GL_UNIFORM_SIZE,
-			&activeSize);
+		glGetActiveUniformsiv(p_programId, 1, &uniformIndex, GL_UNIFORM_SIZE, &activeSize);
 
 		if (static_cast<std::size_t>(activeSize) < p_expectedCount)
 		{
 			throw std::runtime_error(
-				"UniformBase: uniform array [" + p_name +
-				"] is smaller than requested");
+				"UniformBase: uniform array [" + p_name + "] is smaller than requested");
 		}
 	}
 }

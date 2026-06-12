@@ -34,7 +34,7 @@ TEST(OpenGLBufferObjectTest, SynchronizesBinaryFieldToGPU)
 	EXPECT_TRUE(buffer.hasGpu(context.renderContext()));
 }
 
-TEST(OpenGLBufferObjectTest, EditAppendResizeAndUsageRequestSynchronization)
+TEST(OpenGLBufferObjectTest, EditAppendAndResizeRequestSynchronization)
 {
 	sparkle_test::OpenGLTestContext context;
 	(void)context;
@@ -59,9 +59,6 @@ TEST(OpenGLBufferObjectTest, EditAppendResizeAndUsageRequestSynchronization)
 	std::array<std::uint8_t, 4> gpuValues = {};
 	glGetBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(gpuValues), gpuValues.data());
 	EXPECT_EQ(gpuValues, (std::array<std::uint8_t, 4>{1, 9, 8, 4}));
-
-	buffer.setUsage(spk::BufferObject::Usage::StaticDraw);
-	EXPECT_TRUE(buffer.needsSynchronization());
 
 	buffer.resize(2);
 	EXPECT_EQ(buffer.size(), 2u);
@@ -98,7 +95,7 @@ TEST(OpenGLBufferObjectTest, AccessorsAndViewsExposeCpuBuffer)
 	EXPECT_TRUE(buffer.needsSynchronization());
 }
 
-TEST(OpenGLBufferObjectTest, SetTargetSetUsageAndClearHandleNoOpAndMutation)
+TEST(OpenGLBufferObjectTest, ClearResizesBufferToZero)
 {
 	sparkle_test::OpenGLTestContext context;
 	(void)context;
@@ -109,16 +106,6 @@ TEST(OpenGLBufferObjectTest, SetTargetSetUsageAndClearHandleNoOpAndMutation)
 		4);
 	buffer.synchronize();
 	ASSERT_FALSE(buffer.needsSynchronization());
-
-	buffer.setTarget(spk::BufferObject::Target::Array);
-	buffer.setUsage(spk::BufferObject::Usage::DynamicDraw);
-	EXPECT_FALSE(buffer.needsSynchronization());
-
-	buffer.setTarget(spk::BufferObject::Target::Uniform);
-	buffer.setUsage(spk::BufferObject::Usage::StaticRead);
-	EXPECT_EQ(buffer.target(), spk::BufferObject::Target::Uniform);
-	EXPECT_EQ(buffer.usage(), spk::BufferObject::Usage::StaticRead);
-	EXPECT_TRUE(buffer.needsSynchronization());
 
 	buffer.clear();
 	EXPECT_EQ(buffer.size(), 0u);

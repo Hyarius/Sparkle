@@ -20,11 +20,14 @@ namespace spk
 			std::unique_ptr<TGpuObject> object;
 		};
 
-		// Real applications run 1-2 contexts at once: a tiny vector with a linear
+		// Real applications run 1-N contexts at once: a tiny vector with a linear
 		// scan beats a hash map, per handle (and there are thousands of handles).
 		std::vector<Entry> _entries;
-		mutable TGpuObject* _lastObject = nullptr;
-		mutable std::uint64_t _lastContextId = 0;
+
+		// Last generation seen during a prune pass. The prune loop (which calls
+		// isContextAlive → registry mutex) is skipped when no context has died
+		// since the last pass.
+		mutable std::uint64_t _prunedAtGeneration = 0;
 
 		template <typename TFactory>
 		std::unique_ptr<TGpuObject> _build(std::uint64_t p_version, std::uint64_t p_contentVersion, TFactory&& p_factory)
@@ -48,12 +51,10 @@ namespace spk
 
 		CachedOpenGLObjectCollection(CachedOpenGLObjectCollection&& p_other) noexcept :
 			_entries(std::move(p_other._entries)),
-			_lastObject(p_other._lastObject),
-			_lastContextId(p_other._lastContextId)
+			_prunedAtGeneration(p_other._prunedAtGeneration)
 		{
 			p_other._entries.clear();
-			p_other._lastObject = nullptr;
-			p_other._lastContextId = 0;
+			p_other._prunedAtGeneration = 0;
 		}
 
 		CachedOpenGLObjectCollection& operator=(CachedOpenGLObjectCollection&& p_other) noexcept
@@ -62,11 +63,9 @@ namespace spk
 			{
 				release();
 				_entries = std::move(p_other._entries);
-				_lastObject = p_other._lastObject;
-				_lastContextId = p_other._lastContextId;
+				_prunedAtGeneration = p_other._prunedAtGeneration;
 				p_other._entries.clear();
-				p_other._lastObject = nullptr;
-				p_other._lastContextId = 0;
+				p_other._prunedAtGeneration = 0;
 			}
 			return *this;
 		}
@@ -86,37 +85,53 @@ namespace spk
 
 			const std::uint64_t contextId = spk::OpenGL::contextIdOf(p_context);
 
-			if (_lastObject != nullptr &&
-				_lastContextId == contextId &&
-				_lastObject->version() == p_version &&
-				_lastObject->contentVersion() == p_contentVersion)
-			{
-				return *_lastObject;
-			}
-
-			// Prune entries whose context died with its GL objects: drop the
-			// wrappers, their destructor guard skips GL calls.
-			for (std::size_t index = 0; index < _entries.size();)
-			{
-				Entry& entry = _entries[index];
-				if (entry.contextId != contextId && spk::OpenGL::isContextAlive(entry.contextId) == false)
-				{
-					entry = std::move(_entries.back());
-					_entries.pop_back();
-				}
-				else
-				{
-					++index;
-				}
-			}
-
+			// Single-pass scan: if the entry for this context is clean, return
+			// immediately (hot path — no mutex, no second scan).
 			Entry* found = nullptr;
 			for (Entry& entry : _entries)
 			{
 				if (entry.contextId == contextId)
 				{
+					if (entry.object->version() == p_version &&
+						entry.object->contentVersion() == p_contentVersion)
+					{
+						return *entry.object;
+					}
 					found = &entry;
 					break;
+				}
+			}
+
+			// Prune entries whose context died with its GL objects. Gated behind a
+			// relaxed atomic so the registry mutex is never acquired on the hot path
+			// (contexts die ~never; the counter only changes on window close).
+			const std::uint64_t currentGeneration = spk::OpenGL::contextDeathGeneration();
+			if (currentGeneration != _prunedAtGeneration)
+			{
+				found = nullptr; // pointer may be invalidated by swap-and-pop below
+				for (std::size_t index = 0; index < _entries.size();)
+				{
+					Entry& entry = _entries[index];
+					if (entry.contextId != contextId && spk::OpenGL::isContextAlive(entry.contextId) == false)
+					{
+						entry = std::move(_entries.back());
+						_entries.pop_back();
+					}
+					else
+					{
+						++index;
+					}
+				}
+				_prunedAtGeneration = currentGeneration;
+
+				// Re-find after prune since swap-and-pop may have reorganised the vector.
+				for (Entry& entry : _entries)
+				{
+					if (entry.contextId == contextId)
+					{
+						found = &entry;
+						break;
+					}
 				}
 			}
 
@@ -146,9 +161,7 @@ namespace spk
 				found->object->_contentVersion = p_contentVersion;
 			}
 
-			_lastObject = found->object.get();
-			_lastContextId = contextId;
-			return *_lastObject;
+			return *found->object;
 		}
 
 		// Single-version resolution for create-once objects (programs, textures...).
@@ -178,8 +191,7 @@ namespace spk
 				spk::OpenGL::releaseObject(std::move(entry.object));
 			}
 			_entries.clear();
-			_lastObject = nullptr;
-			_lastContextId = 0;
+			_prunedAtGeneration = 0;
 		}
 	};
 }

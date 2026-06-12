@@ -7,47 +7,15 @@
 using SamplerObject = spk::SamplerObject;
 using Texture = spk::Texture;
 
-TEST(OpenGLSamplerObjectTest, DefaultConstructionProducesInvalidBindingPoint)
+TEST(OpenGLSamplerObjectTest, ConstructorSetsNameTypeAndBindingPoint)
 {
 	sparkle_test::OpenGLTestContext context;
-	(void)context;
+	auto program = sparkle_test::makeSolidProgram(1.0f, 0.0f, 0.0f);
 
-	SamplerObject sampler;
-
-	EXPECT_EQ(sampler.bindingPoint(), -1);
-}
-
-TEST(OpenGLSamplerObjectTest, ConstructorWithParametersSetsNameTypeAndBindingPoint)
-{
-	sparkle_test::OpenGLTestContext context;
-	(void)context;
-
-	SamplerObject sampler("uTexture", SamplerObject::Type::Texture2D, 0);
+	SamplerObject sampler("uTexture", SamplerObject::Type::Texture2D, 0, *program);
 
 	EXPECT_EQ(sampler.bindingPoint(), 0);
 	EXPECT_EQ(sampler.type(), SamplerObject::Type::Texture2D);
-}
-
-TEST(OpenGLSamplerObjectTest, SetBindingPointUpdatesValue)
-{
-	sparkle_test::OpenGLTestContext context;
-	(void)context;
-
-	SamplerObject sampler;
-	sampler.setBindingPoint(3);
-
-	EXPECT_EQ(sampler.bindingPoint(), 3);
-}
-
-TEST(OpenGLSamplerObjectTest, SetTypeUpdatesValue)
-{
-	sparkle_test::OpenGLTestContext context;
-	(void)context;
-
-	SamplerObject sampler;
-	sampler.setType(SamplerObject::Type::Texture1D);
-
-	EXPECT_EQ(sampler.type(), SamplerObject::Type::Texture1D);
 }
 
 TEST(OpenGLSamplerObjectTest, AllTypeEnumeratorsAreDistinct)
@@ -60,47 +28,35 @@ TEST(OpenGLSamplerObjectTest, AllTypeEnumeratorsAreDistinct)
 	          static_cast<GLenum>(SamplerObject::Type::TextureCubeMap));
 }
 
-TEST(OpenGLSamplerObjectTest, BindAssociatesWeakTexture)
+TEST(OpenGLSamplerObjectTest, BindAssociatesTexture)
 {
 	sparkle_test::OpenGLTestContext context;
-	(void)context;
+	auto program = sparkle_test::makeSolidProgram(1.0f, 0.0f, 0.0f);
 
 	auto tex = std::make_shared<Texture>();
 	std::vector<uint8_t> pixels(2 * 2 * 4, 255);
 	tex->setPixels(pixels, {2, 2}, spk::Texture::Format::RGBA);
 	tex->synchronize();
 
-	SamplerObject sampler("uTex", SamplerObject::Type::Texture2D, 0);
+	SamplerObject sampler("uTex", SamplerObject::Type::Texture2D, 0, *program);
 	EXPECT_NO_THROW(sampler.bind(*tex));
 }
 
 TEST(OpenGLSamplerObjectTest, ActivateAndDeactivateDoNotThrow)
 {
 	sparkle_test::OpenGLTestContext context;
-	(void)context;
 
 	auto tex = std::make_shared<Texture>();
 	std::vector<uint8_t> pixels(2 * 2 * 4, 255);
 	tex->setPixels(pixels, {2, 2}, spk::Texture::Format::RGBA);
 	tex->synchronize();
 
-	SamplerObject sampler("uTex", SamplerObject::Type::Texture2D, 0);
+	auto program = sparkle_test::makeSolidProgram(1.0f, 0.0f, 0.0f);
+	program->activate(context.renderContext());
+
+	SamplerObject sampler("uTex", SamplerObject::Type::Texture2D, 0, *program);
 	sampler.bind(*tex);
 
 	EXPECT_NO_THROW(sampler.activate(context.renderContext()));
 	EXPECT_NO_THROW(sampler.deactivate());
 }
-
-TEST(OpenGLSamplerObjectTest, BindingPointUpdatesAfterMultipleSets)
-{
-	sparkle_test::OpenGLTestContext context;
-	(void)context;
-
-	SamplerObject sampler;
-	sampler.setBindingPoint(1);
-	sampler.setBindingPoint(5);
-	sampler.setBindingPoint(2);
-
-	EXPECT_EQ(sampler.bindingPoint(), 2);
-}
-

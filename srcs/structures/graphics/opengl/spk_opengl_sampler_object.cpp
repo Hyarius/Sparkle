@@ -2,6 +2,7 @@
 
 #include <stdexcept>
 
+#include "structures/graphics/spk_program.hpp"
 #include "structures/graphics/spk_sampler_object.hpp"
 #include "structures/graphics/opengl/spk_opengl_texture.hpp"
 #include "structures/graphics/rendering/context/spk_render_context.hpp"
@@ -25,13 +26,6 @@ namespace spk::OpenGL
 		throw std::runtime_error("Unsupported sampler type");
 	}
 
-	void SamplerObject::invalidateUniformLocation() noexcept
-	{
-		_uniformDestination = -1;
-		_uniformContextId = 0;
-		_uniformProgramId = 0;
-	}
-
 	void SamplerObject::activate(const spk::RenderContext& p_context, const spk::SamplerObject& p_sampler)
 	{
 		glActiveTexture(GL_TEXTURE0 + p_sampler.bindingPoint());
@@ -42,17 +36,21 @@ namespace spk::OpenGL
 			return;
 		}
 
-		GLint prog = 0;
-		glGetIntegerv(GL_CURRENT_PROGRAM, &prog);
-		if (_uniformDestination == -1 ||
-			_uniformContextId != p_context.id() ||
-			_uniformProgramId != static_cast<GLuint>(prog))
-		{
-			_uniformDestination = glGetUniformLocation(prog, p_sampler.designator().c_str());
-			_uniformContextId = p_context.id();
-			_uniformProgramId = static_cast<GLuint>(prog);
-		}
-		glUniform1i(_uniformDestination, p_sampler.bindingPoint());
+		const spk::Program& program = p_sampler.program();
+
+		spk::OpenGL::UniformLocation& loc = _locationCache.resolve(
+			p_context,
+			program.version(),
+			[&]() -> std::unique_ptr<spk::OpenGL::UniformLocation>
+			{
+				auto obj = std::make_unique<spk::OpenGL::UniformLocation>();
+				obj->location = glGetUniformLocation(
+					program.gpu(p_context).id(),
+					p_sampler.designator().c_str());
+				return obj;
+			});
+
+		glUniform1i(loc.location, p_sampler.bindingPoint());
 
 		const spk::OpenGL::Texture& glTex = p_sampler.texture()->gpu(p_context);
 		glBindTexture(samplerType(p_sampler.type()), glTex.id());

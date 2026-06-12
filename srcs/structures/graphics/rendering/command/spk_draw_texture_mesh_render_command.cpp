@@ -25,7 +25,7 @@ namespace spk
 	DrawTextureMeshRenderCommand::DrawTextureMeshRenderCommand(const spk::Texture& p_texture, spk::TextureMesh2D p_mesh) :
 		_texture(p_texture),
 		_mesh(std::move(p_mesh)),
-		_sampler("uTexture", spk::SamplerObject::Type::Texture2D, 0),
+		_sampler("uTexture", spk::SamplerObject::Type::Texture2D, 0, _sharedProgram()),
 		_layoutBufferDirty(true)
 	{
 		_sampler.bind(_texture);

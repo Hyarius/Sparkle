@@ -22,6 +22,7 @@ namespace spk
 	{
 	private:
 		static inline std::atomic<std::uint64_t> s_nextId = 1;
+		static inline std::atomic<std::uint64_t> s_deathGeneration = 0;
 		static inline thread_local RenderContext* s_current = nullptr;
 
 		// Monotonic, never reused: a cached {contextId, pointer} pair whose context
@@ -52,6 +53,7 @@ namespace spk
 
 		[[nodiscard]] static RenderContext* current() noexcept;
 		[[nodiscard]] static RenderContext* fromId(std::uint64_t p_id) noexcept;
+		[[nodiscard]] static std::uint64_t deathGeneration() noexcept;
 
 		[[nodiscard]] std::uint64_t id() const noexcept;
 
