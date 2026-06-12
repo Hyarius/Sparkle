@@ -9,6 +9,7 @@
 namespace
 {
 	constexpr GLuint ViewportUniformBindingPoint = 0;
+	constexpr std::string_view ViewportBlockName = "ViewportData";
 }
 
 namespace spk
@@ -112,19 +113,19 @@ namespace spk
 
 	spk::UniformBufferObject& Viewport::viewportUniformBuffer()
 	{
-		if (spk::GPUDataBufferCenter::contains(spk::GPUDataBufferCenter::ViewportBlockName) == false)
+		if (spk::GPUDataBufferCenter::contains(ViewportBlockName) == false)
 		{
 			auto buffer = std::make_shared<spk::UniformBufferObject>(
 				ViewportUniformBindingPoint,
 				spk::BufferObject::Usage::DynamicDraw,
 				sizeof(spk::Matrix4x4));
 			spk::GPUDataBufferCenter::addUBO(
-				spk::GPUDataBufferCenter::ViewportBlockName,
+				ViewportBlockName,
 				buffer);
 			return *buffer;
 		}
 
-		return spk::GPUDataBufferCenter::getUBO(spk::GPUDataBufferCenter::ViewportBlockName);
+		return spk::GPUDataBufferCenter::getUBO(ViewportBlockName);
 	}
 
 	spk::Vector2 Viewport::convertScreenToOpenGL(const spk::Vector2Int& p_screenPosition)

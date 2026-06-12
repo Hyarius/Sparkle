@@ -99,6 +99,7 @@ namespace spk
 		[[nodiscard]] std::span<const std::uint8_t> bytes() const;
 		[[nodiscard]] spk::BinaryField& field();
 		[[nodiscard]] const spk::BinaryField& field() const;
+		[[nodiscard]] bool empty() const;
 
 		virtual void activate(const spk::RenderContext& p_context) const;
 		virtual void deactivate() const;

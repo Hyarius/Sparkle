@@ -184,6 +184,11 @@ namespace spk
 		return _field;
 	}
 
+	bool BufferObject::empty() const
+	{
+		return (_cpuBuffer.empty());
+	}
+
 	void BufferObject::activate(const spk::RenderContext& p_context) const
 	{
 		if (needsSynchronization() == true)

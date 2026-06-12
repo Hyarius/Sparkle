@@ -17,12 +17,10 @@ namespace spk
 	private:
 		const spk::Texture& _texture;
 		std::shared_ptr<const spk::TextureMesh2D> _mesh;
-		spk::LayoutBufferObject _layoutBuffer;
 		const spk::UniformBufferObject& _viewportBuffer;
 		spk::SamplerObject _textureSampler;
 
 		[[nodiscard]] static spk::Program& _sharedProgram();
-		void _uploadMesh();
 
 	public:
 		DrawTextureMeshRenderCommand(const spk::Texture& p_texture, std::shared_ptr<const spk::TextureMesh2D> p_mesh);

@@ -105,10 +105,10 @@ TEST(TextureMesh2DTest, StoresVector3PositionsAndUVs)
 		spk::TextureVertex2D{{1.0f, 0.0f, 0.25f}, {1.0f, 0.0f}},
 		spk::TextureVertex2D{{1.0f, 1.0f, 0.25f}, {1.0f, 1.0f}});
 
-	ASSERT_EQ(mesh.buffer().vertices.size(), 3u);
-	EXPECT_EQ(mesh.buffer().vertices[0].position, (spk::Vector3{0.0f, 0.0f, 0.25f}));
-	EXPECT_EQ(mesh.buffer().vertices[2].uv, (spk::Vector2{1.0f, 1.0f}));
-	EXPECT_EQ(mesh.buffer().indexes.size(), 3u);
+	ASSERT_EQ(mesh.vertices().size(), 3u);
+	EXPECT_EQ(mesh.vertices()[0].position, (spk::Vector3{0.0f, 0.0f, 0.25f}));
+	EXPECT_EQ(mesh.vertices()[2].uv, (spk::Vector2{1.0f, 1.0f}));
+	EXPECT_EQ(mesh.indexes().size(), 3u);
 }
 
 TEST(TextureMesh2DTest, QuadShapeStoresFourVerticesAndSixIndexes)
@@ -118,14 +118,14 @@ TEST(TextureMesh2DTest, QuadShapeStoresFourVerticesAndSixIndexes)
 	EXPECT_EQ(mesh.nbShape(), 1u);
 	ASSERT_EQ(mesh.shapes().size(), 1u);
 	EXPECT_EQ(mesh.shapes()[0].size(), 4u);
-	EXPECT_EQ(mesh.buffer().vertices.size(), 4u);
-	ASSERT_EQ(mesh.buffer().indexes.size(), 6u);
-	EXPECT_EQ(mesh.buffer().indexes[0], 0u);
-	EXPECT_EQ(mesh.buffer().indexes[1], 1u);
-	EXPECT_EQ(mesh.buffer().indexes[2], 2u);
-	EXPECT_EQ(mesh.buffer().indexes[3], 0u);
-	EXPECT_EQ(mesh.buffer().indexes[4], 2u);
-	EXPECT_EQ(mesh.buffer().indexes[5], 3u);
+	EXPECT_EQ(mesh.vertices().size(), 4u);
+	ASSERT_EQ(mesh.indexes().size(), 6u);
+	EXPECT_EQ(mesh.indexes()[0], 0u);
+	EXPECT_EQ(mesh.indexes()[1], 1u);
+	EXPECT_EQ(mesh.indexes()[2], 2u);
+	EXPECT_EQ(mesh.indexes()[3], 0u);
+	EXPECT_EQ(mesh.indexes()[4], 2u);
+	EXPECT_EQ(mesh.indexes()[5], 3u);
 }
 
 TEST(TextureMesh2DTest, ReserveVectorShapeAndClearUpdateStorage)
@@ -142,15 +142,15 @@ TEST(TextureMesh2DTest, ReserveVectorShapeAndClearUpdateStorage)
 	mesh.addShape(vertices);
 
 	EXPECT_EQ(mesh.nbShape(), 1u);
-	EXPECT_EQ(mesh.buffer().vertices.size(), 4u);
-	EXPECT_EQ(mesh.buffer().indexes.size(), 6u);
+	EXPECT_EQ(mesh.vertices().size(), 4u);
+	EXPECT_EQ(mesh.indexes().size(), 6u);
 
 	mesh.clear();
 
 	EXPECT_EQ(mesh.nbShape(), 0u);
 	EXPECT_TRUE(mesh.shapes().empty());
-	EXPECT_TRUE(mesh.buffer().vertices.empty());
-	EXPECT_TRUE(mesh.buffer().indexes.empty());
+	EXPECT_TRUE(mesh.vertices().empty());
+	EXPECT_TRUE(mesh.indexes().empty());
 }
 
 TEST(TextureMesh2DTest, DegenerateShapeIsIgnored)
@@ -161,11 +161,11 @@ TEST(TextureMesh2DTest, DegenerateShapeIsIgnored)
 		{{1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}}
 	};
 
-	mesh.addShape(vertices);
+	EXPECT_THROW(mesh.addShape(vertices), std::runtime_error);
 
 	EXPECT_EQ(mesh.nbShape(), 0u);
-	EXPECT_TRUE(mesh.buffer().vertices.empty());
-	EXPECT_TRUE(mesh.buffer().indexes.empty());
+	EXPECT_TRUE(mesh.vertices().empty());
+	EXPECT_TRUE(mesh.indexes().empty());
 }
 
 TEST(DrawTextureMeshRenderCommandTest, DrawsFullScreenTexture)

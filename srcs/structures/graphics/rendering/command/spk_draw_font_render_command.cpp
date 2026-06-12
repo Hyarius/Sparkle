@@ -50,29 +50,9 @@ namespace spk
 		_outlineColorUniform("uOutlineColor", _sharedProgram()),
 		_outlineThicknessUniform("uOutlineThickness", _sharedProgram())
 	{
-		_layoutBuffer.addAttribute(0, spk::LayoutBufferObject::Attribute::Type::Vector3);
-		_layoutBuffer.addAttribute(1, spk::LayoutBufferObject::Attribute::Type::Vector2);
-
 		_colorUniform.set(p_color.values());
 		_outlineColorUniform.set(p_outlineColor.values());
 		_outlineThicknessUniform.set(outlineThickness(p_size));
-	}
-
-	void DrawFontRenderCommand::_uploadMesh()
-	{
-		if (_mesh == nullptr || _layoutBuffer.indexCount() != 0)
-		{
-			return;
-		}
-
-		const spk::TextureMesh2D::Buffer& buffer = _mesh->buffer();
-		if (buffer.indexes.empty() == true)
-		{
-			return;
-		}
-
-		_layoutBuffer.setVertices(std::span<const spk::TextureMesh2D::Vertex>(buffer.vertices.data(), buffer.vertices.size()));
-		_layoutBuffer.setIndexes(std::span<const std::uint32_t>(buffer.indexes.data(), buffer.indexes.size()));
 	}
 
 	void DrawFontRenderCommand::execute(spk::RenderContext& p_renderContext)
@@ -82,19 +62,12 @@ namespace spk
 			return;
 		}
 
-		_uploadMesh();
-
-		if (_layoutBuffer.indexCount() == 0)
-		{
-			return;
-		}
-
 		spk::OpenGL::Program& program = _sharedProgram().gpu(p_renderContext);
 
 		_atlas.synchronize();
 
 		program.activate();
-		_layoutBuffer.activate(p_renderContext);
+		_mesh->layoutBuffer().activate(p_renderContext);
 
 		_viewportBuffer.activate(p_renderContext);
 
@@ -107,6 +80,6 @@ namespace spk
 		_outlineColorUniform.forceActivation();
 		_outlineThicknessUniform.forceActivation();
 
-		program.render(spk::Primitive::Triangles, 0, _layoutBuffer.indexCount());
+		program.render(spk::Primitive::Triangles, 0, _mesh->layoutBuffer().indexCount());
 	}
 }

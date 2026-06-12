@@ -14,9 +14,6 @@ namespace spk
 {
 	class GPUDataBufferCenter
 	{
-	public:
-		static constexpr std::string_view ViewportBlockName = "ViewportData";
-
 	private:
 		using Buffer = std::variant<
 			std::shared_ptr<spk::UniformBufferObject>,

@@ -6,6 +6,7 @@
 #include <utility>
 #include <vector>
 
+#include "structures/graphics/geometry/spk_generic_mesh.hpp"
 #include "structures/math/spk_vector2.hpp"
 #include "structures/math/spk_vector3.hpp"
 
@@ -41,110 +42,13 @@ namespace std
 
 namespace spk
 {
-	class TextureMesh2D
+	class TextureMesh2D : public spk::GenericMesh<spk::TextureVertex2D>
 	{
 	public:
-		using Vertex = spk::TextureVertex2D;
-		using Index = std::uint32_t;
-		using Shape = std::vector<Index>;
-
-		struct Buffer
+		TextureMesh2D()
 		{
-			std::vector<Vertex> vertices;
-			std::vector<Index> indexes;
-
-			void clear()
-			{
-				vertices.clear();
-				indexes.clear();
-			}
-
-			void reserve(std::size_t p_vertexCount, std::size_t p_indexCount)
-			{
-				vertices.reserve(p_vertexCount);
-				indexes.reserve(p_indexCount);
-			}
-		};
-
-	private:
-		Buffer _buffer;
-		std::vector<Shape> _shapes;
-
-		[[nodiscard]] Index _appendVertex(const Vertex& p_vertex)
-		{
-			const Index result = static_cast<Index>(_buffer.vertices.size());
-			_buffer.vertices.emplace_back(p_vertex);
-			return result;
-		}
-
-	public:
-		TextureMesh2D() = default;
-
-		void clear()
-		{
-			_buffer.clear();
-			_shapes.clear();
-		}
-
-		void reserve(std::size_t p_vertexCount, std::size_t p_indexCount)
-		{
-			_buffer.reserve(p_vertexCount, p_indexCount);
-		}
-
-		void addShape(const Vertex& p_a, const Vertex& p_b, const Vertex& p_c)
-		{
-			const Vertex vertices[] = {p_a, p_b, p_c};
-			addShape(std::span<const Vertex>(vertices, 3));
-		}
-
-		void addShape(const Vertex& p_a, const Vertex& p_b, const Vertex& p_c, const Vertex& p_d)
-		{
-			const Vertex vertices[] = {p_a, p_b, p_c, p_d};
-			addShape(std::span<const Vertex>(vertices, 4));
-		}
-
-		void addShape(std::span<const Vertex> p_vertices)
-		{
-			if (p_vertices.size() < 3)
-			{
-				return;
-			}
-
-			Shape shape;
-			shape.reserve(p_vertices.size());
-			for (const Vertex& vertex : p_vertices)
-			{
-				shape.emplace_back(_appendVertex(vertex));
-			}
-
-			const Index firstIndex = shape[0];
-			for (std::size_t i = 1; i + 1 < shape.size(); ++i)
-			{
-				_buffer.indexes.emplace_back(firstIndex);
-				_buffer.indexes.emplace_back(shape[i]);
-				_buffer.indexes.emplace_back(shape[i + 1]);
-			}
-			_shapes.emplace_back(std::move(shape));
-		}
-
-		void addShape(const std::vector<Vertex>& p_vertices)
-		{
-			addShape(std::span<const Vertex>(p_vertices.data(), p_vertices.size()));
-		}
-
-		[[nodiscard]] std::size_t nbShape() const
-		{
-			return _shapes.size();
-		}
-
-		[[nodiscard]] const std::vector<Shape>& shapes() const
-		{
-			return _shapes;
-		}
-
-		[[nodiscard]] const Buffer& buffer() const
-		{
-			return _buffer;
+			_layoutBuffer.addAttribute(0, spk::LayoutBufferObject::Attribute::Type::Vector3);
+			_layoutBuffer.addAttribute(1, spk::LayoutBufferObject::Attribute::Type::Vector2);
 		}
 	};
 }

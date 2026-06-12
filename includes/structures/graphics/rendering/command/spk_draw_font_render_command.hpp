@@ -20,7 +20,6 @@ namespace spk
 	private:
 		spk::Font::Atlas& _atlas;
 		std::shared_ptr<const spk::TextureMesh2D> _mesh;
-		spk::LayoutBufferObject _layoutBuffer;
 		const spk::UniformBufferObject& _viewportBuffer;
 		spk::SamplerObject _atlasSampler;
 		spk::Vector4Uniform _colorUniform;
@@ -28,7 +27,6 @@ namespace spk
 		spk::FloatUniform _outlineThicknessUniform;
 
 		[[nodiscard]] static spk::Program& _sharedProgram();
-		void _uploadMesh();
 
 	public:
 		DrawFontRenderCommand(

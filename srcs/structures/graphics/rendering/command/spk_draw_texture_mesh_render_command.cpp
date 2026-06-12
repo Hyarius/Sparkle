@@ -21,8 +21,7 @@ namespace spk
 		_viewportBuffer(spk::Viewport::viewportUniformBuffer()),
 		_textureSampler("uTexture", spk::SamplerObject::Type::Texture2D, 0, _sharedProgram())
 	{
-		_layoutBuffer.addAttribute(0, spk::LayoutBufferObject::Attribute::Type::Vector3);
-		_layoutBuffer.addAttribute(1, spk::LayoutBufferObject::Attribute::Type::Vector2);
+		
 	}
 
 	spk::Program& DrawTextureMeshRenderCommand::_sharedProgram()
@@ -33,23 +32,6 @@ namespace spk
 		return program;
 	}
 
-	void DrawTextureMeshRenderCommand::_uploadMesh()
-	{
-		if (_mesh == nullptr || _layoutBuffer.indexCount() != 0)
-		{
-			return;
-		}
-
-		const spk::TextureMesh2D::Buffer& buffer = _mesh->buffer();
-		if (buffer.indexes.empty() == true)
-		{
-			return;
-		}
-
-		_layoutBuffer.setVertices(std::span<const spk::TextureMesh2D::Vertex>(buffer.vertices.data(), buffer.vertices.size()));
-		_layoutBuffer.setIndexes(std::span<const std::uint32_t>(buffer.indexes.data(), buffer.indexes.size()));
-	}
-
 	void DrawTextureMeshRenderCommand::execute(spk::RenderContext& p_renderContext)
 	{
 		if (_mesh == nullptr)
@@ -57,23 +39,16 @@ namespace spk
 			return;
 		}
 
-		_uploadMesh();
-
-		if (_layoutBuffer.indexCount() == 0)
-		{
-			return;
-		}
-
 		spk::OpenGL::Program& program = _sharedProgram().gpu(p_renderContext);
 
 		program.activate();
-		_layoutBuffer.activate(p_renderContext);
+		_mesh->layoutBuffer().activate(p_renderContext);
 
 		_viewportBuffer.activate(p_renderContext);
 
 		_textureSampler.bind(_texture);
 		_textureSampler.activate(p_renderContext);
 
-		program.render(spk::Primitive::Triangles, 0, _layoutBuffer.indexCount());
+		program.render(spk::Primitive::Triangles, 0, _mesh->layoutBuffer().indexCount());
 	}
 }
