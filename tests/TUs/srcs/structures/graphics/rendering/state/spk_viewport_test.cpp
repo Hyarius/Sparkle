@@ -39,14 +39,16 @@ TEST(ViewportTest, SetMaxLayerAndMaxLayerRoundTrip)
 	spk::Viewport::setMaxLayer(savedMaxLayer);
 }
 
-TEST(ViewportTest, ConvertLayerToOpenGLScalesByMaxLayer)
+TEST(ViewportTest, ConvertLayerToOpenGLMapsLayerRangeToNDCDepth)
 {
 	const float savedMaxLayer = spk::Viewport::maxLayer();
 
+	// Layer 0 is the background (far plane, NDC +1); maxLayer is the closest
+	// layer (near plane, NDC -1): higher layers draw on top of lower ones.
 	spk::Viewport::setMaxLayer(200.0f);
-	EXPECT_FLOAT_EQ(spk::Viewport::convertLayerToOpenGL(100.0f), 0.5f);
-	EXPECT_FLOAT_EQ(spk::Viewport::convertLayerToOpenGL(200.0f), 1.0f);
-	EXPECT_FLOAT_EQ(spk::Viewport::convertLayerToOpenGL(0.0f), 0.0f);
+	EXPECT_FLOAT_EQ(spk::Viewport::convertLayerToOpenGL(0.0f), 1.0f);
+	EXPECT_FLOAT_EQ(spk::Viewport::convertLayerToOpenGL(100.0f), 0.0f);
+	EXPECT_FLOAT_EQ(spk::Viewport::convertLayerToOpenGL(200.0f), -1.0f);
 
 	spk::Viewport::setMaxLayer(savedMaxLayer);
 }

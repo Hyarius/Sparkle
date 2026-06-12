@@ -1,11 +1,13 @@
 #include <gtest/gtest.h>
 
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
 #include <memory>
+#include <string_view>
 #include <vector>
 
 #include <GL/glew.h>
@@ -24,6 +26,15 @@ using Viewport = spk::Viewport;
 
 namespace
 {
+	[[nodiscard]] spk::Vector3 toPosition(const spk::Vector2Int& p_pixel, float p_depth)
+	{
+		return {
+			static_cast<float>(p_pixel.x),
+			static_cast<float>(p_pixel.y),
+			p_depth
+		};
+	}
+
 	[[nodiscard]] spk::TextureMesh2D makeFullScreenMesh(const spk::Vector2UInt& p_size)
 	{
 		spk::TextureMesh2D mesh;
@@ -33,6 +44,56 @@ namespace
 			spk::TextureVertex2D{{static_cast<float>(p_size.x), static_cast<float>(p_size.y), 0.0f}, {1.0f, 1.0f}},
 			spk::TextureVertex2D{{static_cast<float>(p_size.x), 0.0f, 0.0f}, {1.0f, 0.0f}});
 		return mesh;
+	}
+
+	[[nodiscard]] spk::TextureMesh2D makeFontMesh(
+		spk::Font::Atlas& p_atlas,
+		const spk::Font::Text& p_text,
+		const spk::Vector2Int& p_baselinePosition,
+		float p_depth = 0.0f)
+	{
+		p_atlas.loadGlyphs(p_text);
+
+		spk::TextureMesh2D mesh;
+		int cursorX = p_baselinePosition.x;
+
+		for (spk::Font::Codepoint character : p_text)
+		{
+			const spk::Font::Glyph& glyph = p_atlas.glyph(character);
+
+			if (glyph.size.x != 0 && glyph.size.y != 0)
+			{
+				std::array<spk::TextureVertex2D, 4> vertices;
+
+				for (std::size_t i = 0; i < vertices.size(); ++i)
+				{
+					const spk::Vector2Int pixelPosition = {
+						cursorX + glyph.positions[i].x,
+						p_baselinePosition.y + glyph.positions[i].y
+					};
+
+					vertices[i] = {
+						toPosition(pixelPosition, p_depth),
+						glyph.uvs[i]
+					};
+				}
+
+				mesh.addShape(vertices[0], vertices[1], vertices[3], vertices[2]);
+			}
+
+			cursorX += glyph.step.x;
+		}
+
+		return mesh;
+	}
+
+	[[nodiscard]] spk::TextureMesh2D makeFontMesh(
+		spk::Font::Atlas& p_atlas,
+		std::string_view p_text,
+		const spk::Vector2Int& p_baselinePosition,
+		float p_depth = 0.0f)
+	{
+		return makeFontMesh(p_atlas, spk::Font::textFromUTF8(p_text), p_baselinePosition, p_depth);
 	}
 }
 
@@ -119,7 +180,9 @@ TEST(DrawTextureMeshRenderCommandTest, DrawsFullScreenTexture)
 	spk::RenderUnitBuilder builder;
 	builder.emplace<spk::ViewportCommand>(viewport);
 	builder.emplace<ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
-	builder.emplace<spk::DrawTextureMeshRenderCommand>(*blueTexture, makeFullScreenMesh({width, height}));
+	builder.emplace<spk::DrawTextureMeshRenderCommand>(
+		*blueTexture,
+		std::make_shared<spk::TextureMesh2D>(makeFullScreenMesh({width, height})));
 
 	spk::RenderUnit unit = builder.build();
 	unit.execute(renderContext);
@@ -143,7 +206,7 @@ TEST(DrawTextureMeshRenderCommandTest, EmptyMeshDoesNotDraw)
 	spk::RenderUnitBuilder builder;
 	builder.emplace<spk::ViewportCommand>(viewport);
 	builder.emplace<ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
-	builder.emplace<spk::DrawTextureMeshRenderCommand>(*whiteTexture, spk::TextureMesh2D{});
+	builder.emplace<spk::DrawTextureMeshRenderCommand>(*whiteTexture, std::make_shared<spk::TextureMesh2D>());
 
 	spk::RenderUnit unit = builder.build();
 	EXPECT_NO_THROW(unit.execute(renderContext));
@@ -170,17 +233,21 @@ TEST(DrawFontRenderCommandTest, DrawsGlyphsWithSizeAndOutline)
 	spk::RenderUnitBuilder builder;
 	builder.emplace<spk::ViewportCommand>(viewport);
 	builder.emplace<ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
+
+	const spk::Font::Size smallSize(16, 0);
+	spk::Font::Atlas& smallAtlas = font.atlas(smallSize);
 	builder.emplace<spk::DrawFontRenderCommand>(
-		font,
-		"A",
-		spk::Vector2Int{4, 34},
-		spk::Font::Size(16, 0),
+		smallAtlas,
+		std::make_shared<spk::TextureMesh2D>(makeFontMesh(smallAtlas, "A", spk::Vector2Int{4, 34})),
+		smallSize,
 		spk::Color(1.0f, 1.0f, 1.0f, 1.0f));
+
+	const spk::Font::Size outlineSize(28, 3);
+	spk::Font::Atlas& outlineAtlas = font.atlas(outlineSize);
 	builder.emplace<spk::DrawFontRenderCommand>(
-		font,
-		"A",
-		spk::Vector2Int{40, 34},
-		spk::Font::Size(28, 3),
+		outlineAtlas,
+		std::make_shared<spk::TextureMesh2D>(makeFontMesh(outlineAtlas, "A", spk::Vector2Int{40, 34})),
+		outlineSize,
 		spk::Color(1.0f, 1.0f, 1.0f, 1.0f));
 
 	spk::RenderUnit unit = builder.build();
@@ -205,7 +272,13 @@ TEST(DrawFontRenderCommandTest, EmptyTextDoesNotDraw)
 	spk::RenderUnitBuilder builder;
 	builder.emplace<spk::ViewportCommand>(viewport);
 	builder.emplace<ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
-	builder.emplace<spk::DrawFontRenderCommand>(font, "", spk::Vector2Int{0, 16}, spk::Font::Size(16, 0));
+
+	const spk::Font::Size size(16, 0);
+	spk::Font::Atlas& atlas = font.atlas(size);
+	builder.emplace<spk::DrawFontRenderCommand>(
+		atlas,
+		std::make_shared<spk::TextureMesh2D>(makeFontMesh(atlas, "", spk::Vector2Int{0, 16})),
+		size);
 
 	spk::RenderUnit unit = builder.build();
 	EXPECT_NO_THROW(unit.execute(renderContext));

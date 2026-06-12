@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+
 #include "structures/graphics/geometry/spk_color.hpp"
 #include "structures/math/spk_matrix.hpp"
 #include "structures/graphics/geometry/spk_color_mesh_2d.hpp"
@@ -13,13 +15,13 @@ namespace spk
 	class DrawColorMeshRenderCommand : public spk::RenderCommand
 	{
 	private:
-		const spk::LayoutBufferObject& _layoutBuffer;
+		std::shared_ptr<const spk::ColorMesh2D> _mesh;
 		const spk::UniformBufferObject& _viewportBuffer;
 
 		[[nodiscard]] static spk::Program& _sharedProgram();
 
 	public:
-		DrawColorMeshRenderCommand(const spk::ColorMesh2D& p_mesh);
+		DrawColorMeshRenderCommand(std::shared_ptr<const spk::ColorMesh2D> p_mesh);
 
 		void execute(spk::RenderContext& p_renderContext) override;
 	};

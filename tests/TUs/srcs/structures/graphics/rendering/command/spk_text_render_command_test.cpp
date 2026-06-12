@@ -3,7 +3,9 @@
 
 #include <array>
 #include <cstddef>
+#include <cstdint>
 #include <filesystem>
+#include <vector>
 
 #include <GL/glew.h>
 
@@ -160,3 +162,82 @@ TEST(TextRenderCommandTest, CanExecuteTwiceWithConstructedCommand)
 		sparkle_test::renderCommandResultPath("TextRenderCommand/twice_diff"));
 }
 
+TEST(TextRenderCommandTest, RebuildsDrawCommandAfterAtlasGrowth)
+{
+	// Regression test for stale glyph UVs: TextRenderCommand owns the text to
+	// mesh conversion and must recreate its draw command after the atlas grows.
+	constexpr int width = 64;
+	constexpr int height = 40;
+	sparkle_test::OpenGLTestContext context(spk::Rect2D(0, 0, width, height));
+	spk::RenderContext& renderContext = context.renderContext();
+
+	sparkle_test::OffscreenRenderTarget target(width, height);
+	ASSERT_TRUE(target.isComplete());
+
+	spk::Font font = sparkle_test::testFont();
+	const spk::Font::Size size(16, 0);
+	const spk::Color glyphColor(1.0f, 1.0f, 1.0f, 1.0f);
+	const spk::Color outlineColor(0.0f, 0.0f, 0.0f, 0.0f);
+
+	Viewport viewport(spk::Rect2D(0, 0, width, height));
+	spk::RenderUnitBuilder cachedBuilder;
+	cachedBuilder.emplace<spk::ViewportCommand>(viewport);
+	cachedBuilder.emplace<ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
+	cachedBuilder.emplace<spk::TextRenderCommand>(
+		font,
+		"AB",
+		size,
+		glyphColor,
+		outlineColor,
+		0.0f,
+		spk::Vector2Int{4, 28});
+	spk::RenderUnit cachedUnit = cachedBuilder.build();
+
+	cachedUnit.execute(renderContext);
+	context.gpuRuntime().waitUntilWorkDone();
+
+	spk::Font::Atlas& atlas = font.atlas(size);
+	const spk::Vector2UInt atlasSizeBefore = atlas.size();
+	atlas.loadGlyphs(sparkle_test::manyGlyphsText());
+	ASSERT_TRUE(atlas.size() != atlasSizeBefore) << "the glyph load did not grow the atlas; the test premise is broken";
+
+	cachedUnit.execute(renderContext);
+	context.gpuRuntime().waitUntilWorkDone();
+	const std::vector<std::uint8_t> cachedCommandPixels = sparkle_test::readPixels(width, height);
+
+	spk::RenderUnitBuilder freshBuilder;
+	freshBuilder.emplace<spk::ViewportCommand>(viewport);
+	freshBuilder.emplace<ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
+	freshBuilder.emplace<spk::TextRenderCommand>(
+		font,
+		"AB",
+		size,
+		glyphColor,
+		outlineColor,
+		0.0f,
+		spk::Vector2Int{4, 28});
+	freshBuilder.build().execute(renderContext);
+	context.gpuRuntime().waitUntilWorkDone();
+	const std::vector<std::uint8_t> freshCommandPixels = sparkle_test::readPixels(width, height);
+
+	std::size_t differingBytes = 0;
+	for (std::size_t i = 0; i < cachedCommandPixels.size(); ++i)
+	{
+		if (cachedCommandPixels[i] != freshCommandPixels[i])
+		{
+			++differingBytes;
+		}
+	}
+	EXPECT_EQ(differingBytes, 0u) << "cached text command drew with stale atlas UVs";
+
+	bool anyGlyphPixel = false;
+	for (std::size_t i = 0; i < cachedCommandPixels.size(); i += 4)
+	{
+		if (cachedCommandPixels[i] != 0)
+		{
+			anyGlyphPixel = true;
+			break;
+		}
+	}
+	EXPECT_TRUE(anyGlyphPixel) << "no text was rendered at all; the comparison is vacuous";
+}

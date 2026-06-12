@@ -17,14 +17,12 @@ namespace spk
 	{
 		_matrix.configure([this]() -> spk::Matrix4x4
 		{
-			// Vertices are expressed in pixels relative to the viewport anchor: (0,0) is
-			// the top-left corner of the rect covered by glViewport, not the window origin.
 			const float left   = 0.0f;
 			const float right  = static_cast<float>(_geometry.width());
 			const float top    = 0.0f;
 			const float bottom = static_cast<float>(_geometry.height());
 
-			return spk::Matrix4x4::ortho(left, right, bottom, top, _maxLayer, 0);
+			return spk::Matrix4x4::ortho(left, right, bottom, top, -_maxLayer, 0);
 		});
 	}
 
@@ -163,6 +161,6 @@ namespace spk
 
 	float Viewport::convertLayerToOpenGL(float p_layer)
 	{
-		return p_layer / _maxLayer;
+		return 1.0f - 2.0f * p_layer / _maxLayer;
 	}
 }

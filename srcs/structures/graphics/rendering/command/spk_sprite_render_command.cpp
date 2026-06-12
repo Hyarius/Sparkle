@@ -1,5 +1,6 @@
 #include "structures/graphics/rendering/command/spk_sprite_render_command.hpp"
 
+#include <memory>
 #include <utility>
 
 namespace
@@ -29,15 +30,15 @@ namespace spk
 		const spk::Vector2 bottomRightUV = sprite.anchor + sprite.size;
 		const spk::Vector2 topRightUV    = {sprite.anchor.x + sprite.size.x, sprite.anchor.y};
 
-		spk::TextureMesh2D mesh;
-		mesh.addShape(
+		auto mesh = std::make_shared<spk::TextureMesh2D>();
+		mesh->addShape(
 			{toPosition(p_screenRect.anchor,                                p_depth), topLeftUV},
 			{toPosition({p_screenRect.left(),  p_screenRect.bottom()},      p_depth), bottomLeftUV},
 			{toPosition({p_screenRect.right(), p_screenRect.bottom()},      p_depth), bottomRightUV},
 			{toPosition({p_screenRect.right(), p_screenRect.top()},         p_depth), topRightUV});
 
 		_textureCommand = std::make_unique<spk::DrawTextureMeshRenderCommand>(
-			static_cast<const spk::Texture&>(p_spriteSheet), std::move(mesh));
+			static_cast<const spk::Texture&>(p_spriteSheet), mesh);
 	}
 
 	void SpriteRenderCommand::execute(spk::RenderContext& p_renderContext)

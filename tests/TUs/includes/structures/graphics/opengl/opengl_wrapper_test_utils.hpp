@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cstddef>
+#include <cstdint>
 #include <filesystem>
 #include <memory>
 #include <string>
@@ -71,6 +72,66 @@ namespace sparkle_test
 			return *s_gpuRuntime;
 		}
 	};
+
+	// Offscreen render target for pixel-assertion tests. The hidden test window's
+	// back buffer has undefined pixel ownership, so deterministic readbacks must go
+	// through a dedicated framebuffer (same rationale as the widget visual helper).
+	class OffscreenRenderTarget
+	{
+	private:
+		GLuint _colorRenderbuffer = 0;
+		GLuint _depthStencilRenderbuffer = 0;
+		GLuint _framebuffer = 0;
+
+	public:
+		OffscreenRenderTarget(GLsizei p_width, GLsizei p_height)
+		{
+			glGenRenderbuffers(1, &_colorRenderbuffer);
+			glBindRenderbuffer(GL_RENDERBUFFER, _colorRenderbuffer);
+			glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA8, p_width, p_height);
+
+			glGenRenderbuffers(1, &_depthStencilRenderbuffer);
+			glBindRenderbuffer(GL_RENDERBUFFER, _depthStencilRenderbuffer);
+			glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, p_width, p_height);
+
+			glBindRenderbuffer(GL_RENDERBUFFER, 0);
+
+			glGenFramebuffers(1, &_framebuffer);
+			glBindFramebuffer(GL_FRAMEBUFFER, _framebuffer);
+			glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, _colorRenderbuffer);
+			glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, _depthStencilRenderbuffer);
+		}
+
+		~OffscreenRenderTarget()
+		{
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+			glDeleteFramebuffers(1, &_framebuffer);
+			glDeleteRenderbuffers(1, &_depthStencilRenderbuffer);
+			glDeleteRenderbuffers(1, &_colorRenderbuffer);
+		}
+
+		OffscreenRenderTarget(const OffscreenRenderTarget&) = delete;
+		OffscreenRenderTarget& operator=(const OffscreenRenderTarget&) = delete;
+
+		[[nodiscard]] bool isComplete() const
+		{
+			return glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
+		}
+	};
+
+	[[nodiscard]] inline std::array<std::uint8_t, 4> readPixel(int p_x, int p_y)
+	{
+		std::array<std::uint8_t, 4> pixel{};
+		glReadPixels(p_x, p_y, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, pixel.data());
+		return pixel;
+	}
+
+	[[nodiscard]] inline std::vector<std::uint8_t> readPixels(int p_width, int p_height)
+	{
+		std::vector<std::uint8_t> pixels(static_cast<std::size_t>(p_width) * static_cast<std::size_t>(p_height) * 4, 0);
+		glReadPixels(0, 0, p_width, p_height, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
+		return pixels;
+	}
 
 	struct TestVertex
 	{

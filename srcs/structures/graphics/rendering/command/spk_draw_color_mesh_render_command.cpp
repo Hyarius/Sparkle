@@ -1,5 +1,7 @@
 #include "structures/graphics/rendering/command/spk_draw_color_mesh_render_command.hpp"
 
+#include <utility>
+
 #include <GL/glew.h>
 
 #include "structures/graphics/spk_layout_buffer_object.hpp"
@@ -12,8 +14,8 @@
 namespace spk
 {
 	DrawColorMeshRenderCommand::DrawColorMeshRenderCommand(
-		const spk::ColorMesh2D& p_mesh) :
-		_layoutBuffer(p_mesh.layoutBuffer()),
+		std::shared_ptr<const spk::ColorMesh2D> p_mesh) :
+		_mesh(std::move(p_mesh)),
 		_viewportBuffer(spk::Viewport::viewportUniformBuffer())
 	{
 	}
@@ -28,7 +30,13 @@ namespace spk
 
 	void DrawColorMeshRenderCommand::execute(spk::RenderContext& p_renderContext)
 	{
-		if (_layoutBuffer.indexCount() == 0)
+		if (_mesh == nullptr)
+		{
+			return;
+		}
+
+		const spk::LayoutBufferObject& layoutBuffer = _mesh->layoutBuffer();
+		if (layoutBuffer.indexCount() == 0)
 		{
 			return;
 		}
@@ -36,10 +44,10 @@ namespace spk
 		spk::OpenGL::Program& program = _sharedProgram().gpu(p_renderContext);
 
 		program.activate();
-		_layoutBuffer.activate(p_renderContext);
+		layoutBuffer.activate(p_renderContext);
 
 		_viewportBuffer.activate(p_renderContext);
 
-		program.render(spk::Primitive::Triangles, 0, _layoutBuffer.indexCount());
+		program.render(spk::Primitive::Triangles, 0, layoutBuffer.indexCount());
 	}
 }

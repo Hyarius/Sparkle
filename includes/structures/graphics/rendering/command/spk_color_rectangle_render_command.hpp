@@ -13,7 +13,7 @@ namespace spk
 	class ColorRectangleRenderCommand : public spk::RenderCommand
 	{
 	private:
-		spk::ColorMesh2D _mesh;
+		std::shared_ptr<spk::ColorMesh2D> _mesh;
 		std::unique_ptr<spk::DrawColorMeshRenderCommand> _colorCommand;
 
 	public:

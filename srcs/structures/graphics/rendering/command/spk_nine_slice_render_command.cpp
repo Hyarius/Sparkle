@@ -1,6 +1,7 @@
 #include "structures/graphics/rendering/command/spk_nine_slice_render_command.hpp"
 
 #include <array>
+#include <memory>
 #include <stdexcept>
 #include <utility>
 
@@ -61,8 +62,8 @@ namespace spk
 			p_screenRect.bottom()
 		};
 
-		spk::TextureMesh2D mesh;
-		mesh.reserve(9 * 4, 9 * 6);
+		auto mesh = std::make_shared<spk::TextureMesh2D>();
+		mesh->reserve(9 * 4, 9 * 6);
 
 		for (std::uint32_t y = 0; y < 3; ++y)
 		{
@@ -74,7 +75,7 @@ namespace spk
 				const spk::Vector2 bottomRightUV = sprite.anchor + sprite.size;
 				const spk::Vector2 topRightUV = {sprite.anchor.x + sprite.size.x, sprite.anchor.y};
 
-				mesh.addShape(
+				mesh->addShape(
 					{toPosition(xPositions[x], yPositions[y], p_depth), topLeftUV},
 					{toPosition(xPositions[x], yPositions[y + 1], p_depth), bottomLeftUV},
 					{toPosition(xPositions[x + 1], yPositions[y + 1], p_depth), bottomRightUV},
@@ -83,7 +84,7 @@ namespace spk
 		}
 
 		_textureCommand = std::make_unique<spk::DrawTextureMeshRenderCommand>(
-			static_cast<const spk::Texture&>(p_spriteSheet), std::move(mesh));
+			static_cast<const spk::Texture&>(p_spriteSheet), mesh);
 	}
 
 	void NineSliceRenderCommand::execute(spk::RenderContext& p_renderContext)

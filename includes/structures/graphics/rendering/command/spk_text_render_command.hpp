@@ -17,7 +17,21 @@ namespace spk
 	class TextRenderCommand : public spk::RenderCommand
 	{
 	private:
+		spk::Font& _font;
+		spk::Font::Atlas& _atlas;
+		spk::Font::Text _text;
+		spk::Font::Size _size;
+		spk::Color _glyphColor;
+		spk::Color _outlineColor;
+		float _depth;
+		spk::Vector2Int _anchor;
+		spk::HorizontalAlignment _horizontalAlignment;
+		spk::VerticalAlignment _verticalAlignment;
+		bool _fontCommandOutdated = true;
 		std::unique_ptr<spk::DrawFontRenderCommand> _fontCommand;
+		spk::Font::Atlas::Contract _onAtlasEditionContract;
+
+		void _rebuildFontCommand();
 
 	public:
 		TextRenderCommand(
@@ -40,6 +54,11 @@ namespace spk
 			spk::Vector2Int p_anchor,
 			spk::HorizontalAlignment p_horizontalAlignment = spk::HorizontalAlignment::Left,
 			spk::VerticalAlignment p_verticalAlignment = spk::VerticalAlignment::Top);
+
+		TextRenderCommand(const TextRenderCommand&) = delete;
+		TextRenderCommand& operator=(const TextRenderCommand&) = delete;
+		TextRenderCommand(TextRenderCommand&&) = delete;
+		TextRenderCommand& operator=(TextRenderCommand&&) = delete;
 
 		void execute(spk::RenderContext& p_renderContext) override;
 	};
