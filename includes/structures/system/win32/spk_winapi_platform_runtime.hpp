@@ -1,6 +1,5 @@
 #pragma once
 
-#ifdef _WIN32
 
 #include <memory>
 #include <string>
@@ -25,4 +24,3 @@ namespace spk
 	};
 }
 
-#endif

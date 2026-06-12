@@ -49,14 +49,12 @@
 #include "structures/system/device/runtime/spk_platform_runtime.hpp"
 #include "structures/graphics/rendering/context/spk_render_context.hpp"
 #include "structures/system/device/runtime/spk_opengl_runtime.hpp"
-#ifdef _WIN32
 #include "structures/system/win32/spk_winapi_class.hpp"
 #include "structures/system/win32/spk_winapi_cursor.hpp"
 #include "structures/system/win32/spk_winapi_window.hpp"
 #include "structures/system/win32/spk_winapi_frame.hpp"
 #include "structures/system/win32/spk_winapi_platform_runtime.hpp"
 #include "structures/graphics/opengl/spk_opengl_render_context.hpp"
-#endif
 
 // Rendering
 #include "structures/graphics/rendering/command/spk_render_command.hpp"

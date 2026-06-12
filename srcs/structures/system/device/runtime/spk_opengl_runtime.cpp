@@ -1,6 +1,5 @@
 #include "structures/system/device/runtime/spk_opengl_runtime.hpp"
 
-#ifdef _WIN32
 
 #include <algorithm>
 #include <cstdint>
@@ -78,4 +77,3 @@ namespace spk
 	}
 }
 
-#endif

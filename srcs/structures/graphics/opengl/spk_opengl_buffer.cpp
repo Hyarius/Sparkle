@@ -17,6 +17,7 @@ namespace spk
 			if (_id != 0 && _ownsCurrentContext() == true)
 			{
 				glDeleteBuffers(1, &_id);
+				notifyBufferDeleted(*this);
 			}
 		}
 

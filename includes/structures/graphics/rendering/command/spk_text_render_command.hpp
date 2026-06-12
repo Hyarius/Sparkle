@@ -21,7 +21,7 @@ namespace spk
 
 	public:
 		TextRenderCommand(
-			const spk::Font& p_font,
+			spk::Font& p_font,
 			spk::Font::Text p_text,
 			spk::Font::Size p_size,
 			spk::Color p_glyphColor,
@@ -31,7 +31,7 @@ namespace spk
 			spk::HorizontalAlignment p_horizontalAlignment = spk::HorizontalAlignment::Left,
 			spk::VerticalAlignment p_verticalAlignment = spk::VerticalAlignment::Top);
 		TextRenderCommand(
-			const spk::Font& p_font,
+			spk::Font& p_font,
 			std::string_view p_text,
 			spk::Font::Size p_size,
 			spk::Color p_glyphColor,

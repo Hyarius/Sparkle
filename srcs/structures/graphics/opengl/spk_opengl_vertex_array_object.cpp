@@ -46,7 +46,11 @@ namespace spk
 			[this, &p_context]()
 			{
 				auto vertexArray = std::make_unique<spk::OpenGL::VertexArray>();
-				glBindVertexArray(vertexArray->id());
+				if (p_context.isVertexArrayActive(vertexArray.get()) == false)
+				{
+					glBindVertexArray(vertexArray->id());
+					p_context.setActiveVertexArray(vertexArray.get());
+				}
 
 				for (const VertexBufferBinding& binding : _vertexBufferBindings)
 				{
@@ -124,33 +128,70 @@ namespace spk
 		return _indexBuffer;
 	}
 
-	void VertexArrayObject::activate(const spk::RenderContext& p_context)
+	void VertexArrayObject::activate(const spk::RenderContext& p_context) const
 	{
 		if (needsSynchronization() == true)
 		{
 			synchronize();
 		}
 
-		// Child content refreshes (glBufferSubData, same id) happen with no VAO
-		// bound: an ELEMENT_ARRAY rebind would otherwise leak into the bound VAO.
-		glBindVertexArray(0);
+		bool childrenClean = true;
 		for (const VertexBufferBinding& binding : _vertexBufferBindings)
 		{
-			if (binding.buffer != nullptr)
+			if (binding.buffer != nullptr && binding.buffer->hasGpu(p_context) == false)
 			{
-				(void)binding.buffer->gpu(p_context);
+				childrenClean = false;
+				break;
 			}
 		}
-		if (_indexBuffer != nullptr)
+		if (childrenClean == true && _indexBuffer != nullptr && _indexBuffer->hasGpu(p_context) == false)
 		{
-			(void)_indexBuffer->gpu(p_context);
+			childrenClean = false;
 		}
 
-		glBindVertexArray(gpu(p_context).id());
+		if (childrenClean == false)
+		{
+			// Child content refreshes (glBufferSubData, same id) happen with no VAO
+			// bound: an ELEMENT_ARRAY rebind would otherwise leak into the bound VAO.
+			if (p_context.isVertexArrayActive(nullptr) == false)
+			{
+				glBindVertexArray(0);
+				p_context.setActiveVertexArray(nullptr);
+			}
+			for (const VertexBufferBinding& binding : _vertexBufferBindings)
+			{
+				if (binding.buffer != nullptr)
+				{
+					(void)binding.buffer->gpu(p_context);
+				}
+			}
+			if (_indexBuffer != nullptr)
+			{
+				(void)_indexBuffer->gpu(p_context);
+			}
+		}
+
+		spk::OpenGL::VertexArray& vertexArray = gpu(p_context);
+		if (p_context.isVertexArrayActive(&vertexArray) == false)
+		{
+			glBindVertexArray(vertexArray.id());
+			p_context.setActiveVertexArray(&vertexArray);
+		}
 	}
 
 	void VertexArrayObject::deactivate() const
 	{
+		spk::RenderContext* context = spk::RenderContext::current();
+		if (context != nullptr && context->isVertexArrayActive(nullptr) == true)
+		{
+			return;
+		}
+
 		glBindVertexArray(0);
+
+		if (context != nullptr)
+		{
+			context->setActiveVertexArray(nullptr);
+		}
 	}
 }

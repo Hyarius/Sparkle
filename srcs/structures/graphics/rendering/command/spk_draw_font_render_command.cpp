@@ -7,18 +7,13 @@
 
 #include <GL/glew.h>
 
-#include "structures/graphics/spk_gpu_data_buffer_center.hpp"
 #include "structures/graphics/spk_uniform_buffer_object.hpp"
 #include "structures/graphics/rendering/context/spk_render_context.hpp"
+#include "structures/graphics/rendering/state/spk_viewport.hpp"
 #include "spk_generated_resources.hpp"
 
 namespace
 {
-	spk::UniformBufferObject& viewportUniformBuffer()
-	{
-		return spk::GPUDataBufferCenter::getUBO(spk::GPUDataBufferCenter::ViewportBlockName);
-	}
-
 	[[nodiscard]] spk::Vector3 toPosition(const spk::Vector2Int& p_pixel, float p_depth)
 	{
 		return {
@@ -50,30 +45,53 @@ namespace spk
 		return program;
 	}
 
+	// The program is static, so the uniforms and sampler can be shared by every
+	// font command: locations are resolved and validated once per context instead
+	// of once per command instance. execute() re-uploads its own values before
+	// each draw (single render thread).
+	spk::Vector4Uniform& DrawFontRenderCommand::_colorUniform()
+	{
+		static spk::Vector4Uniform uniform("uColor", _sharedProgram());
+		return uniform;
+	}
+
+	spk::Vector4Uniform& DrawFontRenderCommand::_outlineColorUniform()
+	{
+		static spk::Vector4Uniform uniform("uOutlineColor", _sharedProgram());
+		return uniform;
+	}
+
+	spk::FloatUniform& DrawFontRenderCommand::_outlineThicknessUniform()
+	{
+		static spk::FloatUniform uniform("uOutlineThickness", _sharedProgram());
+		return uniform;
+	}
+
+	spk::SamplerObject& DrawFontRenderCommand::_atlasSampler()
+	{
+		static spk::SamplerObject sampler("uTexture", spk::SamplerObject::Type::Texture2D, 0, _sharedProgram());
+		return sampler;
+	}
+
 	DrawFontRenderCommand::DrawFontRenderCommand(
-		const spk::Font& p_font,
+		spk::Font& p_font,
 		spk::Font::Text p_text,
 		spk::Vector2Int p_baselinePosition,
 		spk::Font::Size p_size,
 		spk::Color p_color,
 		spk::Color p_outlineColor,
 		float p_depth) :
-		_atlas(const_cast<spk::Font&>(p_font).atlas(p_size)),
+		_atlas(p_font.atlas(p_size)),
 		_color(p_color),
 		_outlineColor(p_outlineColor),
 		_outlineThickness(outlineThickness(p_size)),
-		_colorUniform("uColor", _sharedProgram()),
-		_outlineColorUniform("uOutlineColor", _sharedProgram()),
-		_outlineThicknessUniform("uOutlineThickness", _sharedProgram()),
-		_sampler("uTexture", spk::SamplerObject::Type::Texture2D, 0, _sharedProgram()),
-		_layoutBufferDirty(true)
+		_viewportBuffer(spk::Viewport::viewportUniformBuffer())
 	{
 		_layoutBuffer.addAttribute(0, spk::LayoutBufferObject::Attribute::Type::Vector3);
 		_layoutBuffer.addAttribute(1, spk::LayoutBufferObject::Attribute::Type::Vector2);
 
 		_atlas.loadGlyphs(p_text);
 
-		spk::TextureMesh2D mesh;
 		int cursorX = p_baselinePosition.x;
 
 		for (spk::Font::Codepoint character : p_text)
@@ -97,43 +115,15 @@ namespace spk
 					};
 				}
 
-				mesh.addShape(vertices[0], vertices[1], vertices[3], vertices[2]);
+				_mesh.addShape(vertices[0], vertices[1], vertices[3], vertices[2]);
 			}
 
 			cursorX += glyph.step.x;
 		}
-
-		const auto appendVertex = [this](const spk::TextureVertex2D& p_vertex)
-		{
-			_vertexData.push_back(p_vertex.position.x);
-			_vertexData.push_back(p_vertex.position.y);
-			_vertexData.push_back(p_vertex.position.z);
-			_vertexData.push_back(p_vertex.uv.x);
-			_vertexData.push_back(p_vertex.uv.y);
-		};
-
-		if (mesh.buffer().indexes.empty() == false)
-		{
-			_vertexData.reserve(mesh.buffer().indexes.size() * 5);
-
-			for (const std::uint32_t index : mesh.buffer().indexes)
-			{
-				appendVertex(mesh.buffer().vertices[index]);
-			}
-		}
-		else
-		{
-			_vertexData.reserve(mesh.buffer().vertices.size() * 5);
-
-			for (const spk::TextureVertex2D& vertex : mesh.buffer().vertices)
-			{
-				appendVertex(vertex);
-			}
-		}
 	}
 
 	DrawFontRenderCommand::DrawFontRenderCommand(
-		const spk::Font& p_font,
+		spk::Font& p_font,
 		std::string_view p_text,
 		spk::Vector2Int p_baselinePosition,
 		spk::Font::Size p_size,
@@ -153,22 +143,25 @@ namespace spk
 
 	void DrawFontRenderCommand::_uploadMesh()
 	{
-		if (_layoutBufferDirty == false)
+		const spk::TextureMesh2D::Buffer& buffer = _mesh.buffer();
+		if (_layoutBuffer.indexCount() != 0 || buffer.indexes.empty() == true)
 		{
 			return;
 		}
 
-		_layoutBufferDirty = false;
+		_layoutBuffer.setVertices(std::span<const spk::TextureMesh2D::Vertex>(buffer.vertices.data(), buffer.vertices.size()));
+		_layoutBuffer.setIndexes(std::span<const std::uint32_t>(buffer.indexes.data(), buffer.indexes.size()));
 
-		_layoutBuffer.setVertexBytes(_vertexData.data(), _vertexData.size() * sizeof(float));
-		_layoutBuffer.setIndexes(std::span<const std::uint32_t>());
+		// The layout buffer keeps its own CPU copy as the per-context upload
+		// source, so the mesh copy is dead weight from here on.
+		_mesh = spk::TextureMesh2D();
 	}
 
 	void DrawFontRenderCommand::execute(spk::RenderContext& p_renderContext)
 	{
 		_uploadMesh();
 
-		if (_layoutBuffer.vertexCount() == 0)
+		if (_layoutBuffer.indexCount() == 0)
 		{
 			return;
 		}
@@ -176,36 +169,28 @@ namespace spk
 		spk::OpenGL::Program& program = _sharedProgram().gpu(p_renderContext);
 
 		_atlas.synchronize();
-		_sampler.bind(_atlas);
 
-		_layoutBuffer.activate(p_renderContext);
 		program.activate();
-		viewportUniformBuffer().activate(p_renderContext);
+		_layoutBuffer.activate(p_renderContext);
 
-		_sampler.activate(p_renderContext);
+		_viewportBuffer.activate(p_renderContext);
 
-		// The program is shared between every font command: this instance's values
-		// must be re-uploaded on every draw, not only when they change.
-		_colorUniform.set(_color.values());
-		_colorUniform.forceActivation();
+		spk::SamplerObject& sampler = _atlasSampler();
+		sampler.bind(_atlas);
+		sampler.activate(p_renderContext);
 
-		_outlineColorUniform.set(_outlineColor.values());
-		_outlineColorUniform.forceActivation();
+		// The program and uniforms are shared between every font command: this
+		// instance's values must be re-uploaded on every draw, not only when
+		// they change.
+		_colorUniform().set(_color.values());
+		_colorUniform().forceActivation();
 
-		_outlineThicknessUniform.set(_outlineThickness);
-		_outlineThicknessUniform.forceActivation();
+		_outlineColorUniform().set(_outlineColor.values());
+		_outlineColorUniform().forceActivation();
 
-		if (_layoutBuffer.isIndexed() == true)
-		{
-			program.render(spk::Primitive::Triangles, 0, _layoutBuffer.indexCount());
-		}
-		else
-		{
-			program.renderRaw(spk::Primitive::Triangles, 0, _layoutBuffer.vertexCount());
-		}
+		_outlineThicknessUniform().set(_outlineThickness);
+		_outlineThicknessUniform().forceActivation();
 
-		_sampler.deactivate();
-		_layoutBuffer.deactivate();
-		program.deactivate();
+		program.render(spk::Primitive::Triangles, 0, _layoutBuffer.indexCount());
 	}
 }

@@ -1,6 +1,5 @@
 #include "structures/system/win32/spk_winapi_window.hpp"
 
-#ifdef _WIN32
 
 #include <stdexcept>
 #include <vector>
@@ -277,4 +276,3 @@ namespace spk
 	}
 }
 
-#endif

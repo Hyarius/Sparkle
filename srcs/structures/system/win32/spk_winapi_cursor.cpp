@@ -1,6 +1,5 @@
 #include "structures/system/win32/spk_winapi_cursor.hpp"
 
-#ifdef _WIN32
 
 #include <mutex>
 #include <stdexcept>
@@ -198,4 +197,3 @@ namespace spk
 	}
 }
 
-#endif

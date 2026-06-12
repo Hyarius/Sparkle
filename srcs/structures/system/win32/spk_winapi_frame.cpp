@@ -1,6 +1,5 @@
 #include "structures/system/win32/spk_winapi_frame.hpp"
 
-#ifdef _WIN32
 
 #include <windowsx.h>
 
@@ -266,4 +265,3 @@ namespace spk
 	}
 }
 
-#endif

@@ -57,6 +57,7 @@ namespace spk
 			if (_id != 0 && _ownsCurrentContext() == true)
 			{
 				glDeleteProgram(_id);
+				notifyProgramDeleted(*this);
 			}
 		}
 
@@ -89,12 +90,34 @@ namespace spk
 
 		void Program::activate() const
 		{
+			spk::RenderContext* context = spk::RenderContext::current();
+			if (context != nullptr && context->isProgramActive(this) == true)
+			{
+				return;
+			}
+
 			glUseProgram(_id);
+
+			if (context != nullptr)
+			{
+				context->setActiveProgram(this);
+			}
 		}
 
 		void Program::deactivate() const
 		{
+			spk::RenderContext* context = spk::RenderContext::current();
+			if (context != nullptr && context->isProgramActive(nullptr) == true)
+			{
+				return;
+			}
+
 			glUseProgram(0);
+
+			if (context != nullptr)
+			{
+				context->setActiveProgram(nullptr);
+			}
 		}
 
 		void Program::renderRaw(spk::Primitive p_primitive, std::size_t p_firstVertex, std::size_t p_vertexCount) const
@@ -189,7 +212,7 @@ namespace spk
 		return context != nullptr && hasGpu(*context) == true;
 	}
 
-	void Program::activate(const spk::RenderContext& p_context)
+	void Program::activate(const spk::RenderContext& p_context) const
 	{
 		synchronize();
 		gpu(p_context).activate();
@@ -197,16 +220,27 @@ namespace spk
 
 	void Program::deactivate() const
 	{
+		spk::RenderContext* context = spk::RenderContext::current();
+		if (context != nullptr && context->isProgramActive(nullptr) == true)
+		{
+			return;
+		}
+
 		glUseProgram(0);
+
+		if (context != nullptr)
+		{
+			context->setActiveProgram(nullptr);
+		}
 	}
 
-	void Program::renderRaw(const spk::RenderContext& p_context, spk::Primitive p_primitive, std::size_t p_firstVertex, std::size_t p_vertexCount)
+	void Program::renderRaw(const spk::RenderContext& p_context, spk::Primitive p_primitive, std::size_t p_firstVertex, std::size_t p_vertexCount) const
 	{
 		synchronize();
 		gpu(p_context).renderRaw(p_primitive, p_firstVertex, p_vertexCount);
 	}
 
-	void Program::render(const spk::RenderContext& p_context, spk::Primitive p_primitive, std::size_t p_firstIndex, std::size_t p_indexCount)
+	void Program::render(const spk::RenderContext& p_context, spk::Primitive p_primitive, std::size_t p_firstIndex, std::size_t p_indexCount) const
 	{
 		synchronize();
 		gpu(p_context).render(p_primitive, p_firstIndex, p_indexCount);

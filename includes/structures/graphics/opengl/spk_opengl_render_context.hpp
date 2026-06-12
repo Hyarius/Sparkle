@@ -1,11 +1,12 @@
 #pragma once
 
-#ifdef _WIN32
 
+#include <array>
 #include <atomic>
 #include <cstdint>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <vector>
 
 #include "structures/graphics/opengl/spk_opengl_object.hpp"
@@ -18,6 +19,13 @@
 
 namespace spk
 {
+	namespace OpenGL
+	{
+		class Buffer;
+		class Program;
+		class VertexArray;
+	}
+
 	class RenderContext
 	{
 	private:
@@ -41,6 +49,16 @@ namespace spk
 		std::mutex _releaseQueueMutex;
 		std::vector<std::unique_ptr<spk::OpenGL::Object>> _releaseQueue;
 
+		struct BindingCache
+		{
+			static constexpr std::size_t TrackedUniformBindingPoints = 8;
+
+			std::optional<const spk::OpenGL::Program*> program;
+			std::optional<const spk::OpenGL::VertexArray*> vertexArray;
+			std::array<std::optional<const spk::OpenGL::Buffer*>, TrackedUniformBindingPoints> uniformBuffers{};
+		};
+		mutable BindingCache _bindingCache;
+
 		void _registerSelf();
 		void _unregisterSelf();
 
@@ -60,6 +78,24 @@ namespace spk
 		void scheduleRelease(std::unique_ptr<spk::OpenGL::Object> p_object);
 		void flushReleaseQueue();
 
+		[[nodiscard]] bool isProgramActive(const spk::OpenGL::Program* p_program) const noexcept;
+		void setActiveProgram(const spk::OpenGL::Program* p_program) const noexcept;
+
+		[[nodiscard]] bool isVertexArrayActive(const spk::OpenGL::VertexArray* p_vertexArray) const noexcept;
+		void setActiveVertexArray(const spk::OpenGL::VertexArray* p_vertexArray) const noexcept;
+
+		[[nodiscard]] bool isUniformBufferBaseActive(
+			std::uint32_t p_bindingPoint,
+			const spk::OpenGL::Buffer* p_buffer) const noexcept;
+		void setActiveUniformBufferBase(
+			std::uint32_t p_bindingPoint,
+			const spk::OpenGL::Buffer* p_buffer) const noexcept;
+
+		void onProgramDeleted(const spk::OpenGL::Program& p_program) const noexcept;
+		void onVertexArrayDeleted(const spk::OpenGL::VertexArray& p_vertexArray) const noexcept;
+		void onBufferDeleted(const spk::OpenGL::Buffer& p_buffer) const noexcept;
+		void resetBindingCache() const noexcept;
+
 		[[nodiscard]] std::shared_ptr<SurfaceState> surfaceState() const;
 		virtual void invalidate();
 		[[nodiscard]] virtual bool isValid() const;
@@ -72,4 +108,3 @@ namespace spk
 	};
 }
 
-#endif

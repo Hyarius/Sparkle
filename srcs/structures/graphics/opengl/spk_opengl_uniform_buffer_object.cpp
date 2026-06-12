@@ -4,6 +4,7 @@
 #include <string>
 
 #include "structures/graphics/spk_program.hpp"
+#include "structures/graphics/rendering/context/spk_render_context.hpp"
 
 namespace spk
 {
@@ -42,9 +43,22 @@ namespace spk
 			std::to_string(_bindingPoint) + "]");
 	}
 
-	void UniformBufferObject::activate(const spk::RenderContext& p_context)
+	void UniformBufferObject::activate(const spk::RenderContext& p_context) const
 	{
-		BufferObject::activate(p_context);
-		glBindBufferBase(GL_UNIFORM_BUFFER, _bindingPoint, gpu(p_context).id());
+		if (needsSynchronization() == true)
+		{
+			synchronize();
+		}
+
+		// glBindBufferBase also binds the generic GL_UNIFORM_BUFFER target, so the
+		// plain glBindBuffer from BufferObject::activate would be redundant.
+		spk::OpenGL::Buffer& buffer = gpu(p_context);
+		if (p_context.isUniformBufferBaseActive(_bindingPoint, &buffer) == true)
+		{
+			return;
+		}
+
+		glBindBufferBase(GL_UNIFORM_BUFFER, _bindingPoint, buffer.id());
+		p_context.setActiveUniformBufferBase(_bindingPoint, &buffer);
 	}
 }

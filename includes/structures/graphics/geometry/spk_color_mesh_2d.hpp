@@ -50,6 +50,10 @@ namespace spk
 	class ColorMesh2D : public spk::GenericMesh<spk::ColorVertex2D>
 	{
 	public:
-		ColorMesh2D() = default;
+		ColorMesh2D()
+		{
+			_layoutBuffer.addAttribute({0, spk::LayoutBufferObject::Attribute::Type::Vector3});
+			_layoutBuffer.addAttribute({1, spk::LayoutBufferObject::Attribute::Type::Vector4});
+		}
 	};
 }

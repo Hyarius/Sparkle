@@ -12,7 +12,6 @@ namespace spk
 	{
 	private:
 		GLenum _elementType = GL_UNSIGNED_INT;
-		std::size_t _count = 0;
 
 	public:
 		explicit IndexBufferObject(
@@ -22,7 +21,6 @@ namespace spk
 		void setElementType(GLenum p_elementType);
 		[[nodiscard]] GLenum elementType() const noexcept;
 
-		void setCount(std::size_t p_count);
 		[[nodiscard]] std::size_t count() const noexcept;
 	};
 }

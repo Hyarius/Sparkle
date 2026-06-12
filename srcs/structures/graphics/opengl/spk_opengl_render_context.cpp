@@ -1,6 +1,5 @@
 #include "structures/graphics/opengl/spk_opengl_render_context.hpp"
 
-#ifdef _WIN32
 
 #include <stdexcept>
 #include <unordered_map>
@@ -240,6 +239,81 @@ namespace spk
 		pending.clear();
 	}
 
+	bool RenderContext::isProgramActive(const spk::OpenGL::Program* p_program) const noexcept
+	{
+		return _bindingCache.program.has_value() == true && _bindingCache.program.value() == p_program;
+	}
+
+	void RenderContext::setActiveProgram(const spk::OpenGL::Program* p_program) const noexcept
+	{
+		_bindingCache.program = p_program;
+	}
+
+	bool RenderContext::isVertexArrayActive(const spk::OpenGL::VertexArray* p_vertexArray) const noexcept
+	{
+		return _bindingCache.vertexArray.has_value() == true && _bindingCache.vertexArray.value() == p_vertexArray;
+	}
+
+	void RenderContext::setActiveVertexArray(const spk::OpenGL::VertexArray* p_vertexArray) const noexcept
+	{
+		_bindingCache.vertexArray = p_vertexArray;
+	}
+
+	bool RenderContext::isUniformBufferBaseActive(
+		std::uint32_t p_bindingPoint,
+		const spk::OpenGL::Buffer* p_buffer) const noexcept
+	{
+		return p_bindingPoint < BindingCache::TrackedUniformBindingPoints &&
+			   _bindingCache.uniformBuffers[p_bindingPoint].has_value() == true &&
+			   _bindingCache.uniformBuffers[p_bindingPoint].value() == p_buffer;
+	}
+
+	void RenderContext::setActiveUniformBufferBase(
+		std::uint32_t p_bindingPoint,
+		const spk::OpenGL::Buffer* p_buffer) const noexcept
+	{
+		if (p_bindingPoint >= BindingCache::TrackedUniformBindingPoints)
+		{
+			return;
+		}
+
+		_bindingCache.uniformBuffers[p_bindingPoint] = p_buffer;
+	}
+
+	void RenderContext::onProgramDeleted(const spk::OpenGL::Program& p_program) const noexcept
+	{
+		if (_bindingCache.program.has_value() == true && _bindingCache.program.value() == &p_program)
+		{
+			_bindingCache.program = nullptr;
+		}
+	}
+
+	void RenderContext::onVertexArrayDeleted(const spk::OpenGL::VertexArray& p_vertexArray) const noexcept
+	{
+		if (_bindingCache.vertexArray.has_value() == true && _bindingCache.vertexArray.value() == &p_vertexArray)
+		{
+			// Deleting the bound vertex array reverts the binding to zero.
+			_bindingCache.vertexArray = nullptr;
+		}
+	}
+
+	void RenderContext::onBufferDeleted(const spk::OpenGL::Buffer& p_buffer) const noexcept
+	{
+		for (std::size_t i = 0; i < _bindingCache.uniformBuffers.size(); ++i)
+		{
+			if (_bindingCache.uniformBuffers[i].has_value() == true &&
+				_bindingCache.uniformBuffers[i].value() == &p_buffer)
+			{
+				_bindingCache.uniformBuffers[i] = nullptr;
+			}
+		}
+	}
+
+	void RenderContext::resetBindingCache() const noexcept
+	{
+		_bindingCache = BindingCache{};
+	}
+
 	std::shared_ptr<SurfaceState> RenderContext::surfaceState() const
 	{
 		return _surfaceState;
@@ -282,6 +356,9 @@ namespace spk
 
 		s_current = this;
 
+		// Another context (or raw GL between frames) may have changed bindings.
+		resetBindingCache();
+
 		flushReleaseQueue();
 	}
 
@@ -323,4 +400,3 @@ namespace spk
 	}
 }
 
-#endif

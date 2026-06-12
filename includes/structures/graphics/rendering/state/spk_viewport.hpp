@@ -8,6 +8,8 @@
 
 namespace spk
 {
+	class UniformBufferObject;
+
 	class Viewport
 	{
 	public:
@@ -45,6 +47,7 @@ namespace spk
 		const spk::Matrix4x4& matrix() const;
 
 		static const Viewport* activeViewport();
+		static spk::UniformBufferObject& viewportUniformBuffer();
 
 		static spk::Vector2 convertScreenToOpenGL(const spk::Vector2Int& p_screenPosition);
 		static spk::Vector2 convertScreenToOpenGL(int p_x, int p_y);

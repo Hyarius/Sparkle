@@ -1,10 +1,21 @@
 #include <gtest/gtest.h>
 
 #include <array>
+#include <span>
 #include <unordered_set>
+#include <vector>
 
 #include "structures/graphics/geometry/spk_color_mesh_2d.hpp"
 #include "structures/graphics/geometry/spk_mesh_2d.hpp"
+
+namespace
+{
+	template <typename T>
+	[[nodiscard]] std::vector<T> toVector(std::span<const T> p_values)
+	{
+		return std::vector<T>(p_values.begin(), p_values.end());
+	}
+}
 
 TEST(GenericMeshTest, AddTriangleStoresVerticesIndexesAndShape)
 {
@@ -15,8 +26,8 @@ TEST(GenericMeshTest, AddTriangleStoresVerticesIndexesAndShape)
 		spk::Vertex2D{.position = {1.0f, 0.0f}},
 		spk::Vertex2D{.position = {0.0f, 1.0f}});
 
-	EXPECT_EQ(mesh.buffer().vertices.size(), 3);
-	EXPECT_EQ(mesh.buffer().indexes, (std::vector<std::uint32_t>{0, 1, 2}));
+	EXPECT_EQ(mesh.vertices().size(), 3);
+	EXPECT_EQ(toVector(mesh.indexes()), (std::vector<std::uint32_t>{0, 1, 2}));
 	ASSERT_EQ(mesh.shapes().size(), 1);
 	EXPECT_EQ(mesh.shapes()[0].size(), 3);
 }
@@ -31,8 +42,8 @@ TEST(GenericMeshTest, AddQuadStoresTwoTriangles)
 		spk::Vertex2D{.position = {1.0f, 1.0f}},
 		spk::Vertex2D{.position = {0.0f, 1.0f}});
 
-	EXPECT_EQ(mesh.buffer().vertices.size(), 4);
-	EXPECT_EQ(mesh.buffer().indexes, (std::vector<std::uint32_t>{0, 1, 2, 0, 2, 3}));
+	EXPECT_EQ(mesh.vertices().size(), 4);
+	EXPECT_EQ(toVector(mesh.indexes()), (std::vector<std::uint32_t>{0, 1, 2, 0, 2, 3}));
 	ASSERT_EQ(mesh.shapes().size(), 1);
 	EXPECT_EQ(mesh.shapes()[0].size(), 4);
 }
@@ -50,8 +61,8 @@ TEST(GenericMeshTest, AddPolygonTriangulatesAsFan)
 
 	mesh.addShape(std::span<const spk::Vertex2D>(vertices.data(), vertices.size()));
 
-	EXPECT_EQ(mesh.buffer().vertices.size(), 5);
-	EXPECT_EQ(mesh.buffer().indexes, (std::vector<std::uint32_t>{0, 1, 2, 0, 2, 3, 0, 3, 4}));
+	EXPECT_EQ(mesh.vertices().size(), 5);
+	EXPECT_EQ(toVector(mesh.indexes()), (std::vector<std::uint32_t>{0, 1, 2, 0, 2, 3, 0, 3, 4}));
 }
 
 TEST(GenericMeshTest, CopyAndMovePreserveShapeAccess)
@@ -63,12 +74,12 @@ TEST(GenericMeshTest, CopyAndMovePreserveShapeAccess)
 		spk::Vertex2D{.position = {0.0f, 1.0f}});
 
 	spk::Mesh2D copy(mesh);
-	EXPECT_EQ(copy.buffer().indexes, mesh.buffer().indexes);
+	EXPECT_EQ(toVector(copy.indexes()), toVector(mesh.indexes()));
 	ASSERT_EQ(copy.shapes().size(), 1);
 	EXPECT_EQ(copy.shapes()[0].size(), 3);
 
 	spk::Mesh2D moved(std::move(copy));
-	EXPECT_EQ(moved.buffer().indexes, mesh.buffer().indexes);
+	EXPECT_EQ(toVector(moved.indexes()), toVector(mesh.indexes()));
 	ASSERT_EQ(moved.shapes().size(), 1);
 	EXPECT_EQ(moved.shapes()[0].size(), 3);
 }
@@ -83,12 +94,12 @@ TEST(GenericMeshTest, ClearRemovesBufferAndShapes)
 
 	mesh.clear();
 
-	EXPECT_TRUE(mesh.buffer().vertices.empty());
-	EXPECT_TRUE(mesh.buffer().indexes.empty());
+	EXPECT_TRUE(mesh.vertices().empty());
+	EXPECT_TRUE(mesh.indexes().empty());
 	EXPECT_TRUE(mesh.shapes().empty());
 }
 
-TEST(GenericMeshTest, IgnoresShapesWithFewerThanThreeVertices)
+TEST(GenericMeshTest, ThrowWithShapesWithFewerThanThreeVertices)
 {
 	spk::Mesh2D mesh;
 	const std::array<spk::Vertex2D, 2> vertices{
@@ -96,11 +107,11 @@ TEST(GenericMeshTest, IgnoresShapesWithFewerThanThreeVertices)
 		spk::Vertex2D{.position = {1.0f, 0.0f}}
 	};
 
-	mesh.addShape(std::span<const spk::Vertex2D>(vertices.data(), vertices.size()));
-	mesh.addShape(std::vector<spk::Vertex2D>{});
+	EXPECT_THROW(mesh.addShape(std::span<const spk::Vertex2D>(vertices.data(), vertices.size())), std::runtime_error);
+	EXPECT_THROW(mesh.addShape(std::vector<spk::Vertex2D>{}), std::runtime_error);
 
 	EXPECT_EQ(mesh.nbShape(), 0u);
-	EXPECT_TRUE(mesh.buffer().vertices.empty());
+	EXPECT_TRUE(mesh.vertices().empty());
 }
 
 TEST(GenericMeshTest, ReusesDuplicateVerticesAcrossShapes)
@@ -114,8 +125,8 @@ TEST(GenericMeshTest, ReusesDuplicateVerticesAcrossShapes)
 	mesh.addShape(a, b, c);
 	mesh.addShape(a, c, b);
 
-	EXPECT_EQ(mesh.buffer().vertices.size(), 3u);
-	EXPECT_EQ(mesh.buffer().indexes, (std::vector<std::uint32_t>{0, 1, 2, 0, 2, 1}));
+	EXPECT_EQ(mesh.vertices().size(), 3u);
+	EXPECT_EQ(toVector(mesh.indexes()), (std::vector<std::uint32_t>{0, 1, 2, 0, 2, 1}));
 	EXPECT_EQ(mesh.nbShape(), 2u);
 }
 
@@ -147,6 +158,6 @@ TEST(ColorMesh2DTest, StoresColoredShape)
 		spk::ColorVertex2D{.position = {1.0f, 0.0f, 0.0f}, .color = spk::Color(0.0f, 1.0f, 0.0f)},
 		spk::ColorVertex2D{.position = {0.0f, 1.0f, 0.0f}, .color = spk::Color(0.0f, 0.0f, 1.0f)});
 
-	EXPECT_EQ(mesh.buffer().vertices.size(), 3u);
-	EXPECT_EQ(mesh.buffer().indexes, (std::vector<std::uint32_t>{0, 1, 2}));
+	EXPECT_EQ(mesh.vertices().size(), 3u);
+	EXPECT_EQ(toVector(mesh.indexes()), (std::vector<std::uint32_t>{0, 1, 2}));
 }

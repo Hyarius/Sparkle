@@ -60,7 +60,6 @@ TEST(ProgramTest, RenderHelpersIssueDrawCalls)
 		BufferObject::Usage::StaticDraw,
 		sizeof(indexes));
 	indexBuffer->setElementType(GL_UNSIGNED_INT);
-	indexBuffer->setCount(indexes.size());
 	indexBuffer->edit(indexes.data(), sizeof(indexes));
 	vertexArray->setIndexBuffer(indexBuffer);
 	vertexArray->activate(context.renderContext());

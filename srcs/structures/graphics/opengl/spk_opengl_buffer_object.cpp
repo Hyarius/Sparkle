@@ -97,6 +97,12 @@ namespace spk
 		requestSynchronization();
 	}
 
+	void BufferObject::reserve(std::size_t p_size)
+	{
+		std::scoped_lock lock(_mutex);
+		_cpuBuffer.reserve(p_size);
+	}
+
 	void BufferObject::clear()
 	{
 		resize(0);
@@ -178,7 +184,7 @@ namespace spk
 		return _field;
 	}
 
-	void BufferObject::activate(const spk::RenderContext& p_context)
+	void BufferObject::activate(const spk::RenderContext& p_context) const
 	{
 		if (needsSynchronization() == true)
 		{
@@ -193,7 +199,7 @@ namespace spk
 		glBindBuffer(static_cast<GLenum>(_target), 0);
 	}
 
-	void BufferObject::activateBase(const spk::RenderContext& p_context, GLuint p_bindingPoint)
+	void BufferObject::activateBase(const spk::RenderContext& p_context, GLuint p_bindingPoint) const
 	{
 		if (needsSynchronization() == true)
 		{
@@ -203,7 +209,7 @@ namespace spk
 		glBindBufferBase(static_cast<GLenum>(_target), p_bindingPoint, gpu(p_context).id());
 	}
 
-	void BufferObject::activateRange(const spk::RenderContext& p_context, GLuint p_bindingPoint, GLintptr p_offset, GLsizeiptr p_size)
+	void BufferObject::activateRange(const spk::RenderContext& p_context, GLuint p_bindingPoint, GLintptr p_offset, GLsizeiptr p_size) const
 	{
 		if (needsSynchronization() == true)
 		{

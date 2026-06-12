@@ -54,10 +54,10 @@ namespace spk
 		[[nodiscard]] GLuint id() const;
 		[[nodiscard]] bool isLinked() const noexcept;
 
-		void activate(const spk::RenderContext& p_context);
+		void activate(const spk::RenderContext& p_context) const;
 		void deactivate() const;
 
-		void renderRaw(const spk::RenderContext& p_context, spk::Primitive p_primitive, std::size_t p_firstVertex, std::size_t p_vertexCount);
-		void render(const spk::RenderContext& p_context, spk::Primitive p_primitive, std::size_t p_firstIndex, std::size_t p_indexCount);
+		void renderRaw(const spk::RenderContext& p_context, spk::Primitive p_primitive, std::size_t p_firstVertex, std::size_t p_vertexCount) const;
+		void render(const spk::RenderContext& p_context, spk::Primitive p_primitive, std::size_t p_firstIndex, std::size_t p_indexCount) const;
 	};
 }

@@ -46,12 +46,12 @@ namespace spk
 		return _type;
 	}
 
-	void SamplerObject::activate(const spk::RenderContext& p_context)
+	void SamplerObject::activate(const spk::RenderContext& p_context) const
 	{
 		_gpu.activate(p_context, *this);
 	}
 
-	void SamplerObject::deactivate()
+	void SamplerObject::deactivate() const
 	{
 		_gpu.deactivate(*this);
 	}

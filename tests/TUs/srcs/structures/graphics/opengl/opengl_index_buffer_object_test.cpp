@@ -15,7 +15,6 @@ TEST(OpenGLIndexBufferObjectTest, StoresDrawMetadataAndSynchronizesData)
 	std::array<std::uint16_t, 3> indices = {0, 1, 2};
 	IndexBufferObject indexBuffer(BufferObject::Usage::StaticDraw, sizeof(indices));
 	indexBuffer.setElementType(GL_UNSIGNED_SHORT);
-	indexBuffer.setCount(indices.size());
 	indexBuffer.edit(indices.data(), sizeof(indices));
 	indexBuffer.activate(context.renderContext());
 

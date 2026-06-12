@@ -1,8 +1,6 @@
 #pragma once
 
-#include <memory>
 #include <string_view>
-#include <vector>
 
 #include "structures/graphics/geometry/spk_color.hpp"
 #include "structures/graphics/texture/spk_font.hpp"
@@ -13,6 +11,7 @@
 #include "structures/graphics/spk_program.hpp"
 #include "structures/graphics/spk_sampler_object.hpp"
 #include "structures/graphics/spk_uniform.hpp"
+#include "structures/graphics/spk_uniform_buffer_object.hpp"
 
 namespace spk
 {
@@ -25,22 +24,20 @@ namespace spk
 		const spk::Color _outlineColor;
 		const float _outlineThickness;
 
-		spk::Vector4Uniform _colorUniform;
-		spk::Vector4Uniform _outlineColorUniform;
-		spk::FloatUniform _outlineThicknessUniform;
-
-		spk::SamplerObject _sampler;
-
-		std::vector<float> _vertexData;
+		spk::TextureMesh2D _mesh;
 		spk::LayoutBufferObject _layoutBuffer;
-		bool _layoutBufferDirty;
+		const spk::UniformBufferObject& _viewportBuffer;
 
 		[[nodiscard]] static spk::Program& _sharedProgram();
+		[[nodiscard]] static spk::Vector4Uniform& _colorUniform();
+		[[nodiscard]] static spk::Vector4Uniform& _outlineColorUniform();
+		[[nodiscard]] static spk::FloatUniform& _outlineThicknessUniform();
+		[[nodiscard]] static spk::SamplerObject& _atlasSampler();
 		void _uploadMesh();
 
 	public:
 		DrawFontRenderCommand(
-			const spk::Font& p_font,
+			spk::Font& p_font,
 			spk::Font::Text p_text,
 			spk::Vector2Int p_baselinePosition,
 			spk::Font::Size p_size,
@@ -49,7 +46,7 @@ namespace spk
 			float p_depth = 0.0f);
 
 		DrawFontRenderCommand(
-			const spk::Font& p_font,
+			spk::Font& p_font,
 			std::string_view p_text,
 			spk::Vector2Int p_baselinePosition,
 			spk::Font::Size p_size,

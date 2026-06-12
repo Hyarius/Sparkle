@@ -28,7 +28,7 @@ namespace spk
 		return _bindingPoint;
 	}
 
-	void ShaderStorageBufferObject::activate(const spk::RenderContext& p_context)
+	void ShaderStorageBufferObject::activate(const spk::RenderContext& p_context) const
 	{
 		BufferObject::activate(p_context);
 		if (_bindingPoint.has_value() == true)

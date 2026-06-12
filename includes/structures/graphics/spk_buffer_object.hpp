@@ -88,6 +88,7 @@ namespace spk
 		[[nodiscard]] bool hasGpu(const spk::RenderContext& p_context) const noexcept;
 
 		void resize(std::size_t p_size);
+		void reserve(std::size_t p_size);
 		void clear();
 		void edit(const void* p_data, std::size_t p_size, std::size_t p_offset = 0);
 		void append(const void* p_data, std::size_t p_size);
@@ -99,9 +100,9 @@ namespace spk
 		[[nodiscard]] spk::BinaryField& field();
 		[[nodiscard]] const spk::BinaryField& field() const;
 
-		virtual void activate(const spk::RenderContext& p_context);
+		virtual void activate(const spk::RenderContext& p_context) const;
 		virtual void deactivate() const;
-		void activateBase(const spk::RenderContext& p_context, GLuint p_bindingPoint);
-		void activateRange(const spk::RenderContext& p_context, GLuint p_bindingPoint, GLintptr p_offset, GLsizeiptr p_size);
+		void activateBase(const spk::RenderContext& p_context, GLuint p_bindingPoint) const;
+		void activateRange(const spk::RenderContext& p_context, GLuint p_bindingPoint, GLintptr p_offset, GLsizeiptr p_size) const;
 	};
 }

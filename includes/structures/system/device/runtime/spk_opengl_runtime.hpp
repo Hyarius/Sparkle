@@ -28,9 +28,7 @@ namespace spk
 		virtual std::unique_ptr<spk::RenderContext> createRenderContext(spk::IFrame& p_frame);
 		virtual void waitUntilWorkDone();
 
-#ifdef _WIN32
 		void saveScreenshot(const std::filesystem::path& p_outputPath, const spk::Rect2D& p_rect) const;
 		void saveScreenshot(const std::filesystem::path& p_outputPath) const;
-#endif
 	};
 }

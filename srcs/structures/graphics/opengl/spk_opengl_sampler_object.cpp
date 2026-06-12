@@ -26,7 +26,7 @@ namespace spk::OpenGL
 		throw std::runtime_error("Unsupported sampler type");
 	}
 
-	void SamplerObject::activate(const spk::RenderContext& p_context, const spk::SamplerObject& p_sampler)
+	void SamplerObject::activate(const spk::RenderContext& p_context, const spk::SamplerObject& p_sampler) const
 	{
 		glActiveTexture(GL_TEXTURE0 + p_sampler.bindingPoint());
 
@@ -50,13 +50,20 @@ namespace spk::OpenGL
 				return obj;
 			});
 
-		glUniform1i(loc.location, p_sampler.bindingPoint());
+		// The binding point never changes and glUniform1i is program state, so it
+		// only needs to be sent once per resolved location. The program must be
+		// active when the entry is first resolved.
+		if (loc.validated == false)
+		{
+			glUniform1i(loc.location, p_sampler.bindingPoint());
+			loc.validated = true;
+		}
 
 		const spk::OpenGL::Texture& glTex = p_sampler.texture()->gpu(p_context);
 		glBindTexture(samplerType(p_sampler.type()), glTex.id());
 	}
 
-	void SamplerObject::deactivate(const spk::SamplerObject& p_sampler)
+	void SamplerObject::deactivate(const spk::SamplerObject& p_sampler) const
 	{
 		glActiveTexture(GL_TEXTURE0 + p_sampler.bindingPoint());
 		glBindTexture(samplerType(p_sampler.type()), 0);

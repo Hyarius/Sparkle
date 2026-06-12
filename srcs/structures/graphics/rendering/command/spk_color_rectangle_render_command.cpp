@@ -1,7 +1,5 @@
 #include "structures/graphics/rendering/command/spk_color_rectangle_render_command.hpp"
 
-#include "structures/graphics/geometry/spk_mesh_2d.hpp"
-
 namespace spk
 {
 	ColorRectangleRenderCommand::ColorRectangleRenderCommand(
@@ -14,14 +12,13 @@ namespace spk
 		const spk::Vector2 bottomRight = spk::Vector2(static_cast<float>(p_rect.right()), static_cast<float>(p_rect.bottom()));
 		const spk::Vector2 topRight    = spk::Vector2(static_cast<float>(p_rect.right()), static_cast<float>(p_rect.top()));
 
-		spk::ColorMesh2D mesh;
-		mesh.addShape(
+		_mesh.addShape(
 			spk::ColorMesh2D::Vertex{{topLeft,     p_depth}, p_color},
 			spk::ColorMesh2D::Vertex{{bottomLeft,  p_depth}, p_color},
 			spk::ColorMesh2D::Vertex{{bottomRight, p_depth}, p_color},
 			spk::ColorMesh2D::Vertex{{topRight,    p_depth}, p_color});
 
-		_colorCommand = std::make_unique<spk::DrawColorMeshRenderCommand>(std::move(mesh));
+		_colorCommand = std::make_unique<spk::DrawColorMeshRenderCommand>(_mesh);
 	}
 
 	void ColorRectangleRenderCommand::execute(spk::RenderContext& p_renderContext)

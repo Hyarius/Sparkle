@@ -54,6 +54,33 @@ namespace spk::OpenGL
 		return spk::RenderContext::deathGeneration();
 	}
 
+	void notifyProgramDeleted(const Program& p_program) noexcept
+	{
+		spk::RenderContext* current = spk::RenderContext::current();
+		if (current != nullptr)
+		{
+			current->onProgramDeleted(p_program);
+		}
+	}
+
+	void notifyVertexArrayDeleted(const VertexArray& p_vertexArray) noexcept
+	{
+		spk::RenderContext* current = spk::RenderContext::current();
+		if (current != nullptr)
+		{
+			current->onVertexArrayDeleted(p_vertexArray);
+		}
+	}
+
+	void notifyBufferDeleted(const Buffer& p_buffer) noexcept
+	{
+		spk::RenderContext* current = spk::RenderContext::current();
+		if (current != nullptr)
+		{
+			current->onBufferDeleted(p_buffer);
+		}
+	}
+
 	void releaseObject(std::unique_ptr<Object> p_object)
 	{
 		if (p_object == nullptr)

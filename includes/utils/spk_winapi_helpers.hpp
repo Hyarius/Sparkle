@@ -1,6 +1,5 @@
 #pragma once
 
-#ifdef _WIN32
 
 #include <stdexcept>
 #include <string>
@@ -15,4 +14,3 @@ namespace spk
 	[[noreturn]] void throwLastError(const std::string& p_context);
 }
 
-#endif

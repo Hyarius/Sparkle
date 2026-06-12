@@ -14,6 +14,7 @@ namespace spk
 			if (_id != 0 && _ownsCurrentContext() == true)
 			{
 				glDeleteVertexArrays(1, &_id);
+				notifyVertexArrayDeleted(*this);
 			}
 		}
 

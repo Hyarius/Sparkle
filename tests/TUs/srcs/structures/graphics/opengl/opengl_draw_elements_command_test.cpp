@@ -59,7 +59,6 @@ namespace
 			spk::BufferObject::Usage::StaticDraw,
 			sizeof(indices));
 		indexBuffer->setElementType(GL_UNSIGNED_SHORT);
-		indexBuffer->setCount(indices.size());
 		indexBuffer->edit(indices.data(), sizeof(indices));
 		return indexBuffer;
 	}

@@ -1,6 +1,5 @@
 #include "structures/system/win32/spk_winapi_class.hpp"
 
-#ifdef _WIN32
 
 #include <utility>
 
@@ -99,4 +98,3 @@ namespace spk
 	}
 }
 
-#endif

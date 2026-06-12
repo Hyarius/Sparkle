@@ -70,7 +70,7 @@ namespace spk
 		void clearIndexBuffer();
 		[[nodiscard]] const std::shared_ptr<IndexBufferObject>& indexBuffer() const noexcept;
 
-		void activate(const spk::RenderContext& p_context);
+		void activate(const spk::RenderContext& p_context) const;
 		void deactivate() const;
 	};
 }

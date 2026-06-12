@@ -39,6 +39,10 @@ namespace spk
 	class Mesh2D : public spk::GenericMesh<spk::Vertex2D>
 	{
 	public:
-		Mesh2D() = default;
+		Mesh2D()
+		{
+			_layoutBuffer.addAttribute({0, spk::LayoutBufferObject::Attribute::Type::Vector2});
+			_layoutBuffer.addAttribute({1, spk::LayoutBufferObject::Attribute::Type::Vector2});
+		}
 	};
 }

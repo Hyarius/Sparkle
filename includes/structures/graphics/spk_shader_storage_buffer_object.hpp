@@ -26,6 +26,6 @@ namespace spk
 		void clearBindingPoint();
 		[[nodiscard]] std::optional<GLuint> bindingPoint() const noexcept;
 
-		void activate(const spk::RenderContext& p_context) override;
+		void activate(const spk::RenderContext& p_context) const override;
 	};
 }

@@ -22,6 +22,6 @@ namespace spk
 		[[nodiscard]] GLuint bindingPoint() const noexcept;
 
 		void validateFor(spk::Program& p_program) const;
-		void activate(const spk::RenderContext& p_context) override;
+		void activate(const spk::RenderContext& p_context) const override;
 	};
 }

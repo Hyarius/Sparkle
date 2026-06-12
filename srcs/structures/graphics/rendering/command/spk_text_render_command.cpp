@@ -5,7 +5,7 @@
 namespace spk
 {
 	TextRenderCommand::TextRenderCommand(
-		const spk::Font& p_font,
+		spk::Font& p_font,
 		spk::Font::Text p_text,
 		spk::Font::Size p_size,
 		spk::Color p_glyphColor,
@@ -15,8 +15,8 @@ namespace spk
 		spk::HorizontalAlignment p_horizontalAlignment,
 		spk::VerticalAlignment p_verticalAlignment)
 	{
-		const spk::Vector2UInt stringSize = const_cast<spk::Font&>(p_font).computeStringSize(p_text, p_size);
-		const spk::Vector2Int baselineOffset = const_cast<spk::Font&>(p_font).computeStringBaselineOffset(p_text, p_size);
+		const spk::Vector2UInt stringSize = p_font.computeStringSize(p_text, p_size);
+		const spk::Vector2Int baselineOffset = p_font.computeStringBaselineOffset(p_text, p_size);
 
 		int baselineX = p_anchor.x;
 		switch (p_horizontalAlignment)
@@ -57,7 +57,7 @@ namespace spk
 	}
 
 	TextRenderCommand::TextRenderCommand(
-		const spk::Font& p_font,
+		spk::Font& p_font,
 		std::string_view p_text,
 		spk::Font::Size p_size,
 		spk::Color p_glyphColor,

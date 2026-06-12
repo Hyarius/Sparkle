@@ -1,6 +1,5 @@
 #include "utils/spk_winapi_helpers.hpp"
 
-#ifdef _WIN32
 
 #include <vector>
 
@@ -81,4 +80,3 @@ namespace spk
 	}
 }
 
-#endif

@@ -1,6 +1,15 @@
 #include "structures/graphics/rendering/state/spk_viewport.hpp"
 
+#include <memory>
 #include <stdexcept>
+
+#include "structures/graphics/spk_gpu_data_buffer_center.hpp"
+#include "structures/graphics/spk_uniform_buffer_object.hpp"
+
+namespace
+{
+	constexpr GLuint ViewportUniformBindingPoint = 0;
+}
 
 namespace spk
 {
@@ -101,6 +110,23 @@ namespace spk
 	const Viewport* Viewport::activeViewport()
 	{
 		return _activeViewport;
+	}
+
+	spk::UniformBufferObject& Viewport::viewportUniformBuffer()
+	{
+		if (spk::GPUDataBufferCenter::contains(spk::GPUDataBufferCenter::ViewportBlockName) == false)
+		{
+			auto buffer = std::make_shared<spk::UniformBufferObject>(
+				ViewportUniformBindingPoint,
+				spk::BufferObject::Usage::DynamicDraw,
+				sizeof(spk::Matrix4x4));
+			spk::GPUDataBufferCenter::addUBO(
+				spk::GPUDataBufferCenter::ViewportBlockName,
+				buffer);
+			return *buffer;
+		}
+
+		return spk::GPUDataBufferCenter::getUBO(spk::GPUDataBufferCenter::ViewportBlockName);
 	}
 
 	spk::Vector2 Viewport::convertScreenToOpenGL(const spk::Vector2Int& p_screenPosition)

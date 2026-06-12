@@ -9,6 +9,7 @@
 #include <utility>
 #include <vector>
 
+#include "structures/graphics/spk_layout_buffer_object.hpp"
 #include "type/spk_concepts.hpp"
 
 namespace spk
@@ -22,26 +23,10 @@ namespace spk
 		using Index = std::uint32_t;
 		using Shape = std::vector<Index>;
 
-		struct Buffer
-		{
-			std::vector<Vertex> vertices;
-			std::vector<Index> indexes;
-
-			void clear()
-			{
-				vertices.clear();
-				indexes.clear();
-			}
-
-			void reserve(std::size_t p_vertexCount, std::size_t p_indexCount)
-			{
-				vertices.reserve(p_vertexCount);
-				indexes.reserve(p_indexCount);
-			}
-		};
+	protected:
+		spk::LayoutBufferObject _layoutBuffer;
 
 	private:
-		Buffer _buffer;
 		std::unordered_map<Vertex, Index> _vertexLookup;
 		std::vector<Shape> _shapes;
 
@@ -53,7 +38,7 @@ namespace spk
 			}
 
 			const std::size_t maxIndex = static_cast<std::size_t>(std::numeric_limits<Index>::max());
-			const std::size_t currentVertexCount = _buffer.vertices.size();
+			const std::size_t currentVertexCount = _layoutBuffer.vertexCount();
 
 			if (currentVertexCount > maxIndex || p_vertexCount - 1 > maxIndex - currentVertexCount)
 			{
@@ -90,17 +75,16 @@ namespace spk
 				return it->second;
 			}
 
-			const Index index = _indexFromVertexIndex(_buffer.vertices.size());
-			_buffer.vertices.emplace_back(p_vertex);
+			const Index index = _indexFromVertexIndex(_layoutBuffer.vertexCount());
+			_layoutBuffer.appendVertex(p_vertex);
 			_vertexLookup.emplace(p_vertex, index);
 			return index;
 		}
 
 		void _addTriangleIndexes(Index p_a, Index p_b, Index p_c)
 		{
-			_buffer.indexes.emplace_back(p_a);
-			_buffer.indexes.emplace_back(p_b);
-			_buffer.indexes.emplace_back(p_c);
+			const Index indexes[] = {p_a, p_b, p_c};
+			_layoutBuffer.appendIndexes(std::span<const Index>(indexes, 3));
 		}
 
 	public:
@@ -114,13 +98,18 @@ namespace spk
 		void clear()
 		{
 			_shapes.clear();
-			_buffer.clear();
+			_layoutBuffer.setVertices(std::span<const Vertex>{});
+			_layoutBuffer.setIndexes(std::span<const Index>{});
 			_vertexLookup.clear();
 		}
 
 		void reserve(std::size_t p_vertexCount, std::size_t p_indexCount)
 		{
-			_buffer.reserve(p_vertexCount, p_indexCount);
+			_vertexLookup.reserve(p_vertexCount);
+			_shapes.reserve(p_indexCount / 3);
+
+			_layoutBuffer.vertices().reserve(p_vertexCount * sizeof(TVertex));
+			_layoutBuffer.indexes().reserve(p_indexCount * sizeof(Index));
 		}
 
 		void addShape(const Vertex& p_a, const Vertex& p_b, const Vertex& p_c)
@@ -141,7 +130,7 @@ namespace spk
 		{
 			if (p_vertices.size() < 3)
 			{
-				return;
+				throw std::runtime_error("Can't add a shape with less than 3 vertices in a mesh");
 			}
 
 			_ensureCanAppendVertices(_countMissingVertices(p_vertices));
@@ -178,10 +167,20 @@ namespace spk
 		{
 			return _shapes;
 		}
-		
-		[[nodiscard]] const Buffer& buffer() const
+
+		[[nodiscard]] std::span<const Vertex> vertices() const
 		{
-			return _buffer;
+			return std::span<const Vertex>(reinterpret_cast<const Vertex*>(_layoutBuffer.vertices().data()), _layoutBuffer.vertices().size() / sizeof(Vertex));
+		}
+
+		[[nodiscard]] std::span<const Index> indexes() const
+		{
+			return std::span<const Index>(reinterpret_cast<const Index*>(_layoutBuffer.indexes().data()), _layoutBuffer.indexes().size() / sizeof(Index));
+		}
+
+		[[nodiscard]] const spk::LayoutBufferObject& layoutBuffer() const
+		{
+			return _layoutBuffer;
 		}
 	};
 }

@@ -1,35 +1,23 @@
 #include "structures/graphics/rendering/command/spk_draw_texture_mesh_render_command.hpp"
 
+#include <cstdint>
 #include <span>
-#include <stdexcept>
 #include <utility>
-#include <vector>
 
-#include "structures/graphics/spk_gpu_data_buffer_center.hpp"
 #include "structures/graphics/spk_layout_buffer_object.hpp"
 #include "structures/graphics/spk_program.hpp"
 #include "structures/graphics/spk_uniform_buffer_object.hpp"
 #include "structures/graphics/rendering/context/spk_render_context.hpp"
+#include "structures/graphics/rendering/state/spk_viewport.hpp"
 #include "spk_generated_resources.hpp"
-
-namespace
-{
-	spk::UniformBufferObject& viewportUniformBuffer()
-	{
-		return spk::GPUDataBufferCenter::getUBO(spk::GPUDataBufferCenter::ViewportBlockName);
-	}
-}
 
 namespace spk
 {
 	DrawTextureMeshRenderCommand::DrawTextureMeshRenderCommand(const spk::Texture& p_texture, spk::TextureMesh2D p_mesh) :
 		_texture(p_texture),
 		_mesh(std::move(p_mesh)),
-		_sampler("uTexture", spk::SamplerObject::Type::Texture2D, 0, _sharedProgram()),
-		_layoutBufferDirty(true)
+		_viewportBuffer(spk::Viewport::viewportUniformBuffer())
 	{
-		_sampler.bind(_texture);
-
 		_layoutBuffer.addAttribute(0, spk::LayoutBufferObject::Attribute::Type::Vector3);
 		_layoutBuffer.addAttribute(1, spk::LayoutBufferObject::Attribute::Type::Vector2);
 	}
@@ -42,78 +30,51 @@ namespace spk
 		return program;
 	}
 
+	spk::SamplerObject& DrawTextureMeshRenderCommand::_textureSampler()
+	{
+		// Shared between every texture command: the program is static and the
+		// designator/binding point never change. execute() rebinds its own
+		// texture before each draw (single render thread).
+		static spk::SamplerObject sampler("uTexture", spk::SamplerObject::Type::Texture2D, 0, _sharedProgram());
+		return sampler;
+	}
+
 	void DrawTextureMeshRenderCommand::_uploadMesh()
 	{
-		if (_layoutBufferDirty == false)
-		{
-			return;
-		}
-		_layoutBufferDirty = false;
-
-		if (_mesh.buffer().vertices.empty() == true)
+		const spk::TextureMesh2D::Buffer& buffer = _mesh.buffer();
+		if (_layoutBuffer.indexCount() != 0 || buffer.indexes.empty() == true)
 		{
 			return;
 		}
 
-		std::vector<float> vertices;
-		const auto appendVertex = [&vertices](const spk::TextureVertex2D& vertex)
-		{
-			vertices.push_back(vertex.position.x);
-			vertices.push_back(vertex.position.y);
-			vertices.push_back(vertex.position.z);
-			vertices.push_back(vertex.uv.x);
-			vertices.push_back(vertex.uv.y);
-		};
+		_layoutBuffer.setVertices(std::span<const spk::TextureMesh2D::Vertex>(buffer.vertices.data(), buffer.vertices.size()));
+		_layoutBuffer.setIndexes(std::span<const std::uint32_t>(buffer.indexes.data(), buffer.indexes.size()));
 
-		if (_mesh.buffer().indexes.empty() == false)
-		{
-			vertices.reserve(_mesh.buffer().indexes.size() * 5);
-			for (const std::uint32_t index : _mesh.buffer().indexes)
-			{
-				appendVertex(_mesh.buffer().vertices[index]);
-			}
-		}
-		else
-		{
-			vertices.reserve(_mesh.buffer().vertices.size() * 5);
-			for (const spk::TextureVertex2D& vertex : _mesh.buffer().vertices)
-			{
-				appendVertex(vertex);
-			}
-		}
-
-		_layoutBuffer.setVertexBytes(vertices.data(), vertices.size() * sizeof(float));
-		_layoutBuffer.setIndexes(std::span<const std::uint32_t>());
+		// The layout buffer keeps its own CPU copy as the per-context upload
+		// source, so the mesh copy is dead weight from here on.
+		_mesh = spk::TextureMesh2D();
 	}
 
 	void DrawTextureMeshRenderCommand::execute(spk::RenderContext& p_renderContext)
 	{
 		_uploadMesh();
 
-		if (_layoutBuffer.vertexCount() == 0)
+		if (_layoutBuffer.indexCount() == 0)
 		{
 			return;
 		}
 
 		spk::OpenGL::Program& program = _sharedProgram().gpu(p_renderContext);
 
-		_layoutBuffer.activate(p_renderContext);
 		program.activate();
-		viewportUniformBuffer().activate(p_renderContext);
+		_layoutBuffer.activate(p_renderContext);
 
-		_sampler.activate(p_renderContext);
+		_viewportBuffer.activate(p_renderContext);
 
-		if (_layoutBuffer.isIndexed() == true)
-		{
-			program.render(spk::Primitive::Triangles, 0, _layoutBuffer.indexCount());
-		}
-		else
-		{
-			program.renderRaw(spk::Primitive::Triangles, 0, _layoutBuffer.vertexCount());
-		}
+		spk::SamplerObject& sampler = _textureSampler();
+		sampler.bind(_texture);
+		sampler.activate(p_renderContext);
 
-		_sampler.deactivate();
-		_layoutBuffer.deactivate();
-		program.deactivate();
+		program.render(spk::Primitive::Triangles, 0, _layoutBuffer.indexCount());
 	}
 }

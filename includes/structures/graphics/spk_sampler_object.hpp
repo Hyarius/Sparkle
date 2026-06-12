@@ -42,7 +42,7 @@ namespace spk
 		[[nodiscard]] BindingPoint bindingPoint() const noexcept;
 		[[nodiscard]] Type type() const noexcept;
 
-		void activate(const spk::RenderContext& p_context);
-		void deactivate();
+		void activate(const spk::RenderContext& p_context) const;
+		void deactivate() const;
 	};
 }
