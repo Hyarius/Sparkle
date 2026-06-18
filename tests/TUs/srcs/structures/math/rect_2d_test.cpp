@@ -17,9 +17,7 @@ TEST(Rect2DConstructionTest, DefaultConstructorBuildsZeroRect)
 
 TEST(Rect2DConstructionTest, AnchorAndSizeConstructorStoresValues)
 {
-	const spk::Rect2D rect(
-		spk::Rect2D::Anchor(10, 20),
-		spk::Rect2D::Size(30, 40));
+	const spk::Rect2D rect(spk::Rect2D::Anchor(10, 20), spk::Rect2D::Size(30, 40));
 
 	EXPECT_EQ(rect.anchor.x, 10);
 	EXPECT_EQ(rect.anchor.y, 20);
@@ -29,10 +27,7 @@ TEST(Rect2DConstructionTest, AnchorAndSizeConstructorStoresValues)
 
 TEST(Rect2DConstructionTest, AnchorWidthHeightConstructorStoresValues)
 {
-	const spk::Rect2D rect(
-		spk::Rect2D::Anchor(10, 20),
-		30,
-		40);
+	const spk::Rect2D rect(spk::Rect2D::Anchor(10, 20), 30, 40);
 
 	EXPECT_EQ(rect.anchor.x, 10);
 	EXPECT_EQ(rect.anchor.y, 20);
@@ -42,10 +37,7 @@ TEST(Rect2DConstructionTest, AnchorWidthHeightConstructorStoresValues)
 
 TEST(Rect2DConstructionTest, XYAndSizeConstructorStoresValues)
 {
-	const spk::Rect2D rect(
-		10,
-		20,
-		spk::Rect2D::Size(30, 40));
+	const spk::Rect2D rect(10, 20, spk::Rect2D::Size(30, 40));
 
 	EXPECT_EQ(rect.anchor.x, 10);
 	EXPECT_EQ(rect.anchor.y, 20);

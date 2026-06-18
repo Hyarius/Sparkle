@@ -13,10 +13,7 @@ namespace spk
 		activate();
 	}
 
-	AnimationLabel::AnimationLabel(
-		const std::string& p_name,
-		std::shared_ptr<spk::SpriteSheet> p_spriteSheet,
-		spk::Widget* p_parent) :
+	AnimationLabel::AnimationLabel(const std::string& p_name, std::shared_ptr<spk::SpriteSheet> p_spriteSheet, spk::Widget* p_parent) :
 		spk::Widget(p_name, p_parent)
 	{
 		setSpriteSheet(std::move(p_spriteSheet));
@@ -27,20 +24,13 @@ namespace spk
 	{
 		spk::RenderUnitBuilder builder;
 
-		if (_spriteSheet != nullptr &&
-			_spriteSheet->sprites().empty() == false &&
-			geometry().empty() == false)
+		if (_spriteSheet != nullptr && _spriteSheet->sprites().empty() == false && geometry().empty() == false)
 		{
 			const spk::Vector2UInt spriteCoordinates = {
 				static_cast<unsigned int>(_currentSprite % _spriteSheet->nbSprite().x),
-				static_cast<unsigned int>(_currentSprite / _spriteSheet->nbSprite().x)
-			};
+				static_cast<unsigned int>(_currentSprite / _spriteSheet->nbSprite().x)};
 
-			builder.emplace<spk::SpriteRenderCommand>(
-				*_spriteSheet,
-				spriteCoordinates,
-				geometry(),
-				_depth);
+			builder.emplace<spk::SpriteRenderCommand>(*_spriteSheet, spriteCoordinates, geometry(), _depth);
 		}
 
 		return builder.build();

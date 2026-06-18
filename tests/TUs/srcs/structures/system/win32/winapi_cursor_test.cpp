@@ -1,6 +1,5 @@
 #include <gtest/gtest.h>
 
-
 #include <atomic>
 #include <memory>
 #include <stdexcept>
@@ -162,4 +161,3 @@ TEST(WinAPICursorTest, GetUnknownCursorNameThrows)
 {
 	EXPECT_THROW(static_cast<void>(spk::Cursor::get("__nonexistent_cursor_xyz__")), std::invalid_argument);
 }
-

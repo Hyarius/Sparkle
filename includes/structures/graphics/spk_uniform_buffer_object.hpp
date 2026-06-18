@@ -14,10 +14,7 @@ namespace spk
 		const GLuint _bindingPoint;
 
 	public:
-		explicit UniformBufferObject(
-			GLuint p_bindingPoint,
-			Usage p_usage = Usage::DynamicDraw,
-			std::size_t p_size = 0);
+		explicit UniformBufferObject(GLuint p_bindingPoint, Usage p_usage = Usage::DynamicDraw, std::size_t p_size = 0);
 
 		[[nodiscard]] GLuint bindingPoint() const noexcept;
 

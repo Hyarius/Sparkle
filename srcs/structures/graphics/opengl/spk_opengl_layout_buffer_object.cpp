@@ -120,8 +120,7 @@ namespace spk
 					.componentType = Attribute::componentType(attribute.type),
 					.normalized = attribute.normalized,
 					.stride = static_cast<GLsizei>(_vertexSize),
-					.offset = offset
-				});
+					.offset = offset});
 			offset += Attribute::typeSize(attribute.type);
 		}
 
@@ -156,21 +155,12 @@ namespace spk
 
 	void LayoutBufferObject::addAttribute(Attribute::Index p_index, Attribute::Type p_type, bool p_normalized)
 	{
-		addAttribute(Attribute{
-			.index = p_index,
-			.type = p_type,
-			.normalized = p_normalized
-		});
+		addAttribute(Attribute{.index = p_index, .type = p_type, .normalized = p_normalized});
 	}
 
 	bool LayoutBufferObject::hasAttribute(Attribute::Index p_index) const
 	{
-		return std::ranges::any_of(
-			_attributes,
-			[p_index](const Attribute& p_attribute)
-			{
-				return p_attribute.index == p_index;
-			});
+		return std::ranges::any_of(_attributes, [p_index](const Attribute& p_attribute) { return p_attribute.index == p_index; });
 	}
 
 	std::size_t LayoutBufferObject::vertexSize() const noexcept
@@ -202,8 +192,8 @@ namespace spk
 		if (_vertexSize != 0 && p_size % _vertexSize != 0)
 		{
 			throw std::runtime_error(
-				"spk::LayoutBufferObject vertex data size [" + std::to_string(p_size) +
-				"] is not aligned with its vertex layout [" + std::to_string(_vertexSize) + "]");
+				"spk::LayoutBufferObject vertex data size [" + std::to_string(p_size) + "] is not aligned with its vertex layout [" +
+				std::to_string(_vertexSize) + "]");
 		}
 
 		_vertexBuffer->clear();
@@ -223,8 +213,8 @@ namespace spk
 		if (_vertexSize != 0 && p_size % _vertexSize != 0)
 		{
 			throw std::runtime_error(
-				"spk::LayoutBufferObject vertex data size [" + std::to_string(p_size) +
-				"] is not aligned with its vertex layout [" + std::to_string(_vertexSize) + "]");
+				"spk::LayoutBufferObject vertex data size [" + std::to_string(p_size) + "] is not aligned with its vertex layout [" +
+				std::to_string(_vertexSize) + "]");
 		}
 
 		if (p_size != 0)
@@ -259,7 +249,7 @@ namespace spk
 	{
 		return *_vertexBuffer;
 	}
-	
+
 	[[nodiscard]] spk::IndexBufferObject& LayoutBufferObject::indexes() const
 	{
 		return *_indexBuffer;
@@ -272,9 +262,7 @@ namespace spk
 		{
 			return {};
 		}
-		return std::span<const std::uint32_t>(
-			reinterpret_cast<const std::uint32_t*>(bytes.data()),
-			bytes.size() / sizeof(std::uint32_t));
+		return std::span<const std::uint32_t>(reinterpret_cast<const std::uint32_t*>(bytes.data()), bytes.size() / sizeof(std::uint32_t));
 	}
 
 	void LayoutBufferObject::activate(const spk::RenderContext& p_context) const

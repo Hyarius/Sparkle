@@ -16,8 +16,7 @@ TEST(OpenGLDrawArraysCommandTest, DrawsConfiguredVertexRange)
 	spk::RenderContext& renderContext = context.renderContext();
 
 	const auto program = sparkle_test::makeColorProgram();
-	const auto vertexArray = sparkle_test::makeTriangleVAO(
-		sparkle_test::fullScreenTriangle({0.0f, 1.0f, 0.0f}));
+	const auto vertexArray = sparkle_test::makeTriangleVAO(sparkle_test::fullScreenTriangle({0.0f, 1.0f, 0.0f}));
 
 	spk::Viewport viewport(spk::Rect2D(0, 0, width, height));
 	spk::RenderUnitBuilder builder;
@@ -46,4 +45,3 @@ TEST(OpenGLDrawArraysCommandTest, ExecutesWithoutOptionalProgramOrVertexArray)
 
 	EXPECT_NO_THROW(command.execute(context.renderContext()));
 }
-

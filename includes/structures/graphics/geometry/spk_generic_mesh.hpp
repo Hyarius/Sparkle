@@ -170,12 +170,14 @@ namespace spk
 
 		[[nodiscard]] std::span<const Vertex> vertices() const
 		{
-			return std::span<const Vertex>(reinterpret_cast<const Vertex*>(_layoutBuffer.vertices().data()), _layoutBuffer.vertices().size() / sizeof(Vertex));
+			return std::span<const Vertex>(
+				reinterpret_cast<const Vertex*>(_layoutBuffer.vertices().data()), _layoutBuffer.vertices().size() / sizeof(Vertex));
 		}
 
 		[[nodiscard]] std::span<const Index> indexes() const
 		{
-			return std::span<const Index>(reinterpret_cast<const Index*>(_layoutBuffer.indexes().data()), _layoutBuffer.indexes().size() / sizeof(Index));
+			return std::span<const Index>(
+				reinterpret_cast<const Index*>(_layoutBuffer.indexes().data()), _layoutBuffer.indexes().size() / sizeof(Index));
 		}
 
 		[[nodiscard]] const spk::LayoutBufferObject& layoutBuffer() const

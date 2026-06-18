@@ -177,8 +177,7 @@ TEST(IconButtonVisualTest, RendersDefaultIcon)
 
 	spk::IconButton button("Icon");
 
-	const sparkle_test::ImageComparisonResult result =
-		spk::test::compareSnapshot(button, "IconButtonVisual", "default", captureRect);
+	const sparkle_test::ImageComparisonResult result = spk::test::compareSnapshot(button, "IconButtonVisual", "default", captureRect);
 
 	EXPECT_TRUE(result.matches);
 }
@@ -190,8 +189,7 @@ TEST(IconButtonVisualTest, RendersDifferentIconID)
 	spk::IconButton button("Icon");
 	button.setIconSpriteID(3);
 
-	const sparkle_test::ImageComparisonResult result =
-		spk::test::compareSnapshot(button, "IconButtonVisual", "icon_id_3", captureRect);
+	const sparkle_test::ImageComparisonResult result = spk::test::compareSnapshot(button, "IconButtonVisual", "icon_id_3", captureRect);
 
 	EXPECT_TRUE(result.matches);
 }
@@ -203,8 +201,7 @@ TEST(IconButtonVisualTest, RendersFlat)
 	spk::IconButton button("Icon");
 	button.setFlat(true);
 
-	const sparkle_test::ImageComparisonResult result =
-		spk::test::compareSnapshot(button, "IconButtonVisual", "flat", captureRect);
+	const sparkle_test::ImageComparisonResult result = spk::test::compareSnapshot(button, "IconButtonVisual", "flat", captureRect);
 
 	EXPECT_TRUE(result.matches);
 }
@@ -215,8 +212,7 @@ TEST(CheckableIconButtonVisualTest, RendersUnchecked)
 
 	spk::CheckableIconButton button("Checkable", 0, 1);
 
-	const sparkle_test::ImageComparisonResult result =
-		spk::test::compareSnapshot(button, "CheckableIconButtonVisual", "unchecked", captureRect);
+	const sparkle_test::ImageComparisonResult result = spk::test::compareSnapshot(button, "CheckableIconButtonVisual", "unchecked", captureRect);
 
 	EXPECT_TRUE(result.matches);
 }
@@ -228,8 +224,7 @@ TEST(CheckableIconButtonVisualTest, RendersChecked)
 	spk::CheckableIconButton button("Checkable", 0, 1);
 	button.setChecked(true);
 
-	const sparkle_test::ImageComparisonResult result =
-		spk::test::compareSnapshot(button, "CheckableIconButtonVisual", "checked", captureRect);
+	const sparkle_test::ImageComparisonResult result = spk::test::compareSnapshot(button, "CheckableIconButtonVisual", "checked", captureRect);
 
 	EXPECT_TRUE(result.matches);
 }

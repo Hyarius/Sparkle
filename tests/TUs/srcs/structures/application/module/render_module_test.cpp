@@ -133,16 +133,11 @@ TEST(RenderModuleTest, RenderCommandReceivesRenderContext)
 	sparkle_test::TestRenderContext renderContext(std::make_shared<spk::SurfaceState>());
 	spk::RenderContext* seenContext = nullptr;
 
-	builder.emplace<sparkle_test::CallbackRenderCommand>(
-		[&seenContext](spk::RenderContext& p_renderContext)
-		{
-			seenContext = &p_renderContext;
-		});
+	builder.emplace<sparkle_test::CallbackRenderCommand>([&seenContext](spk::RenderContext& p_renderContext) { seenContext = &p_renderContext; });
 
-	module.publishSnapshot(std::make_shared<spk::RenderSnapshot>(
-		spk::RenderSnapshot(
-			std::vector<std::shared_ptr<spk::RenderUnit>>{
-				std::make_shared<spk::RenderUnit>(builder.build())})));
+	module.publishSnapshot(
+		std::make_shared<spk::RenderSnapshot>(
+			spk::RenderSnapshot(std::vector<std::shared_ptr<spk::RenderUnit>>{std::make_shared<spk::RenderUnit>(builder.build())})));
 
 	module.render(renderContext);
 

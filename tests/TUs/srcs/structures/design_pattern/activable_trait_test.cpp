@@ -54,10 +54,7 @@ TEST(ActivableTraitTest, ActivationSubscriptionIsTriggeredOnActivation)
 	TestActivableObject object;
 	int activationCount = 0;
 
-	auto contract = object.subscribeToActivation([&activationCount]()
-	{
-		++activationCount;
-	});
+	auto contract = object.subscribeToActivation([&activationCount]() { ++activationCount; });
 
 	ASSERT_TRUE(contract.isValid());
 
@@ -72,10 +69,7 @@ TEST(ActivableTraitTest, DeactivationSubscriptionIsTriggeredOnDeactivation)
 	TestActivableObject object;
 	int deactivationCount = 0;
 
-	auto contract = object.subscribeToDeactivation([&deactivationCount]()
-	{
-		++deactivationCount;
-	});
+	auto contract = object.subscribeToDeactivation([&deactivationCount]() { ++deactivationCount; });
 
 	ASSERT_TRUE(contract.isValid());
 
@@ -91,10 +85,7 @@ TEST(ActivableTraitTest, ActivationDoesNotTriggerActivationTwiceWhenAlreadyActiv
 	TestActivableObject object;
 	int activationCount = 0;
 
-	auto contract = object.subscribeToActivation([&activationCount]()
-	{
-		++activationCount;
-	});
+	auto contract = object.subscribeToActivation([&activationCount]() { ++activationCount; });
 
 	object.activate();
 	object.activate();
@@ -109,10 +100,7 @@ TEST(ActivableTraitTest, DeactivationDoesNotTriggerDeactivationTwiceWhenAlreadyD
 	TestActivableObject object;
 	int deactivationCount = 0;
 
-	auto contract = object.subscribeToDeactivation([&deactivationCount]()
-	{
-		++deactivationCount;
-	});
+	auto contract = object.subscribeToDeactivation([&deactivationCount]() { ++deactivationCount; });
 
 	object.deactivate();
 	object.deactivate();
@@ -127,10 +115,7 @@ TEST(ActivableTraitTest, DeactivationDoesNotTriggerTwiceAfterReturningToInactive
 	TestActivableObject object;
 	int deactivationCount = 0;
 
-	auto contract = object.subscribeToDeactivation([&deactivationCount]()
-	{
-		++deactivationCount;
-	});
+	auto contract = object.subscribeToDeactivation([&deactivationCount]() { ++deactivationCount; });
 
 	object.activate();
 	object.deactivate();
@@ -146,15 +131,9 @@ TEST(ActivableTraitTest, ActivationAndDeactivationUseSeparateProviders)
 	int activationCount = 0;
 	int deactivationCount = 0;
 
-	auto activationContract = object.subscribeToActivation([&activationCount]()
-	{
-		++activationCount;
-	});
+	auto activationContract = object.subscribeToActivation([&activationCount]() { ++activationCount; });
 
-	auto deactivationContract = object.subscribeToDeactivation([&deactivationCount]()
-	{
-		++deactivationCount;
-	});
+	auto deactivationContract = object.subscribeToDeactivation([&deactivationCount]() { ++deactivationCount; });
 
 	object.activate();
 
@@ -173,15 +152,9 @@ TEST(ActivableTraitTest, ActivationCanBeTriggeredAgainAfterDeactivation)
 	int activationCount = 0;
 	int deactivationCount = 0;
 
-	auto activationContract = object.subscribeToActivation([&activationCount]()
-	{
-		++activationCount;
-	});
+	auto activationContract = object.subscribeToActivation([&activationCount]() { ++activationCount; });
 
-	auto deactivationContract = object.subscribeToDeactivation([&deactivationCount]()
-	{
-		++deactivationCount;
-	});
+	auto deactivationContract = object.subscribeToDeactivation([&deactivationCount]() { ++deactivationCount; });
 
 	object.activate();
 	object.deactivate();
@@ -198,15 +171,9 @@ TEST(ActivableTraitTest, BlockedObjectCannotActivate)
 	int activationCount = 0;
 	int deactivationCount = 0;
 
-	auto activationContract = object.subscribeToActivation([&activationCount]()
-	{
-		++activationCount;
-	});
+	auto activationContract = object.subscribeToActivation([&activationCount]() { ++activationCount; });
 
-	auto deactivationContract = object.subscribeToDeactivation([&deactivationCount]()
-	{
-		++deactivationCount;
-	});
+	auto deactivationContract = object.subscribeToDeactivation([&deactivationCount]() { ++deactivationCount; });
 
 	auto blocker = object.block();
 
@@ -223,15 +190,9 @@ TEST(ActivableTraitTest, BlockedObjectCannotDeactivate)
 	int activationCount = 0;
 	int deactivationCount = 0;
 
-	auto activationContract = object.subscribeToActivation([&activationCount]()
-	{
-		++activationCount;
-	});
+	auto activationContract = object.subscribeToActivation([&activationCount]() { ++activationCount; });
 
-	auto deactivationContract = object.subscribeToDeactivation([&deactivationCount]()
-	{
-		++deactivationCount;
-	});
+	auto deactivationContract = object.subscribeToDeactivation([&deactivationCount]() { ++deactivationCount; });
 
 	object.activate();
 	ASSERT_TRUE(object.isActivated());
@@ -251,10 +212,7 @@ TEST(ActivableTraitTest, ObjectCanActivateAfterBlockIsReleased)
 	TestActivableObject object;
 	int activationCount = 0;
 
-	auto contract = object.subscribeToActivation([&activationCount]()
-	{
-		++activationCount;
-	});
+	auto contract = object.subscribeToActivation([&activationCount]() { ++activationCount; });
 
 	auto blocker = object.block();
 
@@ -276,10 +234,7 @@ TEST(ActivableTraitTest, ObjectCanDeactivateAfterBlockIsReleased)
 	TestActivableObject object;
 	int deactivationCount = 0;
 
-	auto contract = object.subscribeToDeactivation([&deactivationCount]()
-	{
-		++deactivationCount;
-	});
+	auto contract = object.subscribeToDeactivation([&deactivationCount]() { ++deactivationCount; });
 
 	object.activate();
 	ASSERT_TRUE(object.isActivated());
@@ -304,10 +259,7 @@ TEST(ActivableTraitTest, DelayBlockedActivationIsAppliedWhenBlockIsReleased)
 	TestActivableObject object;
 	int activationCount = 0;
 
-	auto contract = object.subscribeToActivation([&activationCount]()
-	{
-		++activationCount;
-	});
+	auto contract = object.subscribeToActivation([&activationCount]() { ++activationCount; });
 
 	auto blocker = object.block(spk::BlockableTrait::Mode::Delay);
 
@@ -327,10 +279,7 @@ TEST(ActivableTraitTest, DelayBlockedDeactivationIsAppliedWhenBlockIsReleased)
 	TestActivableObject object;
 	int deactivationCount = 0;
 
-	auto contract = object.subscribeToDeactivation([&deactivationCount]()
-	{
-		++deactivationCount;
-	});
+	auto contract = object.subscribeToDeactivation([&deactivationCount]() { ++deactivationCount; });
 
 	object.activate();
 	auto blocker = object.block(spk::BlockableTrait::Mode::Delay);
@@ -351,10 +300,7 @@ TEST(ActivableTraitTest, ActivationSubscriptionCanBeResigned)
 	TestActivableObject object;
 	int activationCount = 0;
 
-	auto contract = object.subscribeToActivation([&activationCount]()
-	{
-		++activationCount;
-	});
+	auto contract = object.subscribeToActivation([&activationCount]() { ++activationCount; });
 
 	contract.resign();
 
@@ -369,10 +315,7 @@ TEST(ActivableTraitTest, DeactivationSubscriptionCanBeResigned)
 	TestActivableObject object;
 	int deactivationCount = 0;
 
-	auto contract = object.subscribeToDeactivation([&deactivationCount]()
-	{
-		++deactivationCount;
-	});
+	auto contract = object.subscribeToDeactivation([&deactivationCount]() { ++deactivationCount; });
 
 	object.activate();
 	contract.resign();
@@ -388,15 +331,9 @@ TEST(ActivableTraitTest, ActivationAndDeactivationContractsAreIndependent)
 	int activationCount = 0;
 	int deactivationCount = 0;
 
-	auto activationContract = object.subscribeToActivation([&activationCount]()
-	{
-		++activationCount;
-	});
+	auto activationContract = object.subscribeToActivation([&activationCount]() { ++activationCount; });
 
-	auto deactivationContract = object.subscribeToDeactivation([&deactivationCount]()
-	{
-		++deactivationCount;
-	});
+	auto deactivationContract = object.subscribeToDeactivation([&deactivationCount]() { ++deactivationCount; });
 
 	activationContract.resign();
 
@@ -414,20 +351,11 @@ TEST(ActivableTraitTest, MultipleActivationSubscribersAreAllTriggered)
 	int secondCount = 0;
 	int thirdCount = 0;
 
-	auto firstContract = object.subscribeToActivation([&firstCount]()
-	{
-		++firstCount;
-	});
+	auto firstContract = object.subscribeToActivation([&firstCount]() { ++firstCount; });
 
-	auto secondContract = object.subscribeToActivation([&secondCount]()
-	{
-		++secondCount;
-	});
+	auto secondContract = object.subscribeToActivation([&secondCount]() { ++secondCount; });
 
-	auto thirdContract = object.subscribeToActivation([&thirdCount]()
-	{
-		++thirdCount;
-	});
+	auto thirdContract = object.subscribeToActivation([&thirdCount]() { ++thirdCount; });
 
 	object.activate();
 
@@ -443,20 +371,11 @@ TEST(ActivableTraitTest, MultipleDeactivationSubscribersAreAllTriggered)
 	int secondCount = 0;
 	int thirdCount = 0;
 
-	auto firstContract = object.subscribeToDeactivation([&firstCount]()
-	{
-		++firstCount;
-	});
+	auto firstContract = object.subscribeToDeactivation([&firstCount]() { ++firstCount; });
 
-	auto secondContract = object.subscribeToDeactivation([&secondCount]()
-	{
-		++secondCount;
-	});
+	auto secondContract = object.subscribeToDeactivation([&secondCount]() { ++secondCount; });
 
-	auto thirdContract = object.subscribeToDeactivation([&thirdCount]()
-	{
-		++thirdCount;
-	});
+	auto thirdContract = object.subscribeToDeactivation([&thirdCount]() { ++thirdCount; });
 
 	object.activate();
 	object.deactivate();

@@ -20,10 +20,7 @@ namespace spk
 
 	public:
 		explicit ImageLabel(const std::string& p_name, spk::Widget* p_parent = nullptr);
-		ImageLabel(
-			const std::string& p_name,
-			std::shared_ptr<spk::Texture> p_texture,
-			spk::Widget* p_parent = nullptr);
+		ImageLabel(const std::string& p_name, std::shared_ptr<spk::Texture> p_texture, spk::Widget* p_parent = nullptr);
 
 		void setTexture(std::shared_ptr<spk::Texture> p_texture);
 		void setSection(const spk::Texture::Section& p_section);

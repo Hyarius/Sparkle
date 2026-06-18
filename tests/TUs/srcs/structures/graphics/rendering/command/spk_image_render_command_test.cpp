@@ -1,6 +1,5 @@
 #include <gtest/gtest.h>
 
-
 #include <array>
 #include <cstddef>
 #include <filesystem>
@@ -53,7 +52,7 @@ TEST(ImageRenderCommandTest, DrawsPartialTextureSection)
 	sparkle_test::OpenGLTestContext context(spk::Rect2D(0, 0, width, height));
 	spk::RenderContext& renderContext = context.renderContext();
 
-	// 2×1 texture: left pixel red, right pixel green
+	// 2Ã—1 texture: left pixel red, right pixel green
 	std::vector<std::uint8_t> pixels = {255, 0, 0, 255, 0, 255, 0, 255};
 	auto texture = std::make_shared<Texture>();
 	texture->setPixels(
@@ -108,4 +107,3 @@ TEST(ImageRenderCommandTest, CanExecuteTwiceWithConstructedMesh)
 		sparkle_test::renderCommandExpectedPath("ImageRenderCommand/twice_expected"),
 		sparkle_test::renderCommandResultPath("ImageRenderCommand/twice_diff"));
 }
-

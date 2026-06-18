@@ -94,10 +94,7 @@ namespace spk
 			throw std::runtime_error("spk::VertexArrayObject::addVertexBuffer requires a valid buffer");
 		}
 
-		_vertexBufferBindings.push_back(VertexBufferBinding{
-			.buffer = std::move(p_buffer),
-			.attribute = p_attribute
-		});
+		_vertexBufferBindings.push_back(VertexBufferBinding{.buffer = std::move(p_buffer), .attribute = p_attribute});
 		++_layoutVersion;
 		requestSynchronization();
 	}

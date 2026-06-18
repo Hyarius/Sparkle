@@ -125,10 +125,7 @@ TEST(ObservableValueTest, NoNotificationWhenSetToSameValue)
 	spk::ObservableValue<int> value(12);
 
 	int notificationCount = 0;
-	auto contract = value.subscribe([&notificationCount](const int&)
-	{
-		++notificationCount;
-	});
+	auto contract = value.subscribe([&notificationCount](const int&) { ++notificationCount; });
 
 	value.set(12);
 	value = 12;
@@ -143,11 +140,12 @@ TEST(ObservableValueTest, NotificationOccursWhenValueChangesUsingSet)
 	int notificationCount = 0;
 	int receivedValue = -1;
 
-	auto contract = value.subscribe([&notificationCount, &receivedValue](const int& p_value)
-	{
-		++notificationCount;
-		receivedValue = p_value;
-	});
+	auto contract = value.subscribe(
+		[&notificationCount, &receivedValue](const int& p_value)
+		{
+			++notificationCount;
+			receivedValue = p_value;
+		});
 
 	value.set(15);
 
@@ -163,11 +161,12 @@ TEST(ObservableValueTest, NotificationOccursWhenValueChangesUsingAssignment)
 	int notificationCount = 0;
 	int receivedValue = -1;
 
-	auto contract = value.subscribe([&notificationCount, &receivedValue](const int& p_value)
-	{
-		++notificationCount;
-		receivedValue = p_value;
-	});
+	auto contract = value.subscribe(
+		[&notificationCount, &receivedValue](const int& p_value)
+		{
+			++notificationCount;
+			receivedValue = p_value;
+		});
 
 	value = 18;
 
@@ -223,11 +222,12 @@ TEST(ObservableValueTest, AddAssignChangesValueAndNotifies)
 	int notificationCount = 0;
 	int receivedValue = -1;
 
-	auto contract = value.subscribe([&notificationCount, &receivedValue](const int& p_value)
-	{
-		++notificationCount;
-		receivedValue = p_value;
-	});
+	auto contract = value.subscribe(
+		[&notificationCount, &receivedValue](const int& p_value)
+		{
+			++notificationCount;
+			receivedValue = p_value;
+		});
 
 	value += 6;
 
@@ -242,10 +242,7 @@ TEST(ObservableValueTest, SubtractAssignChangesValueAndNotifies)
 
 	int notificationCount = 0;
 
-	auto contract = value.subscribe([&notificationCount](const int&)
-	{
-		++notificationCount;
-	});
+	auto contract = value.subscribe([&notificationCount](const int&) { ++notificationCount; });
 
 	value -= 4;
 
@@ -259,10 +256,7 @@ TEST(ObservableValueTest, MultiplyAssignChangesValueAndNotifies)
 
 	int notificationCount = 0;
 
-	auto contract = value.subscribe([&notificationCount](const int&)
-	{
-		++notificationCount;
-	});
+	auto contract = value.subscribe([&notificationCount](const int&) { ++notificationCount; });
 
 	value *= 7;
 
@@ -276,10 +270,7 @@ TEST(ObservableValueTest, DivideAssignChangesValueAndNotifies)
 
 	int notificationCount = 0;
 
-	auto contract = value.subscribe([&notificationCount](const int&)
-	{
-		++notificationCount;
-	});
+	auto contract = value.subscribe([&notificationCount](const int&) { ++notificationCount; });
 
 	value /= 6;
 
@@ -334,11 +325,12 @@ TEST(ObservableValueTest, PrefixIncrementNotifiesOnce)
 	int notificationCount = 0;
 	int receivedValue = -1;
 
-	auto contract = value.subscribe([&notificationCount, &receivedValue](const int& p_value)
-	{
-		++notificationCount;
-		receivedValue = p_value;
-	});
+	auto contract = value.subscribe(
+		[&notificationCount, &receivedValue](const int& p_value)
+		{
+			++notificationCount;
+			receivedValue = p_value;
+		});
 
 	++value;
 
@@ -364,11 +356,12 @@ TEST(ObservableValueTest, PrefixDecrementNotifiesOnce)
 	int notificationCount = 0;
 	int receivedValue = -1;
 
-	auto contract = value.subscribe([&notificationCount, &receivedValue](const int& p_value)
-	{
-		++notificationCount;
-		receivedValue = p_value;
-	});
+	auto contract = value.subscribe(
+		[&notificationCount, &receivedValue](const int& p_value)
+		{
+			++notificationCount;
+			receivedValue = p_value;
+		});
 
 	--value;
 
@@ -394,11 +387,12 @@ TEST(ObservableValueTest, PostfixIncrementNotifiesOnce)
 	int notificationCount = 0;
 	int receivedValue = -1;
 
-	auto contract = value.subscribe([&notificationCount, &receivedValue](const int& p_value)
-	{
-		++notificationCount;
-		receivedValue = p_value;
-	});
+	auto contract = value.subscribe(
+		[&notificationCount, &receivedValue](const int& p_value)
+		{
+			++notificationCount;
+			receivedValue = p_value;
+		});
 
 	int result = value++;
 
@@ -425,11 +419,12 @@ TEST(ObservableValueTest, PostfixDecrementNotifiesOnce)
 	int notificationCount = 0;
 	int receivedValue = -1;
 
-	auto contract = value.subscribe([&notificationCount, &receivedValue](const int& p_value)
-	{
-		++notificationCount;
-		receivedValue = p_value;
-	});
+	auto contract = value.subscribe(
+		[&notificationCount, &receivedValue](const int& p_value)
+		{
+			++notificationCount;
+			receivedValue = p_value;
+		});
 
 	int result = value--;
 
@@ -446,11 +441,12 @@ TEST(ObservableValueTest, StringSupportsSetAssignmentPlusAndPlusAssign)
 	int notificationCount = 0;
 	std::string receivedValue;
 
-	auto contract = value.subscribe([&notificationCount, &receivedValue](const std::string& p_value)
-	{
-		++notificationCount;
-		receivedValue = p_value;
-	});
+	auto contract = value.subscribe(
+		[&notificationCount, &receivedValue](const std::string& p_value)
+		{
+			++notificationCount;
+			receivedValue = p_value;
+		});
 
 	EXPECT_EQ(value + std::string("cd"), "abcd");
 
@@ -472,11 +468,12 @@ TEST(ObservableValueTest, CustomTypeSupportsEnabledOperationsOnly)
 	int notificationCount = 0;
 	int receivedValue = -1;
 
-	auto contract = value.subscribe([&notificationCount, &receivedValue](const CustomType& p_value)
-	{
-		++notificationCount;
-		receivedValue = p_value.value;
-	});
+	auto contract = value.subscribe(
+		[&notificationCount, &receivedValue](const CustomType& p_value)
+		{
+			++notificationCount;
+			receivedValue = p_value.value;
+		});
 
 	CustomType plusResult = value + 5;
 	EXPECT_EQ(plusResult.value, 15);
@@ -506,11 +503,12 @@ TEST(ObservableValueTest, RepeatedChangesNotifyForEachDistinctChange)
 	int notificationCount = 0;
 	int lastValue = -1;
 
-	auto contract = value.subscribe([&notificationCount, &lastValue](const int& p_value)
-	{
-		++notificationCount;
-		lastValue = p_value;
-	});
+	auto contract = value.subscribe(
+		[&notificationCount, &lastValue](const int& p_value)
+		{
+			++notificationCount;
+			lastValue = p_value;
+		});
 
 	value = 2;
 	value = 2;

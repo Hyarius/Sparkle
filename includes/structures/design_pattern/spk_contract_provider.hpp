@@ -146,10 +146,7 @@ namespace spk
 				std::remove_if(
 					_links.begin(),
 					_links.end(),
-					[](const std::shared_ptr<Link>& p_link)
-					{
-						return (p_link == nullptr || p_link->function == nullptr);
-					}),
+					[](const std::shared_ptr<Link>& p_link) { return (p_link == nullptr || p_link->function == nullptr); }),
 				_links.end());
 		}
 
@@ -163,12 +160,7 @@ namespace spk
 			StoredArguments arguments = std::move(*_lastTriggerArguments);
 			_lastTriggerArguments.reset();
 
-			std::apply(
-				[this](auto&&... p_arguments)
-				{
-					trigger(p_arguments...);
-				},
-				arguments);
+			std::apply([this](auto&&... p_arguments) { trigger(p_arguments...); }, arguments);
 		}
 
 	public:
@@ -198,10 +190,7 @@ namespace spk
 				if (isDelayBlocked())
 				{
 					_lastTriggerArguments.emplace(p_arguments...);
-					deferUntilUnblocked([this]()
-					{
-						_triggerDeferred();
-					});
+					deferUntilUnblocked([this]() { _triggerDeferred(); });
 				}
 
 				return;
@@ -221,9 +210,7 @@ namespace spk
 				{
 					std::shared_ptr<Link> element = _links[i];
 
-					if (element == nullptr ||
-						element->function == nullptr ||
-						element->isBlocked())
+					if (element == nullptr || element->function == nullptr || element->isBlocked())
 					{
 						continue;
 					}

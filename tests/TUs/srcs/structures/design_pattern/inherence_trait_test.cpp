@@ -801,7 +801,6 @@ TEST(HierarchyTraitTest, HierarchyMutationGuardOnlyDefersMutationsTouchingGuarde
 	EXPECT_TRUE(unrelatedParent.hasChild(&unrelatedChild));
 }
 
-
 TEST(HierarchyTraitTest, BlockHierarchyMutationsCanBeReleasedManually)
 {
 	TestNode firstParent;

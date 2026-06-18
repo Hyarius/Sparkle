@@ -13,8 +13,7 @@
 
 namespace spk
 {
-	DrawColorMeshRenderCommand::DrawColorMeshRenderCommand(
-		std::shared_ptr<const spk::ColorMesh2D> p_mesh) :
+	DrawColorMeshRenderCommand::DrawColorMeshRenderCommand(std::shared_ptr<const spk::ColorMesh2D> p_mesh) :
 		_mesh(std::move(p_mesh)),
 		_viewportBuffer(spk::Viewport::viewportUniformBuffer())
 	{

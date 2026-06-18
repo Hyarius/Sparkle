@@ -63,8 +63,7 @@ TEST(PromptPanelTest, SubscribeTriggersOnButtonClick)
 
 	const spk::Rect2D buttonRect = panel.button("ok")->viewport().geometry();
 	const spk::Vector2Int clickPosition = {
-		buttonRect.x() + static_cast<int>(buttonRect.width() / 2),
-		buttonRect.y() + static_cast<int>(buttonRect.height() / 2)};
+		buttonRect.x() + static_cast<int>(buttonRect.width() / 2), buttonRect.y() + static_cast<int>(buttonRect.height() / 2)};
 
 	spk::MouseModule mouseModule;
 	mouseModule.bind(&panel);
@@ -124,8 +123,7 @@ TEST(PromptPanelVisualTest, RendersWithMessageAndButton)
 	panel.addButton("ok", "OK");
 	panel.addButton("cancel", "Cancel");
 
-	const sparkle_test::ImageComparisonResult result =
-		spk::test::compareSnapshot(panel, "PromptPanelVisual", "message_and_buttons", captureRect);
+	const sparkle_test::ImageComparisonResult result = spk::test::compareSnapshot(panel, "PromptPanelVisual", "message_and_buttons", captureRect);
 
 	EXPECT_TRUE(result.matches);
 }
@@ -137,8 +135,7 @@ TEST(PromptPanelVisualTest, RendersEmptyPrompt)
 	spk::PromptPanel panel("Prompt");
 	panel.addButton("close", "Close");
 
-	const sparkle_test::ImageComparisonResult result =
-		spk::test::compareSnapshot(panel, "PromptPanelVisual", "button_only", captureRect);
+	const sparkle_test::ImageComparisonResult result = spk::test::compareSnapshot(panel, "PromptPanelVisual", "button_only", captureRect);
 
 	EXPECT_TRUE(result.matches);
 }

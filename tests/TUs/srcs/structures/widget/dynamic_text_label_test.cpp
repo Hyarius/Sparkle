@@ -44,11 +44,12 @@ TEST(DynamicTextLabelTest, UpdateRefreshesAfterTimeout)
 {
 	int callCount = 0;
 	spk::DynamicTextLabel label("Dynamic");
-	label.setTextProducer([&callCount]()
-	{
-		++callCount;
-		return std::to_string(callCount);
-	});
+	label.setTextProducer(
+		[&callCount]()
+		{
+			++callCount;
+			return std::to_string(callCount);
+		});
 	label.setRefreshDuration(spk::Duration(0.0L, spk::TimeUnit::Millisecond));
 
 	spk::UpdateTick tick = makeTick();
@@ -63,11 +64,12 @@ TEST(DynamicTextLabelTest, RefreshForcesImmediateUpdate)
 {
 	int callCount = 0;
 	spk::DynamicTextLabel label("Dynamic");
-	label.setTextProducer([&callCount]()
-	{
-		++callCount;
-		return std::to_string(callCount);
-	});
+	label.setTextProducer(
+		[&callCount]()
+		{
+			++callCount;
+			return std::to_string(callCount);
+		});
 
 	ASSERT_EQ(callCount, 1);
 
@@ -81,11 +83,12 @@ TEST(DynamicTextLabelTest, UpdateDoesNotRefreshBeforeTimeout)
 {
 	int callCount = 0;
 	spk::DynamicTextLabel label("Dynamic");
-	label.setTextProducer([&callCount]()
-	{
-		++callCount;
-		return std::to_string(callCount);
-	});
+	label.setTextProducer(
+		[&callCount]()
+		{
+			++callCount;
+			return std::to_string(callCount);
+		});
 
 	spk::UpdateTick tick = makeTick();
 	label.update(tick);
@@ -116,8 +119,7 @@ TEST(DynamicTextLabelVisualTest, RendersProducerTextAfterRefresh)
 	label.setTextProducer([]() { return "Hello World"; });
 	label.refresh();
 
-	const sparkle_test::ImageComparisonResult result =
-		spk::test::compareSnapshot(label, "DynamicTextLabelVisual", "after_refresh", captureRect);
+	const sparkle_test::ImageComparisonResult result = spk::test::compareSnapshot(label, "DynamicTextLabelVisual", "after_refresh", captureRect);
 
 	EXPECT_TRUE(result.matches);
 }
@@ -129,8 +131,7 @@ TEST(DynamicTextLabelVisualTest, RendersEmptyBeforeRefresh)
 	spk::DynamicTextLabel label("DynLabel");
 	label.applyStyle(makeVisualTestStyle());
 
-	const sparkle_test::ImageComparisonResult result =
-		spk::test::compareSnapshot(label, "DynamicTextLabelVisual", "before_refresh", captureRect);
+	const sparkle_test::ImageComparisonResult result = spk::test::compareSnapshot(label, "DynamicTextLabelVisual", "before_refresh", captureRect);
 
 	EXPECT_TRUE(result.matches);
 }

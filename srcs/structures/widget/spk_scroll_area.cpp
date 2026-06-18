@@ -10,15 +10,9 @@ namespace spk
 		_horizontalScrollBar(p_name + "::horizontalScrollBar", spk::Orientation::Horizontal, this),
 		_verticalScrollBar(p_name + "::verticalScrollBar", spk::Orientation::Vertical, this)
 	{
-		_horizontalBarContract = _horizontalScrollBar.subscribeToEdition([this](float)
-		{
-			_refreshContentAnchor();
-		});
+		_horizontalBarContract = _horizontalScrollBar.subscribeToEdition([this](float) { _refreshContentAnchor(); });
 
-		_verticalBarContract = _verticalScrollBar.subscribeToEdition([this](float)
-		{
-			_refreshContentAnchor();
-		});
+		_verticalBarContract = _verticalScrollBar.subscribeToEdition([this](float) { _refreshContentAnchor(); });
 
 		activate();
 	}
@@ -46,14 +40,12 @@ namespace spk
 		const spk::Vector2UInt view = viewSize();
 		const spk::Vector2UInt content = _container.contentSize();
 
-		const int horizontalOverflow =
-			(content.x > view.x) ? static_cast<int>(content.x - view.x) : 0;
-		const int verticalOverflow =
-			(content.y > view.y) ? static_cast<int>(content.y - view.y) : 0;
+		const int horizontalOverflow = (content.x > view.x) ? static_cast<int>(content.x - view.x) : 0;
+		const int verticalOverflow = (content.y > view.y) ? static_cast<int>(content.y - view.y) : 0;
 
-		_container.setContentAnchor({
-			-static_cast<int>(static_cast<float>(horizontalOverflow) * _horizontalScrollBar.ratio()),
-			-static_cast<int>(static_cast<float>(verticalOverflow) * _verticalScrollBar.ratio())});
+		_container.setContentAnchor(
+			{-static_cast<int>(static_cast<float>(horizontalOverflow) * _horizontalScrollBar.ratio()),
+			 -static_cast<int>(static_cast<float>(verticalOverflow) * _verticalScrollBar.ratio())});
 	}
 
 	void IScrollArea::_refreshScrollBarScales()
@@ -61,14 +53,8 @@ namespace spk
 		const spk::Vector2UInt view = viewSize();
 		const spk::Vector2UInt content = _container.contentSize();
 
-		const float horizontalScale =
-			(content.x > view.x && content.x > 0)
-				? static_cast<float>(view.x) / static_cast<float>(content.x)
-				: 1.0f;
-		const float verticalScale =
-			(content.y > view.y && content.y > 0)
-				? static_cast<float>(view.y) / static_cast<float>(content.y)
-				: 1.0f;
+		const float horizontalScale = (content.x > view.x && content.x > 0) ? static_cast<float>(view.x) / static_cast<float>(content.x) : 1.0f;
+		const float verticalScale = (content.y > view.y && content.y > 0) ? static_cast<float>(view.y) / static_cast<float>(content.y) : 1.0f;
 
 		_horizontalScrollBar.setScale(std::clamp(horizontalScale, 0.05f, 1.0f));
 		_verticalScrollBar.setScale(std::clamp(verticalScale, 0.05f, 1.0f));
@@ -80,17 +66,11 @@ namespace spk
 
 		_container.setGeometry(spk::Rect2D(0, 0, view.x, view.y));
 
-		_horizontalScrollBar.setGeometry(spk::Rect2D(
-			0,
-			static_cast<int>(view.y),
-			view.x,
-			(_horizontalScrollBar.isActivated() == true) ? _scrollBarWidth : 0));
+		_horizontalScrollBar.setGeometry(
+			spk::Rect2D(0, static_cast<int>(view.y), view.x, (_horizontalScrollBar.isActivated() == true) ? _scrollBarWidth : 0));
 
-		_verticalScrollBar.setGeometry(spk::Rect2D(
-			static_cast<int>(view.x),
-			0,
-			(_verticalScrollBar.isActivated() == true) ? _scrollBarWidth : 0,
-			view.y));
+		_verticalScrollBar.setGeometry(
+			spk::Rect2D(static_cast<int>(view.x), 0, (_verticalScrollBar.isActivated() == true) ? _scrollBarWidth : 0, view.y));
 
 		_refreshScrollBarScales();
 		_refreshContentAnchor();
@@ -124,8 +104,7 @@ namespace spk
 
 	void IScrollArea::setScrollBarVisible(spk::Orientation p_orientation, bool p_state)
 	{
-		spk::ScrollBar& bar =
-			(p_orientation == spk::Orientation::Horizontal) ? _horizontalScrollBar : _verticalScrollBar;
+		spk::ScrollBar& bar = (p_orientation == spk::Orientation::Horizontal) ? _horizontalScrollBar : _verticalScrollBar;
 
 		if (p_state == true)
 		{

@@ -21,10 +21,7 @@ TEST(GenericMeshTest, AddTriangleStoresVerticesIndexesAndShape)
 {
 	spk::Mesh2D mesh;
 
-	mesh.addShape(
-		spk::Vertex2D{.position = {0.0f, 0.0f}},
-		spk::Vertex2D{.position = {1.0f, 0.0f}},
-		spk::Vertex2D{.position = {0.0f, 1.0f}});
+	mesh.addShape(spk::Vertex2D{.position = {0.0f, 0.0f}}, spk::Vertex2D{.position = {1.0f, 0.0f}}, spk::Vertex2D{.position = {0.0f, 1.0f}});
 
 	EXPECT_EQ(mesh.vertices().size(), 3);
 	EXPECT_EQ(toVector(mesh.indexes()), (std::vector<std::uint32_t>{0, 1, 2}));
@@ -56,8 +53,7 @@ TEST(GenericMeshTest, AddPolygonTriangulatesAsFan)
 		spk::Vertex2D{.position = {1.0f, 0.0f}},
 		spk::Vertex2D{.position = {1.0f, 1.0f}},
 		spk::Vertex2D{.position = {0.5f, 1.5f}},
-		spk::Vertex2D{.position = {0.0f, 1.0f}}
-	};
+		spk::Vertex2D{.position = {0.0f, 1.0f}}};
 
 	mesh.addShape(std::span<const spk::Vertex2D>(vertices.data(), vertices.size()));
 
@@ -68,10 +64,7 @@ TEST(GenericMeshTest, AddPolygonTriangulatesAsFan)
 TEST(GenericMeshTest, CopyAndMovePreserveShapeAccess)
 {
 	spk::Mesh2D mesh;
-	mesh.addShape(
-		spk::Vertex2D{.position = {0.0f, 0.0f}},
-		spk::Vertex2D{.position = {1.0f, 0.0f}},
-		spk::Vertex2D{.position = {0.0f, 1.0f}});
+	mesh.addShape(spk::Vertex2D{.position = {0.0f, 0.0f}}, spk::Vertex2D{.position = {1.0f, 0.0f}}, spk::Vertex2D{.position = {0.0f, 1.0f}});
 
 	spk::Mesh2D copy(mesh);
 	EXPECT_EQ(toVector(copy.indexes()), toVector(mesh.indexes()));
@@ -87,10 +80,7 @@ TEST(GenericMeshTest, CopyAndMovePreserveShapeAccess)
 TEST(GenericMeshTest, ClearRemovesBufferAndShapes)
 {
 	spk::Mesh2D mesh;
-	mesh.addShape(
-		spk::Vertex2D{.position = {0.0f, 0.0f}},
-		spk::Vertex2D{.position = {1.0f, 0.0f}},
-		spk::Vertex2D{.position = {0.0f, 1.0f}});
+	mesh.addShape(spk::Vertex2D{.position = {0.0f, 0.0f}}, spk::Vertex2D{.position = {1.0f, 0.0f}}, spk::Vertex2D{.position = {0.0f, 1.0f}});
 
 	mesh.clear();
 
@@ -102,10 +92,7 @@ TEST(GenericMeshTest, ClearRemovesBufferAndShapes)
 TEST(GenericMeshTest, ThrowWithShapesWithFewerThanThreeVertices)
 {
 	spk::Mesh2D mesh;
-	const std::array<spk::Vertex2D, 2> vertices{
-		spk::Vertex2D{.position = {0.0f, 0.0f}},
-		spk::Vertex2D{.position = {1.0f, 0.0f}}
-	};
+	const std::array<spk::Vertex2D, 2> vertices{spk::Vertex2D{.position = {0.0f, 0.0f}}, spk::Vertex2D{.position = {1.0f, 0.0f}}};
 
 	EXPECT_THROW(mesh.addShape(std::span<const spk::Vertex2D>(vertices.data(), vertices.size())), std::runtime_error);
 	EXPECT_THROW(mesh.addShape(std::vector<spk::Vertex2D>{}), std::runtime_error);

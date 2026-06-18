@@ -7,7 +7,6 @@
 #include "utils/image_comparison_test_utils.hpp"
 #include "structures/graphics/opengl/opengl_wrapper_test_utils.hpp"
 
-
 #include "structures/graphics/rendering/state/spk_viewport.hpp"
 #include "structures/graphics/rendering/command/spk_viewport_render_command.hpp"
 
@@ -19,12 +18,9 @@ namespace
 			sparkle_test::TestVertex{{-1.0f, -1.0f}, {1.0f, 0.0f, 0.0f}},
 			sparkle_test::TestVertex{{1.0f, -1.0f}, {1.0f, 0.0f, 0.0f}},
 			sparkle_test::TestVertex{{1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}},
-			sparkle_test::TestVertex{{-1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}}
-		};
+			sparkle_test::TestVertex{{-1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}}};
 
-		auto vertexBuffer = std::make_shared<spk::VertexBufferObject>(
-			spk::BufferObject::Usage::StaticDraw,
-			sizeof(vertices));
+		auto vertexBuffer = std::make_shared<spk::VertexBufferObject>(spk::BufferObject::Usage::StaticDraw, sizeof(vertices));
 		vertexBuffer->edit(vertices.data(), sizeof(vertices));
 
 		auto vertexArray = std::make_shared<spk::VertexArrayObject>();
@@ -36,8 +32,7 @@ namespace
 				.componentType = GL_FLOAT,
 				.normalized = false,
 				.stride = sizeof(sparkle_test::TestVertex),
-				.offset = offsetof(sparkle_test::TestVertex, position)
-			});
+				.offset = offsetof(sparkle_test::TestVertex, position)});
 		vertexArray->addVertexBuffer(
 			vertexBuffer,
 			spk::VertexArrayObject::Attribute{
@@ -46,8 +41,7 @@ namespace
 				.componentType = GL_FLOAT,
 				.normalized = false,
 				.stride = sizeof(sparkle_test::TestVertex),
-				.offset = offsetof(sparkle_test::TestVertex, color)
-			});
+				.offset = offsetof(sparkle_test::TestVertex, color)});
 
 		return vertexArray;
 	}
@@ -55,9 +49,7 @@ namespace
 	std::shared_ptr<spk::IndexBufferObject> makeQuadIndexBuffer()
 	{
 		const std::array<std::uint16_t, 6> indices = {0, 1, 2, 0, 2, 3};
-		auto indexBuffer = std::make_shared<spk::IndexBufferObject>(
-			spk::BufferObject::Usage::StaticDraw,
-			sizeof(indices));
+		auto indexBuffer = std::make_shared<spk::IndexBufferObject>(spk::BufferObject::Usage::StaticDraw, sizeof(indices));
 		indexBuffer->setElementType(GL_UNSIGNED_SHORT);
 		indexBuffer->edit(indices.data(), sizeof(indices));
 		return indexBuffer;
@@ -103,4 +95,3 @@ TEST(OpenGLDrawElementsCommandTest, ThrowsWhenIndexBufferIsMissing)
 
 	EXPECT_THROW(command.execute(context.renderContext()), std::runtime_error);
 }
-

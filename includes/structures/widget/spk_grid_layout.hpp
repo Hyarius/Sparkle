@@ -53,9 +53,7 @@ namespace spk
 			{
 				return;
 			}
-			_resizeGrid(
-				std::max(static_cast<size_t>(_size.y), p_rows),
-				std::max(static_cast<size_t>(_size.x), p_columns));
+			_resizeGrid(std::max(static_cast<size_t>(_size.y), p_rows), std::max(static_cast<size_t>(_size.x), p_columns));
 		}
 
 	private:
@@ -103,12 +101,8 @@ namespace spk
 	public:
 		GridLayout()
 		{
-			sizeHint().configureMinimalGenerator([this]() {
-				return _computeMinimalSize();
-			});
-			sizeHint().configureDesiredGenerator([this]() {
-				return _computeMinimalSize();
-			});
+			sizeHint().configureMinimalGenerator([this]() { return _computeMinimalSize(); });
+			sizeHint().configureDesiredGenerator([this]() { return _computeMinimalSize(); });
 		}
 
 		void clear() override
@@ -300,11 +294,12 @@ namespace spk
 
 					if (element != nullptr)
 					{
-						element->setGeometry(spk::Rect2D(
-							p_geometry.anchor.x + static_cast<int>(anchorOnX),
-							p_geometry.anchor.y + static_cast<int>(anchorOnY),
-							static_cast<unsigned int>(finalSizeOnX[x]),
-							static_cast<unsigned int>(finalSizeOnY[y])));
+						element->setGeometry(
+							spk::Rect2D(
+								p_geometry.anchor.x + static_cast<int>(anchorOnX),
+								p_geometry.anchor.y + static_cast<int>(anchorOnY),
+								static_cast<unsigned int>(finalSizeOnX[x]),
+								static_cast<unsigned int>(finalSizeOnY[y])));
 					}
 					anchorOnY += finalSizeOnY[y] + _elementPadding.y;
 				}

@@ -27,11 +27,7 @@ namespace spk
 		for (GLint blockIndex = 0; blockIndex < activeBlocks; ++blockIndex)
 		{
 			GLint blockBindingPoint = -1;
-			glGetActiveUniformBlockiv(
-				programID,
-				static_cast<GLuint>(blockIndex),
-				GL_UNIFORM_BLOCK_BINDING,
-				&blockBindingPoint);
+			glGetActiveUniformBlockiv(programID, static_cast<GLuint>(blockIndex), GL_UNIFORM_BLOCK_BINDING, &blockBindingPoint);
 			if (blockBindingPoint == static_cast<GLint>(_bindingPoint))
 			{
 				return;
@@ -39,8 +35,7 @@ namespace spk
 		}
 
 		throw std::runtime_error(
-			"spk::UniformBufferObject::validateFor program has no uniform block at binding point [" +
-			std::to_string(_bindingPoint) + "]");
+			"spk::UniformBufferObject::validateFor program has no uniform block at binding point [" + std::to_string(_bindingPoint) + "]");
 	}
 
 	void UniformBufferObject::activate(const spk::RenderContext& p_context) const

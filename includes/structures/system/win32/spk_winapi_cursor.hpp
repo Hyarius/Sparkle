@@ -1,6 +1,5 @@
 #pragma once
 
-
 #include <string>
 
 #include <Windows.h>
@@ -46,4 +45,3 @@ namespace spk
 		[[nodiscard]] bool isValid() const;
 	};
 }
-

@@ -13,9 +13,7 @@ namespace
 	[[nodiscard]] std::shared_ptr<spk::SpriteSheet> defaultBreakSpriteSheet()
 	{
 		static std::shared_ptr<spk::SpriteSheet> result = std::make_shared<spk::SpriteSheet>(
-			spk::SpriteSheet::fromRawData(
-				SPARKLE_GET_RESOURCE("resources/textures/default_break.png"),
-				spk::Vector2UInt{3, 1}));
+			spk::SpriteSheet::fromRawData(SPARKLE_GET_RESOURCE("resources/textures/default_break.png"), spk::Vector2UInt{3, 1}));
 		return result;
 	}
 
@@ -29,9 +27,7 @@ namespace
 
 	[[nodiscard]] spk::Vector2Int compactTextPadding(unsigned int p_controlHeight)
 	{
-		return spk::Vector2Int(
-			static_cast<int>(std::max(4u, p_controlHeight / 4u)),
-			static_cast<int>(std::max(1u, p_controlHeight / 12u)));
+		return spk::Vector2Int(static_cast<int>(std::max(4u, p_controlHeight / 4u)), static_cast<int>(std::max(1u, p_controlHeight / 12u)));
 	}
 
 	void applyCompactMetrics(spk::PushButton& p_button, unsigned int p_controlHeight)
@@ -59,9 +55,7 @@ namespace spk
 		spk::Widget(p_name, p_parent),
 		_spriteSheet(defaultBreakSpriteSheet())
 	{
-		sizeHint().configureMinimalGenerator([this]() {
-			return spk::Vector2UInt(1, _height);
-		});
+		sizeHint().configureMinimalGenerator([this]() { return spk::Vector2UInt(1, _height); });
 		activate();
 	}
 
@@ -79,26 +73,20 @@ namespace spk
 		const unsigned int middleWidth = rect.width() - capSize * 2;
 
 		builder.emplace<spk::SpriteRenderCommand>(
-			*_spriteSheet,
-			spk::Vector2UInt{0, 0},
-			spk::Rect2D(rect.anchor, spk::Vector2UInt(capSize, rect.height())));
+			*_spriteSheet, spk::Vector2UInt{0, 0}, spk::Rect2D(rect.anchor, spk::Vector2UInt(capSize, rect.height())));
 
 		if (middleWidth > 0)
 		{
 			builder.emplace<spk::SpriteRenderCommand>(
 				*_spriteSheet,
 				spk::Vector2UInt{1, 0},
-				spk::Rect2D(
-					{rect.anchor.x + static_cast<int>(capSize), rect.anchor.y},
-					spk::Vector2UInt(middleWidth, rect.height())));
+				spk::Rect2D({rect.anchor.x + static_cast<int>(capSize), rect.anchor.y}, spk::Vector2UInt(middleWidth, rect.height())));
 		}
 
 		builder.emplace<spk::SpriteRenderCommand>(
 			*_spriteSheet,
 			spk::Vector2UInt{2, 0},
-			spk::Rect2D(
-				{rect.anchor.x + static_cast<int>(rect.width() - capSize), rect.anchor.y},
-				spk::Vector2UInt(capSize, rect.height())));
+			spk::Rect2D({rect.anchor.x + static_cast<int>(rect.width() - capSize), rect.anchor.y}, spk::Vector2UInt(capSize, rect.height())));
 
 		return builder.build();
 	}
@@ -134,24 +122,26 @@ namespace spk
 		spk::Widget(p_name, p_parent),
 		_backgroundFrame(p_name + "::backgroundFrame", this)
 	{
-		sizeHint().configureMinimalGenerator([this]() {
-			spk::Vector2UInt result = {0, 0};
-
-			for (const auto& element : _elements)
+		sizeHint().configureMinimalGenerator(
+			[this]()
 			{
-				if (result.y != 0)
+				spk::Vector2UInt result = {0, 0};
+
+				for (const auto& element : _elements)
 				{
-					result.y += ItemSpacing;
+					if (result.y != 0)
+					{
+						result.y += ItemSpacing;
+					}
+
+					const spk::Vector2UInt elementSize = element.item->minimalSize();
+					result.x = std::max(result.x, elementSize.x + static_cast<unsigned int>(ItemSpacing * 2));
+					result.y += elementSize.y;
 				}
 
-				const spk::Vector2UInt elementSize = element.item->minimalSize();
-				result.x = std::max(result.x, elementSize.x + static_cast<unsigned int>(ItemSpacing * 2));
-				result.y += elementSize.y;
-			}
-
-			const spk::Vector2Int cornerSize = _backgroundFrame.cornerSize();
-			return result + spk::Vector2UInt(cornerSize.x * 2, cornerSize.y * 2);
-		});
+				const spk::Vector2Int cornerSize = _backgroundFrame.cornerSize();
+				return result + spk::Vector2UInt(cornerSize.x * 2, cornerSize.y * 2);
+			});
 	}
 
 	void MenuBar::Menu::_setControlHeight(unsigned int p_controlHeight)
@@ -178,16 +168,13 @@ namespace spk
 
 		const spk::Vector2Int cornerSize = _backgroundFrame.cornerSize();
 		spk::Vector2Int anchor = {cornerSize.x + ItemSpacing, cornerSize.y};
-		const int contentWidth =
-			static_cast<int>(geometry().width()) - cornerSize.x * 2 - ItemSpacing * 2;
+		const int contentWidth = static_cast<int>(geometry().width()) - cornerSize.x * 2 - ItemSpacing * 2;
 
 		for (const auto& element : _elements)
 		{
 			const spk::Vector2UInt elementSize = element.item->minimalSize();
 
-			element.item->setGeometry(spk::Rect2D(
-				anchor,
-				spk::Vector2UInt(static_cast<unsigned int>(std::max(0, contentWidth)), elementSize.y)));
+			element.item->setGeometry(spk::Rect2D(anchor, spk::Vector2UInt(static_cast<unsigned int>(std::max(0, contentWidth)), elementSize.y)));
 
 			anchor.y += static_cast<int>(elementSize.y) + ItemSpacing;
 		}
@@ -273,9 +260,7 @@ namespace spk
 		for (auto& entry : _menus)
 		{
 			const unsigned int buttonHeight =
-				(_height > static_cast<unsigned int>(BarContentInset * 2))
-					? _height - static_cast<unsigned int>(BarContentInset * 2)
-					: _height;
+				(_height > static_cast<unsigned int>(BarContentInset * 2)) ? _height - static_cast<unsigned int>(BarContentInset * 2) : _height;
 			anchor.y = BarContentInset;
 
 			applyCompactMetrics(*entry->menuButton, _height);
@@ -286,9 +271,7 @@ namespace spk
 
 			entry->menuButton->setGeometry(spk::Rect2D(anchor, buttonSize));
 
-			entry->menu->setGeometry(spk::Rect2D(
-				{anchor.x, static_cast<int>(_height)},
-				entry->menu->minimalSize()));
+			entry->menu->setGeometry(spk::Rect2D({anchor.x, static_cast<int>(_height)}, entry->menu->minimalSize()));
 
 			anchor.x += static_cast<int>(buttonSize.x) + ItemSpacing;
 		}
@@ -314,15 +297,10 @@ namespace spk
 	{
 		std::unique_ptr<MenuEntry> newMenuEntry = std::make_unique<MenuEntry>();
 
-		newMenuEntry->menuButton = std::make_unique<spk::PushButton>(
-			name() + "::" + std::string(p_menuName) + "Button",
-			p_menuName,
-			this);
+		newMenuEntry->menuButton = std::make_unique<spk::PushButton>(name() + "::" + std::string(p_menuName) + "Button", p_menuName, this);
 		newMenuEntry->menuButton->setFlat(true);
 
-		newMenuEntry->menu = std::make_unique<Menu>(
-			name() + "::" + std::string(p_menuName) + "Menu",
-			this);
+		newMenuEntry->menu = std::make_unique<Menu>(name() + "::" + std::string(p_menuName) + "Menu", this);
 
 		MenuEntry* rawMenuEntryPtr = newMenuEntry.get();
 

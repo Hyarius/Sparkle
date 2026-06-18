@@ -53,13 +53,10 @@ TEST(QuaternionTest, NormalizesComponents)
 	const spk::Quaternion normalized = quaternion.normalized();
 
 	expectQuaternionNear(normalized, spk::Quaternion(1.0f, 0.0f, 0.0f, 0.0f));
-	EXPECT_NEAR(std::sqrt(
-					normalized.x * normalized.x +
-					normalized.y * normalized.y +
-					normalized.z * normalized.z +
-					normalized.w * normalized.w),
-				1.0f,
-				0.000001f);
+	EXPECT_NEAR(
+		std::sqrt(normalized.x * normalized.x + normalized.y * normalized.y + normalized.z * normalized.z + normalized.w * normalized.w),
+		1.0f,
+		0.000001f);
 }
 
 TEST(QuaternionTest, NormalizingZeroLengthThrows)
@@ -90,10 +87,8 @@ TEST(QuaternionTest, ConvertsEulerAnglesRoundTrip)
 
 TEST(QuaternionTest, SlerpInterpolatesAxisRotation)
 {
-	const spk::Quaternion halfway = spk::Quaternion::slerp(
-		spk::Quaternion::identity(),
-		spk::Quaternion::fromAxisAngle(spk::Vector3(0.0f, 0.0f, 1.0f), 180.0f),
-		0.5f);
+	const spk::Quaternion halfway =
+		spk::Quaternion::slerp(spk::Quaternion::identity(), spk::Quaternion::fromAxisAngle(spk::Vector3(0.0f, 0.0f, 1.0f), 180.0f), 0.5f);
 
 	EXPECT_NEAR(std::fabs(halfway.z), std::sqrt(0.5f), 0.000001f);
 	EXPECT_NEAR(halfway.w, std::sqrt(0.5f), 0.000001f);
@@ -101,21 +96,15 @@ TEST(QuaternionTest, SlerpInterpolatesAxisRotation)
 
 TEST(QuaternionTest, LookAtReturnsIdentityForDefaultForwardDirection)
 {
-	const spk::Quaternion orientation = spk::Quaternion::lookAt(
-		spk::Vector3::Zero,
-		spk::Vector3(0.0f, 0.0f, -1.0f));
+	const spk::Quaternion orientation = spk::Quaternion::lookAt(spk::Vector3::Zero, spk::Vector3(0.0f, 0.0f, -1.0f));
 
 	expectQuaternionNear(orientation, spk::Quaternion::identity());
-	EXPECT_THROW(
-		static_cast<void>(spk::Quaternion::lookAt(spk::Vector3::Zero, spk::Vector3::Zero)),
-		std::runtime_error);
+	EXPECT_THROW(static_cast<void>(spk::Quaternion::lookAt(spk::Vector3::Zero, spk::Vector3::Zero)), std::runtime_error);
 }
 
 TEST(QuaternionTest, LookAtAcceptsDirectionParallelToRequestedUp)
 {
-	const spk::Quaternion orientation = spk::Quaternion::lookAt(
-		spk::Vector3::Zero,
-		spk::Vector3(0.0f, 1.0f, 0.0f));
+	const spk::Quaternion orientation = spk::Quaternion::lookAt(spk::Vector3::Zero, spk::Vector3(0.0f, 1.0f, 0.0f));
 
 	EXPECT_NEAR(orientation.dot(orientation), 1.0f, 0.000001f);
 }

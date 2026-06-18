@@ -15,19 +15,9 @@ namespace spk
 
 		std::visit(
 			spk::Overloaded{
-				[this](spk::KeyPressedRecord& p_record)
-				{
-					_keyboard[p_record.key] = spk::InputState::Down;
-				},
-				[this](spk::KeyReleasedRecord& p_record)
-				{
-					_keyboard[p_record.key] = spk::InputState::Up;
-				},
-				[this](spk::TextInputRecord& p_record)
-				{
-					_keyboard.glyph = p_record.glyph;
-				}
-			},
+				[this](spk::KeyPressedRecord& p_record) { _keyboard[p_record.key] = spk::InputState::Down; },
+				[this](spk::KeyReleasedRecord& p_record) { _keyboard[p_record.key] = spk::InputState::Up; },
+				[this](spk::TextInputRecord& p_record) { _keyboard.glyph = p_record.glyph; }},
 			p_event);
 
 		widget()->dispatchKeyboardEvent(p_event, _keyboard);

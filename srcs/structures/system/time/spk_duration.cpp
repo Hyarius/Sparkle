@@ -41,17 +41,9 @@ namespace spk
 
 	void Duration::_rebindCaches()
 	{
-		_millisecondsCache.configure(
-			[this]()
-			{
-				return _nanoseconds / 1'000'000LL;
-			});
+		_millisecondsCache.configure([this]() { return _nanoseconds / 1'000'000LL; });
 
-		_secondsCache.configure(
-			[this]()
-			{
-				return static_cast<double>(_nanoseconds) / 1'000'000'000.0;
-			});
+		_secondsCache.configure([this]() { return static_cast<double>(_nanoseconds) / 1'000'000'000.0; });
 	}
 
 	Duration::Duration()

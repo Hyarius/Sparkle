@@ -37,10 +37,8 @@ TEST(TextureTest, SetPixelsStoresDataAndMetadata)
 	spk::Texture tex;
 	auto pixels = makePixels(4, 4, 4);
 
-	tex.setPixels(pixels, {4, 4}, spk::Texture::Format::RGBA,
-		spk::Texture::Filtering::Linear,
-		spk::Texture::Wrap::Repeat,
-		spk::Texture::Mipmap::Enable);
+	tex.setPixels(
+		pixels, {4, 4}, spk::Texture::Format::RGBA, spk::Texture::Filtering::Linear, spk::Texture::Wrap::Repeat, spk::Texture::Mipmap::Enable);
 
 	EXPECT_EQ(tex.size(), (spk::Vector2UInt{4, 4}));
 	EXPECT_EQ(tex.pixels(), pixels);
@@ -119,10 +117,8 @@ TEST(TextureTest, CopyConstructionProducesDeepCopy)
 {
 	spk::Texture src;
 	auto pixels = makePixels(2, 2, 4);
-	src.setPixels(pixels, {2, 2}, spk::Texture::Format::RGBA,
-		spk::Texture::Filtering::Linear,
-		spk::Texture::Wrap::Repeat,
-		spk::Texture::Mipmap::Enable);
+	src.setPixels(
+		pixels, {2, 2}, spk::Texture::Format::RGBA, spk::Texture::Filtering::Linear, spk::Texture::Wrap::Repeat, spk::Texture::Mipmap::Enable);
 
 	spk::Texture dst(src);
 

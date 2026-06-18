@@ -2,7 +2,6 @@
 
 #include "structures/graphics/opengl/opengl_wrapper_test_utils.hpp"
 
-
 TEST(OpenGLShaderStorageBufferObjectTest, BindsConfiguredBindingPointWhenSupported)
 {
 	sparkle_test::OpenGLTestContext context;
@@ -31,4 +30,3 @@ TEST(OpenGLShaderStorageBufferObjectTest, CanClearBindingPoint)
 	storageBuffer.clearBindingPoint();
 	EXPECT_FALSE(storageBuffer.bindingPoint().has_value());
 }
-

@@ -4,18 +4,12 @@
 
 namespace spk
 {
-	ResizableElement::SizeHint::SizeHint(
-		Generator p_minimalGenerator,
-		Generator p_desiredGenerator,
-		Generator p_maximalGenerator)
+	ResizableElement::SizeHint::SizeHint(Generator p_minimalGenerator, Generator p_desiredGenerator, Generator p_maximalGenerator)
 	{
 		configure(std::move(p_minimalGenerator), std::move(p_desiredGenerator), std::move(p_maximalGenerator));
 	}
 
-	void ResizableElement::SizeHint::configure(
-		Generator p_minimalGenerator,
-		Generator p_desiredGenerator,
-		Generator p_maximalGenerator)
+	void ResizableElement::SizeHint::configure(Generator p_minimalGenerator, Generator p_desiredGenerator, Generator p_maximalGenerator)
 	{
 		configureMinimalGenerator(std::move(p_minimalGenerator));
 		configureDesiredGenerator(std::move(p_desiredGenerator));
@@ -61,23 +55,17 @@ namespace spk
 
 	void ResizableElement::SizeHint::setMinimal(const spk::Vector2UInt& p_minimalValue)
 	{
-		_minimal.configure([p_minimalValue]() {
-			return p_minimalValue;
-		});
+		_minimal.configure([p_minimalValue]() { return p_minimalValue; });
 	}
 
 	void ResizableElement::SizeHint::setDesired(const spk::Vector2UInt& p_desiredValue)
 	{
-		_desired.configure([p_desiredValue]() {
-			return p_desiredValue;
-		});
+		_desired.configure([p_desiredValue]() { return p_desiredValue; });
 	}
 
 	void ResizableElement::SizeHint::setMaximal(const spk::Vector2UInt& p_maximalValue)
 	{
-		_maximal.configure([p_maximalValue]() {
-			return p_maximalValue;
-		});
+		_maximal.configure([p_maximalValue]() { return p_maximalValue; });
 	}
 
 	const spk::Vector2UInt& ResizableElement::SizeHint::minimal() const

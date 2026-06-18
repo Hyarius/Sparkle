@@ -1,6 +1,5 @@
 #include <gtest/gtest.h>
 
-
 #include <memory>
 
 #include <Windows.h>
@@ -15,13 +14,14 @@ TEST(WinAPIPlatformRuntimeTest, PollEventsDispatchesPostedCloseRequest)
 	std::unique_ptr<spk::IFrame> baseFrame = runtime.createFrame(spk::Rect2D(250, 250, 128, 96), "RuntimeMessages");
 	auto& frame = dynamic_cast<spk::Frame&>(*baseFrame);
 	int closeRequestCount = 0;
-	auto contract = frame.subscribeToFrameEvents([&](const spk::FrameEventRecord& p_event)
-	{
-		if (spk::holds<spk::WindowCloseRequestedRecord>(p_event) == true)
+	auto contract = frame.subscribeToFrameEvents(
+		[&](const spk::FrameEventRecord& p_event)
 		{
-			++closeRequestCount;
-		}
-	});
+			if (spk::holds<spk::WindowCloseRequestedRecord>(p_event) == true)
+			{
+				++closeRequestCount;
+			}
+		});
 
 	frame.requestClosure();
 	runtime.pollEvents();
@@ -31,4 +31,3 @@ TEST(WinAPIPlatformRuntimeTest, PollEventsDispatchesPostedCloseRequest)
 	frame.validateClosure();
 	runtime.pollEvents();
 }
-

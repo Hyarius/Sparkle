@@ -13,26 +13,21 @@ namespace
 	{
 		spk::MouseModule mouseModule;
 		mouseModule.bind(&p_textEdit);
-		mouseModule.pushEvent(spk::MouseEventRecord(spk::makeEventRecord(spk::MouseMovedRecord{
-			.position = {
-				p_textEdit.geometry().x() + 5,
-				p_textEdit.geometry().y() + 5}})));
+		mouseModule.pushEvent(
+			spk::MouseEventRecord(
+				spk::makeEventRecord(spk::MouseMovedRecord{.position = {p_textEdit.geometry().x() + 5, p_textEdit.geometry().y() + 5}})));
 		mouseModule.pushEvent(spk::MouseEventRecord(spk::makeEventRecord(spk::MouseButtonPressedRecord{.button = spk::Mouse::Left})));
 		mouseModule.processEvents();
 	}
 
 	void typeGlyph(spk::TextEdit& p_textEdit, char32_t p_glyph)
 	{
-		sparkle_test::sendKeyboardEvent(
-			p_textEdit,
-			spk::KeyboardEventRecord(spk::makeEventRecord(spk::TextInputRecord{.glyph = p_glyph})));
+		sparkle_test::sendKeyboardEvent(p_textEdit, spk::KeyboardEventRecord(spk::makeEventRecord(spk::TextInputRecord{.glyph = p_glyph})));
 	}
 
 	void pressKey(spk::TextEdit& p_textEdit, spk::Keyboard::Key p_key)
 	{
-		sparkle_test::sendKeyboardEvent(
-			p_textEdit,
-			spk::KeyboardEventRecord(spk::makeEventRecord(spk::KeyPressedRecord{.key = p_key})));
+		sparkle_test::sendKeyboardEvent(p_textEdit, spk::KeyboardEventRecord(spk::makeEventRecord(spk::KeyPressedRecord{.key = p_key})));
 	}
 }
 
@@ -256,8 +251,7 @@ TEST(TextEditVisualTest, RendersEmptyWithPlaceholder)
 	edit.applyStyle(spk::WidgetStyle::makeDefault());
 	edit.setPlaceholder("Enter text here");
 
-	const sparkle_test::ImageComparisonResult result =
-		spk::test::compareSnapshot(edit, "TextEditVisual", "empty_placeholder", captureRect);
+	const sparkle_test::ImageComparisonResult result = spk::test::compareSnapshot(edit, "TextEditVisual", "empty_placeholder", captureRect);
 
 	EXPECT_TRUE(result.matches);
 }
@@ -270,8 +264,7 @@ TEST(TextEditVisualTest, RendersWithText)
 	edit.applyStyle(spk::WidgetStyle::makeDefault());
 	edit.setText("Hello World");
 
-	const sparkle_test::ImageComparisonResult result =
-		spk::test::compareSnapshot(edit, "TextEditVisual", "with_text", captureRect);
+	const sparkle_test::ImageComparisonResult result = spk::test::compareSnapshot(edit, "TextEditVisual", "with_text", captureRect);
 
 	EXPECT_TRUE(result.matches);
 }
@@ -285,8 +278,7 @@ TEST(TextEditVisualTest, RendersObscuredText)
 	edit.setText("password");
 	edit.setObscured(true);
 
-	const sparkle_test::ImageComparisonResult result =
-		spk::test::compareSnapshot(edit, "TextEditVisual", "obscured", captureRect);
+	const sparkle_test::ImageComparisonResult result = spk::test::compareSnapshot(edit, "TextEditVisual", "obscured", captureRect);
 
 	EXPECT_TRUE(result.matches);
 }

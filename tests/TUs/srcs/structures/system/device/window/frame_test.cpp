@@ -12,26 +12,15 @@ namespace
 		{
 		}
 
-		void resize(const spk::Rect2D&) override
-		{
-		}
+		void resize(const spk::Rect2D&) override {}
 
-		void setTitle(const std::string&) override
-		{
-		}
-		
-		void hide() override 
-		{
+		void setTitle(const std::string&) override {}
 
-		}
+		void hide() override {}
 
-		void requestClosure() override
-		{
-		}
+		void requestClosure() override {}
 
-		void validateClosure() override
-		{
-		}
+		void validateClosure() override {}
 
 		[[nodiscard]] spk::Rect2D rect() const override
 		{
@@ -91,30 +80,29 @@ TEST(IPlatformRuntimeTest, PollEventsDispatchesQueuedMouseKeyboardAndFrameEvents
 	int keyboardCount = 0;
 	int frameCount = 0;
 
-	auto mouseContract = runtime.createdFrame->subscribeToMouseEvents([&](const spk::MouseEventRecord& p_event)
-	{
-		++mouseCount;
-		EXPECT_TRUE(spk::holds<spk::MouseMovedRecord>(p_event));
-	});
+	auto mouseContract = runtime.createdFrame->subscribeToMouseEvents(
+		[&](const spk::MouseEventRecord& p_event)
+		{
+			++mouseCount;
+			EXPECT_TRUE(spk::holds<spk::MouseMovedRecord>(p_event));
+		});
 
-	auto keyboardContract = runtime.createdFrame->subscribeToKeyboardEvents([&](const spk::KeyboardEventRecord& p_event)
-	{
-		++keyboardCount;
-		EXPECT_TRUE(spk::holds<spk::KeyPressedRecord>(p_event));
-	});
+	auto keyboardContract = runtime.createdFrame->subscribeToKeyboardEvents(
+		[&](const spk::KeyboardEventRecord& p_event)
+		{
+			++keyboardCount;
+			EXPECT_TRUE(spk::holds<spk::KeyPressedRecord>(p_event));
+		});
 
-	auto frameContract = runtime.createdFrame->subscribeToFrameEvents([&](const spk::FrameEventRecord& p_event)
-	{
-		++frameCount;
-		EXPECT_TRUE(spk::holds<spk::WindowShownRecord>(p_event));
-	});
+	auto frameContract = runtime.createdFrame->subscribeToFrameEvents(
+		[&](const spk::FrameEventRecord& p_event)
+		{
+			++frameCount;
+			EXPECT_TRUE(spk::holds<spk::WindowShownRecord>(p_event));
+		});
 
-	runtime.queueMouseEvent(spk::MouseMovedRecord{
-		.position = spk::Vector2Int(10, 20),
-		.delta = spk::Vector2Int(1, 2)});
-	runtime.queueKeyboardEvent(spk::KeyPressedRecord{
-		.key = spk::Keyboard::A,
-		.isRepeated = false});
+	runtime.queueMouseEvent(spk::MouseMovedRecord{.position = spk::Vector2Int(10, 20), .delta = spk::Vector2Int(1, 2)});
+	runtime.queueKeyboardEvent(spk::KeyPressedRecord{.key = spk::Keyboard::A, .isRepeated = false});
 	runtime.queueFrameEvent(spk::WindowShownRecord{});
 
 	runtime.pollEvents();
@@ -142,21 +130,16 @@ TEST(IFrameTest, ResignedContractStopsReceivingEvents)
 	sparkle_test::TestFrame frame(sparkle_test::defaultRect(), "Frame");
 	int mouseCount = 0;
 
-	auto contract = frame.subscribeToMouseEvents([&](const spk::MouseEventRecord&)
-	{
-		++mouseCount;
-	});
+	auto contract = frame.subscribeToMouseEvents([&](const spk::MouseEventRecord&) { ++mouseCount; });
 
-	frame.emitMouseEvent(spk::MouseEventRecord(spk::makeEventRecord(spk::MouseMovedRecord{
-		.position = spk::Vector2Int(1, 1),
-		.delta = spk::Vector2Int(1, 1)})));
+	frame.emitMouseEvent(
+		spk::MouseEventRecord(spk::makeEventRecord(spk::MouseMovedRecord{.position = spk::Vector2Int(1, 1), .delta = spk::Vector2Int(1, 1)})));
 	ASSERT_EQ(mouseCount, 1);
 
 	contract.resign();
 
-	frame.emitMouseEvent(spk::MouseEventRecord(spk::makeEventRecord(spk::MouseMovedRecord{
-		.position = spk::Vector2Int(2, 2),
-		.delta = spk::Vector2Int(2, 2)})));
+	frame.emitMouseEvent(
+		spk::MouseEventRecord(spk::makeEventRecord(spk::MouseMovedRecord{.position = spk::Vector2Int(2, 2), .delta = spk::Vector2Int(2, 2)})));
 
 	EXPECT_EQ(mouseCount, 1);
 }
@@ -167,14 +150,8 @@ TEST(IFrameTest, MultipleSubscribersReceiveSameFrameEvent)
 	int firstCount = 0;
 	int secondCount = 0;
 
-	auto firstContract = frame.subscribeToFrameEvents([&](const spk::FrameEventRecord&)
-	{
-		++firstCount;
-	});
-	auto secondContract = frame.subscribeToFrameEvents([&](const spk::FrameEventRecord&)
-	{
-		++secondCount;
-	});
+	auto firstContract = frame.subscribeToFrameEvents([&](const spk::FrameEventRecord&) { ++firstCount; });
+	auto secondContract = frame.subscribeToFrameEvents([&](const spk::FrameEventRecord&) { ++secondCount; });
 
 	frame.emitFrameEvent(spk::FrameEventRecord(spk::makeEventRecord(spk::WindowHiddenRecord{})));
 
@@ -191,13 +168,14 @@ TEST(IFrameTest, DestroyedFrameEventInvalidatesSurfaceStateBeforeSubscribersAreN
 	ASSERT_NE(surfaceState, nullptr);
 	EXPECT_TRUE(surfaceState->isValid());
 
-	auto contract = frame.subscribeToFrameEvents([&](const spk::FrameEventRecord& p_event)
-	{
-		if (spk::holds<spk::WindowDestroyedRecord>(p_event))
+	auto contract = frame.subscribeToFrameEvents(
+		[&](const spk::FrameEventRecord& p_event)
 		{
-			surfaceWasInvalidInsideCallback = (surfaceState->isValid() == false);
-		}
-	});
+			if (spk::holds<spk::WindowDestroyedRecord>(p_event))
+			{
+				surfaceWasInvalidInsideCallback = (surfaceState->isValid() == false);
+			}
+		});
 
 	frame.emitFrameEvent(spk::FrameEventRecord(spk::makeEventRecord(spk::WindowDestroyedRecord{})));
 

@@ -43,10 +43,7 @@ TEST(ScrollBarTest, PositiveButtonClickIncreasesRatioByStep)
 	scrollBar.setGeometry(spk::Rect2D(0, 0, 120, 20));
 
 	float lastRatio = -1.0f;
-	auto contract = scrollBar.subscribeToEdition([&lastRatio](float p_ratio)
-	{
-		lastRatio = p_ratio;
-	});
+	auto contract = scrollBar.subscribeToEdition([&lastRatio](float p_ratio) { lastRatio = p_ratio; });
 
 	spk::MouseModule mouseModule;
 	mouseModule.bind(&scrollBar);
@@ -116,8 +113,7 @@ TEST(ScrollBarVisualTest, RendersHorizontal)
 	spk::ScrollBar bar("ScrollBar", spk::Orientation::Horizontal);
 	bar.setRatio(0.5f);
 
-	const sparkle_test::ImageComparisonResult result =
-		spk::test::compareSnapshot(bar, "ScrollBarVisual", "horizontal_middle", captureRect);
+	const sparkle_test::ImageComparisonResult result = spk::test::compareSnapshot(bar, "ScrollBarVisual", "horizontal_middle", captureRect);
 
 	EXPECT_TRUE(result.matches);
 }
@@ -129,8 +125,7 @@ TEST(ScrollBarVisualTest, RendersVertical)
 	spk::ScrollBar bar("ScrollBar", spk::Orientation::Vertical);
 	bar.setRatio(0.5f);
 
-	const sparkle_test::ImageComparisonResult result =
-		spk::test::compareSnapshot(bar, "ScrollBarVisual", "vertical_middle", captureRect);
+	const sparkle_test::ImageComparisonResult result = spk::test::compareSnapshot(bar, "ScrollBarVisual", "vertical_middle", captureRect);
 
 	EXPECT_TRUE(result.matches);
 }
@@ -143,8 +138,7 @@ TEST(ScrollBarVisualTest, RendersSmallScale)
 	bar.setScale(0.2f);
 	bar.setRatio(0.3f);
 
-	const sparkle_test::ImageComparisonResult result =
-		spk::test::compareSnapshot(bar, "ScrollBarVisual", "horizontal_small_scale", captureRect);
+	const sparkle_test::ImageComparisonResult result = spk::test::compareSnapshot(bar, "ScrollBarVisual", "horizontal_small_scale", captureRect);
 
 	EXPECT_TRUE(result.matches);
 }

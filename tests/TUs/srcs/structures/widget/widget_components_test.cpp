@@ -17,15 +17,12 @@ namespace
 
 	spk::KeyboardEventRecord makeKeyPress()
 	{
-		return spk::KeyboardEventRecord(spk::makeEventRecord(spk::KeyPressedRecord{
-			.key = spk::Keyboard::Return,
-			.isRepeated = false}));
+		return spk::KeyboardEventRecord(spk::makeEventRecord(spk::KeyPressedRecord{.key = spk::Keyboard::Return, .isRepeated = false}));
 	}
 
 	spk::MouseEventRecord makeMousePress()
 	{
-		return spk::MouseEventRecord(spk::makeEventRecord(spk::MouseButtonPressedRecord{
-			.button = spk::Mouse::Left}));
+		return spk::MouseEventRecord(spk::makeEventRecord(spk::MouseButtonPressedRecord{.button = spk::Mouse::Left}));
 	}
 }
 

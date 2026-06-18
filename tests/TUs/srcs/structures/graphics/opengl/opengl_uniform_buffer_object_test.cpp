@@ -40,10 +40,7 @@ TEST(OpenGLUniformBufferObjectTest, ValidatesProgramThatExposesBindingPoint)
 		"{\n"
 		"	outColor = vec4(1.0);\n"
 		"}\n");
-	UniformBufferObject uniformBuffer(
-		0,
-		BufferObject::Usage::DynamicDraw,
-		sizeof(float) * 16);
+	UniformBufferObject uniformBuffer(0, BufferObject::Usage::DynamicDraw, sizeof(float) * 16);
 
 	EXPECT_NO_THROW(uniformBuffer.validateFor(program));
 
@@ -52,7 +49,6 @@ TEST(OpenGLUniformBufferObjectTest, ValidatesProgramThatExposesBindingPoint)
 	GLint blockBindingPoint = -1;
 	glGetActiveUniformBlockiv(program.id(), blockIndex, GL_UNIFORM_BLOCK_BINDING, &blockBindingPoint);
 	EXPECT_EQ(blockBindingPoint, 0);
-
 }
 
 TEST(OpenGLUniformBufferObjectTest, ValidationThrowsWhenProgramDoesNotExposeBindingPoint)
@@ -61,10 +57,7 @@ TEST(OpenGLUniformBufferObjectTest, ValidationThrowsWhenProgramDoesNotExposeBind
 	(void)context;
 
 	std::shared_ptr<spk::Program> program = sparkle_test::makeSolidProgram(1.0f, 0.0f, 0.0f);
-	UniformBufferObject uniformBuffer(
-		0,
-		BufferObject::Usage::DynamicDraw,
-		sizeof(float) * 16);
+	UniformBufferObject uniformBuffer(0, BufferObject::Usage::DynamicDraw, sizeof(float) * 16);
 
 	EXPECT_THROW(uniformBuffer.validateFor(*program), std::runtime_error);
 }
@@ -90,10 +83,7 @@ TEST(OpenGLUniformBufferObjectTest, ValidationThrowsWhenProgramBlockUsesDifferen
 		"{\n"
 		"	outColor = vec4(1.0);\n"
 		"}\n");
-	UniformBufferObject uniformBuffer(
-		3,
-		BufferObject::Usage::DynamicDraw,
-		sizeof(float) * 16);
+	UniformBufferObject uniformBuffer(3, BufferObject::Usage::DynamicDraw, sizeof(float) * 16);
 
 	EXPECT_THROW(uniformBuffer.validateFor(program), std::runtime_error);
 }
@@ -119,10 +109,7 @@ TEST(OpenGLUniformBufferObjectTest, ValidationObservesProgramRelink)
 		"{\n"
 		"	outColor = vec4(1.0);\n"
 		"}\n");
-	UniformBufferObject uniformBuffer(
-		0,
-		BufferObject::Usage::DynamicDraw,
-		sizeof(float) * 16);
+	UniformBufferObject uniformBuffer(0, BufferObject::Usage::DynamicDraw, sizeof(float) * 16);
 
 	EXPECT_NO_THROW(uniformBuffer.validateFor(program));
 
@@ -130,4 +117,3 @@ TEST(OpenGLUniformBufferObjectTest, ValidationObservesProgramRelink)
 	program.setSources(withoutBlock->vertexShaderSource(), withoutBlock->fragmentShaderSource());
 	EXPECT_THROW(uniformBuffer.validateFor(program), std::runtime_error);
 }
-

@@ -61,18 +61,13 @@ namespace spk
 				cosX * cosY * cosZ + sinX * sinY * sinZ};
 		}
 
-		[[nodiscard]] static Quaternion lookAt(
-			const Vector3& p_from,
-			const Vector3& p_to,
-			const Vector3& p_up = Vector3(0.0f, 1.0f, 0.0f))
+		[[nodiscard]] static Quaternion lookAt(const Vector3& p_from, const Vector3& p_to, const Vector3& p_up = Vector3(0.0f, 1.0f, 0.0f))
 		{
 			const Vector3 forward = (p_to - p_from).normalized();
 			Vector3 right = forward.cross(p_up);
 			if (right.isZero())
 			{
-				const Vector3 fallbackUp = (std::fabs(forward.y) < 0.999f)
-					? Vector3(0.0f, 1.0f, 0.0f)
-					: Vector3(1.0f, 0.0f, 0.0f);
+				const Vector3 fallbackUp = (std::fabs(forward.y) < 0.999f) ? Vector3(0.0f, 1.0f, 0.0f) : Vector3(1.0f, 0.0f, 0.0f);
 				right = forward.cross(fallbackUp);
 			}
 			right = right.normalized();
@@ -171,10 +166,11 @@ namespace spk
 			if (cosine > 0.9995f)
 			{
 				return Quaternion(
-					from.x + p_alpha * (to.x - from.x),
-					from.y + p_alpha * (to.y - from.y),
-					from.z + p_alpha * (to.z - from.z),
-					from.w + p_alpha * (to.w - from.w)).normalized();
+						   from.x + p_alpha * (to.x - from.x),
+						   from.y + p_alpha * (to.y - from.y),
+						   from.z + p_alpha * (to.z - from.z),
+						   from.w + p_alpha * (to.w - from.w))
+					.normalized();
 			}
 
 			const float angle = std::acos(std::clamp(cosine, -1.0f, 1.0f));

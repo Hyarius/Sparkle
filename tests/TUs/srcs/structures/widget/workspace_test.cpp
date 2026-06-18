@@ -19,8 +19,7 @@ TEST(WorkspaceTest, ContentSitsBelowMenuBar)
 
 	EXPECT_EQ(workspace.menuBar().geometry(), spk::Rect2D(0, 0, 400, 300));
 	EXPECT_EQ(
-		workspace.content().geometry(),
-		spk::Rect2D(0, static_cast<int>(workspace.menuBar().height()), 400, 300 - workspace.menuBar().height()));
+		workspace.content().geometry(), spk::Rect2D(0, static_cast<int>(workspace.menuBar().height()), 400, 300 - workspace.menuBar().height()));
 }
 
 TEST(WorkspaceTest, MinimalSizeIncludesMenuBarHeight)

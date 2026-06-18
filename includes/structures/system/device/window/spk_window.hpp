@@ -24,6 +24,23 @@ namespace spk
 {
 	class WindowHandle;
 
+	/**
+	 * @brief Runtime window that connects platform events, input devices, widget updates, and rendering.
+	 *
+	 * `Window` is usually created by `spk::Application::createWindow()` and manipulated through a `WindowHandle`. The central widget exposed by
+	 * `WindowHandle::centralWidget()` is the parent for the user interface tree rendered in this window.
+	 *
+	 * @code{.cpp}
+	 * spk::Application app;
+	 * auto window = app.createWindow("editor", {{100, 100, 1024, 768}, "Editor"});
+	 * auto& root = window.centralWidget();
+	 * root.setGeometry({{0, 0}, {1024, 768}});
+	 * @endcode
+	 *
+	 * @see spk::Application
+	 * @see spk::WindowHandle
+	 * @see spk::Widget
+	 */
 	class Window
 	{
 	public:
@@ -131,7 +148,10 @@ namespace spk
 		friend class spk::WindowHandle;
 
 	public:
-		Window(std::shared_ptr<PlatformRuntime> p_platformRuntime, std::shared_ptr<GPUPlatformRuntime> p_gpuPlatformRuntime, Configuration p_configuration);
+		Window(
+			std::shared_ptr<PlatformRuntime> p_platformRuntime,
+			std::shared_ptr<GPUPlatformRuntime> p_gpuPlatformRuntime,
+			Configuration p_configuration);
 		~Window();
 
 		[[nodiscard]] spk::WindowHost& host();

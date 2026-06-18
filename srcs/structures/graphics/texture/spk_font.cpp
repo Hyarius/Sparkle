@@ -67,10 +67,7 @@ namespace spk
 				codepoint = static_cast<Codepoint>((codepoint << 6) | (continuation & 0x3F));
 			}
 
-			if (validSequence == false ||
-				codepoint < minimumCodepoint ||
-				codepoint > 0x10FFFF ||
-				(codepoint >= 0xD800 && codepoint <= 0xDFFF))
+			if (validSequence == false || codepoint < minimumCodepoint || codepoint > 0x10FFFF || (codepoint >= 0xD800 && codepoint <= 0xDFFF))
 			{
 				result.push_back(ReplacementCodepoint);
 				++i;
@@ -118,10 +115,7 @@ namespace spk
 		_atlasPixels.swap(newPixels);
 	}
 
-	void Font::Atlas::_applyGlyphPixel(
-		const uint8_t* p_pixelsToApply,
-		const spk::Vector2Int& p_glyphPosition,
-		const spk::Vector2UInt& p_glyphSize)
+	void Font::Atlas::_applyGlyphPixel(const uint8_t* p_pixelsToApply, const spk::Vector2Int& p_glyphPosition, const spk::Vector2UInt& p_glyphSize)
 	{
 		while ((p_glyphPosition.x + static_cast<int>(p_glyphSize.x) >= static_cast<int>(_atlasSize.x)) ||
 			   (p_glyphPosition.y + static_cast<int>(p_glyphSize.y) >= static_cast<int>(_atlasSize.y)))
@@ -133,9 +127,7 @@ namespace spk
 		{
 			for (size_t y = 0; y < p_glyphSize.y; ++y)
 			{
-				_atlasPixels[
-					(static_cast<size_t>(p_glyphPosition.x) + x) +
-					(static_cast<size_t>(p_glyphPosition.y) + y) * _atlasSize.x] =
+				_atlasPixels[(static_cast<size_t>(p_glyphPosition.x) + x) + (static_cast<size_t>(p_glyphPosition.y) + y) * _atlasSize.x] =
 					p_pixelsToApply[x + y * p_glyphSize.x];
 			}
 		}
@@ -228,9 +220,7 @@ namespace spk
 			minHeight = std::min(minHeight, g.positions[0].y);
 		}
 
-		return spk::Vector2UInt(
-			static_cast<unsigned int>(totalWidth),
-			static_cast<unsigned int>(maxHeight - minHeight));
+		return spk::Vector2UInt(static_cast<unsigned int>(totalWidth), static_cast<unsigned int>(maxHeight - minHeight));
 	}
 
 	spk::Vector2UInt Font::Atlas::computeStringSize(std::string_view p_utf8String)
@@ -260,11 +250,7 @@ namespace spk
 		return computeStringBaselineOffset(Font::textFromUTF8(p_utf8String));
 	}
 
-	Font Font::fromRawData(
-		const std::vector<uint8_t>& p_data,
-		Filtering p_filtering,
-		Wrap p_wrap,
-		Mipmap p_mipmap)
+	Font Font::fromRawData(const std::vector<uint8_t>& p_data, Filtering p_filtering, Wrap p_wrap, Mipmap p_mipmap)
 	{
 		if (p_data.empty() == true)
 		{
@@ -276,9 +262,7 @@ namespace spk
 		return result;
 	}
 
-	Font::Font()
-	{
-	}
+	Font::Font() {}
 
 	Font::Font(const std::filesystem::path& p_path)
 	{
@@ -322,10 +306,7 @@ namespace spk
 		return computeStringBaselineOffset(textFromUTF8(p_utf8String), p_size);
 	}
 
-	Font::Size Font::computeOptimalTextSize(
-		const Text& p_string,
-		float p_outlineSizeRatio,
-		const spk::Vector2UInt& p_textArea)
+	Font::Size Font::computeOptimalTextSize(const Text& p_string, float p_outlineSizeRatio, const spk::Vector2UInt& p_textArea)
 	{
 		static const std::vector<size_t> deltas = {100u, 50u, 20u, 10u, 1u};
 		Size result(2, 0);
@@ -367,10 +348,7 @@ namespace spk
 		return result;
 	}
 
-	Font::Size Font::computeOptimalTextSize(
-		std::string_view p_utf8String,
-		float p_outlineSizeRatio,
-		const spk::Vector2UInt& p_textArea)
+	Font::Size Font::computeOptimalTextSize(std::string_view p_utf8String, float p_outlineSizeRatio, const spk::Vector2UInt& p_textArea)
 	{
 		return computeOptimalTextSize(textFromUTF8(p_utf8String), p_outlineSizeRatio, p_textArea);
 	}

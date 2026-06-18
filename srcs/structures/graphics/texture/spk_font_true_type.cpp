@@ -38,8 +38,7 @@ namespace spk
 
 	spk::Vector2Int Font::Atlas::_computeGlyphPosition(const spk::Vector2UInt& p_glyphSize)
 	{
-		if ((_nextGlyphAnchor.x + static_cast<int>(p_glyphSize.x)) >=
-			(_quadrantAnchor.x + static_cast<int>(_quadrantSize.x)))
+		if ((_nextGlyphAnchor.x + static_cast<int>(p_glyphSize.x)) >= (_quadrantAnchor.x + static_cast<int>(_quadrantSize.x)))
 		{
 			_nextGlyphAnchor = _nextLineAnchor;
 		}
@@ -52,10 +51,7 @@ namespace spk
 			_nextLineAnchor.y = result.y + static_cast<int>(p_glyphSize.y);
 		}
 
-		auto _overflowQuadrant = [&]()
-		{
-			return _nextLineAnchor.y >= _quadrantAnchor.y + static_cast<int>(_quadrantSize.y);
-		};
+		auto _overflowQuadrant = [&]() { return _nextLineAnchor.y >= _quadrantAnchor.y + static_cast<int>(_quadrantSize.y); };
 
 		auto _resetToQuadrant = [&](spk::Vector2Int p_anchor)
 		{
@@ -91,9 +87,7 @@ namespace spk
 			if (_overflowQuadrant())
 			{
 				_currentQuadrant = Quadrant::DownRight;
-				_resetToQuadrant(spk::Vector2Int(
-					static_cast<int>(_atlasSize.x / 2),
-					static_cast<int>(_atlasSize.y / 2)));
+				_resetToQuadrant(spk::Vector2Int(static_cast<int>(_atlasSize.x / 2), static_cast<int>(_atlasSize.y / 2)));
 			}
 			break;
 
@@ -147,9 +141,7 @@ namespace spk
 
 		glyph.baselineOffset = spk::Vector2Int(-xOffset, -yOffset);
 
-		const spk::Vector2 halfPixel = 0.5f / spk::Vector2(
-			static_cast<float>(_atlasSize.x),
-			static_cast<float>(_atlasSize.y));
+		const spk::Vector2 halfPixel = 0.5f / spk::Vector2(static_cast<float>(_atlasSize.x), static_cast<float>(_atlasSize.y));
 
 		glyph.positions[0] = spk::Vector2Int(xOffset, yOffset);
 		glyph.positions[1] = spk::Vector2Int(xOffset, yOffset + height);
@@ -171,9 +163,7 @@ namespace spk
 
 		int advance = 0;
 		stbtt_GetCodepointHMetrics(&_fontInfo, stbCodepoint, &advance, nullptr);
-		glyph.step = spk::Vector2Int(
-			static_cast<int>(std::ceil(advance * scale)) + static_cast<int>(_outlineSize),
-			0);
+		glyph.step = spk::Vector2Int(static_cast<int>(std::ceil(advance * scale)) + static_cast<int>(_outlineSize), 0);
 
 		_glyphs[p_codepoint] = glyph;
 		stbtt_FreeBitmap(glyphBitmap, nullptr);
@@ -192,8 +182,6 @@ namespace spk
 		{
 			throw std::runtime_error("Font: failed to open file: " + p_path.string());
 		}
-		_loadFromData(std::vector<uint8_t>(
-			std::istreambuf_iterator<char>(file),
-			std::istreambuf_iterator<char>()));
+		_loadFromData(std::vector<uint8_t>(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>()));
 	}
 }

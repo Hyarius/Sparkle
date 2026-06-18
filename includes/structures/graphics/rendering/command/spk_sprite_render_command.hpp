@@ -17,10 +17,7 @@ namespace spk
 
 	public:
 		SpriteRenderCommand(
-			const spk::SpriteSheet& p_spriteSheet,
-			spk::Vector2UInt p_spriteCoordinates,
-			spk::Rect2D p_screenRect,
-			float p_depth = 0.0f);
+			const spk::SpriteSheet& p_spriteSheet, spk::Vector2UInt p_spriteCoordinates, spk::Rect2D p_screenRect, float p_depth = 0.0f);
 
 		void execute(spk::RenderContext& p_renderContext) override;
 	};

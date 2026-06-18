@@ -26,4 +26,3 @@ TEST(OpenGLIndexBufferObjectTest, StoresDrawMetadataAndSynchronizesData)
 	EXPECT_EQ(indexBuffer.count(), indices.size());
 	EXPECT_EQ(gpuIndices, indices);
 }
-

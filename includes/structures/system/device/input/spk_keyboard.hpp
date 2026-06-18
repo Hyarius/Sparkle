@@ -155,7 +155,7 @@ namespace spk
 
 		Keyboard()
 		{
-			for (auto &state : keys)
+			for (auto& state : keys)
 			{
 				state = InputState::Up;
 			}
@@ -163,12 +163,12 @@ namespace spk
 			glyph = U'\0';
 		}
 
-		InputState &operator[](const Key p_key)
+		InputState& operator[](const Key p_key)
 		{
 			return keys[static_cast<size_t>(p_key)];
 		}
 
-		const InputState &operator[](const Key p_key) const
+		const InputState& operator[](const Key p_key) const
 		{
 			return keys[static_cast<size_t>(p_key)];
 		}
@@ -178,7 +178,7 @@ namespace spk
 	std::wstring toWstring(Keyboard::Key p_key);
 	std::optional<Keyboard::Key> fromString(std::string_view p_keyName);
 
-	std::ostream &operator<<(std::ostream &p_stream, Keyboard::Key p_key);
-	std::wostream &operator<<(std::wostream &p_stream, Keyboard::Key p_key);
+	std::ostream& operator<<(std::ostream& p_stream, Keyboard::Key p_key);
+	std::wostream& operator<<(std::wostream& p_stream, Keyboard::Key p_key);
 
 }

@@ -173,15 +173,15 @@ namespace sparkle_test
 			"out vec4 outColor;\n"
 			"void main()\n"
 			"{\n"
-			"	outColor = vec4(" + std::to_string(p_red) + ", " + std::to_string(p_green) + ", " + std::to_string(p_blue) + ", 1.0);\n"
-			"}\n");
+			"	outColor = vec4(" +
+				std::to_string(p_red) + ", " + std::to_string(p_green) + ", " + std::to_string(p_blue) +
+				", 1.0);\n"
+				"}\n");
 	}
 
 	inline std::shared_ptr<spk::VertexBufferObject> makeTriangleVBO(const std::array<TestVertex, 3>& p_vertices)
 	{
-		auto vertexBuffer = std::make_shared<spk::VertexBufferObject>(
-			spk::BufferObject::Usage::StaticDraw,
-			sizeof(TestVertex) * p_vertices.size());
+		auto vertexBuffer = std::make_shared<spk::VertexBufferObject>(spk::BufferObject::Usage::StaticDraw, sizeof(TestVertex) * p_vertices.size());
 
 		spk::BinaryField vertices = vertexBuffer->field().addArray("vertices", 0, p_vertices.size(), sizeof(TestVertex));
 		for (std::size_t i = 0; i < p_vertices.size(); ++i)
@@ -204,8 +204,7 @@ namespace sparkle_test
 				.componentType = GL_FLOAT,
 				.normalized = false,
 				.stride = sizeof(TestVertex),
-				.offset = offsetof(TestVertex, position)
-			});
+				.offset = offsetof(TestVertex, position)});
 		vertexArray->addVertexBuffer(
 			vertexBuffer,
 			spk::VertexArrayObject::Attribute{
@@ -214,19 +213,14 @@ namespace sparkle_test
 				.componentType = GL_FLOAT,
 				.normalized = false,
 				.stride = sizeof(TestVertex),
-				.offset = offsetof(TestVertex, color)
-			});
+				.offset = offsetof(TestVertex, color)});
 
 		return vertexArray;
 	}
 
 	inline std::array<TestVertex, 3> fullScreenTriangle(std::array<float, 3> p_color)
 	{
-		return {
-			TestVertex{{-1.0f, -1.0f}, p_color},
-			TestVertex{{3.0f, -1.0f}, p_color},
-			TestVertex{{-1.0f, 3.0f}, p_color}
-		};
+		return {TestVertex{{-1.0f, -1.0f}, p_color}, TestVertex{{3.0f, -1.0f}, p_color}, TestVertex{{-1.0f, 3.0f}, p_color}};
 	}
 
 	inline std::filesystem::path expectedImagePath(const std::string& p_name)
@@ -260,7 +254,8 @@ namespace sparkle_test
 			for (int x = 0; x < p_width; ++x)
 			{
 				const bool inside = x >= 4 && x < 12 && y >= 4 && y < 12;
-				const std::size_t index = (static_cast<std::size_t>(p_height - 1 - y) * static_cast<std::size_t>(p_width) + static_cast<std::size_t>(x)) * 4;
+				const std::size_t index =
+					(static_cast<std::size_t>(p_height - 1 - y) * static_cast<std::size_t>(p_width) + static_cast<std::size_t>(x)) * 4;
 				pixels[index + 0] = inside == true ? 255 : 0;
 				pixels[index + 1] = 0;
 				pixels[index + 2] = inside == true ? 0 : 255;
@@ -284,18 +279,15 @@ namespace sparkle_test
 
 		if (std::filesystem::exists(p_expectedPath) == false)
 		{
-			ADD_FAILURE()
-				<< "Expected image not found. Visually validate the actual image and copy it to approve.\n"
-				<< "  actual:   " << p_actualPath.string() << "\n"
-				<< "  expected: " << p_expectedPath.string();
+			ADD_FAILURE() << "Expected image not found. Visually validate the actual image and copy it to approve.\n"
+						  << "  actual:   " << p_actualPath.string() << "\n"
+						  << "  expected: " << p_expectedPath.string();
 			return;
 		}
 
 		const ImageComparisonResult result = compareImages(p_actualPath, p_expectedPath, p_diffPath);
-		EXPECT_TRUE(result.matches)
-			<< "actual=[" << p_actualPath.string() << "] "
-			<< "expected=[" << p_expectedPath.string() << "] "
-			<< "diff=[" << p_diffPath.string() << "]";
+		EXPECT_TRUE(result.matches) << "actual=[" << p_actualPath.string() << "] "
+									<< "expected=[" << p_expectedPath.string() << "] "
+									<< "diff=[" << p_diffPath.string() << "]";
 	}
 }
-

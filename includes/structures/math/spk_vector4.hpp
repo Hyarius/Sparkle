@@ -57,14 +57,10 @@ namespace spk
 		constexpr IVector4() = default;
 
 		template <typename TX, typename TY, typename TZ, typename TW>
-			requires std::constructible_from<TType, TX> &&
-					 std::constructible_from<TType, TY> &&
-					 std::constructible_from<TType, TZ> &&
-					 std::constructible_from<TType, TW>
+			requires std::constructible_from<TType, TX> && std::constructible_from<TType, TY> && std::constructible_from<TType, TZ> &&
+						 std::constructible_from<TType, TW>
 		constexpr IVector4(const TX& p_x, const TY& p_y, const TZ& p_z, const TW& p_w) noexcept(
-			std::is_nothrow_constructible_v<TType, TX> &&
-			std::is_nothrow_constructible_v<TType, TY> &&
-			std::is_nothrow_constructible_v<TType, TZ> &&
+			std::is_nothrow_constructible_v<TType, TX> && std::is_nothrow_constructible_v<TType, TY> && std::is_nothrow_constructible_v<TType, TZ> &&
 			std::is_nothrow_constructible_v<TType, TW>) :
 			x(static_cast<TType>(p_x)),
 			y(static_cast<TType>(p_y)),
@@ -94,11 +90,9 @@ namespace spk
 		}
 
 		template <typename TOther, typename TW>
-			requires std::constructible_from<TType, TOther> &&
-					 std::constructible_from<TType, TW>
+			requires std::constructible_from<TType, TOther> && std::constructible_from<TType, TW>
 		constexpr IVector4(const IVector3<TOther>& p_xyz, const TW& p_w) noexcept(
-			std::is_nothrow_constructible_v<TType, TOther> &&
-			std::is_nothrow_constructible_v<TType, TW>) :
+			std::is_nothrow_constructible_v<TType, TOther> && std::is_nothrow_constructible_v<TType, TW>) :
 			x(static_cast<TType>(p_xyz.x)),
 			y(static_cast<TType>(p_xyz.y)),
 			z(static_cast<TType>(p_xyz.z)),
@@ -107,12 +101,9 @@ namespace spk
 		}
 
 		template <typename TOther, typename TZ, typename TW>
-			requires std::constructible_from<TType, TOther> &&
-					 std::constructible_from<TType, TZ> &&
-					 std::constructible_from<TType, TW>
+			requires std::constructible_from<TType, TOther> && std::constructible_from<TType, TZ> && std::constructible_from<TType, TW>
 		constexpr IVector4(const IVector2<TOther>& p_xy, const TZ& p_z, const TW& p_w) noexcept(
-			std::is_nothrow_constructible_v<TType, TOther> &&
-			std::is_nothrow_constructible_v<TType, TZ> &&
+			std::is_nothrow_constructible_v<TType, TOther> && std::is_nothrow_constructible_v<TType, TZ> &&
 			std::is_nothrow_constructible_v<TType, TW>) :
 			x(static_cast<TType>(p_xy.x)),
 			y(static_cast<TType>(p_xy.y)),
@@ -139,9 +130,7 @@ namespace spk
 
 		[[nodiscard]] constexpr bool operator==(const IVector4<TType>& p_other) const noexcept
 		{
-			return spk::ApproxValue(x) == p_other.x &&
-				   spk::ApproxValue(y) == p_other.y &&
-				   spk::ApproxValue(z) == p_other.z &&
+			return spk::ApproxValue(x) == p_other.x && spk::ApproxValue(y) == p_other.y && spk::ApproxValue(z) == p_other.z &&
 				   spk::ApproxValue(w) == p_other.w;
 		}
 
@@ -194,9 +183,7 @@ namespace spk
 
 		[[nodiscard]] IVector4<TType> operator/(const IVector4<TType>& p_other) const
 		{
-			if (spk::ApproxValue(p_other.x) == 0 ||
-				spk::ApproxValue(p_other.y) == 0 ||
-				spk::ApproxValue(p_other.z) == 0 ||
+			if (spk::ApproxValue(p_other.x) == 0 || spk::ApproxValue(p_other.y) == 0 || spk::ApproxValue(p_other.z) == 0 ||
 				spk::ApproxValue(p_other.w) == 0)
 			{
 				throw std::invalid_argument("spk::IVector4: division by zero vector component");
@@ -286,9 +273,7 @@ namespace spk
 
 		friend IVector4<TType> operator/(const TType& p_scalar, const IVector4<TType>& p_vector)
 		{
-			if (spk::ApproxValue(p_vector.x) == 0 ||
-				spk::ApproxValue(p_vector.y) == 0 ||
-				spk::ApproxValue(p_vector.z) == 0 ||
+			if (spk::ApproxValue(p_vector.x) == 0 || spk::ApproxValue(p_vector.y) == 0 || spk::ApproxValue(p_vector.z) == 0 ||
 				spk::ApproxValue(p_vector.w) == 0)
 			{
 				throw std::invalid_argument("spk::IVector4: division by zero vector component");
@@ -357,10 +342,7 @@ namespace spk
 
 		[[nodiscard]] constexpr bool isZero() const noexcept
 		{
-			return spk::ApproxValue(x) == 0 &&
-				   spk::ApproxValue(y) == 0 &&
-				   spk::ApproxValue(z) == 0 &&
-				   spk::ApproxValue(w) == 0;
+			return spk::ApproxValue(x) == 0 && spk::ApproxValue(y) == 0 && spk::ApproxValue(z) == 0 && spk::ApproxValue(w) == 0;
 		}
 
 		[[nodiscard]] float squaredLength() const noexcept
@@ -425,10 +407,8 @@ namespace spk
 				return values[0] + values[1] + values[2] + values[3];
 			}
 #endif
-			return (static_cast<float>(x) * static_cast<float>(p_other.x)) +
-				   (static_cast<float>(y) * static_cast<float>(p_other.y)) +
-				   (static_cast<float>(z) * static_cast<float>(p_other.z)) +
-				   (static_cast<float>(w) * static_cast<float>(p_other.w));
+			return (static_cast<float>(x) * static_cast<float>(p_other.x)) + (static_cast<float>(y) * static_cast<float>(p_other.y)) +
+				   (static_cast<float>(z) * static_cast<float>(p_other.z)) + (static_cast<float>(w) * static_cast<float>(p_other.w));
 		}
 
 		[[nodiscard]] constexpr IVector2<TType> xy() const noexcept
@@ -458,16 +438,13 @@ namespace spk
 		[[nodiscard]] static constexpr IVector4<TType> min(const IVector4<TType>& p_left, const IVector4<TType>& p_right) noexcept
 		{
 			return IVector4<TType>(
-				std::min(p_left.x, p_right.x),
-				std::min(p_left.y, p_right.y),
-				std::min(p_left.z, p_right.z),
-				std::min(p_left.w, p_right.w));
+				std::min(p_left.x, p_right.x), std::min(p_left.y, p_right.y), std::min(p_left.z, p_right.z), std::min(p_left.w, p_right.w));
 		}
 
 		template <typename... TOtherTypes>
-			requires (sizeof...(TOtherTypes) > 0) &&
-					 (std::same_as<TOtherTypes, IVector4<TType>> && ...)
-		[[nodiscard]] static constexpr IVector4<TType> min(const IVector4<TType>& p_first, const IVector4<TType>& p_second, const TOtherTypes&... p_remainingValues) noexcept
+			requires(sizeof...(TOtherTypes) > 0) && (std::same_as<TOtherTypes, IVector4<TType>> && ...)
+		[[nodiscard]] static constexpr IVector4<TType> min(
+			const IVector4<TType>& p_first, const IVector4<TType>& p_second, const TOtherTypes&... p_remainingValues) noexcept
 		{
 			return min(min(p_first, p_second), p_remainingValues...);
 		}
@@ -490,16 +467,13 @@ namespace spk
 		[[nodiscard]] static constexpr IVector4<TType> max(const IVector4<TType>& p_left, const IVector4<TType>& p_right) noexcept
 		{
 			return IVector4<TType>(
-				std::max(p_left.x, p_right.x),
-				std::max(p_left.y, p_right.y),
-				std::max(p_left.z, p_right.z),
-				std::max(p_left.w, p_right.w));
+				std::max(p_left.x, p_right.x), std::max(p_left.y, p_right.y), std::max(p_left.z, p_right.z), std::max(p_left.w, p_right.w));
 		}
 
 		template <typename... TOtherTypes>
-			requires (sizeof...(TOtherTypes) > 0) &&
-					 (std::same_as<TOtherTypes, IVector4<TType>> && ...)
-		[[nodiscard]] static constexpr IVector4<TType> max(const IVector4<TType>& p_first, const IVector4<TType>& p_second, const TOtherTypes&... p_remainingValues) noexcept
+			requires(sizeof...(TOtherTypes) > 0) && (std::same_as<TOtherTypes, IVector4<TType>> && ...)
+		[[nodiscard]] static constexpr IVector4<TType> max(
+			const IVector4<TType>& p_first, const IVector4<TType>& p_second, const TOtherTypes&... p_remainingValues) noexcept
 		{
 			return max(max(p_first, p_second), p_remainingValues...);
 		}
@@ -520,9 +494,7 @@ namespace spk
 		}
 
 		[[nodiscard]] static constexpr IVector4<TType> clamp(
-			const IVector4<TType>& p_value,
-			const IVector4<TType>& p_boundMinimum,
-			const IVector4<TType>& p_boundMaximum) noexcept
+			const IVector4<TType>& p_value, const IVector4<TType>& p_boundMinimum, const IVector4<TType>& p_boundMaximum) noexcept
 		{
 			const IVector4<TType> low = min(p_boundMinimum, p_boundMaximum);
 			const IVector4<TType> high = max(p_boundMinimum, p_boundMaximum);
@@ -534,36 +506,26 @@ namespace spk
 				std::clamp(p_value.w, low.w, high.w));
 		}
 
-		[[nodiscard]] constexpr IVector4<TType> clamped(
-			const IVector4<TType>& p_boundMinimum,
-			const IVector4<TType>& p_boundMaximum) const noexcept
+		[[nodiscard]] constexpr IVector4<TType> clamped(const IVector4<TType>& p_boundMinimum, const IVector4<TType>& p_boundMaximum) const noexcept
 		{
 			return clamp(*this, p_boundMinimum, p_boundMaximum);
 		}
 
 		[[nodiscard]] static constexpr bool isBetween(
-			const IVector4<TType>& p_value,
-			const IVector4<TType>& p_boundA,
-			const IVector4<TType>& p_boundB) noexcept
+			const IVector4<TType>& p_value, const IVector4<TType>& p_boundA, const IVector4<TType>& p_boundB) noexcept
 		{
 			const IVector4<TType> low = min(p_boundA, p_boundB);
 			const IVector4<TType> high = max(p_boundA, p_boundB);
 
-			return (p_value.x >= low.x && p_value.x <= high.x) &&
-				   (p_value.y >= low.y && p_value.y <= high.y) &&
-				   (p_value.z >= low.z && p_value.z <= high.z) &&
-				   (p_value.w >= low.w && p_value.w <= high.w);
+			return (p_value.x >= low.x && p_value.x <= high.x) && (p_value.y >= low.y && p_value.y <= high.y) &&
+				   (p_value.z >= low.z && p_value.z <= high.z) && (p_value.w >= low.w && p_value.w <= high.w);
 		}
 
 		template <typename TOther>
 			requires std::constructible_from<TOther, TType>
 		explicit constexpr operator IVector4<TOther>() const noexcept(std::is_nothrow_constructible_v<TOther, TType>)
 		{
-			return IVector4<TOther>(
-				static_cast<TOther>(x),
-				static_cast<TOther>(y),
-				static_cast<TOther>(z),
-				static_cast<TOther>(w));
+			return IVector4<TOther>(static_cast<TOther>(x), static_cast<TOther>(y), static_cast<TOther>(z), static_cast<TOther>(w));
 		}
 	};
 

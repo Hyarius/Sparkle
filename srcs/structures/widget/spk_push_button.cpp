@@ -8,9 +8,7 @@ namespace spk
 {
 	namespace
 	{
-		[[nodiscard]] spk::Vector2UInt iconMinimalSize(
-			const spk::ImageLabel& p_icon,
-			const std::optional<spk::Vector2UInt>& p_iconSize)
+		[[nodiscard]] spk::Vector2UInt iconMinimalSize(const spk::ImageLabel& p_icon, const std::optional<spk::Vector2UInt>& p_iconSize)
 		{
 			if (p_iconSize.has_value() == true)
 			{
@@ -30,18 +28,14 @@ namespace spk
 				static_cast<unsigned int>(static_cast<float>(textureSize.y) * section.size.y)};
 		}
 
-		[[nodiscard]] spk::Vector2UInt effectiveIconPadding(
-			const spk::Vector2Int& p_cornerSize,
-			const std::optional<spk::Vector2UInt>& p_iconPadding)
+		[[nodiscard]] spk::Vector2UInt effectiveIconPadding(const spk::Vector2Int& p_cornerSize, const std::optional<spk::Vector2UInt>& p_iconPadding)
 		{
 			if (p_iconPadding.has_value() == true)
 			{
 				return *p_iconPadding;
 			}
 
-			return {
-				static_cast<unsigned int>(p_cornerSize.x),
-				static_cast<unsigned int>(p_cornerSize.y)};
+			return {static_cast<unsigned int>(p_cornerSize.x), static_cast<unsigned int>(p_cornerSize.y)};
 		}
 	}
 
@@ -50,10 +44,7 @@ namespace spk
 	{
 	}
 
-	PushButton::PushButton(
-		const std::string& p_name,
-		std::string_view p_text,
-		spk::Widget* p_parent) :
+	PushButton::PushButton(const std::string& p_name, std::string_view p_text, spk::Widget* p_parent) :
 		PushButton(
 			p_name,
 			p_text,
@@ -63,11 +54,7 @@ namespace spk
 	{
 	}
 
-	PushButton::PushButton(
-		const std::string& p_name,
-		std::string_view p_text,
-		const spk::WidgetStyle& p_style,
-		spk::Widget* p_parent) :
+	PushButton::PushButton(const std::string& p_name, std::string_view p_text, const spk::WidgetStyle& p_style, spk::Widget* p_parent) :
 		PushButton(p_name, p_text, p_style, p_style, p_parent)
 	{
 	}
@@ -91,29 +78,29 @@ namespace spk
 		_releasedIcon.deactivate();
 		_pressedIcon.deactivate();
 
-		sizeHint().configureMinimalGenerator([this]() {
-			const spk::Vector2UInt releasedSize = _releasedLabel.minimalSize();
-			const spk::Vector2UInt pressedSize = _pressedLabel.minimalSize();
-			const spk::Vector2Int cornerSize = _releasedBackground.cornerSize();
-			const spk::Vector2UInt minimumFrameSize = {
-				static_cast<unsigned int>(cornerSize.x * 2),
-				static_cast<unsigned int>(cornerSize.y * 2)};
-
-			spk::Vector2UInt iconSize = {0, 0};
-			if (_hasIcon == true)
+		sizeHint().configureMinimalGenerator(
+			[this]()
 			{
-				const spk::Vector2UInt releasedIconSize = iconMinimalSize(_releasedIcon, _iconSize);
-				const spk::Vector2UInt pressedIconSize = iconMinimalSize(_pressedIcon, _iconSize);
-				const spk::Vector2UInt padding = effectiveIconPadding(cornerSize, _iconPadding);
-				iconSize = {
-					std::max(releasedIconSize.x, pressedIconSize.x) + padding.x * 2,
-					std::max(releasedIconSize.y, pressedIconSize.y) + padding.y * 2};
-			}
+				const spk::Vector2UInt releasedSize = _releasedLabel.minimalSize();
+				const spk::Vector2UInt pressedSize = _pressedLabel.minimalSize();
+				const spk::Vector2Int cornerSize = _releasedBackground.cornerSize();
+				const spk::Vector2UInt minimumFrameSize = {static_cast<unsigned int>(cornerSize.x * 2), static_cast<unsigned int>(cornerSize.y * 2)};
 
-			return spk::Vector2UInt(
-				std::max({releasedSize.x, pressedSize.x, iconSize.x, minimumFrameSize.x}),
-				std::max({releasedSize.y, pressedSize.y, iconSize.y, minimumFrameSize.y}));
-		});
+				spk::Vector2UInt iconSize = {0, 0};
+				if (_hasIcon == true)
+				{
+					const spk::Vector2UInt releasedIconSize = iconMinimalSize(_releasedIcon, _iconSize);
+					const spk::Vector2UInt pressedIconSize = iconMinimalSize(_pressedIcon, _iconSize);
+					const spk::Vector2UInt padding = effectiveIconPadding(cornerSize, _iconPadding);
+					iconSize = {
+						std::max(releasedIconSize.x, pressedIconSize.x) + padding.x * 2,
+						std::max(releasedIconSize.y, pressedIconSize.y) + padding.y * 2};
+				}
+
+				return spk::Vector2UInt(
+					std::max({releasedSize.x, pressedSize.x, iconSize.x, minimumFrameSize.x}),
+					std::max({releasedSize.y, pressedSize.y, iconSize.y, minimumFrameSize.y}));
+			});
 
 		activate();
 	}
@@ -175,14 +162,10 @@ namespace spk
 		if (_iconSize.has_value() == true)
 		{
 			const spk::Vector2UInt requestedSize = *_iconSize;
-			const spk::Vector2UInt clampedSize = {
-				std::min(requestedSize.x, iconRect.width()),
-				std::min(requestedSize.y, iconRect.height())};
+			const spk::Vector2UInt clampedSize = {std::min(requestedSize.x, iconRect.width()), std::min(requestedSize.y, iconRect.height())};
 			iconRect = spk::Rect2D(
-				{
-					iconRect.x() + static_cast<int>((iconRect.width() - clampedSize.x) / 2),
-					iconRect.y() + static_cast<int>((iconRect.height() - clampedSize.y) / 2)
-				},
+				{iconRect.x() + static_cast<int>((iconRect.width() - clampedSize.x) / 2),
+				 iconRect.y() + static_cast<int>((iconRect.height() - clampedSize.y) / 2)},
 				clampedSize);
 		}
 

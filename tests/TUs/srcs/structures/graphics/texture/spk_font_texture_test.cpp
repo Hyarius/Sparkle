@@ -1,6 +1,5 @@
 #include <gtest/gtest.h>
 
-
 #include <filesystem>
 #include <vector>
 
@@ -55,19 +54,14 @@ TEST(FontTextureTest, AtlasMatchesExpectedImage)
 
 	if (std::filesystem::exists(expectedPath) == false)
 	{
-		ADD_FAILURE() << "Missing expected font atlas image at " << expectedPath.string()
-					  << ". Saved actual output to " << actualPath.string()
+		ADD_FAILURE() << "Missing expected font atlas image at " << expectedPath.string() << ". Saved actual output to " << actualPath.string()
 					  << "; copy it to the expected path to establish the baseline.";
 		return;
 	}
 
-	const sparkle_test::ImageComparisonResult result =
-		sparkle_test::compareImages(actualPath, expectedPath, diffPath);
+	const sparkle_test::ImageComparisonResult result = sparkle_test::compareImages(actualPath, expectedPath, diffPath);
 
-	EXPECT_TRUE(result.matches)
-		<< "actual=[" << actualPath.string() << "] expected=[" << expectedPath.string()
-		<< "] diff=[" << diffPath.string() << "] differentPixels=" << result.differentPixelCount
-		<< " actualSize=" << result.actualWidth << "x" << result.actualHeight
-		<< " expectedSize=" << result.expectedWidth << "x" << result.expectedHeight;
+	EXPECT_TRUE(result.matches) << "actual=[" << actualPath.string() << "] expected=[" << expectedPath.string() << "] diff=[" << diffPath.string()
+								<< "] differentPixels=" << result.differentPixelCount << " actualSize=" << result.actualWidth << "x"
+								<< result.actualHeight << " expectedSize=" << result.expectedWidth << "x" << result.expectedHeight;
 }
-

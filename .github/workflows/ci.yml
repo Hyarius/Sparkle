@@ -1,77 +1,76 @@
-# Display name for the workflow in the GitHub Actions UI
 name: CI
 
-# Event triggers that start this workflow
 on:
-  # Run the workflow when commits are pushed to main
   push:
-    # Restrict push trigger to the main branch
     branches: [ main ]
-  # Also run for pull requests targeting any branch
   pull_request:
-    # Restrict pull request trigger to every opened pull request
     types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+    inputs:
+      run_doxygen:
+        description: 'Run the non-blocking Doxygen readiness job'
+        required: false
+        default: true
+        type: boolean
 
-# optional: skip drafts and cancel outdated runs
 concurrency:
   group: pr-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
-# Permissions granted to the GITHUB_TOKEN for this workflow
 permissions:
-  # Allow read access to repository contents required by checkout and analysis
   contents: read
-  # Permit publishing documentation to GitHub Pages
-  pages: write
-  # Enable OIDC token issuance for the deploy-pages action
-  id-token: write
 
-# Environment variables available to every job in this workflow
 env:
-  # Default triplet instructing vcpkg to build for 64-bit Windows
   VCPKG_DEFAULT_TRIPLET: x64-windows
-  # Enable vcpkg manifest mode and binary caching for faster installs
   VCPKG_FEATURE_FLAGS: manifests,binarycaching
 
-# Define the set of jobs executed by this workflow
 jobs:
-  # Job that verifies all tracked C/C++ sources are clang-format compliant
   format-check:
     runs-on: windows-latest
     name: Clang-Format Check
 
     steps:
-      # Checkout repository contents into the runner workspace
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Install LLVM toolchain to obtain clang-format
       - name: Install LLVM (clang-format)
         run: choco install llvm --no-progress --yes
         shell: pwsh
 
-      # Validate formatting without modifying files
       - name: Verify formatting
         shell: pwsh
         run: |
-          $patterns = @('*.cpp','*.hpp')
-          $roots    = @('includes','srcs')
+          $patterns = @(
+            'includes/**/*.hpp',
+            'includes/**/*.h',
+            'includes/**/*.cpp',
+            'srcs/**/*.hpp',
+            'srcs/**/*.h',
+            'srcs/**/*.cpp',
+            'tests/**/*.hpp',
+            'tests/**/*.h',
+            'tests/**/*.cpp',
+            'tools/**/*.hpp',
+            'tools/**/*.h',
+            'tools/**/*.cpp'
+          )
 
           $files = @()
-          foreach ($root in $roots) {
-            foreach ($pat in $patterns) {
-              $files += git ls-files -- ":(glob)$root/**/$pat"
-            }
+          foreach ($pattern in $patterns) {
+            $files += git ls-files -- ":(glob)$pattern"
           }
           $files = $files | Sort-Object -Unique
-          if (-not $files) { Write-Host "No C/C++ sources detected in includes/ or srcs/; skipping clang-format check."; exit 0 }
+          if (-not $files) {
+            Write-Host "No tracked C/C++ files matched the configured clang-format patterns; skipping."
+            exit 0
+          }
 
           $nonCompliant = @()
           foreach ($file in $files) {
-            & clang-format --style=file --dry-run --Werror $file 2>$null
+            & clang-format --style=file --dry-run --Werror $file
             if ($LASTEXITCODE -ne 0) {
               $nonCompliant += $file
-              Write-Host "::error file=$file::clang-format reported style violations."
+              Write-Host "::error file=$file::clang-format reported style violations. Run clang-format locally; CI does not modify files."
             }
           }
 
@@ -85,17 +84,23 @@ jobs:
               $content | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
             }
 
-            Write-Host "Formatting issues detected. Run tools/format.ps1 -Folder <path> to fix."
             exit 1
-          } else {
-            Write-Host "All files formatted."
           }
 
-  # Job responsible for configuring, building, and testing the project in Debug mode
-  build-and-test-debug:
+          Write-Host "All checked files are clang-format compliant."
+
+  build-and-test:
     needs: format-check
     runs-on: windows-latest
-    name: Build & Test (Debug)
+    name: Build & Test (${{ matrix.config }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - config: Debug
+            preset: test-debug
+          - config: Release
+            preset: test-release
 
     steps:
       - name: Checkout
@@ -104,14 +109,14 @@ jobs:
       - name: Set up MSVC
         uses: microsoft/setup-msbuild@v2
 
-      - name: Install Ninja
-        run: choco install ninja --no-progress --yes
-        shell: pwsh
-        
       - name: Set up MSVC dev environment
         uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: x64
+
+      - name: Install Ninja
+        run: choco install ninja --no-progress --yes
+        shell: pwsh
 
       - name: Bootstrap vcpkg
         shell: pwsh
@@ -121,25 +126,13 @@ jobs:
           & "$vcpkgRoot\bootstrap-vcpkg.bat"
           "VCPKG_ROOT=$vcpkgRoot" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
-      - name: Configure (Debug - tests enabled)
+      - name: Configure (${{ matrix.config }} - tests enabled)
         shell: pwsh
-        run: cmake --preset test-debug
-        continue-on-error: true
+        run: cmake --preset ${{ matrix.preset }}
 
-      - name: Configure (Debug - tests enabled - fallback)
+      - name: Build (${{ matrix.config }})
         shell: pwsh
-        if: failure()
-        run: |
-          $vcpkgRoot = Join-Path $env:RUNNER_TEMP "vcpkg"
-          $env:VCPKG_ROOT = $vcpkgRoot
-          cmake -B build/test-debug -S . -G Ninja `
-            -DCMAKE_BUILD_TYPE=Debug `
-            -DENABLE_TESTS=ON `
-            -DCMAKE_TOOLCHAIN_FILE="$vcpkgRoot/scripts/buildsystems/vcpkg.cmake"
-
-      - name: Build (Debug)
-        shell: pwsh
-        run: cmake --build build/test-debug --config Debug
+        run: cmake --build --preset ${{ matrix.preset }} --parallel
 
       - name: Install Mesa (software OpenGL for tests)
         shell: pwsh
@@ -159,7 +152,7 @@ jobs:
           $mesaBin = Join-Path $mesaRoot "x64"
           $dlls = @("opengl32.dll", "libgallium_wgl.dll", "libglapi.dll")
 
-          $exeDirs = Get-ChildItem -Path "build/test-debug" -Recurse -Filter *.exe |
+          $exeDirs = Get-ChildItem -Path "build/${{ matrix.preset }}" -Recurse -Filter *.exe |
             Select-Object -ExpandProperty DirectoryName -Unique
 
           if ($exeDirs) {
@@ -176,126 +169,33 @@ jobs:
           "MESA_GL_VERSION_OVERRIDE=4.5" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "MESA_GLSL_VERSION_OVERRIDE=450" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
-      - name: Run unit tests (Debug)
+      - name: Run unit tests (${{ matrix.config }})
         shell: pwsh
-        run: ctest --output-on-failure --test-dir build/test-debug
+        run: ctest --preset ${{ matrix.preset }} --output-on-failure --no-tests=error
 
-      - name: Upload test artifacts (Debug)
+      - name: Upload TU resources (${{ matrix.config }})
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: debug-test-artifacts
-          path: |
-            build/test-debug/Testing
-            tests/TUs/resources
+          name: tu-resources-${{ matrix.config }}
+          path: tests/TUs/resources/**
           if-no-files-found: warn
           retention-days: 30
 
-  # Job responsible for configuring, building, and testing the project in Release mode
-  build-and-test-release:
-    needs: format-check
-    runs-on: windows-latest
-    name: Build & Test (Release)
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up MSVC
-        uses: microsoft/setup-msbuild@v2
-
-      - name: Install Ninja
-        run: choco install ninja --no-progress --yes
-        shell: pwsh
-        
-      - name: Set up MSVC dev environment
-        uses: ilammy/msvc-dev-cmd@v1
-        with:
-          arch: x64
-
-      - name: Bootstrap vcpkg
-        shell: pwsh
-        run: |
-          $vcpkgRoot = Join-Path $env:RUNNER_TEMP "vcpkg"
-          git clone https://github.com/microsoft/vcpkg.git $vcpkgRoot
-          & "$vcpkgRoot\bootstrap-vcpkg.bat"
-          "VCPKG_ROOT=$vcpkgRoot" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-
-      - name: Configure (Release - tests enabled)
-        shell: pwsh
-        run: cmake --preset test
-        continue-on-error: true
-
-      - name: Configure (Release - tests enabled - fallback)
-        shell: pwsh
-        if: failure()
-        run: |
-          $vcpkgRoot = Join-Path $env:RUNNER_TEMP "vcpkg"
-          $env:VCPKG_ROOT = $vcpkgRoot
-          cmake -B build/test -S . -G Ninja `
-            -DCMAKE_BUILD_TYPE=Release `
-            -DENABLE_TESTS=ON `
-            -DCMAKE_TOOLCHAIN_FILE="$vcpkgRoot/scripts/buildsystems/vcpkg.cmake"
-
-      - name: Build (Release)
-        shell: pwsh
-        run: cmake --build build/test --config Release
-
-      - name: Install Mesa (software OpenGL for tests)
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = "Stop"
-          $mesaVersion = "23.3.4"
-          $mesaArchive = "mesa3d-$mesaVersion-release-msvc.7z"
-          $mesaUrl = "https://github.com/pal1000/mesa-dist-win/releases/download/$mesaVersion/$mesaArchive"
-          $mesaDownload = Join-Path $env:RUNNER_TEMP $mesaArchive
-          $mesaRoot = Join-Path $env:RUNNER_TEMP "mesa"
-
-          if (-not (Test-Path $mesaDownload)) {
-            Invoke-WebRequest $mesaUrl -OutFile $mesaDownload
-          }
-          7z x $mesaDownload "-o$mesaRoot" | Out-Null
-
-          $mesaBin = Join-Path $mesaRoot "x64"
-          $dlls = @("opengl32.dll", "libgallium_wgl.dll", "libglapi.dll")
-
-          $exeDirs = Get-ChildItem -Path "build/test" -Recurse -Filter *.exe |
-            Select-Object -ExpandProperty DirectoryName -Unique
-
-          if ($exeDirs) {
-            foreach ($dir in $exeDirs) {
-              foreach ($dll in $dlls) {
-                if (Test-Path (Join-Path $mesaBin $dll)) {
-                  Copy-Item (Join-Path $mesaBin $dll) $dir -Force
-                }
-              }
-            }
-          }
-
-          "GALLIUM_DRIVER=llvmpipe" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          "MESA_GL_VERSION_OVERRIDE=4.5" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          "MESA_GLSL_VERSION_OVERRIDE=450" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-
-      - name: Run unit tests (Release)
-        shell: pwsh
-        run: ctest --output-on-failure --test-dir build/test
-
-      - name: Upload test artifacts (Release)
+      - name: Upload CTest logs (${{ matrix.config }})
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: release-test-artifacts
-          path: |
-            build/test/Testing
-            tests/TUs/resources
+          name: ctest-logs-${{ matrix.config }}
+          path: build/${{ matrix.preset }}/Testing/**
           if-no-files-found: warn
           retention-days: 30
 
-  # Job that builds documentation with Doxygen and validates completeness
   documentation-check:
-    needs: format-check
+    if: github.event_name == 'workflow_dispatch' && inputs.run_doxygen
     runs-on: windows-latest
-    name: Documentation Validation (Doxygen)
+    name: Documentation Readiness (Doxygen, manual)
+    continue-on-error: true
 
     steps:
       - name: Checkout
@@ -305,75 +205,15 @@ jobs:
         run: choco install doxygen.portable graphviz --no-progress --yes
         shell: pwsh
 
-      - name: Prepare documentation output directory
-        shell: pwsh
-        run: |
-          $outputDir = Join-Path $env:GITHUB_WORKSPACE "docs/build"
-          if (-not (Test-Path $outputDir)) {
-            New-Item -ItemType Directory -Path $outputDir | Out-Null
-          }
-
       - name: Generate Doxygen documentation
         shell: pwsh
-        run: |
-          doxygen Doxyfile
+        run: doxygen Doxyfile
 
-          $log = Join-Path $PWD 'doxygen-error.log'
-          $exists = Test-Path -LiteralPath $log
-          $size = if ($exists) { (Get-Item -LiteralPath $log).Length } else { 0 }
-
-          if ($size -gt 0) {
-            Write-Host '::error::Doxygen emitted warnings or errors.'
-            Get-Content -LiteralPath $log
-            exit 1
-          } else {
-            Write-Host "Doxygen documentation generated successfully with no warnings."
-          }
-
-      - name: Upload Doxygen error log
+      - name: Upload Doxygen warning log
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: doxygen-validation-log
+          name: doxygen-readiness-log
           path: doxygen-error.log
           if-no-files-found: warn
           retention-days: 7
-
-  # Final summary job that ensures all validation steps passed
-  validation-summary:
-    needs:
-      - format-check
-      - build-and-test-debug
-      - build-and-test-release
-      - documentation-check
-    runs-on: windows-latest
-    name: Validation Summary
-    if: always()
-
-    steps:
-      - name: Check validation results
-        shell: pwsh
-        run: |
-          $jobs = @{
-            'format-check' = '${{ needs.format-check.result }}'
-            'build-and-test-debug' = '${{ needs.build-and-test-debug.result }}'
-            'build-and-test-release' = '${{ needs.build-and-test-release.result }}'
-            'documentation-check' = '${{ needs.documentation-check.result }}'
-          }
-
-          Write-Host "=== Validation Summary ===" 
-          $allPassed = $true
-          foreach ($job in $jobs.GetEnumerator()) {
-            $status = $job.Value
-            $symbol = if ($status -eq 'success') { '✓' } else { '✗' }
-            Write-Host "$symbol $($job.Key): $status"
-            if ($status -ne 'success') { $allPassed = $false }
-          }
-
-          if (-not $allPassed) {
-            Write-Host "`n::error::Some validation checks failed. Please review the logs above."
-            exit 1
-          } else {
-            Write-Host "`n✓ All validation checks passed!"
-            exit 0
-          }

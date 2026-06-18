@@ -3,7 +3,6 @@
 
 #include "structures/graphics/opengl/opengl_wrapper_test_utils.hpp"
 
-
 #include "structures/graphics/spk_gpu_data_buffer_center.hpp"
 
 namespace
@@ -14,18 +13,12 @@ namespace
 
 		std::shared_ptr<spk::UniformBufferObject> makeUBO(unsigned int p_bindingPoint = 0)
 		{
-			return std::make_shared<spk::UniformBufferObject>(
-				p_bindingPoint,
-				spk::BufferObject::Usage::DynamicDraw,
-				16);
+			return std::make_shared<spk::UniformBufferObject>(p_bindingPoint, spk::BufferObject::Usage::DynamicDraw, 16);
 		}
 
 		std::shared_ptr<spk::ShaderStorageBufferObject> makeSSBO(unsigned int p_bindingPoint = 0)
 		{
-			return std::make_shared<spk::ShaderStorageBufferObject>(
-				p_bindingPoint,
-				spk::BufferObject::Usage::DynamicDraw,
-				16);
+			return std::make_shared<spk::ShaderStorageBufferObject>(p_bindingPoint, spk::BufferObject::Usage::DynamicDraw, 16);
 		}
 
 		void TearDown() override
@@ -39,9 +32,7 @@ namespace
 
 TEST_F(GPUDataBufferCenterFixture, AddUBOThrowsOnNullBuffer)
 {
-	EXPECT_THROW(
-		spk::GPUDataBufferCenter::addUBO("TestUBO", nullptr),
-		std::runtime_error);
+	EXPECT_THROW(spk::GPUDataBufferCenter::addUBO("TestUBO", nullptr), std::runtime_error);
 }
 
 TEST_F(GPUDataBufferCenterFixture, AddSSBOThrowsOnNullBuffer)
@@ -51,9 +42,7 @@ TEST_F(GPUDataBufferCenterFixture, AddSSBOThrowsOnNullBuffer)
 		GTEST_SKIP() << "Shader storage buffer objects are not supported by this OpenGL context";
 	}
 
-	EXPECT_THROW(
-		spk::GPUDataBufferCenter::addSSBO("TestSSBO", nullptr),
-		std::runtime_error);
+	EXPECT_THROW(spk::GPUDataBufferCenter::addSSBO("TestSSBO", nullptr), std::runtime_error);
 }
 
 TEST_F(GPUDataBufferCenterFixture, AddSSBOStoresAndGetSSBORetrieves)
@@ -73,9 +62,7 @@ TEST_F(GPUDataBufferCenterFixture, AddSSBOStoresAndGetSSBORetrieves)
 
 TEST_F(GPUDataBufferCenterFixture, GetSSBOThrowsWhenNameNotFound)
 {
-	EXPECT_THROW(
-		spk::GPUDataBufferCenter::getSSBO("TestSSBO"),
-		std::runtime_error);
+	EXPECT_THROW(spk::GPUDataBufferCenter::getSSBO("TestSSBO"), std::runtime_error);
 }
 
 TEST_F(GPUDataBufferCenterFixture, GetUBOThrowsOnTypeMismatch)
@@ -88,9 +75,7 @@ TEST_F(GPUDataBufferCenterFixture, GetUBOThrowsOnTypeMismatch)
 	auto ssbo = makeSSBO(6);
 	spk::GPUDataBufferCenter::addSSBO("TypeMismatch", ssbo);
 
-	EXPECT_THROW(
-		spk::GPUDataBufferCenter::getUBO("TypeMismatch"),
-		std::runtime_error);
+	EXPECT_THROW(spk::GPUDataBufferCenter::getUBO("TypeMismatch"), std::runtime_error);
 }
 
 TEST_F(GPUDataBufferCenterFixture, GetSSBOThrowsOnTypeMismatch)
@@ -98,9 +83,7 @@ TEST_F(GPUDataBufferCenterFixture, GetSSBOThrowsOnTypeMismatch)
 	auto ubo = makeUBO(7);
 	spk::GPUDataBufferCenter::addUBO("TypeMismatch", ubo);
 
-	EXPECT_THROW(
-		spk::GPUDataBufferCenter::getSSBO("TypeMismatch"),
-		std::runtime_error);
+	EXPECT_THROW(spk::GPUDataBufferCenter::getSSBO("TypeMismatch"), std::runtime_error);
 }
 
 TEST_F(GPUDataBufferCenterFixture, RemoveDeletesEntry)
@@ -118,4 +101,3 @@ TEST_F(GPUDataBufferCenterFixture, RemoveNonExistentNameDoesNotThrow)
 {
 	EXPECT_NO_THROW(spk::GPUDataBufferCenter::remove("TestUBO"));
 }
-

@@ -15,11 +15,7 @@ namespace spk
 		std::unique_ptr<spk::DrawTextureMeshRenderCommand> _textureCommand;
 
 	public:
-		ImageRenderCommand(
-			const spk::Texture& p_texture,
-			spk::Texture::Section p_section,
-			spk::Rect2D p_screenRect,
-			float p_depth = 0.0f);
+		ImageRenderCommand(const spk::Texture& p_texture, spk::Texture::Section p_section, spk::Rect2D p_screenRect, float p_depth = 0.0f);
 
 		void execute(spk::RenderContext& p_renderContext) override;
 	};

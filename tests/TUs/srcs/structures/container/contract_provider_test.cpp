@@ -28,10 +28,7 @@ TEST(ContractProviderTest, TriggerCallsSingleSubscribedCallback)
 	spk::ContractProvider<> provider;
 	int callCount = 0;
 
-	auto contract = provider.subscribe([&callCount]()
-	{
-		++callCount;
-	});
+	auto contract = provider.subscribe([&callCount]() { ++callCount; });
 
 	ASSERT_TRUE(contract.isValid());
 
@@ -46,20 +43,11 @@ TEST(ContractProviderTest, TriggerCallsAllSubscribedCallbacksInSubscriptionOrder
 	spk::ContractProvider<> provider;
 	std::vector<int> callOrder;
 
-	auto first = provider.subscribe([&callOrder]()
-	{
-		callOrder.push_back(1);
-	});
+	auto first = provider.subscribe([&callOrder]() { callOrder.push_back(1); });
 
-	auto second = provider.subscribe([&callOrder]()
-	{
-		callOrder.push_back(2);
-	});
+	auto second = provider.subscribe([&callOrder]() { callOrder.push_back(2); });
 
-	auto third = provider.subscribe([&callOrder]()
-	{
-		callOrder.push_back(3);
-	});
+	auto third = provider.subscribe([&callOrder]() { callOrder.push_back(3); });
 
 	ASSERT_TRUE(first.isValid());
 	ASSERT_TRUE(second.isValid());
@@ -76,10 +64,7 @@ TEST(ContractProviderTest, MultipleTriggersCallCallbacksMultipleTimes)
 	spk::ContractProvider<> provider;
 	int callCount = 0;
 
-	auto contract = provider.subscribe([&callCount]()
-	{
-		++callCount;
-	});
+	auto contract = provider.subscribe([&callCount]() { ++callCount; });
 
 	provider.trigger();
 	provider.trigger();
@@ -95,10 +80,7 @@ TEST(ContractProviderTest, ProviderBlockPreventsTriggerWhileTokenLives)
 	spk::ContractProvider<> provider;
 	int callCount = 0;
 
-	auto contract = provider.subscribe([&callCount]()
-	{
-		++callCount;
-	});
+	auto contract = provider.subscribe([&callCount]() { ++callCount; });
 
 	spk::ContractProvider<>::Blocker blocker = provider.block();
 
@@ -121,10 +103,7 @@ TEST(ContractProviderTest, NestedProviderBlocksRequireAllTokensReleased)
 	spk::ContractProvider<> provider;
 	int callCount = 0;
 
-	auto contract = provider.subscribe([&callCount]()
-	{
-		++callCount;
-	});
+	auto contract = provider.subscribe([&callCount]() { ++callCount; });
 
 	auto firstBlocker = provider.block();
 	auto secondBlocker = provider.block();
@@ -153,15 +132,9 @@ TEST(ContractProviderTest, ContractBlockPreventsOnlyThatCallback)
 	int firstCount = 0;
 	int secondCount = 0;
 
-	auto first = provider.subscribe([&firstCount]()
-	{
-		++firstCount;
-	});
+	auto first = provider.subscribe([&firstCount]() { ++firstCount; });
 
-	auto second = provider.subscribe([&secondCount]()
-	{
-		++secondCount;
-	});
+	auto second = provider.subscribe([&secondCount]() { ++secondCount; });
 
 	auto blocker = first.block();
 
@@ -194,10 +167,7 @@ TEST(ContractProviderTest, ContractResignInvalidatesContractAndRemovesCallbackOn
 	spk::ContractProvider<> provider;
 	int callCount = 0;
 
-	auto contract = provider.subscribe([&callCount]()
-	{
-		++callCount;
-	});
+	auto contract = provider.subscribe([&callCount]() { ++callCount; });
 
 	ASSERT_TRUE(contract.isValid());
 	ASSERT_EQ(provider.nbContracts(), 1u);
@@ -218,10 +188,7 @@ TEST(ContractProviderTest, ContractDestructorResignsAutomatically)
 	int callCount = 0;
 
 	{
-		auto contract = provider.subscribe([&callCount]()
-		{
-			++callCount;
-		});
+		auto contract = provider.subscribe([&callCount]() { ++callCount; });
 
 		ASSERT_TRUE(contract.isValid());
 		ASSERT_EQ(provider.nbContracts(), 1u);
@@ -238,10 +205,7 @@ TEST(ContractProviderTest, RelinquishDetachesContractWithoutRemovingCallback)
 	spk::ContractProvider<> provider;
 	int callCount = 0;
 
-	auto contract = provider.subscribe([&callCount]()
-	{
-		++callCount;
-	});
+	auto contract = provider.subscribe([&callCount]() { ++callCount; });
 
 	ASSERT_TRUE(contract.isValid());
 	ASSERT_EQ(provider.nbContracts(), 1u);
@@ -262,10 +226,7 @@ TEST(ContractProviderTest, MovedContractTransfersOwnershipOfSubscription)
 	spk::ContractProvider<> provider;
 	int callCount = 0;
 
-	auto source = provider.subscribe([&callCount]()
-	{
-		++callCount;
-	});
+	auto source = provider.subscribe([&callCount]() { ++callCount; });
 
 	ASSERT_TRUE(source.isValid());
 
@@ -291,15 +252,9 @@ TEST(ContractProviderTest, MoveAssignedContractTransfersOwnershipOfSubscription)
 	int firstCount = 0;
 	int secondCount = 0;
 
-	auto first = provider.subscribe([&firstCount]()
-	{
-		++firstCount;
-	});
+	auto first = provider.subscribe([&firstCount]() { ++firstCount; });
 
-	auto second = provider.subscribe([&secondCount]()
-	{
-		++secondCount;
-	});
+	auto second = provider.subscribe([&secondCount]() { ++secondCount; });
 
 	ASSERT_TRUE(first.isValid());
 	ASSERT_TRUE(second.isValid());
@@ -324,20 +279,11 @@ TEST(ContractProviderTest, InvalidateAllContractsPreventsFurtherCalls)
 	int secondCount = 0;
 	int thirdCount = 0;
 
-	auto first = provider.subscribe([&firstCount]()
-	{
-		++firstCount;
-	});
+	auto first = provider.subscribe([&firstCount]() { ++firstCount; });
 
-	auto second = provider.subscribe([&secondCount]()
-	{
-		++secondCount;
-	});
+	auto second = provider.subscribe([&secondCount]() { ++secondCount; });
 
-	auto third = provider.subscribe([&thirdCount]()
-	{
-		++thirdCount;
-	});
+	auto third = provider.subscribe([&thirdCount]() { ++thirdCount; });
 
 	ASSERT_EQ(provider.nbContracts(), 3u);
 
@@ -362,16 +308,14 @@ TEST(ContractProviderTest, CallbackCanResignItselfDuringTrigger)
 	int otherCount = 0;
 
 	spk::ContractProvider<>::Contract selfContract;
-	selfContract = provider.subscribe([&selfCount, &selfContract]()
-	{
-		++selfCount;
-		selfContract.resign();
-	});
+	selfContract = provider.subscribe(
+		[&selfCount, &selfContract]()
+		{
+			++selfCount;
+			selfContract.resign();
+		});
 
-	auto otherContract = provider.subscribe([&otherCount]()
-	{
-		++otherCount;
-	});
+	auto otherContract = provider.subscribe([&otherCount]() { ++otherCount; });
 
 	provider.trigger();
 
@@ -396,16 +340,14 @@ TEST(ContractProviderTest, CallbackCanResignAnotherContractBeforeItsTurn)
 
 	spk::ContractProvider<>::Contract secondContract;
 
-	auto firstContract = provider.subscribe([&firstCount, &secondContract]()
-	{
-		++firstCount;
-		secondContract.resign();
-	});
+	auto firstContract = provider.subscribe(
+		[&firstCount, &secondContract]()
+		{
+			++firstCount;
+			secondContract.resign();
+		});
 
-	secondContract = provider.subscribe([&secondCount]()
-	{
-		++secondCount;
-	});
+	secondContract = provider.subscribe([&secondCount]() { ++secondCount; });
 
 	provider.trigger();
 
@@ -424,16 +366,14 @@ TEST(ContractProviderTest, CallbackCanRelinquishAnotherContractWithoutRemovingIt
 
 	spk::ContractProvider<>::Contract secondContract;
 
-	auto firstContract = provider.subscribe([&firstCount, &secondContract]()
-	{
-		++firstCount;
-		secondContract.relinquish();
-	});
+	auto firstContract = provider.subscribe(
+		[&firstCount, &secondContract]()
+		{
+			++firstCount;
+			secondContract.relinquish();
+		});
 
-	secondContract = provider.subscribe([&secondCount]()
-	{
-		++secondCount;
-	});
+	secondContract = provider.subscribe([&secondCount]() { ++secondCount; });
 
 	provider.trigger();
 
@@ -457,22 +397,17 @@ TEST(ContractProviderTest, CallbackCanSubscribeNewCallbackDuringTriggerButNewOne
 
 	spk::ContractProvider<>::Contract lateContract;
 
-	auto first = provider.subscribe([&provider, &log, &lateContract]()
-	{
-		log.push_back("first");
-		if (lateContract.isValid() == false)
+	auto first = provider.subscribe(
+		[&provider, &log, &lateContract]()
 		{
-			lateContract = provider.subscribe([&log]()
+			log.push_back("first");
+			if (lateContract.isValid() == false)
 			{
-				log.push_back("late");
-			});
-		}
-	});
+				lateContract = provider.subscribe([&log]() { log.push_back("late"); });
+			}
+		});
 
-	auto second = provider.subscribe([&log]()
-	{
-		log.push_back("second");
-	});
+	auto second = provider.subscribe([&log]() { log.push_back("second"); });
 
 	EXPECT_TRUE(first.isValid());
 	EXPECT_TRUE(second.isValid());
@@ -500,16 +435,14 @@ TEST(ContractProviderTest, ReentrantTriggerIsIgnored)
 	int firstCount = 0;
 	int secondCount = 0;
 
-	auto first = provider.subscribe([&provider, &firstCount]()
-	{
-		++firstCount;
-		provider.trigger();
-	});
+	auto first = provider.subscribe(
+		[&provider, &firstCount]()
+		{
+			++firstCount;
+			provider.trigger();
+		});
 
-	auto second = provider.subscribe([&secondCount]()
-	{
-		++secondCount;
-	});
+	auto second = provider.subscribe([&secondCount]() { ++secondCount; });
 
 	provider.trigger();
 
@@ -525,17 +458,15 @@ TEST(ContractProviderTest, CallbackCanBlockProviderTemporarilyInsideTrigger)
 	int firstCount = 0;
 	int secondCount = 0;
 
-	auto first = provider.subscribe([&provider, &firstCount]()
-	{
-		++firstCount;
-		auto blocker = provider.block();
-		provider.trigger();
-	});
+	auto first = provider.subscribe(
+		[&provider, &firstCount]()
+		{
+			++firstCount;
+			auto blocker = provider.block();
+			provider.trigger();
+		});
 
-	auto second = provider.subscribe([&secondCount]()
-	{
-		++secondCount;
-	});
+	auto second = provider.subscribe([&secondCount]() { ++secondCount; });
 
 	provider.trigger();
 
@@ -553,21 +484,16 @@ TEST(ContractProviderTest, CallbackCanBlockAnotherContractBeforeItsTurn)
 
 	spk::ContractProvider<>::Contract secondContract;
 
-	auto firstContract = provider.subscribe([&firstCount, &secondContract]()
-	{
-		++firstCount;
-		auto blocker = secondContract.block();
-	});
+	auto firstContract = provider.subscribe(
+		[&firstCount, &secondContract]()
+		{
+			++firstCount;
+			auto blocker = secondContract.block();
+		});
 
-	secondContract = provider.subscribe([&secondCount]()
-	{
-		++secondCount;
-	});
+	secondContract = provider.subscribe([&secondCount]() { ++secondCount; });
 
-	auto thirdContract = provider.subscribe([&thirdCount]()
-	{
-		++thirdCount;
-	});
+	auto thirdContract = provider.subscribe([&thirdCount]() { ++thirdCount; });
 
 	provider.trigger();
 
@@ -586,15 +512,9 @@ TEST(ContractProviderTest, PersistentlyBlockedContractRemainsSkippedAcrossTrigge
 	int blockedCount = 0;
 	int freeCount = 0;
 
-	auto blockedContract = provider.subscribe([&blockedCount]()
-	{
-		++blockedCount;
-	});
+	auto blockedContract = provider.subscribe([&blockedCount]() { ++blockedCount; });
 
-	auto freeContract = provider.subscribe([&freeCount]()
-	{
-		++freeCount;
-	});
+	auto freeContract = provider.subscribe([&freeCount]() { ++freeCount; });
 
 	auto blocker = blockedContract.block();
 
@@ -644,10 +564,7 @@ TEST(ContractProviderTest, EmptyCallbackObjectIsCountedButSkippedOnTrigger)
 
 	spk::ContractProvider<>::Callback emptyCallback;
 	auto emptyContract = provider.subscribe(std::move(emptyCallback));
-	auto validContract = provider.subscribe([&validCount]()
-	{
-		++validCount;
-	});
+	auto validContract = provider.subscribe([&validCount]() { ++validCount; });
 
 	EXPECT_FALSE(emptyContract.isValid());
 	EXPECT_TRUE(validContract.isValid());
@@ -664,20 +581,11 @@ TEST(ContractProviderTest, ResignedEntriesAreCleanedAfterTrigger)
 	spk::ContractProvider<> provider;
 	int count = 0;
 
-	auto first = provider.subscribe([&count]()
-	{
-		++count;
-	});
+	auto first = provider.subscribe([&count]() { ++count; });
 
-	auto second = provider.subscribe([&count]()
-	{
-		++count;
-	});
+	auto second = provider.subscribe([&count]() { ++count; });
 
-	auto third = provider.subscribe([&count]()
-	{
-		++count;
-	});
+	auto third = provider.subscribe([&count]() { ++count; });
 
 	ASSERT_EQ(provider.nbContracts(), 3u);
 
@@ -765,10 +673,7 @@ TEST(ContractProviderTest, TriggerPassesSingleValueParameterToCallback)
 	IntProvider provider;
 	int receivedValue = 0;
 
-	auto contract = provider.subscribe([&receivedValue](int p_value)
-	{
-		receivedValue = p_value;
-	});
+	auto contract = provider.subscribe([&receivedValue](int p_value) { receivedValue = p_value; });
 
 	ASSERT_TRUE(contract.isValid());
 
@@ -783,15 +688,9 @@ TEST(ContractProviderTest, TriggerPassesSingleValueParameterToAllCallbacks)
 	int firstReceivedValue = 0;
 	int secondReceivedValue = 0;
 
-	auto first = provider.subscribe([&firstReceivedValue](int p_value)
-	{
-		firstReceivedValue = p_value;
-	});
+	auto first = provider.subscribe([&firstReceivedValue](int p_value) { firstReceivedValue = p_value; });
 
-	auto second = provider.subscribe([&secondReceivedValue](int p_value)
-	{
-		secondReceivedValue = p_value;
-	});
+	auto second = provider.subscribe([&secondReceivedValue](int p_value) { secondReceivedValue = p_value; });
 
 	ASSERT_TRUE(first.isValid());
 	ASSERT_TRUE(second.isValid());
@@ -808,11 +707,12 @@ TEST(ContractProviderTest, TriggerPassesMultipleParametersInCorrectOrder)
 	int receivedFirstValue = 0;
 	std::string receivedSecondValue;
 
-	auto contract = provider.subscribe([&receivedFirstValue, &receivedSecondValue](int p_firstValue, std::string p_secondValue)
-	{
-		receivedFirstValue = p_firstValue;
-		receivedSecondValue = std::move(p_secondValue);
-	});
+	auto contract = provider.subscribe(
+		[&receivedFirstValue, &receivedSecondValue](int p_firstValue, std::string p_secondValue)
+		{
+			receivedFirstValue = p_firstValue;
+			receivedSecondValue = std::move(p_secondValue);
+		});
 
 	ASSERT_TRUE(contract.isValid());
 
@@ -828,9 +728,7 @@ TEST(ContractProviderTest, TriggerCanPassDifferentValuesAcrossMultipleCalls)
 	std::vector<std::string> receivedValues;
 
 	auto contract = provider.subscribe([&receivedValues](int p_firstValue, std::string p_secondValue)
-	{
-		receivedValues.push_back(std::to_string(p_firstValue) + ":" + p_secondValue);
-	});
+									   { receivedValues.push_back(std::to_string(p_firstValue) + ":" + p_secondValue); });
 
 	ASSERT_TRUE(contract.isValid());
 
@@ -848,11 +746,12 @@ TEST(ContractProviderTest, TriggerPassesConstReferenceWithoutChangingReferencedO
 	const std::string* receivedAddress = nullptr;
 	std::string receivedValue;
 
-	auto contract = provider.subscribe([&receivedAddress, &receivedValue](const std::string& p_value)
-	{
-		receivedAddress = &p_value;
-		receivedValue = p_value;
-	});
+	auto contract = provider.subscribe(
+		[&receivedAddress, &receivedValue](const std::string& p_value)
+		{
+			receivedAddress = &p_value;
+			receivedValue = p_value;
+		});
 
 	ASSERT_TRUE(contract.isValid());
 
@@ -868,10 +767,7 @@ TEST(ContractProviderTest, TriggerPassesMutableReferenceAllowingCallbackToModify
 {
 	MutableReferenceProvider provider;
 
-	auto contract = provider.subscribe([](int& p_value)
-	{
-		p_value += 10;
-	});
+	auto contract = provider.subscribe([](int& p_value) { p_value += 10; });
 
 	ASSERT_TRUE(contract.isValid());
 
@@ -885,15 +781,9 @@ TEST(ContractProviderTest, TriggerPassesMutableReferenceThroughMultipleCallbacks
 {
 	MutableReferenceProvider provider;
 
-	auto first = provider.subscribe([](int& p_value)
-	{
-		p_value += 2;
-	});
+	auto first = provider.subscribe([](int& p_value) { p_value += 2; });
 
-	auto second = provider.subscribe([](int& p_value)
-	{
-		p_value *= 3;
-	});
+	auto second = provider.subscribe([](int& p_value) { p_value *= 3; });
 
 	ASSERT_TRUE(first.isValid());
 	ASSERT_TRUE(second.isValid());
@@ -910,12 +800,13 @@ TEST(ContractProviderTest, TriggerPassesMixedReferenceParametersCorrectly)
 	const int* receivedFirstAddress = nullptr;
 	std::string* receivedSecondAddress = nullptr;
 
-	auto contract = provider.subscribe([&receivedFirstAddress, &receivedSecondAddress](const int& p_firstValue, std::string& p_secondValue)
-	{
-		receivedFirstAddress = &p_firstValue;
-		receivedSecondAddress = &p_secondValue;
-		p_secondValue += "_modified";
-	});
+	auto contract = provider.subscribe(
+		[&receivedFirstAddress, &receivedSecondAddress](const int& p_firstValue, std::string& p_secondValue)
+		{
+			receivedFirstAddress = &p_firstValue;
+			receivedSecondAddress = &p_secondValue;
+			p_secondValue += "_modified";
+		});
 
 	ASSERT_TRUE(contract.isValid());
 
@@ -934,10 +825,7 @@ TEST(ContractProviderTest, BlockedTriggerDoesNotDeliverParameters)
 	IntProvider provider;
 	int receivedValue = 0;
 
-	auto contract = provider.subscribe([&receivedValue](int p_value)
-	{
-		receivedValue = p_value;
-	});
+	auto contract = provider.subscribe([&receivedValue](int p_value) { receivedValue = p_value; });
 
 	auto blocker = provider.block();
 
@@ -958,15 +846,9 @@ TEST(ContractProviderTest, BlockedContractDoesNotReceiveTriggeredParameters)
 	int blockedReceivedValue = 0;
 	int freeReceivedValue = 0;
 
-	auto blockedContract = provider.subscribe([&blockedReceivedValue](int p_value)
-	{
-		blockedReceivedValue = p_value;
-	});
+	auto blockedContract = provider.subscribe([&blockedReceivedValue](int p_value) { blockedReceivedValue = p_value; });
 
-	auto freeContract = provider.subscribe([&freeReceivedValue](int p_value)
-	{
-		freeReceivedValue = p_value;
-	});
+	auto freeContract = provider.subscribe([&freeReceivedValue](int p_value) { freeReceivedValue = p_value; });
 
 	auto blocker = blockedContract.block();
 

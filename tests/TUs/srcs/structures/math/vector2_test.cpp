@@ -499,11 +499,7 @@ TEST(Vector2MinMaxTest, MaxOfTwoVectorsWorks)
 
 TEST(Vector2MinMaxTest, VariadicMinWorks)
 {
-	const spk::Vector2Int result = spk::Vector2Int::min(
-		spk::Vector2Int(5, 9),
-		spk::Vector2Int(3, 4),
-		spk::Vector2Int(7, 1),
-		spk::Vector2Int(6, 8));
+	const spk::Vector2Int result = spk::Vector2Int::min(spk::Vector2Int(5, 9), spk::Vector2Int(3, 4), spk::Vector2Int(7, 1), spk::Vector2Int(6, 8));
 
 	EXPECT_EQ(result.x, 3);
 	EXPECT_EQ(result.y, 1);
@@ -511,11 +507,7 @@ TEST(Vector2MinMaxTest, VariadicMinWorks)
 
 TEST(Vector2MinMaxTest, VariadicMaxWorks)
 {
-	const spk::Vector2Int result = spk::Vector2Int::max(
-		spk::Vector2Int(5, 9),
-		spk::Vector2Int(3, 4),
-		spk::Vector2Int(7, 1),
-		spk::Vector2Int(6, 8));
+	const spk::Vector2Int result = spk::Vector2Int::max(spk::Vector2Int(5, 9), spk::Vector2Int(3, 4), spk::Vector2Int(7, 1), spk::Vector2Int(6, 8));
 
 	EXPECT_EQ(result.x, 7);
 	EXPECT_EQ(result.y, 9);
@@ -523,12 +515,7 @@ TEST(Vector2MinMaxTest, VariadicMaxWorks)
 
 TEST(Vector2MinMaxTest, InitializerListMinWorks)
 {
-	const spk::Vector2Int result = spk::Vector2Int::min({
-		spk::Vector2Int(5, 9),
-		spk::Vector2Int(3, 4),
-		spk::Vector2Int(7, 1),
-		spk::Vector2Int(6, 8)
-	});
+	const spk::Vector2Int result = spk::Vector2Int::min({spk::Vector2Int(5, 9), spk::Vector2Int(3, 4), spk::Vector2Int(7, 1), spk::Vector2Int(6, 8)});
 
 	EXPECT_EQ(result.x, 3);
 	EXPECT_EQ(result.y, 1);
@@ -541,12 +528,7 @@ TEST(Vector2MinMaxTest, InitializerListMinThrowsWhenEmpty)
 
 TEST(Vector2MinMaxTest, InitializerListMaxWorks)
 {
-	const spk::Vector2Int result = spk::Vector2Int::max({
-		spk::Vector2Int(5, 9),
-		spk::Vector2Int(3, 4),
-		spk::Vector2Int(7, 1),
-		spk::Vector2Int(6, 8)
-	});
+	const spk::Vector2Int result = spk::Vector2Int::max({spk::Vector2Int(5, 9), spk::Vector2Int(3, 4), spk::Vector2Int(7, 1), spk::Vector2Int(6, 8)});
 
 	EXPECT_EQ(result.x, 7);
 	EXPECT_EQ(result.y, 9);
@@ -560,10 +542,7 @@ TEST(Vector2MinMaxTest, InitializerListMaxThrowsWhenEmpty)
 TEST(Vector2ClampTest, ClampWorksWithOrderedBounds)
 {
 	const spk::Vector2Int value(5, -2);
-	const spk::Vector2Int result = spk::Vector2Int::clamp(
-		value,
-		spk::Vector2Int(-1, 0),
-		spk::Vector2Int(2, 1));
+	const spk::Vector2Int result = spk::Vector2Int::clamp(value, spk::Vector2Int(-1, 0), spk::Vector2Int(2, 1));
 
 	EXPECT_EQ(result.x, 2);
 	EXPECT_EQ(result.y, 0);
@@ -572,10 +551,7 @@ TEST(Vector2ClampTest, ClampWorksWithOrderedBounds)
 TEST(Vector2ClampTest, ClampWorksWithUnorderedBounds)
 {
 	const spk::Vector2Int value(5, -2);
-	const spk::Vector2Int result = spk::Vector2Int::clamp(
-		value,
-		spk::Vector2Int(2, 1),
-		spk::Vector2Int(-1, 0));
+	const spk::Vector2Int result = spk::Vector2Int::clamp(value, spk::Vector2Int(2, 1), spk::Vector2Int(-1, 0));
 
 	EXPECT_EQ(result.x, 2);
 	EXPECT_EQ(result.y, 0);
@@ -584,9 +560,7 @@ TEST(Vector2ClampTest, ClampWorksWithUnorderedBounds)
 TEST(Vector2ClampTest, ClampedCallsStaticClampBehavior)
 {
 	const spk::Vector2Int value(5, -2);
-	const spk::Vector2Int result = value.clamped(
-		spk::Vector2Int(-1, 0),
-		spk::Vector2Int(2, 1));
+	const spk::Vector2Int result = value.clamped(spk::Vector2Int(-1, 0), spk::Vector2Int(2, 1));
 
 	EXPECT_EQ(result.x, 2);
 	EXPECT_EQ(result.y, 0);
@@ -594,26 +568,17 @@ TEST(Vector2ClampTest, ClampedCallsStaticClampBehavior)
 
 TEST(Vector2BetweenTest, IsBetweenReturnsTrueInsideOrderedBounds)
 {
-	EXPECT_TRUE(spk::Vector2Int::isBetween(
-		spk::Vector2Int(5, 5),
-		spk::Vector2Int(0, 0),
-		spk::Vector2Int(10, 10)));
+	EXPECT_TRUE(spk::Vector2Int::isBetween(spk::Vector2Int(5, 5), spk::Vector2Int(0, 0), spk::Vector2Int(10, 10)));
 }
 
 TEST(Vector2BetweenTest, IsBetweenReturnsFalseOutsideOrderedBounds)
 {
-	EXPECT_FALSE(spk::Vector2Int::isBetween(
-		spk::Vector2Int(11, 5),
-		spk::Vector2Int(0, 0),
-		spk::Vector2Int(10, 10)));
+	EXPECT_FALSE(spk::Vector2Int::isBetween(spk::Vector2Int(11, 5), spk::Vector2Int(0, 0), spk::Vector2Int(10, 10)));
 }
 
 TEST(Vector2BetweenTest, IsBetweenHandlesUnorderedBounds)
 {
-	EXPECT_TRUE(spk::Vector2Int::isBetween(
-		spk::Vector2Int(5, 5),
-		spk::Vector2Int(10, 10),
-		spk::Vector2Int(0, 0)));
+	EXPECT_TRUE(spk::Vector2Int::isBetween(spk::Vector2Int(5, 5), spk::Vector2Int(10, 10), spk::Vector2Int(0, 0)));
 }
 
 TEST(Vector2ConversionTest, ExplicitConversionOperatorWorks)

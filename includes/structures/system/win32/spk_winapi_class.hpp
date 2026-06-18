@@ -1,6 +1,5 @@
 #pragma once
 
-
 #include <string>
 
 #include <Windows.h>
@@ -32,4 +31,3 @@ namespace spk
 		[[nodiscard]] const std::string& name() const;
 	};
 }
-

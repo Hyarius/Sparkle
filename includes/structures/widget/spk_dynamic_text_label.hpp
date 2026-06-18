@@ -29,10 +29,7 @@ namespace spk
 
 	public:
 		explicit DynamicTextLabel(const std::string& p_name, spk::Widget* p_parent = nullptr);
-		DynamicTextLabel(
-			const std::string& p_name,
-			const TextProducer& p_textProducer,
-			spk::Widget* p_parent = nullptr);
+		DynamicTextLabel(const std::string& p_name, const TextProducer& p_textProducer, spk::Widget* p_parent = nullptr);
 
 		void setTextProducer(const TextProducer& p_textProducer);
 		void setRefreshDuration(const spk::Duration& p_refreshDuration);

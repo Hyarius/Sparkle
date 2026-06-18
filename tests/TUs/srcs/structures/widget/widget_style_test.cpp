@@ -17,17 +17,12 @@ namespace
 	{
 		const auto& bytes = SPARKLE_GET_RESOURCE(p_resourceName);
 		return std::make_shared<spk::SpriteSheet>(
-			spk::SpriteSheet::fromRawData(
-				std::vector<std::uint8_t>(bytes.begin(), bytes.end()),
-				spk::Vector2UInt{3, 3}));
+			spk::SpriteSheet::fromRawData(std::vector<std::uint8_t>(bytes.begin(), bytes.end()), spk::Vector2UInt{3, 3}));
 	}
 
 	[[nodiscard]] bool sameColor(const spk::Color& p_left, const spk::Color& p_right)
 	{
-		return p_left.r == p_right.r &&
-			p_left.g == p_right.g &&
-			p_left.b == p_right.b &&
-			p_left.a == p_right.a;
+		return p_left.r == p_right.r && p_left.g == p_right.g && p_left.b == p_right.b && p_left.a == p_right.a;
 	}
 }
 
@@ -44,8 +39,7 @@ TEST(WidgetStyleTest, SettersUpdateValuesAndNotifySubscribers)
 		});
 
 	const auto spriteSheet = loadNineSlice("resources/textures/default_nine_slice_darker.png");
-	const auto font = std::make_shared<spk::Font>(
-		spk::Font::fromRawData(SPARKLE_GET_RESOURCE("resources/fonts/arial.ttf")));
+	const auto font = std::make_shared<spk::Font>(spk::Font::fromRawData(SPARKLE_GET_RESOURCE("resources/fonts/arial.ttf")));
 
 	style.setNineSliceSpriteSheet(spriteSheet);
 	style.setNineSliceCornerSize({5, 6});

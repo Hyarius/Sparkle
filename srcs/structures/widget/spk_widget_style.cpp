@@ -38,10 +38,7 @@ namespace
 
 	[[nodiscard]] bool sameColor(const spk::Color& p_left, const spk::Color& p_right)
 	{
-		return p_left.r == p_right.r &&
-			p_left.g == p_right.g &&
-			p_left.b == p_right.b &&
-			p_left.a == p_right.a;
+		return p_left.r == p_right.r && p_left.g == p_right.g && p_left.b == p_right.b && p_left.a == p_right.a;
 	}
 }
 
@@ -109,16 +106,10 @@ namespace spk
 	{
 		WidgetStyle result;
 		result._nineSliceSpriteSheet = std::make_shared<spk::SpriteSheet>(
-			spk::SpriteSheet::fromRawData(
-				SPARKLE_GET_RESOURCE("resources/textures/default_nine_slice.png"),
-				spk::Vector2UInt{3, 3}));
-		result._iconSpriteSheet = std::make_shared<spk::SpriteSheet>(
-			spk::SpriteSheet::fromRawData(
-				SPARKLE_GET_RESOURCE("resources/textures/default_iconset.png"),
-				spk::Vector2UInt{10, 10},
-				spk::SpriteSheet::Filtering::Linear));
-		result._font = std::make_shared<spk::Font>(
-			spk::Font::fromRawData(SPARKLE_GET_RESOURCE("resources/fonts/arial.ttf")));
+			spk::SpriteSheet::fromRawData(SPARKLE_GET_RESOURCE("resources/textures/default_nine_slice.png"), spk::Vector2UInt{3, 3}));
+		result._iconSpriteSheet = std::make_shared<spk::SpriteSheet>(spk::SpriteSheet::fromRawData(
+			SPARKLE_GET_RESOURCE("resources/textures/default_iconset.png"), spk::Vector2UInt{10, 10}, spk::SpriteSheet::Filtering::Linear));
+		result._font = std::make_shared<spk::Font>(spk::Font::fromRawData(SPARKLE_GET_RESOURCE("resources/fonts/arial.ttf")));
 
 		return result;
 	}
@@ -128,10 +119,8 @@ namespace spk
 		[[nodiscard]] spk::WidgetStyle makeNineSliceVariant(const char* p_texturePath)
 		{
 			spk::WidgetStyle result = spk::WidgetStyle::makeDefault();
-			auto spriteSheet = std::make_shared<spk::SpriteSheet>(
-				spk::SpriteSheet::fromRawData(
-					SPARKLE_GET_RESOURCE(p_texturePath),
-					spk::Vector2UInt{3, 3}));
+			auto spriteSheet =
+				std::make_shared<spk::SpriteSheet>(spk::SpriteSheet::fromRawData(SPARKLE_GET_RESOURCE(p_texturePath), spk::Vector2UInt{3, 3}));
 			result.setNineSliceSpriteSheet(std::move(spriteSheet));
 			return result;
 		}
@@ -265,15 +254,42 @@ namespace spk
 		notifyEdition();
 	}
 
-	const std::shared_ptr<spk::SpriteSheet>& WidgetStyle::nineSliceSpriteSheet() const { return _nineSliceSpriteSheet; }
-	const spk::Vector2Int& WidgetStyle::cornerSize() const { return _nineSliceCornerSize; }
-	const spk::Vector2Int& WidgetStyle::nineSliceCornerSize() const { return _nineSliceCornerSize; }
-	const std::shared_ptr<spk::SpriteSheet>& WidgetStyle::iconSpriteSheet() const { return _iconSpriteSheet; }
-	const std::shared_ptr<spk::Font>& WidgetStyle::font() const { return _font; }
-	const spk::Font::Size& WidgetStyle::textSize() const { return _textSize; }
-	const spk::Color& WidgetStyle::glyphColor() const { return _glyphColor; }
-	const spk::Color& WidgetStyle::outlineColor() const { return _outlineColor; }
-	const spk::Vector2Int& WidgetStyle::textPadding() const { return _textPadding; }
+	const std::shared_ptr<spk::SpriteSheet>& WidgetStyle::nineSliceSpriteSheet() const
+	{
+		return _nineSliceSpriteSheet;
+	}
+	const spk::Vector2Int& WidgetStyle::cornerSize() const
+	{
+		return _nineSliceCornerSize;
+	}
+	const spk::Vector2Int& WidgetStyle::nineSliceCornerSize() const
+	{
+		return _nineSliceCornerSize;
+	}
+	const std::shared_ptr<spk::SpriteSheet>& WidgetStyle::iconSpriteSheet() const
+	{
+		return _iconSpriteSheet;
+	}
+	const std::shared_ptr<spk::Font>& WidgetStyle::font() const
+	{
+		return _font;
+	}
+	const spk::Font::Size& WidgetStyle::textSize() const
+	{
+		return _textSize;
+	}
+	const spk::Color& WidgetStyle::glyphColor() const
+	{
+		return _glyphColor;
+	}
+	const spk::Color& WidgetStyle::outlineColor() const
+	{
+		return _outlineColor;
+	}
+	const spk::Vector2Int& WidgetStyle::textPadding() const
+	{
+		return _textPadding;
+	}
 
 	WidgetStyle::Collection::Collection()
 	{

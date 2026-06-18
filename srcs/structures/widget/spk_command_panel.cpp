@@ -13,23 +13,25 @@ namespace spk
 		_layout.setElementPadding({10, 10});
 		_composeLayout();
 
-		sizeHint().configureMinimalGenerator([this]() {
-			spk::Vector2UInt result = {0, 0};
-
-			if (_buttons.empty() == false)
+		sizeHint().configureMinimalGenerator(
+			[this]()
 			{
-				for (const auto& [buttonName, button] : _buttons)
+				spk::Vector2UInt result = {0, 0};
+
+				if (_buttons.empty() == false)
 				{
-					const spk::Vector2UInt buttonSize = button->minimalSize();
-					result.x += buttonSize.x;
-					result.y = std::max(result.y, buttonSize.y);
+					for (const auto& [buttonName, button] : _buttons)
+					{
+						const spk::Vector2UInt buttonSize = button->minimalSize();
+						result.x += buttonSize.x;
+						result.y = std::max(result.y, buttonSize.y);
+					}
+
+					result.x += _layout.elementPadding().x * static_cast<unsigned int>(_buttons.size() - 1);
 				}
 
-				result.x += _layout.elementPadding().x * static_cast<unsigned int>(_buttons.size() - 1);
-			}
-
-			return result;
-		});
+				return result;
+			});
 
 		activate();
 	}
@@ -99,9 +101,7 @@ namespace spk
 			return;
 		}
 
-		_orderedButtons.erase(
-			std::remove(_orderedButtons.begin(), _orderedButtons.end(), it->second.get()),
-			_orderedButtons.end());
+		_orderedButtons.erase(std::remove(_orderedButtons.begin(), _orderedButtons.end(), it->second.get()), _orderedButtons.end());
 		_buttons.erase(it);
 
 		_composeLayout();

@@ -55,7 +55,7 @@ namespace spk
 		spk::BinaryField _field;
 
 		std::uint64_t _structureVersion = 1; // target / usage
-		std::uint64_t _contentVersion = 1;   // bytes / size
+		std::uint64_t _contentVersion = 1;	 // bytes / size
 
 		mutable spk::CachedOpenGLObjectCollection<spk::OpenGL::Buffer> _gpu;
 
@@ -64,10 +64,7 @@ namespace spk
 		void _synchronize() const override;
 
 	public:
-		explicit BufferObject(
-			Target p_target = Target::Array,
-			Usage p_usage = Usage::DynamicDraw,
-			std::size_t p_size = 0);
+		explicit BufferObject(Target p_target = Target::Array, Usage p_usage = Usage::DynamicDraw, std::size_t p_size = 0);
 		~BufferObject() = default;
 
 		BufferObject(const BufferObject&) = delete;

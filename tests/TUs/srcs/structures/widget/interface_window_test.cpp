@@ -115,11 +115,10 @@ TEST(InterfaceWindowTest, ResetContentPaddingRestoresDefault)
 
 	const spk::Vector2Int cornerSize = window.backgroundFrame().cornerSize();
 
-	EXPECT_EQ(window.contentPadding(), (spk::IInterfaceWindow::ContentPadding{
-		static_cast<uint32_t>(cornerSize.x + 2),
-		0,
-		static_cast<uint32_t>(cornerSize.y + 2),
-		static_cast<uint32_t>(cornerSize.y + 2)}));
+	EXPECT_EQ(
+		window.contentPadding(),
+		(spk::IInterfaceWindow::ContentPadding{
+			static_cast<uint32_t>(cornerSize.x + 2), 0, static_cast<uint32_t>(cornerSize.y + 2), static_cast<uint32_t>(cornerSize.y + 2)}));
 	EXPECT_EQ(window.contentObject().geometry().anchor, spk::Vector2Int(cornerSize.x + 2, static_cast<int>(window.menuHeight())));
 }
 
@@ -198,15 +197,11 @@ TEST(InterfaceWindowTest, SubscribeToCloseTriggersOnButtonClick)
 	window.setGeometry(spk::Rect2D(0, 0, 300, 200));
 
 	int closeCount = 0;
-	auto contract = window.subscribeTo(spk::IInterfaceWindow::Event::Close, [&closeCount]()
-	{
-		++closeCount;
-	});
+	auto contract = window.subscribeTo(spk::IInterfaceWindow::Event::Close, [&closeCount]() { ++closeCount; });
 
 	const spk::Rect2D closeRect = window.menuBar().closeButton().viewport().geometry();
 	const spk::Vector2Int clickPosition = {
-		closeRect.x() + static_cast<int>(closeRect.width() / 2),
-		closeRect.y() + static_cast<int>(closeRect.height() / 2)};
+		closeRect.x() + static_cast<int>(closeRect.width() / 2), closeRect.y() + static_cast<int>(closeRect.height() / 2)};
 
 	spk::MouseModule mouseModule;
 	mouseModule.bind(&window);
@@ -243,8 +238,7 @@ TEST(InterfaceWindowTest, SubscribeToMinimizeTriggersOnButtonClick)
 	auto contract = window.subscribeTo(spk::IInterfaceWindow::Event::Minimize, [&count]() { ++count; });
 
 	const spk::Rect2D btnRect = window.menuBar().minimizeButton().viewport().geometry();
-	const spk::Vector2Int pos = {btnRect.x() + static_cast<int>(btnRect.width() / 2),
-	                              btnRect.y() + static_cast<int>(btnRect.height() / 2)};
+	const spk::Vector2Int pos = {btnRect.x() + static_cast<int>(btnRect.width() / 2), btnRect.y() + static_cast<int>(btnRect.height() / 2)};
 
 	spk::MouseModule mouseModule;
 	mouseModule.bind(&window);
@@ -269,8 +263,7 @@ TEST(InterfaceWindowTest, SubscribeToMaximizeTriggersOnButtonClick)
 	auto contract = window.subscribeTo(spk::IInterfaceWindow::Event::Maximize, [&count]() { ++count; });
 
 	const spk::Rect2D btnRect = window.menuBar().maximizeButton().viewport().geometry();
-	const spk::Vector2Int pos = {btnRect.x() + static_cast<int>(btnRect.width() / 2),
-	                              btnRect.y() + static_cast<int>(btnRect.height() / 2)};
+	const spk::Vector2Int pos = {btnRect.x() + static_cast<int>(btnRect.width() / 2), btnRect.y() + static_cast<int>(btnRect.height() / 2)};
 
 	spk::MouseModule mouseModule;
 	mouseModule.bind(&window);
@@ -393,8 +386,7 @@ TEST(InterfaceWindowVisualTest, RendersDefault)
 	spk::InterfaceWindow<spk::Panel> window("Window");
 	window.setTitle("My Window");
 
-	const sparkle_test::ImageComparisonResult result =
-		spk::test::compareSnapshot(window, "InterfaceWindowVisual", "default", captureRect);
+	const sparkle_test::ImageComparisonResult result = spk::test::compareSnapshot(window, "InterfaceWindowVisual", "default", captureRect);
 
 	EXPECT_TRUE(result.matches);
 }
@@ -408,8 +400,7 @@ TEST(InterfaceWindowVisualTest, RendersMinimized)
 	window.setGeometry(captureRect.atOrigin());
 	window.minimize();
 
-	const sparkle_test::ImageComparisonResult result =
-		spk::test::compareSnapshot(window, "InterfaceWindowVisual", "minimized", captureRect);
+	const sparkle_test::ImageComparisonResult result = spk::test::compareSnapshot(window, "InterfaceWindowVisual", "minimized", captureRect);
 
 	EXPECT_TRUE(result.matches);
 }
@@ -422,8 +413,7 @@ TEST(InterfaceWindowVisualTest, RendersWithoutMinimizeButton)
 	window.setTitle("No Minimize");
 	window.deactivateMenuButton(spk::IInterfaceWindow::MenuBar::Button::Minimize);
 
-	const sparkle_test::ImageComparisonResult result =
-		spk::test::compareSnapshot(window, "InterfaceWindowVisual", "no_minimize_button", captureRect);
+	const sparkle_test::ImageComparisonResult result = spk::test::compareSnapshot(window, "InterfaceWindowVisual", "no_minimize_button", captureRect);
 
 	EXPECT_TRUE(result.matches);
 }

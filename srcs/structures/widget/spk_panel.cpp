@@ -11,18 +11,13 @@ namespace
 	{
 		return {
 			static_cast<int>(p_spriteSheet.size().x / p_spriteSheet.nbSprite().x),
-			static_cast<int>(p_spriteSheet.size().y / p_spriteSheet.nbSprite().y)
-		};
+			static_cast<int>(p_spriteSheet.size().y / p_spriteSheet.nbSprite().y)};
 	}
 
-	[[nodiscard]] spk::Vector2Int clampedCornerSize(
-		const spk::Vector2Int& p_cornerSize,
-		const spk::Rect2D& p_geometry)
+	[[nodiscard]] spk::Vector2Int clampedCornerSize(const spk::Vector2Int& p_cornerSize, const spk::Rect2D& p_geometry)
 	{
 		return {
-			std::min(p_cornerSize.x, static_cast<int>(p_geometry.width() / 2)),
-			std::min(p_cornerSize.y, static_cast<int>(p_geometry.height() / 2))
-		};
+			std::min(p_cornerSize.x, static_cast<int>(p_geometry.width() / 2)), std::min(p_cornerSize.y, static_cast<int>(p_geometry.height() / 2))};
 	}
 }
 
@@ -35,20 +30,14 @@ namespace spk
 		activate();
 	}
 
-	Panel::Panel(
-		const std::string& p_name,
-		const spk::WidgetStyle& p_style,
-		spk::Widget* p_parent) :
+	Panel::Panel(const std::string& p_name, const spk::WidgetStyle& p_style, spk::Widget* p_parent) :
 		spk::Widget(p_name, p_parent)
 	{
 		useStyle(p_style);
 		activate();
 	}
 
-	Panel::Panel(
-		const std::string& p_name,
-		std::shared_ptr<spk::SpriteSheet> p_spriteSheet,
-		spk::Widget* p_parent) :
+	Panel::Panel(const std::string& p_name, std::shared_ptr<spk::SpriteSheet> p_spriteSheet, spk::Widget* p_parent) :
 		spk::Widget(p_name, p_parent)
 	{
 		setSpriteSheet(std::move(p_spriteSheet));
@@ -57,10 +46,7 @@ namespace spk
 
 	void Panel::_bindStyle(const spk::WidgetStyle& p_style)
 	{
-		_styleEditionContract = p_style.subscribeToEdition([this](const spk::WidgetStyle& p_editedStyle)
-		{
-			applyStyle(p_editedStyle);
-		});
+		_styleEditionContract = p_style.subscribeToEdition([this](const spk::WidgetStyle& p_editedStyle) { applyStyle(p_editedStyle); });
 	}
 
 	void Panel::applyStyle(const spk::WidgetStyle& p_style)
@@ -87,11 +73,7 @@ namespace spk
 
 		if (_spriteSheet != nullptr && geometry().empty() == false)
 		{
-			builder.emplace<spk::NineSliceRenderCommand>(
-				*_spriteSheet,
-				geometry(),
-				clampedCornerSize(_cornerSize, geometry()),
-				_depth);
+			builder.emplace<spk::NineSliceRenderCommand>(*_spriteSheet, geometry(), clampedCornerSize(_cornerSize, geometry()), _depth);
 		}
 
 		return builder.build();

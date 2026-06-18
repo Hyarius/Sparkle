@@ -4,11 +4,7 @@
 
 namespace spk
 {
-	SamplerObject::SamplerObject(
-		const std::string& p_name,
-		Type p_type,
-		BindingPoint p_bindingPoint,
-		const spk::Program& p_program) :
+	SamplerObject::SamplerObject(const std::string& p_name, Type p_type, BindingPoint p_bindingPoint, const spk::Program& p_program) :
 		_designator(p_name),
 		_bindingPoint(p_bindingPoint),
 		_type(p_type),

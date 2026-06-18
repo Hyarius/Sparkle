@@ -33,11 +33,7 @@ namespace spk
 
 	public:
 		explicit CheckableIconButton(const std::string& p_name, spk::Widget* p_parent = nullptr);
-		CheckableIconButton(
-			const std::string& p_name,
-			size_t p_uncheckedIconSpriteID,
-			size_t p_checkedIconSpriteID,
-			spk::Widget* p_parent = nullptr);
+		CheckableIconButton(const std::string& p_name, size_t p_uncheckedIconSpriteID, size_t p_checkedIconSpriteID, spk::Widget* p_parent = nullptr);
 
 		void applyStyle(const spk::WidgetStyle& p_style) override;
 		void applyStyle(const spk::WidgetStyle& p_uncheckedStyle, const spk::WidgetStyle& p_checkedStyle);

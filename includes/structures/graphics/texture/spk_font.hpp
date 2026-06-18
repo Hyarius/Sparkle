@@ -16,6 +16,23 @@
 
 namespace spk
 {
+	/**
+	 * @brief TrueType font loader that produces glyph metrics and texture atlases for text rendering.
+	 *
+	 * Load font data once, request glyphs through an atlas, then use labels or text render commands to display strings. This class is useful
+	 * when teaching how text rendering turns Unicode codepoints into positioned quads and texture coordinates.
+	 *
+	 * @code{.cpp}
+	 * spk::Font font("resources/fonts/arial.ttf");
+	 * auto& atlas = font.atlas({24, 2});
+	 * const auto& glyph = atlas.glyph(U'A');
+	 * (void)glyph.step; // Advance for placing the next character.
+	 * @endcode
+	 *
+	 * @see spk::Texture
+	 * @see spk::TextLabel
+	 * @see spk::DrawFontRenderCommand
+	 */
 	class Font
 	{
 	public:
@@ -112,10 +129,7 @@ namespace spk
 			void _rescaleGlyphs(const spk::Vector2& p_scaleRatio);
 			void _resizeData(const spk::Vector2UInt& p_size);
 			spk::Vector2Int _computeGlyphPosition(const spk::Vector2UInt& p_glyphSize);
-			void _applyGlyphPixel(
-				const uint8_t* p_pixelsToApply,
-				const spk::Vector2Int& p_glyphPosition,
-				const spk::Vector2UInt& p_glyphSize);
+			void _applyGlyphPixel(const uint8_t* p_pixelsToApply, const spk::Vector2Int& p_glyphPosition, const spk::Vector2UInt& p_glyphSize);
 			void _loadGlyph(Codepoint p_codepoint);
 			void _uploadTexture();
 
@@ -177,14 +191,8 @@ namespace spk
 		spk::Vector2Int computeStringBaselineOffset(const Text& p_string, const Size& p_size);
 		spk::Vector2Int computeStringBaselineOffset(std::string_view p_utf8String, const Size& p_size);
 
-		Size computeOptimalTextSize(
-			const Text& p_string,
-			float p_outlineSizeRatio,
-			const spk::Vector2UInt& p_textArea);
-		Size computeOptimalTextSize(
-			std::string_view p_utf8String,
-			float p_outlineSizeRatio,
-			const spk::Vector2UInt& p_textArea);
+		Size computeOptimalTextSize(const Text& p_string, float p_outlineSizeRatio, const spk::Vector2UInt& p_textArea);
+		Size computeOptimalTextSize(std::string_view p_utf8String, float p_outlineSizeRatio, const spk::Vector2UInt& p_textArea);
 
 		Atlas& atlas(const Size& p_size);
 	};

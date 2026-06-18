@@ -7,163 +7,89 @@
 namespace spk
 {
 	template <typename TType>
-	concept hashable =
-		requires(const TType& p_value)
-		{
-			{ std::hash<TType>{}(p_value) } -> std::convertible_to<std::size_t>;
-		};
+	concept hashable = requires(const TType& p_value) {
+		{ std::hash<TType>{}(p_value) } -> std::convertible_to<std::size_t>;
+	};
 
 	template <typename TType>
-	concept arithmetic_value =
-		std::is_arithmetic_v<TType>;
+	concept arithmetic_value = std::is_arithmetic_v<TType>;
 
 	template <typename TLeft, typename TRight = TLeft>
-	concept equality_comparable_with =
-		requires(const TLeft& p_left, const TRight& p_right)
-		{
-			{ p_left == p_right } -> std::convertible_to<bool>;
-			{ p_left != p_right } -> std::convertible_to<bool>;
-		};
+	concept equality_comparable_with = requires(const TLeft& p_left, const TRight& p_right) {
+		{ p_left == p_right } -> std::convertible_to<bool>;
+		{ p_left != p_right } -> std::convertible_to<bool>;
+	};
 
 	template <typename TType>
-	concept comparison_compatible =
-		equality_comparable_with<TType, TType>;
+	concept comparison_compatible = equality_comparable_with<TType, TType>;
 
 	template <typename TLeft, typename TRight = TLeft>
-	concept addable_with =
-		requires(const TLeft& p_left, const TRight& p_right)
-		{
-			p_left + p_right;
-		};
+	concept addable_with = requires(const TLeft& p_left, const TRight& p_right) { p_left + p_right; };
 
 	template <typename TLeft, typename TRight = TLeft>
-	concept add_assignable_with =
-		requires(TLeft& p_left, const TRight& p_right)
-		{
-			p_left += p_right;
-		};
+	concept add_assignable_with = requires(TLeft& p_left, const TRight& p_right) { p_left += p_right; };
 
 	template <typename TLeft, typename TRight = TLeft>
-	concept subtractable_with =
-		requires(const TLeft& p_left, const TRight& p_right)
-		{
-			p_left - p_right;
-		};
+	concept subtractable_with = requires(const TLeft& p_left, const TRight& p_right) { p_left - p_right; };
 
 	template <typename TLeft, typename TRight = TLeft>
-	concept subtract_assignable_with =
-		requires(TLeft& p_left, const TRight& p_right)
-		{
-			p_left -= p_right;
-		};
+	concept subtract_assignable_with = requires(TLeft& p_left, const TRight& p_right) { p_left -= p_right; };
 
 	template <typename TLeft, typename TRight = TLeft>
-	concept multiplicable_with =
-		requires(const TLeft& p_left, const TRight& p_right)
-		{
-			p_left * p_right;
-		};
+	concept multiplicable_with = requires(const TLeft& p_left, const TRight& p_right) { p_left * p_right; };
 
 	template <typename TLeft, typename TRight = TLeft>
-	concept multiply_assignable_with =
-		requires(TLeft& p_left, const TRight& p_right)
-		{
-			p_left *= p_right;
-		};
+	concept multiply_assignable_with = requires(TLeft& p_left, const TRight& p_right) { p_left *= p_right; };
 
 	template <typename TLeft, typename TRight = TLeft>
-	concept dividable_with =
-		requires(const TLeft& p_left, const TRight& p_right)
-		{
-			p_left / p_right;
-		};
+	concept dividable_with = requires(const TLeft& p_left, const TRight& p_right) { p_left / p_right; };
 
 	template <typename TLeft, typename TRight = TLeft>
-	concept divide_assignable_with =
-		requires(TLeft& p_left, const TRight& p_right)
-		{
-			p_left /= p_right;
-		};
+	concept divide_assignable_with = requires(TLeft& p_left, const TRight& p_right) { p_left /= p_right; };
 
 	template <typename TLeft, typename TRight = TLeft>
-	concept less_than_comparable_with =
-		requires(const TLeft& p_left, const TRight& p_right)
-		{
-			{ p_left < p_right } -> std::convertible_to<bool>;
-		};
+	concept less_than_comparable_with = requires(const TLeft& p_left, const TRight& p_right) {
+		{ p_left < p_right } -> std::convertible_to<bool>;
+	};
 
 	template <typename TLeft, typename TRight = TLeft>
-	concept less_equal_comparable_with =
-		requires(const TLeft& p_left, const TRight& p_right)
-		{
-			{ p_left <= p_right } -> std::convertible_to<bool>;
-		};
+	concept less_equal_comparable_with = requires(const TLeft& p_left, const TRight& p_right) {
+		{ p_left <= p_right } -> std::convertible_to<bool>;
+	};
 
 	template <typename TLeft, typename TRight = TLeft>
-	concept greater_than_comparable_with =
-		requires(const TLeft& p_left, const TRight& p_right)
-		{
-			{ p_left > p_right } -> std::convertible_to<bool>;
-		};
+	concept greater_than_comparable_with = requires(const TLeft& p_left, const TRight& p_right) {
+		{ p_left > p_right } -> std::convertible_to<bool>;
+	};
 
 	template <typename TLeft, typename TRight = TLeft>
-	concept greater_equal_comparable_with =
-		requires(const TLeft& p_left, const TRight& p_right)
-		{
-			{ p_left >= p_right } -> std::convertible_to<bool>;
-		};
+	concept greater_equal_comparable_with = requires(const TLeft& p_left, const TRight& p_right) {
+		{ p_left >= p_right } -> std::convertible_to<bool>;
+	};
 
 	template <typename TLeft, typename TRight = TLeft>
-	concept order_comparable_with =
-		less_than_comparable_with<TLeft, TRight> &&
-		less_equal_comparable_with<TLeft, TRight> &&
-		greater_than_comparable_with<TLeft, TRight> &&
-		greater_equal_comparable_with<TLeft, TRight>;
+	concept order_comparable_with = less_than_comparable_with<TLeft, TRight> && less_equal_comparable_with<TLeft, TRight> &&
+									greater_than_comparable_with<TLeft, TRight> && greater_equal_comparable_with<TLeft, TRight>;
 
 	template <typename TType>
-	concept pre_incrementable =
-		requires(TType& p_value)
-		{
-			++p_value;
-		};
+	concept pre_incrementable = requires(TType& p_value) { ++p_value; };
 
 	template <typename TType>
-	concept post_incrementable =
-		requires(TType& p_value)
-		{
-			p_value++;
-		};
+	concept post_incrementable = requires(TType& p_value) { p_value++; };
 
 	template <typename TType>
-	concept incrementable =
-		pre_incrementable<TType> && post_incrementable<TType>;
+	concept incrementable = pre_incrementable<TType> && post_incrementable<TType>;
 
 	template <typename TType>
-	concept pre_decrementable =
-		requires(TType& p_value)
-		{
-			--p_value;
-		};
+	concept pre_decrementable = requires(TType& p_value) { --p_value; };
 
 	template <typename TType>
-	concept post_decrementable =
-		requires(TType& p_value)
-		{
-			p_value--;
-		};
+	concept post_decrementable = requires(TType& p_value) { p_value--; };
 
 	template <typename TType>
-	concept decrementable =
-		pre_decrementable<TType> && post_decrementable<TType>;
+	concept decrementable = pre_decrementable<TType> && post_decrementable<TType>;
 
 	template <typename TType>
-	concept arithmetic_like =
-		addable_with<TType> &&
-		add_assignable_with<TType> &&
-		subtractable_with<TType> &&
-		subtract_assignable_with<TType> &&
-		multiplicable_with<TType> &&
-		multiply_assignable_with<TType> &&
-		dividable_with<TType> &&
-		divide_assignable_with<TType>;
+	concept arithmetic_like = addable_with<TType> && add_assignable_with<TType> && subtractable_with<TType> && subtract_assignable_with<TType> &&
+							  multiplicable_with<TType> && multiply_assignable_with<TType> && dividable_with<TType> && divide_assignable_with<TType>;
 }

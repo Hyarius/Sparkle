@@ -1,6 +1,5 @@
 #pragma once
 
-
 #include <stdexcept>
 #include <string>
 
@@ -13,4 +12,3 @@ namespace spk
 	[[nodiscard]] std::string lastErrorMessage(const std::string& p_context);
 	[[noreturn]] void throwLastError(const std::string& p_context);
 }
-

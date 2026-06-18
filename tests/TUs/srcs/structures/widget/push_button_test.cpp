@@ -31,10 +31,7 @@ TEST(PushButtonTest, TriggersClickOnLeftPressAndReleaseInside)
 	button.setGeometry(spk::Rect2D(10, 10, 120, 40));
 
 	int clickCount = 0;
-	auto contract = button.subscribeToClick([&clickCount]()
-	{
-		++clickCount;
-	});
+	auto contract = button.subscribeToClick([&clickCount]() { ++clickCount; });
 
 	spk::MouseModule mouseModule;
 	mouseModule.bind(&button);
@@ -472,8 +469,7 @@ TEST(PushButtonTest, UseDefaultStylesRestoresDefault)
 	spk::PushButton button("Button", "OK", custom, custom);
 	button.useDefaultStyles();
 
-	const spk::Font::Size defaultSize =
-		spk::WidgetStyle::Collection::style(spk::WidgetStyle::Collection::Default).textSize();
+	const spk::Font::Size defaultSize = spk::WidgetStyle::Collection::style(spk::WidgetStyle::Collection::Default).textSize();
 	EXPECT_EQ(button.releasedLabel().textSize(), defaultSize);
 }
 
@@ -634,8 +630,7 @@ TEST_P(PushButtonAlignmentVisualTest, RendersTextAtExpectedPosition)
 	spk::PushButton button("Button", "Hello", releasedStyle, pressedStyle);
 	button.setAlignment(param.horizontal, param.vertical);
 
-	const sparkle_test::ImageComparisonResult result =
-		spk::test::compareSnapshot(button, "PushButtonVisual", param.name, captureRect);
+	const sparkle_test::ImageComparisonResult result = spk::test::compareSnapshot(button, "PushButtonVisual", param.name, captureRect);
 
 	EXPECT_TRUE(result.matches);
 }
@@ -644,18 +639,16 @@ INSTANTIATE_TEST_SUITE_P(
 	AllAlignments,
 	PushButtonAlignmentVisualTest,
 	::testing::Values(
-		AlignmentParam{spk::HorizontalAlignment::Left,     spk::VerticalAlignment::Top,      "left_top"},
-		AlignmentParam{spk::HorizontalAlignment::Left,     spk::VerticalAlignment::Centered,  "left_centered"},
-		AlignmentParam{spk::HorizontalAlignment::Left,     spk::VerticalAlignment::Down,      "left_down"},
-		AlignmentParam{spk::HorizontalAlignment::Centered, spk::VerticalAlignment::Top,       "centered_top"},
-		AlignmentParam{spk::HorizontalAlignment::Centered, spk::VerticalAlignment::Centered,  "centered_centered"},
-		AlignmentParam{spk::HorizontalAlignment::Centered, spk::VerticalAlignment::Down,      "centered_down"},
-		AlignmentParam{spk::HorizontalAlignment::Right,    spk::VerticalAlignment::Top,       "right_top"},
-		AlignmentParam{spk::HorizontalAlignment::Right,    spk::VerticalAlignment::Centered,  "right_centered"},
-		AlignmentParam{spk::HorizontalAlignment::Right,    spk::VerticalAlignment::Down,      "right_down"}
-	),
-	[](const ::testing::TestParamInfo<AlignmentParam>& info) { return info.param.name; }
-);
+		AlignmentParam{spk::HorizontalAlignment::Left, spk::VerticalAlignment::Top, "left_top"},
+		AlignmentParam{spk::HorizontalAlignment::Left, spk::VerticalAlignment::Centered, "left_centered"},
+		AlignmentParam{spk::HorizontalAlignment::Left, spk::VerticalAlignment::Down, "left_down"},
+		AlignmentParam{spk::HorizontalAlignment::Centered, spk::VerticalAlignment::Top, "centered_top"},
+		AlignmentParam{spk::HorizontalAlignment::Centered, spk::VerticalAlignment::Centered, "centered_centered"},
+		AlignmentParam{spk::HorizontalAlignment::Centered, spk::VerticalAlignment::Down, "centered_down"},
+		AlignmentParam{spk::HorizontalAlignment::Right, spk::VerticalAlignment::Top, "right_top"},
+		AlignmentParam{spk::HorizontalAlignment::Right, spk::VerticalAlignment::Centered, "right_centered"},
+		AlignmentParam{spk::HorizontalAlignment::Right, spk::VerticalAlignment::Down, "right_down"}),
+	[](const ::testing::TestParamInfo<AlignmentParam>& info) { return info.param.name; });
 
 // ---- Padding shifts the text anchor ----
 
@@ -673,8 +666,7 @@ TEST(PushButtonVisualTest, PaddingShiftsTextAnchorFromTopLeft)
 	spk::PushButton button("Button", "Hello", releasedStyle, pressedStyle);
 	button.setAlignment(spk::HorizontalAlignment::Left, spk::VerticalAlignment::Top);
 
-	const sparkle_test::ImageComparisonResult result =
-		spk::test::compareSnapshot(button, "PushButtonVisual", "padded_left_top", captureRect);
+	const sparkle_test::ImageComparisonResult result = spk::test::compareSnapshot(button, "PushButtonVisual", "padded_left_top", captureRect);
 
 	EXPECT_TRUE(result.matches);
 }
@@ -713,8 +705,7 @@ TEST(PushButtonVisualTest, PaddingShiftsTextAnchorFromBottomRight)
 	spk::PushButton button("Button", "Hello", releasedStyle, pressedStyle);
 	button.setAlignment(spk::HorizontalAlignment::Right, spk::VerticalAlignment::Down);
 
-	const sparkle_test::ImageComparisonResult result =
-		spk::test::compareSnapshot(button, "PushButtonVisual", "padded_right_down", captureRect);
+	const sparkle_test::ImageComparisonResult result = spk::test::compareSnapshot(button, "PushButtonVisual", "padded_right_down", captureRect);
 
 	EXPECT_TRUE(result.matches);
 }
@@ -740,8 +731,7 @@ TEST(PushButtonVisualTest, AlignmentPreservedWhenPressed)
 	mouseModule.pushEvent(spk::MouseEventRecord(spk::makeEventRecord(spk::MouseButtonPressedRecord{.button = spk::Mouse::Left})));
 	mouseModule.processEvents();
 
-	const sparkle_test::ImageComparisonResult result =
-		spk::test::compareSnapshot(button, "PushButtonVisual", "pressed_left_top", captureRect);
+	const sparkle_test::ImageComparisonResult result = spk::test::compareSnapshot(button, "PushButtonVisual", "pressed_left_top", captureRect);
 
 	EXPECT_TRUE(result.matches);
 }

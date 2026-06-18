@@ -2,7 +2,11 @@
 
 namespace spk
 {
-	spk::WindowHandle WindowRegistry::createWindow(const WindowID& p_id, std::shared_ptr<PlatformRuntime> p_platformRuntime, std::shared_ptr<GPUPlatformRuntime> p_gpuPlatformRuntime, spk::Window::Configuration p_configuration)
+	spk::WindowHandle WindowRegistry::createWindow(
+		const WindowID& p_id,
+		std::shared_ptr<PlatformRuntime> p_platformRuntime,
+		std::shared_ptr<GPUPlatformRuntime> p_gpuPlatformRuntime,
+		spk::Window::Configuration p_configuration)
 	{
 		{
 			std::scoped_lock lock(_mutex);
@@ -12,7 +16,8 @@ namespace spk
 			}
 		}
 
-		std::shared_ptr<Window> newWindow = std::make_shared<Window>(std::move(p_platformRuntime), std::move(p_gpuPlatformRuntime), std::move(p_configuration));
+		std::shared_ptr<Window> newWindow =
+			std::make_shared<Window>(std::move(p_platformRuntime), std::move(p_gpuPlatformRuntime), std::move(p_configuration));
 
 		std::scoped_lock lock(_mutex);
 		if (_windows.contains(p_id) == true)
@@ -20,11 +25,7 @@ namespace spk
 			throw std::runtime_error("WindowRegistry::" + std::string(__FUNCTION__) + " : Window ID [" + p_id + "] already exist");
 		}
 
-		auto [iterator, inserted] = _windows.emplace(
-			p_id,
-			Entry{
-				.window = std::move(newWindow)
-			});
+		auto [iterator, inserted] = _windows.emplace(p_id, Entry{.window = std::move(newWindow)});
 
 		(void)inserted;
 		return spk::WindowHandle(std::weak_ptr<spk::Window>(iterator->second.window));
@@ -77,8 +78,7 @@ namespace spk
 
 		for (auto iterator = _windows.begin(); iterator != _windows.end();)
 		{
-			if (iterator->second.window == nullptr ||
-				iterator->second.window->isReadyForDisposal() == true)
+			if (iterator->second.window == nullptr || iterator->second.window->isReadyForDisposal() == true)
 			{
 				iterator = _windows.erase(iterator);
 			}

@@ -19,9 +19,7 @@ namespace
 
 	void typeGlyph(spk::TextEdit& p_textEdit, char32_t p_glyph)
 	{
-		sparkle_test::sendKeyboardEvent(
-			p_textEdit,
-			spk::KeyboardEventRecord(spk::makeEventRecord(spk::TextInputRecord{.glyph = p_glyph})));
+		sparkle_test::sendKeyboardEvent(p_textEdit, spk::KeyboardEventRecord(spk::makeEventRecord(spk::TextInputRecord{.glyph = p_glyph})));
 	}
 }
 
@@ -137,8 +135,7 @@ TEST(NumericSpinBoxVisualTest, RendersIntSpinBoxDefault)
 
 	spk::IntSpinBox spinBox("SpinBox");
 
-	const sparkle_test::ImageComparisonResult result =
-		spk::test::compareSnapshot(spinBox, "NumericSpinBoxVisual", "int_default", captureRect);
+	const sparkle_test::ImageComparisonResult result = spk::test::compareSnapshot(spinBox, "NumericSpinBoxVisual", "int_default", captureRect);
 
 	EXPECT_TRUE(result.matches);
 }
@@ -150,8 +147,7 @@ TEST(NumericSpinBoxVisualTest, RendersWithCustomValue)
 	spk::IntSpinBox spinBox("SpinBox");
 	spinBox.setValue(42);
 
-	const sparkle_test::ImageComparisonResult result =
-		spk::test::compareSnapshot(spinBox, "NumericSpinBoxVisual", "int_value_42", captureRect);
+	const sparkle_test::ImageComparisonResult result = spk::test::compareSnapshot(spinBox, "NumericSpinBoxVisual", "int_value_42", captureRect);
 
 	EXPECT_TRUE(result.matches);
 }
@@ -163,8 +159,7 @@ TEST(NumericSpinBoxVisualTest, RendersFloatSpinBox)
 	spk::FloatSpinBox spinBox("SpinBox");
 	spinBox.setValue(3.14f);
 
-	const sparkle_test::ImageComparisonResult result =
-		spk::test::compareSnapshot(spinBox, "NumericSpinBoxVisual", "float_pi", captureRect);
+	const sparkle_test::ImageComparisonResult result = spk::test::compareSnapshot(spinBox, "NumericSpinBoxVisual", "float_pi", captureRect);
 
 	EXPECT_TRUE(result.matches);
 }

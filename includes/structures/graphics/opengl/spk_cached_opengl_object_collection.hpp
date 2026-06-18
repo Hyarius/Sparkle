@@ -75,11 +75,7 @@ namespace spk
 		// p_refresh (e.g. glBufferSubData). p_context must be current.
 		template <typename TFactory, typename TRefresh>
 		TGpuObject& resolve(
-			const spk::RenderContext& p_context,
-			std::uint64_t p_version,
-			std::uint64_t p_contentVersion,
-			TFactory&& p_factory,
-			TRefresh&& p_refresh)
+			const spk::RenderContext& p_context, std::uint64_t p_version, std::uint64_t p_contentVersion, TFactory&& p_factory, TRefresh&& p_refresh)
 		{
 			assert(spk::OpenGL::isContextCurrent(p_context) == true);
 
@@ -92,8 +88,7 @@ namespace spk
 			{
 				if (entry.contextId == contextId)
 				{
-					if (entry.object->version() == p_version &&
-						entry.object->contentVersion() == p_contentVersion)
+					if (entry.object->version() == p_version && entry.object->contentVersion() == p_contentVersion)
 					{
 						return *entry.object;
 					}
@@ -150,9 +145,7 @@ namespace spk
 
 			if (found == nullptr)
 			{
-				_entries.push_back(Entry{
-					.contextId = contextId,
-					.object = _build(p_version, p_contentVersion, p_factory)});
+				_entries.push_back(Entry{.contextId = contextId, .object = _build(p_version, p_contentVersion, p_factory)});
 				found = &_entries.back();
 			}
 			else if (found->object->contentVersion() != p_contentVersion)

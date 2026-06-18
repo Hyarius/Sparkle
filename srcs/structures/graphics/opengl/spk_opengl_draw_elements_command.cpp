@@ -8,10 +8,7 @@
 namespace spk
 {
 	DrawElementsCommand::DrawElementsCommand(
-		Primitive p_primitive,
-		std::shared_ptr<spk::IndexBufferObject> p_indexBuffer,
-		std::optional<GLsizei> p_count,
-		std::size_t p_offset) :
+		Primitive p_primitive, std::shared_ptr<spk::IndexBufferObject> p_indexBuffer, std::optional<GLsizei> p_count, std::size_t p_offset) :
 		_primitive(p_primitive),
 		_indexBuffer(std::move(p_indexBuffer)),
 		_count(p_count),
@@ -53,10 +50,6 @@ namespace spk
 		_indexBuffer->activate(p_renderContext);
 
 		const GLsizei count = _count.value_or(static_cast<GLsizei>(_indexBuffer->count()));
-		glDrawElements(
-			spk::OpenGL::primitiveType(_primitive),
-			count,
-			_indexBuffer->elementType(),
-			reinterpret_cast<const void*>(_offset));
+		glDrawElements(spk::OpenGL::primitiveType(_primitive), count, _indexBuffer->elementType(), reinterpret_cast<const void*>(_offset));
 	}
 }

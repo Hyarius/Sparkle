@@ -11,10 +11,7 @@ namespace spk
 	}
 
 	CheckableIconButton::CheckableIconButton(
-		const std::string& p_name,
-		size_t p_uncheckedIconSpriteID,
-		size_t p_checkedIconSpriteID,
-		spk::Widget* p_parent) :
+		const std::string& p_name, size_t p_uncheckedIconSpriteID, size_t p_checkedIconSpriteID, spk::Widget* p_parent) :
 		spk::Widget(p_name, p_parent),
 		_uncheckedButton(
 			p_name + "::uncheckedButton",
@@ -27,29 +24,20 @@ namespace spk
 			p_checkedIconSpriteID,
 			this)
 	{
-		_stateContract = _isChecked.subscribe([this](const bool&)
-		{
-			_refreshState();
-		});
+		_stateContract = _isChecked.subscribe([this](const bool&) { _refreshState(); });
 
-		_uncheckedClickContract = _uncheckedButton.subscribeToClick([this]()
-		{
-			toggle();
-		});
+		_uncheckedClickContract = _uncheckedButton.subscribeToClick([this]() { toggle(); });
 
-		_checkedClickContract = _checkedButton.subscribeToClick([this]()
-		{
-			toggle();
-		});
+		_checkedClickContract = _checkedButton.subscribeToClick([this]() { toggle(); });
 
-		sizeHint().configureMinimalGenerator([this]() {
-			const spk::Vector2UInt uncheckedSize = _uncheckedButton.minimalSize();
-			const spk::Vector2UInt checkedSize = _checkedButton.minimalSize();
+		sizeHint().configureMinimalGenerator(
+			[this]()
+			{
+				const spk::Vector2UInt uncheckedSize = _uncheckedButton.minimalSize();
+				const spk::Vector2UInt checkedSize = _checkedButton.minimalSize();
 
-			return spk::Vector2UInt(
-				std::max(uncheckedSize.x, checkedSize.x),
-				std::max(uncheckedSize.y, checkedSize.y));
-		});
+				return spk::Vector2UInt(std::max(uncheckedSize.x, checkedSize.x), std::max(uncheckedSize.y, checkedSize.y));
+			});
 
 		_refreshState();
 		activate();

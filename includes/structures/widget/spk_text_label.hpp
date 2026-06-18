@@ -37,15 +37,8 @@ namespace spk
 
 	public:
 		explicit TextLabel(const std::string& p_name, spk::Widget* p_parent = nullptr);
-		TextLabel(
-			const std::string& p_name,
-			std::string_view p_text,
-			spk::Widget* p_parent = nullptr);
-		TextLabel(
-			const std::string& p_name,
-			std::string_view p_text,
-			const spk::WidgetStyle& p_style,
-			spk::Widget* p_parent = nullptr);
+		TextLabel(const std::string& p_name, std::string_view p_text, spk::Widget* p_parent = nullptr);
+		TextLabel(const std::string& p_name, std::string_view p_text, const spk::WidgetStyle& p_style, spk::Widget* p_parent = nullptr);
 
 		void applyStyle(const spk::WidgetStyle& p_style) override;
 		void useDefaultStyle();

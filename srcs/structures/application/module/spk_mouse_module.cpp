@@ -30,22 +30,10 @@ namespace spk
 					_mouse.deltaPosition = p_record.position - _mouse.position;
 					_mouse.position = p_record.position;
 				},
-				[this](spk::MouseWheelScrolledRecord& p_record)
-				{
-					_mouse.wheel += p_record.delta.y;
-				},
-				[this](spk::MouseButtonPressedRecord& p_record)
-				{
-					_mouse[p_record.button] = spk::InputState::Down;
-				},
-				[this](spk::MouseButtonReleasedRecord& p_record)
-				{
-					_mouse[p_record.button] = spk::InputState::Up;
-				},
-				[](spk::MouseButtonDoubleClickedRecord&)
-				{
-				}
-			},
+				[this](spk::MouseWheelScrolledRecord& p_record) { _mouse.wheel += p_record.delta.y; },
+				[this](spk::MouseButtonPressedRecord& p_record) { _mouse[p_record.button] = spk::InputState::Down; },
+				[this](spk::MouseButtonReleasedRecord& p_record) { _mouse[p_record.button] = spk::InputState::Up; },
+				[](spk::MouseButtonDoubleClickedRecord&) {}},
 			p_event);
 
 		widget()->dispatchMouseEvent(p_event, _mouse);

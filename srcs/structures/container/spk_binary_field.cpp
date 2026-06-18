@@ -45,11 +45,7 @@ namespace spk
 		return invalidSectionID;
 	}
 
-	BinaryField BinaryField::_addSection(
-		std::string_view p_name,
-		std::size_t p_offset,
-		std::size_t p_size,
-		BinaryField::Kind p_kind)
+	BinaryField BinaryField::_addSection(std::string_view p_name, std::size_t p_offset, std::size_t p_size, BinaryField::Kind p_kind)
 	{
 		const Section& parent = _section();
 		const Kind parentKind = parent.kind;

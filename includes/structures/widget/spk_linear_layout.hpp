@@ -75,9 +75,8 @@ namespace spk
 
 				it.minP = std::max(0, _primary(minSize));
 				const long long rawMaxP = static_cast<long long>(_horizontalMode ? maxSize.x : maxSize.y);
-				it.maxP = (rawMaxP > static_cast<long long>(std::numeric_limits<int>::max()))
-					? std::numeric_limits<int>::max()
-					: static_cast<int>(rawMaxP);
+				it.maxP =
+					(rawMaxP > static_cast<long long>(std::numeric_limits<int>::max())) ? std::numeric_limits<int>::max() : static_cast<int>(rawMaxP);
 				if (it.maxP < it.minP)
 				{
 					it.maxP = it.minP;
@@ -85,9 +84,8 @@ namespace spk
 
 				it.minS = std::max(0, _secondary(minSize));
 				const long long rawMaxS = static_cast<long long>(_horizontalMode ? maxSize.y : maxSize.x);
-				it.maxS = (rawMaxS > static_cast<long long>(std::numeric_limits<int>::max()))
-					? std::numeric_limits<int>::max()
-					: static_cast<int>(rawMaxS);
+				it.maxS =
+					(rawMaxS > static_cast<long long>(std::numeric_limits<int>::max())) ? std::numeric_limits<int>::max() : static_cast<int>(rawMaxS);
 				if (it.maxS < it.minS)
 				{
 					it.maxS = it.minS;
@@ -294,12 +292,8 @@ namespace spk
 	public:
 		LinearLayout()
 		{
-			sizeHint().configureMinimalGenerator([this]() {
-				return _computeMinimalSize();
-			});
-			sizeHint().configureDesiredGenerator([this]() {
-				return _computeMinimalSize();
-			});
+			sizeHint().configureMinimalGenerator([this]() { return _computeMinimalSize(); });
+			sizeHint().configureDesiredGenerator([this]() { return _computeMinimalSize(); });
 		}
 
 		void setGeometry(const spk::Rect2D& p_geometry) override

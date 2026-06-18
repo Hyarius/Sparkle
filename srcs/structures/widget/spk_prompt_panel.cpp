@@ -18,22 +18,23 @@ namespace spk
 		_layout.addWidget(&_textArea, spk::Layout::SizePolicy::Extend);
 		_layout.addWidget(&_commandPanel, spk::Layout::SizePolicy::Minimum);
 
-		sizeHint().configureMinimalGenerator([this]() {
-			const spk::Vector2Int cornerSize = _background.cornerSize();
-			const spk::Vector2UInt commandPanelSize = _commandPanel.minimalSize();
-
-			spk::Vector2UInt contentSize = commandPanelSize;
-			if (_textArea.text().empty() == false)
+		sizeHint().configureMinimalGenerator(
+			[this]()
 			{
-				const spk::Vector2UInt textAreaSize = _textArea.computeMinimalSize(
-					std::max(commandPanelSize.x, 200u));
+				const spk::Vector2Int cornerSize = _background.cornerSize();
+				const spk::Vector2UInt commandPanelSize = _commandPanel.minimalSize();
 
-				contentSize.x = std::max(textAreaSize.x, commandPanelSize.x);
-				contentSize.y = textAreaSize.y + _layout.elementPadding().y + commandPanelSize.y;
-			}
+				spk::Vector2UInt contentSize = commandPanelSize;
+				if (_textArea.text().empty() == false)
+				{
+					const spk::Vector2UInt textAreaSize = _textArea.computeMinimalSize(std::max(commandPanelSize.x, 200u));
 
-			return contentSize + spk::Vector2UInt(cornerSize.x * 2, cornerSize.y * 2);
-		});
+					contentSize.x = std::max(textAreaSize.x, commandPanelSize.x);
+					contentSize.y = textAreaSize.y + _layout.elementPadding().y + commandPanelSize.y;
+				}
+
+				return contentSize + spk::Vector2UInt(cornerSize.x * 2, cornerSize.y * 2);
+			});
 
 		activate();
 	}

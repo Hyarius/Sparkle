@@ -59,11 +59,7 @@ namespace spk
 
 		[[nodiscard]] static DeferredMutation _makeSetParentMutation(TType* p_node, TType* p_parent)
 		{
-			DeferredMutation result{
-				.type = DeferredMutationType::SetParent,
-				.node = p_node,
-				.parent = p_parent
-			};
+			DeferredMutation result{.type = DeferredMutationType::SetParent, .node = p_node, .parent = p_parent};
 
 			if (p_node != nullptr)
 			{
@@ -81,10 +77,7 @@ namespace spk
 
 		[[nodiscard]] static DeferredMutation _makeClearChildrenMutation(TType* p_node)
 		{
-			DeferredMutation result{
-				.type = DeferredMutationType::ClearChildren,
-				.node = p_node
-			};
+			DeferredMutation result{.type = DeferredMutationType::ClearChildren, .node = p_node};
 
 			if (p_node != nullptr)
 			{
@@ -153,10 +146,7 @@ namespace spk
 					_traversalState->deferredMutations.begin(),
 					_traversalState->deferredMutations.end(),
 					[&](const DeferredMutation& p_existingMutation)
-					{
-						return p_existingMutation.type == DeferredMutationType::SetParent &&
-							   p_existingMutation.node == p_mutation.node;
-					});
+					{ return p_existingMutation.type == DeferredMutationType::SetParent && p_existingMutation.node == p_mutation.node; });
 
 				if (iterator != _traversalState->deferredMutations.end())
 				{

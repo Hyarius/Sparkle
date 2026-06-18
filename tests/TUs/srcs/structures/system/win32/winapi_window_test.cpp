@@ -1,6 +1,5 @@
 #include <gtest/gtest.h>
 
-
 #include <atomic>
 #include <memory>
 #include <stdexcept>
@@ -29,18 +28,13 @@ namespace
 
 TEST(WinAPIWindowTest, ConstructorRejectsMissingClass)
 {
-	EXPECT_THROW(
-		spk::WindowRuntime(nullptr, spk::Rect2D(10, 20, 100, 80), "MissingClass"),
-		std::invalid_argument);
+	EXPECT_THROW(spk::WindowRuntime(nullptr, spk::Rect2D(10, 20, 100, 80), "MissingClass"), std::invalid_argument);
 }
 
 TEST(WinAPIWindowTest, WindowTracksTitleGeometryMoveAndDestroyedState)
 {
 	auto windowClass = std::make_shared<spk::WindowClass>(uniqueClassName("Sparkle.Test.Window"), &testWindowProcedure);
-	spk::WindowRuntime window(
-		windowClass,
-		spk::Rect2D(40, 50, 160, 120),
-		"Initial");
+	spk::WindowRuntime window(windowClass, spk::Rect2D(40, 50, 160, 120), "Initial");
 
 	ASSERT_TRUE(window.isValid());
 	EXPECT_NE(window.handle(), nullptr);
@@ -114,4 +108,3 @@ TEST(WinAPIWindowTest, MoveAssignmentTransfersNativeHandleAndSelfMoveIsNoOp)
 
 	assignedWindow.destroy();
 }
-

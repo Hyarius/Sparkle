@@ -116,9 +116,7 @@ namespace spk
 			{
 				return {};
 			}
-			return std::span<const TVertex>(
-				reinterpret_cast<const TVertex*>(bytes.data()),
-				bytes.size() / sizeof(TVertex));
+			return std::span<const TVertex>(reinterpret_cast<const TVertex*>(bytes.data()), bytes.size() / sizeof(TVertex));
 		}
 
 		void setIndexes(std::span<const std::uint32_t> p_indexes);

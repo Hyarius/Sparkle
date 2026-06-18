@@ -1,6 +1,5 @@
 #include "structures/system/win32/spk_winapi_class.hpp"
 
-
 #include <utility>
 
 #include "utils/spk_winapi_helpers.hpp"
@@ -97,4 +96,3 @@ namespace spk
 		return _name;
 	}
 }
-

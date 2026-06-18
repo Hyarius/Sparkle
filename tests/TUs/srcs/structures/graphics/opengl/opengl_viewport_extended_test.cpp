@@ -2,7 +2,6 @@
 
 #include "structures/graphics/opengl/opengl_wrapper_test_utils.hpp"
 
-
 #include "structures/graphics/rendering/state/spk_viewport.hpp"
 #include "structures/graphics/opengl/spk_opengl_viewport.hpp"
 
@@ -29,9 +28,7 @@ TEST(OpenGLViewportTest, ActivateThrowsWhenWindowWidthIsZero)
 
 	Viewport viewport(spk::Rect2D(0, 0, 10, 10));
 
-	EXPECT_THROW(
-		spk::OpenGLViewport::apply(viewport, *renderContext.surfaceState()),
-		std::runtime_error);
+	EXPECT_THROW(spk::OpenGLViewport::apply(viewport, *renderContext.surfaceState()), std::runtime_error);
 }
 
 TEST(OpenGLViewportTest, ActivateThrowsWhenWindowHeightIsZero)
@@ -41,9 +38,7 @@ TEST(OpenGLViewportTest, ActivateThrowsWhenWindowHeightIsZero)
 
 	Viewport viewport(spk::Rect2D(0, 0, 10, 10));
 
-	EXPECT_THROW(
-		spk::OpenGLViewport::apply(viewport, *renderContext.surfaceState()),
-		std::runtime_error);
+	EXPECT_THROW(spk::OpenGLViewport::apply(viewport, *renderContext.surfaceState()), std::runtime_error);
 }
 
 TEST(OpenGLViewportTest, ActivateSetsActiveViewportPointer)
@@ -115,4 +110,3 @@ TEST(OpenGLViewportTest, ConvertScreenToOpenGLWithLayerReturnsVector3)
 
 	spk::Viewport::setMaxLayer(savedMaxLayer);
 }
-

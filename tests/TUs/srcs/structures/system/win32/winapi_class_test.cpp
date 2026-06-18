@@ -1,6 +1,5 @@
 #include <gtest/gtest.h>
 
-
 #include <atomic>
 #include <stdexcept>
 #include <string>
@@ -64,4 +63,3 @@ TEST(WinAPIClassTest, SelfMoveAssignmentPreservesRegisteredClass)
 	EXPECT_EQ(windowClass.name(), className);
 	EXPECT_EQ(windowClass.instance(), GetModuleHandleW(nullptr));
 }
-

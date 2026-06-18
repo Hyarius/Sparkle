@@ -10,8 +10,7 @@ namespace spk
 		std::uint64_t nowNsMono()
 		{
 			const auto now = std::chrono::steady_clock::now().time_since_epoch();
-			return static_cast<std::uint64_t>(
-				std::chrono::duration_cast<std::chrono::nanoseconds>(now).count());
+			return static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(now).count());
 		}
 
 		Timestamp getTime()

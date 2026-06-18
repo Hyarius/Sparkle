@@ -1,6 +1,5 @@
 #include <gtest/gtest.h>
 
-
 #include <filesystem>
 #include <memory>
 #include <stdexcept>
@@ -100,4 +99,3 @@ TEST(OpenGLRuntimeTest, SaveScreenshotUsesCurrentViewportWhenNoRectIsProvided)
 	frame->validateClosure();
 	pumpWinApiMessages();
 }
-

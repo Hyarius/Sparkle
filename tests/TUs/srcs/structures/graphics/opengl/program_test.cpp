@@ -53,12 +53,9 @@ TEST(ProgramTest, RenderHelpersIssueDrawCalls)
 	(void)context;
 
 	const auto program = sparkle_test::makeColorProgram();
-	const auto vertexArray = sparkle_test::makeTriangleVAO(
-		sparkle_test::fullScreenTriangle({1.0f, 0.0f, 0.0f}));
+	const auto vertexArray = sparkle_test::makeTriangleVAO(sparkle_test::fullScreenTriangle({1.0f, 0.0f, 0.0f}));
 	const std::array<std::uint32_t, 3> indexes = {0, 1, 2};
-	auto indexBuffer = std::make_shared<IndexBufferObject>(
-		BufferObject::Usage::StaticDraw,
-		sizeof(indexes));
+	auto indexBuffer = std::make_shared<IndexBufferObject>(BufferObject::Usage::StaticDraw, sizeof(indexes));
 	indexBuffer->setElementType(GL_UNSIGNED_INT);
 	indexBuffer->edit(indexes.data(), sizeof(indexes));
 	vertexArray->setIndexBuffer(indexBuffer);
@@ -67,4 +64,3 @@ TEST(ProgramTest, RenderHelpersIssueDrawCalls)
 	EXPECT_NO_THROW(program->renderRaw(context.renderContext(), Primitive::Triangles, 0, 3));
 	EXPECT_NO_THROW(program->render(context.renderContext(), Primitive::Triangles, 0, 3));
 }
-

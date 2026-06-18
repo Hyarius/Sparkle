@@ -27,15 +27,10 @@ TEST(WindowTest, PollEventsDrivesWindowModulesAndWidgetTree)
 	child.activate();
 
 	const spk::Rect2D resizedRect(0, 0, 500, 300);
-	bundle.platformRuntime->queueFrameEvent(spk::WindowResizedRecord{
-		.rect = resizedRect});
-	bundle.platformRuntime->queueMouseEvent(spk::MouseMovedRecord{
-		.position = spk::Vector2Int(8, 10)});
-	bundle.platformRuntime->queueMouseEvent(spk::MouseMovedRecord{
-		.position = spk::Vector2Int(7, 9)});
-	bundle.platformRuntime->queueKeyboardEvent(spk::KeyPressedRecord{
-		.key = spk::Keyboard::C,
-		.isRepeated = false});
+	bundle.platformRuntime->queueFrameEvent(spk::WindowResizedRecord{.rect = resizedRect});
+	bundle.platformRuntime->queueMouseEvent(spk::MouseMovedRecord{.position = spk::Vector2Int(8, 10)});
+	bundle.platformRuntime->queueMouseEvent(spk::MouseMovedRecord{.position = spk::Vector2Int(7, 9)});
+	bundle.platformRuntime->queueKeyboardEvent(spk::KeyPressedRecord{.key = spk::Keyboard::C, .isRepeated = false});
 
 	bundle.platformRuntime->pollEvents();
 	bundle.window->update();
@@ -63,13 +58,9 @@ TEST(WindowTest, UpdateProcessesEventQueuesByFamily)
 	sparkle_test::RecordingWidget child("Child", &sparkle_test::WindowAccess::rootWidget(*bundle.window));
 	child.activate();
 
-	bundle.platformRuntime->queueMouseEvent(spk::MouseMovedRecord{
-		.position = spk::Vector2Int(5, 7)});
-	bundle.platformRuntime->queueFrameEvent(spk::WindowResizedRecord{
-		.rect = spk::Rect2D(1, 2, 300, 200)});
-	bundle.platformRuntime->queueKeyboardEvent(spk::KeyPressedRecord{
-		.key = spk::Keyboard::A,
-		.isRepeated = false});
+	bundle.platformRuntime->queueMouseEvent(spk::MouseMovedRecord{.position = spk::Vector2Int(5, 7)});
+	bundle.platformRuntime->queueFrameEvent(spk::WindowResizedRecord{.rect = spk::Rect2D(1, 2, 300, 200)});
+	bundle.platformRuntime->queueKeyboardEvent(spk::KeyPressedRecord{.key = spk::Keyboard::A, .isRepeated = false});
 
 	bundle.platformRuntime->pollEvents();
 	bundle.window->update();
@@ -91,10 +82,8 @@ TEST(WindowTest, RenderConsumesTheLatestPendingResizeAfterUpdate)
 	const spk::Rect2D firstRect(0, 0, 500, 300);
 	const spk::Rect2D secondRect(10, 20, 800, 600);
 
-	bundle.platformRuntime->queueFrameEvent(spk::WindowResizedRecord{
-		.rect = firstRect});
-	bundle.platformRuntime->queueFrameEvent(spk::WindowResizedRecord{
-		.rect = secondRect});
+	bundle.platformRuntime->queueFrameEvent(spk::WindowResizedRecord{.rect = firstRect});
+	bundle.platformRuntime->queueFrameEvent(spk::WindowResizedRecord{.rect = secondRect});
 
 	bundle.platformRuntime->pollEvents();
 	bundle.window->update();
@@ -126,8 +115,7 @@ TEST(WindowTest, ResizeInvalidatesTheEntireWidgetRenderUnitTree)
 	ASSERT_FALSE(child.isRenderCommandDirty());
 
 	const spk::Rect2D resizedRect(0, 0, 500, 300);
-	bundle.platformRuntime->queueFrameEvent(spk::WindowResizedRecord{
-		.rect = resizedRect});
+	bundle.platformRuntime->queueFrameEvent(spk::WindowResizedRecord{.rect = resizedRect});
 
 	bundle.platformRuntime->pollEvents();
 	bundle.window->update();
@@ -215,11 +203,12 @@ TEST(WindowTest, ClosureSubscribersAreTriggeredByDestroyedEvents)
 	auto bundle = sparkle_test::createWindowBundle();
 	int closureCount = 0;
 
-	auto contract = bundle.window->subscribeToClosure([&](spk::Window* p_window)
-	{
-		++closureCount;
-		EXPECT_EQ(p_window, bundle.window.get());
-	});
+	auto contract = bundle.window->subscribeToClosure(
+		[&](spk::Window* p_window)
+		{
+			++closureCount;
+			EXPECT_EQ(p_window, bundle.window.get());
+		});
 
 	bundle.platformRuntime->queueFrameEvent(spk::WindowDestroyedRecord{});
 	bundle.platformRuntime->pollEvents();
@@ -235,11 +224,12 @@ TEST(WindowTest, ClosureSubscriberCanResignItselfDuringNotification)
 	int closureCount = 0;
 	spk::Window::ClosureContract contract;
 
-	contract = bundle.window->subscribeToClosure([&](spk::Window*)
-	{
-		++closureCount;
-		contract.resign();
-	});
+	contract = bundle.window->subscribeToClosure(
+		[&](spk::Window*)
+		{
+			++closureCount;
+			contract.resign();
+		});
 
 	bundle.platformRuntime->queueFrameEvent(spk::WindowDestroyedRecord{});
 	bundle.platformRuntime->pollEvents();
@@ -249,5 +239,3 @@ TEST(WindowTest, ClosureSubscriberCanResignItselfDuringNotification)
 	EXPECT_EQ(closureCount, 1);
 	EXPECT_FALSE(contract.isValid());
 }
-
-

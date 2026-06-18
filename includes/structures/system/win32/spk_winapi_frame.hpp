@@ -1,6 +1,5 @@
 #pragma once
 
-
 #include <memory>
 #include <string>
 
@@ -44,4 +43,3 @@ namespace spk
 		[[nodiscard]] HDC deviceContext() const;
 	};
 }
-

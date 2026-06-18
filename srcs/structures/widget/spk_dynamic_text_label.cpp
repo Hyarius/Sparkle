@@ -7,10 +7,7 @@ namespace spk
 	{
 	}
 
-	DynamicTextLabel::DynamicTextLabel(
-		const std::string& p_name,
-		const TextProducer& p_textProducer,
-		spk::Widget* p_parent) :
+	DynamicTextLabel::DynamicTextLabel(const std::string& p_name, const TextProducer& p_textProducer, spk::Widget* p_parent) :
 		spk::TextLabel(p_name, p_parent)
 	{
 		setTextProducer(p_textProducer);

@@ -1,6 +1,5 @@
 #include <gtest/gtest.h>
 
-
 #include <stdexcept>
 #include <string>
 
@@ -37,11 +36,9 @@ TEST(WinAPIHelpersTest, ThrowLastErrorThrowsRuntimeErrorWithContext)
 	{
 		spk::throwLastError("DeniedContext");
 		FAIL() << "Expected throwLastError to throw";
-	}
-	catch (const std::runtime_error& p_error)
+	} catch (const std::runtime_error& p_error)
 	{
 		EXPECT_NE(std::string(p_error.what()).find("DeniedContext failed"), std::string::npos);
 		EXPECT_NE(std::string(p_error.what()).find(std::to_string(ERROR_ACCESS_DENIED)), std::string::npos);
 	}
 }
-

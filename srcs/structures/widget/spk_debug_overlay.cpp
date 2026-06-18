@@ -24,9 +24,7 @@ namespace spk
 
 	std::unique_ptr<spk::TextLabel> DebugOverlay::_makeLabel(size_t p_row, size_t p_column)
 	{
-		auto newLabel = std::make_unique<spk::TextLabel>(
-			name() + "::label[" + std::to_string(p_column) + "][" + std::to_string(p_row) + "]",
-			this);
+		auto newLabel = std::make_unique<spk::TextLabel>(name() + "::label[" + std::to_string(p_column) + "][" + std::to_string(p_row) + "]", this);
 		newLabel->setFont((_font != nullptr) ? _font : defaultFont());
 		newLabel->setGlyphColor(_glyphColor);
 		newLabel->setOutlineColor(_outlineColor);

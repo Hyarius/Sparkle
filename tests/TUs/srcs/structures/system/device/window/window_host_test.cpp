@@ -21,17 +21,17 @@ TEST(WindowHostTest, PlatformOperationsThrowFromNonPlatformThread)
 	auto bundle = sparkle_test::createWindowHostBundle();
 	std::exception_ptr failure = nullptr;
 
-	std::jthread worker([&]()
-	{
-		try
+	std::jthread worker(
+		[&]()
 		{
-			bundle.windowHost->setTitle("WrongThread");
-		}
-		catch (...)
-		{
-			failure = std::current_exception();
-		}
-	});
+			try
+			{
+				bundle.windowHost->setTitle("WrongThread");
+			} catch (...)
+			{
+				failure = std::current_exception();
+			}
+		});
 	worker.join();
 
 	ASSERT_NE(failure, nullptr);
@@ -61,8 +61,7 @@ TEST(WindowHostTest, PresentAndRenderContextRequireAValidRenderContext)
 
 	EXPECT_THROW(bundle.windowHost->present(), std::runtime_error);
 
-	bundle.platformRuntime->createdFrame->emitFrameEvent(
-		spk::FrameEventRecord(spk::makeEventRecord(spk::WindowDestroyedRecord{})));
+	bundle.platformRuntime->createdFrame->emitFrameEvent(spk::FrameEventRecord(spk::makeEventRecord(spk::WindowDestroyedRecord{})));
 
 	EXPECT_THROW(static_cast<void>(bundle.windowHost->renderContext()), std::runtime_error);
 }
@@ -84,26 +83,27 @@ TEST(WindowHostTest, ReleasingFrameInvalidatesTheExistingRenderContext)
 	std::atomic<bool> presentAttemptFinished = false;
 	std::atomic<bool> allowRelease = false;
 
-	std::jthread renderThread([&]()
-	{
-		EXPECT_TRUE(bundle.windowHost->makeCurrent());
-		contextCreated.store(true);
-
-		while (allowPresent.load() == false)
+	std::jthread renderThread(
+		[&]()
 		{
-			std::this_thread::yield();
-		}
+			EXPECT_TRUE(bundle.windowHost->makeCurrent());
+			contextCreated.store(true);
 
-		bundle.windowHost->present();
-		presentAttemptFinished.store(true);
+			while (allowPresent.load() == false)
+			{
+				std::this_thread::yield();
+			}
 
-		while (allowRelease.load() == false)
-		{
-			std::this_thread::yield();
-		}
+			bundle.windowHost->present();
+			presentAttemptFinished.store(true);
 
-		bundle.windowHost->releaseRenderContext();
-	});
+			while (allowRelease.load() == false)
+			{
+				std::this_thread::yield();
+			}
+
+			bundle.windowHost->releaseRenderContext();
+		});
 
 	while (contextCreated.load() == false)
 	{
@@ -144,8 +144,7 @@ TEST(WindowHostTest, DestroyedFrameEventPreventsLateRenderContextCreation)
 	EXPECT_EQ(bundle.gpuPlatformRuntime->createRenderContextCount, 0);
 	EXPECT_TRUE(bundle.platformRuntime->createdFrame->surfaceState()->isValid());
 
-	bundle.platformRuntime->createdFrame->emitFrameEvent(
-		spk::FrameEventRecord(spk::makeEventRecord(spk::WindowDestroyedRecord{})));
+	bundle.platformRuntime->createdFrame->emitFrameEvent(spk::FrameEventRecord(spk::makeEventRecord(spk::WindowDestroyedRecord{})));
 
 	EXPECT_FALSE(bundle.platformRuntime->createdFrame->surfaceState()->isValid());
 	EXPECT_FALSE(bundle.windowHost->makeCurrent());
@@ -161,11 +160,13 @@ TEST(WindowHostTest, ReleasingRenderContextBeforeMakeCurrentDoesNotBindRenderThr
 
 	EXPECT_FALSE(bundle.windowHost->isRenderThread());
 
-	std::jthread renderThread([&](){
-		EXPECT_TRUE(bundle.windowHost->makeCurrent());
-		EXPECT_TRUE(bundle.windowHost->isRenderThread());
-		bundle.windowHost->releaseRenderContext();
-	});
+	std::jthread renderThread(
+		[&]()
+		{
+			EXPECT_TRUE(bundle.windowHost->makeCurrent());
+			EXPECT_TRUE(bundle.windowHost->isRenderThread());
+			bundle.windowHost->releaseRenderContext();
+		});
 	renderThread.join();
 
 	EXPECT_EQ(bundle.gpuPlatformRuntime->createRenderContextCount, 1);
@@ -178,18 +179,19 @@ TEST(WindowHostTest, ReleasingRenderContextFromNonRenderThreadAfterMakeCurrentTh
 	std::atomic<bool> contextCreated = false;
 	std::atomic<bool> allowRelease = false;
 
-	std::jthread renderThread([&]()
-	{
-		EXPECT_TRUE(bundle.windowHost->makeCurrent());
-		contextCreated.store(true);
-
-		while (allowRelease.load() == false)
+	std::jthread renderThread(
+		[&]()
 		{
-			std::this_thread::yield();
-		}
+			EXPECT_TRUE(bundle.windowHost->makeCurrent());
+			contextCreated.store(true);
 
-		bundle.windowHost->releaseRenderContext();
-	});
+			while (allowRelease.load() == false)
+			{
+				std::this_thread::yield();
+			}
+
+			bundle.windowHost->releaseRenderContext();
+		});
 
 	while (contextCreated.load() == false)
 	{
@@ -216,12 +218,13 @@ TEST(WindowHostTest, NotifyFrameResizedAfterMakeCurrentForwardsToRenderContext)
 	auto bundle = sparkle_test::createWindowHostBundle();
 	const spk::Rect2D newRect(0, 0, 640, 480);
 
-	std::jthread renderThread([&]()
-	{
-		ASSERT_TRUE(bundle.windowHost->makeCurrent());
-		bundle.windowHost->notifyFrameResized(newRect);
-		bundle.windowHost->releaseRenderContext();
-	});
+	std::jthread renderThread(
+		[&]()
+		{
+			ASSERT_TRUE(bundle.windowHost->makeCurrent());
+			bundle.windowHost->notifyFrameResized(newRect);
+			bundle.windowHost->releaseRenderContext();
+		});
 	renderThread.join();
 
 	ASSERT_NE(bundle.gpuPlatformRuntime->contextStats, nullptr);

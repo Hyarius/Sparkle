@@ -5,17 +5,13 @@
 
 #include "structures/graphics/opengl/opengl_wrapper_test_utils.hpp"
 
-
 TEST(OpenGLBufferObjectTest, SynchronizesBinaryFieldToGPU)
 {
 	sparkle_test::OpenGLTestContext context;
 	(void)context;
 
 	std::array<std::uint32_t, 4> values = {10, 20, 30, 40};
-	spk::BufferObject buffer(
-		spk::BufferObject::Target::Array,
-		spk::BufferObject::Usage::DynamicDraw,
-		sizeof(values));
+	spk::BufferObject buffer(spk::BufferObject::Target::Array, spk::BufferObject::Usage::DynamicDraw, sizeof(values));
 
 	spk::BinaryField entries = buffer.field().addArray("entries", 0, values.size(), sizeof(std::uint32_t));
 	for (std::size_t i = 0; i < values.size(); ++i)
@@ -39,10 +35,7 @@ TEST(OpenGLBufferObjectTest, EditAppendAndResizeRequestSynchronization)
 	sparkle_test::OpenGLTestContext context;
 	(void)context;
 
-	spk::BufferObject buffer(
-		spk::BufferObject::Target::Array,
-		spk::BufferObject::Usage::DynamicDraw,
-		0);
+	spk::BufferObject buffer(spk::BufferObject::Target::Array, spk::BufferObject::Usage::DynamicDraw, 0);
 
 	std::array<std::uint8_t, 2> first = {1, 2};
 	std::array<std::uint8_t, 2> second = {3, 4};
@@ -70,10 +63,7 @@ TEST(OpenGLBufferObjectTest, AccessorsAndViewsExposeCpuBuffer)
 	sparkle_test::OpenGLTestContext context;
 	(void)context;
 
-	spk::BufferObject buffer(
-		spk::BufferObject::Target::Array,
-		spk::BufferObject::Usage::StreamDraw,
-		4);
+	spk::BufferObject buffer(spk::BufferObject::Target::Array, spk::BufferObject::Usage::StreamDraw, 4);
 
 	std::uint8_t* data = buffer.data();
 	data[0] = 4;
@@ -100,10 +90,7 @@ TEST(OpenGLBufferObjectTest, ClearResizesBufferToZero)
 	sparkle_test::OpenGLTestContext context;
 	(void)context;
 
-	spk::BufferObject buffer(
-		spk::BufferObject::Target::Array,
-		spk::BufferObject::Usage::DynamicDraw,
-		4);
+	spk::BufferObject buffer(spk::BufferObject::Target::Array, spk::BufferObject::Usage::DynamicDraw, 4);
 	buffer.synchronize();
 	ASSERT_FALSE(buffer.needsSynchronization());
 
@@ -117,10 +104,7 @@ TEST(OpenGLBufferObjectTest, EditAndAppendValidateInputs)
 	sparkle_test::OpenGLTestContext context;
 	(void)context;
 
-	spk::BufferObject buffer(
-		spk::BufferObject::Target::Array,
-		spk::BufferObject::Usage::DynamicDraw,
-		4);
+	spk::BufferObject buffer(spk::BufferObject::Target::Array, spk::BufferObject::Usage::DynamicDraw, 4);
 
 	EXPECT_THROW(buffer.edit(nullptr, 1), std::runtime_error);
 	EXPECT_THROW(buffer.edit(nullptr, 0, 5), std::runtime_error);
@@ -136,10 +120,7 @@ TEST(OpenGLBufferObjectTest, ActivationHelpersBindBaseAndRange)
 	(void)context;
 
 	std::array<std::uint8_t, 8> values = {0, 1, 2, 3, 4, 5, 6, 7};
-	spk::BufferObject buffer(
-		spk::BufferObject::Target::Uniform,
-		spk::BufferObject::Usage::DynamicDraw,
-		values.size());
+	spk::BufferObject buffer(spk::BufferObject::Target::Uniform, spk::BufferObject::Usage::DynamicDraw, values.size());
 	buffer.edit(values.data(), values.size());
 
 	buffer.activateBase(context.renderContext(), 0);
@@ -157,4 +138,3 @@ TEST(OpenGLBufferObjectTest, ActivationHelpersBindBaseAndRange)
 	glGetIntegerv(GL_UNIFORM_BUFFER_BINDING, &boundUniform);
 	EXPECT_EQ(boundUniform, 0);
 }
-

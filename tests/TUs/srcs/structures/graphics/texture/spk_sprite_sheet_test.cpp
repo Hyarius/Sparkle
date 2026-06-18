@@ -1,6 +1,5 @@
 #include <gtest/gtest.h>
 
-
 #include <stb_image_write.h>
 
 #include "structures/graphics/opengl/opengl_wrapper_test_utils.hpp"
@@ -20,7 +19,12 @@ namespace
 				const auto* bytes = reinterpret_cast<uint8_t*>(p_data);
 				buf->insert(buf->end(), bytes, bytes + p_size);
 			},
-			&out, p_width, p_height, p_channels, pixels.data(), p_width * p_channels);
+			&out,
+			p_width,
+			p_height,
+			p_channels,
+			pixels.data(),
+			p_width * p_channels);
 
 		return out;
 	}
@@ -165,4 +169,3 @@ TEST(SpriteSheetTest, FromRawDataFactoryCreatesValidSheet)
 	EXPECT_EQ(sheet.nbSprite(), (spk::Vector2UInt{2, 2}));
 	EXPECT_EQ(sheet.sprites().size(), 4u);
 }
-

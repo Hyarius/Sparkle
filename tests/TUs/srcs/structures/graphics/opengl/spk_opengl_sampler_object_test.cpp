@@ -1,6 +1,5 @@
 #include <gtest/gtest.h>
 
-
 #include "structures/graphics/opengl/opengl_wrapper_test_utils.hpp"
 #include "structures/graphics/spk_sampler_object.hpp"
 
@@ -20,12 +19,9 @@ TEST(OpenGLSamplerObjectTest, ConstructorSetsNameTypeAndBindingPoint)
 
 TEST(OpenGLSamplerObjectTest, AllTypeEnumeratorsAreDistinct)
 {
-	EXPECT_NE(static_cast<GLenum>(SamplerObject::Type::Texture1D),
-	          static_cast<GLenum>(SamplerObject::Type::Texture2D));
-	EXPECT_NE(static_cast<GLenum>(SamplerObject::Type::Texture2D),
-	          static_cast<GLenum>(SamplerObject::Type::Texture3D));
-	EXPECT_NE(static_cast<GLenum>(SamplerObject::Type::Texture3D),
-	          static_cast<GLenum>(SamplerObject::Type::TextureCubeMap));
+	EXPECT_NE(static_cast<GLenum>(SamplerObject::Type::Texture1D), static_cast<GLenum>(SamplerObject::Type::Texture2D));
+	EXPECT_NE(static_cast<GLenum>(SamplerObject::Type::Texture2D), static_cast<GLenum>(SamplerObject::Type::Texture3D));
+	EXPECT_NE(static_cast<GLenum>(SamplerObject::Type::Texture3D), static_cast<GLenum>(SamplerObject::Type::TextureCubeMap));
 }
 
 TEST(OpenGLSamplerObjectTest, BindAssociatesTexture)

@@ -13,18 +13,13 @@ TEST(MouseModuleTest, MouseEventsUpdateInternalStateAndDispatchToBoundWidget)
 	spk::MouseModule module;
 	module.bind(&widget);
 
-	spk::MouseEventRecord firstMove = spk::MouseEventRecord(spk::makeEventRecord(spk::MouseMovedRecord{
-		.position = spk::Vector2Int(36, 45),
-		.delta = spk::Vector2Int(4, 5)}));
-	spk::MouseEventRecord secondMove = spk::MouseEventRecord(spk::makeEventRecord(spk::MouseMovedRecord{
-		.position = spk::Vector2Int(40, 50),
-		.delta = spk::Vector2Int(4, 5)}));
-	spk::MouseEventRecord wheel = spk::MouseEventRecord(spk::makeEventRecord(spk::MouseWheelScrolledRecord{
-		.delta = spk::Vector2(0.0f, 1.5f)}));
-	spk::MouseEventRecord press = spk::MouseEventRecord(spk::makeEventRecord(spk::MouseButtonPressedRecord{
-		.button = spk::Mouse::Left}));
-	spk::MouseEventRecord release = spk::MouseEventRecord(spk::makeEventRecord(spk::MouseButtonReleasedRecord{
-		.button = spk::Mouse::Left}));
+	spk::MouseEventRecord firstMove =
+		spk::MouseEventRecord(spk::makeEventRecord(spk::MouseMovedRecord{.position = spk::Vector2Int(36, 45), .delta = spk::Vector2Int(4, 5)}));
+	spk::MouseEventRecord secondMove =
+		spk::MouseEventRecord(spk::makeEventRecord(spk::MouseMovedRecord{.position = spk::Vector2Int(40, 50), .delta = spk::Vector2Int(4, 5)}));
+	spk::MouseEventRecord wheel = spk::MouseEventRecord(spk::makeEventRecord(spk::MouseWheelScrolledRecord{.delta = spk::Vector2(0.0f, 1.5f)}));
+	spk::MouseEventRecord press = spk::MouseEventRecord(spk::makeEventRecord(spk::MouseButtonPressedRecord{.button = spk::Mouse::Left}));
+	spk::MouseEventRecord release = spk::MouseEventRecord(spk::makeEventRecord(spk::MouseButtonReleasedRecord{.button = spk::Mouse::Left}));
 
 	module.pushEvent(std::move(firstMove));
 	module.pushEvent(std::move(secondMove));
@@ -49,12 +44,9 @@ TEST(MouseModuleTest, EnterLeaveAndDoubleClickEventsAreProcessed)
 	spk::MouseModule module;
 	module.bind(&widget);
 
-	module.pushEvent(spk::MouseEventRecord(spk::makeEventRecord(spk::MouseEnteredRecord{
-		.position = spk::Vector2Int(12, 14)})));
-	module.pushEvent(spk::MouseEventRecord(spk::makeEventRecord(spk::MouseLeftRecord{
-		.position = spk::Vector2Int(20, 24)})));
-	module.pushEvent(spk::MouseEventRecord(spk::makeEventRecord(spk::MouseButtonDoubleClickedRecord{
-		.button = spk::Mouse::Right})));
+	module.pushEvent(spk::MouseEventRecord(spk::makeEventRecord(spk::MouseEnteredRecord{.position = spk::Vector2Int(12, 14)})));
+	module.pushEvent(spk::MouseEventRecord(spk::makeEventRecord(spk::MouseLeftRecord{.position = spk::Vector2Int(20, 24)})));
+	module.pushEvent(spk::MouseEventRecord(spk::makeEventRecord(spk::MouseButtonDoubleClickedRecord{.button = spk::Mouse::Right})));
 
 	module.processEvents();
 
@@ -69,9 +61,8 @@ TEST(MouseModuleTest, PushEventIsSafeWhenUnbound)
 {
 	spk::MouseModule module;
 
-	spk::MouseEventRecord event = spk::MouseEventRecord(spk::makeEventRecord(spk::MouseMovedRecord{
-		.position = spk::Vector2Int(9, 9),
-		.delta = spk::Vector2Int(1, 1)}));
+	spk::MouseEventRecord event =
+		spk::MouseEventRecord(spk::makeEventRecord(spk::MouseMovedRecord{.position = spk::Vector2Int(9, 9), .delta = spk::Vector2Int(1, 1)}));
 
 	EXPECT_NO_THROW(module.pushEvent(std::move(event)));
 	EXPECT_NO_THROW(module.processEvents());

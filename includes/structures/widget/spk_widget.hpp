@@ -21,6 +21,30 @@ namespace spk
 	class MouseModule;
 	class KeyboardModule;
 
+	/**
+	 * @brief Base class for every interactive object displayed inside a Sparkle window.
+	 *
+	 * A widget receives geometry, update ticks, input events, and render requests from its owning window. Derive from this class when you
+	 * need a custom control: override the protected `_on...Event` hooks for behavior and `_buildRenderUnit()` for rendering.
+	 *
+	 * @code{.cpp}
+	 * class HealthBar : public spk::Widget
+	 * {
+	 * public:
+	 * 	using spk::Widget::Widget;
+	 *
+	 * private:
+	 * 	void _onUpdate(const spk::UpdateTick& p_tick) override
+	 * 	{
+	 * 		// Update animation state here before the next render pass.
+	 * 	}
+	 * };
+	 * @endcode
+	 *
+	 * @see spk::Window
+	 * @see spk::ResizableElement
+	 * @see spk::RenderUnit
+	 */
 	class Widget : public spk::HierarchyTrait<Widget>, public spk::ActivableTrait, public spk::ResizableElement
 	{
 	public:

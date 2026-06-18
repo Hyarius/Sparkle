@@ -1,6 +1,5 @@
 #pragma once
 
-
 #include <array>
 #include <atomic>
 #include <cstdint>
@@ -84,12 +83,8 @@ namespace spk
 		[[nodiscard]] bool isVertexArrayActive(const spk::OpenGL::VertexArray* p_vertexArray) const noexcept;
 		void setActiveVertexArray(const spk::OpenGL::VertexArray* p_vertexArray) const noexcept;
 
-		[[nodiscard]] bool isUniformBufferBaseActive(
-			std::uint32_t p_bindingPoint,
-			const spk::OpenGL::Buffer* p_buffer) const noexcept;
-		void setActiveUniformBufferBase(
-			std::uint32_t p_bindingPoint,
-			const spk::OpenGL::Buffer* p_buffer) const noexcept;
+		[[nodiscard]] bool isUniformBufferBaseActive(std::uint32_t p_bindingPoint, const spk::OpenGL::Buffer* p_buffer) const noexcept;
+		void setActiveUniformBufferBase(std::uint32_t p_bindingPoint, const spk::OpenGL::Buffer* p_buffer) const noexcept;
 
 		void onProgramDeleted(const spk::OpenGL::Program& p_program) const noexcept;
 		void onVertexArrayDeleted(const spk::OpenGL::VertexArray& p_vertexArray) const noexcept;
@@ -107,4 +102,3 @@ namespace spk
 		virtual void notifyResize(const spk::Rect2D& p_rect);
 	};
 }
-

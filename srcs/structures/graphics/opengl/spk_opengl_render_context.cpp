@@ -1,6 +1,5 @@
 #include "structures/graphics/opengl/spk_opengl_render_context.hpp"
 
-
 #include <stdexcept>
 #include <unordered_map>
 #include <utility>
@@ -25,8 +24,7 @@ namespace
 
 	std::unordered_map<std::uint64_t, spk::RenderContext*>& contextRegistry()
 	{
-		static std::unordered_map<std::uint64_t, spk::RenderContext*>* registry =
-			new std::unordered_map<std::uint64_t, spk::RenderContext*>();
+		static std::unordered_map<std::uint64_t, spk::RenderContext*>* registry = new std::unordered_map<std::uint64_t, spk::RenderContext*>();
 		return *registry;
 	}
 
@@ -115,15 +113,13 @@ namespace spk
 		if (glewResult != GLEW_OK)
 		{
 			throw std::runtime_error(
-				"spk::RenderContext failed to initialize GLEW: " +
-				std::string(reinterpret_cast<const char*>(glewGetErrorString(glewResult))));
+				"spk::RenderContext failed to initialize GLEW: " + std::string(reinterpret_cast<const char*>(glewGetErrorString(glewResult))));
 		}
 
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-		glBlendFuncSeparate(
-			GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+		glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 
 		glEnable(GL_CULL_FACE);
 		glCullFace(GL_BACK);
@@ -259,18 +255,13 @@ namespace spk
 		_bindingCache.vertexArray = p_vertexArray;
 	}
 
-	bool RenderContext::isUniformBufferBaseActive(
-		std::uint32_t p_bindingPoint,
-		const spk::OpenGL::Buffer* p_buffer) const noexcept
+	bool RenderContext::isUniformBufferBaseActive(std::uint32_t p_bindingPoint, const spk::OpenGL::Buffer* p_buffer) const noexcept
 	{
-		return p_bindingPoint < BindingCache::TrackedUniformBindingPoints &&
-			   _bindingCache.uniformBuffers[p_bindingPoint].has_value() == true &&
+		return p_bindingPoint < BindingCache::TrackedUniformBindingPoints && _bindingCache.uniformBuffers[p_bindingPoint].has_value() == true &&
 			   _bindingCache.uniformBuffers[p_bindingPoint].value() == p_buffer;
 	}
 
-	void RenderContext::setActiveUniformBufferBase(
-		std::uint32_t p_bindingPoint,
-		const spk::OpenGL::Buffer* p_buffer) const noexcept
+	void RenderContext::setActiveUniformBufferBase(std::uint32_t p_bindingPoint, const spk::OpenGL::Buffer* p_buffer) const noexcept
 	{
 		if (p_bindingPoint >= BindingCache::TrackedUniformBindingPoints)
 		{
@@ -301,8 +292,7 @@ namespace spk
 	{
 		for (std::size_t i = 0; i < _bindingCache.uniformBuffers.size(); ++i)
 		{
-			if (_bindingCache.uniformBuffers[i].has_value() == true &&
-				_bindingCache.uniformBuffers[i].value() == &p_buffer)
+			if (_bindingCache.uniformBuffers[i].has_value() == true && _bindingCache.uniformBuffers[i].value() == &p_buffer)
 			{
 				_bindingCache.uniformBuffers[i] = nullptr;
 			}
@@ -331,10 +321,7 @@ namespace spk
 
 	bool RenderContext::isValid() const
 	{
-		return _valid &&
-			   _windowHandle != nullptr &&
-			   _deviceContext != nullptr &&
-			   _renderContext != nullptr;
+		return _valid && _windowHandle != nullptr && _deviceContext != nullptr && _renderContext != nullptr;
 	}
 
 	bool RenderContext::supportsOpenGLCommands() const
@@ -399,4 +386,3 @@ namespace spk
 		glViewport(0, 0, static_cast<GLsizei>(p_rect.width()), static_cast<GLsizei>(p_rect.height()));
 	}
 }
-

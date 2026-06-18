@@ -11,14 +11,14 @@ namespace spk
 	class GPUPlatformRuntime
 	{
 	protected:
-		template<typename TExpected>
+		template <typename TExpected>
 		TExpected& requireFrame(IFrame& p_frame)
 		{
 			auto* ptr = dynamic_cast<TExpected*>(&p_frame);
 			if (ptr == nullptr)
-				throw std::runtime_error(
-					std::string("GPUPlatformRuntime: expected ") + typeid(TExpected).name() +
-					", got " + typeid(p_frame).name());
+			{
+				throw std::runtime_error(std::string("GPUPlatformRuntime: expected ") + typeid(TExpected).name() + ", got " + typeid(p_frame).name());
+			}
 			return *ptr;
 		}
 

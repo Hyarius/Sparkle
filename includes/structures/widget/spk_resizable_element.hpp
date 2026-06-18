@@ -17,15 +17,9 @@ namespace spk
 			using Generator = spk::CachedData<spk::Vector2UInt>::Generator;
 
 		private:
-			mutable spk::CachedData<spk::Vector2UInt> _minimal{[]() {
-				return spk::Vector2UInt(0, 0);
-			}};
-			mutable spk::CachedData<spk::Vector2UInt> _desired{[]() {
-				return spk::Vector2UInt(0, 0);
-			}};
-			mutable spk::CachedData<spk::Vector2UInt> _maximal{[]() {
-				return std::numeric_limits<spk::Vector2UInt>::max();
-			}};
+			mutable spk::CachedData<spk::Vector2UInt> _minimal{[]() { return spk::Vector2UInt(0, 0); }};
+			mutable spk::CachedData<spk::Vector2UInt> _desired{[]() { return spk::Vector2UInt(0, 0); }};
+			mutable spk::CachedData<spk::Vector2UInt> _maximal{[]() { return std::numeric_limits<spk::Vector2UInt>::max(); }};
 
 		public:
 			SizeHint() = default;

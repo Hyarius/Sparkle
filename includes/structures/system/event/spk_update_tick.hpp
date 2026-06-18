@@ -13,7 +13,7 @@ namespace spk
 		spk::Timestamp timestamp;
 		spk::Duration deltaTime;
 
-		spk::Mouse *mouse = nullptr;
-		spk::Keyboard *keyboard = nullptr;
+		spk::Mouse* mouse = nullptr;
+		spk::Keyboard* keyboard = nullptr;
 	};
 }

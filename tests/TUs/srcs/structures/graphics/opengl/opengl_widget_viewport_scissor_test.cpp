@@ -31,12 +31,9 @@ namespace
 				sparkle_test::TestVertex{{1.0f, 1.0f}, p_color},
 				sparkle_test::TestVertex{{-1.0f, -1.0f}, p_color},
 				sparkle_test::TestVertex{{1.0f, 1.0f}, p_color},
-				sparkle_test::TestVertex{{-1.0f, 1.0f}, p_color}
-			};
+				sparkle_test::TestVertex{{-1.0f, 1.0f}, p_color}};
 
-			auto vertexBuffer = std::make_shared<VertexBufferObject>(
-				BufferObject::Usage::StaticDraw,
-				sizeof(vertices));
+			auto vertexBuffer = std::make_shared<VertexBufferObject>(BufferObject::Usage::StaticDraw, sizeof(vertices));
 			vertexBuffer->edit(vertices.data(), sizeof(vertices));
 
 			auto vertexArray = std::make_shared<VertexArrayObject>();
@@ -48,8 +45,7 @@ namespace
 					.componentType = GL_FLOAT,
 					.normalized = false,
 					.stride = sizeof(sparkle_test::TestVertex),
-					.offset = offsetof(sparkle_test::TestVertex, position)
-				});
+					.offset = offsetof(sparkle_test::TestVertex, position)});
 			vertexArray->addVertexBuffer(
 				vertexBuffer,
 				VertexArrayObject::Attribute{
@@ -58,8 +54,7 @@ namespace
 					.componentType = GL_FLOAT,
 					.normalized = false,
 					.stride = sizeof(sparkle_test::TestVertex),
-					.offset = offsetof(sparkle_test::TestVertex, color)
-				});
+					.offset = offsetof(sparkle_test::TestVertex, color)});
 			return vertexArray;
 		}
 
@@ -67,12 +62,7 @@ namespace
 		spk::RenderUnit _buildRenderUnit() const override
 		{
 			spk::RenderUnitBuilder builder;
-			builder.emplace<DrawArraysCommand>(
-				Primitive::Triangles,
-				_program,
-				_vertexArray,
-				0,
-				6);
+			builder.emplace<DrawArraysCommand>(Primitive::Triangles, _program, _vertexArray, 0, 6);
 			return builder.build();
 		}
 
@@ -115,11 +105,7 @@ namespace
 	};
 
 	void fillRect(
-		std::vector<unsigned char>& p_pixels,
-		int p_width,
-		int p_height,
-		const spk::Rect2D& p_rect,
-		const std::array<unsigned char, 4>& p_color)
+		std::vector<unsigned char>& p_pixels, int p_width, int p_height, const spk::Rect2D& p_rect, const std::array<unsigned char, 4>& p_color)
 	{
 		for (int y = p_rect.top(); y < p_rect.bottom(); ++y)
 		{
@@ -130,8 +116,7 @@ namespace
 					continue;
 				}
 
-				const std::size_t index =
-					(static_cast<std::size_t>(y) * static_cast<std::size_t>(p_width) + static_cast<std::size_t>(x)) * 4;
+				const std::size_t index = (static_cast<std::size_t>(y) * static_cast<std::size_t>(p_width) + static_cast<std::size_t>(x)) * 4;
 				p_pixels[index + 0] = p_color[0];
 				p_pixels[index + 1] = p_color[1];
 				p_pixels[index + 2] = p_color[2];
@@ -249,8 +234,7 @@ TEST(OpenGLWidgetViewportScissorTest, VisualHierarchyIsClippedByParentScissors)
 	writeHierarchyExpectedImage(expected, width, height);
 
 	const sparkle_test::ImageComparisonResult result = sparkle_test::compareImages(actual, expected, diff);
-	EXPECT_TRUE(result.matches)
-		<< "actual=[" << actual.string() << "] expected=[" << expected.string() << "] diff=[" << diff.string() << "]";
+	EXPECT_TRUE(result.matches) << "actual=[" << actual.string() << "] expected=[" << expected.string() << "] diff=[" << diff.string() << "]";
 	EXPECT_EQ(result.differentPixelCount, 0);
 }
 
@@ -285,8 +269,6 @@ TEST(OpenGLWidgetViewportScissorTest, VisualHierarchyUsesUpdatedAbsoluteGeometry
 	writeMovedHierarchyExpectedImage(expected, width, height);
 
 	const sparkle_test::ImageComparisonResult result = sparkle_test::compareImages(actual, expected, diff);
-	EXPECT_TRUE(result.matches)
-		<< "actual=[" << actual.string() << "] expected=[" << expected.string() << "] diff=[" << diff.string() << "]";
+	EXPECT_TRUE(result.matches) << "actual=[" << actual.string() << "] expected=[" << expected.string() << "] diff=[" << diff.string() << "]";
 	EXPECT_EQ(result.differentPixelCount, 0);
 }
-

@@ -14,13 +14,8 @@ namespace spk
 		std::optional<GLuint> _bindingPoint;
 
 	public:
-		explicit ShaderStorageBufferObject(
-			Usage p_usage = Usage::DynamicDraw,
-			std::size_t p_size = 0);
-		explicit ShaderStorageBufferObject(
-			GLuint p_bindingPoint,
-			Usage p_usage = Usage::DynamicDraw,
-			std::size_t p_size = 0);
+		explicit ShaderStorageBufferObject(Usage p_usage = Usage::DynamicDraw, std::size_t p_size = 0);
+		explicit ShaderStorageBufferObject(GLuint p_bindingPoint, Usage p_usage = Usage::DynamicDraw, std::size_t p_size = 0);
 
 		void setBindingPoint(GLuint p_bindingPoint);
 		void clearBindingPoint();

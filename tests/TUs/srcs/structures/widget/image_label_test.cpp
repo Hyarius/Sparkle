@@ -80,8 +80,7 @@ TEST(ImageLabelVisualTest, RendersEmptyWithNoTexture)
 
 	spk::ImageLabel label("Image");
 
-	const sparkle_test::ImageComparisonResult result =
-		spk::test::compareSnapshot(label, "ImageLabelVisual", "no_texture", captureRect);
+	const sparkle_test::ImageComparisonResult result = spk::test::compareSnapshot(label, "ImageLabelVisual", "no_texture", captureRect);
 
 	EXPECT_TRUE(result.matches);
 }
@@ -93,8 +92,7 @@ TEST(ImageLabelVisualTest, RendersFullSpriteSheet)
 	auto sheet = spk::WidgetStyle::makeDefault().nineSliceSpriteSheet();
 	spk::ImageLabel label("Image", sheet);
 
-	const sparkle_test::ImageComparisonResult result =
-		spk::test::compareSnapshot(label, "ImageLabelVisual", "full_sheet", captureRect);
+	const sparkle_test::ImageComparisonResult result = spk::test::compareSnapshot(label, "ImageLabelVisual", "full_sheet", captureRect);
 
 	EXPECT_TRUE(result.matches);
 }
@@ -107,8 +105,7 @@ TEST(ImageLabelVisualTest, RendersSingleSprite)
 	spk::ImageLabel label("Image", sheet);
 	label.setSection(sheet->sprite(spk::Vector2UInt{1, 1}));
 
-	const sparkle_test::ImageComparisonResult result =
-		spk::test::compareSnapshot(label, "ImageLabelVisual", "single_sprite_center", captureRect);
+	const sparkle_test::ImageComparisonResult result = spk::test::compareSnapshot(label, "ImageLabelVisual", "single_sprite_center", captureRect);
 
 	EXPECT_TRUE(result.matches);
 }

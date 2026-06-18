@@ -1,6 +1,5 @@
 #include "utils/spk_winapi_helpers.hpp"
 
-
 #include <vector>
 
 namespace spk
@@ -79,4 +78,3 @@ namespace spk
 		throw std::runtime_error(lastErrorMessage(p_context));
 	}
 }
-

@@ -1,6 +1,5 @@
 #include "structures/system/win32/spk_winapi_window.hpp"
 
-
 #include <stdexcept>
 #include <vector>
 
@@ -66,11 +65,7 @@ namespace spk
 		}
 
 		RECT nativeRect{
-			static_cast<LONG>(p_rect.left()),
-			static_cast<LONG>(p_rect.top()),
-			static_cast<LONG>(p_rect.right()),
-			static_cast<LONG>(p_rect.bottom())
-		};
+			static_cast<LONG>(p_rect.left()), static_cast<LONG>(p_rect.top()), static_cast<LONG>(p_rect.right()), static_cast<LONG>(p_rect.bottom())};
 		if (AdjustWindowRectEx(&nativeRect, p_style, FALSE, p_extendedStyle) == FALSE)
 		{
 			throwLastError("AdjustWindowRectEx");
@@ -180,11 +175,7 @@ namespace spk
 		}
 
 		RECT nativeRect{
-			static_cast<LONG>(p_rect.left()),
-			static_cast<LONG>(p_rect.top()),
-			static_cast<LONG>(p_rect.right()),
-			static_cast<LONG>(p_rect.bottom())
-		};
+			static_cast<LONG>(p_rect.left()), static_cast<LONG>(p_rect.top()), static_cast<LONG>(p_rect.right()), static_cast<LONG>(p_rect.bottom())};
 
 		const DWORD style = static_cast<DWORD>(GetWindowLongPtrW(_handle, GWL_STYLE));
 		const DWORD extendedStyle = static_cast<DWORD>(GetWindowLongPtrW(_handle, GWL_EXSTYLE));
@@ -253,7 +244,8 @@ namespace spk
 
 		POINT origin{0, 0};
 		ClientToScreen(_handle, &origin);
-		return spk::Rect2D(origin.x, origin.y, static_cast<std::size_t>(client.right - client.left), static_cast<std::size_t>(client.bottom - client.top));
+		return spk::Rect2D(
+			origin.x, origin.y, static_cast<std::size_t>(client.right - client.left), static_cast<std::size_t>(client.bottom - client.top));
 	}
 
 	std::string WindowRuntime::title() const
@@ -275,4 +267,3 @@ namespace spk
 		return _handle != nullptr && IsWindow(_handle) == TRUE;
 	}
 }
-

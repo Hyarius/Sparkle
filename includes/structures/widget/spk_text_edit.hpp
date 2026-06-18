@@ -83,10 +83,7 @@ namespace spk
 
 	public:
 		explicit TextEdit(const std::string& p_name, spk::Widget* p_parent = nullptr);
-		TextEdit(
-			const std::string& p_name,
-			const spk::WidgetStyle& p_style,
-			spk::Widget* p_parent = nullptr);
+		TextEdit(const std::string& p_name, const spk::WidgetStyle& p_style, spk::Widget* p_parent = nullptr);
 
 		void applyStyle(const spk::WidgetStyle& p_style) override;
 		void useDefaultStyle();

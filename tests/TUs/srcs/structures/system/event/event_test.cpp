@@ -63,13 +63,9 @@ TEST(EventViewTest, TimestampReturnsRecordTimestamp)
 
 TEST(EventViewTest, DifferentEventViewsAreNotConvertible)
 {
-	static_assert(std::is_constructible_v<
-				  spk::EventView<spk::MouseMovedRecord>,
-				  const spk::MouseMovedRecord&>);
+	static_assert(std::is_constructible_v<spk::EventView<spk::MouseMovedRecord>, const spk::MouseMovedRecord&>);
 
-	static_assert(!std::is_constructible_v<
-				  spk::EventView<spk::MouseMovedRecord>,
-				  spk::EventView<spk::KeyPressedRecord>&>);
+	static_assert(!std::is_constructible_v<spk::EventView<spk::MouseMovedRecord>, spk::EventView<spk::KeyPressedRecord>&>);
 }
 
 TEST(DeviceEventViewTest, ProvidesAccessToRecordAndDevice)

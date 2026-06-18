@@ -75,13 +75,7 @@ namespace spk
 
 	spk::OpenGL::Texture& Texture::gpu(const spk::RenderContext& p_context) const
 	{
-		return _gpu.resolve(
-			p_context,
-			_version,
-			[this]()
-			{
-				return std::make_unique<spk::OpenGL::Texture>(*this);
-			});
+		return _gpu.resolve(p_context, _version, [this]() { return std::make_unique<spk::OpenGL::Texture>(*this); });
 	}
 
 	bool Texture::hasGpu(const spk::RenderContext& p_context) const noexcept
@@ -212,12 +206,7 @@ namespace spk
 	}
 
 	void Texture::setPixels(
-		const std::vector<uint8_t>& p_data,
-		const spk::Vector2UInt& p_size,
-		Format p_format,
-		Filtering p_filtering,
-		Wrap p_wrap,
-		Mipmap p_mipmap)
+		const std::vector<uint8_t>& p_data, const spk::Vector2UInt& p_size, Format p_format, Filtering p_filtering, Wrap p_wrap, Mipmap p_mipmap)
 	{
 		_pixels = p_data;
 		_size = p_size;
@@ -239,12 +228,7 @@ namespace spk
 	}
 
 	void Texture::setPixels(
-		const uint8_t* p_data,
-		const spk::Vector2UInt& p_size,
-		Format p_format,
-		Filtering p_filtering,
-		Wrap p_wrap,
-		Mipmap p_mipmap)
+		const uint8_t* p_data, const spk::Vector2UInt& p_size, Format p_format, Filtering p_filtering, Wrap p_wrap, Mipmap p_mipmap)
 	{
 		_size = p_size;
 		_format = p_format;

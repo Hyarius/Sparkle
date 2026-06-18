@@ -29,13 +29,9 @@ namespace spk
 			}
 
 			_nbSprite = p_spriteCount;
-			_unit = spk::Vector2(1.0f, 1.0f) / spk::Vector2(
-				static_cast<float>(_nbSprite.x),
-				static_cast<float>(_nbSprite.y));
+			_unit = spk::Vector2(1.0f, 1.0f) / spk::Vector2(static_cast<float>(_nbSprite.x), static_cast<float>(_nbSprite.y));
 
-			const spk::Vector2 halfPixel = 0.5f / spk::Vector2(
-				static_cast<float>(size().x),
-				static_cast<float>(size().y));
+			const spk::Vector2 halfPixel = 0.5f / spk::Vector2(static_cast<float>(size().x), static_cast<float>(size().y));
 
 			_sprites.clear();
 
@@ -49,8 +45,7 @@ namespace spk
 				{
 					for (size_t x = 0; x < _nbSprite.x; ++x)
 					{
-						const spk::Vector2 anchor =
-							spk::Vector2(static_cast<float>(x), static_cast<float>(y)) * _unit;
+						const spk::Vector2 anchor = spk::Vector2(static_cast<float>(x), static_cast<float>(y)) * _unit;
 						_sprites.push_back({anchor + halfPixel, _unit - halfPixel});
 					}
 				}

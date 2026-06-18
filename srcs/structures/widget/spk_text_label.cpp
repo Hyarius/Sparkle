@@ -10,10 +10,7 @@ namespace
 {
 	[[nodiscard]] bool sameColor(const spk::Color& p_left, const spk::Color& p_right)
 	{
-		return p_left.r == p_right.r &&
-			p_left.g == p_right.g &&
-			p_left.b == p_right.b &&
-			p_left.a == p_right.a;
+		return p_left.r == p_right.r && p_left.g == p_right.g && p_left.b == p_right.b && p_left.a == p_right.a;
 	}
 }
 
@@ -24,10 +21,7 @@ namespace spk
 	{
 	}
 
-	TextLabel::TextLabel(
-		const std::string& p_name,
-		std::string_view p_text,
-		spk::Widget* p_parent) :
+	TextLabel::TextLabel(const std::string& p_name, std::string_view p_text, spk::Widget* p_parent) :
 		spk::Widget(p_name, p_parent),
 		_text(spk::Font::textFromUTF8(p_text))
 	{
@@ -36,11 +30,7 @@ namespace spk
 		activate();
 	}
 
-	TextLabel::TextLabel(
-		const std::string& p_name,
-		std::string_view p_text,
-		const spk::WidgetStyle& p_style,
-		spk::Widget* p_parent) :
+	TextLabel::TextLabel(const std::string& p_name, std::string_view p_text, const spk::WidgetStyle& p_style, spk::Widget* p_parent) :
 		spk::Widget(p_name, p_parent),
 		_text(spk::Font::textFromUTF8(p_text))
 	{
@@ -51,10 +41,7 @@ namespace spk
 
 	void TextLabel::_bindStyle(const spk::WidgetStyle& p_style)
 	{
-		_styleEditionContract = p_style.subscribeToEdition([this](const spk::WidgetStyle& p_editedStyle)
-		{
-			applyStyle(p_editedStyle);
-		});
+		_styleEditionContract = p_style.subscribeToEdition([this](const spk::WidgetStyle& p_editedStyle) { applyStyle(p_editedStyle); });
 	}
 
 	void TextLabel::applyStyle(const spk::WidgetStyle& p_style)
@@ -80,18 +67,20 @@ namespace spk
 
 	void TextLabel::_configureSizeHint()
 	{
-		sizeHint().configureMinimalGenerator([this]() {
-			spk::Vector2UInt result = {0, 0};
-
-			if (_font != nullptr && _text.empty() == false)
+		sizeHint().configureMinimalGenerator(
+			[this]()
 			{
-				const spk::Vector2UInt textSize = _font->computeStringSize(_text, _textSize);
-				result.x = textSize.x + static_cast<unsigned int>(_padding.x * 2);
-				result.y = textSize.y + static_cast<unsigned int>(_padding.y * 2);
-			}
+				spk::Vector2UInt result = {0, 0};
 
-			return result;
-		});
+				if (_font != nullptr && _text.empty() == false)
+				{
+					const spk::Vector2UInt textSize = _font->computeStringSize(_text, _textSize);
+					result.x = textSize.x + static_cast<unsigned int>(_padding.x * 2);
+					result.y = textSize.y + static_cast<unsigned int>(_padding.y * 2);
+				}
+
+				return result;
+			});
 	}
 
 	spk::Vector2Int TextLabel::_textAnchor() const
@@ -128,15 +117,7 @@ namespace spk
 		if (_font != nullptr && _text.empty() == false && geometry().empty() == false)
 		{
 			builder.emplace<spk::TextRenderCommand>(
-				*_font,
-				_text,
-				_textSize,
-				_glyphColor,
-				_outlineColor,
-				_depth,
-				_textAnchor(),
-				_horizontalAlignment,
-				_verticalAlignment);
+				*_font, _text, _textSize, _glyphColor, _outlineColor, _depth, _textAnchor(), _horizontalAlignment, _verticalAlignment);
 		}
 
 		return builder.build();
@@ -235,9 +216,7 @@ namespace spk
 		invalidateRenderUnit();
 	}
 
-	void TextLabel::setAlignment(
-		spk::HorizontalAlignment p_horizontalAlignment,
-		spk::VerticalAlignment p_verticalAlignment)
+	void TextLabel::setAlignment(spk::HorizontalAlignment p_horizontalAlignment, spk::VerticalAlignment p_verticalAlignment)
 	{
 		if (_horizontalAlignment == p_horizontalAlignment && _verticalAlignment == p_verticalAlignment)
 		{

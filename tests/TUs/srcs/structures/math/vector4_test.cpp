@@ -94,11 +94,14 @@ TEST(Vector4GeometryTest, SupportsGeometryHelpers)
 
 TEST(Vector4UtilityTest, SupportsLerpMinMaxClampBetweenAndConversion)
 {
-	EXPECT_EQ(spk::Vector4::lerp(spk::Vector4(0.0f, 0.0f, 0.0f, 0.0f), spk::Vector4(10.0f, 20.0f, 30.0f, 40.0f), 0.5f), spk::Vector4(5.0f, 10.0f, 15.0f, 20.0f));
+	EXPECT_EQ(
+		spk::Vector4::lerp(spk::Vector4(0.0f, 0.0f, 0.0f, 0.0f), spk::Vector4(10.0f, 20.0f, 30.0f, 40.0f), 0.5f),
+		spk::Vector4(5.0f, 10.0f, 15.0f, 20.0f));
 	EXPECT_EQ(spk::Vector4Int::min(spk::Vector4Int(5, 2, 9, 8), spk::Vector4Int(3, 4, 1, 10)), spk::Vector4Int(3, 2, 1, 8));
 	EXPECT_EQ(spk::Vector4Int::max({spk::Vector4Int(5, 2, 9, 8), spk::Vector4Int(3, 4, 1, 10)}), spk::Vector4Int(5, 4, 9, 10));
 	EXPECT_THROW(static_cast<void>(spk::Vector4Int::max({})), std::invalid_argument);
-	EXPECT_EQ(spk::Vector4Int::clamp(spk::Vector4Int(5, -2, 3, 4), spk::Vector4Int(0, 0, 0, 0), spk::Vector4Int(2, 2, 2, 2)), spk::Vector4Int(2, 0, 2, 2));
+	EXPECT_EQ(
+		spk::Vector4Int::clamp(spk::Vector4Int(5, -2, 3, 4), spk::Vector4Int(0, 0, 0, 0), spk::Vector4Int(2, 2, 2, 2)), spk::Vector4Int(2, 0, 2, 2));
 	EXPECT_TRUE(spk::Vector4Int::isBetween(spk::Vector4Int(1, 2, 3, 4), spk::Vector4Int(0, 0, 0, 0), spk::Vector4Int(4, 4, 4, 4)));
 
 	const spk::IVector4<float> converted = static_cast<spk::IVector4<float>>(spk::Vector4Int(1, 2, 3, 4));

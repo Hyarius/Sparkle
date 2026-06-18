@@ -28,9 +28,7 @@ namespace spk
 
 		if (_ownerThreadID != currentThreadID)
 		{
-			throw std::runtime_error(
-				"Application::" + std::string(p_operation) +
-				" must be called from the application construction thread");
+			throw std::runtime_error("Application::" + std::string(p_operation) + " must be called from the application construction thread");
 		}
 	}
 
@@ -71,8 +69,7 @@ namespace spk
 
 			if (windows.empty() == true)
 			{
-				if (_shutdownRequested.load() == true ||
-					_configuration.stopWhenNoWindows == true)
+				if (_shutdownRequested.load() == true || _configuration.stopWhenNoWindows == true)
 				{
 					return;
 				}
@@ -85,7 +82,7 @@ namespace spk
 					{
 						return;
 					}
-					
+
 					std::shared_ptr<spk::Window> window = windowHandle.lock();
 					if (window != nullptr)
 					{
@@ -115,8 +112,7 @@ namespace spk
 
 			if (windows.empty() == true)
 			{
-				if (_shutdownRequested.load() == true ||
-					_configuration.stopWhenNoWindows == true)
+				if (_shutdownRequested.load() == true || _configuration.stopWhenNoWindows == true)
 				{
 					return;
 				}
@@ -135,7 +131,7 @@ namespace spk
 					{
 						window->update();
 					}
-				}	
+				}
 			}
 
 			const spk::Duration elapsedTime = chronometer.elapsedTime();
@@ -167,8 +163,7 @@ namespace spk
 
 			if (_windowRegistry.size() == 0)
 			{
-				if (_shutdownRequested.load() == true ||
-					_configuration.stopWhenNoWindows == true)
+				if (_shutdownRequested.load() == true || _configuration.stopWhenNoWindows == true)
 				{
 					return;
 				}
@@ -191,8 +186,7 @@ namespace spk
 
 			_windowRegistry.removeClosedWindows();
 
-			if (_windowRegistry.size() == 0 &&
-				(_shutdownRequested.load() == true || _configuration.stopWhenNoWindows == true))
+			if (_windowRegistry.size() == 0 && (_shutdownRequested.load() == true || _configuration.stopWhenNoWindows == true))
 			{
 				return;
 			}
@@ -292,37 +286,36 @@ namespace spk
 		_exitCode.store(0);
 		_rethrowFailureIfAny();
 
-		std::jthread renderThread([this]()
-		{
-			try
+		std::jthread renderThread(
+			[this]()
 			{
-				_runRenderLoop();
-			}
-			catch (...)
-			{
-				_recordFailure(std::current_exception());
-				_stopRequested.store(true);
-			}
-		});
+				try
+				{
+					_runRenderLoop();
+				} catch (...)
+				{
+					_recordFailure(std::current_exception());
+					_stopRequested.store(true);
+				}
+			});
 
-		std::jthread updateThread([this]()
-		{
-			try
+		std::jthread updateThread(
+			[this]()
 			{
-				_runUpdateLoop();
-			}
-			catch (...)
-			{
-				_recordFailure(std::current_exception());
-				_stopRequested.store(true);
-			}
-		});
+				try
+				{
+					_runUpdateLoop();
+				} catch (...)
+				{
+					_recordFailure(std::current_exception());
+					_stopRequested.store(true);
+				}
+			});
 
 		try
 		{
 			_runEventLoop();
-		}
-		catch (...)
+		} catch (...)
 		{
 			_recordFailure(std::current_exception());
 			_stopRequested.store(true);

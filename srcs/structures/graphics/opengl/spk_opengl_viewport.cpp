@@ -17,25 +17,13 @@ namespace spk
 		}
 
 		const spk::Rect2D& geometry = p_viewport.geometry();
-		const GLint viewportGLY = static_cast<GLint>(windowSize.y)
-			- geometry.y()
-			- static_cast<GLint>(geometry.height());
+		const GLint viewportGLY = static_cast<GLint>(windowSize.y) - geometry.y() - static_cast<GLint>(geometry.height());
 
-		glViewport(
-			static_cast<GLint>(geometry.x()),
-			viewportGLY,
-			static_cast<GLsizei>(geometry.width()),
-			static_cast<GLsizei>(geometry.height()));
+		glViewport(static_cast<GLint>(geometry.x()), viewportGLY, static_cast<GLsizei>(geometry.width()), static_cast<GLsizei>(geometry.height()));
 
 		const spk::Rect2D& scissor = p_viewport.scissor();
-		const GLint scissorGLY = static_cast<GLint>(windowSize.y)
-			- scissor.y()
-			- static_cast<GLint>(scissor.height());
+		const GLint scissorGLY = static_cast<GLint>(windowSize.y) - scissor.y() - static_cast<GLint>(scissor.height());
 
-		glScissor(
-			static_cast<GLint>(scissor.x()),
-			scissorGLY,
-			static_cast<GLsizei>(scissor.width()),
-			static_cast<GLsizei>(scissor.height()));
+		glScissor(static_cast<GLint>(scissor.x()), scissorGLY, static_cast<GLsizei>(scissor.width()), static_cast<GLsizei>(scissor.height()));
 	}
 }

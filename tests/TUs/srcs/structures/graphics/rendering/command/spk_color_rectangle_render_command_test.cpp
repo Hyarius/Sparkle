@@ -1,6 +1,5 @@
 #include <gtest/gtest.h>
 
-
 #include <array>
 #include <cstddef>
 #include <filesystem>
@@ -30,10 +29,7 @@ TEST(ColorRectangleRenderCommandTest, DrawsFullScreenRect)
 	spk::RenderUnitBuilder builder;
 	builder.emplace<spk::ViewportCommand>(viewport);
 	builder.emplace<ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
-	builder.emplace<spk::ColorRectangleRenderCommand>(
-		spk::Rect2D(0, 0, width, height),
-		spk::Color(1.0f, 0.0f, 0.0f),
-		0.0f);
+	builder.emplace<spk::ColorRectangleRenderCommand>(spk::Rect2D(0, 0, width, height), spk::Color(1.0f, 0.0f, 0.0f), 0.0f);
 
 	builder.build().execute(renderContext);
 	context.gpuRuntime().waitUntilWorkDone();
@@ -57,10 +53,7 @@ TEST(ColorRectangleRenderCommandTest, DrawsPartialRect)
 	spk::RenderUnitBuilder builder;
 	builder.emplace<spk::ViewportCommand>(viewport);
 	builder.emplace<ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
-	builder.emplace<spk::ColorRectangleRenderCommand>(
-		spk::Rect2D(0, 0, width / 2, height),
-		spk::Color(0.0f, 1.0f, 0.0f),
-		0.0f);
+	builder.emplace<spk::ColorRectangleRenderCommand>(spk::Rect2D(0, 0, width / 2, height), spk::Color(0.0f, 1.0f, 0.0f), 0.0f);
 
 	builder.build().execute(renderContext);
 	context.gpuRuntime().waitUntilWorkDone();
@@ -78,9 +71,7 @@ TEST(ColorRectangleRenderCommandTest, ConstructsWithoutValidViewport)
 	sparkle_test::OpenGLTestContext context(spk::Rect2D(0, 0, 32, 32));
 	glViewport(0, 0, 0, 0);
 
-	EXPECT_NO_THROW({
-		spk::ColorRectangleRenderCommand command(spk::Rect2D(0, 0, 8, 8), spk::Color(1.0f, 0.0f, 0.0f));
-	});
+	EXPECT_NO_THROW({ spk::ColorRectangleRenderCommand command(spk::Rect2D(0, 0, 8, 8), spk::Color(1.0f, 0.0f, 0.0f)); });
 }
 
 TEST(ColorRectangleRenderCommandTest, CanExecuteTwiceWithConstructedMesh)
@@ -106,4 +97,3 @@ TEST(ColorRectangleRenderCommandTest, CanExecuteTwiceWithConstructedMesh)
 		sparkle_test::renderCommandExpectedPath("ColorRectangleRenderCommand/twice_expected"),
 		sparkle_test::renderCommandResultPath("ColorRectangleRenderCommand/twice_diff"));
 }
-

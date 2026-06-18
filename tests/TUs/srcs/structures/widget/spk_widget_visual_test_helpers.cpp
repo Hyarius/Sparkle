@@ -61,18 +61,14 @@ namespace
 			.actualHeight = static_cast<int>(p_captureRect.height()),
 			.expectedWidth = 0,
 			.expectedHeight = 0,
-			.differentPixelCount = static_cast<std::size_t>(p_captureRect.width()) * static_cast<std::size_t>(p_captureRect.height())
-		};
+			.differentPixelCount = static_cast<std::size_t>(p_captureRect.width()) * static_cast<std::size_t>(p_captureRect.height())};
 	}
 }
 
 namespace spk::test
 {
 	sparkle_test::ImageComparisonResult compareSnapshot(
-		spk::Widget& p_widget,
-		const std::string& p_widgetName,
-		const std::string& p_variant,
-		const spk::Rect2D& p_captureRect)
+		spk::Widget& p_widget, const std::string& p_widgetName, const std::string& p_variant, const spk::Rect2D& p_captureRect)
 	{
 		sparkle_test::OpenGLTestContext context(p_captureRect);
 
@@ -129,8 +125,7 @@ namespace spk::test
 		if (result.matches == false)
 		{
 			ADD_FAILURE() << "Visual mismatch for " << p_widgetName << " (" << p_variant << ")"
-						  << ". Diff: " << diffPath.string()
-						  << ", actual: " << actualPath.string();
+						  << ". Diff: " << diffPath.string() << ", actual: " << actualPath.string();
 		}
 
 		return result;

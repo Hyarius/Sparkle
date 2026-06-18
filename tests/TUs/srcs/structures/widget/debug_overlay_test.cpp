@@ -161,8 +161,7 @@ TEST(DebugOverlayVisualTest, RendersSingleCell)
 	overlay.configureRows(1, 1);
 	overlay.setText(0, 0, "FPS: 60");
 
-	const sparkle_test::ImageComparisonResult result =
-		spk::test::compareSnapshot(overlay, "DebugOverlayVisual", "single_cell", captureRect);
+	const sparkle_test::ImageComparisonResult result = spk::test::compareSnapshot(overlay, "DebugOverlayVisual", "single_cell", captureRect);
 
 	EXPECT_TRUE(result.matches);
 }
@@ -178,8 +177,7 @@ TEST(DebugOverlayVisualTest, RendersGrid)
 	overlay.setText(1, 0, "Mem: 256MB");
 	overlay.setText(1, 1, "GPU: 45%");
 
-	const sparkle_test::ImageComparisonResult result =
-		spk::test::compareSnapshot(overlay, "DebugOverlayVisual", "two_by_two_grid", captureRect);
+	const sparkle_test::ImageComparisonResult result = spk::test::compareSnapshot(overlay, "DebugOverlayVisual", "two_by_two_grid", captureRect);
 
 	EXPECT_TRUE(result.matches);
 }
@@ -193,8 +191,7 @@ TEST(DebugOverlayVisualTest, RendersWithCustomColor)
 	overlay.setFontColor(spk::Color(1.0f, 1.0f, 0.0f, 1.0f), spk::Color(0.5f, 0.0f, 0.0f, 1.0f));
 	overlay.setText(0, 0, "Warning!");
 
-	const sparkle_test::ImageComparisonResult result =
-		spk::test::compareSnapshot(overlay, "DebugOverlayVisual", "yellow_text", captureRect);
+	const sparkle_test::ImageComparisonResult result = spk::test::compareSnapshot(overlay, "DebugOverlayVisual", "yellow_text", captureRect);
 
 	EXPECT_TRUE(result.matches);
 }

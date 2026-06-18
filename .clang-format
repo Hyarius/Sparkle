@@ -1,0 +1,48 @@
+BasedOnStyle: LLVM
+NamespaceIndentation: All
+IndentWidth: 4
+TabWidth: 4
+UseTab: Always
+
+# --- Function signatures ---
+# Keep return type + name on the SAME line, no matter what.
+AlwaysBreakAfterReturnType: None
+AlwaysBreakAfterDefinitionReturnType: None
+PenaltyReturnTypeOnItsOwnLine: 1000000
+
+# Put '(' on the same line as the name, then break after it,
+# one parameter per line.
+AlignAfterOpenBracket: AlwaysBreak
+BinPackParameters: false
+BinPackArguments: false
+AllowAllParametersOfDeclarationOnNextLine: true
+PenaltyBreakBeforeFirstCallParameter: 0
+
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterCaseLabel: true
+  AfterClass: true
+  AfterControlStatement: true
+  AfterEnum: true
+  AfterFunction: true
+  AfterNamespace: true
+  AfterStruct: true
+  BeforeElse: true
+  BeforeLambdaBody: true
+
+BreakConstructorInitializers: AfterColon
+PackConstructorInitializers: Never
+ColumnLimit: 150
+AllowShortFunctionsOnASingleLine: Empty
+ContinuationIndentWidth: 4
+FixNamespaceComments: false
+AccessModifierOffset: -4
+BreakTemplateDeclarations: Yes
+InsertBraces: true           # remove if your clang-format errors on this (older versions)
+AllowShortEnumsOnASingleLine: false
+IndentPPDirectives: AfterHash
+PointerAlignment: Left
+ReferenceAlignment: Left
+SortIncludes: Never
+RequiresClausePosition: OwnLine
+SpaceBeforeParens: ControlStatements

@@ -44,8 +44,7 @@ TEST(MenuBarTest, ClickingMenuButtonTogglesMenu)
 
 	const spk::Rect2D buttonRect = menuBar.menuButton(0)->viewport().geometry();
 	const spk::Vector2Int clickPosition = {
-		buttonRect.x() + static_cast<int>(buttonRect.width() / 2),
-		buttonRect.y() + static_cast<int>(buttonRect.height() / 2)};
+		buttonRect.x() + static_cast<int>(buttonRect.width() / 2), buttonRect.y() + static_cast<int>(buttonRect.height() / 2)};
 
 	spk::MouseModule mouseModule;
 	mouseModule.bind(&menuBar);
@@ -69,9 +68,7 @@ TEST(MenuBarTest, ItemClickTriggersCallbackAndClosesMenu)
 	menuBar.setGeometry(spk::Rect2D(0, 0, 400, 300));
 
 	const spk::Rect2D itemRect = item->viewport().geometry();
-	const spk::Vector2Int clickPosition = {
-		itemRect.x() + 2,
-		itemRect.y() + static_cast<int>(itemRect.height() / 2)};
+	const spk::Vector2Int clickPosition = {itemRect.x() + 2, itemRect.y() + static_cast<int>(itemRect.height() / 2)};
 
 	spk::MouseModule mouseModule;
 	mouseModule.bind(&menuBar);
@@ -144,8 +141,7 @@ TEST(MenuBarTest, ClickingMenuButtonWithNoItemsDoesNotOpenMenu)
 
 	const spk::Rect2D buttonRect = menuBar.menuButton(0)->viewport().geometry();
 	const spk::Vector2Int clickPos = {
-		buttonRect.x() + static_cast<int>(buttonRect.width() / 2),
-		buttonRect.y() + static_cast<int>(buttonRect.height() / 2)};
+		buttonRect.x() + static_cast<int>(buttonRect.width() / 2), buttonRect.y() + static_cast<int>(buttonRect.height() / 2)};
 
 	spk::MouseModule mouseModule;
 	mouseModule.bind(&menuBar);
@@ -212,9 +208,7 @@ TEST(MenuBarTest, AddItemWithNullCallbackDoesNotCrashOnClick)
 	menuBar.setGeometry(spk::Rect2D(0, 0, 400, 300));
 
 	const spk::Rect2D itemRect = item->viewport().geometry();
-	const spk::Vector2Int clickPos = {
-		itemRect.x() + 2,
-		itemRect.y() + static_cast<int>(itemRect.height() / 2)};
+	const spk::Vector2Int clickPos = {itemRect.x() + 2, itemRect.y() + static_cast<int>(itemRect.height() / 2)};
 
 	spk::MouseModule mouseModule;
 	mouseModule.bind(&menuBar);
@@ -232,8 +226,7 @@ TEST(MenuBarVisualTest, RendersBareBar)
 
 	spk::MenuBar bar("MenuBar");
 
-	const sparkle_test::ImageComparisonResult result =
-		spk::test::compareSnapshot(bar, "MenuBarVisual", "bare", captureRect);
+	const sparkle_test::ImageComparisonResult result = spk::test::compareSnapshot(bar, "MenuBarVisual", "bare", captureRect);
 
 	EXPECT_TRUE(result.matches);
 }
@@ -247,8 +240,7 @@ TEST(MenuBarVisualTest, RendersWithMenuButtons)
 	bar.addMenu("Edit");
 	bar.addMenu("View");
 
-	const sparkle_test::ImageComparisonResult result =
-		spk::test::compareSnapshot(bar, "MenuBarVisual", "three_menus", captureRect);
+	const sparkle_test::ImageComparisonResult result = spk::test::compareSnapshot(bar, "MenuBarVisual", "three_menus", captureRect);
 
 	EXPECT_TRUE(result.matches);
 }
@@ -266,8 +258,7 @@ TEST(MenuBarVisualTest, RendersOpenMenu)
 	menu->activate();
 	bar.setGeometry(captureRect.atOrigin());
 
-	const sparkle_test::ImageComparisonResult result =
-		spk::test::compareSnapshot(bar, "MenuBarVisual", "open_menu", captureRect);
+	const sparkle_test::ImageComparisonResult result = spk::test::compareSnapshot(bar, "MenuBarVisual", "open_menu", captureRect);
 
 	EXPECT_TRUE(result.matches);
 }

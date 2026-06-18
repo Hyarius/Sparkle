@@ -1,6 +1,5 @@
 #include "structures/system/win32/spk_winapi_platform_runtime.hpp"
 
-
 #include "structures/system/win32/spk_winapi_frame.hpp"
 #include "structures/system/win32/spk_winapi_window.hpp"
 
@@ -29,4 +28,3 @@ namespace spk
 		}
 	}
 }
-

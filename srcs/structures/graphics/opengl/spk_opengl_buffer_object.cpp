@@ -71,21 +71,14 @@ namespace spk
 					_cpuBuffer.empty() == true ? nullptr : _cpuBuffer.data(),
 					_cpuBuffer.size());
 			},
-			[this](spk::OpenGL::Buffer& p_buffer)
-			{
-				p_buffer.upload(
-					_cpuBuffer.empty() == true ? nullptr : _cpuBuffer.data(),
-					_cpuBuffer.size());
-			});
+			[this](spk::OpenGL::Buffer& p_buffer) { p_buffer.upload(_cpuBuffer.empty() == true ? nullptr : _cpuBuffer.data(), _cpuBuffer.size()); });
 	}
 
 	bool BufferObject::hasGpu(const spk::RenderContext& p_context) const noexcept
 	{
 		std::scoped_lock lock(_mutex);
 		const spk::OpenGL::Buffer* object = _gpu.find(p_context);
-		return object != nullptr &&
-			   object->version() == _structureVersion &&
-			   object->contentVersion() == _contentVersion;
+		return object != nullptr && object->version() == _structureVersion && object->contentVersion() == _contentVersion;
 	}
 
 	void BufferObject::resize(std::size_t p_size)

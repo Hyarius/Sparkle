@@ -12,9 +12,7 @@ TEST(SizeHintTest, DefaultsToZeroMinimalAndUnboundedMaximal)
 
 	EXPECT_EQ(widget.sizeHint().minimal(), spk::Vector2UInt(0, 0));
 	EXPECT_EQ(widget.sizeHint().desired(), spk::Vector2UInt(0, 0));
-	EXPECT_EQ(
-		widget.sizeHint().maximal(),
-		spk::Vector2UInt(std::numeric_limits<uint32_t>::max(), std::numeric_limits<uint32_t>::max()));
+	EXPECT_EQ(widget.sizeHint().maximal(), spk::Vector2UInt(std::numeric_limits<uint32_t>::max(), std::numeric_limits<uint32_t>::max()));
 }
 
 TEST(SizeHintTest, SetValuesActAsConstantGenerators)
@@ -41,10 +39,12 @@ TEST(SizeHintTest, GeneratorIsCachedUntilRelease)
 	spk::Widget widget("Widget");
 
 	int callCount = 0;
-	widget.sizeHint().configureMinimalGenerator([&callCount]() {
-		++callCount;
-		return spk::Vector2UInt(static_cast<unsigned int>(callCount), 0);
-	});
+	widget.sizeHint().configureMinimalGenerator(
+		[&callCount]()
+		{
+			++callCount;
+			return spk::Vector2UInt(static_cast<unsigned int>(callCount), 0);
+		});
 
 	EXPECT_EQ(widget.sizeHint().minimal(), spk::Vector2UInt(1, 0));
 	EXPECT_EQ(widget.sizeHint().minimal(), spk::Vector2UInt(1, 0));
@@ -88,10 +88,12 @@ TEST(SizeHintTest, ChildEditionReleasesParentCachedHints)
 	spk::TextLabel child("Child", "Hi", &parent);
 
 	int callCount = 0;
-	parent.sizeHint().configureMinimalGenerator([&callCount, &child]() {
-		++callCount;
-		return child.minimalSize();
-	});
+	parent.sizeHint().configureMinimalGenerator(
+		[&callCount, &child]()
+		{
+			++callCount;
+			return child.minimalSize();
+		});
 
 	const spk::Vector2UInt firstSize = parent.sizeHint().minimal();
 	EXPECT_EQ(callCount, 1);

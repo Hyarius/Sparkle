@@ -23,9 +23,7 @@ namespace
 
 	[[nodiscard]] uint32_t safeAdd(uint32_t p_left, uint32_t p_right)
 	{
-		return (p_left > std::numeric_limits<uint32_t>::max() - p_right)
-			? std::numeric_limits<uint32_t>::max()
-			: p_left + p_right;
+		return (p_left > std::numeric_limits<uint32_t>::max() - p_right) ? std::numeric_limits<uint32_t>::max() : p_left + p_right;
 	}
 }
 
@@ -38,8 +36,7 @@ namespace spk
 		_maximizeButton(p_name + "::maximizeButton", this),
 		_closeButton(p_name + "::closeButton", this)
 	{
-		_titleLabel.useStyle(spk::WidgetStyle::Collection::style(
-			spk::WidgetStyle::Collection::DefaultInterfaceWindowTitle));
+		_titleLabel.useStyle(spk::WidgetStyle::Collection::style(spk::WidgetStyle::Collection::DefaultInterfaceWindowTitle));
 		_titleLabel.setAlignment(spk::HorizontalAlignment::Left, spk::VerticalAlignment::Centered);
 
 		_minimizeButton.setIcon(defaultIconset(), MinimizeIconID);
@@ -59,35 +56,36 @@ namespace spk
 		_closeButton.releasedBackground().setCornerSize(TitleButtonCornerSize);
 		_closeButton.pressedBackground().setCornerSize(TitleButtonCornerSize);
 
-		sizeHint().configureMinimalGenerator([this]() {
-			const spk::Vector2UInt titleSize = _titleLabel.minimalSize();
-			const unsigned int buttonSize = _minimumControlButtonSize();
+		sizeHint().configureMinimalGenerator(
+			[this]()
+			{
+				const spk::Vector2UInt titleSize = _titleLabel.minimalSize();
+				const unsigned int buttonSize = _minimumControlButtonSize();
 
-			return spk::Vector2UInt(
-				titleSize.x + buttonSize * 3 + static_cast<unsigned int>(Margin) * 5,
-				std::max(titleSize.y, buttonSize + static_cast<unsigned int>(Margin) * 2));
-		});
+				return spk::Vector2UInt(
+					titleSize.x + buttonSize * 3 + static_cast<unsigned int>(Margin) * 5,
+					std::max(titleSize.y, buttonSize + static_cast<unsigned int>(Margin) * 2));
+			});
 
 		activate();
 	}
 
 	unsigned int IInterfaceWindow::MenuBar::_minimumControlButtonSize() const
 	{
-		return std::max({
-			1u,
-			_minimizeButton.minimalSize().x,
-			_minimizeButton.minimalSize().y,
-			_maximizeButton.minimalSize().x,
-			_maximizeButton.minimalSize().y,
-			_closeButton.minimalSize().x,
-			_closeButton.minimalSize().y});
+		return std::max(
+			{1u,
+			 _minimizeButton.minimalSize().x,
+			 _minimizeButton.minimalSize().y,
+			 _maximizeButton.minimalSize().x,
+			 _maximizeButton.minimalSize().y,
+			 _closeButton.minimalSize().x,
+			 _closeButton.minimalSize().y});
 	}
 
 	unsigned int IInterfaceWindow::MenuBar::_controlButtonSize() const
 	{
 		const unsigned int height = geometry().height();
-		const unsigned int availableSize =
-			(height > static_cast<unsigned int>(Margin * 2)) ? height - Margin * 2 : height;
+		const unsigned int availableSize = (height > static_cast<unsigned int>(Margin * 2)) ? height - Margin * 2 : height;
 		return std::max(_minimumControlButtonSize(), availableSize);
 	}
 
@@ -96,9 +94,7 @@ namespace spk
 		const unsigned int buttonSize = _controlButtonSize();
 
 		const int activeCount =
-			(_minimizeButton.isActivated() ? 1 : 0) +
-			(_maximizeButton.isActivated() ? 1 : 0) +
-			(_closeButton.isActivated() ? 1 : 0);
+			(_minimizeButton.isActivated() ? 1 : 0) + (_maximizeButton.isActivated() ? 1 : 0) + (_closeButton.isActivated() ? 1 : 0);
 
 		const int usedWidth = activeCount * static_cast<int>(buttonSize) + (activeCount + 1) * Margin;
 		const int titleWidth = std::max(0, static_cast<int>(geometry().width()) - usedWidth - Margin);
@@ -197,28 +193,17 @@ namespace spk
 
 	IInterfaceWindow::IInterfaceWindow(const std::string& p_name, spk::Widget* p_parent) :
 		spk::ScalableWidget(p_name, p_parent),
-		_backgroundFrame(
-			p_name + "::backgroundFrame",
-			spk::WidgetStyle::Collection::style(spk::WidgetStyle::Collection::DefaultDark),
-			this),
+		_backgroundFrame(p_name + "::backgroundFrame", spk::WidgetStyle::Collection::style(spk::WidgetStyle::Collection::DefaultDark), this),
 		_minimizedBackgroundFrame(
-			p_name + "::minimizedBackgroundFrame",
-			spk::WidgetStyle::Collection::style(spk::WidgetStyle::Collection::DefaultDark),
-			this),
+			p_name + "::minimizedBackgroundFrame", spk::WidgetStyle::Collection::style(spk::WidgetStyle::Collection::DefaultDark), this),
 		_menuBar(p_name + "::menuBar", this)
 	{
 		_minimizedBackgroundFrame.deactivate();
 		_menuBar.titleLabel().setText(p_name);
 
-		_minimizeContract = _menuBar._minimizeButton.subscribeToClick([this]()
-		{
-			minimize();
-		});
+		_minimizeContract = _menuBar._minimizeButton.subscribeToClick([this]() { minimize(); });
 
-		_maximizeContract = _menuBar._maximizeButton.subscribeToClick([this]()
-		{
-			maximize();
-		});
+		_maximizeContract = _menuBar._maximizeButton.subscribeToClick([this]() { maximize(); });
 
 		activate();
 	}
@@ -289,9 +274,7 @@ namespace spk
 
 		if (_content != nullptr)
 		{
-			_content->setGeometry(spk::Rect2D(
-				{static_cast<int>(padding.left), static_cast<int>(menuHeight + padding.top)},
-				frameSize));
+			_content->setGeometry(spk::Rect2D({static_cast<int>(padding.left), static_cast<int>(menuHeight + padding.top)}, frameSize));
 		}
 	}
 
@@ -317,8 +300,7 @@ namespace spk
 			return;
 		}
 
-		if (p_event->button == spk::Mouse::Left &&
-			_menuBar.titleLabel().viewport().geometry().contains(p_event.device().position) == true)
+		if (p_event->button == spk::Mouse::Left && _menuBar.titleLabel().viewport().geometry().contains(p_event.device().position) == true)
 		{
 			_isMoving = true;
 			_moveOrigin = p_event.device().position - geometry().anchor;

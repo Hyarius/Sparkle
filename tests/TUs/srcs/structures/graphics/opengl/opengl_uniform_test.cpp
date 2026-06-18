@@ -4,7 +4,6 @@
 #include "structures/graphics/spk_uniform.hpp"
 #include "structures/graphics/spk_program.hpp"
 
-
 namespace
 {
 	std::shared_ptr<spk::Program> makeUniformProgram()
@@ -105,8 +104,7 @@ TEST(OpenGLUniformTest, ScalarUniformsActivateAndStoreValues)
 	uUVec4 = {1u, 2u, 3u, 4u};
 	uMat2 = {1.0f, 0.0f, 0.0f, 1.0f};
 	uMat3 = {1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f};
-	uMat4 = {1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
-		0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f};
+	uMat4 = {1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f};
 
 	uFloat.activate();
 	uBool.activate();
@@ -172,10 +170,8 @@ TEST(OpenGLUniformTest, ArrayUniformsActivateFromVectorAndInitializerList)
 		std::array<float, 9>{1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f},
 		std::array<float, 9>{2.0f, 0.0f, 0.0f, 0.0f, 2.0f, 0.0f, 0.0f, 0.0f, 2.0f}};
 	aMat4 = {
-		std::array<float, 16>{1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
-			0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f},
-		std::array<float, 16>{2.0f, 0.0f, 0.0f, 0.0f, 0.0f, 2.0f, 0.0f, 0.0f,
-			0.0f, 0.0f, 2.0f, 0.0f, 0.0f, 0.0f, 0.0f, 2.0f}};
+		std::array<float, 16>{1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f},
+		std::array<float, 16>{2.0f, 0.0f, 0.0f, 0.0f, 0.0f, 2.0f, 0.0f, 0.0f, 0.0f, 0.0f, 2.0f, 0.0f, 0.0f, 0.0f, 0.0f, 2.0f}};
 
 	aFloat.activate();
 	aBool.activate();
@@ -223,4 +219,3 @@ TEST(OpenGLUniformTest, ValidationErrorsAreReported)
 	spk::FloatArrayUniform tooLarge("aFloat", *program, 3);
 	EXPECT_THROW(tooLarge.activate(), std::runtime_error);
 }
-

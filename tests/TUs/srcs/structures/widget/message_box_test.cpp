@@ -76,8 +76,7 @@ TEST(InformationMessageBoxTest, HasCloseButtonThatDeactivates)
 
 	const spk::Rect2D buttonRect = messageBox.button()->viewport().geometry();
 	const spk::Vector2Int clickPosition = {
-		buttonRect.x() + static_cast<int>(buttonRect.width() / 2),
-		buttonRect.y() + static_cast<int>(buttonRect.height() / 2)};
+		buttonRect.x() + static_cast<int>(buttonRect.width() / 2), buttonRect.y() + static_cast<int>(buttonRect.height() / 2)};
 
 	spk::MouseModule mouseModule;
 	mouseModule.bind(&messageBox);
@@ -97,19 +96,14 @@ TEST(RequestMessageBoxTest, ConfigureSetsCaptionsAndActions)
 
 	int acceptCount = 0;
 	int declineCount = 0;
-	messageBox.configure(
-		"Accept",
-		[&acceptCount]() { ++acceptCount; },
-		"Decline",
-		[&declineCount]() { ++declineCount; });
+	messageBox.configure("Accept", [&acceptCount]() { ++acceptCount; }, "Decline", [&declineCount]() { ++declineCount; });
 
 	EXPECT_EQ(messageBox.firstButton()->releasedLabel().text(), spk::Font::textFromUTF8("Accept"));
 	EXPECT_EQ(messageBox.secondButton()->releasedLabel().text(), spk::Font::textFromUTF8("Decline"));
 
 	const spk::Rect2D buttonRect = messageBox.firstButton()->viewport().geometry();
 	const spk::Vector2Int clickPosition = {
-		buttonRect.x() + static_cast<int>(buttonRect.width() / 2),
-		buttonRect.y() + static_cast<int>(buttonRect.height() / 2)};
+		buttonRect.x() + static_cast<int>(buttonRect.width() / 2), buttonRect.y() + static_cast<int>(buttonRect.height() / 2)};
 
 	spk::MouseModule mouseModule;
 	mouseModule.bind(&messageBox);
@@ -134,8 +128,7 @@ TEST(MessageBoxTest, SubscribeTriggersButtonClick)
 
 	const spk::Rect2D buttonRect = messageBox.button("yes")->viewport().geometry();
 	const spk::Vector2Int clickPos = {
-		buttonRect.x() + static_cast<int>(buttonRect.width() / 2),
-		buttonRect.y() + static_cast<int>(buttonRect.height() / 2)};
+		buttonRect.x() + static_cast<int>(buttonRect.width() / 2), buttonRect.y() + static_cast<int>(buttonRect.height() / 2)};
 
 	spk::MouseModule mouseModule;
 	mouseModule.bind(&messageBox);
@@ -168,16 +161,11 @@ TEST(RequestMessageBoxTest, SecondButtonTriggersDeclineAndCloses)
 	messageBox.setGeometry(spk::Rect2D(0, 0, 400, 300));
 
 	int declineCount = 0;
-	messageBox.configure(
-		"Yes",
-		[]() {},
-		"No",
-		[&declineCount]() { ++declineCount; });
+	messageBox.configure("Yes", []() {}, "No", [&declineCount]() { ++declineCount; });
 
 	const spk::Rect2D buttonRect = messageBox.secondButton()->viewport().geometry();
 	const spk::Vector2Int clickPos = {
-		buttonRect.x() + static_cast<int>(buttonRect.width() / 2),
-		buttonRect.y() + static_cast<int>(buttonRect.height() / 2)};
+		buttonRect.x() + static_cast<int>(buttonRect.width() / 2), buttonRect.y() + static_cast<int>(buttonRect.height() / 2)};
 
 	spk::MouseModule mouseModule;
 	mouseModule.bind(&messageBox);
@@ -199,8 +187,7 @@ TEST(RequestMessageBoxTest, NullActionsInConfigureAreHandledSafely)
 
 	const spk::Rect2D buttonRect = messageBox.firstButton()->viewport().geometry();
 	const spk::Vector2Int clickPos = {
-		buttonRect.x() + static_cast<int>(buttonRect.width() / 2),
-		buttonRect.y() + static_cast<int>(buttonRect.height() / 2)};
+		buttonRect.x() + static_cast<int>(buttonRect.width() / 2), buttonRect.y() + static_cast<int>(buttonRect.height() / 2)};
 
 	spk::MouseModule mouseModule;
 	mouseModule.bind(&messageBox);
@@ -220,8 +207,7 @@ TEST(MessageBoxVisualTest, RendersWithText)
 	box.setText("Something went wrong. Please try again.");
 	box.addButton("ok", "OK");
 
-	const sparkle_test::ImageComparisonResult result =
-		spk::test::compareSnapshot(box, "MessageBoxVisual", "with_text", captureRect);
+	const sparkle_test::ImageComparisonResult result = spk::test::compareSnapshot(box, "MessageBoxVisual", "with_text", captureRect);
 
 	EXPECT_TRUE(result.matches);
 }
@@ -233,8 +219,7 @@ TEST(InformationMessageBoxVisualTest, RendersDefault)
 	spk::InformationMessageBox box("InfoBox");
 	box.setText("Operation completed successfully.");
 
-	const sparkle_test::ImageComparisonResult result =
-		spk::test::compareSnapshot(box, "InformationMessageBoxVisual", "default", captureRect);
+	const sparkle_test::ImageComparisonResult result = spk::test::compareSnapshot(box, "InformationMessageBoxVisual", "default", captureRect);
 
 	EXPECT_TRUE(result.matches);
 }
@@ -247,8 +232,7 @@ TEST(RequestMessageBoxVisualTest, RendersDefault)
 	box.setText("Are you sure you want to proceed?");
 	box.configure("Yes", []() {}, "No", []() {});
 
-	const sparkle_test::ImageComparisonResult result =
-		spk::test::compareSnapshot(box, "RequestMessageBoxVisual", "default", captureRect);
+	const sparkle_test::ImageComparisonResult result = spk::test::compareSnapshot(box, "RequestMessageBoxVisual", "default", captureRect);
 
 	EXPECT_TRUE(result.matches);
 }

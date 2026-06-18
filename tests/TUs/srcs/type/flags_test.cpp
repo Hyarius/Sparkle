@@ -350,9 +350,7 @@ TEST(Flags, binaryNot_ShouldInvertStoredBits)
 
 	const spk::Flags<TestFlag8, std::uint8_t> result = ~flags;
 
-	EXPECT_EQ(
-		result.raw(),
-		static_cast<std::uint8_t>(TestFlag8::InvA));
+	EXPECT_EQ(result.raw(), static_cast<std::uint8_t>(TestFlag8::InvA));
 }
 
 TEST(Flags, mixedOrOperators_ShouldSupportFlagAndFlagsBothWays)

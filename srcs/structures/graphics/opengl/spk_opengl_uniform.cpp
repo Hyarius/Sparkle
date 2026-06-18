@@ -8,8 +8,7 @@ namespace
 	{
 		const std::string arraySuffix = "[0]";
 
-		if (p_name.size() >= arraySuffix.size() &&
-			p_name.compare(p_name.size() - arraySuffix.size(), arraySuffix.size(), arraySuffix) == 0)
+		if (p_name.size() >= arraySuffix.size() && p_name.compare(p_name.size() - arraySuffix.size(), arraySuffix.size(), arraySuffix) == 0)
 		{
 			return p_name.substr(0, p_name.size() - arraySuffix.size());
 		}
@@ -31,8 +30,7 @@ namespace spk::OpenGL
 
 		const std::string arraySuffix = "[0]";
 
-		if (p_name.size() >= arraySuffix.size() &&
-			p_name.compare(p_name.size() - arraySuffix.size(), arraySuffix.size(), arraySuffix) == 0)
+		if (p_name.size() >= arraySuffix.size() && p_name.compare(p_name.size() - arraySuffix.size(), arraySuffix.size(), arraySuffix) == 0)
 		{
 			return -1;
 		}
@@ -42,11 +40,7 @@ namespace spk::OpenGL
 	}
 
 	void Uniform::validateDeclaration(
-		GLuint p_programId,
-		const std::string& p_name,
-		GLenum p_expectedType,
-		const char* p_expectedTypeName,
-		std::size_t p_expectedCount)
+		GLuint p_programId, const std::string& p_name, GLenum p_expectedType, const char* p_expectedTypeName, std::size_t p_expectedCount)
 	{
 		const std::string normalizedName = normalizeUniformName(p_name);
 
@@ -66,9 +60,7 @@ namespace spk::OpenGL
 
 		if (uniformIndex == GL_INVALID_INDEX)
 		{
-			throw std::runtime_error(
-				"spk::UniformBase: uniform [" + p_name +
-				"] not found in active uniform declarations");
+			throw std::runtime_error("spk::UniformBase: uniform [" + p_name + "] not found in active uniform declarations");
 		}
 
 		GLint activeType = 0;
@@ -77,9 +69,8 @@ namespace spk::OpenGL
 		if (static_cast<GLenum>(activeType) != p_expectedType)
 		{
 			throw std::runtime_error(
-				"spk::UniformBase: uniform [" + p_name +
-				"] has a different shader type than expected. Expected [" +
-				std::string(p_expectedTypeName) + "]");
+				"spk::UniformBase: uniform [" + p_name + "] has a different shader type than expected. Expected [" + std::string(p_expectedTypeName) +
+				"]");
 		}
 
 		GLint activeSize = 0;
@@ -87,8 +78,7 @@ namespace spk::OpenGL
 
 		if (static_cast<std::size_t>(activeSize) < p_expectedCount)
 		{
-			throw std::runtime_error(
-				"UniformBase: uniform array [" + p_name + "] is smaller than requested");
+			throw std::runtime_error("UniformBase: uniform array [" + p_name + "] is smaller than requested");
 		}
 	}
 }

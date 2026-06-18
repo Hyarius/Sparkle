@@ -20,11 +20,7 @@ namespace spk
 
 	public:
 		explicit IconButton(const std::string& p_name, spk::Widget* p_parent = nullptr);
-		IconButton(
-			const std::string& p_name,
-			std::shared_ptr<spk::SpriteSheet> p_iconset,
-			size_t p_iconSpriteID,
-			spk::Widget* p_parent = nullptr);
+		IconButton(const std::string& p_name, std::shared_ptr<spk::SpriteSheet> p_iconset, size_t p_iconSpriteID, spk::Widget* p_parent = nullptr);
 
 		using spk::PushButton::applyStyle;
 		void applyStyle(const spk::WidgetStyle& p_style) override;

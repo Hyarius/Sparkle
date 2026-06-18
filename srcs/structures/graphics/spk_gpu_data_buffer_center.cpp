@@ -5,9 +5,7 @@
 
 namespace spk
 {
-	void GPUDataBufferCenter::addUBO(
-		std::string_view p_name,
-		std::shared_ptr<spk::UniformBufferObject> p_buffer)
+	void GPUDataBufferCenter::addUBO(std::string_view p_name, std::shared_ptr<spk::UniformBufferObject> p_buffer)
 	{
 		if (p_buffer == nullptr)
 		{
@@ -17,9 +15,7 @@ namespace spk
 		_buffers[std::string(p_name)] = std::move(p_buffer);
 	}
 
-	void GPUDataBufferCenter::addSSBO(
-		std::string_view p_name,
-		std::shared_ptr<spk::ShaderStorageBufferObject> p_buffer)
+	void GPUDataBufferCenter::addSSBO(std::string_view p_name, std::shared_ptr<spk::ShaderStorageBufferObject> p_buffer)
 	{
 		if (p_buffer == nullptr)
 		{

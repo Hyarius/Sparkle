@@ -16,6 +16,23 @@ namespace spk
 		class Texture;
 	}
 
+	/**
+	 * @brief CPU-side image data and rendering properties synchronized to an OpenGL texture on demand.
+	 *
+	 * Store pixels with setPixels(), tune filtering/wrapping with setProperties(), then pass the texture to widgets or render commands. The
+	 * GPU copy is resolved lazily for the active render context, so application code normally works with the `spk::Texture` object itself.
+	 *
+	 * @code{.cpp}
+	 * spk::Texture texture;
+	 * texture.setPixels(pixels, {256, 256}, spk::Texture::Format::RGBA);
+	 * texture.setProperties(spk::Texture::Filtering::Linear, spk::Texture::Wrap::ClampToEdge, spk::Texture::Mipmap::Enable);
+	 * imageLabel.setIcon(std::make_shared<spk::Texture>(texture));
+	 * @endcode
+	 *
+	 * @see spk::Image
+	 * @see spk::SpriteSheet
+	 * @see spk::ImageLabel
+	 */
 	class Texture : public SynchronizableTrait
 	{
 	public:
@@ -101,22 +118,11 @@ namespace spk
 		Texture& operator=(Texture&& p_other) noexcept;
 
 		void setPixels(
-			const std::vector<uint8_t>& p_data,
-			const spk::Vector2UInt& p_size,
-			Format p_format,
-			Filtering p_filtering,
-			Wrap p_wrap,
-			Mipmap p_mipmap);
+			const std::vector<uint8_t>& p_data, const spk::Vector2UInt& p_size, Format p_format, Filtering p_filtering, Wrap p_wrap, Mipmap p_mipmap);
 
 		void setPixels(const std::vector<uint8_t>& p_data, const spk::Vector2UInt& p_size, Format p_format);
 
-		void setPixels(
-			const uint8_t* p_data,
-			const spk::Vector2UInt& p_size,
-			Format p_format,
-			Filtering p_filtering,
-			Wrap p_wrap,
-			Mipmap p_mipmap);
+		void setPixels(const uint8_t* p_data, const spk::Vector2UInt& p_size, Format p_format, Filtering p_filtering, Wrap p_wrap, Mipmap p_mipmap);
 
 		void setPixels(const uint8_t* p_data, const spk::Vector2UInt& p_size, Format p_format);
 

@@ -1,6 +1,5 @@
 #include "structures/system/win32/spk_winapi_cursor.hpp"
 
-
 #include <mutex>
 #include <stdexcept>
 #include <unordered_map>
@@ -22,16 +21,16 @@ namespace
 		static std::unordered_map<std::string, HCURSOR> instance = []()
 		{
 			std::unordered_map<std::string, HCURSOR> m;
-			m.emplace("Arrow",      LoadCursorW(nullptr, MAKEINTRESOURCEW(32512)));
-			m.emplace("IBeam",      LoadCursorW(nullptr, MAKEINTRESOURCEW(32513)));
-			m.emplace("Hand",       LoadCursorW(nullptr, MAKEINTRESOURCEW(32649)));
-			m.emplace("Cross",      LoadCursorW(nullptr, MAKEINTRESOURCEW(32515)));
-			m.emplace("Wait",       LoadCursorW(nullptr, MAKEINTRESOURCEW(32514)));
-			m.emplace("ResizeNS",   LoadCursorW(nullptr, MAKEINTRESOURCEW(32645)));
-			m.emplace("ResizeWE",   LoadCursorW(nullptr, MAKEINTRESOURCEW(32644)));
+			m.emplace("Arrow", LoadCursorW(nullptr, MAKEINTRESOURCEW(32512)));
+			m.emplace("IBeam", LoadCursorW(nullptr, MAKEINTRESOURCEW(32513)));
+			m.emplace("Hand", LoadCursorW(nullptr, MAKEINTRESOURCEW(32649)));
+			m.emplace("Cross", LoadCursorW(nullptr, MAKEINTRESOURCEW(32515)));
+			m.emplace("Wait", LoadCursorW(nullptr, MAKEINTRESOURCEW(32514)));
+			m.emplace("ResizeNS", LoadCursorW(nullptr, MAKEINTRESOURCEW(32645)));
+			m.emplace("ResizeWE", LoadCursorW(nullptr, MAKEINTRESOURCEW(32644)));
 			m.emplace("ResizeNWSE", LoadCursorW(nullptr, MAKEINTRESOURCEW(32642)));
 			m.emplace("ResizeNESW", LoadCursorW(nullptr, MAKEINTRESOURCEW(32643)));
-			m.emplace("ResizeAll",  LoadCursorW(nullptr, MAKEINTRESOURCEW(32646)));
+			m.emplace("ResizeAll", LoadCursorW(nullptr, MAKEINTRESOURCEW(32646)));
 			return m;
 		}();
 		return instance;
@@ -196,4 +195,3 @@ namespace spk
 		return _handle != nullptr;
 	}
 }
-

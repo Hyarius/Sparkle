@@ -25,14 +25,8 @@ namespace spk
 
 	public:
 		explicit Panel(const std::string& p_name, spk::Widget* p_parent = nullptr);
-		Panel(
-			const std::string& p_name,
-			const spk::WidgetStyle& p_style,
-			spk::Widget* p_parent = nullptr);
-		Panel(
-			const std::string& p_name,
-			std::shared_ptr<spk::SpriteSheet> p_spriteSheet,
-			spk::Widget* p_parent = nullptr);
+		Panel(const std::string& p_name, const spk::WidgetStyle& p_style, spk::Widget* p_parent = nullptr);
+		Panel(const std::string& p_name, std::shared_ptr<spk::SpriteSheet> p_spriteSheet, spk::Widget* p_parent = nullptr);
 
 		void applyStyle(const spk::WidgetStyle& p_style) override;
 		void useDefaultStyle();

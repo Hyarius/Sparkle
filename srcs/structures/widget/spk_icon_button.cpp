@@ -8,19 +8,11 @@
 namespace spk
 {
 	IconButton::IconButton(const std::string& p_name, spk::Widget* p_parent) :
-		IconButton(
-			p_name,
-			spk::WidgetStyle::Collection::style(spk::WidgetStyle::Collection::Default).iconSpriteSheet(),
-			0,
-			p_parent)
+		IconButton(p_name, spk::WidgetStyle::Collection::style(spk::WidgetStyle::Collection::Default).iconSpriteSheet(), 0, p_parent)
 	{
 	}
 
-	IconButton::IconButton(
-		const std::string& p_name,
-		std::shared_ptr<spk::SpriteSheet> p_iconset,
-		size_t p_iconSpriteID,
-		spk::Widget* p_parent) :
+	IconButton::IconButton(const std::string& p_name, std::shared_ptr<spk::SpriteSheet> p_iconset, size_t p_iconSpriteID, spk::Widget* p_parent) :
 		spk::PushButton(p_name, p_parent),
 		_iconset(std::move(p_iconset)),
 		_iconSpriteID(p_iconSpriteID)

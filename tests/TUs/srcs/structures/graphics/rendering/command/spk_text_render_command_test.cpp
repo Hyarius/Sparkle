@@ -1,6 +1,5 @@
 #include <gtest/gtest.h>
 
-
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -33,8 +32,12 @@ TEST(TextRenderCommandTest, DrawsGlyphsWithLeftTopAlignment)
 	builder.emplace<spk::ViewportCommand>(viewport);
 	builder.emplace<ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
 	builder.emplace<spk::TextRenderCommand>(
-		font, "Hi", spk::Font::Size(16, 3), spk::Color(0.0f, 1.0f, 0.0f, 1.0f),
-		spk::Color(1.0f, 0.0f, 0.0f, 1.0f), 0.0f,
+		font,
+		"Hi",
+		spk::Font::Size(16, 3),
+		spk::Color(0.0f, 1.0f, 0.0f, 1.0f),
+		spk::Color(1.0f, 0.0f, 0.0f, 1.0f),
+		0.0f,
 		spk::Vector2Int{2, 2},
 		spk::HorizontalAlignment::Left,
 		spk::VerticalAlignment::Top);
@@ -62,8 +65,12 @@ TEST(TextRenderCommandTest, DrawsGlyphsWithCenteredAlignment)
 	builder.emplace<spk::ViewportCommand>(viewport);
 	builder.emplace<ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
 	builder.emplace<spk::TextRenderCommand>(
-		font, "Hi", spk::Font::Size(16, 3), spk::Color(0.0f, 1.0f, 0.0f, 1.0f),
-		spk::Color(1.0f, 0.0f, 0.0f, 1.0f), 0.0f,
+		font,
+		"Hi",
+		spk::Font::Size(16, 3),
+		spk::Color(0.0f, 1.0f, 0.0f, 1.0f),
+		spk::Color(1.0f, 0.0f, 0.0f, 1.0f),
+		0.0f,
 		spk::Vector2Int{width / 2, height / 2},
 		spk::HorizontalAlignment::Centered,
 		spk::VerticalAlignment::Centered);
@@ -91,8 +98,12 @@ TEST(TextRenderCommandTest, DrawsGlyphsWithRightDownAlignment)
 	builder.emplace<spk::ViewportCommand>(viewport);
 	builder.emplace<ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
 	builder.emplace<spk::TextRenderCommand>(
-		font, "Hi", spk::Font::Size(16, 3), spk::Color(0.0f, 1.0f, 0.0f, 1.0f),
-		spk::Color(1.0f, 0.0f, 0.0f, 1.0f), 0.0f,
+		font,
+		"Hi",
+		spk::Font::Size(16, 3),
+		spk::Color(0.0f, 1.0f, 0.0f, 1.0f),
+		spk::Color(1.0f, 0.0f, 0.0f, 1.0f),
+		0.0f,
 		spk::Vector2Int{width - 2, height - 2},
 		spk::HorizontalAlignment::Right,
 		spk::VerticalAlignment::Down);
@@ -118,9 +129,7 @@ TEST(TextRenderCommandTest, EmptyTextDoesNotDraw)
 	builder.emplace<spk::ViewportCommand>(viewport);
 	builder.emplace<ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
 	builder.emplace<spk::TextRenderCommand>(
-		font, "", spk::Font::Size(16, 3), spk::Color(0.0f, 1.0f, 0.0f, 1.0f),
-		spk::Color(1.0f, 0.0f, 0.0f, 1.0f), 0.0f,
-		spk::Vector2Int{0, 0});
+		font, "", spk::Font::Size(16, 3), spk::Color(0.0f, 1.0f, 0.0f, 1.0f), spk::Color(1.0f, 0.0f, 0.0f, 1.0f), 0.0f, spk::Vector2Int{0, 0});
 
 	spk::RenderUnit unit = builder.build();
 	EXPECT_NO_THROW(unit.execute(renderContext));
@@ -145,9 +154,7 @@ TEST(TextRenderCommandTest, CanExecuteTwiceWithConstructedCommand)
 	builder.emplace<spk::ViewportCommand>(viewport);
 	builder.emplace<ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
 	builder.emplace<spk::TextRenderCommand>(
-		font, "Hi", spk::Font::Size(16, 3), spk::Color(0.0f, 1.0f, 0.0f, 1.0f),
-		spk::Color(1.0f, 0.0f, 0.0f, 1.0f), 0.0f,
-		spk::Vector2Int{2, 2});
+		font, "Hi", spk::Font::Size(16, 3), spk::Color(0.0f, 1.0f, 0.0f, 1.0f), spk::Color(1.0f, 0.0f, 0.0f, 1.0f), 0.0f, spk::Vector2Int{2, 2});
 
 	spk::RenderUnit unit = builder.build();
 	EXPECT_NO_THROW(unit.execute(renderContext));
@@ -183,14 +190,7 @@ TEST(TextRenderCommandTest, RebuildsDrawCommandAfterAtlasGrowth)
 	spk::RenderUnitBuilder cachedBuilder;
 	cachedBuilder.emplace<spk::ViewportCommand>(viewport);
 	cachedBuilder.emplace<ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
-	cachedBuilder.emplace<spk::TextRenderCommand>(
-		font,
-		"AB",
-		size,
-		glyphColor,
-		outlineColor,
-		0.0f,
-		spk::Vector2Int{4, 28});
+	cachedBuilder.emplace<spk::TextRenderCommand>(font, "AB", size, glyphColor, outlineColor, 0.0f, spk::Vector2Int{4, 28});
 	spk::RenderUnit cachedUnit = cachedBuilder.build();
 
 	cachedUnit.execute(renderContext);
@@ -208,14 +208,7 @@ TEST(TextRenderCommandTest, RebuildsDrawCommandAfterAtlasGrowth)
 	spk::RenderUnitBuilder freshBuilder;
 	freshBuilder.emplace<spk::ViewportCommand>(viewport);
 	freshBuilder.emplace<ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
-	freshBuilder.emplace<spk::TextRenderCommand>(
-		font,
-		"AB",
-		size,
-		glyphColor,
-		outlineColor,
-		0.0f,
-		spk::Vector2Int{4, 28});
+	freshBuilder.emplace<spk::TextRenderCommand>(font, "AB", size, glyphColor, outlineColor, 0.0f, spk::Vector2Int{4, 28});
 	freshBuilder.build().execute(renderContext);
 	context.gpuRuntime().waitUntilWorkDone();
 	const std::vector<std::uint8_t> freshCommandPixels = sparkle_test::readPixels(width, height);

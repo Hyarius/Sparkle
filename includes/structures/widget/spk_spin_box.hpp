@@ -55,8 +55,7 @@ namespace spk
 		void _onGeometryChange() override
 		{
 			const unsigned int buttonSize = geometry().height();
-			const unsigned int editWidth =
-				(geometry().width() > buttonSize * 2) ? geometry().width() - buttonSize * 2 : 0;
+			const unsigned int editWidth = (geometry().width() > buttonSize * 2) ? geometry().width() - buttonSize * 2 : 0;
 
 			_downButton.setGeometry(spk::Rect2D(0, 0, buttonSize, buttonSize));
 			_valueEdit.setGeometry(spk::Rect2D(static_cast<int>(buttonSize), 0, editWidth, geometry().height()));
@@ -71,27 +70,17 @@ namespace spk
 			_upButton(p_name + "::upButton", "+", this),
 			_value(static_cast<TType>(0))
 		{
-			_onValueEditionContract = _value.subscribe([this](const TType&)
-			{
-				_refreshValueText();
-			});
+			_onValueEditionContract = _value.subscribe([this](const TType&) { _refreshValueText(); });
 
-			_downButtonContract = _downButton.subscribeToClick([this]()
-			{
-				_value = _clampedValue(_value.value() - _step);
-			});
+			_downButtonContract = _downButton.subscribeToClick([this]() { _value = _clampedValue(_value.value() - _step); });
 
-			_upButtonContract = _upButton.subscribeToClick([this]()
-			{
-				_value = _clampedValue(_value.value() + _step);
-			});
+			_upButtonContract = _upButton.subscribeToClick([this]() { _value = _clampedValue(_value.value() + _step); });
 
 			_valueEdit.setPlaceholder("...");
 			_valueEdit.disableEdit();
 			_refreshValueText();
 
-			const auto& iconset =
-				spk::WidgetStyle::Collection::style(spk::WidgetStyle::Collection::Default).iconSpriteSheet();
+			const auto& iconset = spk::WidgetStyle::Collection::style(spk::WidgetStyle::Collection::Default).iconSpriteSheet();
 			if (iconset != nullptr)
 			{
 				_downButton.setText("");
@@ -100,15 +89,15 @@ namespace spk
 				_upButton.setIcon(iconset, 4);
 			}
 
-			sizeHint().configureMinimalGenerator([this]() {
-				const spk::Vector2UInt downSize = _downButton.minimalSize();
-				const spk::Vector2UInt editSize = _valueEdit.minimalSize();
-				const spk::Vector2UInt upSize = _upButton.minimalSize();
+			sizeHint().configureMinimalGenerator(
+				[this]()
+				{
+					const spk::Vector2UInt downSize = _downButton.minimalSize();
+					const spk::Vector2UInt editSize = _valueEdit.minimalSize();
+					const spk::Vector2UInt upSize = _upButton.minimalSize();
 
-				return spk::Vector2UInt(
-					downSize.x + editSize.x + upSize.x,
-					std::max({downSize.y, editSize.y, upSize.y}));
-			});
+					return spk::Vector2UInt(downSize.x + editSize.x + upSize.x, std::max({downSize.y, editSize.y, upSize.y}));
+				});
 
 			activate();
 		}

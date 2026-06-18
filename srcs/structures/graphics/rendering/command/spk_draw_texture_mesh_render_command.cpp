@@ -13,15 +13,12 @@
 
 namespace spk
 {
-	DrawTextureMeshRenderCommand::DrawTextureMeshRenderCommand(
-		const spk::Texture& p_texture,
-		std::shared_ptr<const spk::TextureMesh2D> p_mesh) :
+	DrawTextureMeshRenderCommand::DrawTextureMeshRenderCommand(const spk::Texture& p_texture, std::shared_ptr<const spk::TextureMesh2D> p_mesh) :
 		_texture(p_texture),
 		_mesh(std::move(p_mesh)),
 		_viewportBuffer(spk::Viewport::viewportUniformBuffer()),
 		_textureSampler("uTexture", spk::SamplerObject::Type::Texture2D, 0, _sharedProgram())
 	{
-		
 	}
 
 	spk::Program& DrawTextureMeshRenderCommand::_sharedProgram()

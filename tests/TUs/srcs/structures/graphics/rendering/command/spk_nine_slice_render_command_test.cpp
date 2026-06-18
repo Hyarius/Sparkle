@@ -1,6 +1,5 @@
 #include <gtest/gtest.h>
 
-
 #include <array>
 #include <cstdint>
 #include <stdexcept>
@@ -38,9 +37,7 @@ TEST(NineSliceRenderCommandTest, RejectsSpriteSheetsThatAreNotThreeByThree)
 	spk::SpriteSheet spriteSheet;
 	spriteSheet.loadFromData(sparkle_test::makeTwoSpritePngBytes(), {2, 1});
 
-	EXPECT_THROW(
-		spk::NineSliceRenderCommand(spriteSheet, spk::Rect2D(0, 0, 16, 16), {2, 2}),
-		std::invalid_argument);
+	EXPECT_THROW(spk::NineSliceRenderCommand(spriteSheet, spk::Rect2D(0, 0, 16, 16), {2, 2}), std::invalid_argument);
 }
 
 TEST(NineSliceRenderCommandTest, RejectsInvalidCornerSizes)
@@ -48,12 +45,8 @@ TEST(NineSliceRenderCommandTest, RejectsInvalidCornerSizes)
 	sparkle_test::OpenGLTestContext context(spk::Rect2D(0, 0, 16, 16));
 	spk::SpriteSheet spriteSheet = makeNineSpriteSheet();
 
-	EXPECT_THROW(
-		spk::NineSliceRenderCommand(spriteSheet, spk::Rect2D(0, 0, 16, 16), {-1, 2}),
-		std::invalid_argument);
-	EXPECT_THROW(
-		spk::NineSliceRenderCommand(spriteSheet, spk::Rect2D(0, 0, 16, 16), {9, 2}),
-		std::invalid_argument);
+	EXPECT_THROW(spk::NineSliceRenderCommand(spriteSheet, spk::Rect2D(0, 0, 16, 16), {-1, 2}), std::invalid_argument);
+	EXPECT_THROW(spk::NineSliceRenderCommand(spriteSheet, spk::Rect2D(0, 0, 16, 16), {9, 2}), std::invalid_argument);
 }
 
 TEST(NineSliceRenderCommandTest, BuildsAndDrawsTheNineSliceMesh)
@@ -80,4 +73,3 @@ TEST(NineSliceRenderCommandTest, BuildsAndDrawsTheNineSliceMesh)
 		sparkle_test::renderCommandExpectedPath("NineSliceRenderCommand/stretched_expected"),
 		sparkle_test::renderCommandResultPath("NineSliceRenderCommand/stretched_diff"));
 }
-

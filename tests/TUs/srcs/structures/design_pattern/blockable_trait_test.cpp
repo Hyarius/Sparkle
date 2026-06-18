@@ -22,10 +22,7 @@ namespace
 
 		void markPending()
 		{
-			deferUntilUnblocked([this]()
-			{
-				++_flushCount;
-			});
+			deferUntilUnblocked([this]() { ++_flushCount; });
 		}
 
 		int flushCount() const
@@ -421,7 +418,7 @@ TEST(BlockableTraitTest, MoveAssignedBlockerTransfersPendingDelayBlockWithoutFlu
 
 	EXPECT_EQ(firstObject.flushCount(), 0);
 	EXPECT_EQ(secondObject.flushCount(), 0);
-	
+
 	EXPECT_TRUE(firstObject.isBlocked());
 	EXPECT_TRUE(secondObject.isBlocked());
 

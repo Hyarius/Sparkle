@@ -26,29 +26,17 @@ namespace spk
 	{
 	}
 
-	ScrollBar::ScrollBar(
-		const std::string& p_name,
-		spk::Orientation p_orientation,
-		spk::Widget* p_parent) :
+	ScrollBar::ScrollBar(const std::string& p_name, spk::Orientation p_orientation, spk::Widget* p_parent) :
 		spk::Widget(p_name, p_parent),
 		_negativeButton(p_name + "::negativeButton", this),
 		_positiveButton(p_name + "::positiveButton", this),
 		_sliderBar(p_name + "::sliderBar", p_orientation, this)
 	{
-		_negativeButtonContract = _negativeButton.subscribeToClick([this]()
-		{
-			setRatio(_sliderBar.ratio() - _step);
-		});
+		_negativeButtonContract = _negativeButton.subscribeToClick([this]() { setRatio(_sliderBar.ratio() - _step); });
 
-		_positiveButtonContract = _positiveButton.subscribeToClick([this]()
-		{
-			setRatio(_sliderBar.ratio() + _step);
-		});
+		_positiveButtonContract = _positiveButton.subscribeToClick([this]() { setRatio(_sliderBar.ratio() + _step); });
 
-		_sliderBarContract = _sliderBar.subscribeToEdition([this](float p_ratio)
-		{
-			_onEditionProvider.trigger(p_ratio);
-		});
+		_sliderBarContract = _sliderBar.subscribeToEdition([this](float p_ratio) { _onEditionProvider.trigger(p_ratio); });
 
 		_refreshButtonCaptions();
 		activate();
@@ -76,8 +64,7 @@ namespace spk
 		case spk::Orientation::Horizontal:
 		{
 			const unsigned int buttonSize = geometry().height();
-			const unsigned int sliderWidth =
-				(geometry().width() > buttonSize * 2) ? geometry().width() - buttonSize * 2 : 0;
+			const unsigned int sliderWidth = (geometry().width() > buttonSize * 2) ? geometry().width() - buttonSize * 2 : 0;
 
 			_negativeButton.setGeometry(spk::Rect2D(0, 0, buttonSize, buttonSize));
 			_sliderBar.setGeometry(spk::Rect2D(static_cast<int>(buttonSize), 0, sliderWidth, geometry().height()));
@@ -87,8 +74,7 @@ namespace spk
 		case spk::Orientation::Vertical:
 		{
 			const unsigned int buttonSize = geometry().width();
-			const unsigned int sliderHeight =
-				(geometry().height() > buttonSize * 2) ? geometry().height() - buttonSize * 2 : 0;
+			const unsigned int sliderHeight = (geometry().height() > buttonSize * 2) ? geometry().height() - buttonSize * 2 : 0;
 
 			_negativeButton.setGeometry(spk::Rect2D(0, 0, buttonSize, buttonSize));
 			_sliderBar.setGeometry(spk::Rect2D(0, static_cast<int>(buttonSize), geometry().width(), sliderHeight));

@@ -10,8 +10,5 @@
 namespace spk::test
 {
 	[[nodiscard]] sparkle_test::ImageComparisonResult compareSnapshot(
-		spk::Widget& p_widget,
-		const std::string& p_widgetName,
-		const std::string& p_variant,
-		const spk::Rect2D& p_captureRect);
+		spk::Widget& p_widget, const std::string& p_widgetName, const std::string& p_variant, const spk::Rect2D& p_captureRect);
 }

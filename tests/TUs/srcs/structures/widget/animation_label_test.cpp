@@ -165,8 +165,7 @@ TEST(AnimationLabelVisualTest, RendersFirstFrame)
 
 	spk::AnimationLabel label("Anim", makeSpriteSheet());
 
-	const sparkle_test::ImageComparisonResult result =
-		spk::test::compareSnapshot(label, "AnimationLabelVisual", "frame_0", captureRect);
+	const sparkle_test::ImageComparisonResult result = spk::test::compareSnapshot(label, "AnimationLabelVisual", "frame_0", captureRect);
 
 	EXPECT_TRUE(result.matches);
 }
@@ -180,8 +179,7 @@ TEST(AnimationLabelVisualTest, RendersSecondFrame)
 	spk::UpdateTick tick{};
 	label.update(tick);
 
-	const sparkle_test::ImageComparisonResult result =
-		spk::test::compareSnapshot(label, "AnimationLabelVisual", "frame_1", captureRect);
+	const sparkle_test::ImageComparisonResult result = spk::test::compareSnapshot(label, "AnimationLabelVisual", "frame_1", captureRect);
 
 	EXPECT_TRUE(result.matches);
 }

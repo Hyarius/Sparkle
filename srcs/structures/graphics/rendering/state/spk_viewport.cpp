@@ -16,15 +16,16 @@ namespace spk
 {
 	void Viewport::_configureMatrix()
 	{
-		_matrix.configure([this]() -> spk::Matrix4x4
-		{
-			const float left   = 0.0f;
-			const float right  = static_cast<float>(_geometry.width());
-			const float top    = 0.0f;
-			const float bottom = static_cast<float>(_geometry.height());
+		_matrix.configure(
+			[this]() -> spk::Matrix4x4
+			{
+				const float left = 0.0f;
+				const float right = static_cast<float>(_geometry.width());
+				const float top = 0.0f;
+				const float bottom = static_cast<float>(_geometry.height());
 
-			return spk::Matrix4x4::ortho(left, right, bottom, top, -_maxLayer, 0);
-		});
+				return spk::Matrix4x4::ortho(left, right, bottom, top, -_maxLayer, 0);
+			});
 	}
 
 	Viewport::Viewport() :
@@ -116,12 +117,8 @@ namespace spk
 		if (spk::GPUDataBufferCenter::contains(ViewportBlockName) == false)
 		{
 			auto buffer = std::make_shared<spk::UniformBufferObject>(
-				ViewportUniformBindingPoint,
-				spk::BufferObject::Usage::DynamicDraw,
-				sizeof(spk::Matrix4x4));
-			spk::GPUDataBufferCenter::addUBO(
-				ViewportBlockName,
-				buffer);
+				ViewportUniformBindingPoint, spk::BufferObject::Usage::DynamicDraw, sizeof(spk::Matrix4x4));
+			spk::GPUDataBufferCenter::addUBO(ViewportBlockName, buffer);
 			return *buffer;
 		}
 
@@ -131,11 +128,7 @@ namespace spk
 	spk::Vector2 Viewport::convertScreenToOpenGL(const spk::Vector2Int& p_screenPosition)
 	{
 		const spk::Matrix4x4& mat = _activeViewport->matrix();
-		const spk::Vector4 result = mat * spk::Vector4(
-			static_cast<float>(p_screenPosition.x),
-			static_cast<float>(p_screenPosition.y),
-			0.0f,
-			1.0f);
+		const spk::Vector4 result = mat * spk::Vector4(static_cast<float>(p_screenPosition.x), static_cast<float>(p_screenPosition.y), 0.0f, 1.0f);
 		return {result.x, result.y};
 	}
 
@@ -147,11 +140,7 @@ namespace spk
 	spk::Vector3 Viewport::convertScreenToOpenGL(const spk::Vector2Int& p_screenPosition, float p_layer)
 	{
 		const spk::Matrix4x4& mat = _activeViewport->matrix();
-		const spk::Vector4 result = mat * spk::Vector4(
-			static_cast<float>(p_screenPosition.x),
-			static_cast<float>(p_screenPosition.y),
-			p_layer,
-			1.0f);
+		const spk::Vector4 result = mat * spk::Vector4(static_cast<float>(p_screenPosition.x), static_cast<float>(p_screenPosition.y), p_layer, 1.0f);
 		return {result.x, result.y, result.z};
 	}
 

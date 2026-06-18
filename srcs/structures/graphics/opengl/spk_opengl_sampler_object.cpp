@@ -44,9 +44,7 @@ namespace spk::OpenGL
 			[&]() -> std::unique_ptr<spk::OpenGL::UniformLocation>
 			{
 				auto obj = std::make_unique<spk::OpenGL::UniformLocation>();
-				obj->location = glGetUniformLocation(
-					program.gpu(p_context).id(),
-					p_sampler.designator().c_str());
+				obj->location = glGetUniformLocation(program.gpu(p_context).id(), p_sampler.designator().c_str());
 				return obj;
 			});
 

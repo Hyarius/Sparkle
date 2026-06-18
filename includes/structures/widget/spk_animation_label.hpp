@@ -27,10 +27,7 @@ namespace spk
 
 	public:
 		explicit AnimationLabel(const std::string& p_name, spk::Widget* p_parent = nullptr);
-		AnimationLabel(
-			const std::string& p_name,
-			std::shared_ptr<spk::SpriteSheet> p_spriteSheet,
-			spk::Widget* p_parent = nullptr);
+		AnimationLabel(const std::string& p_name, std::shared_ptr<spk::SpriteSheet> p_spriteSheet, spk::Widget* p_parent = nullptr);
 
 		void setSpriteSheet(std::shared_ptr<spk::SpriteSheet> p_spriteSheet);
 		void setLoopSpeed(const spk::Duration& p_duration);

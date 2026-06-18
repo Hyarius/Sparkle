@@ -56,7 +56,7 @@ TEST(OpenGLScreenshotTest, RuntimeSavesCurrentFramebufferToPng)
 
 	const sparkle_test::ImageComparisonResult result = sparkle_test::compareImages(actualPath, expectedPath, diffPath);
 
-	EXPECT_TRUE(result.matches)
-		<< "actual=[" << actualPath.string() << "] expected=[" << expectedPath.string() << "] diff=[" << diffPath.string() << "]";
+	EXPECT_TRUE(result.matches) << "actual=[" << actualPath.string() << "] expected=[" << expectedPath.string() << "] diff=[" << diffPath.string()
+								<< "]";
 	EXPECT_EQ(result.differentPixelCount, 0);
 }

@@ -10,7 +10,7 @@
 namespace spk
 {
 	template <typename TType>
-	requires (!std::is_void_v<TType>)
+		requires(!std::is_void_v<TType>)
 	class CachedData
 	{
 	public:

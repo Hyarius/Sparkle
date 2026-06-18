@@ -1,6 +1,5 @@
 #pragma once
 
-
 #include <memory>
 #include <string>
 
@@ -23,4 +22,3 @@ namespace spk
 		virtual void pollEvents();
 	};
 }
-

@@ -115,40 +115,37 @@ namespace spk
 		}
 
 		template <std::size_t X = SizeX, std::size_t Y = SizeY>
-			requires (X == 3 && Y == 3)
+			requires(X == 3 && Y == 3)
 		[[nodiscard]] spk::Vector2 operator*(const spk::Vector2& p_vector) const
 		{
 			return {
 				(*this)[0][0] * p_vector.x + (*this)[1][0] * p_vector.y + (*this)[2][0],
-				(*this)[0][1] * p_vector.x + (*this)[1][1] * p_vector.y + (*this)[2][1]
-			};
+				(*this)[0][1] * p_vector.x + (*this)[1][1] * p_vector.y + (*this)[2][1]};
 		}
 
 		template <std::size_t X = SizeX, std::size_t Y = SizeY>
-			requires (X == 3 && Y == 3)
+			requires(X == 3 && Y == 3)
 		[[nodiscard]] spk::Vector3 operator*(const spk::Vector3& p_vector) const
 		{
 			return {
 				(*this)[0][0] * p_vector.x + (*this)[1][0] * p_vector.y + (*this)[2][0] * p_vector.z,
 				(*this)[0][1] * p_vector.x + (*this)[1][1] * p_vector.y + (*this)[2][1] * p_vector.z,
-				(*this)[0][2] * p_vector.x + (*this)[1][2] * p_vector.y + (*this)[2][2] * p_vector.z
-			};
+				(*this)[0][2] * p_vector.x + (*this)[1][2] * p_vector.y + (*this)[2][2] * p_vector.z};
 		}
 
 		template <std::size_t X = SizeX, std::size_t Y = SizeY>
-			requires (X == 4 && Y == 4)
+			requires(X == 4 && Y == 4)
 		[[nodiscard]] spk::Vector4 operator*(const spk::Vector4& p_vector) const
 		{
 			return {
 				(*this)[0][0] * p_vector.x + (*this)[1][0] * p_vector.y + (*this)[2][0] * p_vector.z + (*this)[3][0] * p_vector.w,
 				(*this)[0][1] * p_vector.x + (*this)[1][1] * p_vector.y + (*this)[2][1] * p_vector.z + (*this)[3][1] * p_vector.w,
 				(*this)[0][2] * p_vector.x + (*this)[1][2] * p_vector.y + (*this)[2][2] * p_vector.z + (*this)[3][2] * p_vector.w,
-				(*this)[0][3] * p_vector.x + (*this)[1][3] * p_vector.y + (*this)[2][3] * p_vector.z + (*this)[3][3] * p_vector.w
-			};
+				(*this)[0][3] * p_vector.x + (*this)[1][3] * p_vector.y + (*this)[2][3] * p_vector.z + (*this)[3][3] * p_vector.w};
 		}
 
 		template <std::size_t X = SizeX, std::size_t Y = SizeY>
-			requires (X == 4 && Y == 4)
+			requires(X == 4 && Y == 4)
 		[[nodiscard]] spk::Vector3 operator*(const spk::Vector3& p_vector) const
 		{
 			const spk::Vector4 transformed = (*this) * spk::Vector4(p_vector, 1.0f);
@@ -193,7 +190,7 @@ namespace spk
 		}
 
 		template <std::size_t X = SizeX, std::size_t Y = SizeY>
-			requires (X == 4 && Y == 4)
+			requires(X == 4 && Y == 4)
 		[[nodiscard]] static IMatrix rotation(float p_angleX, float p_angleY, float p_angleZ)
 		{
 			const float cosX = std::cos(spk::degreeToRadian(p_angleX));
@@ -210,14 +207,14 @@ namespace spk
 		}
 
 		template <std::size_t X = SizeX, std::size_t Y = SizeY>
-			requires (X == 4 && Y == 4)
+			requires(X == 4 && Y == 4)
 		[[nodiscard]] static IMatrix rotation(const spk::Vector3& p_angle)
 		{
 			return rotation(p_angle.x, p_angle.y, p_angle.z);
 		}
 
 		template <std::size_t X = SizeX, std::size_t Y = SizeY>
-			requires (X == 4 && Y == 4)
+			requires(X == 4 && Y == 4)
 		[[nodiscard]] static IMatrix rotation(const spk::Quaternion& p_quaternion)
 		{
 			const spk::Quaternion q = p_quaternion.normalized();
@@ -235,50 +232,58 @@ namespace spk
 		}
 
 		template <std::size_t X = SizeX, std::size_t Y = SizeY>
-			requires (X == 4 && Y == 4)
+			requires(X == 4 && Y == 4)
 		[[nodiscard]] static IMatrix translation(float p_translateX, float p_translateY, float p_translateZ)
 		{
 			return {1, 0, 0, p_translateX, 0, 1, 0, p_translateY, 0, 0, 1, p_translateZ, 0, 0, 0, 1};
 		}
 
 		template <std::size_t X = SizeX, std::size_t Y = SizeY>
-			requires (X == 4 && Y == 4)
+			requires(X == 4 && Y == 4)
 		[[nodiscard]] static IMatrix translation(const spk::Vector3& p_translation)
 		{
 			return translation(p_translation.x, p_translation.y, p_translation.z);
 		}
 
 		template <std::size_t X = SizeX, std::size_t Y = SizeY>
-			requires (X == 4 && Y == 4)
+			requires(X == 4 && Y == 4)
 		[[nodiscard]] static IMatrix scale(float p_scaleX, float p_scaleY, float p_scaleZ)
 		{
 			return {p_scaleX, 0, 0, 0, 0, p_scaleY, 0, 0, 0, 0, p_scaleZ, 0, 0, 0, 0, 1};
 		}
 
 		template <std::size_t X = SizeX, std::size_t Y = SizeY>
-			requires (X == 4 && Y == 4)
+			requires(X == 4 && Y == 4)
 		[[nodiscard]] static IMatrix scale(const spk::Vector3& p_scale)
 		{
 			return scale(p_scale.x, p_scale.y, p_scale.z);
 		}
 
 		template <std::size_t X = SizeX, std::size_t Y = SizeY>
-			requires (X == 4 && Y == 4)
+			requires(X == 4 && Y == 4)
 		[[nodiscard]] static IMatrix lookAt(const spk::Vector3& p_from, const spk::Vector3& p_to, const spk::Vector3& p_up)
 		{
 			const spk::Vector3 forward = (p_to - p_from).normalized();
 			const spk::Vector3 right = (forward != p_up && forward != p_up.inverse() ? forward.cross(p_up).normalized() : spk::Vector3(1, 0, 0));
 			const spk::Vector3 up = right.cross(forward);
 			IMatrix result;
-			result[0][0] = right.x; result[0][1] = right.y; result[0][2] = right.z;
-			result[1][0] = up.x; result[1][1] = up.y; result[1][2] = up.z;
-			result[2][0] = -forward.x; result[2][1] = -forward.y; result[2][2] = -forward.z;
-			result[3][0] = -right.dot(p_from); result[3][1] = -up.dot(p_from); result[3][2] = forward.dot(p_from);
+			result[0][0] = right.x;
+			result[0][1] = right.y;
+			result[0][2] = right.z;
+			result[1][0] = up.x;
+			result[1][1] = up.y;
+			result[1][2] = up.z;
+			result[2][0] = -forward.x;
+			result[2][1] = -forward.y;
+			result[2][2] = -forward.z;
+			result[3][0] = -right.dot(p_from);
+			result[3][1] = -up.dot(p_from);
+			result[3][2] = forward.dot(p_from);
 			return result;
 		}
 
 		template <std::size_t X = SizeX, std::size_t Y = SizeY>
-			requires (X == 4 && Y == 4)
+			requires(X == 4 && Y == 4)
 		[[nodiscard]] static IMatrix rotateAroundAxis(const spk::Vector3& p_axis, float p_rotationAngle)
 		{
 			const spk::Vector3 axis = p_axis.normalized();
@@ -299,7 +304,7 @@ namespace spk
 		}
 
 		template <std::size_t X = SizeX, std::size_t Y = SizeY>
-			requires (X == 4 && Y == 4)
+			requires(X == 4 && Y == 4)
 		[[nodiscard]] static IMatrix perspective(float p_fov, float p_aspectRatio, float p_nearPlane, float p_farPlane)
 		{
 			const float radians = spk::degreeToRadian(p_fov);
@@ -315,7 +320,7 @@ namespace spk
 		}
 
 		template <std::size_t X = SizeX, std::size_t Y = SizeY>
-			requires (X == 4 && Y == 4)
+			requires(X == 4 && Y == 4)
 		[[nodiscard]] static IMatrix ortho(float p_left, float p_right, float p_bottom, float p_top, float p_nearPlane, float p_farPlane)
 		{
 			IMatrix result;
@@ -329,7 +334,7 @@ namespace spk
 		}
 
 		template <std::size_t X = SizeX, std::size_t Y = SizeY>
-			requires (X == Y)
+			requires(X == Y)
 		[[nodiscard]] float determinant() const
 		{
 			constexpr std::size_t N = SizeX;
@@ -375,14 +380,14 @@ namespace spk
 		}
 
 		template <std::size_t X = SizeX, std::size_t Y = SizeY>
-			requires (X == Y)
+			requires(X == Y)
 		[[nodiscard]] bool isInvertible() const
 		{
 			return std::fabs(determinant()) > spk::Math::Constants::pointPrecision;
 		}
 
 		template <std::size_t X = SizeX, std::size_t Y = SizeY>
-			requires (X == Y)
+			requires(X == Y)
 		[[nodiscard]] IMatrix inverse() const
 		{
 			constexpr std::size_t N = SizeX;

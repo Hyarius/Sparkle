@@ -25,14 +25,9 @@ namespace spk
 			// only its background strip is _menuBar.height() tall.
 			_menuBar.setGeometry(geometry().atOrigin());
 
-			const unsigned int contentHeight =
-				(geometry().height() > _menuBar.height()) ? geometry().height() - _menuBar.height() : 0;
+			const unsigned int contentHeight = (geometry().height() > _menuBar.height()) ? geometry().height() - _menuBar.height() : 0;
 
-			_content.setGeometry(spk::Rect2D(
-				0,
-				static_cast<int>(_menuBar.height()),
-				geometry().width(),
-				contentHeight));
+			_content.setGeometry(spk::Rect2D(0, static_cast<int>(_menuBar.height()), geometry().width(), contentHeight));
 		}
 
 	public:
@@ -44,14 +39,14 @@ namespace spk
 			_content.activate();
 			_menuBar.activate();
 
-			sizeHint().configureMinimalGenerator([this]() {
-				const spk::Vector2UInt menuBarSize = _menuBar.minimalSize();
-				const spk::Vector2UInt contentSize = _content.minimalSize();
+			sizeHint().configureMinimalGenerator(
+				[this]()
+				{
+					const spk::Vector2UInt menuBarSize = _menuBar.minimalSize();
+					const spk::Vector2UInt contentSize = _content.minimalSize();
 
-				return spk::Vector2UInt(
-					std::max(menuBarSize.x, contentSize.x),
-					_menuBar.height() + contentSize.y);
-			});
+					return spk::Vector2UInt(std::max(menuBarSize.x, contentSize.x), _menuBar.height() + contentSize.y);
+				});
 
 			activate();
 		}

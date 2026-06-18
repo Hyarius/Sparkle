@@ -39,9 +39,7 @@ namespace spk
 	{
 		if (std::this_thread::get_id() != _platformThreadID)
 		{
-			throw std::runtime_error(
-				"spk::WindowHost::" + std::string(p_operation) +
-				" must be called from the platform thread");
+			throw std::runtime_error("spk::WindowHost::" + std::string(p_operation) + " must be called from the platform thread");
 		}
 	}
 
@@ -56,9 +54,7 @@ namespace spk
 
 		if (_renderThreadID.value() != currentThreadID)
 		{
-			throw std::runtime_error(
-				"spk::WindowHost::" + std::string(p_operation) +
-				" must be called from the render thread");
+			throw std::runtime_error("spk::WindowHost::" + std::string(p_operation) + " must be called from the render thread");
 		}
 	}
 
@@ -66,9 +62,7 @@ namespace spk
 	{
 		if (_renderThreadID.has_value() == false || _renderThreadID.value() != std::this_thread::get_id())
 		{
-			throw std::runtime_error(
-				"spk::WindowHost::" + std::string(p_operation) +
-				" must be called from the render thread");
+			throw std::runtime_error("spk::WindowHost::" + std::string(p_operation) + " must be called from the render thread");
 		}
 	}
 

@@ -1,6 +1,5 @@
 #include <gtest/gtest.h>
 
-
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -28,11 +27,7 @@ namespace
 {
 	[[nodiscard]] spk::Vector3 toPosition(const spk::Vector2Int& p_pixel, float p_depth)
 	{
-		return {
-			static_cast<float>(p_pixel.x),
-			static_cast<float>(p_pixel.y),
-			p_depth
-		};
+		return {static_cast<float>(p_pixel.x), static_cast<float>(p_pixel.y), p_depth};
 	}
 
 	[[nodiscard]] spk::TextureMesh2D makeFullScreenMesh(const spk::Vector2UInt& p_size)
@@ -47,10 +42,7 @@ namespace
 	}
 
 	[[nodiscard]] spk::TextureMesh2D makeFontMesh(
-		spk::Font::Atlas& p_atlas,
-		const spk::Font::Text& p_text,
-		const spk::Vector2Int& p_baselinePosition,
-		float p_depth = 0.0f)
+		spk::Font::Atlas& p_atlas, const spk::Font::Text& p_text, const spk::Vector2Int& p_baselinePosition, float p_depth = 0.0f)
 	{
 		p_atlas.loadGlyphs(p_text);
 
@@ -67,15 +59,9 @@ namespace
 
 				for (std::size_t i = 0; i < vertices.size(); ++i)
 				{
-					const spk::Vector2Int pixelPosition = {
-						cursorX + glyph.positions[i].x,
-						p_baselinePosition.y + glyph.positions[i].y
-					};
+					const spk::Vector2Int pixelPosition = {cursorX + glyph.positions[i].x, p_baselinePosition.y + glyph.positions[i].y};
 
-					vertices[i] = {
-						toPosition(pixelPosition, p_depth),
-						glyph.uvs[i]
-					};
+					vertices[i] = {toPosition(pixelPosition, p_depth), glyph.uvs[i]};
 				}
 
 				mesh.addShape(vertices[0], vertices[1], vertices[3], vertices[2]);
@@ -88,10 +74,7 @@ namespace
 	}
 
 	[[nodiscard]] spk::TextureMesh2D makeFontMesh(
-		spk::Font::Atlas& p_atlas,
-		std::string_view p_text,
-		const spk::Vector2Int& p_baselinePosition,
-		float p_depth = 0.0f)
+		spk::Font::Atlas& p_atlas, std::string_view p_text, const spk::Vector2Int& p_baselinePosition, float p_depth = 0.0f)
 	{
 		return makeFontMesh(p_atlas, spk::Font::textFromUTF8(p_text), p_baselinePosition, p_depth);
 	}
@@ -137,8 +120,7 @@ TEST(TextureMesh2DTest, ReserveVectorShapeAndClearUpdateStorage)
 		{{0.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
 		{{1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
 		{{1.0f, 1.0f, 0.0f}, {1.0f, 1.0f}},
-		{{0.0f, 1.0f, 0.0f}, {0.0f, 1.0f}}
-	};
+		{{0.0f, 1.0f, 0.0f}, {0.0f, 1.0f}}};
 	mesh.addShape(vertices);
 
 	EXPECT_EQ(mesh.nbShape(), 1u);
@@ -156,10 +138,7 @@ TEST(TextureMesh2DTest, ReserveVectorShapeAndClearUpdateStorage)
 TEST(TextureMesh2DTest, DegenerateShapeIsIgnored)
 {
 	spk::TextureMesh2D mesh;
-	const std::vector<spk::TextureVertex2D> vertices = {
-		{{0.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-		{{1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}}
-	};
+	const std::vector<spk::TextureVertex2D> vertices = {{{0.0f, 0.0f, 0.0f}, {0.0f, 0.0f}}, {{1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}}};
 
 	EXPECT_THROW(mesh.addShape(vertices), std::runtime_error);
 
@@ -180,9 +159,7 @@ TEST(DrawTextureMeshRenderCommandTest, DrawsFullScreenTexture)
 	spk::RenderUnitBuilder builder;
 	builder.emplace<spk::ViewportCommand>(viewport);
 	builder.emplace<ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
-	builder.emplace<spk::DrawTextureMeshRenderCommand>(
-		*blueTexture,
-		std::make_shared<spk::TextureMesh2D>(makeFullScreenMesh({width, height})));
+	builder.emplace<spk::DrawTextureMeshRenderCommand>(*blueTexture, std::make_shared<spk::TextureMesh2D>(makeFullScreenMesh({width, height})));
 
 	spk::RenderUnit unit = builder.build();
 	unit.execute(renderContext);
@@ -275,10 +252,7 @@ TEST(DrawFontRenderCommandTest, EmptyTextDoesNotDraw)
 
 	const spk::Font::Size size(16, 0);
 	spk::Font::Atlas& atlas = font.atlas(size);
-	builder.emplace<spk::DrawFontRenderCommand>(
-		atlas,
-		std::make_shared<spk::TextureMesh2D>(makeFontMesh(atlas, "", spk::Vector2Int{0, 16})),
-		size);
+	builder.emplace<spk::DrawFontRenderCommand>(atlas, std::make_shared<spk::TextureMesh2D>(makeFontMesh(atlas, "", spk::Vector2Int{0, 16})), size);
 
 	spk::RenderUnit unit = builder.build();
 	EXPECT_NO_THROW(unit.execute(renderContext));
@@ -291,4 +265,3 @@ TEST(DrawFontRenderCommandTest, EmptyTextDoesNotDraw)
 		sparkle_test::renderCommandExpectedPath("DrawFontRenderCommand/empty_expected"),
 		sparkle_test::renderCommandResultPath("DrawFontRenderCommand/empty_diff"));
 }
-

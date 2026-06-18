@@ -18,6 +18,26 @@
 
 namespace spk
 {
+	/**
+	 * @brief Clickable widget combining text, optional icons, and pressed/released visual states.
+	 *
+	 * Use `PushButton` for command actions in demos and tools. The click subscription returns a contract; keep it alive for as long as the
+	 * callback must stay connected.
+	 *
+	 * @code{.cpp}
+	 * spk::PushButton saveButton("save-button", "Save", &parentWidget);
+	 * auto saveClick = saveButton.subscribeToClick([]()
+	 * {
+	 * 	// Save the current document here.
+	 * });
+	 * saveButton.setIconSize({24, 24});
+	 * @endcode
+	 *
+	 * @see spk::Widget
+	 * @see spk::TextLabel
+	 * @see spk::ImageLabel
+	 * @see spk::ContractProvider
+	 */
 	class PushButton : public spk::Widget
 	{
 	public:
@@ -51,15 +71,8 @@ namespace spk
 
 	public:
 		explicit PushButton(const std::string& p_name, spk::Widget* p_parent = nullptr);
-		PushButton(
-			const std::string& p_name,
-			std::string_view p_text,
-			spk::Widget* p_parent = nullptr);
-		PushButton(
-			const std::string& p_name,
-			std::string_view p_text,
-			const spk::WidgetStyle& p_style,
-			spk::Widget* p_parent = nullptr);
+		PushButton(const std::string& p_name, std::string_view p_text, spk::Widget* p_parent = nullptr);
+		PushButton(const std::string& p_name, std::string_view p_text, const spk::WidgetStyle& p_style, spk::Widget* p_parent = nullptr);
 		PushButton(
 			const std::string& p_name,
 			std::string_view p_text,

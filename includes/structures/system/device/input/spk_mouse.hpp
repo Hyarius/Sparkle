@@ -34,26 +34,26 @@ namespace spk
 
 		Mouse()
 		{
-			for (auto &state : buttons)
+			for (auto& state : buttons)
 			{
 				state = InputState::Up;
 			}
 		}
 
-		InputState &operator[](const Button p_button)
+		InputState& operator[](const Button p_button)
 		{
 			return buttons[static_cast<size_t>(p_button)];
 		}
 
-		const InputState &operator[](const Button p_button) const
+		const InputState& operator[](const Button p_button) const
 		{
 			return buttons[static_cast<size_t>(p_button)];
 		}
 	};
 
-	std::string toString(const Mouse::Button &p_button);
-	std::wstring toWstring(const Mouse::Button &p_button);
+	std::string toString(const Mouse::Button& p_button);
+	std::wstring toWstring(const Mouse::Button& p_button);
 
-	std::ostream &operator<<(std::ostream &p_stream, const Mouse::Button &p_button);
-	std::wostream &operator<<(std::wostream &p_stream, const Mouse::Button &p_button);
+	std::ostream& operator<<(std::ostream& p_stream, const Mouse::Button& p_button);
+	std::wostream& operator<<(std::wostream& p_stream, const Mouse::Button& p_button);
 }

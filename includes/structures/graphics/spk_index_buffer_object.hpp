@@ -14,9 +14,7 @@ namespace spk
 		GLenum _elementType = GL_UNSIGNED_INT;
 
 	public:
-		explicit IndexBufferObject(
-			Usage p_usage = Usage::DynamicDraw,
-			std::size_t p_size = 0);
+		explicit IndexBufferObject(Usage p_usage = Usage::DynamicDraw, std::size_t p_size = 0);
 
 		void setElementType(GLenum p_elementType);
 		[[nodiscard]] GLenum elementType() const noexcept;

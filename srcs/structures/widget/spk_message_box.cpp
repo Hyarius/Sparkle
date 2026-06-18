@@ -16,21 +16,21 @@ namespace spk
 
 		_compose();
 
-		sizeHint().configureMinimalGenerator([this]() {
-			const spk::Vector2UInt commandPanelSize = _commandPanel.minimalSize();
-
-			if (_textArea.text().empty() == true)
+		sizeHint().configureMinimalGenerator(
+			[this]()
 			{
-				return commandPanelSize;
-			}
+				const spk::Vector2UInt commandPanelSize = _commandPanel.minimalSize();
 
-			const spk::Vector2UInt textAreaSize = _textArea.computeMinimalSize(
-				std::max(commandPanelSize.x, 200u));
+				if (_textArea.text().empty() == true)
+				{
+					return commandPanelSize;
+				}
 
-			return spk::Vector2UInt(
-				std::max(textAreaSize.x, commandPanelSize.x),
-				textAreaSize.y + _layout.elementPadding().y + commandPanelSize.y);
-		});
+				const spk::Vector2UInt textAreaSize = _textArea.computeMinimalSize(std::max(commandPanelSize.x, 200u));
+
+				return spk::Vector2UInt(
+					std::max(textAreaSize.x, commandPanelSize.x), textAreaSize.y + _layout.elementPadding().y + commandPanelSize.y);
+			});
 
 		activate();
 	}
@@ -83,10 +83,7 @@ namespace spk
 	{
 		setContent(&_content);
 
-		_closeContract = subscribeTo(spk::IInterfaceWindow::Event::Close, [this]()
-		{
-			close();
-		});
+		_closeContract = subscribeTo(spk::IInterfaceWindow::Event::Close, [this]() { close(); });
 
 		_onResizeContract = subscribeOnResize(
 			[this](const spk::Vector2UInt& p_availableSize)
@@ -95,9 +92,10 @@ namespace spk
 				const unsigned int textAreaWidth = std::max({commandPanelMinimalSize.x, p_availableSize.x, _minimalWidth});
 				const spk::Vector2UInt textAreaMinimalSize = _content.textArea().computeMinimalSize(textAreaWidth);
 
-				setMinimumContentSize(spk::Vector2UInt(
-					std::max({textAreaMinimalSize.x, commandPanelMinimalSize.x, _minimalWidth}),
-					textAreaMinimalSize.y + _content.layout().elementPadding().y + commandPanelMinimalSize.y));
+				setMinimumContentSize(
+					spk::Vector2UInt(
+						std::max({textAreaMinimalSize.x, commandPanelMinimalSize.x, _minimalWidth}),
+						textAreaMinimalSize.y + _content.layout().elementPadding().y + commandPanelMinimalSize.y));
 			});
 	}
 
@@ -174,12 +172,12 @@ namespace spk
 		_minimalWidth = p_width;
 
 		const spk::Vector2UInt commandPanelMinimalSize = _content.commandPanel().minimalSize();
-		const spk::Vector2UInt textAreaMinimalSize =
-			_content.textArea().computeMinimalSize(std::max(commandPanelMinimalSize.x, p_width));
+		const spk::Vector2UInt textAreaMinimalSize = _content.textArea().computeMinimalSize(std::max(commandPanelMinimalSize.x, p_width));
 
-		setMinimumContentSize(spk::Vector2UInt(
-			std::max({textAreaMinimalSize.x, commandPanelMinimalSize.x, p_width}),
-			textAreaMinimalSize.y + _content.layout().elementPadding().y + commandPanelMinimalSize.y));
+		setMinimumContentSize(
+			spk::Vector2UInt(
+				std::max({textAreaMinimalSize.x, commandPanelMinimalSize.x, p_width}),
+				textAreaMinimalSize.y + _content.layout().elementPadding().y + commandPanelMinimalSize.y));
 	}
 
 	InformationMessageBox::InformationMessageBox(const std::string& p_name, spk::Widget* p_parent) :
@@ -187,10 +185,7 @@ namespace spk
 	{
 		setTitle("Information");
 		_button = addButton(p_name + "::closeButton", "Close");
-		_contract = _button->subscribeToClick([this]()
-		{
-			close();
-		});
+		_contract = _button->subscribeToClick([this]() { close(); });
 	}
 
 	spk::PushButton* InformationMessageBox::button() const

@@ -148,7 +148,7 @@ namespace spk
 {
 	std::string toString(Keyboard::Key p_key)
 	{
-		for (const auto &[key, name] : keyboardKeyNames)
+		for (const auto& [key, name] : keyboardKeyNames)
 		{
 			if (key == p_key)
 			{
@@ -168,7 +168,7 @@ namespace spk
 
 	std::optional<Keyboard::Key> fromString(std::string_view p_keyName)
 	{
-		for (const auto &[key, name] : keyboardKeyNames)
+		for (const auto& [key, name] : keyboardKeyNames)
 		{
 			if (name == p_keyName)
 			{
@@ -179,13 +179,13 @@ namespace spk
 		return std::nullopt;
 	}
 
-	std::ostream &operator<<(std::ostream &p_stream, Keyboard::Key p_key)
+	std::ostream& operator<<(std::ostream& p_stream, Keyboard::Key p_key)
 	{
 		p_stream << toString(p_key);
 		return p_stream;
 	}
 
-	std::wostream &operator<<(std::wostream &p_stream, Keyboard::Key p_key)
+	std::wostream& operator<<(std::wostream& p_stream, Keyboard::Key p_key)
 	{
 		p_stream << toWstring(p_key);
 		return p_stream;

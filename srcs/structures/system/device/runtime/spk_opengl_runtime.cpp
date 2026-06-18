@@ -1,6 +1,5 @@
 #include "structures/system/device/runtime/spk_opengl_runtime.hpp"
 
-
 #include <algorithm>
 #include <cstdint>
 #include <stdexcept>
@@ -76,4 +75,3 @@ namespace spk
 				static_cast<std::size_t>(viewport[3])));
 	}
 }
-

@@ -6,14 +6,7 @@
 namespace
 {
 	void compute1DResize(
-		int p_baseAnchor,
-		int p_baseSize,
-		int p_delta,
-		int p_minSize,
-		int p_maxSize,
-		bool p_fromMinSide,
-		int& p_outAnchor,
-		int& p_outSize)
+		int p_baseAnchor, int p_baseSize, int p_delta, int p_minSize, int p_maxSize, bool p_fromMinSide, int& p_outAnchor, int& p_outSize)
 	{
 		if (p_fromMinSide == true)
 		{
@@ -56,11 +49,9 @@ namespace spk
 
 		if (geometry().size.x < p_minimumSize.x || geometry().size.y < p_minimumSize.y)
 		{
-			setGeometry(spk::Rect2D(
-				geometry().anchor,
-				spk::Vector2UInt(
-					std::max(geometry().size.x, p_minimumSize.x),
-					std::max(geometry().size.y, p_minimumSize.y))));
+			setGeometry(
+				spk::Rect2D(
+					geometry().anchor, spk::Vector2UInt(std::max(geometry().size.x, p_minimumSize.x), std::max(geometry().size.y, p_minimumSize.y))));
 		}
 	}
 
@@ -79,14 +70,12 @@ namespace spk
 		const spk::Rect2D& absolute = absoluteGeometry();
 
 		const spk::Rect2D topArea(
-			{absolute.anchor.x - EdgeGrabOffset, absolute.anchor.y - EdgeGrabOffset},
-			{absolute.size.x + EdgeGrabOffset * 2, EdgeGrabOffset * 2});
+			{absolute.anchor.x - EdgeGrabOffset, absolute.anchor.y - EdgeGrabOffset}, {absolute.size.x + EdgeGrabOffset * 2, EdgeGrabOffset * 2});
 		const spk::Rect2D bottomArea(
 			{absolute.anchor.x - EdgeGrabOffset, absolute.anchor.y + static_cast<int>(absolute.size.y) - EdgeGrabOffset},
 			{absolute.size.x + EdgeGrabOffset * 2, EdgeGrabOffset * 2});
 		const spk::Rect2D leftArea(
-			{absolute.anchor.x - EdgeGrabOffset, absolute.anchor.y - EdgeGrabOffset},
-			{EdgeGrabOffset * 2, absolute.size.y + EdgeGrabOffset * 2});
+			{absolute.anchor.x - EdgeGrabOffset, absolute.anchor.y - EdgeGrabOffset}, {EdgeGrabOffset * 2, absolute.size.y + EdgeGrabOffset * 2});
 		const spk::Rect2D rightArea(
 			{absolute.anchor.x + static_cast<int>(absolute.size.x) - EdgeGrabOffset, absolute.anchor.y - EdgeGrabOffset},
 			{EdgeGrabOffset * 2, absolute.size.y + EdgeGrabOffset * 2});
@@ -213,11 +202,7 @@ namespace spk
 				sizeX);
 		}
 
-		return spk::Rect2D(
-			anchorX,
-			anchorY,
-			static_cast<unsigned int>(std::max(0, sizeX)),
-			static_cast<unsigned int>(std::max(0, sizeY)));
+		return spk::Rect2D(anchorX, anchorY, static_cast<unsigned int>(std::max(0, sizeX)), static_cast<unsigned int>(std::max(0, sizeY)));
 	}
 
 	void ScalableWidget::_onMouseMovedEvent(spk::MouseMovedEvent& p_event)

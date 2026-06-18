@@ -9,7 +9,7 @@
 #include "structures/widget/spk_text_area.hpp"
 
 #ifdef MessageBox
-#undef MessageBox
+#	undef MessageBox
 #endif
 
 namespace spk

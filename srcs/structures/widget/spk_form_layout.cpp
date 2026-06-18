@@ -136,12 +136,7 @@ namespace
 		}
 	}
 
-	void distributeExtraWidth(
-		uint32_t p_extraWidth,
-		bool p_labelExpandable,
-		bool p_fieldExpandable,
-		uint32_t& p_labelWidth,
-		uint32_t& p_fieldWidth)
+	void distributeExtraWidth(uint32_t p_extraWidth, bool p_labelExpandable, bool p_fieldExpandable, uint32_t& p_labelWidth, uint32_t& p_fieldWidth)
 	{
 		const uint32_t expandables = static_cast<uint32_t>(p_labelExpandable) + static_cast<uint32_t>(p_fieldExpandable);
 		if (expandables == 0U || p_extraWidth == 0U)
@@ -188,11 +183,7 @@ namespace
 	}
 
 	void placeAllCells(
-		spk::FormLayout& p_layout,
-		const spk::Rect2D& p_geometry,
-		uint32_t p_labelWidth,
-		uint32_t p_fieldWidth,
-		const std::vector<int>& p_rowHeights)
+		spk::FormLayout& p_layout, const spk::Rect2D& p_geometry, uint32_t p_labelWidth, uint32_t p_fieldWidth, const std::vector<int>& p_rowHeights)
 	{
 		int y = p_geometry.anchor.y;
 		const uint32_t paddingX = p_layout.elementPadding().x;
@@ -210,9 +201,7 @@ namespace
 			if (labelRenderable == true && fieldRenderable == true)
 			{
 				label->setGeometry(spk::Rect2D({p_geometry.anchor.x, y}, {p_labelWidth, height}));
-				field->setGeometry(spk::Rect2D(
-					{p_geometry.anchor.x + static_cast<int>(p_labelWidth + paddingX), y},
-					{p_fieldWidth, height}));
+				field->setGeometry(spk::Rect2D({p_geometry.anchor.x + static_cast<int>(p_labelWidth + paddingX), y}, {p_fieldWidth, height}));
 			}
 			else if (labelRenderable == true)
 			{
@@ -232,19 +221,12 @@ namespace spk
 {
 	FormLayout::FormLayout()
 	{
-		sizeHint().configureMinimalGenerator([this]() {
-			return _computeMinimalSize();
-		});
-		sizeHint().configureDesiredGenerator([this]() {
-			return _computeMinimalSize();
-		});
+		sizeHint().configureMinimalGenerator([this]() { return _computeMinimalSize(); });
+		sizeHint().configureDesiredGenerator([this]() { return _computeMinimalSize(); });
 	}
 
 	FormLayout::FormElement FormLayout::addRow(
-		spk::Widget* p_labelWidget,
-		spk::Widget* p_fieldWidget,
-		SizePolicy p_labelPolicy,
-		SizePolicy p_fieldPolicy)
+		spk::Widget* p_labelWidget, spk::Widget* p_fieldWidget, SizePolicy p_labelPolicy, SizePolicy p_fieldPolicy)
 	{
 		return FormElement{addWidget(p_labelWidget, p_labelPolicy), addWidget(p_fieldWidget, p_fieldPolicy)};
 	}
@@ -302,14 +284,8 @@ namespace spk
 		uint32_t fieldColumnWidth = 0U;
 		std::vector<uint32_t> rowHeights(rowCountValue, 0U);
 
-		const auto elementMinWidth = [](Element* p_element) -> uint32_t
-		{
-			return (hasRenderable(p_element) ? p_element->minimalSize().x : 0U);
-		};
-		const auto elementMinHeight = [](Element* p_element) -> uint32_t
-		{
-			return (hasRenderable(p_element) ? p_element->minimalSize().y : 0U);
-		};
+		const auto elementMinWidth = [](Element* p_element) -> uint32_t { return (hasRenderable(p_element) ? p_element->minimalSize().x : 0U); };
+		const auto elementMinHeight = [](Element* p_element) -> uint32_t { return (hasRenderable(p_element) ? p_element->minimalSize().y : 0U); };
 
 		for (size_t row = 0; row < rowCountValue; ++row)
 		{
@@ -322,9 +298,8 @@ namespace spk
 		}
 
 		const uint32_t minimumTotalWidth = labelColumnWidth + fieldColumnWidth + _elementPadding.x;
-		const uint32_t minimumTotalHeight =
-			static_cast<uint32_t>(std::accumulate(rowHeights.begin(), rowHeights.end(), 0U)) +
-			static_cast<uint32_t>((rowCountValue > 0U ? rowCountValue - 1U : 0U) * _elementPadding.y);
+		const uint32_t minimumTotalHeight = static_cast<uint32_t>(std::accumulate(rowHeights.begin(), rowHeights.end(), 0U)) +
+											static_cast<uint32_t>((rowCountValue > 0U ? rowCountValue - 1U : 0U) * _elementPadding.y);
 
 		return {minimumTotalWidth, minimumTotalHeight};
 	}

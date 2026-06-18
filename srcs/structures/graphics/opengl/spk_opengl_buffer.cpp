@@ -37,20 +37,12 @@ namespace spk
 
 			if (_allocatedSize != p_size)
 			{
-				glBufferData(
-					_target,
-					static_cast<GLsizeiptr>(p_size),
-					p_data,
-					_usage);
+				glBufferData(_target, static_cast<GLsizeiptr>(p_size), p_data, _usage);
 				_allocatedSize = p_size;
 			}
 			else if (p_size != 0)
 			{
-				glBufferSubData(
-					_target,
-					0,
-					static_cast<GLsizeiptr>(p_size),
-					p_data);
+				glBufferSubData(_target, 0, static_cast<GLsizeiptr>(p_size), p_data);
 			}
 		}
 	}

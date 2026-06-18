@@ -1,6 +1,5 @@
 #include <gtest/gtest.h>
 
-
 #include "structures/graphics/opengl/opengl_wrapper_test_utils.hpp"
 #include "structures/graphics/rendering/command/render_command_test_utils.hpp"
 #include "structures/graphics/texture/spk_font.hpp"
@@ -127,10 +126,7 @@ TEST(FontTest, SetPropertiesOnDefaultFontDoesNotThrow)
 
 	spk::Font font;
 
-	EXPECT_NO_THROW(font.setProperties(
-		spk::Font::Filtering::Linear,
-		spk::Font::Wrap::ClampToEdge,
-		spk::Font::Mipmap::Enable));
+	EXPECT_NO_THROW(font.setProperties(spk::Font::Filtering::Linear, spk::Font::Wrap::ClampToEdge, spk::Font::Mipmap::Enable));
 }
 
 TEST(FontTest, FromRawDataWithEmptyDataThrows)
@@ -168,10 +164,7 @@ TEST(FontTest, FromRawDataLoadsGlyphsAndNotifiesAtlasSubscribers)
 
 	const auto& fontBytes = SPARKLE_GET_RESOURCE("tests/TUs/resources/fonts/arial.ttf");
 	spk::Font font = spk::Font::fromRawData(
-		std::vector<uint8_t>(fontBytes.begin(), fontBytes.end()),
-		spk::Font::Filtering::Linear,
-		spk::Font::Wrap::Repeat,
-		spk::Font::Mipmap::Disable);
+		std::vector<uint8_t>(fontBytes.begin(), fontBytes.end()), spk::Font::Filtering::Linear, spk::Font::Wrap::Repeat, spk::Font::Mipmap::Disable);
 	spk::Font::Atlas& atlas = font.atlas(spk::Font::Size(18, 1));
 
 	int notificationCount = 0;
@@ -196,10 +189,7 @@ TEST(FontTest, SetPropertiesPropagatesToExistingAtlas)
 	spk::Font::Atlas& atlas = font.atlas(spk::Font::Size(16, 0));
 	atlas.glyph(U'A');
 
-	font.setProperties(
-		spk::Font::Filtering::Linear,
-		spk::Font::Wrap::ClampToBorder,
-		spk::Font::Mipmap::Disable);
+	font.setProperties(spk::Font::Filtering::Linear, spk::Font::Wrap::ClampToBorder, spk::Font::Mipmap::Disable);
 
 	EXPECT_EQ(atlas.filtering(), spk::Texture::Filtering::Linear);
 	EXPECT_EQ(atlas.wrap(), spk::Texture::Wrap::ClampToBorder);
@@ -234,4 +224,3 @@ TEST(FontTest, AtlasLoadsAllRenderableGlyphs)
 	EXPECT_NO_THROW(atlas.loadAllRenderableGlyphs());
 	EXPECT_GT(atlas.computeCharSize(U'A').x, 0u);
 }
-

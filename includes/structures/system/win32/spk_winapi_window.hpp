@@ -1,6 +1,5 @@
 #pragma once
 
-
 #include <functional>
 #include <memory>
 #include <string>
@@ -60,4 +59,3 @@ namespace spk
 		[[nodiscard]] bool isValid() const;
 	};
 }
-

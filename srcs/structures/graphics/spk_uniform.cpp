@@ -14,13 +14,13 @@ namespace spk
 	}
 
 	spk::OpenGL::UniformLocation& UniformBase::_resolveAndValidate(
-		GLenum p_expectedType,
-		const char* p_expectedTypeName,
-		std::size_t p_expectedCount) const
+		GLenum p_expectedType, const char* p_expectedTypeName, std::size_t p_expectedCount) const
 	{
 		spk::RenderContext* raw = spk::RenderContext::current();
 		if (raw == nullptr)
+		{
 			throw std::runtime_error("spk::UniformBase: no current render context");
+		}
 
 		spk::RenderContext& ctx = *raw;
 
@@ -33,16 +33,16 @@ namespace spk
 				auto obj = std::make_unique<spk::OpenGL::UniformLocation>();
 				obj->location = spk::OpenGL::Uniform::findLocation(programId, _name);
 				if (obj->location == -1)
-					throw std::runtime_error(
-						"spk::UniformBase: uniform [" + _name + "] not found in program");
+				{
+					throw std::runtime_error("spk::UniformBase: uniform [" + _name + "] not found in program");
+				}
 				return obj;
 			});
 
 		if (loc.validated == false)
 		{
 			const GLuint programId = _program.gpu(ctx).id();
-			spk::OpenGL::Uniform::validateDeclaration(
-				programId, _name, p_expectedType, p_expectedTypeName, p_expectedCount);
+			spk::OpenGL::Uniform::validateDeclaration(programId, _name, p_expectedType, p_expectedTypeName, p_expectedCount);
 			loc.validated = true;
 		}
 

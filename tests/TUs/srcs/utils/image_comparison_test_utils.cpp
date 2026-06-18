@@ -45,10 +45,7 @@ namespace
 		return std::abs(static_cast<int>(p_left) - static_cast<int>(p_right)) > static_cast<int>(p_tolerance);
 	}
 
-	[[nodiscard]] bool pixelDiffers(
-		const std::uint8_t* p_actual,
-		const std::uint8_t* p_expected,
-		sparkle_test::ImageComparisonOptions p_options)
+	[[nodiscard]] bool pixelDiffers(const std::uint8_t* p_actual, const std::uint8_t* p_expected, sparkle_test::ImageComparisonOptions p_options)
 	{
 		if (channelDiffers(p_actual[3], p_expected[3], p_options.alphaTolerance) == true)
 		{
@@ -101,21 +98,21 @@ namespace sparkle_test
 		{
 			for (int x = 0; x < diffWidth; ++x)
 			{
-				bool pixelMatches = x < actual.width &&
-									y < actual.height &&
-									x < expected.width &&
-									y < expected.height;
+				bool pixelMatches = x < actual.width && y < actual.height && x < expected.width && y < expected.height;
 
 				if (pixelMatches == true)
 				{
-					const std::size_t actualIndex = (static_cast<std::size_t>(y) * static_cast<std::size_t>(actual.width) + static_cast<std::size_t>(x)) * 4;
-					const std::size_t expectedIndex = (static_cast<std::size_t>(y) * static_cast<std::size_t>(expected.width) + static_cast<std::size_t>(x)) * 4;
+					const std::size_t actualIndex =
+						(static_cast<std::size_t>(y) * static_cast<std::size_t>(actual.width) + static_cast<std::size_t>(x)) * 4;
+					const std::size_t expectedIndex =
+						(static_cast<std::size_t>(y) * static_cast<std::size_t>(expected.width) + static_cast<std::size_t>(x)) * 4;
 					pixelMatches = (pixelDiffers(actual.pixels.data() + actualIndex, expected.pixels.data() + expectedIndex, p_options) == false);
 				}
 
 				if (pixelMatches == false)
 				{
-					const std::size_t diffIndex = (static_cast<std::size_t>(y) * static_cast<std::size_t>(diffWidth) + static_cast<std::size_t>(x)) * 4;
+					const std::size_t diffIndex =
+						(static_cast<std::size_t>(y) * static_cast<std::size_t>(diffWidth) + static_cast<std::size_t>(x)) * 4;
 					difference[diffIndex + 0] = 255;
 					difference[diffIndex + 1] = 0;
 					difference[diffIndex + 2] = 0;

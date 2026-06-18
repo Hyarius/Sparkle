@@ -58,9 +58,7 @@ TEST(CommandPanelTest, ButtonsArePackedToTheRightByDefault)
 
 	EXPECT_GT(okButton->geometry().x(), 0);
 	EXPECT_GT(cancelButton->geometry().x(), okButton->geometry().x());
-	EXPECT_EQ(
-		static_cast<unsigned int>(cancelButton->geometry().x()) + cancelButton->geometry().width(),
-		400u);
+	EXPECT_EQ(static_cast<unsigned int>(cancelButton->geometry().x()) + cancelButton->geometry().width(), 400u);
 }
 
 TEST(CommandPanelTest, SubscribeTriggersOnButtonClick)
@@ -74,8 +72,7 @@ TEST(CommandPanelTest, SubscribeTriggersOnButtonClick)
 
 	const spk::Rect2D buttonRect = panel.button("ok")->geometry();
 	const spk::Vector2Int clickPosition = {
-		buttonRect.x() + static_cast<int>(buttonRect.width() / 2),
-		buttonRect.y() + static_cast<int>(buttonRect.height() / 2)};
+		buttonRect.x() + static_cast<int>(buttonRect.width() / 2), buttonRect.y() + static_cast<int>(buttonRect.height() / 2)};
 
 	spk::MouseModule mouseModule;
 	mouseModule.bind(&panel);
@@ -106,8 +103,7 @@ TEST(CommandPanelVisualTest, RendersSingleButton)
 	spk::CommandPanel panel("Panel");
 	panel.addButton("ok", "OK");
 
-	const sparkle_test::ImageComparisonResult result =
-		spk::test::compareSnapshot(panel, "CommandPanelVisual", "single_button", captureRect);
+	const sparkle_test::ImageComparisonResult result = spk::test::compareSnapshot(panel, "CommandPanelVisual", "single_button", captureRect);
 
 	EXPECT_TRUE(result.matches);
 }
@@ -121,8 +117,7 @@ TEST(CommandPanelVisualTest, RendersMultipleButtons)
 	panel.addButton("no", "No");
 	panel.addButton("cancel", "Cancel");
 
-	const sparkle_test::ImageComparisonResult result =
-		spk::test::compareSnapshot(panel, "CommandPanelVisual", "three_buttons", captureRect);
+	const sparkle_test::ImageComparisonResult result = spk::test::compareSnapshot(panel, "CommandPanelVisual", "three_buttons", captureRect);
 
 	EXPECT_TRUE(result.matches);
 }
@@ -136,8 +131,7 @@ TEST(CommandPanelVisualTest, RendersExtendSizePolicy)
 	panel.addButton("ok", "OK");
 	panel.addButton("cancel", "Cancel");
 
-	const sparkle_test::ImageComparisonResult result =
-		spk::test::compareSnapshot(panel, "CommandPanelVisual", "extend_policy", captureRect);
+	const sparkle_test::ImageComparisonResult result = spk::test::compareSnapshot(panel, "CommandPanelVisual", "extend_policy", captureRect);
 
 	EXPECT_TRUE(result.matches);
 }

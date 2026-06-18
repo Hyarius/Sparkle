@@ -146,14 +146,12 @@ TEST(WidgetTest, OldSnapshotsKeepTheirPreviousRenderUnitsAfterWidgetRebuilds)
 	widget.activate();
 	widget.onExecuteRenderCommand = [&calls]() { calls.push_back(1); };
 	widget.appendRenderUnits(firstBuilder);
-	std::shared_ptr<spk::RenderSnapshot> firstSnapshot =
-		std::make_shared<spk::RenderSnapshot>(firstBuilder.build());
+	std::shared_ptr<spk::RenderSnapshot> firstSnapshot = std::make_shared<spk::RenderSnapshot>(firstBuilder.build());
 
 	widget.onExecuteRenderCommand = [&calls]() { calls.push_back(2); };
 	widget.invalidateRenderUnit();
 	widget.appendRenderUnits(secondBuilder);
-	std::shared_ptr<spk::RenderSnapshot> secondSnapshot =
-		std::make_shared<spk::RenderSnapshot>(secondBuilder.build());
+	std::shared_ptr<spk::RenderSnapshot> secondSnapshot = std::make_shared<spk::RenderSnapshot>(secondBuilder.build());
 	sparkle_test::TestRenderContext renderContext(std::make_shared<spk::SurfaceState>());
 
 	renderModule.publishSnapshot(firstSnapshot);
@@ -295,12 +293,7 @@ TEST(WidgetTest, AppendRenderUnitsVisitsSelfBeforeChildrenAndRenderExecutesInTha
 	parent.appendRenderUnits(builder);
 	publishAndRender(renderModule, builder.build());
 
-	std::vector<std::string> expected = {
-		"Parent:append_render",
-		"Child:append_render",
-		"Parent:render",
-		"Child:render"
-	};
+	std::vector<std::string> expected = {"Parent:append_render", "Child:append_render", "Parent:render", "Child:render"};
 
 	EXPECT_EQ(callLog, expected);
 }
@@ -319,10 +312,7 @@ TEST(WidgetTest, UpdateVisitsChildrenBeforeSelf)
 	spk::UpdateTick tick;
 	parent.update(tick);
 
-	std::vector<std::string> expected = {
-		"Child:update",
-		"Parent:update"
-	};
+	std::vector<std::string> expected = {"Child:update", "Parent:update"};
 
 	EXPECT_EQ(callLog, expected);
 }
@@ -341,10 +331,7 @@ TEST(WidgetTest, FrameEventsPropagateToChildrenBeforeParent)
 	spk::FrameEventRecord shownEvent = spk::FrameEventRecord(spk::makeEventRecord(spk::WindowShownRecord{}));
 	sparkle_test::sendFrameEvent(parent, shownEvent);
 
-	std::vector<std::string> expected = {
-		"Child:frame:WindowShown",
-		"Parent:frame:WindowShown"
-	};
+	std::vector<std::string> expected = {"Child:frame:WindowShown", "Parent:frame:WindowShown"};
 
 	EXPECT_EQ(callLog, expected);
 	EXPECT_EQ(child.frameEventCount, 1);
@@ -372,11 +359,9 @@ TEST(WidgetTest, MouseAndKeyboardDispatchReachDedicatedHandlers)
 	sparkle_test::RecordingWidget widget("Widget");
 	widget.activate();
 
-	spk::MouseEventRecord mouseEvent = spk::MouseEventRecord(spk::makeEventRecord(spk::MouseButtonPressedRecord{
-		.button = spk::Mouse::Left}));
-	spk::KeyboardEventRecord keyboardEvent = spk::KeyboardEventRecord(spk::makeEventRecord(spk::KeyPressedRecord{
-		.key = spk::Keyboard::Return,
-		.isRepeated = false}));
+	spk::MouseEventRecord mouseEvent = spk::MouseEventRecord(spk::makeEventRecord(spk::MouseButtonPressedRecord{.button = spk::Mouse::Left}));
+	spk::KeyboardEventRecord keyboardEvent =
+		spk::KeyboardEventRecord(spk::makeEventRecord(spk::KeyPressedRecord{.key = spk::Keyboard::Return, .isRepeated = false}));
 
 	sparkle_test::sendMouseEvent(widget, mouseEvent);
 	sparkle_test::sendKeyboardEvent(widget, keyboardEvent);
@@ -500,11 +485,9 @@ TEST(WidgetTest, DeactivatedWidgetSkipsRenderCommandAppendUpdateAndEventDispatch
 	publishAndRender(renderModule, builder.build());
 	widget.update(tick);
 	spk::FrameEventRecord frameEvent = spk::FrameEventRecord(spk::makeEventRecord(spk::WindowShownRecord{}));
-	spk::MouseEventRecord mouseEvent = spk::MouseEventRecord(spk::makeEventRecord(spk::MouseMovedRecord{
-		.position = spk::Vector2Int(1, 2),
-		.delta = spk::Vector2Int(3, 4)}));
-	spk::KeyboardEventRecord keyboardEvent = spk::KeyboardEventRecord(spk::makeEventRecord(spk::TextInputRecord{
-		.glyph = U'X'}));
+	spk::MouseEventRecord mouseEvent =
+		spk::MouseEventRecord(spk::makeEventRecord(spk::MouseMovedRecord{.position = spk::Vector2Int(1, 2), .delta = spk::Vector2Int(3, 4)}));
+	spk::KeyboardEventRecord keyboardEvent = spk::KeyboardEventRecord(spk::makeEventRecord(spk::TextInputRecord{.glyph = U'X'}));
 
 	sparkle_test::sendFrameEvent(widget, frameEvent);
 	sparkle_test::sendMouseEvent(widget, mouseEvent);
@@ -533,16 +516,15 @@ TEST(WidgetTest, ReparentingDuringUpdateIsDeferredUntilTraversalEndsAndDoesNotSk
 	secondChild.activate();
 
 	parent.onUpdate = [&callLog](const spk::UpdateTick&) { callLog.push_back("parent"); };
-	firstChild.onUpdate =
-		[&](const spk::UpdateTick&)
-		{
-			callLog.push_back("first_child");
-			firstChild.setParent(&secondParent);
+	firstChild.onUpdate = [&](const spk::UpdateTick&)
+	{
+		callLog.push_back("first_child");
+		firstChild.setParent(&secondParent);
 
-			EXPECT_EQ(firstChild.parent(), &parent);
-			EXPECT_TRUE(parent.hasChild(&firstChild));
-			EXPECT_FALSE(secondParent.hasChild(&firstChild));
-		};
+		EXPECT_EQ(firstChild.parent(), &parent);
+		EXPECT_TRUE(parent.hasChild(&firstChild));
+		EXPECT_FALSE(secondParent.hasChild(&firstChild));
+	};
 	secondChild.onUpdate = [&callLog](const spk::UpdateTick&) { callLog.push_back("second_child"); };
 
 	spk::UpdateTick tick;
@@ -570,16 +552,15 @@ TEST(WidgetTest, ReparentingDuringRenderUnitAppendIsDeferredUntilTraversalEndsAn
 	secondChild.activate();
 
 	parent.onAppendRenderCommands = [&callLog]() { callLog.push_back("parent"); };
-	firstChild.onAppendRenderCommands =
-		[&]()
-		{
-			callLog.push_back("first_child");
-			firstChild.setParent(&secondParent);
+	firstChild.onAppendRenderCommands = [&]()
+	{
+		callLog.push_back("first_child");
+		firstChild.setParent(&secondParent);
 
-			EXPECT_EQ(firstChild.parent(), &parent);
-			EXPECT_TRUE(parent.hasChild(&firstChild));
-			EXPECT_FALSE(secondParent.hasChild(&firstChild));
-		};
+		EXPECT_EQ(firstChild.parent(), &parent);
+		EXPECT_TRUE(parent.hasChild(&firstChild));
+		EXPECT_FALSE(secondParent.hasChild(&firstChild));
+	};
 	secondChild.onAppendRenderCommands = [&callLog]() { callLog.push_back("second_child"); };
 
 	parent.appendRenderUnits(builder);
@@ -608,25 +589,19 @@ TEST(WidgetTest, ReparentingDuringEventPropagationIsDeferredUntilPropagationEnds
 	secondChild.activate();
 	secondParent.activate();
 
-	firstChild.onWindowShown =
-		[&]()
-		{
-			firstChild.setParent(&secondParent);
+	firstChild.onWindowShown = [&]()
+	{
+		firstChild.setParent(&secondParent);
 
-			EXPECT_EQ(firstChild.parent(), &parent);
-			EXPECT_TRUE(parent.hasChild(&firstChild));
-			EXPECT_FALSE(secondParent.hasChild(&firstChild));
-		};
+		EXPECT_EQ(firstChild.parent(), &parent);
+		EXPECT_TRUE(parent.hasChild(&firstChild));
+		EXPECT_FALSE(secondParent.hasChild(&firstChild));
+	};
 
 	spk::FrameEventRecord shownEvent = spk::FrameEventRecord(spk::makeEventRecord(spk::WindowShownRecord{}));
 	sparkle_test::sendFrameEvent(parent, shownEvent);
 
-	EXPECT_EQ(
-		callLog,
-		std::vector<std::string>({
-			"FirstChild:frame:WindowShown",
-			"SecondChild:frame:WindowShown",
-			"Parent:frame:WindowShown"}));
+	EXPECT_EQ(callLog, std::vector<std::string>({"FirstChild:frame:WindowShown", "SecondChild:frame:WindowShown", "Parent:frame:WindowShown"}));
 	EXPECT_EQ(firstChild.parent(), &secondParent);
 	EXPECT_FALSE(parent.hasChild(&firstChild));
 	EXPECT_TRUE(parent.hasChild(&secondChild));

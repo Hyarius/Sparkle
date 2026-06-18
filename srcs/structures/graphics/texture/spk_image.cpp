@@ -8,9 +8,7 @@
 
 namespace spk
 {
-	Image::Image()
-	{
-	}
+	Image::Image() {}
 
 	Image::Image(const std::filesystem::path& p_path)
 	{
@@ -46,13 +44,8 @@ namespace spk
 		int height = 0;
 		int channels = 0;
 
-		stbi_uc* rawData = stbi_load_from_memory(
-			reinterpret_cast<const stbi_uc*>(p_data.data()),
-			static_cast<int>(p_data.size()),
-			&width,
-			&height,
-			&channels,
-			0);
+		stbi_uc* rawData =
+			stbi_load_from_memory(reinterpret_cast<const stbi_uc*>(p_data.data()), static_cast<int>(p_data.size()), &width, &height, &channels, 0);
 
 		if (rawData == nullptr)
 		{

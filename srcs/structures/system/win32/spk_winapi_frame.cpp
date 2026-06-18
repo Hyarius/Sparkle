@@ -1,6 +1,5 @@
 #include "structures/system/win32/spk_winapi_frame.hpp"
 
-
 #include <windowsx.h>
 
 #include "utils/spk_winapi_helpers.hpp"
@@ -78,7 +77,9 @@ namespace spk
 			_emitFrameEvent(spk::FrameEventRecord(spk::WindowFocusLostRecord{}));
 			return 0;
 		case WM_SHOWWINDOW:
-			_emitFrameEvent(spk::FrameEventRecord(p_wParam != 0 ? spk::FrameEventRecord(spk::WindowShownRecord{}) : spk::FrameEventRecord(spk::WindowHiddenRecord{})));
+			_emitFrameEvent(
+				spk::FrameEventRecord(
+					p_wParam != 0 ? spk::FrameEventRecord(spk::WindowShownRecord{}) : spk::FrameEventRecord(spk::WindowHiddenRecord{})));
 			return 0;
 		case WM_MOUSEMOVE:
 		{
@@ -191,9 +192,7 @@ namespace spk
 			p_rect,
 			p_title,
 			[this](HWND p_handle, UINT p_message, WPARAM p_wParam, LPARAM p_lParam)
-			{
-				return _windowProcedure(p_handle, p_message, p_wParam, p_lParam);
-			}),
+			{ return _windowProcedure(p_handle, p_message, p_wParam, p_lParam); }),
 		_title(p_title),
 		_rect(_window.clientRect())
 	{
@@ -264,4 +263,3 @@ namespace spk
 		return _window.deviceContext();
 	}
 }
-

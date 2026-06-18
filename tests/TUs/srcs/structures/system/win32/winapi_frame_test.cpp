@@ -1,6 +1,5 @@
 #include <gtest/gtest.h>
 
-
 #include <memory>
 #include <vector>
 #include <variant>
@@ -58,10 +57,7 @@ TEST(WinAPIFrameTest, TranslatesFrameMessages)
 	std::unique_ptr<spk::IFrame> baseFrame = runtime.createFrame(spk::Rect2D(100, 100, 128, 96), "FrameMessages");
 	auto& frame = dynamic_cast<spk::Frame&>(*baseFrame);
 	std::vector<spk::FrameEventRecord> events;
-	auto contract = frame.subscribeToFrameEvents([&](const spk::FrameEventRecord& p_event)
-	{
-		events.push_back(p_event);
-	});
+	auto contract = frame.subscribeToFrameEvents([&](const spk::FrameEventRecord& p_event) { events.push_back(p_event); });
 
 	SendMessageW(frame.handle(), WM_CLOSE, 0, 0);
 	static_cast<void>(onlyRecord<spk::WindowCloseRequestedRecord>(events));
@@ -102,10 +98,7 @@ TEST(WinAPIFrameTest, TranslatesMouseMessagesAndSignedCoordinates)
 	std::unique_ptr<spk::IFrame> baseFrame = runtime.createFrame(spk::Rect2D(150, 150, 128, 96), "MouseMessages");
 	auto& frame = dynamic_cast<spk::Frame&>(*baseFrame);
 	std::vector<spk::MouseEventRecord> events;
-	auto contract = frame.subscribeToMouseEvents([&](const spk::MouseEventRecord& p_event)
-	{
-		events.push_back(p_event);
-	});
+	auto contract = frame.subscribeToMouseEvents([&](const spk::MouseEventRecord& p_event) { events.push_back(p_event); });
 
 	SendMessageW(frame.handle(), WM_MOUSEMOVE, 0, mouseLParam(-3, 7));
 	ASSERT_GE(events.size(), 1u);
@@ -165,10 +158,7 @@ TEST(WinAPIFrameTest, TranslatesKeyboardMessagesIncludingRepeatAndUnknownKeys)
 	std::unique_ptr<spk::IFrame> baseFrame = runtime.createFrame(spk::Rect2D(200, 200, 128, 96), "KeyboardMessages");
 	auto& frame = dynamic_cast<spk::Frame&>(*baseFrame);
 	std::vector<spk::KeyboardEventRecord> events;
-	auto contract = frame.subscribeToKeyboardEvents([&](const spk::KeyboardEventRecord& p_event)
-	{
-		events.push_back(p_event);
-	});
+	auto contract = frame.subscribeToKeyboardEvents([&](const spk::KeyboardEventRecord& p_event) { events.push_back(p_event); });
 
 	SendMessageW(frame.handle(), WM_KEYDOWN, static_cast<WPARAM>(spk::Keyboard::A), 0);
 	const auto& pressed = onlyRecord<spk::KeyPressedRecord>(events);
@@ -216,4 +206,3 @@ TEST(WinAPIFrameTest, TitleAndDeviceContextAccessorsReflectNativeWindow)
 	frame.validateClosure();
 	pumpWinApiMessages();
 }
-

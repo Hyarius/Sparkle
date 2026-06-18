@@ -12,21 +12,13 @@ namespace
 		{
 		}
 
-		void makeCurrent() override
-		{
-		}
+		void makeCurrent() override {}
 
-		void present() override
-		{
-		}
+		void present() override {}
 
-		void setVSync(bool) override
-		{
-		}
+		void setVSync(bool) override {}
 
-		void notifyResize(const spk::Rect2D&) override
-		{
-		}
+		void notifyResize(const spk::Rect2D&) override {}
 	};
 }
 

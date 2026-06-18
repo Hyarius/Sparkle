@@ -52,8 +52,7 @@ namespace sparkle_test
 	{
 		constexpr int width = 32;
 		constexpr int height = 16;
-		std::vector<std::uint8_t> pixels(
-			static_cast<std::size_t>(width) * static_cast<std::size_t>(height) * 4, 0);
+		std::vector<std::uint8_t> pixels(static_cast<std::size_t>(width) * static_cast<std::size_t>(height) * 4, 0);
 		for (int y = 0; y < height; ++y)
 		{
 			for (int x = 0; x < width; ++x)
@@ -75,19 +74,19 @@ namespace sparkle_test
 				const auto* bytes = reinterpret_cast<const std::uint8_t*>(p_data);
 				output->insert(output->end(), bytes, bytes + p_size);
 			},
-			&result, width, height, 4, pixels.data(), width * 4);
+			&result,
+			width,
+			height,
+			4,
+			pixels.data(),
+			width * 4);
 		return result;
 	}
 
 	[[nodiscard]] inline std::shared_ptr<spk::Texture> makeSolidTexture(
-		const spk::Vector2UInt& p_size,
-		std::uint8_t p_red,
-		std::uint8_t p_green,
-		std::uint8_t p_blue,
-		std::uint8_t p_alpha = 255)
+		const spk::Vector2UInt& p_size, std::uint8_t p_red, std::uint8_t p_green, std::uint8_t p_blue, std::uint8_t p_alpha = 255)
 	{
-		std::vector<std::uint8_t> pixels(
-			static_cast<std::size_t>(p_size.x) * static_cast<std::size_t>(p_size.y) * 4, 0);
+		std::vector<std::uint8_t> pixels(static_cast<std::size_t>(p_size.x) * static_cast<std::size_t>(p_size.y) * 4, 0);
 		for (std::size_t i = 0; i < pixels.size(); i += 4)
 		{
 			pixels[i + 0] = p_red;

@@ -22,12 +22,7 @@ TEST(ThreadSafeContractTest, ResignUsesTheProvidedMutex)
 	std::shared_ptr<std::mutex> mutex = std::make_shared<std::mutex>();
 	int callCount = 0;
 
-	spk::ThreadSafeContract<spk::ContractProvider<>::Contract> contract(
-		provider.subscribe([&callCount]()
-		{
-			++callCount;
-		}),
-		mutex);
+	spk::ThreadSafeContract<spk::ContractProvider<>::Contract> contract(provider.subscribe([&callCount]() { ++callCount; }), mutex);
 
 	std::unique_lock<std::mutex> lock(*mutex);
 	std::atomic<bool> workerStarted = false;
@@ -66,12 +61,7 @@ TEST(ThreadSafeContractTest, DestructorResignsContract)
 	int callCount = 0;
 
 	{
-		spk::ThreadSafeContract<spk::ContractProvider<>::Contract> contract(
-			provider.subscribe([&callCount]()
-			{
-				++callCount;
-			}),
-			mutex);
+		spk::ThreadSafeContract<spk::ContractProvider<>::Contract> contract(provider.subscribe([&callCount]() { ++callCount; }), mutex);
 
 		EXPECT_TRUE(contract.isValid());
 	}
@@ -91,12 +81,7 @@ TEST(ThreadSafeContractTest, RelinquishDetachesWithoutResigning)
 	std::shared_ptr<std::mutex> mutex = std::make_shared<std::mutex>();
 	int callCount = 0;
 
-	spk::ThreadSafeContract<spk::ContractProvider<>::Contract> contract(
-		provider.subscribe([&callCount]()
-		{
-			++callCount;
-		}),
-		mutex);
+	spk::ThreadSafeContract<spk::ContractProvider<>::Contract> contract(provider.subscribe([&callCount]() { ++callCount; }), mutex);
 
 	contract.relinquish();
 
@@ -116,12 +101,7 @@ TEST(ThreadSafeContractTest, BlockReturnsSynchronizedBlocker)
 	std::shared_ptr<std::mutex> mutex = std::make_shared<std::mutex>();
 	int callCount = 0;
 
-	spk::ThreadSafeContract<spk::ContractProvider<>::Contract> contract(
-		provider.subscribe([&callCount]()
-		{
-			++callCount;
-		}),
-		mutex);
+	spk::ThreadSafeContract<spk::ContractProvider<>::Contract> contract(provider.subscribe([&callCount]() { ++callCount; }), mutex);
 
 	auto blocker = contract.block();
 

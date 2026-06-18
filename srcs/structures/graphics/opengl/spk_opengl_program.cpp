@@ -123,10 +123,7 @@ namespace spk
 		void Program::renderRaw(spk::Primitive p_primitive, std::size_t p_firstVertex, std::size_t p_vertexCount) const
 		{
 			activate();
-			glDrawArrays(
-				spk::OpenGL::primitiveType(p_primitive),
-				static_cast<GLint>(p_firstVertex),
-				static_cast<GLsizei>(p_vertexCount));
+			glDrawArrays(spk::OpenGL::primitiveType(p_primitive), static_cast<GLint>(p_firstVertex), static_cast<GLsizei>(p_vertexCount));
 		}
 
 		void Program::render(spk::Primitive p_primitive, std::size_t p_firstIndex, std::size_t p_indexCount) const
@@ -161,14 +158,7 @@ namespace spk
 	spk::OpenGL::Program& Program::gpu(const spk::RenderContext& p_context) const
 	{
 		return _gpu.resolve(
-			p_context,
-			version(),
-			[this]()
-			{
-				return std::make_unique<spk::OpenGL::Program>(
-					vertexShaderSource(),
-					fragmentShaderSource());
-			});
+			p_context, version(), [this]() { return std::make_unique<spk::OpenGL::Program>(vertexShaderSource(), fragmentShaderSource()); });
 	}
 
 	bool Program::hasGpu(const spk::RenderContext& p_context) const noexcept
@@ -234,7 +224,8 @@ namespace spk
 		}
 	}
 
-	void Program::renderRaw(const spk::RenderContext& p_context, spk::Primitive p_primitive, std::size_t p_firstVertex, std::size_t p_vertexCount) const
+	void Program::renderRaw(
+		const spk::RenderContext& p_context, spk::Primitive p_primitive, std::size_t p_firstVertex, std::size_t p_vertexCount) const
 	{
 		synchronize();
 		gpu(p_context).renderRaw(p_primitive, p_firstVertex, p_vertexCount);

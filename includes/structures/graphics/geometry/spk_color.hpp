@@ -6,6 +6,22 @@
 
 namespace spk
 {
+	/**
+	 * @brief RGBA color stored as four normalized floating-point channels.
+	 *
+	 * Use `Color` whenever a widget, mesh, or render command needs a tint or clear color. Components are expressed in the common 0.0 to
+	 * 1.0 range, where alpha controls opacity.
+	 *
+	 * @code{.cpp}
+	 * spk::Color warning = {1.0f, 0.75f, 0.0f, 1.0f};
+	 * auto values = warning.values();
+	 * std::string debugText = warning.toString();
+	 * @endcode
+	 *
+	 * @see spk::ColorMesh2D
+	 * @see spk::ColorRectangleRenderCommand
+	 * @see spk::WidgetStyle
+	 */
 	struct Color
 	{
 		float r = 1.0f;

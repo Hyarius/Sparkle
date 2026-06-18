@@ -211,10 +211,7 @@ namespace spk
 		MouseButtonReleasedRecord,
 		MouseButtonDoubleClickedRecord>;
 
-	using KeyboardEventRecord = std::variant<
-		KeyPressedRecord,
-		KeyReleasedRecord,
-		TextInputRecord>;
+	using KeyboardEventRecord = std::variant<KeyPressedRecord, KeyReleasedRecord, TextInputRecord>;
 
 	template <typename... TVisitors>
 	struct Overloaded : TVisitors...

@@ -13,13 +13,10 @@ TEST(KeyboardModuleTest, KeyboardEventsUpdateInternalStateAndDispatchToBoundWidg
 	spk::KeyboardModule module;
 	module.bind(&widget);
 
-	spk::KeyboardEventRecord press = spk::KeyboardEventRecord(spk::makeEventRecord(spk::KeyPressedRecord{
-		.key = spk::Keyboard::Escape,
-		.isRepeated = false}));
-	spk::KeyboardEventRecord text = spk::KeyboardEventRecord(spk::makeEventRecord(spk::TextInputRecord{
-		.glyph = U'Q'}));
-	spk::KeyboardEventRecord release = spk::KeyboardEventRecord(spk::makeEventRecord(spk::KeyReleasedRecord{
-		.key = spk::Keyboard::Escape}));
+	spk::KeyboardEventRecord press =
+		spk::KeyboardEventRecord(spk::makeEventRecord(spk::KeyPressedRecord{.key = spk::Keyboard::Escape, .isRepeated = false}));
+	spk::KeyboardEventRecord text = spk::KeyboardEventRecord(spk::makeEventRecord(spk::TextInputRecord{.glyph = U'Q'}));
+	spk::KeyboardEventRecord release = spk::KeyboardEventRecord(spk::makeEventRecord(spk::KeyReleasedRecord{.key = spk::Keyboard::Escape}));
 
 	module.pushEvent(std::move(press));
 	module.pushEvent(std::move(text));
@@ -36,9 +33,8 @@ TEST(KeyboardModuleTest, PushEventIsSafeWhenUnbound)
 {
 	spk::KeyboardModule module;
 
-	spk::KeyboardEventRecord event = spk::KeyboardEventRecord(spk::makeEventRecord(spk::KeyPressedRecord{
-		.key = spk::Keyboard::A,
-		.isRepeated = false}));
+	spk::KeyboardEventRecord event =
+		spk::KeyboardEventRecord(spk::makeEventRecord(spk::KeyPressedRecord{.key = spk::Keyboard::A, .isRepeated = false}));
 
 	EXPECT_NO_THROW(module.pushEvent(std::move(event)));
 	EXPECT_NO_THROW(module.processEvents());

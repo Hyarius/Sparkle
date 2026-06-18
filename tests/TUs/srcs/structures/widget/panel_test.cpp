@@ -14,9 +14,7 @@ namespace
 	{
 		const auto& bytes = SPARKLE_GET_RESOURCE("resources/textures/default_nine_slice.png");
 		return std::make_shared<spk::SpriteSheet>(
-			spk::SpriteSheet::fromRawData(
-				std::vector<std::uint8_t>(bytes.begin(), bytes.end()),
-				spk::Vector2UInt{2, 2}));
+			spk::SpriteSheet::fromRawData(std::vector<std::uint8_t>(bytes.begin(), bytes.end()), spk::Vector2UInt{2, 2}));
 	}
 }
 
@@ -96,8 +94,7 @@ TEST(PanelVisualTest, RendersDefaultNineSlice)
 
 	spk::Panel panel("Panel");
 
-	const sparkle_test::ImageComparisonResult result =
-		spk::test::compareSnapshot(panel, "PanelVisual", "default", captureRect);
+	const sparkle_test::ImageComparisonResult result = spk::test::compareSnapshot(panel, "PanelVisual", "default", captureRect);
 
 	EXPECT_TRUE(result.matches);
 }
@@ -108,8 +105,7 @@ TEST(PanelVisualTest, RendersPressedStyleNineSlice)
 
 	spk::Panel panel("Panel", spk::WidgetStyle::makeDefaultPressed());
 
-	const sparkle_test::ImageComparisonResult result =
-		spk::test::compareSnapshot(panel, "PanelVisual", "pressed_style", captureRect);
+	const sparkle_test::ImageComparisonResult result = spk::test::compareSnapshot(panel, "PanelVisual", "pressed_style", captureRect);
 
 	EXPECT_TRUE(result.matches);
 }
@@ -121,8 +117,7 @@ TEST(PanelVisualTest, CustomCornerSizeAffectsNineSlice)
 	spk::Panel panel("Panel");
 	panel.setCornerSize({20, 16});
 
-	const sparkle_test::ImageComparisonResult result =
-		spk::test::compareSnapshot(panel, "PanelVisual", "custom_corner_size", captureRect);
+	const sparkle_test::ImageComparisonResult result = spk::test::compareSnapshot(panel, "PanelVisual", "custom_corner_size", captureRect);
 
 	EXPECT_TRUE(result.matches);
 }

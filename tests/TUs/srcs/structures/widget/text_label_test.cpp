@@ -176,15 +176,8 @@ TEST(TextLabelTest, TextAnchorExercisesAllAlignmentBranches)
 	label.setGeometry(spk::Rect2D(10, 10, 200, 80));
 
 	const spk::HorizontalAlignment horizontalAlignments[] = {
-		spk::HorizontalAlignment::Left,
-		spk::HorizontalAlignment::Centered,
-		spk::HorizontalAlignment::Right
-	};
-	const spk::VerticalAlignment verticalAlignments[] = {
-		spk::VerticalAlignment::Top,
-		spk::VerticalAlignment::Centered,
-		spk::VerticalAlignment::Down
-	};
+		spk::HorizontalAlignment::Left, spk::HorizontalAlignment::Centered, spk::HorizontalAlignment::Right};
+	const spk::VerticalAlignment verticalAlignments[] = {spk::VerticalAlignment::Top, spk::VerticalAlignment::Centered, spk::VerticalAlignment::Down};
 
 	for (const auto h : horizontalAlignments)
 	{
@@ -231,8 +224,7 @@ TEST_P(TextLabelAlignmentVisualTest, RendersTextAtExpectedPosition)
 	spk::TextLabel label("Label", "Hello", makeAlignmentTestStyle());
 	label.setAlignment(param.horizontal, param.vertical);
 
-	const sparkle_test::ImageComparisonResult result =
-		spk::test::compareSnapshot(label, "TextLabelVisual", param.name, captureRect);
+	const sparkle_test::ImageComparisonResult result = spk::test::compareSnapshot(label, "TextLabelVisual", param.name, captureRect);
 
 	EXPECT_TRUE(result.matches);
 }
@@ -241,18 +233,16 @@ INSTANTIATE_TEST_SUITE_P(
 	AllAlignments,
 	TextLabelAlignmentVisualTest,
 	::testing::Values(
-		AlignmentParam{spk::HorizontalAlignment::Left,     spk::VerticalAlignment::Top,      "left_top"},
-		AlignmentParam{spk::HorizontalAlignment::Left,     spk::VerticalAlignment::Centered,  "left_centered"},
-		AlignmentParam{spk::HorizontalAlignment::Left,     spk::VerticalAlignment::Down,      "left_down"},
-		AlignmentParam{spk::HorizontalAlignment::Centered, spk::VerticalAlignment::Top,       "centered_top"},
-		AlignmentParam{spk::HorizontalAlignment::Centered, spk::VerticalAlignment::Centered,  "centered_centered"},
-		AlignmentParam{spk::HorizontalAlignment::Centered, spk::VerticalAlignment::Down,      "centered_down"},
-		AlignmentParam{spk::HorizontalAlignment::Right,    spk::VerticalAlignment::Top,       "right_top"},
-		AlignmentParam{spk::HorizontalAlignment::Right,    spk::VerticalAlignment::Centered,  "right_centered"},
-		AlignmentParam{spk::HorizontalAlignment::Right,    spk::VerticalAlignment::Down,      "right_down"}
-	),
-	[](const ::testing::TestParamInfo<AlignmentParam>& info) { return info.param.name; }
-);
+		AlignmentParam{spk::HorizontalAlignment::Left, spk::VerticalAlignment::Top, "left_top"},
+		AlignmentParam{spk::HorizontalAlignment::Left, spk::VerticalAlignment::Centered, "left_centered"},
+		AlignmentParam{spk::HorizontalAlignment::Left, spk::VerticalAlignment::Down, "left_down"},
+		AlignmentParam{spk::HorizontalAlignment::Centered, spk::VerticalAlignment::Top, "centered_top"},
+		AlignmentParam{spk::HorizontalAlignment::Centered, spk::VerticalAlignment::Centered, "centered_centered"},
+		AlignmentParam{spk::HorizontalAlignment::Centered, spk::VerticalAlignment::Down, "centered_down"},
+		AlignmentParam{spk::HorizontalAlignment::Right, spk::VerticalAlignment::Top, "right_top"},
+		AlignmentParam{spk::HorizontalAlignment::Right, spk::VerticalAlignment::Centered, "right_centered"},
+		AlignmentParam{spk::HorizontalAlignment::Right, spk::VerticalAlignment::Down, "right_down"}),
+	[](const ::testing::TestParamInfo<AlignmentParam>& info) { return info.param.name; });
 
 // ---- Padding shifts the anchor point ----
 
@@ -265,8 +255,7 @@ TEST(TextLabelVisualTest, PaddingShiftsTextAnchorInward)
 	spk::TextLabel label("Label", "Hello", style);
 	label.setAlignment(spk::HorizontalAlignment::Left, spk::VerticalAlignment::Top);
 
-	const sparkle_test::ImageComparisonResult result =
-		spk::test::compareSnapshot(label, "TextLabelVisual", "padded_left_top", captureRect);
+	const sparkle_test::ImageComparisonResult result = spk::test::compareSnapshot(label, "TextLabelVisual", "padded_left_top", captureRect);
 
 	EXPECT_TRUE(result.matches);
 }
@@ -280,8 +269,7 @@ TEST(TextLabelVisualTest, PaddingShiftsCenteredAnchor)
 	spk::TextLabel label("Label", "Hello", style);
 	label.setAlignment(spk::HorizontalAlignment::Centered, spk::VerticalAlignment::Centered);
 
-	const sparkle_test::ImageComparisonResult result =
-		spk::test::compareSnapshot(label, "TextLabelVisual", "padded_centered_centered", captureRect);
+	const sparkle_test::ImageComparisonResult result = spk::test::compareSnapshot(label, "TextLabelVisual", "padded_centered_centered", captureRect);
 
 	EXPECT_TRUE(result.matches);
 }
@@ -295,8 +283,7 @@ TEST(TextLabelVisualTest, PaddingShiftsRightDownAnchorInward)
 	spk::TextLabel label("Label", "Hello", style);
 	label.setAlignment(spk::HorizontalAlignment::Right, spk::VerticalAlignment::Down);
 
-	const sparkle_test::ImageComparisonResult result =
-		spk::test::compareSnapshot(label, "TextLabelVisual", "padded_right_down", captureRect);
+	const sparkle_test::ImageComparisonResult result = spk::test::compareSnapshot(label, "TextLabelVisual", "padded_right_down", captureRect);
 
 	EXPECT_TRUE(result.matches);
 }

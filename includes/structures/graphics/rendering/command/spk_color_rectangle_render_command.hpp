@@ -17,10 +17,7 @@ namespace spk
 		std::unique_ptr<spk::DrawColorMeshRenderCommand> _colorCommand;
 
 	public:
-		ColorRectangleRenderCommand(
-			spk::Rect2D p_rect,
-			spk::Color p_color,
-			float p_depth = 0.0f);
+		ColorRectangleRenderCommand(spk::Rect2D p_rect, spk::Color p_color, float p_depth = 0.0f);
 
 		void execute(spk::RenderContext& p_renderContext) override;
 	};

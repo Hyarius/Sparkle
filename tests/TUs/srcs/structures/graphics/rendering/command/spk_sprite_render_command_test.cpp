@@ -1,6 +1,5 @@
 #include <gtest/gtest.h>
 
-
 #include <array>
 #include <cstddef>
 #include <filesystem>
@@ -79,9 +78,7 @@ TEST(SpriteRenderCommandTest, RejectsOutOfBoundsSpriteCoordinates)
 	spk::SpriteSheet spriteSheet;
 	spriteSheet.loadFromData(sparkle_test::makeTwoSpritePngBytes(), {2, 1});
 
-	EXPECT_THROW(
-		spk::SpriteRenderCommand(spriteSheet, spk::Vector2UInt{5, 5}, spk::Rect2D(0, 0, 8, 8)),
-		std::out_of_range);
+	EXPECT_THROW(spk::SpriteRenderCommand(spriteSheet, spk::Vector2UInt{5, 5}, spk::Rect2D(0, 0, 8, 8)), std::out_of_range);
 }
 
 TEST(SpriteRenderCommandTest, CanExecuteTwiceWithConstructedMesh)
@@ -110,4 +107,3 @@ TEST(SpriteRenderCommandTest, CanExecuteTwiceWithConstructedMesh)
 		sparkle_test::renderCommandExpectedPath("SpriteRenderCommand/twice_expected"),
 		sparkle_test::renderCommandResultPath("SpriteRenderCommand/twice_diff"));
 }
-

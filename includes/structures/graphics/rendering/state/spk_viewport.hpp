@@ -26,6 +26,7 @@ namespace spk
 	protected:
 		spk::Rect2D _geometry;
 		spk::Rect2D _scissor;
+
 	public:
 		Viewport();
 		explicit Viewport(const spk::Rect2D& p_geometry);

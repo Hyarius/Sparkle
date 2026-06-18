@@ -3,7 +3,6 @@
 #include "utils/image_comparison_test_utils.hpp"
 #include "structures/graphics/opengl/opengl_wrapper_test_utils.hpp"
 
-
 TEST(OpenGLClearCommandTest, ClearsFramebufferToRequestedColor)
 {
 	constexpr int width = 8;
@@ -24,4 +23,3 @@ TEST(OpenGLClearCommandTest, ClearsFramebufferToRequestedColor)
 	const sparkle_test::ImageComparisonResult result = sparkle_test::compareImages(actual, expected, diff);
 	EXPECT_TRUE(result.matches);
 }
-

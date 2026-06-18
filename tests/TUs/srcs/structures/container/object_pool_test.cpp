@@ -77,10 +77,7 @@ TEST_F(ObjectPoolTest, configure_ShouldRegisterGeneratorAndOnObtainCallback)
 	spk::ObjectPool<TrackedObject> pool;
 
 	pool.configure(
-		[]()
-		{
-			return std::make_unique<TrackedObject>(42, "generated");
-		},
+		[]() { return std::make_unique<TrackedObject>(42, "generated"); },
 		[](TrackedObject& p_object)
 		{
 			p_object.value = 0;
@@ -106,11 +103,7 @@ TEST_F(ObjectPoolTest, obtain_WithoutGenerator_ShouldThrowLogicError)
 
 TEST_F(ObjectPoolTest, obtain_WithGenerator_ShouldCreateObjectWhenPoolIsEmpty)
 {
-	spk::ObjectPool<TrackedObject> pool(
-		[]()
-		{
-			return std::make_unique<TrackedObject>(12, "fresh");
-		});
+	spk::ObjectPool<TrackedObject> pool([]() { return std::make_unique<TrackedObject>(12, "fresh"); });
 
 	auto object = pool.obtain();
 
@@ -123,11 +116,7 @@ TEST_F(ObjectPoolTest, obtain_WithGenerator_ShouldCreateObjectWhenPoolIsEmpty)
 
 TEST_F(ObjectPoolTest, releasedHandle_ShouldReturnObjectToPool)
 {
-	spk::ObjectPool<TrackedObject> pool(
-		[]()
-		{
-			return std::make_unique<TrackedObject>(7);
-		});
+	spk::ObjectPool<TrackedObject> pool([]() { return std::make_unique<TrackedObject>(7); });
 
 	{
 		auto object = pool.obtain();
@@ -141,11 +130,7 @@ TEST_F(ObjectPoolTest, releasedHandle_ShouldReturnObjectToPool)
 
 TEST_F(ObjectPoolTest, obtain_ShouldReuseReturnedObject)
 {
-	spk::ObjectPool<TrackedObject> pool(
-		[]()
-		{
-			return std::make_unique<TrackedObject>(7);
-		});
+	spk::ObjectPool<TrackedObject> pool([]() { return std::make_unique<TrackedObject>(7); });
 
 	TrackedObject* firstAddress = nullptr;
 	TrackedObject* secondAddress = nullptr;
@@ -169,10 +154,7 @@ TEST_F(ObjectPoolTest, onObtain_ShouldBeCalledForFreshAndReusedObjects)
 	int onObtainCallCount = 0;
 
 	spk::ObjectPool<TrackedObject> pool(
-		[]()
-		{
-			return std::make_unique<TrackedObject>(5, "generated");
-		},
+		[]() { return std::make_unique<TrackedObject>(5, "generated"); },
 		[&onObtainCallCount](TrackedObject& p_object)
 		{
 			++onObtainCallCount;
@@ -200,11 +182,7 @@ TEST_F(ObjectPoolTest, onObtain_ShouldBeCalledForFreshAndReusedObjects)
 
 TEST_F(ObjectPoolTest, reserve_ShouldPreallocateObjectsUsingGenerator)
 {
-	spk::ObjectPool<TrackedObject> pool(
-		[]()
-		{
-			return std::make_unique<TrackedObject>(10);
-		});
+	spk::ObjectPool<TrackedObject> pool([]() { return std::make_unique<TrackedObject>(10); });
 
 	pool.reserve(3);
 
@@ -221,11 +199,7 @@ TEST_F(ObjectPoolTest, reserve_WithoutGenerator_ShouldThrowLogicError)
 
 TEST_F(ObjectPoolTest, reserve_ShouldNotShrinkExistingPool)
 {
-	spk::ObjectPool<TrackedObject> pool(
-		[]()
-		{
-			return std::make_unique<TrackedObject>(10);
-		});
+	spk::ObjectPool<TrackedObject> pool([]() { return std::make_unique<TrackedObject>(10); });
 
 	pool.reserve(4);
 	pool.reserve(2);
@@ -236,11 +210,7 @@ TEST_F(ObjectPoolTest, reserve_ShouldNotShrinkExistingPool)
 
 TEST_F(ObjectPoolTest, setMaximumCachedObjectCount_ShouldTrimStoredObjects)
 {
-	spk::ObjectPool<TrackedObject> pool(
-		[]()
-		{
-			return std::make_unique<TrackedObject>(1);
-		});
+	spk::ObjectPool<TrackedObject> pool([]() { return std::make_unique<TrackedObject>(1); });
 
 	pool.reserve(5);
 	EXPECT_EQ(pool.size(), 5u);
@@ -252,11 +222,7 @@ TEST_F(ObjectPoolTest, setMaximumCachedObjectCount_ShouldTrimStoredObjects)
 
 TEST_F(ObjectPoolTest, setMaximumCachedObjectCount_ShouldLimitFutureReturns)
 {
-	spk::ObjectPool<TrackedObject> pool(
-		[]()
-		{
-			return std::make_unique<TrackedObject>(1);
-		});
+	spk::ObjectPool<TrackedObject> pool([]() { return std::make_unique<TrackedObject>(1); });
 
 	pool.setMaximumCachedObjectCount(1);
 
@@ -272,11 +238,7 @@ TEST_F(ObjectPoolTest, setMaximumCachedObjectCount_ShouldLimitFutureReturns)
 
 TEST_F(ObjectPoolTest, release_ShouldClearAvailableObjects)
 {
-	spk::ObjectPool<TrackedObject> pool(
-		[]()
-		{
-			return std::make_unique<TrackedObject>(3);
-		});
+	spk::ObjectPool<TrackedObject> pool([]() { return std::make_unique<TrackedObject>(3); });
 
 	pool.reserve(4);
 	ASSERT_EQ(pool.size(), 4u);
@@ -289,11 +251,7 @@ TEST_F(ObjectPoolTest, release_ShouldClearAvailableObjects)
 
 TEST_F(ObjectPoolTest, release_ShouldDestroyStoredObjects)
 {
-	spk::ObjectPool<TrackedObject> pool(
-		[]()
-		{
-			return std::make_unique<TrackedObject>(3);
-		});
+	spk::ObjectPool<TrackedObject> pool([]() { return std::make_unique<TrackedObject>(3); });
 
 	pool.reserve(4);
 	pool.release();
@@ -304,20 +262,12 @@ TEST_F(ObjectPoolTest, release_ShouldDestroyStoredObjects)
 
 TEST_F(ObjectPoolTest, configure_ShouldReleaseExistingStoredObjectsBeforeReplacingCallbacks)
 {
-	spk::ObjectPool<TrackedObject> pool(
-		[]()
-		{
-			return std::make_unique<TrackedObject>(1);
-		});
+	spk::ObjectPool<TrackedObject> pool([]() { return std::make_unique<TrackedObject>(1); });
 
 	pool.reserve(3);
 	ASSERT_EQ(pool.size(), 3u);
 
-	pool.configure(
-		[]()
-		{
-			return std::make_unique<TrackedObject>(9);
-		});
+	pool.configure([]() { return std::make_unique<TrackedObject>(9); });
 
 	EXPECT_EQ(TrackedObject::destructorCount, 3);
 	EXPECT_EQ(pool.size(), 0u);
@@ -327,11 +277,7 @@ TEST_F(ObjectPoolTest, configure_ShouldReleaseExistingStoredObjectsBeforeReplaci
 
 TEST_F(ObjectPoolTest, obtain_ShouldThrowIfGeneratorReturnsNullptr)
 {
-	spk::ObjectPool<TrackedObject> pool(
-		[]() -> std::unique_ptr<TrackedObject>
-		{
-			return nullptr;
-		});
+	spk::ObjectPool<TrackedObject> pool([]() -> std::unique_ptr<TrackedObject> { return nullptr; });
 
 	EXPECT_THROW(
 		{
@@ -343,22 +289,14 @@ TEST_F(ObjectPoolTest, obtain_ShouldThrowIfGeneratorReturnsNullptr)
 
 TEST_F(ObjectPoolTest, reserve_ShouldThrowIfGeneratorReturnsNullptr)
 {
-	spk::ObjectPool<TrackedObject> pool(
-		[]() -> std::unique_ptr<TrackedObject>
-		{
-			return nullptr;
-		});
+	spk::ObjectPool<TrackedObject> pool([]() -> std::unique_ptr<TrackedObject> { return nullptr; });
 
 	EXPECT_THROW(pool.reserve(1), std::logic_error);
 }
 
 TEST_F(ObjectPoolTest, close_ShouldMarkPoolClosedAndClearStoredObjects)
 {
-	spk::ObjectPool<TrackedObject> pool(
-		[]()
-		{
-			return std::make_unique<TrackedObject>(4);
-		});
+	spk::ObjectPool<TrackedObject> pool([]() { return std::make_unique<TrackedObject>(4); });
 
 	pool.reserve(2);
 	ASSERT_EQ(pool.size(), 2u);
@@ -374,13 +312,7 @@ TEST_F(ObjectPoolTest, closedPool_ShouldRejectConfigure)
 	spk::ObjectPool<TrackedObject> pool;
 	pool.close();
 
-	EXPECT_THROW(
-		pool.configure(
-			[]()
-			{
-				return std::make_unique<TrackedObject>(1);
-			}),
-		std::runtime_error);
+	EXPECT_THROW(pool.configure([]() { return std::make_unique<TrackedObject>(1); }), std::runtime_error);
 }
 
 TEST_F(ObjectPoolTest, closedPool_ShouldRejectSetMaximumCachedObjectCount)
@@ -393,11 +325,7 @@ TEST_F(ObjectPoolTest, closedPool_ShouldRejectSetMaximumCachedObjectCount)
 
 TEST_F(ObjectPoolTest, closedPool_ShouldRejectReserve)
 {
-	spk::ObjectPool<TrackedObject> pool(
-		[]()
-		{
-			return std::make_unique<TrackedObject>(1);
-		});
+	spk::ObjectPool<TrackedObject> pool([]() { return std::make_unique<TrackedObject>(1); });
 
 	pool.close();
 
@@ -406,11 +334,7 @@ TEST_F(ObjectPoolTest, closedPool_ShouldRejectReserve)
 
 TEST_F(ObjectPoolTest, closedPool_ShouldRejectObtain)
 {
-	spk::ObjectPool<TrackedObject> pool(
-		[]()
-		{
-			return std::make_unique<TrackedObject>(1);
-		});
+	spk::ObjectPool<TrackedObject> pool([]() { return std::make_unique<TrackedObject>(1); });
 
 	pool.close();
 
@@ -424,11 +348,7 @@ TEST_F(ObjectPoolTest, closedPool_ShouldRejectObtain)
 
 TEST_F(ObjectPoolTest, closedPool_ShouldRejectRelease)
 {
-	spk::ObjectPool<TrackedObject> pool(
-		[]()
-		{
-			return std::make_unique<TrackedObject>(1);
-		});
+	spk::ObjectPool<TrackedObject> pool([]() { return std::make_unique<TrackedObject>(1); });
 
 	pool.close();
 
@@ -437,11 +357,7 @@ TEST_F(ObjectPoolTest, closedPool_ShouldRejectRelease)
 
 TEST_F(ObjectPoolTest, returnedHandleAfterPoolClose_ShouldDeleteObjectInsteadOfRecyclingIt)
 {
-	spk::ObjectPool<TrackedObject> pool(
-		[]()
-		{
-			return std::make_unique<TrackedObject>(8);
-		});
+	spk::ObjectPool<TrackedObject> pool([]() { return std::make_unique<TrackedObject>(8); });
 
 	auto object = pool.obtain();
 
@@ -456,11 +372,7 @@ TEST_F(ObjectPoolTest, returnedHandleAfterPoolClose_ShouldDeleteObjectInsteadOfR
 
 TEST_F(ObjectPoolTest, returnedHandle_WhenPoolIsFull_ShouldDeleteObjectInsteadOfCachingIt)
 {
-	spk::ObjectPool<TrackedObject> pool(
-		[]()
-		{
-			return std::make_unique<TrackedObject>(8);
-		});
+	spk::ObjectPool<TrackedObject> pool([]() { return std::make_unique<TrackedObject>(8); });
 
 	pool.setMaximumCachedObjectCount(0);
 
@@ -476,14 +388,7 @@ TEST_F(ObjectPoolTest, returnedHandle_WhenPoolIsFull_ShouldDeleteObjectInsteadOf
 TEST_F(ObjectPoolTest, objectPoolConstructor_ShouldConfigureCallbacksImmediately)
 {
 	spk::ObjectPool<TrackedObject> pool(
-		[]()
-		{
-			return std::make_unique<TrackedObject>(77, "configured");
-		},
-		[](TrackedObject& p_object)
-		{
-			p_object.text += "_clean";
-		});
+		[]() { return std::make_unique<TrackedObject>(77, "configured"); }, [](TrackedObject& p_object) { p_object.text += "_clean"; });
 
 	EXPECT_TRUE(pool.hasGenerator());
 	EXPECT_TRUE(pool.hasOnObtain());
@@ -497,10 +402,7 @@ TEST_F(ObjectPoolTest, objectPoolConstructor_ShouldConfigureCallbacksImmediately
 TEST_F(ObjectPoolTest, reusedObject_ShouldBeSameAllocationButCleanedBetweenUsages)
 {
 	spk::ObjectPool<TrackedObject> pool(
-		[]()
-		{
-			return std::make_unique<TrackedObject>(100, "initial");
-		},
+		[]() { return std::make_unique<TrackedObject>(100, "initial"); },
 		[](TrackedObject& p_object)
 		{
 			p_object.value = -1;
@@ -535,11 +437,7 @@ TEST_F(ObjectPoolTest, destroyingPool_ShouldInvalidateRecyclingButKeepOutstandin
 	std::unique_ptr<TrackedObject, spk::ObjectPool<TrackedObject>::ReturnToPoolDeleter> savedHandle;
 
 	{
-		spk::ObjectPool<TrackedObject> pool(
-			[]()
-			{
-				return std::make_unique<TrackedObject>(123);
-			});
+		spk::ObjectPool<TrackedObject> pool([]() { return std::make_unique<TrackedObject>(123); });
 
 		auto object = pool.obtain();
 		savedAddress = object.get();

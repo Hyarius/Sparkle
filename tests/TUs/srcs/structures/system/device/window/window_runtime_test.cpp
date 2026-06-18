@@ -15,13 +15,7 @@ TEST(WindowRegistryTest, CreateWindowReturnsHandleAndRejectsDuplicateIds)
 	auto platformRuntime = std::make_shared<sparkle_test::TestPlatformRuntime>();
 	auto gpuPlatformRuntime = std::make_shared<sparkle_test::TestGPUPlatformRuntime>();
 	spk::WindowHandle windowHandle = registry.createWindow(
-		"main",
-		platformRuntime,
-		gpuPlatformRuntime,
-		spk::Window::Configuration{
-			.rect = sparkle_test::defaultRect(),
-			.title = "Main"
-		});
+		"main", platformRuntime, gpuPlatformRuntime, spk::Window::Configuration{.rect = sparkle_test::defaultRect(), .title = "Main"});
 
 	std::shared_ptr<spk::Window> window = registry._windows.at("main").window;
 	ASSERT_NE(window, nullptr);
@@ -35,10 +29,7 @@ TEST(WindowRegistryTest, CreateWindowReturnsHandleAndRejectsDuplicateIds)
 			"main",
 			duplicatePlatformRuntime,
 			duplicateGPUPlatformRuntime,
-			spk::Window::Configuration{
-				.rect = sparkle_test::defaultRect(),
-				.title = "MainDuplicate"
-			}),
+			spk::Window::Configuration{.rect = sparkle_test::defaultRect(), .title = "MainDuplicate"}),
 		std::runtime_error);
 }
 
@@ -50,13 +41,7 @@ TEST(WindowRegistryTest, RequestWindowClosingDelegatesToStoredWindow)
 	auto* platformRuntimePtr = platformRuntime.get();
 
 	spk::WindowHandle window = registry.createWindow(
-		"main",
-		platformRuntime,
-		gpuPlatformRuntime,
-		spk::Window::Configuration{
-			.rect = sparkle_test::defaultRect(),
-			.title = "Main"
-		});
+		"main", platformRuntime, gpuPlatformRuntime, spk::Window::Configuration{.rect = sparkle_test::defaultRect(), .title = "Main"});
 
 	registry.requestWindowClosing("main");
 
@@ -76,13 +61,7 @@ TEST(WindowRegistryTest, WindowHandleQueuesThreadBoundCommands)
 	auto* gpuPlatformRuntimePtr = gpuPlatformRuntime.get();
 
 	spk::WindowHandle windowHandle = registry.createWindow(
-		"main",
-		platformRuntime,
-		gpuPlatformRuntime,
-		spk::Window::Configuration{
-			.rect = sparkle_test::defaultRect(),
-			.title = "Main"
-		});
+		"main", platformRuntime, gpuPlatformRuntime, spk::Window::Configuration{.rect = sparkle_test::defaultRect(), .title = "Main"});
 
 	const spk::Rect2D resizedRect(1, 2, 640, 480);
 
@@ -118,13 +97,7 @@ TEST(WindowRegistryTest, WindowHandleReportsValidityAndClosedState)
 	auto gpuPlatformRuntime = std::make_shared<sparkle_test::TestGPUPlatformRuntime>();
 
 	spk::WindowHandle windowHandle = registry.createWindow(
-		"main",
-		platformRuntime,
-		gpuPlatformRuntime,
-		spk::Window::Configuration{
-			.rect = sparkle_test::defaultRect(),
-			.title = "Main"
-		});
+		"main", platformRuntime, gpuPlatformRuntime, spk::Window::Configuration{.rect = sparkle_test::defaultRect(), .title = "Main"});
 
 	EXPECT_TRUE(windowHandle.isValid());
 	EXPECT_FALSE(windowHandle.expired());
@@ -149,13 +122,7 @@ TEST(WindowRegistryTest, WindowHandleExposesCentralWidgetForStackAllocatedWidget
 	auto gpuPlatformRuntime = std::make_shared<sparkle_test::TestGPUPlatformRuntime>();
 
 	spk::WindowHandle windowHandle = registry.createWindow(
-		"main",
-		platformRuntime,
-		gpuPlatformRuntime,
-		spk::Window::Configuration{
-			.rect = sparkle_test::defaultRect(),
-			.title = "Main"
-		});
+		"main", platformRuntime, gpuPlatformRuntime, spk::Window::Configuration{.rect = sparkle_test::defaultRect(), .title = "Main"});
 
 	std::shared_ptr<spk::Window> window = registry._windows.at("main").window;
 	ASSERT_NE(window, nullptr);
@@ -181,13 +148,7 @@ TEST(WindowRegistryTest, WindowHandleCentralWidgetSupportsCallerOwnedHeapWidgets
 	auto gpuPlatformRuntime = std::make_shared<sparkle_test::TestGPUPlatformRuntime>();
 
 	spk::WindowHandle windowHandle = registry.createWindow(
-		"main",
-		platformRuntime,
-		gpuPlatformRuntime,
-		spk::Window::Configuration{
-			.rect = sparkle_test::defaultRect(),
-			.title = "Main"
-		});
+		"main", platformRuntime, gpuPlatformRuntime, spk::Window::Configuration{.rect = sparkle_test::defaultRect(), .title = "Main"});
 
 	std::shared_ptr<spk::Window> window = registry._windows.at("main").window;
 	ASSERT_NE(window, nullptr);
@@ -217,13 +178,7 @@ TEST(WindowRegistryTest, RemovedWindowsExpireExternalHandles)
 	auto gpuPlatformRuntime = std::make_shared<sparkle_test::TestGPUPlatformRuntime>();
 
 	spk::WindowHandle windowHandle = registry.createWindow(
-		"main",
-		platformRuntime,
-		gpuPlatformRuntime,
-		spk::Window::Configuration{
-			.rect = sparkle_test::defaultRect(),
-			.title = "Main"
-		});
+		"main", platformRuntime, gpuPlatformRuntime, spk::Window::Configuration{.rect = sparkle_test::defaultRect(), .title = "Main"});
 
 	{
 		std::shared_ptr<spk::Window> window = registry._windows.at("main").window;
@@ -256,7 +211,3 @@ TEST(WindowRegistryTest, ExpiredWindowHandleReportsClosedAndIgnoresCommands)
 	EXPECT_NO_THROW(windowHandle.setVSync(true));
 	EXPECT_THROW(static_cast<void>(windowHandle.centralWidget()), std::runtime_error);
 }
-
-
-
-

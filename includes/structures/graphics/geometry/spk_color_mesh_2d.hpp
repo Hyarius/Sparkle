@@ -16,10 +16,7 @@ namespace spk
 
 		[[nodiscard]] bool operator==(const ColorVertex2D& p_other) const noexcept
 		{
-			return position == p_other.position &&
-				   color.r == p_other.color.r &&
-				   color.g == p_other.color.g &&
-				   color.b == p_other.color.b &&
+			return position == p_other.position && color.r == p_other.color.r && color.g == p_other.color.g && color.b == p_other.color.b &&
 				   color.a == p_other.color.a;
 		}
 	};

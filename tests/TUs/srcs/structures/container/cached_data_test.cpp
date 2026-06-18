@@ -43,11 +43,12 @@ TEST(CachedDataTest, GeneratorIsLazy)
 {
 	int generationCount = 0;
 
-	spk::CachedData<int> cache([&generationCount]()
-	{
-		++generationCount;
-		return 42;
-	});
+	spk::CachedData<int> cache(
+		[&generationCount]()
+		{
+			++generationCount;
+			return 42;
+		});
 
 	EXPECT_EQ(generationCount, 0);
 	EXPECT_FALSE(cache.isCached());
@@ -57,11 +58,12 @@ TEST(CachedDataTest, GetGeneratesOnceAndCachesValue)
 {
 	int generationCount = 0;
 
-	spk::CachedData<int> cache([&generationCount]()
-	{
-		++generationCount;
-		return 42;
-	});
+	spk::CachedData<int> cache(
+		[&generationCount]()
+		{
+			++generationCount;
+			return 42;
+		});
 
 	int first = cache.get();
 	int second = cache.get();
@@ -76,11 +78,12 @@ TEST(CachedDataTest, ConstGetGeneratesOnceAndCachesValue)
 {
 	int generationCount = 0;
 
-	const spk::CachedData<int> cache([&generationCount]()
-	{
-		++generationCount;
-		return 99;
-	});
+	const spk::CachedData<int> cache(
+		[&generationCount]()
+		{
+			++generationCount;
+			return 99;
+		});
 
 	const int& first = cache.get();
 	const int& second = cache.get();
@@ -93,10 +96,7 @@ TEST(CachedDataTest, ConstGetGeneratesOnceAndCachesValue)
 
 TEST(CachedDataTest, DereferenceOperatorReturnsCachedValue)
 {
-	spk::CachedData<int> cache([]()
-	{
-		return 12;
-	});
+	spk::CachedData<int> cache([]() { return 12; });
 
 	EXPECT_EQ(*cache, 12);
 	EXPECT_TRUE(cache.isCached());
@@ -104,10 +104,7 @@ TEST(CachedDataTest, DereferenceOperatorReturnsCachedValue)
 
 TEST(CachedDataTest, ArrowOperatorProvidesMemberAccess)
 {
-	spk::CachedData<CachedStruct> cache([]()
-	{
-		return CachedStruct(5, "alpha");
-	});
+	spk::CachedData<CachedStruct> cache([]() { return CachedStruct(5, "alpha"); });
 
 	EXPECT_EQ(cache->value, 5);
 	EXPECT_EQ(cache->name, "alpha");
@@ -116,10 +113,7 @@ TEST(CachedDataTest, ArrowOperatorProvidesMemberAccess)
 
 TEST(CachedDataTest, ConstArrowOperatorProvidesMemberAccess)
 {
-	const spk::CachedData<CachedStruct> cache([]()
-	{
-		return CachedStruct(7, "beta");
-	});
+	const spk::CachedData<CachedStruct> cache([]() { return CachedStruct(7, "beta"); });
 
 	EXPECT_EQ(cache->value, 7);
 	EXPECT_EQ(cache->name, "beta");
@@ -130,11 +124,12 @@ TEST(CachedDataTest, ReleaseClearsCachedValue)
 {
 	int generationCount = 0;
 
-	spk::CachedData<int> cache([&generationCount]()
-	{
-		++generationCount;
-		return 10;
-	});
+	spk::CachedData<int> cache(
+		[&generationCount]()
+		{
+			++generationCount;
+			return 10;
+		});
 
 	EXPECT_EQ(cache.get(), 10);
 	EXPECT_TRUE(cache.isCached());
@@ -152,15 +147,7 @@ TEST(CachedDataTest, ReleaseDoesNothingWhenNothingIsCached)
 {
 	int destructorCount = 0;
 
-	spk::CachedData<int> cache(
-		[]()
-		{
-			return 1;
-		},
-		[&destructorCount](int&)
-		{
-			++destructorCount;
-		});
+	spk::CachedData<int> cache([]() { return 1; }, [&destructorCount](int&) { ++destructorCount; });
 
 	cache.release();
 
@@ -174,10 +161,7 @@ TEST(CachedDataTest, DestructorCallbackIsCalledOnRelease)
 	int destroyedValue = -1;
 
 	spk::CachedData<int> cache(
-		[]()
-		{
-			return 123;
-		},
+		[]() { return 123; },
 		[&destructorCount, &destroyedValue](int& p_value)
 		{
 			++destructorCount;
@@ -199,10 +183,7 @@ TEST(CachedDataTest, DestructorCallbackIsCalledOnObjectDestructionWhenCached)
 
 	{
 		spk::CachedData<int> cache(
-			[]()
-			{
-				return 777;
-			},
+			[]() { return 777; },
 			[&destructorCount, &destroyedValue](int& p_value)
 			{
 				++destructorCount;
@@ -259,20 +240,9 @@ TEST(CachedDataTest, ConfigureWithoutCachedValueDoesNotCallDestructor)
 {
 	int destructorCount = 0;
 
-	spk::CachedData<int> cache(
-		[]()
-		{
-			return 10;
-		},
-		[&destructorCount](int&)
-		{
-			++destructorCount;
-		});
+	spk::CachedData<int> cache([]() { return 10; }, [&destructorCount](int&) { ++destructorCount; });
 
-	cache.configure([]()
-	{
-		return 20;
-	});
+	cache.configure([]() { return 20; });
 
 	EXPECT_EQ(destructorCount, 0);
 	EXPECT_FALSE(cache.isCached());
@@ -283,11 +253,12 @@ TEST(CachedDataTest, SetByCopyStoresValueWithoutUsingGenerator)
 {
 	int generationCount = 0;
 
-	spk::CachedData<std::string> cache([&generationCount]()
-	{
-		++generationCount;
-		return std::string("generated");
-	});
+	spk::CachedData<std::string> cache(
+		[&generationCount]()
+		{
+			++generationCount;
+			return std::string("generated");
+		});
 
 	std::string text = "manual";
 	cache.set(text);
@@ -301,11 +272,12 @@ TEST(CachedDataTest, SetByMoveStoresValueWithoutUsingGenerator)
 {
 	int generationCount = 0;
 
-	spk::CachedData<std::string> cache([&generationCount]()
-	{
-		++generationCount;
-		return std::string("generated");
-	});
+	spk::CachedData<std::string> cache(
+		[&generationCount]()
+		{
+			++generationCount;
+			return std::string("generated");
+		});
 
 	std::string text = "manual";
 	cache.set(std::move(text));
@@ -321,10 +293,7 @@ TEST(CachedDataTest, SetReplacesCachedValueAndInvokesDestructorOnPreviousValue)
 	std::string destroyedValue;
 
 	spk::CachedData<std::string> cache(
-		[]()
-		{
-			return std::string("generated");
-		},
+		[]() { return std::string("generated"); },
 		[&destructorCount, &destroyedValue](std::string& p_value)
 		{
 			++destructorCount;
@@ -341,10 +310,7 @@ TEST(CachedDataTest, SetReplacesCachedValueAndInvokesDestructorOnPreviousValue)
 
 TEST(CachedDataTest, TakeReturnsNulloptWhenNoDataIsCached)
 {
-	spk::CachedData<int> cache([]()
-	{
-		return 1;
-	});
+	spk::CachedData<int> cache([]() { return 1; });
 
 	std::optional<int> result = cache.take();
 
@@ -356,15 +322,7 @@ TEST(CachedDataTest, TakeMovesOutCachedValueWithoutCallingDestructor)
 {
 	int destructorCount = 0;
 
-	spk::CachedData<std::string> cache(
-		[]()
-		{
-			return std::string("generated");
-		},
-		[&destructorCount](std::string&)
-		{
-			++destructorCount;
-		});
+	spk::CachedData<std::string> cache([]() { return std::string("generated"); }, [&destructorCount](std::string&) { ++destructorCount; });
 
 	cache.set(std::string("stored"));
 
@@ -380,11 +338,12 @@ TEST(CachedDataTest, RefreshRebuildsValue)
 {
 	int generationCount = 0;
 
-	spk::CachedData<int> cache([&generationCount]()
-	{
-		++generationCount;
-		return generationCount * 10;
-	});
+	spk::CachedData<int> cache(
+		[&generationCount]()
+		{
+			++generationCount;
+			return generationCount * 10;
+		});
 
 	EXPECT_EQ(cache.get(), 10);
 	EXPECT_EQ(generationCount, 1);
@@ -400,11 +359,12 @@ TEST(CachedDataTest, ConstRefreshRebuildsValue)
 {
 	int generationCount = 0;
 
-	const spk::CachedData<int> cache([&generationCount]()
-	{
-		++generationCount;
-		return generationCount * 100;
-	});
+	const spk::CachedData<int> cache(
+		[&generationCount]()
+		{
+			++generationCount;
+			return generationCount * 100;
+		});
 
 	EXPECT_EQ(cache.get(), 100);
 	EXPECT_EQ(generationCount, 1);
@@ -422,10 +382,7 @@ TEST(CachedDataTest, HasGeneratorReflectsConfigurationState)
 
 	EXPECT_FALSE(cache.hasGenerator());
 
-	cache.configure([]()
-	{
-		return 5;
-	});
+	cache.configure([]() { return 5; });
 
 	EXPECT_TRUE(cache.hasGenerator());
 }
@@ -436,10 +393,7 @@ TEST(CachedDataTest, ReleaseAfterSetCallsDestructor)
 	int destroyedValue = -1;
 
 	spk::CachedData<int> cache(
-		[]()
-		{
-			return 0;
-		},
+		[]() { return 0; },
 		[&destructorCount, &destroyedValue](int& p_value)
 		{
 			++destructorCount;
@@ -483,10 +437,7 @@ TEST(CachedDataTest, SetThenRefreshDestroysManualValueAndRegenerates)
 
 TEST(CachedDataTest, MoveOnlyValueCanBeStoredRetrievedAndTaken)
 {
-	spk::CachedData<std::unique_ptr<int>> cache([]()
-	{
-		return std::make_unique<int>(55);
-	});
+	spk::CachedData<std::unique_ptr<int>> cache([]() { return std::make_unique<int>(55); });
 
 	cache.set(std::make_unique<int>(77));
 
@@ -506,11 +457,12 @@ TEST(CachedDataTest, GeneratorRunsAgainAfterTake)
 {
 	int generationCount = 0;
 
-	spk::CachedData<int> cache([&generationCount]()
-	{
-		++generationCount;
-		return generationCount;
-	});
+	spk::CachedData<int> cache(
+		[&generationCount]()
+		{
+			++generationCount;
+			return generationCount;
+		});
 
 	EXPECT_EQ(cache.get(), 1);
 	EXPECT_EQ(generationCount, 1);
@@ -525,10 +477,7 @@ TEST(CachedDataTest, GeneratorRunsAgainAfterTake)
 
 TEST(CachedDataTest, CachedReferenceRemainsSameObjectUntilReleased)
 {
-	spk::CachedData<std::string> cache([]()
-	{
-		return std::string("persistent");
-	});
+	spk::CachedData<std::string> cache([]() { return std::string("persistent"); });
 
 	const std::string* firstAddress = &(cache.get());
 	const std::string* secondAddress = &(cache.get());
@@ -541,11 +490,12 @@ TEST(CachedDataTest, ManualSetKeepsCachedStateUntilReleased)
 {
 	int generationCount = 0;
 
-	spk::CachedData<int> cache([&generationCount]()
-	{
-		++generationCount;
-		return 10;
-	});
+	spk::CachedData<int> cache(
+		[&generationCount]()
+		{
+			++generationCount;
+			return 10;
+		});
 
 	cache.set(88);
 

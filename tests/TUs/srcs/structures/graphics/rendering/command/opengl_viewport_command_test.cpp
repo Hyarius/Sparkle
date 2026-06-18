@@ -2,7 +2,6 @@
 
 #include "structures/graphics/opengl/opengl_wrapper_test_utils.hpp"
 
-
 #include "structures/graphics/rendering/state/spk_viewport.hpp"
 #include "structures/graphics/rendering/command/spk_viewport_render_command.hpp"
 
@@ -24,4 +23,3 @@ TEST(ViewportCommandTest, AppliesRectToOpenGLViewport)
 	EXPECT_EQ(vp[2], 11);
 	EXPECT_EQ(vp[3], 12);
 }
-

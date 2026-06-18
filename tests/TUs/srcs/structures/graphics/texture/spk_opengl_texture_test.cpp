@@ -144,20 +144,13 @@ TEST(OpenGLTextureTest, GpuTextureCoversAllSupportedPixelFormats)
 		{spk::Texture::Format::BGR, 3},
 		{spk::Texture::Format::BGRA, 4},
 		{spk::Texture::Format::GreyLevel, 1},
-		{spk::Texture::Format::DualChannel, 2}
-	};
+		{spk::Texture::Format::DualChannel, 2}};
 
 	for (const FormatCase& fc : cases)
 	{
 		spk::Texture tex;
 		std::vector<uint8_t> pixels(fc.bytesPerPixel, 255);
-		tex.setPixels(
-			pixels,
-			{1, 1},
-			fc.format,
-			spk::Texture::Filtering::Linear,
-			spk::Texture::Wrap::ClampToBorder,
-			spk::Texture::Mipmap::Disable);
+		tex.setPixels(pixels, {1, 1}, fc.format, spk::Texture::Filtering::Linear, spk::Texture::Wrap::ClampToBorder, spk::Texture::Mipmap::Disable);
 
 		EXPECT_NE(tex.gpu(context.renderContext()).id(), 0u);
 	}

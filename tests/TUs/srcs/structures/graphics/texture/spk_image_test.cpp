@@ -1,6 +1,5 @@
 #include <gtest/gtest.h>
 
-
 #include <stb_image_write.h>
 
 #include <filesystem>
@@ -167,4 +166,3 @@ TEST(ImageTest, LoadFromFileAndPathConstructorReadPngFiles)
 
 	std::filesystem::remove(outputPath);
 }
-

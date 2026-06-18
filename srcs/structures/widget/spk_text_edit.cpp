@@ -12,10 +12,7 @@ namespace
 {
 	[[nodiscard]] bool sameColor(const spk::Color& p_left, const spk::Color& p_right)
 	{
-		return p_left.r == p_right.r &&
-			p_left.g == p_right.g &&
-			p_left.b == p_right.b &&
-			p_left.a == p_right.a;
+		return p_left.r == p_right.r && p_left.g == p_right.g && p_left.b == p_right.b && p_left.a == p_right.a;
 	}
 
 	[[nodiscard]] std::string toUTF8(const spk::Font::Text& p_text)
@@ -57,18 +54,20 @@ namespace spk
 {
 	void TextEdit::_configureSizeHint()
 	{
-		sizeHint().configureMinimalGenerator([this]() {
-			spk::Vector2UInt result = {0, 0};
-
-			if (_font != nullptr && _placeholder.empty() == false)
+		sizeHint().configureMinimalGenerator(
+			[this]()
 			{
-				const spk::Vector2UInt placeholderSize = _font->computeStringSize(_placeholder, _textSize);
-				result.x = placeholderSize.x + static_cast<unsigned int>(_cornerSize.x * 2);
-				result.y = placeholderSize.y + static_cast<unsigned int>(_cornerSize.y * 2);
-			}
+				spk::Vector2UInt result = {0, 0};
 
-			return result;
-		});
+				if (_font != nullptr && _placeholder.empty() == false)
+				{
+					const spk::Vector2UInt placeholderSize = _font->computeStringSize(_placeholder, _textSize);
+					result.x = placeholderSize.x + static_cast<unsigned int>(_cornerSize.x * 2);
+					result.y = placeholderSize.y + static_cast<unsigned int>(_cornerSize.y * 2);
+				}
+
+				return result;
+			});
 	}
 
 	TextEdit::TextEdit(const std::string& p_name, spk::Widget* p_parent) :
@@ -79,10 +78,7 @@ namespace spk
 		activate();
 	}
 
-	TextEdit::TextEdit(
-		const std::string& p_name,
-		const spk::WidgetStyle& p_style,
-		spk::Widget* p_parent) :
+	TextEdit::TextEdit(const std::string& p_name, const spk::WidgetStyle& p_style, spk::Widget* p_parent) :
 		spk::Widget(p_name, p_parent)
 	{
 		_configureSizeHint();
@@ -92,10 +88,7 @@ namespace spk
 
 	void TextEdit::_bindStyle(const spk::WidgetStyle& p_style)
 	{
-		_styleEditionContract = p_style.subscribeToEdition([this](const spk::WidgetStyle& p_editedStyle)
-		{
-			applyStyle(p_editedStyle);
-		});
+		_styleEditionContract = p_style.subscribeToEdition([this](const spk::WidgetStyle& p_editedStyle) { applyStyle(p_editedStyle); });
 	}
 
 	void TextEdit::applyStyle(const spk::WidgetStyle& p_style)
@@ -140,8 +133,7 @@ namespace spk
 			_lowerCursor = _cursor;
 
 			while (_lowerCursor != 0 &&
-				_font->computeStringSize(
-					textToRender.substr(_lowerCursor - 1, _cursor - _lowerCursor + 1), _textSize).x <= availableWidth)
+				   _font->computeStringSize(textToRender.substr(_lowerCursor - 1, _cursor - _lowerCursor + 1), _textSize).x <= availableWidth)
 			{
 				_lowerCursor--;
 			}
@@ -154,8 +146,7 @@ namespace spk
 			_higherCursor = _cursor;
 
 			while (_higherCursor < textToRender.size() &&
-				_font->computeStringSize(
-					textToRender.substr(_lowerCursor, _higherCursor - _lowerCursor + 1), _textSize).x <= availableWidth)
+				   _font->computeStringSize(textToRender.substr(_lowerCursor, _higherCursor - _lowerCursor + 1), _textSize).x <= availableWidth)
 			{
 				_higherCursor++;
 			}
@@ -175,11 +166,7 @@ namespace spk
 
 		if (_spriteSheet != nullptr)
 		{
-			builder.emplace<spk::NineSliceRenderCommand>(
-				*_spriteSheet,
-				geometry(),
-				_cornerSize,
-				_depth);
+			builder.emplace<spk::NineSliceRenderCommand>(*_spriteSheet, geometry(), _cornerSize, _depth);
 		}
 
 		_computeCursorsValues();
@@ -190,9 +177,7 @@ namespace spk
 
 		if (_font != nullptr && visibleText.empty() == false)
 		{
-			const spk::Vector2Int textAnchor = {
-				inner.left(),
-				inner.top() + static_cast<int>(inner.height() / 2)};
+			const spk::Vector2Int textAnchor = {inner.left(), inner.top() + static_cast<int>(inner.height() / 2)};
 
 			builder.emplace<spk::TextRenderCommand>(
 				*_font,
@@ -206,23 +191,13 @@ namespace spk
 				spk::VerticalAlignment::Centered);
 		}
 
-		if (_font != nullptr &&
-			_isEditEnabled == true &&
-			_renderCursor == true &&
-			hasFocus(FocusType::Keyboard) == true)
+		if (_font != nullptr && _isEditEnabled == true && _renderCursor == true && hasFocus(FocusType::Keyboard) == true)
 		{
 			const size_t visibleCursor = (_cursor >= _lowerCursor) ? _cursor - _lowerCursor : 0;
-			const unsigned int textWidthBeforeCursor =
-				_font->computeStringSize(visibleText.substr(0, visibleCursor), _textSize).x;
+			const unsigned int textWidthBeforeCursor = _font->computeStringSize(visibleText.substr(0, visibleCursor), _textSize).x;
 
 			builder.emplace<spk::ColorRectangleRenderCommand>(
-				spk::Rect2D(
-					inner.left() + static_cast<int>(textWidthBeforeCursor),
-					inner.top(),
-					2,
-					inner.height()),
-				_cursorColor,
-				_depth);
+				spk::Rect2D(inner.left() + static_cast<int>(textWidthBeforeCursor), inner.top(), 2, inner.height()), _cursorColor, _depth);
 		}
 
 		return builder.build();

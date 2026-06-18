@@ -4,9 +4,7 @@
 
 namespace spk
 {
-	BlockableTrait::BlockableTrait()
-	{
-	}
+	BlockableTrait::BlockableTrait() {}
 
 	BlockableTrait::~BlockableTrait()
 	{

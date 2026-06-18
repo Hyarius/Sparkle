@@ -14,8 +14,7 @@ TEST(FrameModuleTest, FrameEventsDispatchToBoundWidget)
 	module.bind(&widget);
 
 	const spk::Rect2D resizedRect(0, 0, 1920, 1080);
-	spk::FrameEventRecord event = spk::FrameEventRecord(spk::makeEventRecord(spk::WindowResizedRecord{
-		.rect = resizedRect}));
+	spk::FrameEventRecord event = spk::FrameEventRecord(spk::makeEventRecord(spk::WindowResizedRecord{.rect = resizedRect}));
 	module.pushEvent(std::move(event));
 	module.processEvents();
 
@@ -30,8 +29,7 @@ TEST(FrameModuleTest, PushEventIsSafeWhenUnbound)
 	spk::FrameModule module;
 	const spk::Rect2D resizedRect(0, 0, 1920, 1080);
 
-	spk::FrameEventRecord event = spk::FrameEventRecord(spk::makeEventRecord(spk::WindowResizedRecord{
-		.rect = resizedRect}));
+	spk::FrameEventRecord event = spk::FrameEventRecord(spk::makeEventRecord(spk::WindowResizedRecord{.rect = resizedRect}));
 
 	EXPECT_NO_THROW(module.pushEvent(std::move(event)));
 	EXPECT_NO_THROW(module.processEvents());

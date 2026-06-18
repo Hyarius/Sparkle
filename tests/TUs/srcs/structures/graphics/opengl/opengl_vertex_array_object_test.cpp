@@ -3,7 +3,6 @@
 #include "utils/image_comparison_test_utils.hpp"
 #include "structures/graphics/opengl/opengl_wrapper_test_utils.hpp"
 
-
 #include "structures/graphics/rendering/state/spk_viewport.hpp"
 #include "structures/graphics/rendering/command/spk_viewport_render_command.hpp"
 
@@ -12,8 +11,7 @@ TEST(OpenGLVertexArrayObjectTest, ActivatesConfiguredVertexAttributes)
 	sparkle_test::OpenGLTestContext context;
 	(void)context;
 
-	auto vertexArray = sparkle_test::makeTriangleVAO(
-		sparkle_test::fullScreenTriangle({0.0f, 1.0f, 0.0f}));
+	auto vertexArray = sparkle_test::makeTriangleVAO(sparkle_test::fullScreenTriangle({0.0f, 1.0f, 0.0f}));
 	vertexArray->activate(context.renderContext());
 
 	GLint currentVertexArray = 0;
@@ -36,8 +34,7 @@ TEST(OpenGLVertexArrayObjectTest, RendersTriangleWithConfiguredVBO)
 	spk::RenderContext& renderContext = context.renderContext();
 
 	const auto program = sparkle_test::makeColorProgram();
-	const auto vertexArray = sparkle_test::makeTriangleVAO(
-		sparkle_test::fullScreenTriangle({0.0f, 1.0f, 0.0f}));
+	const auto vertexArray = sparkle_test::makeTriangleVAO(sparkle_test::fullScreenTriangle({0.0f, 1.0f, 0.0f}));
 
 	spk::RenderUnitBuilder builder;
 	spk::Viewport viewport(spk::Rect2D(0, 0, width, height));
@@ -64,8 +61,7 @@ TEST(OpenGLVertexArrayObjectTest, MutationHelpersRequestSynchronization)
 	sparkle_test::OpenGLTestContext context;
 	(void)context;
 
-	auto vertexArray = sparkle_test::makeTriangleVAO(
-		sparkle_test::fullScreenTriangle({1.0f, 0.0f, 0.0f}));
+	auto vertexArray = sparkle_test::makeTriangleVAO(sparkle_test::fullScreenTriangle({1.0f, 0.0f, 0.0f}));
 	vertexArray->activate(context.renderContext());
 	ASSERT_TRUE(vertexArray->hasGpu(context.renderContext()));
 	ASSERT_FALSE(vertexArray->needsSynchronization());
@@ -75,9 +71,7 @@ TEST(OpenGLVertexArrayObjectTest, MutationHelpersRequestSynchronization)
 	vertexArray->activate(context.renderContext());
 	EXPECT_FALSE(vertexArray->needsSynchronization());
 
-	auto indexBuffer = std::make_shared<spk::IndexBufferObject>(
-		spk::BufferObject::Usage::StaticDraw,
-		0);
+	auto indexBuffer = std::make_shared<spk::IndexBufferObject>(spk::BufferObject::Usage::StaticDraw, 0);
 	vertexArray->setIndexBuffer(indexBuffer);
 	EXPECT_EQ(vertexArray->indexBuffer(), indexBuffer);
 	EXPECT_TRUE(vertexArray->needsSynchronization());
@@ -103,13 +97,6 @@ TEST(OpenGLVertexArrayObjectTest, RejectsNullVertexBuffer)
 		vertexArray.addVertexBuffer(
 			nullptr,
 			spk::VertexArrayObject::Attribute{
-				.index = 0,
-				.componentCount = 2,
-				.componentType = GL_FLOAT,
-				.normalized = false,
-				.stride = sizeof(float) * 2,
-				.offset = 0
-			}),
+				.index = 0, .componentCount = 2, .componentType = GL_FLOAT, .normalized = false, .stride = sizeof(float) * 2, .offset = 0}),
 		std::runtime_error);
 }
-

@@ -36,11 +36,7 @@ TEST(MatrixTest, DefaultConstructsIdentity)
 
 TEST(MatrixTest, InitializerListUsesRowMajorInputIntoColumnStorage)
 {
-	const spk::Matrix3x3 matrix{
-		1.0f, 2.0f, 3.0f,
-		4.0f, 5.0f, 6.0f,
-		7.0f, 8.0f, 9.0f
-	};
+	const spk::Matrix3x3 matrix{1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f};
 
 	EXPECT_FLOAT_EQ(matrix[0][0], 1.0f);
 	EXPECT_FLOAT_EQ(matrix[1][0], 2.0f);
@@ -59,11 +55,7 @@ TEST(MatrixTest, BoundsChecksColumnAndRowAccess)
 
 TEST(MatrixTest, MultipliesMatrix3ByVector2UsingHomogeneousCoordinate)
 {
-	const spk::Matrix3x3 transform{
-		2.0f, 0.0f, 10.0f,
-		0.0f, 3.0f, 20.0f,
-		0.0f, 0.0f, 1.0f
-	};
+	const spk::Matrix3x3 transform{2.0f, 0.0f, 10.0f, 0.0f, 3.0f, 20.0f, 0.0f, 0.0f, 1.0f};
 
 	expectVectorNear(transform * spk::Vector2(4.0f, 5.0f), spk::Vector2(18.0f, 35.0f));
 }
@@ -117,21 +109,15 @@ TEST(MatrixTest, PerspectiveHasExpectedProjectionTerms)
 
 TEST(MatrixTest, LookAtMovesCameraOrigin)
 {
-	const spk::Matrix4x4 view = spk::Matrix4x4::lookAt(
-		spk::Vector3(0.0f, 0.0f, 5.0f),
-		spk::Vector3(0.0f, 0.0f, 0.0f),
-		spk::Vector3(0.0f, 1.0f, 0.0f));
+	const spk::Matrix4x4 view =
+		spk::Matrix4x4::lookAt(spk::Vector3(0.0f, 0.0f, 5.0f), spk::Vector3(0.0f, 0.0f, 0.0f), spk::Vector3(0.0f, 1.0f, 0.0f));
 
 	expectVectorNear(view * spk::Vector3(0.0f, 0.0f, 0.0f), spk::Vector3(0.0f, 0.0f, -5.0f));
 }
 
 TEST(MatrixTest, DeterminantInvertibilityAndInverseWork)
 {
-	const spk::Matrix3x3 matrix{
-		2.0f, 0.0f, 0.0f,
-		0.0f, 3.0f, 0.0f,
-		0.0f, 0.0f, 4.0f
-	};
+	const spk::Matrix3x3 matrix{2.0f, 0.0f, 0.0f, 0.0f, 3.0f, 0.0f, 0.0f, 0.0f, 4.0f};
 
 	expectNear(matrix.determinant(), 24.0f);
 	EXPECT_TRUE(matrix.isInvertible());
@@ -140,11 +126,7 @@ TEST(MatrixTest, DeterminantInvertibilityAndInverseWork)
 
 TEST(MatrixTest, InverseThrowsForSingularMatrix)
 {
-	const spk::Matrix3x3 matrix{
-		1.0f, 2.0f, 3.0f,
-		1.0f, 2.0f, 3.0f,
-		4.0f, 5.0f, 6.0f
-	};
+	const spk::Matrix3x3 matrix{1.0f, 2.0f, 3.0f, 1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f};
 
 	EXPECT_FLOAT_EQ(matrix.determinant(), 0.0f);
 	EXPECT_FALSE(matrix.isInvertible());
@@ -153,10 +135,7 @@ TEST(MatrixTest, InverseThrowsForSingularMatrix)
 
 TEST(MatrixTest, StringifiesRows)
 {
-	const spk::Matrix2x2 matrix{
-		1.0f, 2.0f,
-		3.0f, 4.0f
-	};
+	const spk::Matrix2x2 matrix{1.0f, 2.0f, 3.0f, 4.0f};
 
 	EXPECT_EQ(matrix.toString(), "[1, 2]\n[3, 4]");
 }

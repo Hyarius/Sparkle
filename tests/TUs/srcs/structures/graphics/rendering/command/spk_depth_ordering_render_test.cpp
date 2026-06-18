@@ -220,10 +220,7 @@ TEST(DepthOrderingRenderTest, DepthBeyondMaxLayerIsClipped)
 	spk::RenderUnitBuilder builder;
 	builder.emplace<spk::ViewportCommand>(viewport);
 	builder.emplace<spk::ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
-	builder.emplace<spk::ColorRectangleRenderCommand>(
-		spk::Rect2D(0, 0, width, height),
-		red,
-		spk::Viewport::maxLayer() * 2.0f);
+	builder.emplace<spk::ColorRectangleRenderCommand>(spk::Rect2D(0, 0, width, height), red, spk::Viewport::maxLayer() * 2.0f);
 
 	builder.build().execute(renderContext);
 	context.gpuRuntime().waitUntilWorkDone();

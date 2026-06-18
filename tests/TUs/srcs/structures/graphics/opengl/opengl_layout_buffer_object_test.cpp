@@ -3,7 +3,6 @@
 
 #include "structures/graphics/opengl/opengl_wrapper_test_utils.hpp"
 
-
 #include "structures/graphics/spk_layout_buffer_object.hpp"
 
 using namespace spk;
@@ -29,9 +28,7 @@ TEST_F(LBOFixture, DefaultConstructorCreatesEmptyLayout)
 TEST_F(LBOFixture, SpanConstructorAddsAttributes)
 {
 	const std::array<Attr, 2> attrs = {
-		Attr{.index = 0, .type = Attr::Type::Vector2, .normalized = false},
-		Attr{.index = 1, .type = Attr::Type::Vector3, .normalized = false}
-	};
+		Attr{.index = 0, .type = Attr::Type::Vector2, .normalized = false}, Attr{.index = 1, .type = Attr::Type::Vector3, .normalized = false}};
 	LBO lbo((std::span<const Attr>(attrs)));
 
 	EXPECT_TRUE(lbo.hasAttribute(0));
@@ -42,10 +39,7 @@ TEST_F(LBOFixture, SpanConstructorAddsAttributes)
 
 TEST_F(LBOFixture, InitializerListConstructorAddsAttributes)
 {
-	LBO lbo({
-		Attr{.index = 0, .type = Attr::Type::Float, .normalized = false},
-		Attr{.index = 1, .type = Attr::Type::Vector2, .normalized = false}
-	});
+	LBO lbo({Attr{.index = 0, .type = Attr::Type::Float, .normalized = false}, Attr{.index = 1, .type = Attr::Type::Vector2, .normalized = false}});
 
 	EXPECT_TRUE(lbo.hasAttribute(0));
 	EXPECT_TRUE(lbo.hasAttribute(1));
@@ -170,8 +164,11 @@ TEST_F(LBOFixture, SetVerticesWithNonEmptySpanUploadsVertexCount)
 	LBO lbo;
 	lbo.addAttribute(0, Attr::Type::Vector2, false);
 
-	struct V2 { float x, y; };
-	const std::array<V2, 4> verts = {V2{0,0}, V2{1,0}, V2{1,1}, V2{0,1}};
+	struct V2
+	{
+		float x, y;
+	};
+	const std::array<V2, 4> verts = {V2{0, 0}, V2{1, 0}, V2{1, 1}, V2{0, 1}};
 
 	lbo.setVertices(std::span<const V2>(verts));
 
@@ -183,7 +180,10 @@ TEST_F(LBOFixture, SetVerticesWithEmptySpanSetsZeroCount)
 	LBO lbo;
 	lbo.addAttribute(0, Attr::Type::Vector2, false);
 
-	struct V2 { float x, y; };
+	struct V2
+	{
+		float x, y;
+	};
 	lbo.setVertices(std::span<const V2>{});
 
 	EXPECT_EQ(lbo.vertexCount(), 0u);
@@ -223,4 +223,3 @@ TEST_F(LBOFixture, ActivateAndDeactivateDoNotThrow)
 	EXPECT_NO_THROW(lbo.activate(context.renderContext()));
 	EXPECT_NO_THROW(lbo.deactivate());
 }
-

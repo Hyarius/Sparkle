@@ -80,16 +80,11 @@ namespace spk
 			{
 			case spk::Texture::Filtering::Nearest:
 				glTexParameteri(
-					GL_TEXTURE_2D,
-					GL_TEXTURE_MIN_FILTER,
-					p_mipmap == spk::Texture::Mipmap::Enable ? GL_NEAREST_MIPMAP_NEAREST : GL_NEAREST);
+					GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, p_mipmap == spk::Texture::Mipmap::Enable ? GL_NEAREST_MIPMAP_NEAREST : GL_NEAREST);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 				break;
 			case spk::Texture::Filtering::Linear:
-				glTexParameteri(
-					GL_TEXTURE_2D,
-					GL_TEXTURE_MIN_FILTER,
-					p_mipmap == spk::Texture::Mipmap::Enable ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, p_mipmap == spk::Texture::Mipmap::Enable ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 				break;
 			}

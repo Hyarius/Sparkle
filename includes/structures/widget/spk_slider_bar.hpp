@@ -44,10 +44,7 @@ namespace spk
 
 	public:
 		explicit SliderBar(const std::string& p_name, spk::Widget* p_parent = nullptr);
-		SliderBar(
-			const std::string& p_name,
-			spk::Orientation p_orientation,
-			spk::Widget* p_parent = nullptr);
+		SliderBar(const std::string& p_name, spk::Orientation p_orientation, spk::Widget* p_parent = nullptr);
 
 		void applyStyle(const spk::WidgetStyle& p_style) override;
 

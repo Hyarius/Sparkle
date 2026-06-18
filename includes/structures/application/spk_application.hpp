@@ -14,6 +14,23 @@
 
 namespace spk
 {
+	/**
+	 * @brief Owns the platform, GPU runtime, windows, and application loops.
+	 *
+	 * `spk::Application` is the high-level entry point used by examples and tools. Create one application, create windows through it, then
+	 * call run() to let Sparkle poll events, update widgets, and render frames until the application is stopped.
+	 *
+	 * @code{.cpp}
+	 * spk::Application app;
+	 * auto mainWindow = app.createWindow("main", {{0, 0, 1280, 720}, "Sparkle tutorial"});
+	 * mainWindow.centralWidget().setGeometry({{0, 0}, {1280, 720}});
+	 * return app.run();
+	 * @endcode
+	 *
+	 * @see spk::Window
+	 * @see spk::WindowHandle
+	 * @see spk::Widget
+	 */
 	class Application
 	{
 	public:

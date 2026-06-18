@@ -17,9 +17,7 @@ namespace spk::test
 			return result;
 		}
 
-		[[nodiscard]] bool isSameOrChildPath(
-			const std::filesystem::path& p_path,
-			const std::filesystem::path& p_parent)
+		[[nodiscard]] bool isSameOrChildPath(const std::filesystem::path& p_path, const std::filesystem::path& p_parent)
 		{
 			auto pathIterator = p_path.begin();
 			auto parentIterator = p_parent.begin();
@@ -64,16 +62,12 @@ namespace spk::test
 		return testResourcesRoot() / "imageResults";
 	}
 
-	std::filesystem::path expectedImagePath(
-		const std::filesystem::path& p_category,
-		const std::string& p_name)
+	std::filesystem::path expectedImagePath(const std::filesystem::path& p_category, const std::string& p_name)
 	{
 		return expectedDirectory() / p_category / (p_name + ".png");
 	}
 
-	std::filesystem::path resultImagePath(
-		const std::filesystem::path& p_category,
-		const std::string& p_name)
+	std::filesystem::path resultImagePath(const std::filesystem::path& p_category, const std::string& p_name)
 	{
 		return resultDirectory() / p_category / (p_name + ".png");
 	}

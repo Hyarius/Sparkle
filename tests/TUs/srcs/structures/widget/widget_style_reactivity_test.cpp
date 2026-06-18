@@ -16,8 +16,7 @@ TEST(WidgetStyleReactivityTest, PanelVisualRefreshesWhenSubscribedStyleChanges)
 	style.setNineSliceSpriteSheet(spk::WidgetStyle::makeDefaultPressed().nineSliceSpriteSheet());
 	style.setNineSliceCornerSize({10, 14});
 
-	const sparkle_test::ImageComparisonResult result =
-		spk::test::compareSnapshot(panel, "WidgetStyleReactivity", "panel_edited_style", captureRect);
+	const sparkle_test::ImageComparisonResult result = spk::test::compareSnapshot(panel, "WidgetStyleReactivity", "panel_edited_style", captureRect);
 
 	EXPECT_TRUE(result.matches);
 }

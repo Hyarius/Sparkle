@@ -13,10 +13,7 @@ namespace spk
 		activate();
 	}
 
-	ImageLabel::ImageLabel(
-		const std::string& p_name,
-		std::shared_ptr<spk::Texture> p_texture,
-		spk::Widget* p_parent) :
+	ImageLabel::ImageLabel(const std::string& p_name, std::shared_ptr<spk::Texture> p_texture, spk::Widget* p_parent) :
 		spk::Widget(p_name, p_parent)
 	{
 		setTexture(std::move(p_texture));
@@ -29,11 +26,7 @@ namespace spk
 
 		if (_texture != nullptr && geometry().empty() == false)
 		{
-			builder.emplace<spk::ImageRenderCommand>(
-				*_texture,
-				_section,
-				geometry(),
-				_depth);
+			builder.emplace<spk::ImageRenderCommand>(*_texture, _section, geometry(), _depth);
 		}
 
 		return builder.build();

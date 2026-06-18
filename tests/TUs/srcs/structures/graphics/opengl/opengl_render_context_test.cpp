@@ -1,6 +1,5 @@
 #include <gtest/gtest.h>
 
-
 #include <memory>
 #include <stdexcept>
 
@@ -83,4 +82,3 @@ TEST(OpenGLRenderContextTest, CreatingSecondContextOnSameFrameReusesConfiguredPi
 	baseFrame->validateClosure();
 	pumpWinApiMessages();
 }
-

@@ -15,20 +15,14 @@ namespace spk
 	class GPUDataBufferCenter
 	{
 	private:
-		using Buffer = std::variant<
-			std::shared_ptr<spk::UniformBufferObject>,
-			std::shared_ptr<spk::ShaderStorageBufferObject>>;
+		using Buffer = std::variant<std::shared_ptr<spk::UniformBufferObject>, std::shared_ptr<spk::ShaderStorageBufferObject>>;
 
 		static inline std::unordered_map<std::string, Buffer> _buffers;
 
 	public:
-		static void addUBO(
-			std::string_view p_name,
-			std::shared_ptr<spk::UniformBufferObject> p_buffer);
+		static void addUBO(std::string_view p_name, std::shared_ptr<spk::UniformBufferObject> p_buffer);
 
-		static void addSSBO(
-			std::string_view p_name,
-			std::shared_ptr<spk::ShaderStorageBufferObject> p_buffer);
+		static void addSSBO(std::string_view p_name, std::shared_ptr<spk::ShaderStorageBufferObject> p_buffer);
 
 		static spk::UniformBufferObject& getUBO(std::string_view p_name);
 

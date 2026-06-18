@@ -11,6 +11,24 @@
 
 namespace spk
 {
+	/**
+	 * @brief Axis-aligned rectangle expressed with an integer anchor and an unsigned size.
+	 *
+	 * `Rect2D` is the standard geometry type for windows, widgets, scissors, and hit tests. Use `contains()` to test points, `translated()`
+	 * to move a rectangle, and `intersect()` to compute a clipped drawing area.
+	 *
+	 * @code{.cpp}
+	 * spk::Rect2D buttonRect({16, 16}, {120, 32});
+	 * if (buttonRect.contains(mouse.position()))
+	 * {
+	 * 	// The mouse is inside the button area.
+	 * }
+	 * @endcode
+	 *
+	 * @see spk::IVector2
+	 * @see spk::Widget
+	 * @see spk::Viewport
+	 */
 	struct Rect2D
 	{
 		using Anchor = spk::Vector2Int;

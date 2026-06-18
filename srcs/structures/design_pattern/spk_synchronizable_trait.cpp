@@ -2,44 +2,43 @@
 
 namespace spk
 {
-		void SynchronizableTrait::requestSynchronization() const noexcept
+	void SynchronizableTrait::requestSynchronization() const noexcept
+	{
+		_needsSynchronization.store(true);
+	}
+
+	bool SynchronizableTrait::needsSynchronization() const noexcept
+	{
+		return _needsSynchronization.load();
+	}
+
+	void SynchronizableTrait::synchronize() const
+	{
+		// Plain load first: the clean path (every draw) stays read-only instead
+		// of paying an atomic read-modify-write.
+		if (_needsSynchronization.load() == false)
 		{
-			_needsSynchronization.store(true);
+			return;
 		}
 
-		bool SynchronizableTrait::needsSynchronization() const noexcept
+		if (_needsSynchronization.exchange(false) == false)
 		{
-			return _needsSynchronization.load();
+			return;
 		}
 
-		void SynchronizableTrait::synchronize() const
-		{
-			// Plain load first: the clean path (every draw) stays read-only instead
-			// of paying an atomic read-modify-write.
-			if (_needsSynchronization.load() == false)
-			{
-				return;
-			}
-
-			if (_needsSynchronization.exchange(false) == false)
-			{
-				return;
-			}
-
-			try
-			{
-				_synchronize();
-			}
-			catch (...)
-			{
-				_needsSynchronization.store(true);
-				throw;
-			}
-		}
-
-		void SynchronizableTrait::forceSynchronization() const
+		try
 		{
 			_synchronize();
-			_needsSynchronization.store(false);
+		} catch (...)
+		{
+			_needsSynchronization.store(true);
+			throw;
 		}
+	}
+
+	void SynchronizableTrait::forceSynchronization() const
+	{
+		_synchronize();
+		_needsSynchronization.store(false);
+	}
 }

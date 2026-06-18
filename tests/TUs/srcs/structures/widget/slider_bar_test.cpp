@@ -37,10 +37,7 @@ TEST(SliderBarTest, SetRatioClampsAndTriggersContract)
 	spk::SliderBar slider("Slider");
 
 	float lastRatio = -1.0f;
-	auto contract = slider.subscribeToEdition([&lastRatio](float p_ratio)
-	{
-		lastRatio = p_ratio;
-	});
+	auto contract = slider.subscribeToEdition([&lastRatio](float p_ratio) { lastRatio = p_ratio; });
 
 	slider.setRatio(2.0f);
 
@@ -80,10 +77,7 @@ TEST(SliderBarTest, DraggingBodyUpdatesRatio)
 	slider.setGeometry(spk::Rect2D(0, 0, 100, 20));
 
 	float lastRatio = -1.0f;
-	auto contract = slider.subscribeToEdition([&lastRatio](float p_ratio)
-	{
-		lastRatio = p_ratio;
-	});
+	auto contract = slider.subscribeToEdition([&lastRatio](float p_ratio) { lastRatio = p_ratio; });
 
 	spk::MouseModule mouseModule;
 	mouseModule.bind(&slider);
@@ -153,8 +147,7 @@ TEST(SliderBarVisualTest, RendersHorizontalAtZero)
 	spk::SliderBar slider("Slider", spk::Orientation::Horizontal);
 	slider.setRatio(0.0f);
 
-	const sparkle_test::ImageComparisonResult result =
-		spk::test::compareSnapshot(slider, "SliderBarVisual", "horizontal_zero", captureRect);
+	const sparkle_test::ImageComparisonResult result = spk::test::compareSnapshot(slider, "SliderBarVisual", "horizontal_zero", captureRect);
 
 	EXPECT_TRUE(result.matches);
 }
@@ -166,8 +159,7 @@ TEST(SliderBarVisualTest, RendersHorizontalAtMiddle)
 	spk::SliderBar slider("Slider", spk::Orientation::Horizontal);
 	slider.setRatio(0.5f);
 
-	const sparkle_test::ImageComparisonResult result =
-		spk::test::compareSnapshot(slider, "SliderBarVisual", "horizontal_middle", captureRect);
+	const sparkle_test::ImageComparisonResult result = spk::test::compareSnapshot(slider, "SliderBarVisual", "horizontal_middle", captureRect);
 
 	EXPECT_TRUE(result.matches);
 }
@@ -179,8 +171,7 @@ TEST(SliderBarVisualTest, RendersHorizontalAtFull)
 	spk::SliderBar slider("Slider", spk::Orientation::Horizontal);
 	slider.setRatio(1.0f);
 
-	const sparkle_test::ImageComparisonResult result =
-		spk::test::compareSnapshot(slider, "SliderBarVisual", "horizontal_full", captureRect);
+	const sparkle_test::ImageComparisonResult result = spk::test::compareSnapshot(slider, "SliderBarVisual", "horizontal_full", captureRect);
 
 	EXPECT_TRUE(result.matches);
 }
@@ -192,8 +183,7 @@ TEST(SliderBarVisualTest, RendersVerticalAtMiddle)
 	spk::SliderBar slider("Slider", spk::Orientation::Vertical);
 	slider.setRatio(0.5f);
 
-	const sparkle_test::ImageComparisonResult result =
-		spk::test::compareSnapshot(slider, "SliderBarVisual", "vertical_middle", captureRect);
+	const sparkle_test::ImageComparisonResult result = spk::test::compareSnapshot(slider, "SliderBarVisual", "vertical_middle", captureRect);
 
 	EXPECT_TRUE(result.matches);
 }
@@ -206,8 +196,7 @@ TEST(SliderBarVisualTest, RendersLargeScaleBody)
 	slider.setScale(0.5f);
 	slider.setRatio(0.5f);
 
-	const sparkle_test::ImageComparisonResult result =
-		spk::test::compareSnapshot(slider, "SliderBarVisual", "large_scale_middle", captureRect);
+	const sparkle_test::ImageComparisonResult result = spk::test::compareSnapshot(slider, "SliderBarVisual", "large_scale_middle", captureRect);
 
 	EXPECT_TRUE(result.matches);
 }

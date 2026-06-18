@@ -2,7 +2,7 @@
 
 namespace spk
 {
-	std::string toString(const TimeUnit &p_timeUnit)
+	std::string toString(const TimeUnit& p_timeUnit)
 	{
 		switch (p_timeUnit)
 		{
@@ -16,7 +16,7 @@ namespace spk
 		return ("Unknown TimeUnit");
 	}
 
-	std::wstring toWstring(const TimeUnit &p_timeUnit)
+	std::wstring toWstring(const TimeUnit& p_timeUnit)
 	{
 		switch (p_timeUnit)
 		{
@@ -30,13 +30,13 @@ namespace spk
 		return (L"Unknown TimeUnit");
 	}
 
-	std::ostream &operator<<(std::ostream &p_stream, const TimeUnit &p_timeUnit)
+	std::ostream& operator<<(std::ostream& p_stream, const TimeUnit& p_timeUnit)
 	{
 		p_stream << toString(p_timeUnit);
 		return p_stream;
 	}
 
-	std::wostream &operator<<(std::wostream &p_stream, const TimeUnit &p_timeUnit)
+	std::wostream& operator<<(std::wostream& p_stream, const TimeUnit& p_timeUnit)
 	{
 		p_stream << toWstring(p_timeUnit);
 		return p_stream;

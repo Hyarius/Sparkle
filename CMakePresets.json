@@ -47,6 +47,24 @@
 			}
 		},
 		{
+			"name": "test-debug",
+			"inherits": "default",
+			"description": "Configure for Debug build with Test Units",
+			"cacheVariables": {
+				"ENABLE_TESTS": "ON",
+				"CMAKE_BUILD_TYPE": "Debug"
+			}
+		},
+		{
+			"name": "test-release",
+			"inherits": "default",
+			"description": "Configure for Release build with Test Units",
+			"cacheVariables": {
+				"ENABLE_TESTS": "ON",
+				"CMAKE_BUILD_TYPE": "Release"
+			}
+		},
+		{
 			"name": "coverage",
 			"inherits": "default",
 			"description": "Configure for Debug test build with LLVM coverage instrumentation. Requires a Clang/LLVM compiler.",
@@ -102,6 +120,14 @@
 			"configurePreset": "test"
 		},
 		{
+			"name": "test-debug",
+			"configurePreset": "test-debug"
+		},
+		{
+			"name": "test-release",
+			"configurePreset": "test-release"
+		},
+		{
 			"name": "coverage",
 			"configurePreset": "coverage",
 			"targets": [
@@ -147,6 +173,14 @@
 		{
 			"name": "test",
 			"configurePreset": "test"
+		},
+		{
+			"name": "test-debug",
+			"configurePreset": "test-debug"
+		},
+		{
+			"name": "test-release",
+			"configurePreset": "test-release"
 		},
 		{
 			"name": "coverage",

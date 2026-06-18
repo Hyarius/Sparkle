@@ -16,11 +16,7 @@ namespace spk
 		std::unique_ptr<spk::DrawTextureMeshRenderCommand> _textureCommand;
 
 	public:
-		NineSliceRenderCommand(
-			const spk::SpriteSheet& p_spriteSheet,
-			spk::Rect2D p_screenRect,
-			spk::Vector2Int p_cornerSize,
-			float p_depth = 0.0f);
+		NineSliceRenderCommand(const spk::SpriteSheet& p_spriteSheet, spk::Rect2D p_screenRect, spk::Vector2Int p_cornerSize, float p_depth = 0.0f);
 
 		void execute(spk::RenderContext& p_renderContext) override;
 	};

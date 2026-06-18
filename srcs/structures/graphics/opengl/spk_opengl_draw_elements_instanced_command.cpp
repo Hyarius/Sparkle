@@ -58,10 +58,6 @@ namespace spk
 
 		const GLsizei count = _count.value_or(static_cast<GLsizei>(_indexBuffer->count()));
 		glDrawElementsInstanced(
-			spk::OpenGL::primitiveType(_primitive),
-			count,
-			_indexBuffer->elementType(),
-			reinterpret_cast<const void*>(_offset),
-			_instanceCount);
+			spk::OpenGL::primitiveType(_primitive), count, _indexBuffer->elementType(), reinterpret_cast<const void*>(_offset), _instanceCount);
 	}
 }

@@ -19,8 +19,8 @@ namespace spk
 		SynchronizableTrait(const SynchronizableTrait&) = delete;
 		SynchronizableTrait& operator=(const SynchronizableTrait&) = delete;
 
-		SynchronizableTrait(SynchronizableTrait&& p_other) noexcept
-			: _needsSynchronization(p_other._needsSynchronization.exchange(false))
+		SynchronizableTrait(SynchronizableTrait&& p_other) noexcept :
+			_needsSynchronization(p_other._needsSynchronization.exchange(false))
 		{
 		}
 

@@ -91,10 +91,7 @@ TEST(SpinBoxTest, SubscribeToEditionNotifiesValueChanges)
 	spk::SpinBox<int> spinBox("SpinBox");
 
 	int lastValue = -1;
-	auto contract = spinBox.subscribeToEdition([&lastValue](const int& p_value)
-	{
-		lastValue = p_value;
-	});
+	auto contract = spinBox.subscribeToEdition([&lastValue](const int& p_value) { lastValue = p_value; });
 
 	spinBox.setValue(7);
 

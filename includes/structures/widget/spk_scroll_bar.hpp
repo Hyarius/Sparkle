@@ -35,10 +35,7 @@ namespace spk
 
 	public:
 		explicit ScrollBar(const std::string& p_name, spk::Widget* p_parent = nullptr);
-		ScrollBar(
-			const std::string& p_name,
-			spk::Orientation p_orientation,
-			spk::Widget* p_parent = nullptr);
+		ScrollBar(const std::string& p_name, spk::Orientation p_orientation, spk::Widget* p_parent = nullptr);
 
 		Contract subscribeToEdition(Callback p_callback);
 
