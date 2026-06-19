@@ -108,7 +108,7 @@ if(ENABLE_COVERAGE)
 endif()
 
 add_dependencies(Sparkle SparkleResourcesHeaderTarget)
-target_sources(Sparkle PRIVATE "${SPARKLE_RESOURCES_HEADER}")
+target_sources(Sparkle PRIVATE "${SPARKLE_RESOURCES_HEADER}" "${SPARKLE_RESOURCES_SOURCE}")
 
 target_compile_features(Sparkle PUBLIC cxx_std_23)
 

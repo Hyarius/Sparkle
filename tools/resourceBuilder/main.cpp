@@ -98,11 +98,36 @@ int main(int argc, char** argv)
 		return 1;
 	}
 
+	const std::filesystem::path output_source = output_header;
+	std::filesystem::path source_path = output_source;
+	source_path.replace_extension(".cpp");
+
+	std::ofstream source(source_path, std::ios::binary);
+	if (!source.is_open())
+	{
+		std::cerr << "Error: could not open output file: " << source_path.string() << "\n";
+		return 1;
+	}
+
 	output << "#pragma once\n";
 	output << "#include <string>\n";
-	output << "#include <unordered_map>\n";
 	output << "#include <vector>\n\n";
-	output << "inline const std::unordered_map<std::string, std::vector<unsigned char>> sparkle_resources = {\n";
+	output << "namespace spk\n";
+	output << "{\n";
+	output << "\tconst std::vector<unsigned char>& sparkleResource(const std::string& p_key);\n";
+	output << "\tstd::string sparkleResourceAsString(const std::string& p_key);\n";
+	output << "\tstd::wstring sparkleResourceAsWString(const std::string& p_key);\n";
+	output << "}\n\n";
+	output << "#define SPARKLE_GET_RESOURCE(key) spk::sparkleResource(key)\n";
+	output << "#define SPARKLE_GET_RESOURCE_AS_STRING(key) spk::sparkleResourceAsString(key)\n";
+	output << "#define SPARKLE_GET_RESOURCE_AS_WSTRING(key) spk::sparkleResourceAsWString(key)\n";
+
+	source << "#include \"spk_generated_resources.hpp\"\n\n";
+	source << "#include <stdexcept>\n";
+	source << "#include <unordered_map>\n\n";
+	source << "namespace\n";
+	source << "{\n";
+	source << "\tconst std::unordered_map<std::string, std::vector<unsigned char>> sparkle_resources = {\n";
 
 	try
 	{
@@ -112,26 +137,26 @@ int main(int argc, char** argv)
 			const std::filesystem::path absolute_path = base_directory / relative_path;
 			const std::vector<unsigned char> buffer = read_binary_file(absolute_path);
 
-			output << "    { \"" << escape_for_cpp_string(relative_path.generic_string()) << "\", {\n        ";
+			source << "\t\t{ \"" << escape_for_cpp_string(relative_path.generic_string()) << "\", {\n\t\t\t";
 
 			for (std::size_t byte_index = 0; byte_index < buffer.size(); ++byte_index)
 			{
-				output << "0x" << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(buffer[byte_index]) << ", ";
+				source << "0x" << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(buffer[byte_index]) << ", ";
 
 				if ((byte_index + 1) % 16 == 0 && byte_index + 1 < buffer.size())
 				{
-					output << "\n        ";
+					source << "\n\t\t\t";
 				}
 			}
 
-			output << "\n    } }";
+			source << "\n\t\t} }";
 
 			if (resource_index + 1 < input_files.size())
 			{
-				output << ",";
+				source << ",";
 			}
 
-			output << "\n";
+			source << "\n";
 		}
 	} catch (const std::exception& exception)
 	{
@@ -139,10 +164,25 @@ int main(int argc, char** argv)
 		return 1;
 	}
 
-	output << "};\n\n";
-	output << "#define SPARKLE_GET_RESOURCE(key) sparkle_resources.at(key)\n";
-	output << "#define SPARKLE_GET_RESOURCE_AS_STRING(key) std::string(sparkle_resources.at(key).begin(), sparkle_resources.at(key).end())\n";
-	output << "#define SPARKLE_GET_RESOURCE_AS_WSTRING(key) std::wstring(sparkle_resources.at(key).begin(), sparkle_resources.at(key).end())\n";
+	source << "\t};\n";
+	source << "}\n\n";
+	source << "namespace spk\n";
+	source << "{\n";
+	source << "\tconst std::vector<unsigned char>& sparkleResource(const std::string& p_key)\n";
+	source << "\t{\n";
+	source << "\t\treturn sparkle_resources.at(p_key);\n";
+	source << "\t}\n\n";
+	source << "\tstd::string sparkleResourceAsString(const std::string& p_key)\n";
+	source << "\t{\n";
+	source << "\t\tconst auto& resource = sparkleResource(p_key);\n";
+	source << "\t\treturn std::string(resource.begin(), resource.end());\n";
+	source << "\t}\n\n";
+	source << "\tstd::wstring sparkleResourceAsWString(const std::string& p_key)\n";
+	source << "\t{\n";
+	source << "\t\tconst auto& resource = sparkleResource(p_key);\n";
+	source << "\t\treturn std::wstring(resource.begin(), resource.end());\n";
+	source << "\t}\n";
+	source << "}\n";
 
-	return output.good() ? 0 : 1;
+	return (output.good() && source.good()) ? 0 : 1;
 }
