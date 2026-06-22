@@ -15,6 +15,7 @@ namespace spk
 
 	void Font::Atlas::loadAllRenderableGlyphs()
 	{
+		auto& resource = *_resource;
 		std::unordered_set<int> rendered;
 
 		for (const auto& block : unicodeBlocks)
@@ -23,8 +24,8 @@ namespace spk
 			{
 				if (rendered.contains(codepoint) == false)
 				{
-					const int glyphIndex = stbtt_FindGlyphIndex(&_fontInfo, codepoint);
-					if (glyphIndex != 0 && _glyphs.contains(static_cast<Codepoint>(codepoint)) == false)
+					const int glyphIndex = stbtt_FindGlyphIndex(&resource.fontInfo, codepoint);
+					if (glyphIndex != 0 && resource.glyphs.contains(static_cast<Codepoint>(codepoint)) == false)
 					{
 						_loadGlyph(static_cast<Codepoint>(codepoint));
 						rendered.insert(codepoint);
@@ -38,71 +39,74 @@ namespace spk
 
 	spk::Vector2Int Font::Atlas::_computeGlyphPosition(const spk::Vector2UInt& p_glyphSize)
 	{
-		if ((_nextGlyphAnchor.x + static_cast<int>(p_glyphSize.x)) >=
-			(_quadrantAnchor.x + static_cast<int>(_quadrantSize.x)))
+		auto& resource = *_resource;
+		using Quadrant = Resource::Quadrant;
+
+		if ((resource.nextGlyphAnchor.x + static_cast<int>(p_glyphSize.x)) >=
+			(resource.quadrantAnchor.x + static_cast<int>(resource.quadrantSize.x)))
 		{
-			_nextGlyphAnchor = _nextLineAnchor;
+			resource.nextGlyphAnchor = resource.nextLineAnchor;
 		}
 
-		spk::Vector2Int result = _nextGlyphAnchor;
-		_nextGlyphAnchor.x += static_cast<int>(p_glyphSize.x);
+		spk::Vector2Int result = resource.nextGlyphAnchor;
+		resource.nextGlyphAnchor.x += static_cast<int>(p_glyphSize.x);
 
-		if (_nextLineAnchor.y < result.y + static_cast<int>(p_glyphSize.y))
+		if (resource.nextLineAnchor.y < result.y + static_cast<int>(p_glyphSize.y))
 		{
-			_nextLineAnchor.y = result.y + static_cast<int>(p_glyphSize.y);
+			resource.nextLineAnchor.y = result.y + static_cast<int>(p_glyphSize.y);
 		}
 
 		auto _overflowQuadrant = [&]()
 		{
-			return _nextLineAnchor.y >= _quadrantAnchor.y + static_cast<int>(_quadrantSize.y);
+			return resource.nextLineAnchor.y >= resource.quadrantAnchor.y + static_cast<int>(resource.quadrantSize.y);
 		};
 
 		auto _resetToQuadrant = [&](spk::Vector2Int p_anchor)
 		{
-			_quadrantAnchor = p_anchor;
-			result = _nextGlyphAnchor = _nextLineAnchor = p_anchor;
-			_nextGlyphAnchor.x += static_cast<int>(p_glyphSize.x);
-			if (_nextLineAnchor.y < result.y + static_cast<int>(p_glyphSize.y))
+			resource.quadrantAnchor = p_anchor;
+			result = resource.nextGlyphAnchor = resource.nextLineAnchor = p_anchor;
+			resource.nextGlyphAnchor.x += static_cast<int>(p_glyphSize.x);
+			if (resource.nextLineAnchor.y < result.y + static_cast<int>(p_glyphSize.y))
 			{
-				_nextLineAnchor.y = result.y + static_cast<int>(p_glyphSize.y);
+				resource.nextLineAnchor.y = result.y + static_cast<int>(p_glyphSize.y);
 			}
 		};
 
-		switch (_currentQuadrant)
+		switch (resource.currentQuadrant)
 		{
 		case Quadrant::TopLeft:
 			if (_overflowQuadrant())
 			{
-				_currentQuadrant = Quadrant::TopRight;
-				_resizeData(_atlasSize * 2);
-				_resetToQuadrant(spk::Vector2Int(static_cast<int>(_atlasSize.x / 2), 0));
+				resource.currentQuadrant = Quadrant::TopRight;
+				_resizeData(resource.atlasSize * 2);
+				_resetToQuadrant(spk::Vector2Int(static_cast<int>(resource.atlasSize.x / 2), 0));
 			}
 			break;
 
 		case Quadrant::TopRight:
 			if (_overflowQuadrant())
 			{
-				_currentQuadrant = Quadrant::DownLeft;
-				_resetToQuadrant(spk::Vector2Int(0, static_cast<int>(_atlasSize.y / 2)));
+				resource.currentQuadrant = Quadrant::DownLeft;
+				_resetToQuadrant(spk::Vector2Int(0, static_cast<int>(resource.atlasSize.y / 2)));
 			}
 			break;
 
 		case Quadrant::DownLeft:
 			if (_overflowQuadrant())
 			{
-				_currentQuadrant = Quadrant::DownRight;
+				resource.currentQuadrant = Quadrant::DownRight;
 				_resetToQuadrant(spk::Vector2Int(
-					static_cast<int>(_atlasSize.x / 2),
-					static_cast<int>(_atlasSize.y / 2)));
+					static_cast<int>(resource.atlasSize.x / 2),
+					static_cast<int>(resource.atlasSize.y / 2)));
 			}
 			break;
 
 		case Quadrant::DownRight:
 			if (_overflowQuadrant())
 			{
-				_currentQuadrant = Quadrant::TopRight;
-				_resizeData(_atlasSize * 2);
-				_resetToQuadrant(spk::Vector2Int(static_cast<int>(_atlasSize.x / 2), 0));
+				resource.currentQuadrant = Quadrant::TopRight;
+				_resizeData(resource.atlasSize * 2);
+				_resetToQuadrant(spk::Vector2Int(static_cast<int>(resource.atlasSize.x / 2), 0));
 			}
 			break;
 		}
@@ -112,9 +116,10 @@ namespace spk
 
 	void Font::Atlas::_loadGlyph(Codepoint p_codepoint)
 	{
-		const float scale = stbtt_ScaleForMappingEmToPixels(&_fontInfo, static_cast<float>(_textSize));
+		auto& resource = *_resource;
+		const float scale = stbtt_ScaleForMappingEmToPixels(&resource.fontInfo, static_cast<float>(resource.textSize));
 		const int stbCodepoint = static_cast<int>(p_codepoint);
-		const size_t sdfPadding = _outlineSize == 0 ? 0 : _outlineSize + 2;
+		const size_t sdfPadding = resource.outlineSize == 0 ? 0 : resource.outlineSize + 2;
 
 		int width = 0;
 		int height = 0;
@@ -122,7 +127,7 @@ namespace spk
 		int yOffset = 0;
 
 		uint8_t* glyphBitmap = stbtt_GetCodepointSDF(
-			&_fontInfo,
+			&resource.fontInfo,
 			scale,
 			stbCodepoint,
 			static_cast<int>(sdfPadding),
@@ -135,7 +140,7 @@ namespace spk
 
 		if (glyphBitmap == nullptr)
 		{
-			_glyphs[p_codepoint] = _unknownGlyph;
+			resource.glyphs[p_codepoint] = resource.unknownGlyph;
 			return;
 		}
 
@@ -148,8 +153,8 @@ namespace spk
 		glyph.baselineOffset = spk::Vector2Int(-xOffset, -yOffset);
 
 		const spk::Vector2 halfPixel = 0.5f / spk::Vector2(
-			static_cast<float>(_atlasSize.x),
-			static_cast<float>(_atlasSize.y));
+			static_cast<float>(resource.atlasSize.x),
+			static_cast<float>(resource.atlasSize.y));
 
 		glyph.positions[0] = spk::Vector2Int(xOffset, yOffset);
 		glyph.positions[1] = spk::Vector2Int(xOffset, yOffset + height);
@@ -157,25 +162,25 @@ namespace spk
 		glyph.positions[3] = spk::Vector2Int(xOffset + width, yOffset + height);
 
 		glyph.uvs[0] = spk::Vector2(
-			static_cast<float>(glyphPosition.x) / static_cast<float>(_atlasSize.x) + halfPixel.x,
-			static_cast<float>(glyphPosition.y) / static_cast<float>(_atlasSize.y) + halfPixel.y);
+			static_cast<float>(glyphPosition.x) / static_cast<float>(resource.atlasSize.x) + halfPixel.x,
+			static_cast<float>(glyphPosition.y) / static_cast<float>(resource.atlasSize.y) + halfPixel.y);
 		glyph.uvs[1] = spk::Vector2(
-			static_cast<float>(glyphPosition.x) / static_cast<float>(_atlasSize.x) + halfPixel.x,
-			static_cast<float>(glyphPosition.y + height) / static_cast<float>(_atlasSize.y) - halfPixel.y);
+			static_cast<float>(glyphPosition.x) / static_cast<float>(resource.atlasSize.x) + halfPixel.x,
+			static_cast<float>(glyphPosition.y + height) / static_cast<float>(resource.atlasSize.y) - halfPixel.y);
 		glyph.uvs[2] = spk::Vector2(
-			static_cast<float>(glyphPosition.x + width) / static_cast<float>(_atlasSize.x) - halfPixel.x,
-			static_cast<float>(glyphPosition.y) / static_cast<float>(_atlasSize.y) + halfPixel.y);
+			static_cast<float>(glyphPosition.x + width) / static_cast<float>(resource.atlasSize.x) - halfPixel.x,
+			static_cast<float>(glyphPosition.y) / static_cast<float>(resource.atlasSize.y) + halfPixel.y);
 		glyph.uvs[3] = spk::Vector2(
-			static_cast<float>(glyphPosition.x + width) / static_cast<float>(_atlasSize.x) - halfPixel.x,
-			static_cast<float>(glyphPosition.y + height) / static_cast<float>(_atlasSize.y) - halfPixel.y);
+			static_cast<float>(glyphPosition.x + width) / static_cast<float>(resource.atlasSize.x) - halfPixel.x,
+			static_cast<float>(glyphPosition.y + height) / static_cast<float>(resource.atlasSize.y) - halfPixel.y);
 
 		int advance = 0;
-		stbtt_GetCodepointHMetrics(&_fontInfo, stbCodepoint, &advance, nullptr);
+		stbtt_GetCodepointHMetrics(&resource.fontInfo, stbCodepoint, &advance, nullptr);
 		glyph.step = spk::Vector2Int(
-			static_cast<int>(std::ceil(advance * scale)) + static_cast<int>(_outlineSize),
+			static_cast<int>(std::ceil(advance * scale)) + static_cast<int>(resource.outlineSize),
 			0);
 
-		_glyphs[p_codepoint] = glyph;
+		resource.glyphs[p_codepoint] = glyph;
 		stbtt_FreeBitmap(glyphBitmap, nullptr);
 	}
 

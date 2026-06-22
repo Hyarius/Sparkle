@@ -182,7 +182,7 @@ TEST(DrawTextureMeshRenderCommandTest, DrawsFullScreenTexture)
 	builder.emplace<ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
 	builder.emplace<spk::DrawTextureMeshRenderCommand>(
 		*blueTexture,
-		std::make_shared<spk::TextureMesh2D>(makeFullScreenMesh({width, height})));
+		makeFullScreenMesh({width, height}));
 
 	spk::RenderUnit unit = builder.build();
 	unit.execute(renderContext);
@@ -206,7 +206,7 @@ TEST(DrawTextureMeshRenderCommandTest, EmptyMeshDoesNotDraw)
 	spk::RenderUnitBuilder builder;
 	builder.emplace<spk::ViewportCommand>(viewport);
 	builder.emplace<ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
-	builder.emplace<spk::DrawTextureMeshRenderCommand>(*whiteTexture, std::make_shared<spk::TextureMesh2D>());
+	builder.emplace<spk::DrawTextureMeshRenderCommand>(*whiteTexture, spk::TextureMesh2D());
 
 	spk::RenderUnit unit = builder.build();
 	EXPECT_NO_THROW(unit.execute(renderContext));
@@ -227,7 +227,7 @@ TEST(DrawFontRenderCommandTest, DrawsGlyphsWithSizeAndOutline)
 	sparkle_test::OpenGLTestContext context(spk::Rect2D(0, 0, width, height));
 	spk::RenderContext& renderContext = context.renderContext();
 
-	spk::Font font = sparkle_test::testFont();
+	auto font = std::make_shared<spk::Font>(sparkle_test::testFont());
 
 	Viewport viewport(spk::Rect2D(0, 0, width, height));
 	spk::RenderUnitBuilder builder;
@@ -235,18 +235,18 @@ TEST(DrawFontRenderCommandTest, DrawsGlyphsWithSizeAndOutline)
 	builder.emplace<ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
 
 	const spk::Font::Size smallSize(16, 0);
-	spk::Font::Atlas& smallAtlas = font.atlas(smallSize);
+	std::shared_ptr<spk::Font::Atlas> smallAtlas = font->atlas(smallSize);
 	builder.emplace<spk::DrawFontRenderCommand>(
-		smallAtlas,
-		std::make_shared<spk::TextureMesh2D>(makeFontMesh(smallAtlas, "A", spk::Vector2Int{4, 34})),
+		*smallAtlas,
+		makeFontMesh(*smallAtlas, "A", spk::Vector2Int{4, 34}),
 		smallSize,
 		spk::Color(1.0f, 1.0f, 1.0f, 1.0f));
 
 	const spk::Font::Size outlineSize(28, 3);
-	spk::Font::Atlas& outlineAtlas = font.atlas(outlineSize);
+	std::shared_ptr<spk::Font::Atlas> outlineAtlas = font->atlas(outlineSize);
 	builder.emplace<spk::DrawFontRenderCommand>(
-		outlineAtlas,
-		std::make_shared<spk::TextureMesh2D>(makeFontMesh(outlineAtlas, "A", spk::Vector2Int{40, 34})),
+		*outlineAtlas,
+		makeFontMesh(*outlineAtlas, "A", spk::Vector2Int{40, 34}),
 		outlineSize,
 		spk::Color(1.0f, 1.0f, 1.0f, 1.0f));
 
@@ -267,17 +267,17 @@ TEST(DrawFontRenderCommandTest, EmptyTextDoesNotDraw)
 	sparkle_test::OpenGLTestContext context(spk::Rect2D(0, 0, width, height));
 	spk::RenderContext& renderContext = context.renderContext();
 
-	spk::Font font = sparkle_test::testFont();
+	auto font = std::make_shared<spk::Font>(sparkle_test::testFont());
 	Viewport viewport(spk::Rect2D(0, 0, width, height));
 	spk::RenderUnitBuilder builder;
 	builder.emplace<spk::ViewportCommand>(viewport);
 	builder.emplace<ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
 
 	const spk::Font::Size size(16, 0);
-	spk::Font::Atlas& atlas = font.atlas(size);
+	std::shared_ptr<spk::Font::Atlas> atlas = font->atlas(size);
 	builder.emplace<spk::DrawFontRenderCommand>(
-		atlas,
-		std::make_shared<spk::TextureMesh2D>(makeFontMesh(atlas, "", spk::Vector2Int{0, 16})),
+		*atlas,
+		makeFontMesh(*atlas, "", spk::Vector2Int{0, 16}),
 		size);
 
 	spk::RenderUnit unit = builder.build();

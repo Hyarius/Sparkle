@@ -17,8 +17,8 @@ namespace spk
 	class TextRenderCommand : public spk::RenderCommand
 	{
 	private:
-		spk::Font& _font;
-		spk::Font::Atlas& _atlas;
+		std::shared_ptr<spk::Font> _font;
+		std::shared_ptr<spk::Font::Atlas> _atlas;
 		spk::Font::Text _text;
 		spk::Font::Size _size;
 		spk::Color _glyphColor;
@@ -35,7 +35,7 @@ namespace spk
 
 	public:
 		TextRenderCommand(
-			spk::Font& p_font,
+			std::shared_ptr<spk::Font> p_font,
 			spk::Font::Text p_text,
 			spk::Font::Size p_size,
 			spk::Color p_glyphColor,
@@ -45,7 +45,7 @@ namespace spk
 			spk::HorizontalAlignment p_horizontalAlignment = spk::HorizontalAlignment::Left,
 			spk::VerticalAlignment p_verticalAlignment = spk::VerticalAlignment::Top);
 		TextRenderCommand(
-			spk::Font& p_font,
+			std::shared_ptr<spk::Font> p_font,
 			std::string_view p_text,
 			spk::Font::Size p_size,
 			spk::Color p_glyphColor,

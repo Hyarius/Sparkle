@@ -40,6 +40,8 @@ TEST(OpenGLSamplerObjectTest, BindAssociatesTexture)
 
 	SamplerObject sampler("uTex", SamplerObject::Type::Texture2D, 0, *program);
 	EXPECT_NO_THROW(sampler.bind(*tex));
+	ASSERT_NE(sampler.texture(), nullptr);
+	EXPECT_EQ(sampler.texture()->id(), tex->id());
 }
 
 TEST(OpenGLSamplerObjectTest, ActivateAndDeactivateDoNotThrow)

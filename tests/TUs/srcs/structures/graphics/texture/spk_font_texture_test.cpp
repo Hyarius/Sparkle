@@ -2,6 +2,7 @@
 
 
 #include <filesystem>
+#include <memory>
 #include <vector>
 
 #include "utils/image_comparison_test_utils.hpp"
@@ -41,17 +42,17 @@ namespace
 TEST(FontTextureTest, AtlasMatchesExpectedImage)
 {
 	spk::Font font = loadPlaygroundFont();
-	spk::Font::Atlas& atlas = font.atlas(spk::Font::Size(32, 5));
-	atlas.loadGlyphs(glyphSet());
+	std::shared_ptr<spk::Font::Atlas> atlas = font.atlas(spk::Font::Size(32, 5));
+	atlas->loadGlyphs(glyphSet());
 
 	const std::filesystem::path actualPath = fontTextureResultPath("font_atlas_actual");
 	const std::filesystem::path expectedPath = fontTextureExpectedPath("font_atlas_expected");
 	const std::filesystem::path diffPath = fontTextureResultPath("font_atlas_diff");
 
-	ASSERT_NO_THROW(atlas.saveAsPng(actualPath));
-	ASSERT_GT(atlas.size().x, 0u);
-	ASSERT_GT(atlas.size().y, 0u);
-	ASSERT_FALSE(atlas.pixels().empty());
+	ASSERT_NO_THROW(atlas->saveAsPng(actualPath));
+	ASSERT_GT(atlas->size().x, 0u);
+	ASSERT_GT(atlas->size().y, 0u);
+	ASSERT_FALSE(atlas->pixels().empty());
 
 	if (std::filesystem::exists(expectedPath) == false)
 	{

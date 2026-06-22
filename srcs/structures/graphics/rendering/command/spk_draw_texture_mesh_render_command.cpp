@@ -2,7 +2,6 @@
 
 #include <cstdint>
 #include <span>
-#include <utility>
 
 #include "structures/graphics/spk_layout_buffer_object.hpp"
 #include "structures/graphics/spk_program.hpp"
@@ -15,13 +14,13 @@ namespace spk
 {
 	DrawTextureMeshRenderCommand::DrawTextureMeshRenderCommand(
 		const spk::Texture& p_texture,
-		std::shared_ptr<const spk::TextureMesh2D> p_mesh) :
+		const spk::TextureMesh2D& p_mesh) :
 		_texture(p_texture),
-		_mesh(std::move(p_mesh)),
+		_mesh(p_mesh),
 		_viewportBuffer(spk::Viewport::viewportUniformBuffer()),
 		_textureSampler("uTexture", spk::SamplerObject::Type::Texture2D, 0, _sharedProgram())
 	{
-		
+		_textureSampler.bind(_texture);
 	}
 
 	spk::Program& DrawTextureMeshRenderCommand::_sharedProgram()
@@ -34,7 +33,7 @@ namespace spk
 
 	void DrawTextureMeshRenderCommand::execute(spk::RenderContext& p_renderContext)
 	{
-		if (_mesh == nullptr)
+		if (_mesh.layoutBuffer().indexCount() == 0)
 		{
 			return;
 		}
@@ -42,13 +41,12 @@ namespace spk
 		spk::OpenGL::Program& program = _sharedProgram().gpu(p_renderContext);
 
 		program.activate();
-		_mesh->layoutBuffer().activate(p_renderContext);
+		_mesh.layoutBuffer().activate(p_renderContext);
 
 		_viewportBuffer.activate(p_renderContext);
 
-		_textureSampler.bind(_texture);
 		_textureSampler.activate(p_renderContext);
 
-		program.render(spk::Primitive::Triangles, 0, _mesh->layoutBuffer().indexCount());
+		program.render(spk::Primitive::Triangles, 0, _mesh.layoutBuffer().indexCount());
 	}
 }

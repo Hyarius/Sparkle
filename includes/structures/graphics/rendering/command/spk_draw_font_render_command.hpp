@@ -1,7 +1,5 @@
 #pragma once
 
-#include <memory>
-
 #include "structures/graphics/geometry/spk_color.hpp"
 #include "structures/graphics/geometry/spk_texture_mesh_2d.hpp"
 #include "structures/graphics/texture/spk_font.hpp"
@@ -18,8 +16,8 @@ namespace spk
 	class DrawFontRenderCommand : public spk::RenderCommand
 	{
 	private:
-		spk::Font::Atlas& _atlas;
-		std::shared_ptr<const spk::TextureMesh2D> _mesh;
+		spk::Font::Atlas _atlas;
+		spk::TextureMesh2D _mesh;
 		const spk::UniformBufferObject& _viewportBuffer;
 		spk::SamplerObject _atlasSampler;
 		spk::Vector4Uniform _colorUniform;
@@ -30,8 +28,8 @@ namespace spk
 
 	public:
 		DrawFontRenderCommand(
-			spk::Font::Atlas& p_atlas,
-			std::shared_ptr<const spk::TextureMesh2D> p_mesh,
+			const spk::Font::Atlas& p_atlas,
+			const spk::TextureMesh2D& p_mesh,
 			spk::Font::Size p_size,
 			spk::Color p_color = spk::Color(1.0f, 1.0f, 1.0f, 1.0f),
 			spk::Color p_outlineColor = spk::Color(0.0f, 0.0f, 0.0f, 0.0f));

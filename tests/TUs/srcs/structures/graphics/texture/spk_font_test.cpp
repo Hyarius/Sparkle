@@ -1,6 +1,8 @@
 #include <gtest/gtest.h>
 
 
+#include <memory>
+
 #include "structures/graphics/opengl/opengl_wrapper_test_utils.hpp"
 #include "structures/graphics/rendering/command/render_command_test_utils.hpp"
 #include "structures/graphics/texture/spk_font.hpp"
@@ -172,19 +174,40 @@ TEST(FontTest, FromRawDataLoadsGlyphsAndNotifiesAtlasSubscribers)
 		spk::Font::Filtering::Linear,
 		spk::Font::Wrap::Repeat,
 		spk::Font::Mipmap::Disable);
-	spk::Font::Atlas& atlas = font.atlas(spk::Font::Size(18, 1));
+	std::shared_ptr<spk::Font::Atlas> atlas = font.atlas(spk::Font::Size(18, 1));
 
 	int notificationCount = 0;
-	auto contract = atlas.subscribe([&]() { ++notificationCount; });
+	auto contract = atlas->subscribe([&]() { ++notificationCount; });
 
-	atlas.loadGlyphs("AB");
-	const spk::Font::Glyph& glyph = atlas[U'A'];
-	atlas.synchronize();
+	atlas->loadGlyphs("AB");
+	const spk::Font::Glyph& glyph = (*atlas)[U'A'];
+	atlas->synchronize();
 
 	EXPECT_GE(notificationCount, 2);
 	EXPECT_GT(glyph.size.x, 0u);
-	EXPECT_FALSE(atlas.pixels().empty());
-	EXPECT_FALSE(atlas.needsSynchronization());
+	EXPECT_FALSE(atlas->pixels().empty());
+	EXPECT_FALSE(atlas->needsSynchronization());
+}
+
+TEST(FontTest, AtlasCopySharesGlyphStateAndEditionNotifications)
+{
+	sparkle_test::OpenGLTestContext context;
+	(void)context;
+
+	spk::Font font = testFont();
+	std::shared_ptr<spk::Font::Atlas> atlas = font.atlas(spk::Font::Size(18, 1));
+	atlas->loadGlyphs("A");
+
+	spk::Font::Atlas atlasCopy = *atlas;
+	int notificationCount = 0;
+	auto contract = atlasCopy.subscribe([&]() { ++notificationCount; });
+
+	atlas->loadGlyphs("B");
+
+	EXPECT_EQ(atlasCopy.id(), atlas->id());
+	EXPECT_EQ(notificationCount, 1);
+	EXPECT_GT(atlasCopy.glyph(U'B').size.x, 0u);
+	EXPECT_EQ(atlasCopy.pixels(), atlas->pixels());
 }
 
 TEST(FontTest, SetPropertiesPropagatesToExistingAtlas)
@@ -193,17 +216,17 @@ TEST(FontTest, SetPropertiesPropagatesToExistingAtlas)
 	(void)context;
 
 	spk::Font font = testFont();
-	spk::Font::Atlas& atlas = font.atlas(spk::Font::Size(16, 0));
-	atlas.glyph(U'A');
+	std::shared_ptr<spk::Font::Atlas> atlas = font.atlas(spk::Font::Size(16, 0));
+	atlas->glyph(U'A');
 
 	font.setProperties(
 		spk::Font::Filtering::Linear,
 		spk::Font::Wrap::ClampToBorder,
 		spk::Font::Mipmap::Disable);
 
-	EXPECT_EQ(atlas.filtering(), spk::Texture::Filtering::Linear);
-	EXPECT_EQ(atlas.wrap(), spk::Texture::Wrap::ClampToBorder);
-	EXPECT_EQ(atlas.mipmap(), spk::Texture::Mipmap::Disable);
+	EXPECT_EQ(atlas->filtering(), spk::Texture::Filtering::Linear);
+	EXPECT_EQ(atlas->wrap(), spk::Texture::Wrap::ClampToBorder);
+	EXPECT_EQ(atlas->mipmap(), spk::Texture::Mipmap::Disable);
 }
 
 TEST(FontTest, ComputeOptimalTextSizeHandlesEmptyAndNonEmptyStrings)
@@ -229,9 +252,9 @@ TEST(FontTest, AtlasLoadsAllRenderableGlyphs)
 	(void)context;
 
 	spk::Font font = testFont();
-	spk::Font::Atlas& atlas = font.atlas(spk::Font::Size(12, 0));
+	std::shared_ptr<spk::Font::Atlas> atlas = font.atlas(spk::Font::Size(12, 0));
 
-	EXPECT_NO_THROW(atlas.loadAllRenderableGlyphs());
-	EXPECT_GT(atlas.computeCharSize(U'A').x, 0u);
+	EXPECT_NO_THROW(atlas->loadAllRenderableGlyphs());
+	EXPECT_GT(atlas->computeCharSize(U'A').x, 0u);
 }
 

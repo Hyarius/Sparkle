@@ -2,6 +2,7 @@
 
 #include <array>
 #include <memory>
+#include <stdexcept>
 #include <utility>
 
 namespace
@@ -15,7 +16,7 @@ namespace
 		};
 	}
 
-	[[nodiscard]] std::shared_ptr<spk::TextureMesh2D> buildTextMesh(
+	[[nodiscard]] spk::TextureMesh2D buildTextMesh(
 		spk::Font::Atlas& p_atlas,
 		const spk::Font::Text& p_text,
 		const spk::Vector2Int& p_baselinePosition,
@@ -23,7 +24,7 @@ namespace
 	{
 		p_atlas.loadGlyphs(p_text);
 
-		auto mesh = std::make_shared<spk::TextureMesh2D>();
+		spk::TextureMesh2D mesh;
 		int cursorX = p_baselinePosition.x;
 
 		for (spk::Font::Codepoint character : p_text)
@@ -47,7 +48,7 @@ namespace
 					};
 				}
 
-				mesh->addShape(vertices[0], vertices[1], vertices[3], vertices[2]);
+				mesh.addShape(vertices[0], vertices[1], vertices[3], vertices[2]);
 			}
 
 			cursorX += glyph.step.x;
@@ -60,7 +61,7 @@ namespace
 namespace spk
 {
 	TextRenderCommand::TextRenderCommand(
-		spk::Font& p_font,
+		std::shared_ptr<spk::Font> p_font,
 		spk::Font::Text p_text,
 		spk::Font::Size p_size,
 		spk::Color p_glyphColor,
@@ -69,8 +70,7 @@ namespace spk
 		spk::Vector2Int p_anchor,
 		spk::HorizontalAlignment p_horizontalAlignment,
 		spk::VerticalAlignment p_verticalAlignment) :
-		_font(p_font),
-		_atlas(p_font.atlas(p_size)),
+		_font(std::move(p_font)),
 		_text(std::move(p_text)),
 		_size(p_size),
 		_glyphColor(p_glyphColor),
@@ -80,14 +80,25 @@ namespace spk
 		_horizontalAlignment(p_horizontalAlignment),
 		_verticalAlignment(p_verticalAlignment)
 	{
+		if (_font == nullptr)
+		{
+			throw std::invalid_argument("TextRenderCommand font cannot be null");
+		}
+
+		_atlas = _font->atlas(_size);
+		if (_atlas == nullptr)
+		{
+			throw std::runtime_error("TextRenderCommand font returned a null atlas");
+		}
+
 		_rebuildFontCommand();
-		_onAtlasEditionContract = _atlas.subscribe([this]() { _fontCommandOutdated = true; });
+		_onAtlasEditionContract = _atlas->subscribe([this]() { _fontCommandOutdated = true; });
 	}
 
 	void TextRenderCommand::_rebuildFontCommand()
 	{
-		const spk::Vector2UInt stringSize = _font.computeStringSize(_text, _size);
-		const spk::Vector2Int baselineOffset = _font.computeStringBaselineOffset(_text, _size);
+		const spk::Vector2UInt stringSize = _font->computeStringSize(_text, _size);
+		const spk::Vector2Int baselineOffset = _font->computeStringBaselineOffset(_text, _size);
 
 		int baselineX = _anchor.x;
 		switch (_horizontalAlignment)
@@ -118,8 +129,8 @@ namespace spk
 		}
 
 		_fontCommand = std::make_unique<spk::DrawFontRenderCommand>(
-			_atlas,
-			buildTextMesh(_atlas, _text, spk::Vector2Int{baselineX, baselineY}, _depth),
+			*_atlas,
+			buildTextMesh(*_atlas, _text, spk::Vector2Int{baselineX, baselineY}, _depth),
 			_size,
 			_glyphColor,
 			_outlineColor);
@@ -128,7 +139,7 @@ namespace spk
 	}
 
 	TextRenderCommand::TextRenderCommand(
-		spk::Font& p_font,
+		std::shared_ptr<spk::Font> p_font,
 		std::string_view p_text,
 		spk::Font::Size p_size,
 		spk::Color p_glyphColor,
@@ -138,7 +149,7 @@ namespace spk
 		spk::HorizontalAlignment p_horizontalAlignment,
 		spk::VerticalAlignment p_verticalAlignment) :
 		TextRenderCommand(
-			p_font,
+			std::move(p_font),
 			spk::Font::textFromUTF8(p_text),
 			p_size,
 			p_glyphColor,

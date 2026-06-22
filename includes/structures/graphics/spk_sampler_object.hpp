@@ -1,14 +1,15 @@
 #pragma once
 
+#include <optional>
 #include <string>
 
 #include "structures/graphics/opengl/spk_opengl_sampler_object.hpp"
+#include "structures/graphics/spk_texture.hpp"
 
 namespace spk
 {
 	class RenderContext;
 	class Program;
-	class Texture;
 
 	class SamplerObject
 	{
@@ -24,7 +25,7 @@ namespace spk
 		using BindingPoint = int;
 
 	private:
-		const spk::Texture* _texture = nullptr;
+		std::optional<spk::Texture> _texture;
 		std::string _designator;
 		BindingPoint _bindingPoint;
 		Type _type;
@@ -35,6 +36,7 @@ namespace spk
 		SamplerObject(const std::string& p_name, Type p_type, BindingPoint p_bindingPoint, const spk::Program& p_program);
 
 		void bind(const spk::Texture& p_texture);
+		void unbind();
 
 		[[nodiscard]] const spk::Texture* texture() const noexcept;
 		[[nodiscard]] const std::string& designator() const noexcept;

@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
+#include <memory>
 #include <vector>
 
 #include <GL/glew.h>
@@ -27,7 +28,7 @@ TEST(TextRenderCommandTest, DrawsGlyphsWithLeftTopAlignment)
 	sparkle_test::OpenGLTestContext context(spk::Rect2D(0, 0, width, height));
 	spk::RenderContext& renderContext = context.renderContext();
 
-	spk::Font font = sparkle_test::testFont();
+	auto font = std::make_shared<spk::Font>(sparkle_test::testFont());
 	Viewport viewport(spk::Rect2D(0, 0, width, height));
 	spk::RenderUnitBuilder builder;
 	builder.emplace<spk::ViewportCommand>(viewport);
@@ -56,7 +57,7 @@ TEST(TextRenderCommandTest, DrawsGlyphsWithCenteredAlignment)
 	sparkle_test::OpenGLTestContext context(spk::Rect2D(0, 0, width, height));
 	spk::RenderContext& renderContext = context.renderContext();
 
-	spk::Font font = sparkle_test::testFont();
+	auto font = std::make_shared<spk::Font>(sparkle_test::testFont());
 	Viewport viewport(spk::Rect2D(0, 0, width, height));
 	spk::RenderUnitBuilder builder;
 	builder.emplace<spk::ViewportCommand>(viewport);
@@ -85,7 +86,7 @@ TEST(TextRenderCommandTest, DrawsGlyphsWithRightDownAlignment)
 	sparkle_test::OpenGLTestContext context(spk::Rect2D(0, 0, width, height));
 	spk::RenderContext& renderContext = context.renderContext();
 
-	spk::Font font = sparkle_test::testFont();
+	auto font = std::make_shared<spk::Font>(sparkle_test::testFont());
 	Viewport viewport(spk::Rect2D(0, 0, width, height));
 	spk::RenderUnitBuilder builder;
 	builder.emplace<spk::ViewportCommand>(viewport);
@@ -112,7 +113,7 @@ TEST(TextRenderCommandTest, EmptyTextDoesNotDraw)
 	sparkle_test::OpenGLTestContext context(spk::Rect2D(0, 0, 32, 32));
 	spk::RenderContext& renderContext = context.renderContext();
 
-	spk::Font font = sparkle_test::testFont();
+	auto font = std::make_shared<spk::Font>(sparkle_test::testFont());
 	Viewport viewport(spk::Rect2D(0, 0, 32, 32));
 	spk::RenderUnitBuilder builder;
 	builder.emplace<spk::ViewportCommand>(viewport);
@@ -139,7 +140,7 @@ TEST(TextRenderCommandTest, CanExecuteTwiceWithConstructedCommand)
 	sparkle_test::OpenGLTestContext context(spk::Rect2D(0, 0, 80, 48));
 	spk::RenderContext& renderContext = context.renderContext();
 
-	spk::Font font = sparkle_test::testFont();
+	auto font = std::make_shared<spk::Font>(sparkle_test::testFont());
 	Viewport viewport(spk::Rect2D(0, 0, 80, 48));
 	spk::RenderUnitBuilder builder;
 	builder.emplace<spk::ViewportCommand>(viewport);
@@ -174,7 +175,7 @@ TEST(TextRenderCommandTest, RebuildsDrawCommandAfterAtlasGrowth)
 	sparkle_test::OffscreenRenderTarget target(width, height);
 	ASSERT_TRUE(target.isComplete());
 
-	spk::Font font = sparkle_test::testFont();
+	auto font = std::make_shared<spk::Font>(sparkle_test::testFont());
 	const spk::Font::Size size(16, 0);
 	const spk::Color glyphColor(1.0f, 1.0f, 1.0f, 1.0f);
 	const spk::Color outlineColor(0.0f, 0.0f, 0.0f, 0.0f);
@@ -196,10 +197,10 @@ TEST(TextRenderCommandTest, RebuildsDrawCommandAfterAtlasGrowth)
 	cachedUnit.execute(renderContext);
 	context.gpuRuntime().waitUntilWorkDone();
 
-	spk::Font::Atlas& atlas = font.atlas(size);
-	const spk::Vector2UInt atlasSizeBefore = atlas.size();
-	atlas.loadGlyphs(sparkle_test::manyGlyphsText());
-	ASSERT_TRUE(atlas.size() != atlasSizeBefore) << "the glyph load did not grow the atlas; the test premise is broken";
+	std::shared_ptr<spk::Font::Atlas> atlas = font->atlas(size);
+	const spk::Vector2UInt atlasSizeBefore = atlas->size();
+	atlas->loadGlyphs(sparkle_test::manyGlyphsText());
+	ASSERT_TRUE(atlas->size() != atlasSizeBefore) << "the glyph load did not grow the atlas; the test premise is broken";
 
 	cachedUnit.execute(renderContext);
 	context.gpuRuntime().waitUntilWorkDone();

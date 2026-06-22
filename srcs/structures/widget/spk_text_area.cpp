@@ -227,7 +227,7 @@ namespace spk
 				}
 
 				builder.emplace<spk::TextRenderCommand>(
-					*_font,
+					_font,
 					line,
 					_textSize,
 					_glyphColor,

@@ -1,5 +1,7 @@
 #include "structures/graphics/texture/spk_font.hpp"
 
+#include <memory>
+
 namespace spk
 {
 	Font::Text Font::textFromUTF8(std::string_view p_text)
@@ -92,9 +94,19 @@ namespace spk
 		}
 	}
 
+	Font::Atlas::Resource::Resource(
+		const stbtt_fontinfo& p_fontInfo,
+		size_t p_textSize,
+		size_t p_outlineSize) :
+		fontInfo(p_fontInfo),
+		textSize(p_textSize),
+		outlineSize(p_outlineSize)
+	{
+	}
+
 	void Font::Atlas::_rescaleGlyphs(const spk::Vector2& p_scaleRatio)
 	{
-		for (auto& [key, glyph] : _glyphs)
+		for (auto& [key, glyph] : _resource->glyphs)
 		{
 			glyph.rescale(p_scaleRatio);
 		}
@@ -104,18 +116,18 @@ namespace spk
 	{
 		std::vector<uint8_t> newPixels(p_size.x * p_size.y, 0x00);
 
-		for (size_t x = 0; x < _atlasSize.x; ++x)
+		for (size_t x = 0; x < _resource->atlasSize.x; ++x)
 		{
-			for (size_t y = 0; y < _atlasSize.y; ++y)
+			for (size_t y = 0; y < _resource->atlasSize.y; ++y)
 			{
-				newPixels[x + y * p_size.x] = _atlasPixels[x + y * _atlasSize.x];
+				newPixels[x + y * p_size.x] = _resource->atlasPixels[x + y * _resource->atlasSize.x];
 			}
 		}
 
-		_rescaleGlyphs(static_cast<spk::Vector2>(_atlasSize) / static_cast<spk::Vector2>(p_size));
-		_atlasSize = p_size;
-		_quadrantSize = _atlasSize / 2;
-		_atlasPixels.swap(newPixels);
+		_rescaleGlyphs(static_cast<spk::Vector2>(_resource->atlasSize) / static_cast<spk::Vector2>(p_size));
+		_resource->atlasSize = p_size;
+		_resource->quadrantSize = _resource->atlasSize / 2;
+		_resource->atlasPixels.swap(newPixels);
 	}
 
 	void Font::Atlas::_applyGlyphPixel(
@@ -123,19 +135,19 @@ namespace spk
 		const spk::Vector2Int& p_glyphPosition,
 		const spk::Vector2UInt& p_glyphSize)
 	{
-		while ((p_glyphPosition.x + static_cast<int>(p_glyphSize.x) >= static_cast<int>(_atlasSize.x)) ||
-			   (p_glyphPosition.y + static_cast<int>(p_glyphSize.y) >= static_cast<int>(_atlasSize.y)))
+		while ((p_glyphPosition.x + static_cast<int>(p_glyphSize.x) >= static_cast<int>(_resource->atlasSize.x)) ||
+			   (p_glyphPosition.y + static_cast<int>(p_glyphSize.y) >= static_cast<int>(_resource->atlasSize.y)))
 		{
-			_resizeData(_atlasSize * 2);
+			_resizeData(_resource->atlasSize * 2);
 		}
 
 		for (size_t x = 0; x < p_glyphSize.x; ++x)
 		{
 			for (size_t y = 0; y < p_glyphSize.y; ++y)
 			{
-				_atlasPixels[
+				_resource->atlasPixels[
 					(static_cast<size_t>(p_glyphPosition.x) + x) +
-					(static_cast<size_t>(p_glyphPosition.y) + y) * _atlasSize.x] =
+					(static_cast<size_t>(p_glyphPosition.y) + y) * _resource->atlasSize.x] =
 					p_pixelsToApply[x + y * p_glyphSize.x];
 			}
 		}
@@ -143,7 +155,7 @@ namespace spk
 
 	void Font::Atlas::_uploadTexture()
 	{
-		setPixels(_atlasPixels.data(), _atlasSize, Texture::Format::GreyLevel);
+		setPixels(_resource->atlasPixels.data(), _resource->atlasSize, Texture::Format::GreyLevel);
 	}
 
 	Font::Atlas::Atlas(
@@ -154,9 +166,7 @@ namespace spk
 		Filtering p_filtering,
 		Wrap p_wrap,
 		Mipmap p_mipmap) :
-		_fontInfo(p_fontInfo),
-		_textSize(p_textSize),
-		_outlineSize(p_outlineSize)
+		_resource(std::make_shared<Resource>(p_fontInfo, p_textSize, p_outlineSize))
 	{
 		(void)p_fontData;
 
@@ -164,20 +174,20 @@ namespace spk
 
 		Glyph spaceGlyph;
 		spaceGlyph.step = spk::Vector2Int(static_cast<int>(p_textSize / 2), 0);
-		_glyphs[U' '] = spaceGlyph;
+		_resource->glyphs[U' '] = spaceGlyph;
 
 		_resizeData(spk::Vector2UInt(124, 124));
 
-		_currentQuadrant = Quadrant::TopLeft;
-		_quadrantAnchor = spk::Vector2Int(0, 0);
-		_quadrantSize = _atlasSize;
-		_nextGlyphAnchor = _quadrantAnchor;
-		_nextLineAnchor = _quadrantAnchor;
+		_resource->currentQuadrant = Resource::Quadrant::TopLeft;
+		_resource->quadrantAnchor = spk::Vector2Int(0, 0);
+		_resource->quadrantSize = _resource->atlasSize;
+		_resource->nextGlyphAnchor = _resource->quadrantAnchor;
+		_resource->nextLineAnchor = _resource->quadrantAnchor;
 	}
 
 	Font::Atlas::Contract Font::Atlas::subscribe(const Job& p_job)
 	{
-		return _onEditionContractProvider.subscribe(p_job);
+		return _resource->onEditionContractProvider.subscribe(p_job);
 	}
 
 	void Font::Atlas::loadGlyphs(const Text& p_glyphsToLoad)
@@ -200,13 +210,13 @@ namespace spk
 
 	const Font::Glyph& Font::Atlas::glyph(Codepoint p_codepoint)
 	{
-		if (_glyphs.contains(p_codepoint) == false)
+		if (_resource->glyphs.contains(p_codepoint) == false)
 		{
 			_loadGlyph(p_codepoint);
 			_uploadTexture();
-			_onEditionContractProvider.trigger();
+			_resource->onEditionContractProvider.trigger();
 		}
-		return _glyphs.at(p_codepoint);
+		return _resource->glyphs.at(p_codepoint);
 	}
 
 	spk::Vector2UInt Font::Atlas::computeCharSize(Codepoint p_codepoint)
@@ -293,18 +303,21 @@ namespace spk
 
 		for (auto& [size, atlasEntry] : _atlases)
 		{
-			atlasEntry.setProperties(_filtering, _wrap, _mipmap);
+			if (atlasEntry != nullptr)
+			{
+				atlasEntry->setProperties(_filtering, _wrap, _mipmap);
+			}
 		}
 	}
 
 	spk::Vector2UInt Font::computeCharSize(Codepoint p_codepoint, const Size& p_size)
 	{
-		return atlas(p_size).computeCharSize(p_codepoint);
+		return atlas(p_size)->computeCharSize(p_codepoint);
 	}
 
 	spk::Vector2UInt Font::computeStringSize(const Text& p_string, const Size& p_size)
 	{
-		return atlas(p_size).computeStringSize(p_string);
+		return atlas(p_size)->computeStringSize(p_string);
 	}
 
 	spk::Vector2UInt Font::computeStringSize(std::string_view p_utf8String, const Size& p_size)
@@ -314,7 +327,7 @@ namespace spk
 
 	spk::Vector2Int Font::computeStringBaselineOffset(const Text& p_string, const Size& p_size)
 	{
-		return atlas(p_size).computeStringBaselineOffset(p_string);
+		return atlas(p_size)->computeStringBaselineOffset(p_string);
 	}
 
 	spk::Vector2Int Font::computeStringBaselineOffset(std::string_view p_utf8String, const Size& p_size)
@@ -375,12 +388,21 @@ namespace spk
 		return computeOptimalTextSize(textFromUTF8(p_utf8String), p_outlineSizeRatio, p_textArea);
 	}
 
-	Font::Atlas& Font::atlas(const Size& p_size)
+	std::shared_ptr<Font::Atlas> Font::atlas(const Size& p_size)
 	{
-		if (_atlases.find(p_size) == _atlases.end())
+		auto it = _atlases.find(p_size);
+		if (it == _atlases.end() || it->second == nullptr)
 		{
-			_atlases.try_emplace(p_size, _fontInfo, _fontData, p_size.glyph, p_size.outline, _filtering, _wrap, _mipmap);
+			auto atlasEntry = std::make_shared<Atlas>(
+				_fontInfo,
+				_fontData,
+				p_size.glyph,
+				p_size.outline,
+				_filtering,
+				_wrap,
+				_mipmap);
+			it = _atlases.insert_or_assign(p_size, std::move(atlasEntry)).first;
 		}
-		return _atlases.at(p_size);
+		return it->second;
 	}
 }

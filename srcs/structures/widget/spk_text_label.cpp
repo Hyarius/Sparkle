@@ -128,7 +128,7 @@ namespace spk
 		if (_font != nullptr && _text.empty() == false && geometry().empty() == false)
 		{
 			builder.emplace<spk::TextRenderCommand>(
-				*_font,
+				_font,
 				_text,
 				_textSize,
 				_glyphColor,

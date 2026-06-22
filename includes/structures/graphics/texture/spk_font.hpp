@@ -3,6 +3,7 @@
 #include <array>
 #include <filesystem>
 #include <map>
+#include <memory>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -83,31 +84,43 @@ namespace spk
 			using Job = spk::ContractProvider<>::Callback;
 
 		private:
-			spk::ContractProvider<> _onEditionContractProvider;
-			const stbtt_fontinfo& _fontInfo;
-
-			std::unordered_map<Codepoint, Glyph> _glyphs;
-			Glyph _unknownGlyph;
-
-			std::vector<uint8_t> _atlasPixels;
-
-			enum class Quadrant
+			struct Resource
 			{
-				TopLeft,
-				TopRight,
-				DownLeft,
-				DownRight
+				spk::ContractProvider<> onEditionContractProvider;
+				const stbtt_fontinfo& fontInfo;
+
+				std::unordered_map<Codepoint, Glyph> glyphs;
+				Glyph unknownGlyph;
+
+				std::vector<uint8_t> atlasPixels;
+
+				enum class Quadrant
+				{
+					TopLeft,
+					TopRight,
+					DownLeft,
+					DownRight
+				};
+
+				Quadrant currentQuadrant = Quadrant::TopLeft;
+				spk::Vector2Int quadrantAnchor{0, 0};
+				spk::Vector2UInt quadrantSize{0, 0};
+				spk::Vector2Int nextGlyphAnchor{0, 0};
+				spk::Vector2Int nextLineAnchor{0, 0};
+				spk::Vector2UInt atlasSize{0, 0};
+
+				size_t textSize;
+				size_t outlineSize;
+
+				Resource(const stbtt_fontinfo& p_fontInfo, size_t p_textSize, size_t p_outlineSize);
+
+				Resource(const Resource&) = delete;
+				Resource& operator=(const Resource&) = delete;
+				Resource(Resource&&) noexcept = delete;
+				Resource& operator=(Resource&&) noexcept = delete;
 			};
 
-			Quadrant _currentQuadrant = Quadrant::TopLeft;
-			spk::Vector2Int _quadrantAnchor{0, 0};
-			spk::Vector2UInt _quadrantSize{0, 0};
-			spk::Vector2Int _nextGlyphAnchor{0, 0};
-			spk::Vector2Int _nextLineAnchor{0, 0};
-			spk::Vector2UInt _atlasSize{0, 0};
-
-			size_t _textSize;
-			size_t _outlineSize;
+			std::shared_ptr<Resource> _resource;
 
 			void _rescaleGlyphs(const spk::Vector2& p_scaleRatio);
 			void _resizeData(const spk::Vector2UInt& p_size);
@@ -149,7 +162,7 @@ namespace spk
 		void _loadFromFile(const std::filesystem::path& p_path);
 		void _loadFromData(const std::vector<uint8_t>& p_data);
 
-		std::map<Size, Atlas> _atlases;
+		std::map<Size, std::shared_ptr<Atlas>> _atlases;
 		Data _fontData;
 		stbtt_fontinfo _fontInfo;
 
@@ -186,6 +199,6 @@ namespace spk
 			float p_outlineSizeRatio,
 			const spk::Vector2UInt& p_textArea);
 
-		Atlas& atlas(const Size& p_size);
+		std::shared_ptr<Atlas> atlas(const Size& p_size);
 	};
 }

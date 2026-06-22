@@ -1,7 +1,5 @@
 #include "structures/graphics/rendering/command/spk_image_render_command.hpp"
 
-#include <memory>
-
 namespace
 {
 	[[nodiscard]] spk::Vector3 toPosition(const spk::Vector2Int& p_pixel, float p_depth)
@@ -27,8 +25,8 @@ namespace spk
 		const spk::Vector2 bottomRightUV = p_section.anchor + p_section.size;
 		const spk::Vector2 topRightUV    = {p_section.anchor.x + p_section.size.x, p_section.anchor.y};
 
-		auto mesh = std::make_shared<spk::TextureMesh2D>();
-		mesh->addShape(
+		spk::TextureMesh2D mesh;
+		mesh.addShape(
 			{toPosition(p_screenRect.anchor,                                p_depth), topLeftUV},
 			{toPosition({p_screenRect.left(),  p_screenRect.bottom()},      p_depth), bottomLeftUV},
 			{toPosition({p_screenRect.right(), p_screenRect.bottom()},      p_depth), bottomRightUV},

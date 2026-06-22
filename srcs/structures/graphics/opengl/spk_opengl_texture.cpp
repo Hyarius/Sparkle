@@ -102,15 +102,17 @@ namespace spk
 
 		Texture::Texture(const spk::Texture& p_source)
 		{
-			const spk::Vector2UInt& sz = p_source.size();
-			if (sz.x == 0 || sz.y == 0 || p_source.format() == spk::Texture::Format::Error)
+			std::shared_ptr<const spk::Texture::Resource> sourceResource = p_source._resourceSnapshot();
+
+			const spk::Vector2UInt& sz = sourceResource->size;
+			if (sz.x == 0 || sz.y == 0 || sourceResource->format == spk::Texture::Format::Error)
 			{
 				return;
 			}
 
 			GLint internalFormat = GL_NONE;
 			GLenum externalFormat = GL_NONE;
-			_convertFormat(p_source.format(), internalFormat, externalFormat);
+			_convertFormat(sourceResource->format, internalFormat, externalFormat);
 			if (internalFormat == GL_NONE || externalFormat == GL_NONE)
 			{
 				return;
@@ -127,8 +129,8 @@ namespace spk
 				0,
 				externalFormat,
 				GL_UNSIGNED_BYTE,
-				p_source.pixels().data());
-			_setupParameters(p_source.filtering(), p_source.wrap(), p_source.mipmap());
+				sourceResource->pixels.data());
+			_setupParameters(sourceResource->filtering, sourceResource->wrap, sourceResource->mipmap);
 			glBindTexture(GL_TEXTURE_2D, 0);
 		}
 

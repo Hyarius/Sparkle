@@ -1,7 +1,5 @@
 #include "structures/graphics/spk_sampler_object.hpp"
 
-#include "structures/graphics/spk_texture.hpp"
-
 namespace spk
 {
 	SamplerObject::SamplerObject(
@@ -18,12 +16,17 @@ namespace spk
 
 	void SamplerObject::bind(const spk::Texture& p_texture)
 	{
-		_texture = &p_texture;
+		_texture = p_texture;
+	}
+
+	void SamplerObject::unbind()
+	{
+		_texture.reset();
 	}
 
 	const spk::Texture* SamplerObject::texture() const noexcept
 	{
-		return _texture;
+		return _texture.has_value() ? &(*_texture) : nullptr;
 	}
 
 	const std::string& SamplerObject::designator() const noexcept

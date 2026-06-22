@@ -195,7 +195,7 @@ namespace spk
 				inner.top() + static_cast<int>(inner.height() / 2)};
 
 			builder.emplace<spk::TextRenderCommand>(
-				*_font,
+				_font,
 				visibleText,
 				_textSize,
 				_glyphColor,

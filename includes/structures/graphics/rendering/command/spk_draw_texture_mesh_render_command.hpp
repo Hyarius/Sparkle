@@ -1,7 +1,5 @@
 #pragma once
 
-#include <memory>
-
 #include "structures/graphics/rendering/command/spk_render_command.hpp"
 #include "structures/graphics/spk_texture.hpp"
 #include "structures/graphics/geometry/spk_texture_mesh_2d.hpp"
@@ -15,15 +13,17 @@ namespace spk
 	class DrawTextureMeshRenderCommand : public spk::RenderCommand
 	{
 	private:
-		const spk::Texture& _texture;
-		std::shared_ptr<const spk::TextureMesh2D> _mesh;
+		spk::Texture _texture;
+		spk::TextureMesh2D _mesh;
 		const spk::UniformBufferObject& _viewportBuffer;
 		spk::SamplerObject _textureSampler;
 
 		[[nodiscard]] static spk::Program& _sharedProgram();
 
 	public:
-		DrawTextureMeshRenderCommand(const spk::Texture& p_texture, std::shared_ptr<const spk::TextureMesh2D> p_mesh);
+		DrawTextureMeshRenderCommand(
+			const spk::Texture& p_texture,
+			const spk::TextureMesh2D& p_mesh);
 
 		void execute(spk::RenderContext& p_renderContext) override;
 	};

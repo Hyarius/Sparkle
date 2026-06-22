@@ -2,7 +2,6 @@
 
 #include <cstdint>
 #include <span>
-#include <utility>
 
 #include <GL/glew.h>
 
@@ -37,19 +36,21 @@ namespace spk
 	}
 
 	DrawFontRenderCommand::DrawFontRenderCommand(
-		spk::Font::Atlas& p_atlas,
-		std::shared_ptr<const spk::TextureMesh2D> p_mesh,
+		const spk::Font::Atlas& p_atlas,
+		const spk::TextureMesh2D& p_mesh,
 		spk::Font::Size p_size,
 		spk::Color p_color,
 		spk::Color p_outlineColor) :
 		_atlas(p_atlas),
-		_mesh(std::move(p_mesh)),
+		_mesh(p_mesh),
 		_viewportBuffer(spk::Viewport::viewportUniformBuffer()),
 		_atlasSampler("uTexture", spk::SamplerObject::Type::Texture2D, 0, _sharedProgram()),
 		_colorUniform("uColor", _sharedProgram()),
 		_outlineColorUniform("uOutlineColor", _sharedProgram()),
 		_outlineThicknessUniform("uOutlineThickness", _sharedProgram())
 	{
+		_atlasSampler.bind(_atlas);
+
 		_colorUniform.set(p_color.values());
 		_outlineColorUniform.set(p_outlineColor.values());
 		_outlineThicknessUniform.set(outlineThickness(p_size));
@@ -57,29 +58,24 @@ namespace spk
 
 	void DrawFontRenderCommand::execute(spk::RenderContext& p_renderContext)
 	{
-		if (_mesh == nullptr)
+		if (_mesh.layoutBuffer().indexCount() == 0)
 		{
 			return;
 		}
 
 		spk::OpenGL::Program& program = _sharedProgram().gpu(p_renderContext);
 
-		_atlas.synchronize();
-
 		program.activate();
-		_mesh->layoutBuffer().activate(p_renderContext);
+		_mesh.layoutBuffer().activate(p_renderContext);
 
 		_viewportBuffer.activate(p_renderContext);
 
-		_atlasSampler.bind(_atlas);
 		_atlasSampler.activate(p_renderContext);
 
-		// Uniform values are stored per command, but OpenGL keeps uniform state
-		// on the shared program, so each draw uploads its own payload.
-		_colorUniform.forceActivation();
-		_outlineColorUniform.forceActivation();
-		_outlineThicknessUniform.forceActivation();
+		_colorUniform.activate();
+		_outlineColorUniform.activate();
+		_outlineThicknessUniform.activate();
 
-		program.render(spk::Primitive::Triangles, 0, _mesh->layoutBuffer().indexCount());
+		program.render(spk::Primitive::Triangles, 0, _mesh.layoutBuffer().indexCount());
 	}
 }

@@ -30,7 +30,8 @@ namespace spk::OpenGL
 	{
 		glActiveTexture(GL_TEXTURE0 + p_sampler.bindingPoint());
 
-		if (p_sampler.texture() == nullptr)
+		const spk::Texture* texture = p_sampler.texture();
+		if (texture == nullptr)
 		{
 			glBindTexture(samplerType(p_sampler.type()), 0);
 			return;
@@ -59,7 +60,7 @@ namespace spk::OpenGL
 			loc.validated = true;
 		}
 
-		const spk::OpenGL::Texture& glTex = p_sampler.texture()->gpu(p_context);
+		const spk::OpenGL::Texture& glTex = texture->gpu(p_context);
 		glBindTexture(samplerType(p_sampler.type()), glTex.id());
 	}
 

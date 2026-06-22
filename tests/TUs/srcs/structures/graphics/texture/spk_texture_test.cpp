@@ -115,7 +115,7 @@ TEST(TextureTest, MoveAssignmentTransfersOwnership)
 	EXPECT_EQ(src.id(), spk::Texture::InvalidID);
 }
 
-TEST(TextureTest, CopyConstructionProducesDeepCopy)
+TEST(TextureTest, CopyConstructionSharesResource)
 {
 	spk::Texture src;
 	auto pixels = makePixels(2, 2, 4);
@@ -126,6 +126,63 @@ TEST(TextureTest, CopyConstructionProducesDeepCopy)
 
 	spk::Texture dst(src);
 
+	EXPECT_EQ(dst.id(), src.id());
+	EXPECT_EQ(dst.pixels(), src.pixels());
+	EXPECT_EQ(dst.size(), src.size());
+	EXPECT_EQ(dst.format(), src.format());
+	EXPECT_EQ(dst.filtering(), src.filtering());
+	EXPECT_EQ(dst.wrap(), src.wrap());
+	EXPECT_EQ(dst.mipmap(), src.mipmap());
+
+	auto newPixels = makePixels(1, 1, 4);
+	dst.setPixels(newPixels, {1, 1}, spk::Texture::Format::RGBA);
+
+	EXPECT_EQ(src.size(), (spk::Vector2UInt{1, 1}));
+	EXPECT_EQ(src.pixels(), newPixels);
+}
+
+TEST(TextureTest, CopyAssignmentSharesResource)
+{
+	spk::Texture src;
+	auto pixels = makePixels(3, 3, 3);
+	src.setPixels(pixels, {3, 3}, spk::Texture::Format::RGB);
+
+	spk::Texture dst;
+	dst = src;
+
+	EXPECT_EQ(dst.id(), src.id());
+	EXPECT_EQ(dst.pixels(), src.pixels());
+	EXPECT_EQ(dst.size(), src.size());
+	EXPECT_EQ(dst.format(), src.format());
+}
+
+TEST(TextureTest, CloneIsIndependentOfSource)
+{
+	spk::Texture src;
+	auto pixels = makePixels(1, 1, 4);
+	src.setPixels(pixels, {1, 1}, spk::Texture::Format::RGBA);
+
+	spk::Texture dst = src.clone();
+
+	auto newPixels = makePixels(4, 4, 4);
+	src.setPixels(newPixels, {4, 4}, spk::Texture::Format::RGBA);
+
+	EXPECT_NE(dst.id(), src.id());
+	EXPECT_EQ(dst.size(), (spk::Vector2UInt{1, 1}));
+	EXPECT_EQ(dst.pixels(), pixels);
+}
+
+TEST(TextureTest, ClonePreservesMetadataWithNewIdentity)
+{
+	spk::Texture src;
+	auto pixels = makePixels(2, 2, 4);
+	src.setPixels(pixels, {2, 2}, spk::Texture::Format::RGBA,
+		spk::Texture::Filtering::Linear,
+		spk::Texture::Wrap::Repeat,
+		spk::Texture::Mipmap::Enable);
+
+	spk::Texture dst = src.clone();
+
 	EXPECT_NE(dst.id(), src.id());
 	EXPECT_EQ(dst.pixels(), src.pixels());
 	EXPECT_EQ(dst.size(), src.size());
@@ -135,43 +192,13 @@ TEST(TextureTest, CopyConstructionProducesDeepCopy)
 	EXPECT_EQ(dst.mipmap(), src.mipmap());
 }
 
-TEST(TextureTest, CopyAssignmentProducesDeepCopy)
-{
-	spk::Texture src;
-	auto pixels = makePixels(3, 3, 3);
-	src.setPixels(pixels, {3, 3}, spk::Texture::Format::RGB);
-
-	spk::Texture dst;
-	dst = src;
-
-	EXPECT_NE(dst.id(), src.id());
-	EXPECT_EQ(dst.pixels(), src.pixels());
-	EXPECT_EQ(dst.size(), src.size());
-	EXPECT_EQ(dst.format(), src.format());
-}
-
-TEST(TextureTest, CopyIsIndependentOfSource)
-{
-	spk::Texture src;
-	auto pixels = makePixels(1, 1, 4);
-	src.setPixels(pixels, {1, 1}, spk::Texture::Format::RGBA);
-
-	spk::Texture dst(src);
-
-	auto newPixels = makePixels(4, 4, 4);
-	src.setPixels(newPixels, {4, 4}, spk::Texture::Format::RGBA);
-
-	EXPECT_EQ(dst.size(), (spk::Vector2UInt{1, 1}));
-	EXPECT_EQ(dst.pixels(), pixels);
-}
-
-TEST(TextureTest, CopyOfEmptyTextureHasNoPixelData)
+TEST(TextureTest, CopyOfEmptyTextureSharesEmptyResource)
 {
 	spk::Texture src;
 
 	spk::Texture dst(src);
 
-	EXPECT_NE(dst.id(), src.id());
+	EXPECT_EQ(dst.id(), src.id());
 	EXPECT_TRUE(dst.pixels().empty());
 	EXPECT_EQ(dst.size(), (spk::Vector2UInt{0, 0}));
 	EXPECT_FALSE(dst.needsSynchronization());

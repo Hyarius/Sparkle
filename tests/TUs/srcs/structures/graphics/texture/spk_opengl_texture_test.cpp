@@ -86,7 +86,7 @@ TEST(OpenGLTextureTest, SetPixelsBumpsVersionAndInvalidatesCache)
 	EXPECT_TRUE(tex.hasGpu(context.renderContext()));
 }
 
-TEST(OpenGLTextureTest, CopyProducesIndependentGPUTexture)
+TEST(OpenGLTextureTest, CopySharesGPUTexture)
 {
 	sparkle_test::OpenGLTestContext context;
 	std::vector<uint8_t> pixels(2 * 2 * 4, 100);
@@ -98,9 +98,35 @@ TEST(OpenGLTextureTest, CopyProducesIndependentGPUTexture)
 	spk::Texture dst(src);
 	const GLuint dstId = dst.gpu(context.renderContext()).id();
 
-	EXPECT_NE(dst.id(), src.id());
-	EXPECT_NE(srcId, dstId);
+	EXPECT_EQ(dst.id(), src.id());
+	EXPECT_EQ(srcId, dstId);
 	EXPECT_NE(dstId, 0u);
+}
+
+TEST(OpenGLTextureTest, CloneProducesIndependentGPUTexture)
+{
+	sparkle_test::OpenGLTestContext context;
+	std::vector<uint8_t> pixels(2 * 2 * 4, 100);
+
+	spk::Texture src;
+	src.setPixels(pixels, {2, 2}, spk::Texture::Format::RGBA);
+
+	const GLuint srcGpuId = src.gpu(context.renderContext()).id();
+
+	spk::Texture dst = src.clone();
+	const GLuint dstGpuId = dst.gpu(context.renderContext()).id();
+
+	EXPECT_NE(dst.id(), src.id());
+	EXPECT_EQ(dst.version(), src.version());
+	EXPECT_NE(srcGpuId, dstGpuId);
+	EXPECT_NE(dstGpuId, 0u);
+
+	EXPECT_EQ(dst.pixels(), src.pixels());
+	EXPECT_EQ(dst.size(), src.size());
+	EXPECT_EQ(dst.format(), src.format());
+	EXPECT_EQ(dst.filtering(), src.filtering());
+	EXPECT_EQ(dst.wrap(), src.wrap());
+	EXPECT_EQ(dst.mipmap(), src.mipmap());
 }
 
 TEST(OpenGLTextureTest, MoveTransfersGpuCopiesToDestination)
