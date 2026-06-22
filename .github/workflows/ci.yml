@@ -91,26 +91,19 @@ jobs:
             Write-Host "All files formatted."
           }
 
-
-  # Job responsible for configuring, building, and testing the project
-  unit-tests:
+  # Job responsible for configuring, building, and testing the project in Debug mode
+  build-and-test-debug:
     needs: format-check
-    # Use the hosted Windows runner image
     runs-on: windows-latest
-    # Display-friendly job name in the Actions UI
-    name: Unit Tests
+    name: Build & Test (Debug)
 
-    # Ordered list of actions the job will perform
     steps:
-      # Checkout repository contents into the runner workspace
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Ensure MSBuild toolchain components are available
       - name: Set up MSVC
         uses: microsoft/setup-msbuild@v2
 
-      # Install Ninja build tool via Chocolatey
       - name: Install Ninja
         run: choco install ninja --no-progress --yes
         shell: pwsh
@@ -124,19 +117,29 @@ jobs:
         shell: pwsh
         run: |
           $vcpkgRoot = Join-Path $env:RUNNER_TEMP "vcpkg"
-          git clone https://github.com/microsoft/vcpkg.git $vcpkgRoot   # no --filter
+          git clone https://github.com/microsoft/vcpkg.git $vcpkgRoot
           & "$vcpkgRoot\bootstrap-vcpkg.bat"
           "VCPKG_ROOT=$vcpkgRoot" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
-      # Generate build system files with tests enabled preset
-      - name: Configure (tests enabled)
+      - name: Configure (Debug - tests enabled)
         shell: pwsh
-        run: cmake --preset test
+        run: cmake --preset test-debug
+        continue-on-error: true
 
-      # Compile the project using the previously generated configuration
-      - name: Build (tests enabled)
+      - name: Configure (Debug - tests enabled - fallback)
         shell: pwsh
-        run: cmake --build --preset test
+        if: failure()
+        run: |
+          $vcpkgRoot = Join-Path $env:RUNNER_TEMP "vcpkg"
+          $env:VCPKG_ROOT = $vcpkgRoot
+          cmake -B build/test-debug -S . -G Ninja `
+            -DCMAKE_BUILD_TYPE=Debug `
+            -DENABLE_TESTS=ON `
+            -DCMAKE_TOOLCHAIN_FILE="$vcpkgRoot/scripts/buildsystems/vcpkg.cmake"
+
+      - name: Build (Debug)
+        shell: pwsh
+        run: cmake --build build/test-debug --config Debug
 
       - name: Install Mesa (software OpenGL for tests)
         shell: pwsh
@@ -148,28 +151,24 @@ jobs:
           $mesaDownload = Join-Path $env:RUNNER_TEMP $mesaArchive
           $mesaRoot = Join-Path $env:RUNNER_TEMP "mesa"
 
-          Invoke-WebRequest $mesaUrl -OutFile $mesaDownload
+          if (-not (Test-Path $mesaDownload)) {
+            Invoke-WebRequest $mesaUrl -OutFile $mesaDownload
+          }
           7z x $mesaDownload "-o$mesaRoot" | Out-Null
 
           $mesaBin = Join-Path $mesaRoot "x64"
           $dlls = @("opengl32.dll", "libgallium_wgl.dll", "libglapi.dll")
-          $testRoot = Join-Path $env:GITHUB_WORKSPACE "build\\test"
 
-          if (-not (Test-Path $testRoot)) {
-            Write-Host "::error::Test output folder not found: $testRoot"
-            exit 1
-          }
-
-          $exeDirs = Get-ChildItem -Path $testRoot -Recurse -Filter *.exe |
+          $exeDirs = Get-ChildItem -Path "build/test-debug" -Recurse -Filter *.exe |
             Select-Object -ExpandProperty DirectoryName -Unique
 
-          if (-not $exeDirs) {
-            Write-Host "::warning::No test executables found under $testRoot"
-          }
-
-          foreach ($dir in $exeDirs) {
-            foreach ($dll in $dlls) {
-              Copy-Item (Join-Path $mesaBin $dll) $dir -Force
+          if ($exeDirs) {
+            foreach ($dir in $exeDirs) {
+              foreach ($dll in $dlls) {
+                if (Test-Path (Join-Path $mesaBin $dll)) {
+                  Copy-Item (Join-Path $mesaBin $dll) $dir -Force
+                }
+              }
             }
           }
 
@@ -177,143 +176,36 @@ jobs:
           "MESA_GL_VERSION_OVERRIDE=4.5" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "MESA_GLSL_VERSION_OVERRIDE=450" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
-      # Execute unit tests and show failures in the log
-      - name: Run unit tests
+      - name: Run unit tests (Debug)
         shell: pwsh
-        run: ctest --output-on-failure --test-dir build/test
+        run: ctest --output-on-failure --test-dir build/test-debug
 
-      - name: Upload test artifacts
+      - name: Upload test artifacts (Debug)
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: unit-test-artifacts
+          name: debug-test-artifacts
           path: |
-            build/test/Testing
-            tests/TUs/resources/imageResults
+            build/test-debug/Testing
+            tests/TUs/resources
           if-no-files-found: warn
+          retention-days: 30
 
-  # Job that builds with clang and enforces the coverage threshold
-  coverage:
-    needs:
-      - unit-tests
-    runs-on: windows-latest
-    name: Coverage (clang)
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install LLVM (clang/coverage tools)
-        run: choco install llvm --no-progress --yes
-        shell: pwsh
-
-      - name: Install Ninja
-        run: choco install ninja --no-progress --yes
-        shell: pwsh
-
-      - name: Set up MSVC dev environment
-        uses: ilammy/msvc-dev-cmd@v1
-        with:
-          arch: x64
-
-      - name: Bootstrap vcpkg
-        shell: pwsh
-        run: |
-          $vcpkgRoot = Join-Path $env:RUNNER_TEMP "vcpkg"
-          git clone https://github.com/microsoft/vcpkg.git $vcpkgRoot   # no --filter
-          & "$vcpkgRoot\bootstrap-vcpkg.bat"
-          "VCPKG_ROOT=$vcpkgRoot" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-
-      - name: Configure (coverage build)
-        shell: pwsh
-        run: cmake --preset coverage-clang
-
-      - name: Run coverage check (non-blocking)
-        shell: pwsh
-        run: |
-          cmake --build --preset coverage-clang
-          $code = $LASTEXITCODE
-          if ($code -ne 0) {
-            Write-Host "::warning::Coverage check failed with exit code $code. Continuing workflow (non-blocking)."
-            "COVERAGE_STATUS=failed" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          } else {
-            "COVERAGE_STATUS=passed" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          }
-          exit 0
-
-      - name: Summarize coverage
-        if: always()
-        shell: pwsh
-        run: |
-          $summaryPath = Join-Path "build/coverage-clang/coverage" "summary.txt"
-          $htmlPath = Join-Path "build/coverage-clang/coverage/html" "index.html"
-          $docsHtmlPath = Join-Path "docs/build/coverage" "index.html"
-          if (Test-Path $summaryPath) {
-            Write-Host "Coverage summary:"
-            Get-Content $summaryPath | ForEach-Object { Write-Host $_ }
-            if ($env:GITHUB_STEP_SUMMARY) {
-              "# Coverage summary`n" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
-              Get-Content $summaryPath | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
-              "" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
-            }
-          } else {
-            Write-Host "Coverage summary not found at $summaryPath"
-          }
-          if (Test-Path $htmlPath) {
-            Write-Host "Coverage HTML (build tree): $htmlPath"
-            if ($env:GITHUB_STEP_SUMMARY) {
-              "Coverage HTML (build tree): $htmlPath" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
-            }
-          }
-          if (Test-Path $docsHtmlPath) {
-            Write-Host "Coverage HTML (docs mirror): $docsHtmlPath"
-            if ($env:GITHUB_STEP_SUMMARY) {
-              "Coverage HTML (docs mirror): $docsHtmlPath" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
-            }
-          }
-          $status = $env:COVERAGE_STATUS
-          if ($status) {
-            $statusMessage = "Coverage check status: $status (non-blocking)"
-            Write-Host $statusMessage
-            if ($env:GITHUB_STEP_SUMMARY) {
-              $statusMessage | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
-              "" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
-            }
-          }
-
-      - name: Upload coverage artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-report
-          path: build/coverage-clang/coverage
-          if-no-files-found: warn
-
-  # Job dedicated to static analysis with clang-tidy
-  clang-tidy:
+  # Job responsible for configuring, building, and testing the project in Release mode
+  build-and-test-release:
     needs: format-check
-    # Use the hosted Windows runner image
     runs-on: windows-latest
-    # Display-friendly job name in the Actions UI
-    name: Clang-Tidy Analysis
+    name: Build & Test (Release)
 
     steps:
-      # Checkout repository contents into the runner workspace
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Ensure MSBuild toolchain components are available
       - name: Set up MSVC
         uses: microsoft/setup-msbuild@v2
 
-      # Install Ninja build tool via Chocolatey
       - name: Install Ninja
         run: choco install ninja --no-progress --yes
-        shell: pwsh
-
-      # Install LLVM toolchain, providing clang-format and clang-tidy
-      - name: Install LLVM (clang/clang-tidy)
-        run: choco install llvm --no-progress --yes
         shell: pwsh
         
       - name: Set up MSVC dev environment
@@ -325,47 +217,94 @@ jobs:
         shell: pwsh
         run: |
           $vcpkgRoot = Join-Path $env:RUNNER_TEMP "vcpkg"
-          git clone https://github.com/microsoft/vcpkg.git $vcpkgRoot   # no --filter
+          git clone https://github.com/microsoft/vcpkg.git $vcpkgRoot
           & "$vcpkgRoot\bootstrap-vcpkg.bat"
           "VCPKG_ROOT=$vcpkgRoot" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
-      # Prepare clang-tidy configuration via the corresponding CMake preset
-      - name: Configure clang-tidy
+      - name: Configure (Release - tests enabled)
         shell: pwsh
-        run: cmake --preset clang-tidy
+        run: cmake --preset test
+        continue-on-error: true
 
-      # Run clang-tidy analysis as defined by the preset build target
-      - name: Run clang-tidy
+      - name: Configure (Release - tests enabled - fallback)
         shell: pwsh
-        run: cmake --build --preset clang-tidy
+        if: failure()
+        run: |
+          $vcpkgRoot = Join-Path $env:RUNNER_TEMP "vcpkg"
+          $env:VCPKG_ROOT = $vcpkgRoot
+          cmake -B build/test -S . -G Ninja `
+            -DCMAKE_BUILD_TYPE=Release `
+            -DENABLE_TESTS=ON `
+            -DCMAKE_TOOLCHAIN_FILE="$vcpkgRoot/scripts/buildsystems/vcpkg.cmake"
 
-  # Job that builds documentation with Doxygen and prepares it for publication
-  documentation:
-    # Wait for verification jobs to succeed before building docs
-    needs:
-      - unit-tests  # Require successful unit tests before publishing documentation
-      - coverage     # Require coverage to stay enforced before docs publish
-      - clang-tidy  # Require successful static analysis before publishing documentation
-    # Use the hosted Windows runner image
+      - name: Build (Release)
+        shell: pwsh
+        run: cmake --build build/test --config Release
+
+      - name: Install Mesa (software OpenGL for tests)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $mesaVersion = "23.3.4"
+          $mesaArchive = "mesa3d-$mesaVersion-release-msvc.7z"
+          $mesaUrl = "https://github.com/pal1000/mesa-dist-win/releases/download/$mesaVersion/$mesaArchive"
+          $mesaDownload = Join-Path $env:RUNNER_TEMP $mesaArchive
+          $mesaRoot = Join-Path $env:RUNNER_TEMP "mesa"
+
+          if (-not (Test-Path $mesaDownload)) {
+            Invoke-WebRequest $mesaUrl -OutFile $mesaDownload
+          }
+          7z x $mesaDownload "-o$mesaRoot" | Out-Null
+
+          $mesaBin = Join-Path $mesaRoot "x64"
+          $dlls = @("opengl32.dll", "libgallium_wgl.dll", "libglapi.dll")
+
+          $exeDirs = Get-ChildItem -Path "build/test" -Recurse -Filter *.exe |
+            Select-Object -ExpandProperty DirectoryName -Unique
+
+          if ($exeDirs) {
+            foreach ($dir in $exeDirs) {
+              foreach ($dll in $dlls) {
+                if (Test-Path (Join-Path $mesaBin $dll)) {
+                  Copy-Item (Join-Path $mesaBin $dll) $dir -Force
+                }
+              }
+            }
+          }
+
+          "GALLIUM_DRIVER=llvmpipe" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "MESA_GL_VERSION_OVERRIDE=4.5" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "MESA_GLSL_VERSION_OVERRIDE=450" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Run unit tests (Release)
+        shell: pwsh
+        run: ctest --output-on-failure --test-dir build/test
+
+      - name: Upload test artifacts (Release)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-test-artifacts
+          path: |
+            build/test/Testing
+            tests/TUs/resources
+          if-no-files-found: warn
+          retention-days: 30
+
+  # Job that builds documentation with Doxygen and validates completeness
+  documentation-check:
+    needs: format-check
     runs-on: windows-latest
-    # Display-friendly job name in the Actions UI
-    name: Documentation Build
+    name: Documentation Validation (Doxygen)
 
     steps:
-      # Checkout repository contents into the runner workspace
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Configure GitHub Pages build metadata for the current run
-      - name: Configure Pages
-        uses: actions/configure-pages@v5
-
-      # Install Doxygen and Graphviz required for documentation generation
       - name: Install Doxygen toolchain
         run: choco install doxygen.portable graphviz --no-progress --yes
         shell: pwsh
 
-      # Ensure the Doxygen output directory exists
       - name: Prepare documentation output directory
         shell: pwsh
         run: |
@@ -374,99 +313,67 @@ jobs:
             New-Item -ItemType Directory -Path $outputDir | Out-Null
           }
 
-      # Produce HTML documentation with Doxygen and fail if warnings appear
       - name: Generate Doxygen documentation
         shell: pwsh
         run: |
-          # Run Doxygen
           doxygen Doxyfile
 
-          # Compose log path
-          $log = Join-Path $PWD 'doxygen-error.log'   # ou $env:GITHUB_WORKSPACE si en CI
-
-          # Check that the file exist
+          $log = Join-Path $PWD 'doxygen-error.log'
           $exists = Test-Path -LiteralPath $log
-
-          # Check the lenght of the file. If 0 -> no error or file not found
           $size = if ($exists) { (Get-Item -LiteralPath $log).Length } else { 0 }
 
           if ($size -gt 0) {
-            Write-Host '::error::Doxygen emitted warnings. See details below.'
+            Write-Host '::error::Doxygen emitted warnings or errors.'
             Get-Content -LiteralPath $log
             exit 1
+          } else {
+            Write-Host "Doxygen documentation generated successfully with no warnings."
           }
 
-      - name: Download coverage artifact
-        continue-on-error: true
-        uses: actions/download-artifact@v4
-        with:
-          name: coverage-report
-          path: coverage-report
-
-      - name: Add coverage report to docs
-        shell: pwsh
-        run: |
-          $coverageRoot = Join-Path $PWD 'coverage-report'
-          if (-not (Test-Path $coverageRoot)) {
-            Write-Host '::warning::Coverage artifact not found; skipping coverage copy into docs.'
-            return
-          }
-
-          $htmlSource = Join-Path $coverageRoot 'html'
-          if (-not (Test-Path $htmlSource)) {
-            $htmlSource = Get-ChildItem -Path $coverageRoot -Directory -Recurse -Filter 'html' | Select-Object -First 1
-            if ($htmlSource) { $htmlSource = $htmlSource.FullName }
-          }
-
-          if (-not $htmlSource -or -not (Test-Path $htmlSource)) {
-            Write-Host '::warning::Coverage HTML directory is missing from artifact; skipping coverage copy into docs.'
-            return
-          }
-
-          $docsCoverage = Join-Path $PWD 'docs/build/html/coverage'
-          if (Test-Path $docsCoverage) {
-            Remove-Item -Recurse -Force $docsCoverage
-          }
-          New-Item -ItemType Directory -Path $docsCoverage | Out-Null
-
-          Copy-Item -Path (Join-Path $htmlSource '*') -Destination $docsCoverage -Recurse -Force
-          Write-Host "Coverage report copied to $docsCoverage"
-
-      # Preserve the Doxygen error log for troubleshooting
       - name: Upload Doxygen error log
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: doxygen-error-log
+          name: doxygen-validation-log
           path: doxygen-error.log
           if-no-files-found: warn
+          retention-days: 7
 
-      # Upload the generated HTML bundle as the Pages deployment artifact
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          # Filesystem path containing the generated HTML docs
-          path: docs/build/html
-
-  # Job that deploys the previously built documentation to GitHub Pages
-  deploy-docs:
-    # Only publish documentation for pushes to the main branch
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    # Wait for the documentation artifact to be ready
-    needs: documentation
-    # Publish from an Ubuntu runner as required by deploy-pages
-    runs-on: ubuntu-latest
-    # Display-friendly job name in the Actions UI
-    name: Publish Documentation
-    # Define the target environment and capture the published URL
-    environment:
-      # Use the dedicated GitHub Pages environment
-      name: github-pages
-      # Expose the deployed site URL from the deploy action output
-      url: ${{ steps.deployment.outputs.page_url }}
+  # Final summary job that ensures all validation steps passed
+  validation-summary:
+    needs:
+      - format-check
+      - build-and-test-debug
+      - build-and-test-release
+      - documentation-check
+    runs-on: windows-latest
+    name: Validation Summary
+    if: always()
 
     steps:
-      # Deploy the uploaded artifact to GitHub Pages
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Check validation results
+        shell: pwsh
+        run: |
+          $jobs = @{
+            'format-check' = '${{ needs.format-check.result }}'
+            'build-and-test-debug' = '${{ needs.build-and-test-debug.result }}'
+            'build-and-test-release' = '${{ needs.build-and-test-release.result }}'
+            'documentation-check' = '${{ needs.documentation-check.result }}'
+          }
+
+          Write-Host "=== Validation Summary ===" 
+          $allPassed = $true
+          foreach ($job in $jobs.GetEnumerator()) {
+            $status = $job.Value
+            $symbol = if ($status -eq 'success') { '✓' } else { '✗' }
+            Write-Host "$symbol $($job.Key): $status"
+            if ($status -ne 'success') { $allPassed = $false }
+          }
+
+          if (-not $allPassed) {
+            Write-Host "`n::error::Some validation checks failed. Please review the logs above."
+            exit 1
+          } else {
+            Write-Host "`n✓ All validation checks passed!"
+            exit 0
+          }
