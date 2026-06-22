@@ -22,7 +22,7 @@ namespace
 
 		void markPending()
 		{
-			deferUntilUnblocked([this]()
+			_deferUntilUnblocked([this]()
 			{
 				++_flushCount;
 			});

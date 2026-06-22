@@ -1,6 +1,7 @@
 #include "structures/graphics/opengl/spk_opengl_uniform.hpp"
 
 #include <stdexcept>
+#include <array>
 
 namespace
 {
@@ -53,15 +54,15 @@ namespace spk::OpenGL
 		GLuint uniformIndex = GL_INVALID_INDEX;
 
 		{
-			const GLchar *uniformNames[] = {normalizedName.c_str()};
-			glGetUniformIndices(p_programId, 1, uniformNames, &uniformIndex);
+			const std::array<const GLchar *, 1> uniformNames = {normalizedName.c_str()};
+			glGetUniformIndices(p_programId, 1, uniformNames.data(), &uniformIndex);
 		}
 
 		if (uniformIndex == GL_INVALID_INDEX)
 		{
 			const std::string arrayElementName = normalizedName + "[0]";
-			const GLchar *uniformNames[] = {arrayElementName.c_str()};
-			glGetUniformIndices(p_programId, 1, uniformNames, &uniformIndex);
+			const std::array<const GLchar *, 1> uniformNames = {arrayElementName.c_str()};
+			glGetUniformIndices(p_programId, 1, uniformNames.data(), &uniformIndex);
 		}
 
 		if (uniformIndex == GL_INVALID_INDEX)

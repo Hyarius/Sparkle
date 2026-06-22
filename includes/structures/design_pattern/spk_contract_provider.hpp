@@ -68,7 +68,7 @@ namespace spk
 			{
 			}
 
-			bool isBlocked() const
+			bool _isBlocked() const
 			{
 				return (_link != nullptr && _link->isBlocked());
 			}
@@ -135,7 +135,7 @@ namespace spk
 		bool _isTriggering = false;
 		std::optional<StoredArguments> _lastTriggerArguments;
 
-		void cleanup()
+		void _cleanup()
 		{
 			if (_isTriggering)
 			{
@@ -196,7 +196,7 @@ namespace spk
 				if (isDelayBlocked())
 				{
 					_lastTriggerArguments.emplace(p_arguments...);
-					deferUntilUnblocked([this]() {
+					_deferUntilUnblocked([this]() {
 						_triggerDeferred();
 					});
 				}
@@ -229,7 +229,7 @@ namespace spk
 				}
 			}
 
-			cleanup();
+			_cleanup();
 		}
 
 		void invalidateAllContracts()
@@ -242,7 +242,7 @@ namespace spk
 				}
 			}
 
-			cleanup();
+			_cleanup();
 		}
 
 		size_t nbContracts() const

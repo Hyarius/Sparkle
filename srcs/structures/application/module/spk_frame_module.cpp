@@ -19,7 +19,7 @@ namespace spk
 			widget()->invalidateRenderUnitTree();
 		}
 
-		return widget()->dispatchFrameEvent(p_event);
+		return widget()->_dispatchFrameEvent(p_event);
 	}
 
 	void FrameModule::pushEvent(spk::FrameEventRecord p_event)

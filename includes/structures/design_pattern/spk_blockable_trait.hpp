@@ -29,7 +29,7 @@ namespace spk
 		BlockableTrait();
 		virtual ~BlockableTrait();
 
-		void deferUntilUnblocked(std::function<void()> p_operation);
+		void _deferUntilUnblocked(std::function<void()> p_operation);
 
 	public:
 		class Blocker

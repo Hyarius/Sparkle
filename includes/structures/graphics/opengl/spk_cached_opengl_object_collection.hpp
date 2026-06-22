@@ -20,22 +20,162 @@ namespace spk
 			std::unique_ptr<TGpuObject> object;
 		};
 
-		// Real applications run 1-N contexts at once: a tiny vector with a linear
-		// scan beats a hash map, per handle (and there are thousands of handles).
 		std::vector<Entry> _entries;
-
-		// Last generation seen during a prune pass. The prune loop (which calls
-		// isContextAlive → registry mutex) is skipped when no context has died
-		// since the last pass.
 		mutable std::uint64_t _prunedAtGeneration = 0;
 
 		template <typename TFactory>
-		std::unique_ptr<TGpuObject> _build(std::uint64_t p_version, std::uint64_t p_contentVersion, TFactory &&p_factory)
+		std::unique_ptr<TGpuObject> _build(
+			std::uint64_t p_version,
+			std::uint64_t p_contentVersion,
+			TFactory &&p_factory)
 		{
-			std::unique_ptr<TGpuObject> object = p_factory();
+			std::unique_ptr<TGpuObject> object = std::forward<TFactory>(p_factory)();
 			object->_version = p_version;
 			object->_contentVersion = p_contentVersion;
 			return object;
+		}
+
+		Entry *_findEntry(std::uint64_t p_contextId) noexcept
+		{
+			for (Entry &entry : _entries)
+			{
+				if (entry.contextId == p_contextId)
+				{
+					return &entry;
+				}
+			}
+
+			return nullptr;
+		}
+
+		[[nodiscard]] const Entry *_findEntry(std::uint64_t p_contextId) const noexcept
+		{
+			for (const Entry &entry : _entries)
+			{
+				if (entry.contextId == p_contextId)
+				{
+					return &entry;
+				}
+			}
+
+			return nullptr;
+		}
+
+		[[nodiscard]] bool _hasExpectedVersions(
+			const Entry *p_entry,
+			std::uint64_t p_version,
+			std::uint64_t p_contentVersion) const noexcept
+		{
+			return p_entry != nullptr && p_entry->object->version() == p_version &&
+				   p_entry->object->contentVersion() == p_contentVersion;
+		}
+
+		[[nodiscard]] bool _isDeadForeignContext(const Entry &p_entry, std::uint64_t p_currentContextId) const
+		{
+			return p_entry.contextId != p_currentContextId &&
+				   spk::OpenGL::isContextAlive(p_entry.contextId) == false;
+		}
+
+		void _removeEntryAt(std::size_t p_index)
+		{
+			if (p_index != _entries.size() - 1)
+			{
+				_entries[p_index] = std::move(_entries.back());
+			}
+
+			_entries.pop_back();
+		}
+
+		void _removeEntry(Entry *p_entry)
+		{
+			assert(p_entry != nullptr);
+
+			if (p_entry != &_entries.back())
+			{
+				*p_entry = std::move(_entries.back());
+			}
+
+			_entries.pop_back();
+		}
+
+		[[nodiscard]] bool _pruneDeadForeignContexts(std::uint64_t p_currentContextId)
+		{
+			const std::uint64_t currentGeneration = spk::OpenGL::contextDeathGeneration();
+
+			if (currentGeneration == _prunedAtGeneration)
+			{
+				return false;
+			}
+
+			for (std::size_t index = 0; index < _entries.size();)
+			{
+				if (_isDeadForeignContext(_entries[index], p_currentContextId) == true)
+				{
+					_removeEntryAt(index);
+				}
+				else
+				{
+					++index;
+				}
+			}
+
+			_prunedAtGeneration = currentGeneration;
+			return true;
+		}
+
+		template <typename TFactory>
+		Entry &_appendEntry(
+			std::uint64_t p_contextId,
+			std::uint64_t p_version,
+			std::uint64_t p_contentVersion,
+			TFactory &&p_factory)
+		{
+			_entries.push_back(Entry{
+				.contextId = p_contextId,
+				.object = _build(p_version, p_contentVersion, std::forward<TFactory>(p_factory))});
+
+			return _entries.back();
+		}
+
+		template <typename TFactory>
+		Entry &_resolveEntry(
+			Entry *p_entry,
+			std::uint64_t p_contextId,
+			std::uint64_t p_version,
+			std::uint64_t p_contentVersion,
+			TFactory &&p_factory)
+		{
+			if (p_entry != nullptr && p_entry->object->version() != p_version)
+			{
+				_removeEntry(p_entry);
+				p_entry = nullptr;
+			}
+
+			if (p_entry == nullptr)
+			{
+				return _appendEntry(
+					p_contextId,
+					p_version,
+					p_contentVersion,
+					std::forward<TFactory>(p_factory));
+			}
+
+			return *p_entry;
+		}
+
+		template <typename TRefresh>
+		void _refreshContentIfNeeded(
+			Entry &p_entry,
+			std::uint64_t p_contentVersion,
+			TRefresh &&p_refresh)
+		{
+			if (p_entry.object->contentVersion() == p_contentVersion)
+			{
+				return;
+			}
+
+			std::forward<TRefresh>(p_refresh)(*p_entry.object);
+			p_entry.object->_contentVersion = p_contentVersion;
 		}
 
 	public:
@@ -67,12 +207,10 @@ namespace spk
 				p_other._entries.clear();
 				p_other._prunedAtGeneration = 0;
 			}
+
 			return *this;
 		}
 
-		// Two-tier resolution: a p_version mismatch destroys and rebuilds through
-		// p_factory; a p_contentVersion mismatch alone updates in place through
-		// p_refresh (e.g. glBufferSubData). p_context must be current.
 		template <typename TFactory, typename TRefresh>
 		TGpuObject &resolve(
 			const spk::RenderContext &p_context,
@@ -85,102 +223,59 @@ namespace spk
 
 			const std::uint64_t contextId = spk::OpenGL::contextIdOf(p_context);
 
-			// Single-pass scan: if the entry for this context is clean, return
-			// immediately (hot path — no mutex, no second scan).
-			Entry *found = nullptr;
-			for (Entry &entry : _entries)
+			Entry *entry = _findEntry(contextId);
+
+			if (_hasExpectedVersions(entry, p_version, p_contentVersion) == true)
 			{
-				if (entry.contextId == contextId)
-				{
-					if (entry.object->version() == p_version &&
-						entry.object->contentVersion() == p_contentVersion)
-					{
-						return *entry.object;
-					}
-					found = &entry;
-					break;
-				}
+				return *entry->object;
 			}
 
-			// Prune entries whose context died with its GL objects. Gated behind a
-			// relaxed atomic so the registry mutex is never acquired on the hot path
-			// (contexts die ~never; the counter only changes on window close).
-			const std::uint64_t currentGeneration = spk::OpenGL::contextDeathGeneration();
-			if (currentGeneration != _prunedAtGeneration)
+			if (_pruneDeadForeignContexts(contextId) == true)
 			{
-				found = nullptr; // pointer may be invalidated by swap-and-pop below
-				for (std::size_t index = 0; index < _entries.size();)
-				{
-					Entry &entry = _entries[index];
-					if (entry.contextId != contextId && spk::OpenGL::isContextAlive(entry.contextId) == false)
-					{
-						entry = std::move(_entries.back());
-						_entries.pop_back();
-					}
-					else
-					{
-						++index;
-					}
-				}
-				_prunedAtGeneration = currentGeneration;
-
-				// Re-find after prune since swap-and-pop may have reorganised the vector.
-				for (Entry &entry : _entries)
-				{
-					if (entry.contextId == contextId)
-					{
-						found = &entry;
-						break;
-					}
-				}
+				entry = _findEntry(contextId);
 			}
 
-			if (found != nullptr && found->object->version() != p_version)
-			{
-				// Structure changed: p_context is current, deleting in place is
-				// legal. The entry is removed before rebuilding so a throwing
-				// factory cannot leave a null object behind.
-				if (found != &_entries.back())
-				{
-					*found = std::move(_entries.back());
-				}
-				_entries.pop_back();
-				found = nullptr;
-			}
+			Entry &resolvedEntry = _resolveEntry(
+				entry,
+				contextId,
+				p_version,
+				p_contentVersion,
+				std::forward<TFactory>(p_factory));
 
-			if (found == nullptr)
-			{
-				_entries.push_back(Entry{.contextId = contextId, .object = _build(p_version, p_contentVersion, p_factory)});
-				found = &_entries.back();
-			}
-			else if (found->object->contentVersion() != p_contentVersion)
-			{
-				p_refresh(*found->object);
-				found->object->_contentVersion = p_contentVersion;
-			}
+			_refreshContentIfNeeded(
+				resolvedEntry,
+				p_contentVersion,
+				std::forward<TRefresh>(p_refresh));
 
-			return *found->object;
+			return *resolvedEntry.object;
 		}
 
-		// Single-version resolution for create-once objects (programs, textures...).
 		template <typename TFactory>
-		TGpuObject &resolve(const spk::RenderContext &p_context, std::uint64_t p_version, TFactory &&p_factory)
+		TGpuObject &resolve(
+			const spk::RenderContext &p_context,
+			std::uint64_t p_version,
+			TFactory &&p_factory)
 		{
-			return resolve(p_context, p_version, p_version, std::forward<TFactory>(p_factory), [](TGpuObject &) {
-			});
+			return resolve(
+				p_context,
+				p_version,
+				p_version,
+				std::forward<TFactory>(p_factory),
+				[](TGpuObject &) {
+				});
 		}
 
 		[[nodiscard]] TGpuObject *find(const spk::RenderContext &p_context) const noexcept
 		{
 			const std::uint64_t contextId = spk::OpenGL::contextIdOf(p_context);
-			for (const Entry &entry : _entries)
+			const Entry *entry = _findEntry(contextId);
+
+			if (entry == nullptr)
 			{
-				if (entry.contextId == contextId)
-				{
-					return entry.object.get();
-				}
+				return nullptr;
 			}
-			return nullptr;
+
+			return entry->object.get();
 		}
 
 		void release()
@@ -189,6 +284,7 @@ namespace spk
 			{
 				spk::OpenGL::releaseObject(std::move(entry.object));
 			}
+
 			_entries.clear();
 			_prunedAtGeneration = 0;
 		}

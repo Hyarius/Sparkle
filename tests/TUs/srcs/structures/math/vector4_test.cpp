@@ -62,7 +62,7 @@ TEST(Vector4ArithmeticTest, DivisionRejectsZero)
 	EXPECT_THROW(static_cast<void>(20 / spk::Vector4Int(1, 0, 1, 1)), std::invalid_argument);
 }
 
-TEST(Vector4ArithmeticTest, SupportsFloatOperationsUsedBySIMDPath)
+TEST(Vector4ArithmeticTest, SupportsFloatOperations)
 {
 	spk::Vector4 value(8.0f, 12.0f, 16.0f, 20.0f);
 

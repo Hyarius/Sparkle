@@ -20,7 +20,7 @@ namespace spk
 		{
 			if (isDelayBlocked() == true)
 			{
-				deferUntilUnblocked([this]() {
+				_deferUntilUnblocked([this]() {
 					activate();
 				});
 			}
@@ -43,7 +43,7 @@ namespace spk
 		{
 			if (isDelayBlocked() == true)
 			{
-				deferUntilUnblocked([this]() {
+				_deferUntilUnblocked([this]() {
 					deactivate();
 				});
 			}

@@ -53,7 +53,7 @@ namespace
 	public:
 		std::unique_ptr<spk::RenderContext> createRenderContext(spk::IFrame& p_frame) override
 		{
-			FrameA& frame = requireFrame<FrameA>(p_frame);
+			FrameA& frame = _requireFrame<FrameA>(p_frame);
 			return std::make_unique<TestRenderContext>(frame.surfaceState());
 		}
 

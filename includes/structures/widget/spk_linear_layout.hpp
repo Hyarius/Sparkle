@@ -52,99 +52,123 @@ namespace spk
 			bool extend = false;
 		};
 
+		static bool _isValidElement(const Element *p_element)
+		{
+			return p_element != nullptr && (p_element->widget() != nullptr || p_element->layout() != nullptr);
+		}
+
+		static int _saturateToInt(const std::uint64_t p_value)
+		{
+			constexpr int maxInt = std::numeric_limits<int>::max();
+
+			if (p_value > static_cast<std::uint64_t>(maxInt))
+			{
+				return maxInt;
+			}
+
+			return static_cast<int>(p_value);
+		}
+
+		static int _saturatedPrimary(const spk::Vector2UInt &p_vector)
+		{
+			if constexpr (_horizontalMode)
+			{
+				return _saturateToInt(p_vector.x);
+			}
+			else
+			{
+				return _saturateToInt(p_vector.y);
+			}
+		}
+
+		static int _saturatedSecondary(const spk::Vector2UInt &p_vector)
+		{
+			if constexpr (_horizontalMode)
+			{
+				return _saturateToInt(p_vector.y);
+			}
+			else
+			{
+				return _saturateToInt(p_vector.x);
+			}
+		}
+
+		static void _applyExtendPolicy(Item &p_item, const int p_requestedSize, const bool p_shouldExtend)
+		{
+			p_item.extend = p_shouldExtend;
+			p_item.size = p_shouldExtend ? p_requestedSize : p_item.minP;
+		}
+
+		static void _applySizePolicy(Item &p_item, const SizePolicy p_sizePolicy, const int p_requestedSize)
+		{
+			switch (p_sizePolicy)
+			{
+			case SizePolicy::Fixed:
+				p_item.size = p_requestedSize;
+				break;
+
+			case SizePolicy::Minimum:
+				p_item.size = p_item.minP;
+				break;
+
+			case SizePolicy::Maximum:
+				p_item.size = p_item.maxP;
+				break;
+
+			case SizePolicy::Extend:
+				_applyExtendPolicy(p_item, p_requestedSize, true);
+				break;
+
+			case SizePolicy::HorizontalExtend:
+				_applyExtendPolicy(p_item, p_requestedSize, _horizontalMode);
+				break;
+
+			case SizePolicy::VerticalExtend:
+				_applyExtendPolicy(p_item, p_requestedSize, !_horizontalMode);
+				break;
+			}
+		}
+
+		static Item _makeItem(Element *p_element)
+		{
+			const spk::Vector2UInt requestedSize = p_element->size();
+			const spk::Vector2UInt minimalSize = p_element->minimalSize();
+			const spk::Vector2UInt maximalSize = p_element->maximalSize();
+
+			Item result;
+			result.elt = p_element;
+
+			result.minP = _saturatedPrimary(minimalSize);
+			result.maxP = std::max(result.minP, _saturatedPrimary(maximalSize));
+
+			result.minS = _saturatedSecondary(minimalSize);
+			result.maxS = std::max(result.minS, _saturatedSecondary(maximalSize));
+
+			_applySizePolicy(result, p_element->sizePolicy(), _saturatedPrimary(requestedSize));
+
+			result.size = std::clamp(result.size, result.minP, result.maxP);
+
+			return result;
+		}
+
 		std::vector<Item> _collectItems() const
 		{
-			std::vector<Item> out;
-			out.reserve(_elements.size());
+			std::vector<Item> result;
+			result.reserve(_elements.size());
 
-			for (const auto &up : _elements)
+			for (const auto &elementPointer : _elements)
 			{
-				Element *e = up.get();
+				Element *element = elementPointer.get();
 
-				if (e == nullptr || (e->widget() == nullptr && e->layout() == nullptr))
+				if (_isValidElement(element) == false)
 				{
 					continue;
 				}
 
-				const spk::Vector2UInt requestedSize = e->size();
-				const spk::Vector2UInt minSize = e->minimalSize();
-				const spk::Vector2UInt maxSize = e->maximalSize();
-
-				Item it;
-				it.elt = e;
-
-				it.minP = std::max(0, _primary(minSize));
-				const long long rawMaxP = static_cast<long long>(_horizontalMode ? maxSize.x : maxSize.y);
-				it.maxP = (rawMaxP > static_cast<long long>(std::numeric_limits<int>::max()))
-							  ? std::numeric_limits<int>::max()
-							  : static_cast<int>(rawMaxP);
-				if (it.maxP < it.minP)
-				{
-					it.maxP = it.minP;
-				}
-
-				it.minS = std::max(0, _secondary(minSize));
-				const long long rawMaxS = static_cast<long long>(_horizontalMode ? maxSize.y : maxSize.x);
-				it.maxS = (rawMaxS > static_cast<long long>(std::numeric_limits<int>::max()))
-							  ? std::numeric_limits<int>::max()
-							  : static_cast<int>(rawMaxS);
-				if (it.maxS < it.minS)
-				{
-					it.maxS = it.minS;
-				}
-
-				const int requested = _primary(requestedSize);
-
-				switch (e->sizePolicy())
-				{
-				case SizePolicy::Fixed:
-					it.size = requested;
-					break;
-
-				case SizePolicy::Minimum:
-					it.size = it.minP;
-					break;
-
-				case SizePolicy::Maximum:
-					it.size = it.maxP;
-					break;
-
-				case SizePolicy::Extend:
-					it.extend = true;
-					it.size = requested;
-					break;
-
-				case SizePolicy::HorizontalExtend:
-					if constexpr (_horizontalMode)
-					{
-						it.extend = true;
-						it.size = requested;
-					}
-					else
-					{
-						it.size = it.minP;
-					}
-					break;
-
-				case SizePolicy::VerticalExtend:
-					if constexpr (!_horizontalMode)
-					{
-						it.extend = true;
-						it.size = requested;
-					}
-					else
-					{
-						it.size = it.minP;
-					}
-					break;
-				}
-
-				it.size = std::clamp(it.size, it.minP, it.maxP);
-
-				out.push_back(it);
+				result.push_back(_makeItem(element));
 			}
 
-			return out;
+			return result;
 		}
 
 		static int _sumBase(const std::vector<Item> &p_items)

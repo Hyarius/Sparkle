@@ -22,7 +22,7 @@ namespace spk
 
 	protected:
 		ActivableTrait() = default;
-		~ActivableTrait() = default;
+		~ActivableTrait() override = default;
 
 	public:
 		ActivableTrait(const ActivableTrait &) = delete;

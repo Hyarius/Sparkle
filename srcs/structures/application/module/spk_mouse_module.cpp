@@ -40,7 +40,7 @@ namespace spk
 				}},
 			p_event);
 
-		widget()->dispatchMouseEvent(p_event, _mouse);
+		widget()->_dispatchMouseEvent(p_event, _mouse);
 	}
 
 	void MouseModule::pushEvent(spk::MouseEventRecord p_event)

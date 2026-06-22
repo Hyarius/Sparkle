@@ -28,17 +28,17 @@ namespace
 		std::vector<std::string> events;
 
 	protected:
-		void onChildAdded(CallbackTestNode* p_child) override
+		void _onChildAdded(CallbackTestNode* p_child) override
 		{
 			events.emplace_back("child_added");
 		}
 
-		void onChildRemoved(CallbackTestNode* p_child) override
+		void _onChildRemoved(CallbackTestNode* p_child) override
 		{
 			events.emplace_back("child_removed");
 		}
 
-		void onParentChanged(CallbackTestNode* p_oldParent, CallbackTestNode* p_newParent) override
+		void _onParentChanged(CallbackTestNode* p_oldParent, CallbackTestNode* p_newParent) override
 		{
 			if (p_oldParent == nullptr && p_newParent != nullptr)
 			{

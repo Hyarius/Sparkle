@@ -30,7 +30,7 @@ namespace spk
 
 		std::unordered_map<WindowID, Entry> _windows;
 
-		[[nodiscard]] std::vector<std::weak_ptr<spk::Window>> windows() const;
+		[[nodiscard]] std::vector<std::weak_ptr<spk::Window>> _windowVector() const;
 
 		friend class spk::Application;
 

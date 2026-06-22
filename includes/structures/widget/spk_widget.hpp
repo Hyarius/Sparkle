@@ -3,6 +3,7 @@
 #include <limits>
 #include <memory>
 #include <string>
+#include <array>
 
 #include "structures/design_pattern/spk_activable_trait.hpp"
 #include "structures/design_pattern/spk_inherence_trait.hpp"
@@ -35,7 +36,7 @@ namespace spk
 		friend class MouseModule;
 		friend class KeyboardModule;
 
-		static inline Widget *_focusedWidgets[2] = {nullptr, nullptr};
+		static inline std::array<Widget *, 2> _focusedWidgets = {nullptr, nullptr};
 
 		std::string _name;
 		mutable bool _renderCommandsDirty = true;
@@ -73,15 +74,12 @@ namespace spk
 			(this->*p_handler)(p_event);
 		}
 
-		bool dispatchFrameEvent(spk::FrameEventRecord &p_event);
-		void dispatchMouseEvent(spk::MouseEventRecord &p_event, spk::Mouse &p_mouse);
-		void dispatchKeyboardEvent(spk::KeyboardEventRecord &p_event, spk::Keyboard &p_keyboard);
+		bool _dispatchFrameEvent(spk::FrameEventRecord &p_event);
+		void _dispatchMouseEvent(spk::MouseEventRecord &p_event, spk::Mouse &p_mouse);
+		void _dispatchKeyboardEvent(spk::KeyboardEventRecord &p_event, spk::Keyboard &p_keyboard);
 
 	protected:
-		void onParentChanged(spk::Widget *p_oldParent, spk::Widget *p_newParent) override;
-
-		[[nodiscard]] const spk::Rect2D &absoluteGeometry() const;
-		[[nodiscard]] const spk::Rect2D &scissor() const;
+		void _onParentChanged(spk::Widget *p_oldParent, spk::Widget *p_newParent) override;
 
 		[[nodiscard]] virtual spk::RenderUnit _buildRenderUnit() const;
 		virtual void _onGeometryChange();
@@ -110,7 +108,7 @@ namespace spk
 
 	public:
 		explicit Widget(const std::string &p_name, spk::Widget *p_parent = nullptr);
-		virtual ~Widget();
+		~Widget() override;
 
 		[[nodiscard]] const std::string &name() const;
 
@@ -134,6 +132,9 @@ namespace spk
 		[[nodiscard]] spk::Vector2UInt minimalSize() const;
 		[[nodiscard]] spk::Vector2UInt fixedSize() const;
 		[[nodiscard]] spk::Vector2UInt maximalSize() const;
+
+		[[nodiscard]] const spk::Rect2D &absoluteGeometry() const;
+		[[nodiscard]] const spk::Rect2D &scissor() const;
 
 		void invalidateRenderUnit() const;
 		void invalidateRenderUnitTree() const;

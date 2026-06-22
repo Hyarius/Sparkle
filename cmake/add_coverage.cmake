@@ -39,8 +39,8 @@ function(sparkle_enable_coverage)
         message(FATAL_ERROR "Unsupported compiler for coverage instrumentation: ${CMAKE_CXX_COMPILER_ID}")
     endif()
 
-    if (NOT ENABLE_TESTS)
-        message(FATAL_ERROR "SPARKLE_ENABLE_COVERAGE=ON requires ENABLE_TESTS=ON so that coverage can run the unit suite.")
+    if (NOT SPARKLE_BUILD_TESTS)
+        message(FATAL_ERROR "SPARKLE_ENABLE_COVERAGE=ON requires SPARKLE_BUILD_TESTS=ON so that coverage can run the unit suite.")
     endif()
 
     find_package(Python3 COMPONENTS Interpreter REQUIRED)

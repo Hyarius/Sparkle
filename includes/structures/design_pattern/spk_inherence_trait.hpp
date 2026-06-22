@@ -225,7 +225,7 @@ namespace spk
 				if (oldIterator != _parent->_children.end())
 				{
 					_parent->_children.erase(oldIterator);
-					_trait(_parent)->onChildRemoved(self);
+					_trait(_parent)->_onChildRemoved(self);
 				}
 			}
 
@@ -235,10 +235,10 @@ namespace spk
 			{
 				p_parent->_children.emplace_back(self);
 				_parent = p_parent;
-				_trait(p_parent)->onChildAdded(self);
+				_trait(p_parent)->_onChildAdded(self);
 			}
 
-			onParentChanged(oldParent, _parent);
+			_onParentChanged(oldParent, _parent);
 		}
 
 		void _clearChildrenImmediate()
@@ -365,13 +365,13 @@ namespace spk
 			}
 		}
 
-		virtual void onChildAdded(TType *p_child)
+		virtual void _onChildAdded(TType *p_child)
 		{
 		}
-		virtual void onChildRemoved(TType *p_child)
+		virtual void _onChildRemoved(TType *p_child)
 		{
 		}
-		virtual void onParentChanged(TType *p_oldParent, TType *p_newParent)
+		virtual void _onParentChanged(TType *p_oldParent, TType *p_newParent)
 		{
 		}
 

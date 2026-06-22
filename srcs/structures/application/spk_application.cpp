@@ -67,7 +67,7 @@ namespace spk
 			spk::Chronometer chronometer;
 			chronometer.start();
 
-			std::vector<std::weak_ptr<spk::Window>> windows = _windowRegistry.windows();
+			std::vector<std::weak_ptr<spk::Window>> windows = _windowRegistry._windowVector();
 
 			if (windows.empty() == true)
 			{
@@ -111,7 +111,7 @@ namespace spk
 			spk::Chronometer chronometer;
 			chronometer.start();
 
-			std::vector<std::weak_ptr<spk::Window>> windows = _windowRegistry.windows();
+			std::vector<std::weak_ptr<spk::Window>> windows = _windowRegistry._windowVector();
 
 			if (windows.empty() == true)
 			{
@@ -154,7 +154,7 @@ namespace spk
 		{
 			if (_shutdownRequested.load() == true)
 			{
-				std::vector<std::weak_ptr<spk::Window>> windows = _windowRegistry.windows();
+				std::vector<std::weak_ptr<spk::Window>> windows = _windowRegistry._windowVector();
 				for (const std::weak_ptr<spk::Window> &windowHandle : windows)
 				{
 					std::shared_ptr<spk::Window> window = windowHandle.lock();
@@ -179,7 +179,7 @@ namespace spk
 
 			_platformRuntime->pollEvents();
 
-			std::vector<std::weak_ptr<spk::Window>> windows = _windowRegistry.windows();
+			std::vector<std::weak_ptr<spk::Window>> windows = _windowRegistry._windowVector();
 			for (const std::weak_ptr<spk::Window> &windowHandle : windows)
 			{
 				std::shared_ptr<spk::Window> window = windowHandle.lock();

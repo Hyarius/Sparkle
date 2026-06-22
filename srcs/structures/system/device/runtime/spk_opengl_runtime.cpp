@@ -18,7 +18,7 @@ namespace spk
 {
 	std::unique_ptr<spk::RenderContext> GPUPlatformRuntime::createRenderContext(spk::IFrame &p_frame)
 	{
-		spk::Frame &frame = requireFrame<spk::Frame>(p_frame);
+		spk::Frame &frame = _requireFrame<spk::Frame>(p_frame);
 		return std::make_unique<RenderContext>(frame);
 	}
 
@@ -63,8 +63,8 @@ namespace spk
 
 	void GPUPlatformRuntime::saveScreenshot(const std::filesystem::path &p_outputPath) const
 	{
-		GLint viewport[4] = {0, 0, 0, 0};
-		glGetIntegerv(GL_VIEWPORT, viewport);
+		std::array<GLint, 4> viewport = {0, 0, 0, 0};
+		glGetIntegerv(GL_VIEWPORT, viewport.data());
 
 		saveScreenshot(
 			p_outputPath,

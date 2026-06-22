@@ -11,13 +11,6 @@
 #include <string>
 #include <type_traits>
 
-#if defined(__SSE__) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 1)
-#	include <xmmintrin.h>
-#	define SPK_VECTOR4_HAS_SSE 1
-#else
-#	define SPK_VECTOR4_HAS_SSE 0
-#endif
-
 #include "structures/math/spk_approx_value.hpp"
 #include "structures/math/spk_vector2.hpp"
 #include "structures/math/spk_vector3.hpp"
@@ -34,25 +27,6 @@ namespace spk
 		TType y{};
 		TType z{};
 		TType w{};
-
-#if SPK_VECTOR4_HAS_SSE
-	private:
-		[[nodiscard]] __m128 _simdValue() const noexcept
-			requires std::same_as<TType, float>
-		{
-			return _mm_setr_ps(x, y, z, w);
-		}
-
-		[[nodiscard]] static IVector4<TType> _fromSimd(const __m128 p_value) noexcept
-			requires std::same_as<TType, float>
-		{
-			alignas(16) float values[4];
-			_mm_store_ps(values, p_value);
-			return {values[0], values[1], values[2], values[3]};
-		}
-
-	public:
-#endif
 
 		constexpr IVector4() = default;
 
@@ -152,43 +126,16 @@ namespace spk
 
 		[[nodiscard]] constexpr IVector4<TType> operator+(const IVector4<TType> &p_other) const noexcept
 		{
-#if SPK_VECTOR4_HAS_SSE
-			if constexpr (std::same_as<TType, float>)
-			{
-				if (!std::is_constant_evaluated())
-				{
-					return _fromSimd(_mm_add_ps(_simdValue(), p_other._simdValue()));
-				}
-			}
-#endif
 			return IVector4<TType>(x + p_other.x, y + p_other.y, z + p_other.z, w + p_other.w);
 		}
 
 		[[nodiscard]] constexpr IVector4<TType> operator-(const IVector4<TType> &p_other) const noexcept
 		{
-#if SPK_VECTOR4_HAS_SSE
-			if constexpr (std::same_as<TType, float>)
-			{
-				if (!std::is_constant_evaluated())
-				{
-					return _fromSimd(_mm_sub_ps(_simdValue(), p_other._simdValue()));
-				}
-			}
-#endif
 			return IVector4<TType>(x - p_other.x, y - p_other.y, z - p_other.z, w - p_other.w);
 		}
 
 		[[nodiscard]] constexpr IVector4<TType> operator*(const IVector4<TType> &p_other) const noexcept
 		{
-#if SPK_VECTOR4_HAS_SSE
-			if constexpr (std::same_as<TType, float>)
-			{
-				if (!std::is_constant_evaluated())
-				{
-					return _fromSimd(_mm_mul_ps(_simdValue(), p_other._simdValue()));
-				}
-			}
-#endif
 			return IVector4<TType>(x * p_other.x, y * p_other.y, z * p_other.z, w * p_other.w);
 		}
 
@@ -202,54 +149,21 @@ namespace spk
 				throw std::invalid_argument("spk::IVector4: division by zero vector component");
 			}
 
-#if SPK_VECTOR4_HAS_SSE
-			if constexpr (std::same_as<TType, float>)
-			{
-				return _fromSimd(_mm_div_ps(_simdValue(), p_other._simdValue()));
-			}
-#endif
 			return IVector4<TType>(x / p_other.x, y / p_other.y, z / p_other.z, w / p_other.w);
 		}
 
 		[[nodiscard]] constexpr IVector4<TType> operator+(const TType &p_scalar) const noexcept
 		{
-#if SPK_VECTOR4_HAS_SSE
-			if constexpr (std::same_as<TType, float>)
-			{
-				if (!std::is_constant_evaluated())
-				{
-					return _fromSimd(_mm_add_ps(_simdValue(), _mm_set1_ps(p_scalar)));
-				}
-			}
-#endif
 			return IVector4<TType>(x + p_scalar, y + p_scalar, z + p_scalar, w + p_scalar);
 		}
 
 		[[nodiscard]] constexpr IVector4<TType> operator-(const TType &p_scalar) const noexcept
 		{
-#if SPK_VECTOR4_HAS_SSE
-			if constexpr (std::same_as<TType, float>)
-			{
-				if (!std::is_constant_evaluated())
-				{
-					return _fromSimd(_mm_sub_ps(_simdValue(), _mm_set1_ps(p_scalar)));
-				}
-			}
-#endif
 			return IVector4<TType>(x - p_scalar, y - p_scalar, z - p_scalar, w - p_scalar);
 		}
 
 		[[nodiscard]] constexpr IVector4<TType> operator*(const TType &p_scalar) const noexcept
 		{
-#if SPK_VECTOR4_HAS_SSE
-			if constexpr (std::same_as<TType, float>)
-			{
-				if (!std::is_constant_evaluated())
-				{
-					return _fromSimd(_mm_mul_ps(_simdValue(), _mm_set1_ps(p_scalar)));
-				}
-			}
-#endif
 			return IVector4<TType>(x * p_scalar, y * p_scalar, z * p_scalar, w * p_scalar);
 		}
 
@@ -260,12 +174,6 @@ namespace spk
 				throw std::invalid_argument("spk::IVector4: division by zero scalar");
 			}
 
-#if SPK_VECTOR4_HAS_SSE
-			if constexpr (std::same_as<TType, float>)
-			{
-				return _fromSimd(_mm_div_ps(_simdValue(), _mm_set1_ps(p_scalar)));
-			}
-#endif
 			return IVector4<TType>(x / p_scalar, y / p_scalar, z / p_scalar, w / p_scalar);
 		}
 
@@ -365,15 +273,6 @@ namespace spk
 
 		[[nodiscard]] float squaredLength() const noexcept
 		{
-#if SPK_VECTOR4_HAS_SSE
-			if constexpr (std::same_as<TType, float>)
-			{
-				const __m128 multiplied = _mm_mul_ps(_simdValue(), _simdValue());
-				alignas(16) float values[4];
-				_mm_store_ps(values, multiplied);
-				return values[0] + values[1] + values[2] + values[3];
-			}
-#endif
 			const float valueX = static_cast<float>(x);
 			const float valueY = static_cast<float>(y);
 			const float valueZ = static_cast<float>(z);
@@ -416,15 +315,6 @@ namespace spk
 
 		[[nodiscard]] float dot(const IVector4<TType> &p_other) const noexcept
 		{
-#if SPK_VECTOR4_HAS_SSE
-			if constexpr (std::same_as<TType, float>)
-			{
-				const __m128 multiplied = _mm_mul_ps(_simdValue(), p_other._simdValue());
-				alignas(16) float values[4];
-				_mm_store_ps(values, multiplied);
-				return values[0] + values[1] + values[2] + values[3];
-			}
-#endif
 			return (static_cast<float>(x) * static_cast<float>(p_other.x)) +
 				   (static_cast<float>(y) * static_cast<float>(p_other.y)) +
 				   (static_cast<float>(z) * static_cast<float>(p_other.z)) +
@@ -577,5 +467,3 @@ namespace spk
 	using Vector4Int = IVector4<std::int32_t>;
 	using Vector4UInt = IVector4<std::uint32_t>;
 }
-
-#undef SPK_VECTOR4_HAS_SSE

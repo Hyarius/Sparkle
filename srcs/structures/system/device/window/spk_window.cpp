@@ -9,7 +9,7 @@ namespace spk
 {
 	namespace
 	{
-		std::unique_ptr<spk::IFrame> _createFrame(const std::shared_ptr<spk::PlatformRuntime> &p_platformRuntime, const spk::Rect2D &p_rect, const std::string &p_title)
+		std::unique_ptr<spk::IFrame> createFrame(const std::shared_ptr<spk::PlatformRuntime> &p_platformRuntime, const spk::Rect2D &p_rect, const std::string &p_title)
 		{
 			if (p_platformRuntime == nullptr)
 			{
@@ -252,7 +252,7 @@ namespace spk
 
 	Window::Window(std::shared_ptr<PlatformRuntime> p_platformRuntime, std::shared_ptr<GPUPlatformRuntime> p_gpuPlatformRuntime, Configuration p_configuration) :
 		_rootWidget(":/" + p_configuration.title + "/RootWidget", nullptr),
-		_host(_createFrame(p_platformRuntime, p_configuration.rect, p_configuration.title), std::move(p_gpuPlatformRuntime))
+		_host(createFrame(p_platformRuntime, p_configuration.rect, p_configuration.title), std::move(p_gpuPlatformRuntime))
 	{
 		_rootWidget.setGeometry(p_configuration.rect.atOrigin());
 		_rootWidget.activate();

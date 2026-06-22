@@ -41,7 +41,7 @@ namespace spk
 	{
 	}
 
-	void Widget::onParentChanged(spk::Widget *p_oldParent, spk::Widget *p_newParent)
+	void Widget::_onParentChanged(spk::Widget *p_oldParent, spk::Widget *p_newParent)
 	{
 		(void)p_oldParent;
 		(void)p_newParent;
@@ -386,7 +386,7 @@ namespace spk
 		_onUpdate(p_tick);
 	}
 
-	bool Widget::dispatchFrameEvent(spk::FrameEventRecord &p_event)
+	bool Widget::_dispatchFrameEvent(spk::FrameEventRecord &p_event)
 	{
 		return std::visit(
 			spk::Overloaded{
@@ -433,7 +433,7 @@ namespace spk
 			p_event);
 	}
 
-	void Widget::dispatchMouseEvent(spk::MouseEventRecord &p_event, spk::Mouse &p_mouse)
+	void Widget::_dispatchMouseEvent(spk::MouseEventRecord &p_event, spk::Mouse &p_mouse)
 	{
 		Widget *focused = _focusedWidgets[static_cast<int>(FocusType::Mouse)];
 		Widget *target = (focused != nullptr) ? focused : this;
@@ -471,7 +471,7 @@ namespace spk
 			p_event);
 	}
 
-	void Widget::dispatchKeyboardEvent(spk::KeyboardEventRecord &p_event, spk::Keyboard &p_keyboard)
+	void Widget::_dispatchKeyboardEvent(spk::KeyboardEventRecord &p_event, spk::Keyboard &p_keyboard)
 	{
 		Widget *focused = _focusedWidgets[static_cast<int>(FocusType::Keyboard)];
 		Widget *target = (focused != nullptr) ? focused : this;

@@ -26,7 +26,7 @@ namespace spk
 				}},
 			p_event);
 
-		widget()->dispatchKeyboardEvent(p_event, _keyboard);
+		widget()->_dispatchKeyboardEvent(p_event, _keyboard);
 	}
 
 	void KeyboardModule::pushEvent(spk::KeyboardEventRecord p_event)

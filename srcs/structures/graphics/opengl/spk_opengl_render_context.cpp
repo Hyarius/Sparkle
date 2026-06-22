@@ -12,21 +12,16 @@ namespace
 {
 	using WGLSwapIntervalEXTPtr = BOOL(WINAPI *)(int);
 
-	// Live-context registry: lets handle destructors route GPU objects to their
-	// owning context (or detect it died). The storage intentionally survives
-	// process teardown because static GPU handles may release after normal static
-	// objects have already been destroyed.
 	std::mutex &contextRegistryMutex()
 	{
-		static std::mutex *mutex = new std::mutex();
-		return *mutex;
+		static std::mutex mutex;
+		return mutex;
 	}
 
 	std::unordered_map<std::uint64_t, spk::RenderContext *> &contextRegistry()
 	{
-		static std::unordered_map<std::uint64_t, spk::RenderContext *> *registry =
-			new std::unordered_map<std::uint64_t, spk::RenderContext *>();
-		return *registry;
+		static std::unordered_map<std::uint64_t, spk::RenderContext *> registry;
+		return registry;
 	}
 
 	void configurePixelFormat(HDC p_deviceContext)

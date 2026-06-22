@@ -22,7 +22,7 @@ namespace spk
 
 		public:
 			Buffer(GLenum p_target, GLenum p_usage, const void *p_data, std::size_t p_size);
-			~Buffer();
+			~Buffer() override;
 
 			Buffer(const Buffer &) = delete;
 			Buffer &operator=(const Buffer &) = delete;

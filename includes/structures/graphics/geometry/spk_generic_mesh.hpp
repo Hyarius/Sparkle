@@ -83,8 +83,8 @@ namespace spk
 
 		void _addTriangleIndexes(Index p_a, Index p_b, Index p_c)
 		{
-			const Index indexes[] = {p_a, p_b, p_c};
-			_layoutBuffer.appendIndexes(std::span<const Index>(indexes, 3));
+			const std::array<Index, 3> indexes = {p_a, p_b, p_c};
+			_layoutBuffer.appendIndexes(indexes);
 		}
 
 	public:
@@ -114,16 +114,16 @@ namespace spk
 
 		void addShape(const Vertex &p_a, const Vertex &p_b, const Vertex &p_c)
 		{
-			const Vertex vertices[] = {p_a, p_b, p_c};
+			const std::array<Vertex, 3> vertices = {p_a, p_b, p_c};
 
-			addShape(std::span<const Vertex>(vertices, 3));
+			addShape(vertices);
 		}
 
 		void addShape(const Vertex &p_a, const Vertex &p_b, const Vertex &p_c, const Vertex &p_d)
 		{
-			const Vertex vertices[] = {p_a, p_b, p_c, p_d};
+			const std::array<Vertex, 4> vertices = {p_a, p_b, p_c, p_d};
 
-			addShape(std::span<const Vertex>(vertices, 4));
+			addShape(vertices);
 		}
 
 		void addShape(std::span<const Vertex> p_vertices)

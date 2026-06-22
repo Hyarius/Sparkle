@@ -12,7 +12,7 @@ namespace spk
 	{
 	protected:
 		template <typename TExpected>
-		TExpected &requireFrame(IFrame &p_frame)
+		TExpected &_requireFrame(IFrame &p_frame)
 		{
 			auto *ptr = dynamic_cast<TExpected *>(&p_frame);
 			if (ptr == nullptr)

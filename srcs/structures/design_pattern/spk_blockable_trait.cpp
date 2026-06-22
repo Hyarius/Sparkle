@@ -16,7 +16,7 @@ namespace spk
 		}
 	}
 
-	void BlockableTrait::deferUntilUnblocked(std::function<void()> p_operation)
+	void BlockableTrait::_deferUntilUnblocked(std::function<void()> p_operation)
 	{
 		if (_state == nullptr)
 		{

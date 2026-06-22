@@ -21,7 +21,7 @@ namespace spk
 
 		public:
 			Program(const std::string &p_vertexShaderSource, const std::string &p_fragmentShaderSource);
-			~Program();
+			~Program() override;
 
 			Program(const Program &) = delete;
 			Program &operator=(const Program &) = delete;

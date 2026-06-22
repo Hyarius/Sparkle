@@ -42,7 +42,7 @@
 			"inherits": "default",
 			"description": "Configure for Release build with Test Units",
 			"cacheVariables": {
-				"ENABLE_TESTS": "ON",
+				"SPARKLE_BUILD_TESTS": "ON",
 				"CMAKE_BUILD_TYPE": "Release"
 			}
 		},
@@ -61,7 +61,7 @@
 			"description": "Configure Debug build with clang and coverage instrumentation enabled",
 			"cacheVariables": {
 				"CMAKE_BUILD_TYPE": "Debug",
-				"ENABLE_TESTS": "ON",
+				"SPARKLE_BUILD_TESTS": "ON",
 				"SPARKLE_ENABLE_COVERAGE": "ON",
 				"CMAKE_C_COMPILER": "clang",
 				"CMAKE_CXX_COMPILER": "clang++"
@@ -72,7 +72,7 @@
 			"inherits": "default",
 			"description": "Configure for Debug build with Playground executable",
 			"cacheVariables": {
-				"ENABLE_PLAYGROUND": "ON",
+				"SPARKLE_BUILD_PLAYGROUND": "ON",
 				"CMAKE_BUILD_TYPE": "Debug"
 			}
 		}
@@ -100,10 +100,17 @@
 			"configurePreset": "clang-tidy"
 		},
 		{
+			"name": "clang-tidy-check",
+			"configurePreset": "clang-tidy",
+			"targets": [
+				"sparkle-clang-tidy"
+			]
+		},
+		{
 			"name": "clang-tidy-fix",
 			"configurePreset": "clang-tidy",
 			"targets": [
-				"clang-tidy-fix"
+				"sparkle-clang-tidy-fix"
 			]
 		},
 		{

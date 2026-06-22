@@ -22,7 +22,7 @@ namespace spk
 
 		public:
 			explicit Texture(const spk::Texture &p_source);
-			~Texture();
+			~Texture() override;
 
 			Texture(const Texture &) = delete;
 			Texture &operator=(const Texture &) = delete;

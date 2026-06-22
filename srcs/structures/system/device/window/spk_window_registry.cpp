@@ -54,7 +54,7 @@ namespace spk
 		return _windows.size();
 	}
 
-	std::vector<std::weak_ptr<spk::Window>> WindowRegistry::windows() const
+	std::vector<std::weak_ptr<spk::Window>> WindowRegistry::_windowVector() const
 	{
 		std::scoped_lock lock(_mutex);
 
