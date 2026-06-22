@@ -7,8 +7,8 @@
 #include <stdexcept>
 #include <string>
 
-#include "utils/spk_math.hpp"
 #include "structures/math/spk_vector3.hpp"
+#include "utils/spk_math.hpp"
 
 namespace spk
 {
@@ -34,7 +34,7 @@ namespace spk
 			return {};
 		}
 
-		[[nodiscard]] static Quaternion fromAxisAngle(const Vector3& p_axis, const float p_angle)
+		[[nodiscard]] static Quaternion fromAxisAngle(const Vector3 &p_axis, const float p_angle)
 		{
 			const Vector3 axis = p_axis.normalized();
 			const float halfAngle = degreeToRadian(p_angle) * 0.5f;
@@ -42,7 +42,7 @@ namespace spk
 			return {axis.x * sine, axis.y * sine, axis.z * sine, std::cos(halfAngle)};
 		}
 
-		[[nodiscard]] static Quaternion fromEuler(const Vector3& p_angles)
+		[[nodiscard]] static Quaternion fromEuler(const Vector3 &p_angles)
 		{
 			const float halfX = degreeToRadian(p_angles.x) * 0.5f;
 			const float halfY = degreeToRadian(p_angles.y) * 0.5f;
@@ -62,17 +62,17 @@ namespace spk
 		}
 
 		[[nodiscard]] static Quaternion lookAt(
-			const Vector3& p_from,
-			const Vector3& p_to,
-			const Vector3& p_up = Vector3(0.0f, 1.0f, 0.0f))
+			const Vector3 &p_from,
+			const Vector3 &p_to,
+			const Vector3 &p_up = Vector3(0.0f, 1.0f, 0.0f))
 		{
 			const Vector3 forward = (p_to - p_from).normalized();
 			Vector3 right = forward.cross(p_up);
 			if (right.isZero())
 			{
 				const Vector3 fallbackUp = (std::fabs(forward.y) < 0.999f)
-					? Vector3(0.0f, 1.0f, 0.0f)
-					: Vector3(1.0f, 0.0f, 0.0f);
+											   ? Vector3(0.0f, 1.0f, 0.0f)
+											   : Vector3(1.0f, 0.0f, 0.0f);
 				right = forward.cross(fallbackUp);
 			}
 			right = right.normalized();
@@ -113,7 +113,7 @@ namespace spk
 			return result.normalized();
 		}
 
-		friend std::ostream& operator<<(std::ostream& p_outputStream, const Quaternion& p_value)
+		friend std::ostream &operator<<(std::ostream &p_outputStream, const Quaternion &p_value)
 		{
 			p_outputStream << '(' << p_value.x << ", " << p_value.y << ", " << p_value.z << ", " << p_value.w << ')';
 			return p_outputStream;
@@ -136,7 +136,7 @@ namespace spk
 			return {x / length, y / length, z / length, w / length};
 		}
 
-		[[nodiscard]] float dot(const Quaternion& p_other) const noexcept
+		[[nodiscard]] float dot(const Quaternion &p_other) const noexcept
 		{
 			return x * p_other.x + y * p_other.y + z * p_other.z + w * p_other.w;
 		}
@@ -156,7 +156,7 @@ namespace spk
 				radianToDegree(std::atan2(sinZCosY, cosZCosY))};
 		}
 
-		[[nodiscard]] static Quaternion slerp(const Quaternion& p_from, const Quaternion& p_to, const float p_alpha)
+		[[nodiscard]] static Quaternion slerp(const Quaternion &p_from, const Quaternion &p_to, const float p_alpha)
 		{
 			const Quaternion from = p_from.normalized();
 			Quaternion to = p_to.normalized();
@@ -171,10 +171,11 @@ namespace spk
 			if (cosine > 0.9995f)
 			{
 				return Quaternion(
-					from.x + p_alpha * (to.x - from.x),
-					from.y + p_alpha * (to.y - from.y),
-					from.z + p_alpha * (to.z - from.z),
-					from.w + p_alpha * (to.w - from.w)).normalized();
+						   from.x + p_alpha * (to.x - from.x),
+						   from.y + p_alpha * (to.y - from.y),
+						   from.z + p_alpha * (to.z - from.z),
+						   from.w + p_alpha * (to.w - from.w))
+					.normalized();
 			}
 
 			const float angle = std::acos(std::clamp(cosine, -1.0f, 1.0f));

@@ -21,6 +21,6 @@ namespace spk
 		void publishSnapshot(std::shared_ptr<spk::RenderSnapshot> p_snapshot);
 		[[nodiscard]] std::shared_ptr<spk::RenderSnapshot> currentSnapshot() const;
 
-		void render(spk::RenderContext& p_renderContext) const;
+		void render(spk::RenderContext &p_renderContext) const;
 	};
 }

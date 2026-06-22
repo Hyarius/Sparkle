@@ -12,8 +12,8 @@ namespace
 		int p_minSize,
 		int p_maxSize,
 		bool p_fromMinSide,
-		int& p_outAnchor,
-		int& p_outSize)
+		int &p_outAnchor,
+		int &p_outSize)
 	{
 		if (p_fromMinSide == true)
 		{
@@ -32,13 +32,13 @@ namespace
 
 namespace spk
 {
-	ScalableWidget::ScalableWidget(const std::string& p_name, spk::Widget* p_parent) :
+	ScalableWidget::ScalableWidget(const std::string &p_name, spk::Widget *p_parent) :
 		spk::Widget(p_name, p_parent)
 	{
 		setMaximalSize({1000, 1000});
 	}
 
-	void ScalableWidget::setGeometry(const spk::Rect2D& p_geometry)
+	void ScalableWidget::setGeometry(const spk::Rect2D &p_geometry)
 	{
 		const spk::Vector2UInt minimumSize = spk::Widget::minimalSize();
 		const spk::Vector2UInt maximumSize = spk::Widget::maximalSize();
@@ -50,21 +50,17 @@ namespace spk
 		spk::Widget::setGeometry(clamped);
 	}
 
-	void ScalableWidget::setMinimumSize(const spk::Vector2UInt& p_minimumSize)
+	void ScalableWidget::setMinimumSize(const spk::Vector2UInt &p_minimumSize)
 	{
 		setMinimalSize(p_minimumSize);
 
 		if (geometry().size.x < p_minimumSize.x || geometry().size.y < p_minimumSize.y)
 		{
-			setGeometry(spk::Rect2D(
-				geometry().anchor,
-				spk::Vector2UInt(
-					std::max(geometry().size.x, p_minimumSize.x),
-					std::max(geometry().size.y, p_minimumSize.y))));
+			setGeometry(spk::Rect2D(geometry().anchor, spk::Vector2UInt(std::max(geometry().size.x, p_minimumSize.x), std::max(geometry().size.y, p_minimumSize.y))));
 		}
 	}
 
-	void ScalableWidget::setMaximumSize(const spk::Vector2UInt& p_maximumSize)
+	void ScalableWidget::setMaximumSize(const spk::Vector2UInt &p_maximumSize)
 	{
 		setMaximalSize(p_maximumSize);
 	}
@@ -74,9 +70,9 @@ namespace spk
 		return _activeEdges != Edge::None;
 	}
 
-	uint8_t ScalableWidget::_hoverEdges(const spk::Vector2Int& p_mousePosition) const
+	uint8_t ScalableWidget::_hoverEdges(const spk::Vector2Int &p_mousePosition) const
 	{
-		const spk::Rect2D& absolute = absoluteGeometry();
+		const spk::Rect2D &absolute = absoluteGeometry();
 
 		const spk::Rect2D topArea(
 			{absolute.anchor.x - EdgeGrabOffset, absolute.anchor.y - EdgeGrabOffset},
@@ -111,7 +107,7 @@ namespace spk
 		return edges;
 	}
 
-	void ScalableWidget::_requestCursorForEdges(uint8_t p_edges, const spk::Mouse& p_mouse) const
+	void ScalableWidget::_requestCursorForEdges(uint8_t p_edges, const spk::Mouse &p_mouse) const
 	{
 		const bool top = (p_edges & Edge::Top) != 0;
 		const bool bottom = (p_edges & Edge::Bottom) != 0;
@@ -140,7 +136,7 @@ namespace spk
 		}
 	}
 
-	void ScalableWidget::_beginResize(uint8_t p_edges, const spk::Vector2Int& p_startPosition)
+	void ScalableWidget::_beginResize(uint8_t p_edges, const spk::Vector2Int &p_startPosition)
 	{
 		_activeEdges = p_edges;
 		_resizeOrigin = p_startPosition;
@@ -152,7 +148,7 @@ namespace spk
 		_activeEdges = Edge::None;
 	}
 
-	spk::Rect2D ScalableWidget::_computeResizedGeometry(const spk::Vector2Int& p_currentPosition) const
+	spk::Rect2D ScalableWidget::_computeResizedGeometry(const spk::Vector2Int &p_currentPosition) const
 	{
 		const spk::Vector2Int delta = p_currentPosition - _resizeOrigin;
 		const spk::Vector2UInt minimumSize = spk::Widget::minimalSize();
@@ -220,7 +216,7 @@ namespace spk
 			static_cast<unsigned int>(std::max(0, sizeY)));
 	}
 
-	void ScalableWidget::_onMouseMovedEvent(spk::MouseMovedEvent& p_event)
+	void ScalableWidget::_onMouseMovedEvent(spk::MouseMovedEvent &p_event)
 	{
 		if (_activeEdges == Edge::None)
 		{
@@ -241,7 +237,7 @@ namespace spk
 		}
 	}
 
-	void ScalableWidget::_onMouseButtonPressedEvent(spk::MouseButtonPressedEvent& p_event)
+	void ScalableWidget::_onMouseButtonPressedEvent(spk::MouseButtonPressedEvent &p_event)
 	{
 		if (p_event->button != spk::Mouse::Left)
 		{
@@ -257,7 +253,7 @@ namespace spk
 		}
 	}
 
-	void ScalableWidget::_onMouseButtonReleasedEvent(spk::MouseButtonReleasedEvent& p_event)
+	void ScalableWidget::_onMouseButtonReleasedEvent(spk::MouseButtonReleasedEvent &p_event)
 	{
 		if (p_event->button != spk::Mouse::Left || _activeEdges == Edge::None)
 		{

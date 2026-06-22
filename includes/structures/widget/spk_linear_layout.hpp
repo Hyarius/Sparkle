@@ -16,7 +16,7 @@ namespace spk
 		static constexpr bool _horizontalMode = (TOrientation == spk::Orientation::Horizontal);
 
 		template <typename TVector>
-		static int _primary(const TVector& p_vector)
+		static int _primary(const TVector &p_vector)
 		{
 			if constexpr (_horizontalMode)
 			{
@@ -29,7 +29,7 @@ namespace spk
 		}
 
 		template <typename TVector>
-		static int _secondary(const TVector& p_vector)
+		static int _secondary(const TVector &p_vector)
 		{
 			if constexpr (_horizontalMode)
 			{
@@ -43,7 +43,7 @@ namespace spk
 
 		struct Item
 		{
-			Element* elt = nullptr;
+			Element *elt = nullptr;
 			int size = 0;
 			int minP = 0;
 			int maxP = std::numeric_limits<int>::max();
@@ -57,9 +57,9 @@ namespace spk
 			std::vector<Item> out;
 			out.reserve(_elements.size());
 
-			for (const auto& up : _elements)
+			for (const auto &up : _elements)
 			{
-				Element* e = up.get();
+				Element *e = up.get();
 
 				if (e == nullptr || (e->widget() == nullptr && e->layout() == nullptr))
 				{
@@ -76,8 +76,8 @@ namespace spk
 				it.minP = std::max(0, _primary(minSize));
 				const long long rawMaxP = static_cast<long long>(_horizontalMode ? maxSize.x : maxSize.y);
 				it.maxP = (rawMaxP > static_cast<long long>(std::numeric_limits<int>::max()))
-					? std::numeric_limits<int>::max()
-					: static_cast<int>(rawMaxP);
+							  ? std::numeric_limits<int>::max()
+							  : static_cast<int>(rawMaxP);
 				if (it.maxP < it.minP)
 				{
 					it.maxP = it.minP;
@@ -86,8 +86,8 @@ namespace spk
 				it.minS = std::max(0, _secondary(minSize));
 				const long long rawMaxS = static_cast<long long>(_horizontalMode ? maxSize.y : maxSize.x);
 				it.maxS = (rawMaxS > static_cast<long long>(std::numeric_limits<int>::max()))
-					? std::numeric_limits<int>::max()
-					: static_cast<int>(rawMaxS);
+							  ? std::numeric_limits<int>::max()
+							  : static_cast<int>(rawMaxS);
 				if (it.maxS < it.minS)
 				{
 					it.maxS = it.minS;
@@ -147,17 +147,17 @@ namespace spk
 			return out;
 		}
 
-		static int _sumBase(const std::vector<Item>& p_items)
+		static int _sumBase(const std::vector<Item> &p_items)
 		{
 			int sum = 0;
-			for (const auto& it : p_items)
+			for (const auto &it : p_items)
 			{
 				sum += it.size;
 			}
 			return sum;
 		}
 
-		static void _distributeExtra(std::vector<Item>& p_items, int p_extra)
+		static void _distributeExtra(std::vector<Item> &p_items, int p_extra)
 		{
 			if (p_extra <= 0 || p_items.empty() == true)
 			{
@@ -165,7 +165,7 @@ namespace spk
 			}
 
 			size_t extendCount = 0;
-			for (auto& it : p_items)
+			for (auto &it : p_items)
 			{
 				if (it.extend == true)
 				{
@@ -175,7 +175,7 @@ namespace spk
 
 			if (extendCount == 0)
 			{
-				for (auto& it : p_items)
+				for (auto &it : p_items)
 				{
 					it.extend = true;
 				}
@@ -185,7 +185,7 @@ namespace spk
 			const int share = p_extra / static_cast<int>(extendCount);
 			int remain = p_extra % static_cast<int>(extendCount);
 
-			for (auto& it : p_items)
+			for (auto &it : p_items)
 			{
 				if (it.extend == false)
 				{
@@ -202,13 +202,13 @@ namespace spk
 			}
 		}
 
-		void _applyGeometry(const std::vector<Item>& p_items, const spk::Rect2D& p_geometry, int p_padding)
+		void _applyGeometry(const std::vector<Item> &p_items, const spk::Rect2D &p_geometry, int p_padding)
 		{
 			int cursor = _primary(p_geometry.anchor);
 
 			for (size_t i = 0; i < p_items.size(); ++i)
 			{
-				const Item& it = p_items[i];
+				const Item &it = p_items[i];
 
 				if (i > 0)
 				{
@@ -253,7 +253,7 @@ namespace spk
 			uint32_t secondaryMax = 0;
 			size_t count = 0;
 
-			for (const auto& elementPtr : _elements)
+			for (const auto &elementPtr : _elements)
 			{
 				if (elementPtr == nullptr || (elementPtr->widget() == nullptr && elementPtr->layout() == nullptr))
 				{
@@ -302,7 +302,7 @@ namespace spk
 			});
 		}
 
-		void setGeometry(const spk::Rect2D& p_geometry) override
+		void setGeometry(const spk::Rect2D &p_geometry) override
 		{
 			if (_elements.empty() == true)
 			{

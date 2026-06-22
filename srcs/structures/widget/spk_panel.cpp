@@ -7,28 +7,26 @@
 
 namespace
 {
-	[[nodiscard]] spk::Vector2Int defaultCornerSize(const spk::SpriteSheet& p_spriteSheet)
+	[[nodiscard]] spk::Vector2Int defaultCornerSize(const spk::SpriteSheet &p_spriteSheet)
 	{
 		return {
 			static_cast<int>(p_spriteSheet.size().x / p_spriteSheet.nbSprite().x),
-			static_cast<int>(p_spriteSheet.size().y / p_spriteSheet.nbSprite().y)
-		};
+			static_cast<int>(p_spriteSheet.size().y / p_spriteSheet.nbSprite().y)};
 	}
 
 	[[nodiscard]] spk::Vector2Int clampedCornerSize(
-		const spk::Vector2Int& p_cornerSize,
-		const spk::Rect2D& p_geometry)
+		const spk::Vector2Int &p_cornerSize,
+		const spk::Rect2D &p_geometry)
 	{
 		return {
 			std::min(p_cornerSize.x, static_cast<int>(p_geometry.width() / 2)),
-			std::min(p_cornerSize.y, static_cast<int>(p_geometry.height() / 2))
-		};
+			std::min(p_cornerSize.y, static_cast<int>(p_geometry.height() / 2))};
 	}
 }
 
 namespace spk
 {
-	Panel::Panel(const std::string& p_name, spk::Widget* p_parent) :
+	Panel::Panel(const std::string &p_name, spk::Widget *p_parent) :
 		spk::Widget(p_name, p_parent)
 	{
 		useDefaultStyle();
@@ -36,9 +34,9 @@ namespace spk
 	}
 
 	Panel::Panel(
-		const std::string& p_name,
-		const spk::WidgetStyle& p_style,
-		spk::Widget* p_parent) :
+		const std::string &p_name,
+		const spk::WidgetStyle &p_style,
+		spk::Widget *p_parent) :
 		spk::Widget(p_name, p_parent)
 	{
 		useStyle(p_style);
@@ -46,24 +44,23 @@ namespace spk
 	}
 
 	Panel::Panel(
-		const std::string& p_name,
+		const std::string &p_name,
 		std::shared_ptr<spk::SpriteSheet> p_spriteSheet,
-		spk::Widget* p_parent) :
+		spk::Widget *p_parent) :
 		spk::Widget(p_name, p_parent)
 	{
 		setSpriteSheet(std::move(p_spriteSheet));
 		activate();
 	}
 
-	void Panel::_bindStyle(const spk::WidgetStyle& p_style)
+	void Panel::_bindStyle(const spk::WidgetStyle &p_style)
 	{
-		_styleEditionContract = p_style.subscribeToEdition([this](const spk::WidgetStyle& p_editedStyle)
-		{
+		_styleEditionContract = p_style.subscribeToEdition([this](const spk::WidgetStyle &p_editedStyle) {
 			applyStyle(p_editedStyle);
 		});
 	}
 
-	void Panel::applyStyle(const spk::WidgetStyle& p_style)
+	void Panel::applyStyle(const spk::WidgetStyle &p_style)
 	{
 		setSpriteSheet(p_style.nineSliceSpriteSheet());
 		setCornerSize(p_style.nineSliceCornerSize());
@@ -75,7 +72,7 @@ namespace spk
 		applyStyle(spk::WidgetStyle::Collection::style(spk::WidgetStyle::Collection::Default));
 	}
 
-	void Panel::useStyle(const spk::WidgetStyle& p_style)
+	void Panel::useStyle(const spk::WidgetStyle &p_style)
 	{
 		_bindStyle(p_style);
 		applyStyle(p_style);
@@ -114,7 +111,7 @@ namespace spk
 		invalidateRenderUnit();
 	}
 
-	void Panel::setCornerSize(const spk::Vector2Int& p_cornerSize)
+	void Panel::setCornerSize(const spk::Vector2Int &p_cornerSize)
 	{
 		if (p_cornerSize.x < 0 || p_cornerSize.y < 0)
 		{
@@ -141,12 +138,12 @@ namespace spk
 		invalidateRenderUnit();
 	}
 
-	const std::shared_ptr<spk::SpriteSheet>& Panel::spriteSheet() const
+	const std::shared_ptr<spk::SpriteSheet> &Panel::spriteSheet() const
 	{
 		return _spriteSheet;
 	}
 
-	const spk::Vector2Int& Panel::cornerSize() const
+	const spk::Vector2Int &Panel::cornerSize() const
 	{
 		return _cornerSize;
 	}

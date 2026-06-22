@@ -23,21 +23,21 @@ namespace spk
 
 	protected:
 		[[nodiscard]] spk::RenderUnit _buildRenderUnit() const override;
-		void _onUpdate(const spk::UpdateTick& p_tick) override;
+		void _onUpdate(const spk::UpdateTick &p_tick) override;
 
 	public:
-		explicit AnimationLabel(const std::string& p_name, spk::Widget* p_parent = nullptr);
+		explicit AnimationLabel(const std::string &p_name, spk::Widget *p_parent = nullptr);
 		AnimationLabel(
-			const std::string& p_name,
+			const std::string &p_name,
 			std::shared_ptr<spk::SpriteSheet> p_spriteSheet,
-			spk::Widget* p_parent = nullptr);
+			spk::Widget *p_parent = nullptr);
 
 		void setSpriteSheet(std::shared_ptr<spk::SpriteSheet> p_spriteSheet);
-		void setLoopSpeed(const spk::Duration& p_duration);
+		void setLoopSpeed(const spk::Duration &p_duration);
 		void setAnimationRange(size_t p_start, size_t p_end);
 		void setDepth(float p_depth);
 
-		[[nodiscard]] const std::shared_ptr<spk::SpriteSheet>& spriteSheet() const;
+		[[nodiscard]] const std::shared_ptr<spk::SpriteSheet> &spriteSheet() const;
 		[[nodiscard]] size_t currentFrame() const;
 		[[nodiscard]] size_t rangeStart() const;
 		[[nodiscard]] size_t rangeEnd() const;

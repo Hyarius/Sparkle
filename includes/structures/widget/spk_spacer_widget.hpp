@@ -9,6 +9,6 @@ namespace spk
 	class SpacerWidget : public spk::Widget
 	{
 	public:
-		explicit SpacerWidget(const std::string& p_name, spk::Widget* p_parent = nullptr);
+		explicit SpacerWidget(const std::string &p_name, spk::Widget *p_parent = nullptr);
 	};
 }

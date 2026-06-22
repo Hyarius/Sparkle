@@ -4,13 +4,13 @@
 
 namespace spk
 {
-	BinaryField::BinaryField(const std::shared_ptr<Layout>& p_layout, std::size_t p_sectionID) :
+	BinaryField::BinaryField(const std::shared_ptr<Layout> &p_layout, std::size_t p_sectionID) :
 		_layout(p_layout),
 		_sectionID(p_sectionID)
 	{
 	}
 
-	BinaryField::Section& BinaryField::_section()
+	BinaryField::Section &BinaryField::_section()
 	{
 		if (isValid() == false)
 		{
@@ -20,7 +20,7 @@ namespace spk
 		return _layout->sections[_sectionID];
 	}
 
-	const BinaryField::Section& BinaryField::_section() const
+	const BinaryField::Section &BinaryField::_section() const
 	{
 		if (isValid() == false)
 		{
@@ -32,10 +32,10 @@ namespace spk
 
 	std::size_t BinaryField::_findChild(std::string_view p_name) const
 	{
-		const Section& parent = _section();
+		const Section &parent = _section();
 		for (const std::size_t childID : parent.children)
 		{
-			const Section& child = _layout->sections[childID];
+			const Section &child = _layout->sections[childID];
 			if (child.name == p_name)
 			{
 				return childID;
@@ -51,7 +51,7 @@ namespace spk
 		std::size_t p_size,
 		BinaryField::Kind p_kind)
 	{
-		const Section& parent = _section();
+		const Section &parent = _section();
 		const Kind parentKind = parent.kind;
 		const std::size_t parentSize = parent.size;
 		const std::size_t parentAbsoluteOffset = parent.absoluteOffset;
@@ -88,7 +88,7 @@ namespace spk
 
 		const std::size_t sectionID = _layout->sections.size();
 		_layout->sections.emplace_back();
-		Section& section = _layout->sections[sectionID];
+		Section &section = _layout->sections[sectionID];
 		section.name = std::string(p_name);
 		section.kind = p_kind;
 		section.size = p_size;
@@ -100,7 +100,7 @@ namespace spk
 		return BinaryField(_layout, sectionID);
 	}
 
-	BinaryField::BinaryField(std::uint8_t* p_data, std::size_t p_size)
+	BinaryField::BinaryField(std::uint8_t *p_data, std::size_t p_size)
 	{
 		if (p_data == nullptr && p_size != 0)
 		{
@@ -109,7 +109,7 @@ namespace spk
 
 		_layout = std::make_shared<Layout>();
 		_layout->data = p_data;
-		Section& root = _layout->sections.emplace_back();
+		Section &root = _layout->sections.emplace_back();
 		root.name = "<root>";
 		root.kind = Kind::Object;
 		root.size = p_size;
@@ -148,15 +148,15 @@ namespace spk
 		return _section().elementSize;
 	}
 
-	std::uint8_t* BinaryField::data()
+	std::uint8_t *BinaryField::data()
 	{
-		const Section& section = _section();
+		const Section &section = _section();
 		return (_layout->data == nullptr) ? nullptr : _layout->data + section.absoluteOffset;
 	}
 
-	const std::uint8_t* BinaryField::data() const
+	const std::uint8_t *BinaryField::data() const
 	{
-		const Section& section = _section();
+		const Section &section = _section();
 		return (_layout->data == nullptr) ? nullptr : _layout->data + section.absoluteOffset;
 	}
 
@@ -191,7 +191,7 @@ namespace spk
 		{
 			const std::size_t sectionID = _layout->sections.size();
 			_layout->sections.emplace_back();
-			Section& element = _layout->sections[sectionID];
+			Section &element = _layout->sections[sectionID];
 			element.name = std::to_string(index);
 			element.kind = Kind::Value;
 			element.size = p_elementSize;
@@ -206,7 +206,7 @@ namespace spk
 
 	BinaryField BinaryField::operator[](std::string_view p_name)
 	{
-		const Section& section = _section();
+		const Section &section = _section();
 		if (section.kind != Kind::Object)
 		{
 			throw std::runtime_error("BinaryField named lookup can only be used on object fields.");
@@ -223,7 +223,7 @@ namespace spk
 
 	BinaryField BinaryField::operator[](std::size_t p_index)
 	{
-		const Section& section = _section();
+		const Section &section = _section();
 		if (section.kind != Kind::Array)
 		{
 			throw std::runtime_error("BinaryField indexed lookup can only be used on array fields.");

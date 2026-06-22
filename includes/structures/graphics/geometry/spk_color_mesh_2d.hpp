@@ -14,7 +14,7 @@ namespace spk
 		spk::Vector3 position{};
 		spk::Color color{};
 
-		[[nodiscard]] bool operator==(const ColorVertex2D& p_other) const noexcept
+		[[nodiscard]] bool operator==(const ColorVertex2D &p_other) const noexcept
 		{
 			return position == p_other.position &&
 				   color.r == p_other.color.r &&
@@ -31,7 +31,7 @@ namespace std
 	template <>
 	struct hash<spk::ColorVertex2D>
 	{
-		std::size_t operator()(const spk::ColorVertex2D& p_value) const noexcept
+		std::size_t operator()(const spk::ColorVertex2D &p_value) const noexcept
 		{
 			std::size_t h = std::hash<float>{}(p_value.position.x);
 			h ^= std::hash<float>{}(p_value.position.y) + 0x9e3779b9u + (h << 6) + (h >> 2);

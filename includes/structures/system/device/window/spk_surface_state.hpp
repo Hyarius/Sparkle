@@ -16,7 +16,7 @@ namespace spk
 		void invalidate();
 		[[nodiscard]] bool isValid() const;
 
-		void setRect(const spk::Rect2D& p_rect);
-		[[nodiscard]] const spk::Rect2D& rect() const;
+		void setRect(const spk::Rect2D &p_rect);
+		[[nodiscard]] const spk::Rect2D &rect() const;
 	};
 }

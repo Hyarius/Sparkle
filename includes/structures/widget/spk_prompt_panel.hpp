@@ -23,26 +23,26 @@ namespace spk
 		void _onGeometryChange() override;
 
 	public:
-		explicit PromptPanel(const std::string& p_name, spk::Widget* p_parent = nullptr);
+		explicit PromptPanel(const std::string &p_name, spk::Widget *p_parent = nullptr);
 
 		void setMessage(std::string_view p_text);
-		[[nodiscard]] const spk::Font::Text& message() const;
+		[[nodiscard]] const spk::Font::Text &message() const;
 
-		spk::PushButton* addButton(const std::string& p_name, std::string_view p_label);
-		[[nodiscard]] spk::PushButton* button(const std::string& p_name);
-		void removeButton(const std::string& p_name);
+		spk::PushButton *addButton(const std::string &p_name, std::string_view p_label);
+		[[nodiscard]] spk::PushButton *button(const std::string &p_name);
+		void removeButton(const std::string &p_name);
 
-		spk::CommandPanel::Contract subscribe(const std::string& p_name, spk::CommandPanel::Callback p_callback);
+		spk::CommandPanel::Contract subscribe(const std::string &p_name, spk::CommandPanel::Callback p_callback);
 
-		void setButtonPadding(const spk::Vector2UInt& p_padding);
+		void setButtonPadding(const spk::Vector2UInt &p_padding);
 		void setButtonSizePolicy(spk::Layout::SizePolicy p_policy);
 		[[nodiscard]] spk::Layout::SizePolicy buttonSizePolicy() const;
 
-		[[nodiscard]] spk::Panel& background();
-		[[nodiscard]] const spk::Panel& background() const;
-		[[nodiscard]] spk::TextArea& textArea();
-		[[nodiscard]] const spk::TextArea& textArea() const;
-		[[nodiscard]] spk::CommandPanel& commandPanel();
-		[[nodiscard]] const spk::CommandPanel& commandPanel() const;
+		[[nodiscard]] spk::Panel &background();
+		[[nodiscard]] const spk::Panel &background() const;
+		[[nodiscard]] spk::TextArea &textArea();
+		[[nodiscard]] const spk::TextArea &textArea() const;
+		[[nodiscard]] spk::CommandPanel &commandPanel();
+		[[nodiscard]] const spk::CommandPanel &commandPanel() const;
 	};
 }

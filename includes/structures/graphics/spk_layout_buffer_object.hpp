@@ -61,15 +61,15 @@ namespace spk
 
 	public:
 		LayoutBufferObject();
-		LayoutBufferObject(const LayoutBufferObject& p_other);
-		LayoutBufferObject& operator=(const LayoutBufferObject& p_other);
-		LayoutBufferObject(LayoutBufferObject&&) noexcept = default;
-		LayoutBufferObject& operator=(LayoutBufferObject&&) noexcept = default;
+		LayoutBufferObject(const LayoutBufferObject &p_other);
+		LayoutBufferObject &operator=(const LayoutBufferObject &p_other);
+		LayoutBufferObject(LayoutBufferObject &&) noexcept = default;
+		LayoutBufferObject &operator=(LayoutBufferObject &&) noexcept = default;
 		explicit LayoutBufferObject(std::span<const Attribute> p_attributes);
 		LayoutBufferObject(std::initializer_list<Attribute> p_attributes);
 
 		void clearAttributes();
-		void addAttribute(const Attribute& p_attribute);
+		void addAttribute(const Attribute &p_attribute);
 		void addAttribute(Attribute::Index p_index, Attribute::Type p_type, bool p_normalized = false);
 
 		[[nodiscard]] bool hasAttribute(Attribute::Index p_index) const;
@@ -78,8 +78,8 @@ namespace spk
 		[[nodiscard]] std::size_t indexCount() const noexcept;
 		[[nodiscard]] bool isIndexed() const noexcept;
 
-		void setVertexBytes(const void* p_data, std::size_t p_size);
-		void appendVertexBytes(const void* p_data, std::size_t p_size);
+		void setVertexBytes(const void *p_data, std::size_t p_size);
+		void appendVertexBytes(const void *p_data, std::size_t p_size);
 
 		template <typename TVertex>
 		void setVertices(std::span<const TVertex> p_vertices)
@@ -103,7 +103,7 @@ namespace spk
 		}
 
 		template <typename TVertex>
-		void appendVertex(const TVertex& p_vertex)
+		void appendVertex(const TVertex &p_vertex)
 		{
 			appendVertices(std::span<const TVertex>(&p_vertex, 1));
 		}
@@ -117,18 +117,18 @@ namespace spk
 				return {};
 			}
 			return std::span<const TVertex>(
-				reinterpret_cast<const TVertex*>(bytes.data()),
+				reinterpret_cast<const TVertex *>(bytes.data()),
 				bytes.size() / sizeof(TVertex));
 		}
 
 		void setIndexes(std::span<const std::uint32_t> p_indexes);
 		void appendIndexes(std::span<const std::uint32_t> p_indexes);
 
-		[[nodiscard]] spk::VertexBufferObject& vertices() const;
-		[[nodiscard]] spk::IndexBufferObject& indexes() const;
+		[[nodiscard]] spk::VertexBufferObject &vertices() const;
+		[[nodiscard]] spk::IndexBufferObject &indexes() const;
 		[[nodiscard]] std::span<const std::uint32_t> indexesData() const;
 
-		void activate(const spk::RenderContext& p_context) const;
+		void activate(const spk::RenderContext &p_context) const;
 		void deactivate() const;
 	};
 }

@@ -2,11 +2,10 @@
 
 namespace spk
 {
-	Screen::Screen(const std::string& p_name, spk::Widget* p_parent) :
+	Screen::Screen(const std::string &p_name, spk::Widget *p_parent) :
 		spk::Widget(p_name, p_parent)
 	{
-		_activationContract = subscribeToActivation([this]()
-		{
+		_activationContract = subscribeToActivation([this]() {
 			if (_activeScreen != nullptr && _activeScreen != this)
 			{
 				_activeScreen->deactivate();
@@ -23,7 +22,7 @@ namespace spk
 		}
 	}
 
-	Screen* Screen::activeScreen()
+	Screen *Screen::activeScreen()
 	{
 		return _activeScreen;
 	}

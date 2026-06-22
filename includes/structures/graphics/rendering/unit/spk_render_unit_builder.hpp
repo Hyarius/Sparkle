@@ -18,23 +18,23 @@ namespace spk
 		RenderUnitBuilder() = default;
 		~RenderUnitBuilder() = default;
 
-		RenderUnitBuilder(const RenderUnitBuilder&) = delete;
-		RenderUnitBuilder& operator=(const RenderUnitBuilder&) = delete;
+		RenderUnitBuilder(const RenderUnitBuilder &) = delete;
+		RenderUnitBuilder &operator=(const RenderUnitBuilder &) = delete;
 
-		RenderUnitBuilder(RenderUnitBuilder&&) noexcept = default;
-		RenderUnitBuilder& operator=(RenderUnitBuilder&&) noexcept = default;
+		RenderUnitBuilder(RenderUnitBuilder &&) noexcept = default;
+		RenderUnitBuilder &operator=(RenderUnitBuilder &&) noexcept = default;
 
 		void clear();
 		[[nodiscard]] bool empty() const;
 		[[nodiscard]] size_t size() const;
 
 		template <typename TCommand, typename... TArguments>
-		TCommand& emplace(TArguments&&... p_arguments)
+		TCommand &emplace(TArguments &&...p_arguments)
 		{
 			static_assert(std::is_base_of_v<spk::RenderCommand, TCommand>, "TCommand must inherit from spk::RenderCommand");
 
 			std::unique_ptr<TCommand> newCommand = std::make_unique<TCommand>(std::forward<TArguments>(p_arguments)...);
-			TCommand* result = newCommand.get();
+			TCommand *result = newCommand.get();
 
 			_commands.emplace_back(std::move(newCommand));
 

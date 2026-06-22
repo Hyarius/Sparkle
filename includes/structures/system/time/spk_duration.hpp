@@ -23,17 +23,17 @@ namespace spk
 		Duration();
 		Duration(long double p_value, TimeUnit p_unit);
 		template <typename TRep, typename TPeriod>
-		explicit Duration(const std::chrono::duration<TRep, TPeriod>& p_duration) :
+		explicit Duration(const std::chrono::duration<TRep, TPeriod> &p_duration) :
 			_nanoseconds(std::chrono::duration_cast<std::chrono::nanoseconds>(p_duration).count())
 		{
 			_rebindCaches();
 		}
 
-		Duration(const Duration& p_other);
-		Duration(Duration&& p_other) noexcept;
+		Duration(const Duration &p_other);
+		Duration(Duration &&p_other) noexcept;
 
-		Duration& operator=(const Duration& p_other);
-		Duration& operator=(Duration&& p_other) noexcept;
+		Duration &operator=(const Duration &p_other);
+		Duration &operator=(Duration &&p_other) noexcept;
 
 		long long nanoseconds() const noexcept;
 		long long milliseconds() const;
@@ -47,18 +47,18 @@ namespace spk
 
 		Duration operator-() const noexcept;
 
-		Duration operator+(const Duration& p_other) const noexcept;
-		Duration operator-(const Duration& p_other) const noexcept;
+		Duration operator+(const Duration &p_other) const noexcept;
+		Duration operator-(const Duration &p_other) const noexcept;
 
-		Duration& operator+=(const Duration& p_other) noexcept;
-		Duration& operator-=(const Duration& p_other) noexcept;
+		Duration &operator+=(const Duration &p_other) noexcept;
+		Duration &operator-=(const Duration &p_other) noexcept;
 
-		bool operator==(const Duration& p_other) const noexcept;
-		bool operator!=(const Duration& p_other) const noexcept;
-		bool operator<(const Duration& p_other) const noexcept;
-		bool operator>(const Duration& p_other) const noexcept;
-		bool operator<=(const Duration& p_other) const noexcept;
-		bool operator>=(const Duration& p_other) const noexcept;
+		bool operator==(const Duration &p_other) const noexcept;
+		bool operator!=(const Duration &p_other) const noexcept;
+		bool operator<(const Duration &p_other) const noexcept;
+		bool operator>(const Duration &p_other) const noexcept;
+		bool operator<=(const Duration &p_other) const noexcept;
+		bool operator>=(const Duration &p_other) const noexcept;
 	};
 
 	Duration operator""_s(long double p_value);

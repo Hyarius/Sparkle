@@ -24,7 +24,7 @@ namespace spk
 
 		constexpr ApproxValue() = default;
 
-		explicit constexpr ApproxValue(const TType& p_value) noexcept :
+		explicit constexpr ApproxValue(const TType &p_value) noexcept :
 			value(p_value)
 		{
 		}
@@ -40,12 +40,12 @@ namespace spk
 
 		constexpr ApproxValue() = default;
 
-		explicit constexpr ApproxValue(const TType& p_value) noexcept :
+		explicit constexpr ApproxValue(const TType &p_value) noexcept :
 			value(p_value)
 		{
 		}
 
-		constexpr ApproxValue(const TType& p_value, const TType& p_epsilon) noexcept :
+		constexpr ApproxValue(const TType &p_value, const TType &p_epsilon) noexcept :
 			value(p_value),
 			epsilon(p_epsilon)
 		{
@@ -62,8 +62,8 @@ namespace spk
 		requires approx_value_type<TLeftHandType> &&
 				 approx_value_type<TRightHandType>
 	[[nodiscard]] constexpr bool operator==(
-		const ApproxValue<TLeftHandType, IsLeftHandFloatingPoint>& p_left,
-		const TRightHandType& p_right)
+		const ApproxValue<TLeftHandType, IsLeftHandFloatingPoint> &p_left,
+		const TRightHandType &p_right)
 	{
 		using CommonType = std::common_type_t<TLeftHandType, TRightHandType>;
 
@@ -92,8 +92,8 @@ namespace spk
 		requires approx_value_type<TLeftHandType> &&
 				 approx_value_type<TRightHandType>
 	[[nodiscard]] constexpr bool operator==(
-		const TLeftHandType& p_left,
-		const ApproxValue<TRightHandType, IsRightHandFloatingPoint>& p_right)
+		const TLeftHandType &p_left,
+		const ApproxValue<TRightHandType, IsRightHandFloatingPoint> &p_right)
 	{
 		return p_right == p_left;
 	}
@@ -102,8 +102,8 @@ namespace spk
 		requires approx_value_type<TLeftHandType> &&
 				 approx_value_type<TRightHandType>
 	[[nodiscard]] constexpr bool operator==(
-		const ApproxValue<TLeftHandType, IsLeftHandFloatingPoint>& p_left,
-		const ApproxValue<TRightHandType, IsRightHandFloatingPoint>& p_right)
+		const ApproxValue<TLeftHandType, IsLeftHandFloatingPoint> &p_left,
+		const ApproxValue<TRightHandType, IsRightHandFloatingPoint> &p_right)
 	{
 		using CommonType = std::common_type_t<TLeftHandType, TRightHandType>;
 
@@ -140,8 +140,8 @@ namespace spk
 		requires approx_value_type<TLeftHandType> &&
 				 approx_value_type<TRightHandType>
 	[[nodiscard]] constexpr bool operator!=(
-		const ApproxValue<TLeftHandType, IsLeftHandFloatingPoint>& p_left,
-		const TRightHandType& p_right)
+		const ApproxValue<TLeftHandType, IsLeftHandFloatingPoint> &p_left,
+		const TRightHandType &p_right)
 	{
 		return !(p_left == p_right);
 	}
@@ -150,8 +150,8 @@ namespace spk
 		requires approx_value_type<TLeftHandType> &&
 				 approx_value_type<TRightHandType>
 	[[nodiscard]] constexpr bool operator!=(
-		const TLeftHandType& p_left,
-		const ApproxValue<TRightHandType, IsRightHandFloatingPoint>& p_right)
+		const TLeftHandType &p_left,
+		const ApproxValue<TRightHandType, IsRightHandFloatingPoint> &p_right)
 	{
 		return !(p_left == p_right);
 	}
@@ -160,8 +160,8 @@ namespace spk
 		requires approx_value_type<TLeftHandType> &&
 				 approx_value_type<TRightHandType>
 	[[nodiscard]] constexpr bool operator!=(
-		const ApproxValue<TLeftHandType, IsLeftHandFloatingPoint>& p_left,
-		const ApproxValue<TRightHandType, IsRightHandFloatingPoint>& p_right)
+		const ApproxValue<TLeftHandType, IsLeftHandFloatingPoint> &p_left,
+		const ApproxValue<TRightHandType, IsRightHandFloatingPoint> &p_right)
 	{
 		return !(p_left == p_right);
 	}

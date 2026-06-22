@@ -27,7 +27,7 @@ namespace spk
 		// Mutable so widgets can request a cursor from the const view exposed by mouse events.
 		mutable std::string requestedCursorShape = "Arrow";
 
-		void requestCursor(const std::string& p_name) const
+		void requestCursor(const std::string &p_name) const
 		{
 			requestedCursorShape = p_name;
 		}

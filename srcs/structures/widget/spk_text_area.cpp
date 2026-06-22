@@ -9,15 +9,15 @@
 
 namespace
 {
-	[[nodiscard]] bool sameColor(const spk::Color& p_left, const spk::Color& p_right)
+	[[nodiscard]] bool sameColor(const spk::Color &p_left, const spk::Color &p_right)
 	{
 		return p_left.r == p_right.r &&
-			p_left.g == p_right.g &&
-			p_left.b == p_right.b &&
-			p_left.a == p_right.a;
+			   p_left.g == p_right.g &&
+			   p_left.b == p_right.b &&
+			   p_left.a == p_right.a;
 	}
 
-	[[nodiscard]] std::vector<spk::Font::Text> splitParagraphs(const spk::Font::Text& p_text)
+	[[nodiscard]] std::vector<spk::Font::Text> splitParagraphs(const spk::Font::Text &p_text)
 	{
 		std::vector<spk::Font::Text> result;
 
@@ -41,15 +41,15 @@ namespace
 
 namespace spk
 {
-	TextArea::TextArea(const std::string& p_name, spk::Widget* p_parent) :
+	TextArea::TextArea(const std::string &p_name, spk::Widget *p_parent) :
 		TextArea(p_name, "", p_parent)
 	{
 	}
 
 	TextArea::TextArea(
-		const std::string& p_name,
+		const std::string &p_name,
 		std::string_view p_text,
-		spk::Widget* p_parent) :
+		spk::Widget *p_parent) :
 		spk::Widget(p_name, p_parent),
 		_text(spk::Font::textFromUTF8(p_text))
 	{
@@ -58,10 +58,10 @@ namespace spk
 	}
 
 	TextArea::TextArea(
-		const std::string& p_name,
+		const std::string &p_name,
 		std::string_view p_text,
-		const spk::WidgetStyle& p_style,
-		spk::Widget* p_parent) :
+		const spk::WidgetStyle &p_style,
+		spk::Widget *p_parent) :
 		spk::Widget(p_name, p_parent),
 		_text(spk::Font::textFromUTF8(p_text))
 	{
@@ -69,15 +69,14 @@ namespace spk
 		activate();
 	}
 
-	void TextArea::_bindStyle(const spk::WidgetStyle& p_style)
+	void TextArea::_bindStyle(const spk::WidgetStyle &p_style)
 	{
-		_styleEditionContract = p_style.subscribeToEdition([this](const spk::WidgetStyle& p_editedStyle)
-		{
+		_styleEditionContract = p_style.subscribeToEdition([this](const spk::WidgetStyle &p_editedStyle) {
 			applyStyle(p_editedStyle);
 		});
 	}
 
-	void TextArea::applyStyle(const spk::WidgetStyle& p_style)
+	void TextArea::applyStyle(const spk::WidgetStyle &p_style)
 	{
 		setSpriteSheet(p_style.nineSliceSpriteSheet());
 		setCornerSize(p_style.nineSliceCornerSize());
@@ -93,7 +92,7 @@ namespace spk
 		applyStyle(spk::WidgetStyle::Collection::style(spk::WidgetStyle::Collection::Default));
 	}
 
-	void TextArea::useStyle(const spk::WidgetStyle& p_style)
+	void TextArea::useStyle(const spk::WidgetStyle &p_style)
 	{
 		_bindStyle(p_style);
 		applyStyle(p_style);
@@ -123,7 +122,7 @@ namespace spk
 			return result;
 		}
 
-		for (const spk::Font::Text& paragraph : splitParagraphs(_text))
+		for (const spk::Font::Text &paragraph : splitParagraphs(_text))
 		{
 			if (paragraph.empty() == true)
 			{
@@ -200,7 +199,7 @@ namespace spk
 			(lines.empty() == true)
 				? 0
 				: static_cast<unsigned int>(lines.size()) * lineHeight +
-					static_cast<unsigned int>(lines.size() - 1) * static_cast<unsigned int>(_linePadding);
+					  static_cast<unsigned int>(lines.size() - 1) * static_cast<unsigned int>(_linePadding);
 
 		int lineTop = inner.top();
 		if (_verticalAlignment == spk::VerticalAlignment::Centered)
@@ -212,7 +211,7 @@ namespace spk
 			lineTop = inner.bottom() - static_cast<int>(blockHeight);
 		}
 
-		for (const spk::Font::Text& line : lines)
+		for (const spk::Font::Text &line : lines)
 		{
 			if (line.empty() == false)
 			{
@@ -259,7 +258,7 @@ namespace spk
 		const std::vector<spk::Font::Text> lines = _composeLines(innerWidth);
 
 		unsigned int maxWidth = 0;
-		for (const spk::Font::Text& line : lines)
+		for (const spk::Font::Text &line : lines)
 		{
 			maxWidth = std::max(maxWidth, _font->computeStringSize(line, _textSize).x);
 		}
@@ -268,7 +267,7 @@ namespace spk
 			(lines.empty() == true)
 				? 0
 				: static_cast<unsigned int>(lines.size()) * _lineHeight() +
-					static_cast<unsigned int>(lines.size() - 1) * static_cast<unsigned int>(_linePadding);
+					  static_cast<unsigned int>(lines.size() - 1) * static_cast<unsigned int>(_linePadding);
 
 		return {
 			maxWidth + static_cast<unsigned int>(_cornerSize.x * 2),
@@ -291,7 +290,7 @@ namespace spk
 		invalidateRenderUnit();
 	}
 
-	void TextArea::setCornerSize(const spk::Vector2Int& p_cornerSize)
+	void TextArea::setCornerSize(const spk::Vector2Int &p_cornerSize)
 	{
 		if (p_cornerSize.x < 0 || p_cornerSize.y < 0)
 		{
@@ -318,7 +317,7 @@ namespace spk
 		invalidateRenderUnit();
 	}
 
-	void TextArea::setTextSize(const spk::Font::Size& p_textSize)
+	void TextArea::setTextSize(const spk::Font::Size &p_textSize)
 	{
 		if (_textSize == p_textSize)
 		{
@@ -329,7 +328,7 @@ namespace spk
 		invalidateRenderUnit();
 	}
 
-	void TextArea::setGlyphColor(const spk::Color& p_color)
+	void TextArea::setGlyphColor(const spk::Color &p_color)
 	{
 		if (sameColor(_glyphColor, p_color) == true)
 		{
@@ -340,7 +339,7 @@ namespace spk
 		invalidateRenderUnit();
 	}
 
-	void TextArea::setOutlineColor(const spk::Color& p_color)
+	void TextArea::setOutlineColor(const spk::Color &p_color)
 	{
 		if (sameColor(_outlineColor, p_color) == true)
 		{
@@ -362,7 +361,7 @@ namespace spk
 		invalidateRenderUnit();
 	}
 
-	void TextArea::setText(const spk::Font::Text& p_text)
+	void TextArea::setText(const spk::Font::Text &p_text)
 	{
 		if (_text == p_text)
 		{
@@ -419,7 +418,7 @@ namespace spk
 		invalidateRenderUnit();
 	}
 
-	const spk::Font::Text& TextArea::text() const
+	const spk::Font::Text &TextArea::text() const
 	{
 		return _text;
 	}
@@ -439,32 +438,32 @@ namespace spk
 		return _verticalAlignment;
 	}
 
-	const std::shared_ptr<spk::SpriteSheet>& TextArea::spriteSheet() const
+	const std::shared_ptr<spk::SpriteSheet> &TextArea::spriteSheet() const
 	{
 		return _spriteSheet;
 	}
 
-	const spk::Vector2Int& TextArea::cornerSize() const
+	const spk::Vector2Int &TextArea::cornerSize() const
 	{
 		return _cornerSize;
 	}
 
-	const std::shared_ptr<spk::Font>& TextArea::font() const
+	const std::shared_ptr<spk::Font> &TextArea::font() const
 	{
 		return _font;
 	}
 
-	const spk::Font::Size& TextArea::textSize() const
+	const spk::Font::Size &TextArea::textSize() const
 	{
 		return _textSize;
 	}
 
-	const spk::Color& TextArea::glyphColor() const
+	const spk::Color &TextArea::glyphColor() const
 	{
 		return _glyphColor;
 	}
 
-	const spk::Color& TextArea::outlineColor() const
+	const spk::Color &TextArea::outlineColor() const
 	{
 		return _outlineColor;
 	}

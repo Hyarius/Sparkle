@@ -18,7 +18,7 @@ namespace spk
 		return (_currentSnapshot);
 	}
 
-	void RenderModule::render(spk::RenderContext& p_renderContext) const
+	void RenderModule::render(spk::RenderContext &p_renderContext) const
 	{
 		std::shared_ptr<spk::RenderSnapshot> snapshot = currentSnapshot();
 

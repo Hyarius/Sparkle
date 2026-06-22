@@ -22,7 +22,7 @@ namespace spk
 		return std::make_shared<spk::GPUPlatformRuntime>();
 	}
 
-	void Application::_bindOrValidateOwnerThread(const char* p_operation)
+	void Application::_bindOrValidateOwnerThread(const char *p_operation)
 	{
 		const std::thread::id currentThreadID = std::this_thread::get_id();
 
@@ -79,13 +79,13 @@ namespace spk
 			}
 			else
 			{
-				for (const std::weak_ptr<spk::Window>& windowHandle : windows)
+				for (const std::weak_ptr<spk::Window> &windowHandle : windows)
 				{
 					if (_stopRequested.load() == true)
 					{
 						return;
 					}
-					
+
 					std::shared_ptr<spk::Window> window = windowHandle.lock();
 					if (window != nullptr)
 					{
@@ -123,7 +123,7 @@ namespace spk
 			}
 			else
 			{
-				for (const std::weak_ptr<spk::Window>& windowHandle : windows)
+				for (const std::weak_ptr<spk::Window> &windowHandle : windows)
 				{
 					if (_stopRequested.load() == true)
 					{
@@ -135,7 +135,7 @@ namespace spk
 					{
 						window->update();
 					}
-				}	
+				}
 			}
 
 			const spk::Duration elapsedTime = chronometer.elapsedTime();
@@ -155,7 +155,7 @@ namespace spk
 			if (_shutdownRequested.load() == true)
 			{
 				std::vector<std::weak_ptr<spk::Window>> windows = _windowRegistry.windows();
-				for (const std::weak_ptr<spk::Window>& windowHandle : windows)
+				for (const std::weak_ptr<spk::Window> &windowHandle : windows)
 				{
 					std::shared_ptr<spk::Window> window = windowHandle.lock();
 					if (window != nullptr)
@@ -180,7 +180,7 @@ namespace spk
 			_platformRuntime->pollEvents();
 
 			std::vector<std::weak_ptr<spk::Window>> windows = _windowRegistry.windows();
-			for (const std::weak_ptr<spk::Window>& windowHandle : windows)
+			for (const std::weak_ptr<spk::Window> &windowHandle : windows)
 			{
 				std::shared_ptr<spk::Window> window = windowHandle.lock();
 				if (window != nullptr)
@@ -214,7 +214,7 @@ namespace spk
 	{
 	}
 
-	spk::WindowHandle Application::createWindow(const WindowID& p_id, spk::Window::Configuration p_configuration)
+	spk::WindowHandle Application::createWindow(const WindowID &p_id, spk::Window::Configuration p_configuration)
 	{
 		_bindOrValidateOwnerThread(__FUNCTION__);
 
@@ -231,17 +231,17 @@ namespace spk
 		return _windowRegistry.createWindow(p_id, _platformRuntime, _gpuPlatformRuntime, std::move(p_configuration));
 	}
 
-	spk::WindowHandle Application::window(const WindowID& p_id)
+	spk::WindowHandle Application::window(const WindowID &p_id)
 	{
 		return _windowRegistry.window(p_id);
 	}
 
-	spk::WindowHandle Application::window(const WindowID& p_id) const
+	spk::WindowHandle Application::window(const WindowID &p_id) const
 	{
 		return _windowRegistry.window(p_id);
 	}
 
-	bool Application::containsWindow(const WindowID& p_id) const
+	bool Application::containsWindow(const WindowID &p_id) const
 	{
 		return _windowRegistry.contains(p_id);
 	}
@@ -251,7 +251,7 @@ namespace spk
 		return _isRunning.load();
 	}
 
-	void Application::requestWindowClosing(const WindowID& p_id)
+	void Application::requestWindowClosing(const WindowID &p_id)
 	{
 		_windowRegistry.requestWindowClosing(p_id);
 	}
@@ -292,26 +292,22 @@ namespace spk
 		_exitCode.store(0);
 		_rethrowFailureIfAny();
 
-		std::jthread renderThread([this]()
-		{
+		std::jthread renderThread([this]() {
 			try
 			{
 				_runRenderLoop();
-			}
-			catch (...)
+			} catch (...)
 			{
 				_recordFailure(std::current_exception());
 				_stopRequested.store(true);
 			}
 		});
 
-		std::jthread updateThread([this]()
-		{
+		std::jthread updateThread([this]() {
 			try
 			{
 				_runUpdateLoop();
-			}
-			catch (...)
+			} catch (...)
 			{
 				_recordFailure(std::current_exception());
 				_stopRequested.store(true);
@@ -321,8 +317,7 @@ namespace spk
 		try
 		{
 			_runEventLoop();
-		}
-		catch (...)
+		} catch (...)
 		{
 			_recordFailure(std::current_exception());
 			_stopRequested.store(true);

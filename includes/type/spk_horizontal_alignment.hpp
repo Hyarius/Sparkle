@@ -12,9 +12,9 @@ namespace spk
 		Right
 	};
 
-	std::string toString(const HorizontalAlignment& p_alignment);
-	std::wstring toWstring(const HorizontalAlignment& p_alignment);
+	std::string toString(const HorizontalAlignment &p_alignment);
+	std::wstring toWstring(const HorizontalAlignment &p_alignment);
 
-	std::ostream& operator<<(std::ostream& p_stream, const HorizontalAlignment& p_alignment);
-	std::wostream& operator<<(std::wostream& p_stream, const HorizontalAlignment& p_alignment);
+	std::ostream &operator<<(std::ostream &p_stream, const HorizontalAlignment &p_alignment);
+	std::wostream &operator<<(std::wostream &p_stream, const HorizontalAlignment &p_alignment);
 }

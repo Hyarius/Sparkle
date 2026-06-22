@@ -4,17 +4,17 @@ namespace spk
 {
 	IModule::~IModule() = default;
 
-	void IModule::bind(spk::Widget* p_widget)
+	void IModule::bind(spk::Widget *p_widget)
 	{
 		_widget = p_widget;
 	}
 
-	spk::Widget* IModule::widget()
+	spk::Widget *IModule::widget()
 	{
 		return _widget;
 	}
 
-	const spk::Widget* IModule::widget() const
+	const spk::Widget *IModule::widget() const
 	{
 		return _widget;
 	}

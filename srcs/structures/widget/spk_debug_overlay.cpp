@@ -15,7 +15,7 @@ namespace
 
 namespace spk
 {
-	DebugOverlay::DebugOverlay(const std::string& p_name, spk::Widget* p_parent) :
+	DebugOverlay::DebugOverlay(const std::string &p_name, spk::Widget *p_parent) :
 		spk::Widget(p_name, p_parent)
 	{
 		_layout.setElementPadding({4, 4});
@@ -39,11 +39,11 @@ namespace spk
 	{
 		_layout.clear();
 
-		for (Row& row : _rows)
+		for (Row &row : _rows)
 		{
 			row.layout->clear();
 
-			for (auto& label : row.labels)
+			for (auto &label : row.labels)
 			{
 				if (label != nullptr)
 				{
@@ -57,9 +57,9 @@ namespace spk
 
 	void DebugOverlay::_applyFontsToFit()
 	{
-		for (Row& row : _rows)
+		for (Row &row : _rows)
 		{
-			for (auto& label : row.labels)
+			for (auto &label : row.labels)
 			{
 				if (label == nullptr || label->font() == nullptr || label->text().empty() == true)
 				{
@@ -102,7 +102,7 @@ namespace spk
 	void DebugOverlay::_ensureColumn(size_t p_row, size_t p_column)
 	{
 		_ensureRow(p_row);
-		Row& row = _rows[p_row];
+		Row &row = _rows[p_row];
 		if (p_column < row.labels.size())
 		{
 			return;
@@ -138,7 +138,7 @@ namespace spk
 	void DebugOverlay::setRowColumns(size_t p_row, size_t p_columns)
 	{
 		_ensureRow(p_row);
-		Row& row = _rows[p_row];
+		Row &row = _rows[p_row];
 
 		const size_t current = row.labels.size();
 		if (p_columns == current)
@@ -167,9 +167,9 @@ namespace spk
 	{
 		_font = std::move(p_font);
 
-		for (Row& row : _rows)
+		for (Row &row : _rows)
 		{
-			for (auto& label : row.labels)
+			for (auto &label : row.labels)
 			{
 				if (label != nullptr)
 				{
@@ -181,14 +181,14 @@ namespace spk
 		_onGeometryChange();
 	}
 
-	void DebugOverlay::setFontColor(const spk::Color& p_glyphColor, const spk::Color& p_outlineColor)
+	void DebugOverlay::setFontColor(const spk::Color &p_glyphColor, const spk::Color &p_outlineColor)
 	{
 		_glyphColor = p_glyphColor;
 		_outlineColor = p_outlineColor;
 
-		for (Row& row : _rows)
+		for (Row &row : _rows)
 		{
-			for (auto& label : row.labels)
+			for (auto &label : row.labels)
 			{
 				if (label != nullptr)
 				{
@@ -225,7 +225,7 @@ namespace spk
 		return _rows[p_row].labels.size();
 	}
 
-	const spk::TextLabel* DebugOverlay::label(size_t p_row, size_t p_column) const
+	const spk::TextLabel *DebugOverlay::label(size_t p_row, size_t p_column) const
 	{
 		if (p_row >= _rows.size() || p_column >= _rows[p_row].labels.size())
 		{

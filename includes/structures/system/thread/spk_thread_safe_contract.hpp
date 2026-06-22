@@ -38,16 +38,16 @@ namespace spk
 				release();
 			}
 
-			Blocker(const Blocker&) = delete;
-			Blocker& operator=(const Blocker&) = delete;
+			Blocker(const Blocker &) = delete;
+			Blocker &operator=(const Blocker &) = delete;
 
-			Blocker(Blocker&& p_other) noexcept :
+			Blocker(Blocker &&p_other) noexcept :
 				_blocker(std::move(p_other._blocker)),
 				_mutex(std::move(p_other._mutex))
 			{
 			}
 
-			Blocker& operator=(Blocker&& p_other) noexcept
+			Blocker &operator=(Blocker &&p_other) noexcept
 			{
 				if (this != &p_other)
 				{
@@ -100,16 +100,16 @@ namespace spk
 			resign();
 		}
 
-		ThreadSafeContract(const ThreadSafeContract&) = delete;
-		ThreadSafeContract& operator=(const ThreadSafeContract&) = delete;
+		ThreadSafeContract(const ThreadSafeContract &) = delete;
+		ThreadSafeContract &operator=(const ThreadSafeContract &) = delete;
 
-		ThreadSafeContract(ThreadSafeContract&& p_other) noexcept :
+		ThreadSafeContract(ThreadSafeContract &&p_other) noexcept :
 			_contract(std::move(p_other._contract)),
 			_mutex(std::move(p_other._mutex))
 		{
 		}
 
-		ThreadSafeContract& operator=(ThreadSafeContract&& p_other) noexcept
+		ThreadSafeContract &operator=(ThreadSafeContract &&p_other) noexcept
 		{
 			if (this != &p_other)
 			{

@@ -12,8 +12,8 @@
 #include <type_traits>
 
 #include "structures/math/spk_approx_value.hpp"
-#include "type/spk_concepts.hpp"
 #include "structures/math/spk_vector2.hpp"
+#include "type/spk_concepts.hpp"
 
 namespace spk
 {
@@ -30,9 +30,9 @@ namespace spk
 
 		template <typename TX, typename TY, typename TZ>
 			requires std::constructible_from<TType, TX> &&
-					 std::constructible_from<TType, TY> &&
-					 std::constructible_from<TType, TZ>
-		constexpr IVector3(const TX& p_x, const TY& p_y, const TZ& p_z) noexcept(
+						 std::constructible_from<TType, TY> &&
+						 std::constructible_from<TType, TZ>
+		constexpr IVector3(const TX &p_x, const TY &p_y, const TZ &p_z) noexcept(
 			std::is_nothrow_constructible_v<TType, TX> &&
 			std::is_nothrow_constructible_v<TType, TY> &&
 			std::is_nothrow_constructible_v<TType, TZ>) :
@@ -44,7 +44,7 @@ namespace spk
 
 		template <typename TOther>
 			requires std::constructible_from<TType, TOther>
-		explicit constexpr IVector3(const IVector3<TOther>& p_other) noexcept(std::is_nothrow_constructible_v<TType, TOther>) :
+		explicit constexpr IVector3(const IVector3<TOther> &p_other) noexcept(std::is_nothrow_constructible_v<TType, TOther>) :
 			x(static_cast<TType>(p_other.x)),
 			y(static_cast<TType>(p_other.y)),
 			z(static_cast<TType>(p_other.z))
@@ -53,7 +53,7 @@ namespace spk
 
 		template <typename TOther>
 			requires std::constructible_from<TType, TOther>
-		explicit constexpr IVector3(const TOther& p_value) noexcept(std::is_nothrow_constructible_v<TType, TOther>) :
+		explicit constexpr IVector3(const TOther &p_value) noexcept(std::is_nothrow_constructible_v<TType, TOther>) :
 			x(static_cast<TType>(p_value)),
 			y(static_cast<TType>(p_value)),
 			z(static_cast<TType>(p_value))
@@ -62,8 +62,8 @@ namespace spk
 
 		template <typename TOther, typename TZ>
 			requires std::constructible_from<TType, TOther> &&
-					 std::constructible_from<TType, TZ>
-		constexpr IVector3(const IVector2<TOther>& p_xy, const TZ& p_z) noexcept(
+						 std::constructible_from<TType, TZ>
+		constexpr IVector3(const IVector2<TOther> &p_xy, const TZ &p_z) noexcept(
 			std::is_nothrow_constructible_v<TType, TOther> &&
 			std::is_nothrow_constructible_v<TType, TZ>) :
 			x(static_cast<TType>(p_xy.x)),
@@ -82,40 +82,40 @@ namespace spk
 			return outputStream.str();
 		}
 
-		friend std::ostream& operator<<(std::ostream& p_outputStream, const IVector3<TType>& p_value)
+		friend std::ostream &operator<<(std::ostream &p_outputStream, const IVector3<TType> &p_value)
 		{
 			p_outputStream << '(' << p_value.x << ", " << p_value.y << ", " << p_value.z << ')';
 			return p_outputStream;
 		}
 
-		[[nodiscard]] constexpr bool operator==(const IVector3<TType>& p_other) const noexcept
+		[[nodiscard]] constexpr bool operator==(const IVector3<TType> &p_other) const noexcept
 		{
 			return spk::ApproxValue(x) == p_other.x &&
 				   spk::ApproxValue(y) == p_other.y &&
 				   spk::ApproxValue(z) == p_other.z;
 		}
 
-		[[nodiscard]] constexpr bool operator!=(const IVector3<TType>& p_other) const noexcept
+		[[nodiscard]] constexpr bool operator!=(const IVector3<TType> &p_other) const noexcept
 		{
 			return !(*this == p_other);
 		}
 
-		[[nodiscard]] constexpr IVector3<TType> operator+(const IVector3<TType>& p_other) const noexcept
+		[[nodiscard]] constexpr IVector3<TType> operator+(const IVector3<TType> &p_other) const noexcept
 		{
 			return IVector3<TType>(x + p_other.x, y + p_other.y, z + p_other.z);
 		}
 
-		[[nodiscard]] constexpr IVector3<TType> operator-(const IVector3<TType>& p_other) const noexcept
+		[[nodiscard]] constexpr IVector3<TType> operator-(const IVector3<TType> &p_other) const noexcept
 		{
 			return IVector3<TType>(x - p_other.x, y - p_other.y, z - p_other.z);
 		}
 
-		[[nodiscard]] constexpr IVector3<TType> operator*(const IVector3<TType>& p_other) const noexcept
+		[[nodiscard]] constexpr IVector3<TType> operator*(const IVector3<TType> &p_other) const noexcept
 		{
 			return IVector3<TType>(x * p_other.x, y * p_other.y, z * p_other.z);
 		}
 
-		[[nodiscard]] IVector3<TType> operator/(const IVector3<TType>& p_other) const
+		[[nodiscard]] IVector3<TType> operator/(const IVector3<TType> &p_other) const
 		{
 			if (spk::ApproxValue(p_other.x) == 0 ||
 				spk::ApproxValue(p_other.y) == 0 ||
@@ -127,22 +127,22 @@ namespace spk
 			return IVector3<TType>(x / p_other.x, y / p_other.y, z / p_other.z);
 		}
 
-		[[nodiscard]] constexpr IVector3<TType> operator+(const TType& p_scalar) const noexcept
+		[[nodiscard]] constexpr IVector3<TType> operator+(const TType &p_scalar) const noexcept
 		{
 			return IVector3<TType>(x + p_scalar, y + p_scalar, z + p_scalar);
 		}
 
-		[[nodiscard]] constexpr IVector3<TType> operator-(const TType& p_scalar) const noexcept
+		[[nodiscard]] constexpr IVector3<TType> operator-(const TType &p_scalar) const noexcept
 		{
 			return IVector3<TType>(x - p_scalar, y - p_scalar, z - p_scalar);
 		}
 
-		[[nodiscard]] constexpr IVector3<TType> operator*(const TType& p_scalar) const noexcept
+		[[nodiscard]] constexpr IVector3<TType> operator*(const TType &p_scalar) const noexcept
 		{
 			return IVector3<TType>(x * p_scalar, y * p_scalar, z * p_scalar);
 		}
 
-		[[nodiscard]] IVector3<TType> operator/(const TType& p_scalar) const
+		[[nodiscard]] IVector3<TType> operator/(const TType &p_scalar) const
 		{
 			if (spk::ApproxValue(p_scalar) == 0)
 			{
@@ -152,22 +152,22 @@ namespace spk
 			return IVector3<TType>(x / p_scalar, y / p_scalar, z / p_scalar);
 		}
 
-		friend constexpr IVector3<TType> operator+(const TType& p_scalar, const IVector3<TType>& p_vector) noexcept
+		friend constexpr IVector3<TType> operator+(const TType &p_scalar, const IVector3<TType> &p_vector) noexcept
 		{
 			return p_vector + p_scalar;
 		}
 
-		friend constexpr IVector3<TType> operator-(const TType& p_scalar, const IVector3<TType>& p_vector) noexcept
+		friend constexpr IVector3<TType> operator-(const TType &p_scalar, const IVector3<TType> &p_vector) noexcept
 		{
 			return IVector3<TType>(p_scalar - p_vector.x, p_scalar - p_vector.y, p_scalar - p_vector.z);
 		}
 
-		friend constexpr IVector3<TType> operator*(const TType& p_scalar, const IVector3<TType>& p_vector) noexcept
+		friend constexpr IVector3<TType> operator*(const TType &p_scalar, const IVector3<TType> &p_vector) noexcept
 		{
 			return p_vector * p_scalar;
 		}
 
-		friend IVector3<TType> operator/(const TType& p_scalar, const IVector3<TType>& p_vector)
+		friend IVector3<TType> operator/(const TType &p_scalar, const IVector3<TType> &p_vector)
 		{
 			if (spk::ApproxValue(p_vector.x) == 0 ||
 				spk::ApproxValue(p_vector.y) == 0 ||
@@ -189,7 +189,7 @@ namespace spk
 			return inverse();
 		}
 
-		constexpr IVector3<TType>& operator+=(const IVector3<TType>& p_other) noexcept
+		constexpr IVector3<TType> &operator+=(const IVector3<TType> &p_other) noexcept
 		{
 			x += p_other.x;
 			y += p_other.y;
@@ -197,7 +197,7 @@ namespace spk
 			return *this;
 		}
 
-		constexpr IVector3<TType>& operator-=(const IVector3<TType>& p_other) noexcept
+		constexpr IVector3<TType> &operator-=(const IVector3<TType> &p_other) noexcept
 		{
 			x -= p_other.x;
 			y -= p_other.y;
@@ -205,7 +205,7 @@ namespace spk
 			return *this;
 		}
 
-		constexpr IVector3<TType>& operator*=(const IVector3<TType>& p_other) noexcept
+		constexpr IVector3<TType> &operator*=(const IVector3<TType> &p_other) noexcept
 		{
 			x *= p_other.x;
 			y *= p_other.y;
@@ -213,7 +213,7 @@ namespace spk
 			return *this;
 		}
 
-		IVector3<TType>& operator/=(const IVector3<TType>& p_other)
+		IVector3<TType> &operator/=(const IVector3<TType> &p_other)
 		{
 			if (spk::ApproxValue(p_other.x) == 0 ||
 				spk::ApproxValue(p_other.y) == 0 ||
@@ -228,7 +228,7 @@ namespace spk
 			return *this;
 		}
 
-		constexpr IVector3<TType>& operator+=(const TType& p_scalar) noexcept
+		constexpr IVector3<TType> &operator+=(const TType &p_scalar) noexcept
 		{
 			x += p_scalar;
 			y += p_scalar;
@@ -236,7 +236,7 @@ namespace spk
 			return *this;
 		}
 
-		constexpr IVector3<TType>& operator-=(const TType& p_scalar) noexcept
+		constexpr IVector3<TType> &operator-=(const TType &p_scalar) noexcept
 		{
 			x -= p_scalar;
 			y -= p_scalar;
@@ -244,7 +244,7 @@ namespace spk
 			return *this;
 		}
 
-		constexpr IVector3<TType>& operator*=(const TType& p_scalar) noexcept
+		constexpr IVector3<TType> &operator*=(const TType &p_scalar) noexcept
 		{
 			x *= p_scalar;
 			y *= p_scalar;
@@ -252,7 +252,7 @@ namespace spk
 			return *this;
 		}
 
-		IVector3<TType>& operator/=(const TType& p_scalar)
+		IVector3<TType> &operator/=(const TType &p_scalar)
 		{
 			if (spk::ApproxValue(p_scalar) == 0)
 			{
@@ -302,24 +302,24 @@ namespace spk
 				static_cast<float>(z) * inverseLength);
 		}
 
-		[[nodiscard]] float squaredDistance(const IVector3<TType>& p_other) const noexcept
+		[[nodiscard]] float squaredDistance(const IVector3<TType> &p_other) const noexcept
 		{
 			return (*this - p_other).squaredLength();
 		}
 
-		[[nodiscard]] float distance(const IVector3<TType>& p_other) const noexcept
+		[[nodiscard]] float distance(const IVector3<TType> &p_other) const noexcept
 		{
 			return (*this - p_other).length();
 		}
 
-		[[nodiscard]] float dot(const IVector3<TType>& p_other) const noexcept
+		[[nodiscard]] float dot(const IVector3<TType> &p_other) const noexcept
 		{
 			return (static_cast<float>(x) * static_cast<float>(p_other.x)) +
 				   (static_cast<float>(y) * static_cast<float>(p_other.y)) +
 				   (static_cast<float>(z) * static_cast<float>(p_other.z));
 		}
 
-		[[nodiscard]] constexpr IVector3<TType> cross(const IVector3<TType>& p_other) const noexcept
+		[[nodiscard]] constexpr IVector3<TType> cross(const IVector3<TType> &p_other) const noexcept
 		{
 			return IVector3<TType>(
 				y * p_other.z - z * p_other.y,
@@ -342,7 +342,7 @@ namespace spk
 			return IVector2<TType>(y, z);
 		}
 
-		[[nodiscard]] static IVector3<TType> lerp(const IVector3<TType>& p_from, const IVector3<TType>& p_to, const float p_alpha) noexcept
+		[[nodiscard]] static IVector3<TType> lerp(const IVector3<TType> &p_from, const IVector3<TType> &p_to, const float p_alpha) noexcept
 		{
 			const float fromX = static_cast<float>(p_from.x);
 			const float fromY = static_cast<float>(p_from.y);
@@ -354,7 +354,7 @@ namespace spk
 				static_cast<TType>(fromZ + ((static_cast<float>(p_to.z) - fromZ) * p_alpha)));
 		}
 
-		[[nodiscard]] static constexpr IVector3<TType> min(const IVector3<TType>& p_left, const IVector3<TType>& p_right) noexcept
+		[[nodiscard]] static constexpr IVector3<TType> min(const IVector3<TType> &p_left, const IVector3<TType> &p_right) noexcept
 		{
 			return IVector3<TType>(
 				std::min(p_left.x, p_right.x),
@@ -363,9 +363,9 @@ namespace spk
 		}
 
 		template <typename... TOtherTypes>
-			requires (sizeof...(TOtherTypes) > 0) &&
-					 (std::same_as<TOtherTypes, IVector3<TType>> && ...)
-		[[nodiscard]] static constexpr IVector3<TType> min(const IVector3<TType>& p_first, const IVector3<TType>& p_second, const TOtherTypes&... p_remainingValues) noexcept
+			requires(sizeof...(TOtherTypes) > 0) &&
+					(std::same_as<TOtherTypes, IVector3<TType>> && ...)
+		[[nodiscard]] static constexpr IVector3<TType> min(const IVector3<TType> &p_first, const IVector3<TType> &p_second, const TOtherTypes &...p_remainingValues) noexcept
 		{
 			return min(min(p_first, p_second), p_remainingValues...);
 		}
@@ -385,7 +385,7 @@ namespace spk
 			return result;
 		}
 
-		[[nodiscard]] static constexpr IVector3<TType> max(const IVector3<TType>& p_left, const IVector3<TType>& p_right) noexcept
+		[[nodiscard]] static constexpr IVector3<TType> max(const IVector3<TType> &p_left, const IVector3<TType> &p_right) noexcept
 		{
 			return IVector3<TType>(
 				std::max(p_left.x, p_right.x),
@@ -394,9 +394,9 @@ namespace spk
 		}
 
 		template <typename... TOtherTypes>
-			requires (sizeof...(TOtherTypes) > 0) &&
-					 (std::same_as<TOtherTypes, IVector3<TType>> && ...)
-		[[nodiscard]] static constexpr IVector3<TType> max(const IVector3<TType>& p_first, const IVector3<TType>& p_second, const TOtherTypes&... p_remainingValues) noexcept
+			requires(sizeof...(TOtherTypes) > 0) &&
+					(std::same_as<TOtherTypes, IVector3<TType>> && ...)
+		[[nodiscard]] static constexpr IVector3<TType> max(const IVector3<TType> &p_first, const IVector3<TType> &p_second, const TOtherTypes &...p_remainingValues) noexcept
 		{
 			return max(max(p_first, p_second), p_remainingValues...);
 		}
@@ -417,9 +417,9 @@ namespace spk
 		}
 
 		[[nodiscard]] static constexpr IVector3<TType> clamp(
-			const IVector3<TType>& p_value,
-			const IVector3<TType>& p_boundMinimum,
-			const IVector3<TType>& p_boundMaximum) noexcept
+			const IVector3<TType> &p_value,
+			const IVector3<TType> &p_boundMinimum,
+			const IVector3<TType> &p_boundMaximum) noexcept
 		{
 			const IVector3<TType> low = min(p_boundMinimum, p_boundMaximum);
 			const IVector3<TType> high = max(p_boundMinimum, p_boundMaximum);
@@ -431,16 +431,16 @@ namespace spk
 		}
 
 		[[nodiscard]] constexpr IVector3<TType> clamped(
-			const IVector3<TType>& p_boundMinimum,
-			const IVector3<TType>& p_boundMaximum) const noexcept
+			const IVector3<TType> &p_boundMinimum,
+			const IVector3<TType> &p_boundMaximum) const noexcept
 		{
 			return clamp(*this, p_boundMinimum, p_boundMaximum);
 		}
 
 		[[nodiscard]] static constexpr bool isBetween(
-			const IVector3<TType>& p_value,
-			const IVector3<TType>& p_boundA,
-			const IVector3<TType>& p_boundB) noexcept
+			const IVector3<TType> &p_value,
+			const IVector3<TType> &p_boundA,
+			const IVector3<TType> &p_boundB) noexcept
 		{
 			const IVector3<TType> low = min(p_boundA, p_boundB);
 			const IVector3<TType> high = max(p_boundA, p_boundB);

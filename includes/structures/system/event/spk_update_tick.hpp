@@ -1,10 +1,10 @@
 #pragma once
 
-#include "structures/system/time/spk_timestamp.hpp"
 #include "structures/system/time/spk_duration.hpp"
+#include "structures/system/time/spk_timestamp.hpp"
 
-#include "structures/system/device/input/spk_mouse.hpp"
 #include "structures/system/device/input/spk_keyboard.hpp"
+#include "structures/system/device/input/spk_mouse.hpp"
 
 namespace spk
 {

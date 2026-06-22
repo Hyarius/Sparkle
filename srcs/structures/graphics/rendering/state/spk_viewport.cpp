@@ -16,11 +16,10 @@ namespace spk
 {
 	void Viewport::_configureMatrix()
 	{
-		_matrix.configure([this]() -> spk::Matrix4x4
-		{
-			const float left   = 0.0f;
-			const float right  = static_cast<float>(_geometry.width());
-			const float top    = 0.0f;
+		_matrix.configure([this]() -> spk::Matrix4x4 {
+			const float left = 0.0f;
+			const float right = static_cast<float>(_geometry.width());
+			const float top = 0.0f;
 			const float bottom = static_cast<float>(_geometry.height());
 
 			return spk::Matrix4x4::ortho(left, right, bottom, top, -_maxLayer, 0);
@@ -34,44 +33,44 @@ namespace spk
 		_configureMatrix();
 	}
 
-	Viewport::Viewport(const spk::Rect2D& p_geometry) :
+	Viewport::Viewport(const spk::Rect2D &p_geometry) :
 		_geometry(p_geometry),
 		_scissor(p_geometry)
 	{
 		_configureMatrix();
 	}
 
-	Viewport::Viewport(const spk::Rect2D& p_geometry, const spk::Rect2D& p_scissor) :
+	Viewport::Viewport(const spk::Rect2D &p_geometry, const spk::Rect2D &p_scissor) :
 		_geometry(p_geometry),
 		_scissor(p_scissor)
 	{
 		_configureMatrix();
 	}
 
-	Viewport::Viewport(const Viewport& p_other) :
+	Viewport::Viewport(const Viewport &p_other) :
 		_geometry(p_other._geometry),
 		_scissor(p_other._scissor)
 	{
 		_configureMatrix();
 	}
 
-	void Viewport::setGeometry(const spk::Rect2D& p_geometry)
+	void Viewport::setGeometry(const spk::Rect2D &p_geometry)
 	{
 		_geometry = p_geometry;
 		_matrix.release();
 	}
 
-	const spk::Rect2D& Viewport::geometry() const
+	const spk::Rect2D &Viewport::geometry() const
 	{
 		return _geometry;
 	}
 
-	void Viewport::setScissor(const spk::Rect2D& p_scissor)
+	void Viewport::setScissor(const spk::Rect2D &p_scissor)
 	{
 		_scissor = p_scissor;
 	}
 
-	const spk::Rect2D& Viewport::scissor() const
+	const spk::Rect2D &Viewport::scissor() const
 	{
 		return _scissor;
 	}
@@ -101,17 +100,17 @@ namespace spk
 		_activeViewport = this;
 	}
 
-	const spk::Matrix4x4& Viewport::matrix() const
+	const spk::Matrix4x4 &Viewport::matrix() const
 	{
 		return _matrix.get();
 	}
 
-	const Viewport* Viewport::activeViewport()
+	const Viewport *Viewport::activeViewport()
 	{
 		return _activeViewport;
 	}
 
-	spk::UniformBufferObject& Viewport::viewportUniformBuffer()
+	spk::UniformBufferObject &Viewport::viewportUniformBuffer()
 	{
 		if (spk::GPUDataBufferCenter::contains(ViewportBlockName) == false)
 		{
@@ -128,14 +127,14 @@ namespace spk
 		return spk::GPUDataBufferCenter::getUBO(ViewportBlockName);
 	}
 
-	spk::Vector2 Viewport::convertScreenToOpenGL(const spk::Vector2Int& p_screenPosition)
+	spk::Vector2 Viewport::convertScreenToOpenGL(const spk::Vector2Int &p_screenPosition)
 	{
-		const spk::Matrix4x4& mat = _activeViewport->matrix();
+		const spk::Matrix4x4 &mat = _activeViewport->matrix();
 		const spk::Vector4 result = mat * spk::Vector4(
-			static_cast<float>(p_screenPosition.x),
-			static_cast<float>(p_screenPosition.y),
-			0.0f,
-			1.0f);
+											  static_cast<float>(p_screenPosition.x),
+											  static_cast<float>(p_screenPosition.y),
+											  0.0f,
+											  1.0f);
 		return {result.x, result.y};
 	}
 
@@ -144,14 +143,14 @@ namespace spk
 		return convertScreenToOpenGL(spk::Vector2Int{p_x, p_y});
 	}
 
-	spk::Vector3 Viewport::convertScreenToOpenGL(const spk::Vector2Int& p_screenPosition, float p_layer)
+	spk::Vector3 Viewport::convertScreenToOpenGL(const spk::Vector2Int &p_screenPosition, float p_layer)
 	{
-		const spk::Matrix4x4& mat = _activeViewport->matrix();
+		const spk::Matrix4x4 &mat = _activeViewport->matrix();
 		const spk::Vector4 result = mat * spk::Vector4(
-			static_cast<float>(p_screenPosition.x),
-			static_cast<float>(p_screenPosition.y),
-			p_layer,
-			1.0f);
+											  static_cast<float>(p_screenPosition.x),
+											  static_cast<float>(p_screenPosition.y),
+											  p_layer,
+											  1.0f);
 		return {result.x, result.y, result.z};
 	}
 

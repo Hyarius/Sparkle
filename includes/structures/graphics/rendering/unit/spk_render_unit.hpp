@@ -14,19 +14,19 @@ namespace spk
 		std::vector<std::unique_ptr<spk::RenderCommand>> _commands;
 
 	public:
-		explicit RenderUnit(std::vector<std::unique_ptr<spk::RenderCommand>>&& p_commands = {});
+		explicit RenderUnit(std::vector<std::unique_ptr<spk::RenderCommand>> &&p_commands = {});
 		~RenderUnit() = default;
 
-		RenderUnit(const RenderUnit&) = delete;
-		RenderUnit& operator=(const RenderUnit&) = delete;
+		RenderUnit(const RenderUnit &) = delete;
+		RenderUnit &operator=(const RenderUnit &) = delete;
 
-		RenderUnit(RenderUnit&&) noexcept = default;
-		RenderUnit& operator=(RenderUnit&&) noexcept = default;
+		RenderUnit(RenderUnit &&) noexcept = default;
+		RenderUnit &operator=(RenderUnit &&) noexcept = default;
 
 		[[nodiscard]] bool empty() const;
 		[[nodiscard]] size_t size() const;
-		[[nodiscard]] const std::vector<std::unique_ptr<spk::RenderCommand>>& commands() const;
+		[[nodiscard]] const std::vector<std::unique_ptr<spk::RenderCommand>> &commands() const;
 
-		void execute(spk::RenderContext& p_renderContext);
+		void execute(spk::RenderContext &p_renderContext);
 	};
 }

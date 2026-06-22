@@ -5,14 +5,14 @@
 #include <string>
 
 #include "structures/design_pattern/spk_activable_trait.hpp"
-#include "structures/system/event/spk_events.hpp"
 #include "structures/design_pattern/spk_inherence_trait.hpp"
-#include "structures/math/spk_rect_2d.hpp"
-#include "structures/widget/spk_resizable_element.hpp"
 #include "structures/graphics/rendering/snapshot/spk_render_snapshot_builder.hpp"
-#include "structures/graphics/rendering/unit/spk_render_unit_builder.hpp"
 #include "structures/graphics/rendering/state/spk_viewport.hpp"
+#include "structures/graphics/rendering/unit/spk_render_unit_builder.hpp"
+#include "structures/math/spk_rect_2d.hpp"
+#include "structures/system/event/spk_events.hpp"
 #include "structures/system/event/spk_update_tick.hpp"
+#include "structures/widget/spk_resizable_element.hpp"
 
 namespace spk
 {
@@ -35,7 +35,7 @@ namespace spk
 		friend class MouseModule;
 		friend class KeyboardModule;
 
-		static inline Widget* _focusedWidgets[2] = {nullptr, nullptr};
+		static inline Widget *_focusedWidgets[2] = {nullptr, nullptr};
 
 		std::string _name;
 		mutable bool _renderCommandsDirty = true;
@@ -49,7 +49,7 @@ namespace spk
 		void _updateAbsoluteGeometryAndScissor();
 
 		template <typename TEvent>
-		void _propagate(TEvent& p_event, void (spk::Widget::*p_handler)(TEvent&))
+		void _propagate(TEvent &p_event, void (spk::Widget::*p_handler)(TEvent &))
 		{
 			spk::HierarchyTrait<Widget>::HierarchyMutationGuard guard(this);
 
@@ -58,7 +58,7 @@ namespace spk
 				return;
 			}
 
-			for (auto* child : children())
+			for (auto *child : children())
 			{
 				if (child != nullptr)
 				{
@@ -73,63 +73,63 @@ namespace spk
 			(this->*p_handler)(p_event);
 		}
 
-		bool dispatchFrameEvent(spk::FrameEventRecord& p_event);
-		void dispatchMouseEvent(spk::MouseEventRecord& p_event, spk::Mouse& p_mouse);
-		void dispatchKeyboardEvent(spk::KeyboardEventRecord& p_event, spk::Keyboard& p_keyboard);
+		bool dispatchFrameEvent(spk::FrameEventRecord &p_event);
+		void dispatchMouseEvent(spk::MouseEventRecord &p_event, spk::Mouse &p_mouse);
+		void dispatchKeyboardEvent(spk::KeyboardEventRecord &p_event, spk::Keyboard &p_keyboard);
 
 	protected:
-		void onParentChanged(spk::Widget* p_oldParent, spk::Widget* p_newParent) override;
+		void onParentChanged(spk::Widget *p_oldParent, spk::Widget *p_newParent) override;
 
-		[[nodiscard]] const spk::Rect2D& absoluteGeometry() const;
-		[[nodiscard]] const spk::Rect2D& scissor() const;
+		[[nodiscard]] const spk::Rect2D &absoluteGeometry() const;
+		[[nodiscard]] const spk::Rect2D &scissor() const;
 
 		[[nodiscard]] virtual spk::RenderUnit _buildRenderUnit() const;
 		virtual void _onGeometryChange();
 
-		virtual void _onUpdate(const spk::UpdateTick& p_tick);
-		virtual void _onWindowCloseRequestedEvent(spk::WindowCloseRequestedEvent& p_event);
-		virtual void _onWindowDestroyedEvent(spk::WindowDestroyedEvent& p_event);
-		virtual void _onWindowMovedEvent(spk::WindowMovedEvent& p_event);
-		virtual void _onWindowResizedEvent(spk::WindowResizedEvent& p_event);
-		virtual void _onWindowFocusGainedEvent(spk::WindowFocusGainedEvent& p_event);
-		virtual void _onWindowFocusLostEvent(spk::WindowFocusLostEvent& p_event);
-		virtual void _onWindowShownEvent(spk::WindowShownEvent& p_event);
-		virtual void _onWindowHiddenEvent(spk::WindowHiddenEvent& p_event);
+		virtual void _onUpdate(const spk::UpdateTick &p_tick);
+		virtual void _onWindowCloseRequestedEvent(spk::WindowCloseRequestedEvent &p_event);
+		virtual void _onWindowDestroyedEvent(spk::WindowDestroyedEvent &p_event);
+		virtual void _onWindowMovedEvent(spk::WindowMovedEvent &p_event);
+		virtual void _onWindowResizedEvent(spk::WindowResizedEvent &p_event);
+		virtual void _onWindowFocusGainedEvent(spk::WindowFocusGainedEvent &p_event);
+		virtual void _onWindowFocusLostEvent(spk::WindowFocusLostEvent &p_event);
+		virtual void _onWindowShownEvent(spk::WindowShownEvent &p_event);
+		virtual void _onWindowHiddenEvent(spk::WindowHiddenEvent &p_event);
 
-		virtual void _onMouseEnteredEvent(spk::MouseEnteredWindowEvent& p_event);
-		virtual void _onMouseLeftEvent(spk::MouseLeftWindowEvent& p_event);
-		virtual void _onMouseMovedEvent(spk::MouseMovedEvent& p_event);
-		virtual void _onMouseWheelScrolledEvent(spk::MouseWheelScrolledEvent& p_event);
-		virtual void _onMouseButtonPressedEvent(spk::MouseButtonPressedEvent& p_event);
-		virtual void _onMouseButtonReleasedEvent(spk::MouseButtonReleasedEvent& p_event);
-		virtual void _onMouseButtonDoubleClickedEvent(spk::MouseButtonDoubleClickedEvent& p_event);
+		virtual void _onMouseEnteredEvent(spk::MouseEnteredWindowEvent &p_event);
+		virtual void _onMouseLeftEvent(spk::MouseLeftWindowEvent &p_event);
+		virtual void _onMouseMovedEvent(spk::MouseMovedEvent &p_event);
+		virtual void _onMouseWheelScrolledEvent(spk::MouseWheelScrolledEvent &p_event);
+		virtual void _onMouseButtonPressedEvent(spk::MouseButtonPressedEvent &p_event);
+		virtual void _onMouseButtonReleasedEvent(spk::MouseButtonReleasedEvent &p_event);
+		virtual void _onMouseButtonDoubleClickedEvent(spk::MouseButtonDoubleClickedEvent &p_event);
 
-		virtual void _onKeyPressedEvent(spk::KeyPressedEvent& p_event);
-		virtual void _onKeyReleasedEvent(spk::KeyReleasedEvent& p_event);
-		virtual void _onTextInputEvent(spk::TextInputEvent& p_event);
+		virtual void _onKeyPressedEvent(spk::KeyPressedEvent &p_event);
+		virtual void _onKeyReleasedEvent(spk::KeyReleasedEvent &p_event);
+		virtual void _onTextInputEvent(spk::TextInputEvent &p_event);
 
 	public:
-		explicit Widget(const std::string& p_name, spk::Widget* p_parent = nullptr);
+		explicit Widget(const std::string &p_name, spk::Widget *p_parent = nullptr);
 		virtual ~Widget();
 
-		[[nodiscard]] const std::string& name() const;
+		[[nodiscard]] const std::string &name() const;
 
-		virtual void applyStyle(const spk::WidgetStyle& p_style);
+		virtual void applyStyle(const spk::WidgetStyle &p_style);
 
-		static Widget* focusedWidget(FocusType p_focusType);
+		static Widget *focusedWidget(FocusType p_focusType);
 		void takeFocus(FocusType p_focusType);
 		void releaseFocus(FocusType p_focusType);
 		[[nodiscard]] bool hasFocus(FocusType p_focusType) const;
 		void takeAllFocus();
 		void releaseAllFocus();
 
-		void setGeometry(const spk::Rect2D& p_geometry) override;
-		void place(const spk::Vector2Int& p_anchor);
-		void move(const spk::Vector2Int& p_delta);
+		void setGeometry(const spk::Rect2D &p_geometry) override;
+		void place(const spk::Vector2Int &p_anchor);
+		void move(const spk::Vector2Int &p_delta);
 
-		void setMinimalSize(const spk::Vector2UInt& p_size);
-		void setFixedSize(const spk::Vector2UInt& p_size);
-		void setMaximalSize(const spk::Vector2UInt& p_size);
+		void setMinimalSize(const spk::Vector2UInt &p_size);
+		void setFixedSize(const spk::Vector2UInt &p_size);
+		void setMaximalSize(const spk::Vector2UInt &p_size);
 
 		[[nodiscard]] spk::Vector2UInt minimalSize() const;
 		[[nodiscard]] spk::Vector2UInt fixedSize() const;
@@ -138,12 +138,12 @@ namespace spk
 		void invalidateRenderUnit() const;
 		void invalidateRenderUnitTree() const;
 
-		[[nodiscard]] const spk::Rect2D& geometry() const;
+		[[nodiscard]] const spk::Rect2D &geometry() const;
 		[[nodiscard]] bool isRenderCommandDirty() const;
-		[[nodiscard]] const spk::Viewport& viewport() const;
+		[[nodiscard]] const spk::Viewport &viewport() const;
 
 		[[nodiscard]] std::shared_ptr<spk::RenderUnit> renderUnit() const;
-		void appendRenderUnits(spk::RenderSnapshotBuilder& p_builder) const;
-		void update(const spk::UpdateTick& p_tick);
+		void appendRenderUnits(spk::RenderSnapshotBuilder &p_builder) const;
+		void update(const spk::UpdateTick &p_tick);
 	};
 }

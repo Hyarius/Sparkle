@@ -1,8 +1,8 @@
 #pragma once
 
+#include <cstdint>
 #include <filesystem>
 #include <vector>
-#include <cstdint>
 
 #include "structures/graphics/spk_texture.hpp"
 
@@ -12,10 +12,10 @@ namespace spk
 	{
 	public:
 		Image();
-		explicit Image(const std::filesystem::path& p_path);
+		explicit Image(const std::filesystem::path &p_path);
 
-		void loadFromFile(const std::filesystem::path& p_path);
-		void loadFromData(const std::vector<uint8_t>& p_data);
+		void loadFromFile(const std::filesystem::path &p_path);
+		void loadFromData(const std::vector<uint8_t> &p_data);
 
 	private:
 		static Format _determineFormat(int p_channels);

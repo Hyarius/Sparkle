@@ -7,19 +7,18 @@
 
 namespace
 {
-	[[nodiscard]] spk::Vector3 toPosition(const spk::Vector2Int& p_pixel, float p_depth)
+	[[nodiscard]] spk::Vector3 toPosition(const spk::Vector2Int &p_pixel, float p_depth)
 	{
 		return {
 			static_cast<float>(p_pixel.x),
 			static_cast<float>(p_pixel.y),
-			p_depth
-		};
+			p_depth};
 	}
 
 	[[nodiscard]] spk::TextureMesh2D buildTextMesh(
-		spk::Font::Atlas& p_atlas,
-		const spk::Font::Text& p_text,
-		const spk::Vector2Int& p_baselinePosition,
+		spk::Font::Atlas &p_atlas,
+		const spk::Font::Text &p_text,
+		const spk::Vector2Int &p_baselinePosition,
 		float p_depth)
 	{
 		p_atlas.loadGlyphs(p_text);
@@ -29,7 +28,7 @@ namespace
 
 		for (spk::Font::Codepoint character : p_text)
 		{
-			const spk::Font::Glyph& glyph = p_atlas.glyph(character);
+			const spk::Font::Glyph &glyph = p_atlas.glyph(character);
 
 			if (glyph.size.x != 0 && glyph.size.y != 0)
 			{
@@ -39,13 +38,11 @@ namespace
 				{
 					const spk::Vector2Int pixelPosition = {
 						cursorX + glyph.positions[i].x,
-						p_baselinePosition.y + glyph.positions[i].y
-					};
+						p_baselinePosition.y + glyph.positions[i].y};
 
 					vertices[i] = {
 						toPosition(pixelPosition, p_depth),
-						glyph.uvs[i]
-					};
+						glyph.uvs[i]};
 				}
 
 				mesh.addShape(vertices[0], vertices[1], vertices[3], vertices[2]);
@@ -92,7 +89,9 @@ namespace spk
 		}
 
 		_rebuildFontCommand();
-		_onAtlasEditionContract = _atlas->subscribe([this]() { _fontCommandOutdated = true; });
+		_onAtlasEditionContract = _atlas->subscribe([this]() {
+			_fontCommandOutdated = true;
+		});
 	}
 
 	void TextRenderCommand::_rebuildFontCommand()
@@ -161,7 +160,7 @@ namespace spk
 	{
 	}
 
-	void TextRenderCommand::execute(spk::RenderContext& p_renderContext)
+	void TextRenderCommand::execute(spk::RenderContext &p_renderContext)
 	{
 		if (_fontCommandOutdated == true || _fontCommand == nullptr)
 		{

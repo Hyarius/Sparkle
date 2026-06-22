@@ -6,11 +6,11 @@
 #include <mutex>
 #include <thread>
 
-#include "structures/system/time/spk_duration.hpp"
 #include "structures/system/device/runtime/spk_opengl_runtime.hpp"
 #include "structures/system/device/runtime/spk_platform_runtime.hpp"
 #include "structures/system/device/window/spk_window_handle.hpp"
 #include "structures/system/device/window/spk_window_registry.hpp"
+#include "structures/system/time/spk_duration.hpp"
 
 namespace spk
 {
@@ -45,7 +45,7 @@ namespace spk
 	private:
 		static std::shared_ptr<PlatformRuntime> _createDefaultPlatformRuntime();
 		static std::shared_ptr<GPUPlatformRuntime> _createDefaultGPUPlatformRuntime();
-		void _bindOrValidateOwnerThread(const char* p_operation);
+		void _bindOrValidateOwnerThread(const char *p_operation);
 		void _recordFailure(std::exception_ptr p_failure);
 		void _rethrowFailureIfAny();
 
@@ -57,14 +57,14 @@ namespace spk
 		Application();
 		explicit Application(Configuration p_configuration);
 
-		spk::WindowHandle createWindow(const WindowID& p_id, spk::Window::Configuration p_configuration);
+		spk::WindowHandle createWindow(const WindowID &p_id, spk::Window::Configuration p_configuration);
 
-		[[nodiscard]] spk::WindowHandle window(const WindowID& p_id);
-		[[nodiscard]] spk::WindowHandle window(const WindowID& p_id) const;
-		[[nodiscard]] bool containsWindow(const WindowID& p_id) const;
+		[[nodiscard]] spk::WindowHandle window(const WindowID &p_id);
+		[[nodiscard]] spk::WindowHandle window(const WindowID &p_id) const;
+		[[nodiscard]] bool containsWindow(const WindowID &p_id) const;
 		[[nodiscard]] bool isRunning() const;
 
-		void requestWindowClosing(const WindowID& p_id);
+		void requestWindowClosing(const WindowID &p_id);
 		// Thread-safe external shutdown entry point. Applications that translate
 		// SIGINT, WM_QUIT, or other host signals should call quit() from their
 		// signal/message bridge instead of relying on widget-tree events.

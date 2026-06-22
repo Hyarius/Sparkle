@@ -24,22 +24,21 @@ namespace
 	[[nodiscard]] uint32_t safeAdd(uint32_t p_left, uint32_t p_right)
 	{
 		return (p_left > std::numeric_limits<uint32_t>::max() - p_right)
-			? std::numeric_limits<uint32_t>::max()
-			: p_left + p_right;
+				   ? std::numeric_limits<uint32_t>::max()
+				   : p_left + p_right;
 	}
 }
 
 namespace spk
 {
-	IInterfaceWindow::MenuBar::MenuBar(const std::string& p_name, spk::Widget* p_parent) :
+	IInterfaceWindow::MenuBar::MenuBar(const std::string &p_name, spk::Widget *p_parent) :
 		spk::Widget(p_name, p_parent),
 		_titleLabel(p_name + "::titleLabel", this),
 		_minimizeButton(p_name + "::minimizeButton", this),
 		_maximizeButton(p_name + "::maximizeButton", this),
 		_closeButton(p_name + "::closeButton", this)
 	{
-		_titleLabel.useStyle(spk::WidgetStyle::Collection::style(
-			spk::WidgetStyle::Collection::DefaultInterfaceWindowTitle));
+		_titleLabel.useStyle(spk::WidgetStyle::Collection::style(spk::WidgetStyle::Collection::DefaultInterfaceWindowTitle));
 		_titleLabel.setAlignment(spk::HorizontalAlignment::Left, spk::VerticalAlignment::Centered);
 
 		_minimizeButton.setIcon(defaultIconset(), MinimizeIconID);
@@ -73,14 +72,7 @@ namespace spk
 
 	unsigned int IInterfaceWindow::MenuBar::_minimumControlButtonSize() const
 	{
-		return std::max({
-			1u,
-			_minimizeButton.minimalSize().x,
-			_minimizeButton.minimalSize().y,
-			_maximizeButton.minimalSize().x,
-			_maximizeButton.minimalSize().y,
-			_closeButton.minimalSize().x,
-			_closeButton.minimalSize().y});
+		return std::max({1u, _minimizeButton.minimalSize().x, _minimizeButton.minimalSize().y, _maximizeButton.minimalSize().x, _maximizeButton.minimalSize().y, _closeButton.minimalSize().x, _closeButton.minimalSize().y});
 	}
 
 	unsigned int IInterfaceWindow::MenuBar::_controlButtonSize() const
@@ -106,8 +98,7 @@ namespace spk
 		_titleLabel.setGeometry(spk::Rect2D(Margin, Margin, static_cast<unsigned int>(titleWidth), buttonSize));
 
 		int anchorX = Margin + titleWidth + Margin;
-		const auto placeButton = [&](spk::PushButton& p_button)
-		{
+		const auto placeButton = [&](spk::PushButton &p_button) {
 			if (p_button.isActivated() == false)
 			{
 				return;
@@ -155,47 +146,47 @@ namespace spk
 		_onGeometryChange();
 	}
 
-	spk::TextLabel& IInterfaceWindow::MenuBar::titleLabel()
+	spk::TextLabel &IInterfaceWindow::MenuBar::titleLabel()
 	{
 		return _titleLabel;
 	}
 
-	const spk::TextLabel& IInterfaceWindow::MenuBar::titleLabel() const
+	const spk::TextLabel &IInterfaceWindow::MenuBar::titleLabel() const
 	{
 		return _titleLabel;
 	}
 
-	spk::PushButton& IInterfaceWindow::MenuBar::minimizeButton()
+	spk::PushButton &IInterfaceWindow::MenuBar::minimizeButton()
 	{
 		return _minimizeButton;
 	}
 
-	const spk::PushButton& IInterfaceWindow::MenuBar::minimizeButton() const
+	const spk::PushButton &IInterfaceWindow::MenuBar::minimizeButton() const
 	{
 		return _minimizeButton;
 	}
 
-	spk::PushButton& IInterfaceWindow::MenuBar::maximizeButton()
+	spk::PushButton &IInterfaceWindow::MenuBar::maximizeButton()
 	{
 		return _maximizeButton;
 	}
 
-	const spk::PushButton& IInterfaceWindow::MenuBar::maximizeButton() const
+	const spk::PushButton &IInterfaceWindow::MenuBar::maximizeButton() const
 	{
 		return _maximizeButton;
 	}
 
-	spk::PushButton& IInterfaceWindow::MenuBar::closeButton()
+	spk::PushButton &IInterfaceWindow::MenuBar::closeButton()
 	{
 		return _closeButton;
 	}
 
-	const spk::PushButton& IInterfaceWindow::MenuBar::closeButton() const
+	const spk::PushButton &IInterfaceWindow::MenuBar::closeButton() const
 	{
 		return _closeButton;
 	}
 
-	IInterfaceWindow::IInterfaceWindow(const std::string& p_name, spk::Widget* p_parent) :
+	IInterfaceWindow::IInterfaceWindow(const std::string &p_name, spk::Widget *p_parent) :
 		spk::ScalableWidget(p_name, p_parent),
 		_backgroundFrame(
 			p_name + "::backgroundFrame",
@@ -210,13 +201,11 @@ namespace spk
 		_minimizedBackgroundFrame.deactivate();
 		_menuBar.titleLabel().setText(p_name);
 
-		_minimizeContract = _menuBar._minimizeButton.subscribeToClick([this]()
-		{
+		_minimizeContract = _menuBar._minimizeButton.subscribeToClick([this]() {
 			minimize();
 		});
 
-		_maximizeContract = _menuBar._maximizeButton.subscribeToClick([this]()
-		{
+		_maximizeContract = _menuBar._maximizeButton.subscribeToClick([this]() {
 			maximize();
 		});
 
@@ -289,13 +278,11 @@ namespace spk
 
 		if (_content != nullptr)
 		{
-			_content->setGeometry(spk::Rect2D(
-				{static_cast<int>(padding.left), static_cast<int>(menuHeight + padding.top)},
-				frameSize));
+			_content->setGeometry(spk::Rect2D({static_cast<int>(padding.left), static_cast<int>(menuHeight + padding.top)}, frameSize));
 		}
 	}
 
-	void IInterfaceWindow::_onMouseMovedEvent(spk::MouseMovedEvent& p_event)
+	void IInterfaceWindow::_onMouseMovedEvent(spk::MouseMovedEvent &p_event)
 	{
 		spk::ScalableWidget::_onMouseMovedEvent(p_event);
 
@@ -308,7 +295,7 @@ namespace spk
 		p_event.consume();
 	}
 
-	void IInterfaceWindow::_onMouseButtonPressedEvent(spk::MouseButtonPressedEvent& p_event)
+	void IInterfaceWindow::_onMouseButtonPressedEvent(spk::MouseButtonPressedEvent &p_event)
 	{
 		spk::ScalableWidget::_onMouseButtonPressedEvent(p_event);
 
@@ -334,7 +321,7 @@ namespace spk
 		}
 	}
 
-	void IInterfaceWindow::_onMouseButtonReleasedEvent(spk::MouseButtonReleasedEvent& p_event)
+	void IInterfaceWindow::_onMouseButtonReleasedEvent(spk::MouseButtonReleasedEvent &p_event)
 	{
 		spk::ScalableWidget::_onMouseButtonReleasedEvent(p_event);
 
@@ -349,37 +336,37 @@ namespace spk
 		p_event.consume();
 	}
 
-	IInterfaceWindow::MenuBar& IInterfaceWindow::menuBar()
+	IInterfaceWindow::MenuBar &IInterfaceWindow::menuBar()
 	{
 		return _menuBar;
 	}
 
-	const IInterfaceWindow::MenuBar& IInterfaceWindow::menuBar() const
+	const IInterfaceWindow::MenuBar &IInterfaceWindow::menuBar() const
 	{
 		return _menuBar;
 	}
 
-	spk::Panel& IInterfaceWindow::backgroundFrame()
+	spk::Panel &IInterfaceWindow::backgroundFrame()
 	{
 		return _backgroundFrame;
 	}
 
-	const spk::Panel& IInterfaceWindow::backgroundFrame() const
+	const spk::Panel &IInterfaceWindow::backgroundFrame() const
 	{
 		return _backgroundFrame;
 	}
 
-	spk::Panel& IInterfaceWindow::minimizedBackgroundFrame()
+	spk::Panel &IInterfaceWindow::minimizedBackgroundFrame()
 	{
 		return _minimizedBackgroundFrame;
 	}
 
-	const spk::Panel& IInterfaceWindow::minimizedBackgroundFrame() const
+	const spk::Panel &IInterfaceWindow::minimizedBackgroundFrame() const
 	{
 		return _minimizedBackgroundFrame;
 	}
 
-	void IInterfaceWindow::setContent(spk::Widget* p_content)
+	void IInterfaceWindow::setContent(spk::Widget *p_content)
 	{
 		if (p_content != nullptr && p_content->parent() != &_backgroundFrame)
 		{
@@ -396,12 +383,12 @@ namespace spk
 		_onGeometryChange();
 	}
 
-	spk::Widget* IInterfaceWindow::content()
+	spk::Widget *IInterfaceWindow::content()
 	{
 		return _content;
 	}
 
-	const spk::Widget* IInterfaceWindow::content() const
+	const spk::Widget *IInterfaceWindow::content() const
 	{
 		return _content;
 	}
@@ -411,7 +398,7 @@ namespace spk
 		_menuBar.titleLabel().setText(p_title);
 	}
 
-	void IInterfaceWindow::setContentPadding(const ContentPadding& p_padding)
+	void IInterfaceWindow::setContentPadding(const ContentPadding &p_padding)
 	{
 		if (_contentPadding.has_value() == true && *_contentPadding == p_padding)
 		{
@@ -445,7 +432,7 @@ namespace spk
 		_onGeometryChange();
 	}
 
-	void IInterfaceWindow::setMinimumContentSize(const spk::Vector2UInt& p_minimumContentSize)
+	void IInterfaceWindow::setMinimumContentSize(const spk::Vector2UInt &p_minimumContentSize)
 	{
 		const spk::Vector2UInt menuBarSize = _menuBar.minimalSize();
 		const unsigned int menuHeight = _effectiveMenuHeight();

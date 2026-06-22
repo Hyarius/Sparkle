@@ -17,7 +17,7 @@ namespace spk
 		spk::Vector3 position{};
 		spk::Vector2 uv{};
 
-		[[nodiscard]] bool operator==(const TextureVertex2D& p_other) const noexcept
+		[[nodiscard]] bool operator==(const TextureVertex2D &p_other) const noexcept
 		{
 			return position == p_other.position && uv == p_other.uv;
 		}
@@ -29,7 +29,7 @@ namespace std
 	template <>
 	struct hash<spk::TextureVertex2D>
 	{
-		std::size_t operator()(const spk::TextureVertex2D& p_value) const noexcept
+		std::size_t operator()(const spk::TextureVertex2D &p_value) const noexcept
 		{
 			std::size_t h = std::hash<float>{}(p_value.position.x);
 			h ^= std::hash<float>{}(p_value.position.y) + 0x9e3779b9u + (h << 6) + (h >> 2);

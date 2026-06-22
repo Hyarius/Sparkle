@@ -2,10 +2,10 @@
 
 #include <stdexcept>
 
-#include "structures/graphics/spk_program.hpp"
-#include "structures/graphics/spk_sampler_object.hpp"
 #include "structures/graphics/opengl/spk_opengl_texture.hpp"
 #include "structures/graphics/rendering/context/spk_render_context.hpp"
+#include "structures/graphics/spk_program.hpp"
+#include "structures/graphics/spk_sampler_object.hpp"
 
 namespace spk::OpenGL
 {
@@ -26,24 +26,23 @@ namespace spk::OpenGL
 		throw std::runtime_error("Unsupported sampler type");
 	}
 
-	void SamplerObject::activate(const spk::RenderContext& p_context, const spk::SamplerObject& p_sampler) const
+	void SamplerObject::activate(const spk::RenderContext &p_context, const spk::SamplerObject &p_sampler) const
 	{
 		glActiveTexture(GL_TEXTURE0 + p_sampler.bindingPoint());
 
-		const spk::Texture* texture = p_sampler.texture();
+		const spk::Texture *texture = p_sampler.texture();
 		if (texture == nullptr)
 		{
 			glBindTexture(samplerType(p_sampler.type()), 0);
 			return;
 		}
 
-		const spk::Program& program = p_sampler.program();
+		const spk::Program &program = p_sampler.program();
 
-		spk::OpenGL::UniformLocation& loc = _locationCache.resolve(
+		spk::OpenGL::UniformLocation &loc = _locationCache.resolve(
 			p_context,
 			program.version(),
-			[&]() -> std::unique_ptr<spk::OpenGL::UniformLocation>
-			{
+			[&]() -> std::unique_ptr<spk::OpenGL::UniformLocation> {
 				auto obj = std::make_unique<spk::OpenGL::UniformLocation>();
 				obj->location = glGetUniformLocation(
 					program.gpu(p_context).id(),
@@ -60,11 +59,11 @@ namespace spk::OpenGL
 			loc.validated = true;
 		}
 
-		const spk::OpenGL::Texture& glTex = texture->gpu(p_context);
+		const spk::OpenGL::Texture &glTex = texture->gpu(p_context);
 		glBindTexture(samplerType(p_sampler.type()), glTex.id());
 	}
 
-	void SamplerObject::deactivate(const spk::SamplerObject& p_sampler) const
+	void SamplerObject::deactivate(const spk::SamplerObject &p_sampler) const
 	{
 		glActiveTexture(GL_TEXTURE0 + p_sampler.bindingPoint());
 		glBindTexture(samplerType(p_sampler.type()), 0);

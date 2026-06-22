@@ -25,11 +25,11 @@ namespace spk
 		~ActivableTrait() = default;
 
 	public:
-		ActivableTrait(const ActivableTrait&) = delete;
-		ActivableTrait& operator=(const ActivableTrait&) = delete;
+		ActivableTrait(const ActivableTrait &) = delete;
+		ActivableTrait &operator=(const ActivableTrait &) = delete;
 
-		ActivableTrait(ActivableTrait&&) noexcept = delete;
-		ActivableTrait& operator=(ActivableTrait&&) noexcept = delete;
+		ActivableTrait(ActivableTrait &&) noexcept = delete;
+		ActivableTrait &operator=(ActivableTrait &&) noexcept = delete;
 
 		bool isActivated() const;
 		void activate();

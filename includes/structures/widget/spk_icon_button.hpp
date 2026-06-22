@@ -19,21 +19,21 @@ namespace spk
 		void _refreshIcon();
 
 	public:
-		explicit IconButton(const std::string& p_name, spk::Widget* p_parent = nullptr);
+		explicit IconButton(const std::string &p_name, spk::Widget *p_parent = nullptr);
 		IconButton(
-			const std::string& p_name,
+			const std::string &p_name,
 			std::shared_ptr<spk::SpriteSheet> p_iconset,
 			size_t p_iconSpriteID,
-			spk::Widget* p_parent = nullptr);
+			spk::Widget *p_parent = nullptr);
 
 		using spk::PushButton::applyStyle;
-		void applyStyle(const spk::WidgetStyle& p_style) override;
+		void applyStyle(const spk::WidgetStyle &p_style) override;
 
 		void setIconset(std::shared_ptr<spk::SpriteSheet> p_iconset);
 		void setIconSpriteID(size_t p_spriteID);
-		void setIconSpriteID(const spk::Vector2UInt& p_spriteCoordinates);
+		void setIconSpriteID(const spk::Vector2UInt &p_spriteCoordinates);
 
-		[[nodiscard]] const std::shared_ptr<spk::SpriteSheet>& iconset() const;
+		[[nodiscard]] const std::shared_ptr<spk::SpriteSheet> &iconset() const;
 		[[nodiscard]] size_t iconSpriteID() const;
 	};
 }

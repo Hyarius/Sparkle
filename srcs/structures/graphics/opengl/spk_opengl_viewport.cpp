@@ -8,18 +8,16 @@
 
 namespace spk
 {
-	void OpenGLViewport::apply(const spk::Viewport& p_viewport, const spk::SurfaceState& p_surfaceState)
+	void OpenGLViewport::apply(const spk::Viewport &p_viewport, const spk::SurfaceState &p_surfaceState)
 	{
-		const spk::Vector2UInt& windowSize = p_surfaceState.rect().size;
+		const spk::Vector2UInt &windowSize = p_surfaceState.rect().size;
 		if (windowSize.x == 0 || windowSize.y == 0)
 		{
 			throw std::runtime_error("spk::OpenGLViewport::apply() - window size must be positive");
 		}
 
-		const spk::Rect2D& geometry = p_viewport.geometry();
-		const GLint viewportGLY = static_cast<GLint>(windowSize.y)
-			- geometry.y()
-			- static_cast<GLint>(geometry.height());
+		const spk::Rect2D &geometry = p_viewport.geometry();
+		const GLint viewportGLY = static_cast<GLint>(windowSize.y) - geometry.y() - static_cast<GLint>(geometry.height());
 
 		glViewport(
 			static_cast<GLint>(geometry.x()),
@@ -27,10 +25,8 @@ namespace spk
 			static_cast<GLsizei>(geometry.width()),
 			static_cast<GLsizei>(geometry.height()));
 
-		const spk::Rect2D& scissor = p_viewport.scissor();
-		const GLint scissorGLY = static_cast<GLint>(windowSize.y)
-			- scissor.y()
-			- static_cast<GLint>(scissor.height());
+		const spk::Rect2D &scissor = p_viewport.scissor();
+		const GLint scissorGLY = static_cast<GLint>(windowSize.y) - scissor.y() - static_cast<GLint>(scissor.height());
 
 		glScissor(
 			static_cast<GLint>(scissor.x()),

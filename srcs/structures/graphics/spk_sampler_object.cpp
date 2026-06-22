@@ -3,10 +3,10 @@
 namespace spk
 {
 	SamplerObject::SamplerObject(
-		const std::string& p_name,
+		const std::string &p_name,
 		Type p_type,
 		BindingPoint p_bindingPoint,
-		const spk::Program& p_program) :
+		const spk::Program &p_program) :
 		_designator(p_name),
 		_bindingPoint(p_bindingPoint),
 		_type(p_type),
@@ -14,7 +14,7 @@ namespace spk
 	{
 	}
 
-	void SamplerObject::bind(const spk::Texture& p_texture)
+	void SamplerObject::bind(const spk::Texture &p_texture)
 	{
 		_texture = p_texture;
 	}
@@ -24,17 +24,17 @@ namespace spk
 		_texture.reset();
 	}
 
-	const spk::Texture* SamplerObject::texture() const noexcept
+	const spk::Texture *SamplerObject::texture() const noexcept
 	{
 		return _texture.has_value() ? &(*_texture) : nullptr;
 	}
 
-	const std::string& SamplerObject::designator() const noexcept
+	const std::string &SamplerObject::designator() const noexcept
 	{
 		return _designator;
 	}
 
-	const spk::Program& SamplerObject::program() const noexcept
+	const spk::Program &SamplerObject::program() const noexcept
 	{
 		return _program;
 	}
@@ -49,7 +49,7 @@ namespace spk
 		return _type;
 	}
 
-	void SamplerObject::activate(const spk::RenderContext& p_context) const
+	void SamplerObject::activate(const spk::RenderContext &p_context) const
 	{
 		_gpu.activate(p_context, *this);
 	}

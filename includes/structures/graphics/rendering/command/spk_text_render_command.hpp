@@ -4,12 +4,12 @@
 #include <string>
 #include <string_view>
 
-#include "structures/math/spk_vector2.hpp"
-#include "structures/graphics/rendering/command/spk_draw_font_render_command.hpp"
 #include "structures/graphics/geometry/spk_color.hpp"
-#include "structures/graphics/texture/spk_font.hpp"
-#include "type/spk_horizontal_alignment.hpp"
+#include "structures/graphics/rendering/command/spk_draw_font_render_command.hpp"
 #include "structures/graphics/rendering/command/spk_render_command.hpp"
+#include "structures/graphics/texture/spk_font.hpp"
+#include "structures/math/spk_vector2.hpp"
+#include "type/spk_horizontal_alignment.hpp"
 #include "type/spk_vertical_alignment.hpp"
 
 namespace spk
@@ -55,11 +55,11 @@ namespace spk
 			spk::HorizontalAlignment p_horizontalAlignment = spk::HorizontalAlignment::Left,
 			spk::VerticalAlignment p_verticalAlignment = spk::VerticalAlignment::Top);
 
-		TextRenderCommand(const TextRenderCommand&) = delete;
-		TextRenderCommand& operator=(const TextRenderCommand&) = delete;
-		TextRenderCommand(TextRenderCommand&&) = delete;
-		TextRenderCommand& operator=(TextRenderCommand&&) = delete;
+		TextRenderCommand(const TextRenderCommand &) = delete;
+		TextRenderCommand &operator=(const TextRenderCommand &) = delete;
+		TextRenderCommand(TextRenderCommand &&) = delete;
+		TextRenderCommand &operator=(TextRenderCommand &&) = delete;
 
-		void execute(spk::RenderContext& p_renderContext) override;
+		void execute(spk::RenderContext &p_renderContext) override;
 	};
 }

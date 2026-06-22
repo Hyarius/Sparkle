@@ -6,10 +6,10 @@
 #include <string>
 #include <thread>
 
-#include "structures/system/device/window/spk_frame.hpp"
-#include "structures/system/device/runtime/spk_opengl_runtime.hpp"
-#include "structures/math/spk_rect_2d.hpp"
 #include "structures/graphics/rendering/context/spk_render_context.hpp"
+#include "structures/math/spk_rect_2d.hpp"
+#include "structures/system/device/runtime/spk_opengl_runtime.hpp"
+#include "structures/system/device/window/spk_frame.hpp"
 
 namespace spk
 {
@@ -24,9 +24,9 @@ namespace spk
 		std::optional<std::thread::id> _renderThreadID;
 
 	private:
-		void _bindOrValidatePlatformThread(const char* p_operation) const;
-		void _bindOrValidateRenderThreadLocked(const char* p_operation);
-		void _validateRenderThreadLocked(const char* p_operation) const;
+		void _bindOrValidatePlatformThread(const char *p_operation) const;
+		void _bindOrValidateRenderThreadLocked(const char *p_operation);
+		void _validateRenderThreadLocked(const char *p_operation) const;
 		[[nodiscard]] bool _ensureRenderContextLocked();
 
 	public:
@@ -36,10 +36,10 @@ namespace spk
 		[[nodiscard]] bool isPlatformThread() const;
 		[[nodiscard]] bool isRenderThread() const;
 
-		void resize(const spk::Rect2D& p_rect);
-		void notifyFrameResized(const spk::Rect2D& p_rect);
-		void setTitle(const std::string& p_title);
-		void setCursor(const std::string& p_name);
+		void resize(const spk::Rect2D &p_rect);
+		void notifyFrameResized(const spk::Rect2D &p_rect);
+		void setTitle(const std::string &p_title);
+		void setCursor(const std::string &p_name);
 		void requestClosure();
 		void validateClosure();
 		void releaseFrame();
@@ -49,7 +49,7 @@ namespace spk
 		[[nodiscard]] std::string title() const;
 
 		[[nodiscard]] bool makeCurrent();
-		[[nodiscard]] RenderContext& renderContext();
+		[[nodiscard]] RenderContext &renderContext();
 		void present();
 		void setVSync(bool p_enabled);
 

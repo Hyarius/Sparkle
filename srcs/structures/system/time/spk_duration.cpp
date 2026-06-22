@@ -42,14 +42,12 @@ namespace spk
 	void Duration::_rebindCaches()
 	{
 		_millisecondsCache.configure(
-			[this]()
-			{
+			[this]() {
 				return _nanoseconds / 1'000'000LL;
 			});
 
 		_secondsCache.configure(
-			[this]()
-			{
+			[this]() {
 				return static_cast<double>(_nanoseconds) / 1'000'000'000.0;
 			});
 	}
@@ -65,19 +63,19 @@ namespace spk
 		_rebindCaches();
 	}
 
-	Duration::Duration(const Duration& p_other) :
+	Duration::Duration(const Duration &p_other) :
 		_nanoseconds(p_other._nanoseconds)
 	{
 		_rebindCaches();
 	}
 
-	Duration::Duration(Duration&& p_other) noexcept :
+	Duration::Duration(Duration &&p_other) noexcept :
 		_nanoseconds(p_other._nanoseconds)
 	{
 		_rebindCaches();
 	}
 
-	Duration& Duration::operator=(const Duration& p_other)
+	Duration &Duration::operator=(const Duration &p_other)
 	{
 		if (this != &p_other)
 		{
@@ -88,7 +86,7 @@ namespace spk
 		return *this;
 	}
 
-	Duration& Duration::operator=(Duration&& p_other) noexcept
+	Duration &Duration::operator=(Duration &&p_other) noexcept
 	{
 		if (this != &p_other)
 		{
@@ -127,7 +125,7 @@ namespace spk
 		return result;
 	}
 
-	Duration Duration::operator+(const Duration& p_other) const noexcept
+	Duration Duration::operator+(const Duration &p_other) const noexcept
 	{
 		Duration result;
 		result._nanoseconds = _nanoseconds + p_other._nanoseconds;
@@ -135,7 +133,7 @@ namespace spk
 		return result;
 	}
 
-	Duration Duration::operator-(const Duration& p_other) const noexcept
+	Duration Duration::operator-(const Duration &p_other) const noexcept
 	{
 		Duration result;
 		result._nanoseconds = _nanoseconds - p_other._nanoseconds;
@@ -143,46 +141,46 @@ namespace spk
 		return result;
 	}
 
-	Duration& Duration::operator+=(const Duration& p_other) noexcept
+	Duration &Duration::operator+=(const Duration &p_other) noexcept
 	{
 		_nanoseconds += p_other._nanoseconds;
 		_rebindCaches();
 		return *this;
 	}
 
-	Duration& Duration::operator-=(const Duration& p_other) noexcept
+	Duration &Duration::operator-=(const Duration &p_other) noexcept
 	{
 		_nanoseconds -= p_other._nanoseconds;
 		_rebindCaches();
 		return *this;
 	}
 
-	bool Duration::operator==(const Duration& p_other) const noexcept
+	bool Duration::operator==(const Duration &p_other) const noexcept
 	{
 		return _nanoseconds == p_other._nanoseconds;
 	}
 
-	bool Duration::operator!=(const Duration& p_other) const noexcept
+	bool Duration::operator!=(const Duration &p_other) const noexcept
 	{
 		return !(*this == p_other);
 	}
 
-	bool Duration::operator<(const Duration& p_other) const noexcept
+	bool Duration::operator<(const Duration &p_other) const noexcept
 	{
 		return _nanoseconds < p_other._nanoseconds;
 	}
 
-	bool Duration::operator>(const Duration& p_other) const noexcept
+	bool Duration::operator>(const Duration &p_other) const noexcept
 	{
 		return _nanoseconds > p_other._nanoseconds;
 	}
 
-	bool Duration::operator<=(const Duration& p_other) const noexcept
+	bool Duration::operator<=(const Duration &p_other) const noexcept
 	{
 		return _nanoseconds <= p_other._nanoseconds;
 	}
 
-	bool Duration::operator>=(const Duration& p_other) const noexcept
+	bool Duration::operator>=(const Duration &p_other) const noexcept
 	{
 		return _nanoseconds >= p_other._nanoseconds;
 	}

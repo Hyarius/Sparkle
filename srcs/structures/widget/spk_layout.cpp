@@ -7,7 +7,7 @@ namespace spk
 {
 	Layout::Element::Element() = default;
 
-	Layout::Element::Element(spk::Widget* p_widget, SizePolicy p_sizePolicy, const spk::Vector2UInt& p_size) :
+	Layout::Element::Element(spk::Widget *p_widget, SizePolicy p_sizePolicy, const spk::Vector2UInt &p_size) :
 		_widget(p_widget),
 		_layout(nullptr),
 		_sizePolicy(p_sizePolicy),
@@ -15,7 +15,7 @@ namespace spk
 	{
 	}
 
-	Layout::Element::Element(spk::Layout* p_layout, SizePolicy p_sizePolicy, const spk::Vector2UInt& p_size) :
+	Layout::Element::Element(spk::Layout *p_layout, SizePolicy p_sizePolicy, const spk::Vector2UInt &p_size) :
 		_widget(nullptr),
 		_layout(p_layout),
 		_sizePolicy(p_sizePolicy),
@@ -23,12 +23,12 @@ namespace spk
 	{
 	}
 
-	spk::Widget* Layout::Element::widget() const
+	spk::Widget *Layout::Element::widget() const
 	{
 		return _widget;
 	}
 
-	spk::Layout* Layout::Element::layout() const
+	spk::Layout *Layout::Element::layout() const
 	{
 		return _layout;
 	}
@@ -82,7 +82,7 @@ namespace spk
 		return {0u, 0u};
 	}
 
-	void Layout::Element::setGeometry(const spk::Rect2D& p_geometry)
+	void Layout::Element::setGeometry(const spk::Rect2D &p_geometry)
 	{
 		if (_widget != nullptr)
 		{
@@ -104,12 +104,12 @@ namespace spk
 		return _sizePolicy;
 	}
 
-	void Layout::Element::setSize(const spk::Vector2UInt& p_size)
+	void Layout::Element::setSize(const spk::Vector2UInt &p_size)
 	{
 		_size = p_size;
 	}
 
-	const spk::Vector2UInt& Layout::Element::size() const
+	const spk::Vector2UInt &Layout::Element::size() const
 	{
 		return _size;
 	}
@@ -139,7 +139,7 @@ namespace spk
 		sizeHint().release();
 	}
 
-	Layout::Element* Layout::addWidget(spk::Widget* p_widget, SizePolicy p_sizePolicy)
+	Layout::Element *Layout::addWidget(spk::Widget *p_widget, SizePolicy p_sizePolicy)
 	{
 		if (p_widget == nullptr)
 		{
@@ -151,7 +151,7 @@ namespace spk
 		return _elements.back().get();
 	}
 
-	Layout::Element* Layout::addLayout(spk::Layout* p_layout, SizePolicy p_sizePolicy)
+	Layout::Element *Layout::addLayout(spk::Layout *p_layout, SizePolicy p_sizePolicy)
 	{
 		if (p_layout == nullptr)
 		{
@@ -163,7 +163,7 @@ namespace spk
 		return _elements.back().get();
 	}
 
-	void Layout::removeElement(Element* p_element)
+	void Layout::removeElement(Element *p_element)
 	{
 		if (p_element == nullptr)
 		{
@@ -180,7 +180,7 @@ namespace spk
 		}
 	}
 
-	void Layout::removeWidget(spk::Widget* p_widget)
+	void Layout::removeWidget(spk::Widget *p_widget)
 	{
 		if (p_widget == nullptr)
 		{
@@ -200,7 +200,7 @@ namespace spk
 		throw std::runtime_error("Widget [" + p_widget->name() + "] not contained by the layout");
 	}
 
-	void Layout::removeLayout(spk::Layout* p_layout)
+	void Layout::removeLayout(spk::Layout *p_layout)
 	{
 		if (p_layout == nullptr)
 		{
@@ -220,23 +220,23 @@ namespace spk
 		throw std::runtime_error("Layout not contained by the layout");
 	}
 
-	void Layout::setElementPadding(const spk::Vector2UInt& p_padding)
+	void Layout::setElementPadding(const spk::Vector2UInt &p_padding)
 	{
 		_elementPadding = p_padding;
 		sizeHint().release();
 	}
 
-	const spk::Vector2UInt& Layout::elementPadding() const
+	const spk::Vector2UInt &Layout::elementPadding() const
 	{
 		return _elementPadding;
 	}
 
-	const std::vector<std::unique_ptr<Layout::Element>>& Layout::elements() const
+	const std::vector<std::unique_ptr<Layout::Element>> &Layout::elements() const
 	{
 		return _elements;
 	}
 
-	std::vector<std::unique_ptr<Layout::Element>>& Layout::elements()
+	std::vector<std::unique_ptr<Layout::Element>> &Layout::elements()
 	{
 		return _elements;
 	}

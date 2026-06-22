@@ -31,10 +31,10 @@ namespace spk
 		class TriggerGuard
 		{
 		private:
-			bool& _flag;
+			bool &_flag;
 
 		public:
-			explicit TriggerGuard(bool& p_flag) :
+			explicit TriggerGuard(bool &p_flag) :
 				_flag(p_flag)
 			{
 				_flag = true;
@@ -45,11 +45,11 @@ namespace spk
 				_flag = false;
 			}
 
-			TriggerGuard(const TriggerGuard&) = delete;
-			TriggerGuard& operator=(const TriggerGuard&) = delete;
+			TriggerGuard(const TriggerGuard &) = delete;
+			TriggerGuard &operator=(const TriggerGuard &) = delete;
 
-			TriggerGuard(TriggerGuard&&) = delete;
-			TriggerGuard& operator=(TriggerGuard&&) = delete;
+			TriggerGuard(TriggerGuard &&) = delete;
+			TriggerGuard &operator=(TriggerGuard &&) = delete;
 		};
 
 	public:
@@ -63,7 +63,7 @@ namespace spk
 		private:
 			std::shared_ptr<Link> _link = nullptr;
 
-			explicit Contract(const std::shared_ptr<Link>& p_link) :
+			explicit Contract(const std::shared_ptr<Link> &p_link) :
 				_link(p_link)
 			{
 			}
@@ -81,15 +81,15 @@ namespace spk
 				resign();
 			}
 
-			Contract(const Contract&) = delete;
-			Contract& operator=(const Contract&) = delete;
+			Contract(const Contract &) = delete;
+			Contract &operator=(const Contract &) = delete;
 
-			Contract(Contract&& p_other) noexcept :
+			Contract(Contract &&p_other) noexcept :
 				_link(std::move(p_other._link))
 			{
 			}
 
-			Contract& operator=(Contract&& p_other) noexcept
+			Contract &operator=(Contract &&p_other) noexcept
 			{
 				if (this != &p_other)
 				{
@@ -146,8 +146,7 @@ namespace spk
 				std::remove_if(
 					_links.begin(),
 					_links.end(),
-					[](const std::shared_ptr<Link>& p_link)
-					{
+					[](const std::shared_ptr<Link> &p_link) {
 						return (p_link == nullptr || p_link->function == nullptr);
 					}),
 				_links.end());
@@ -164,8 +163,7 @@ namespace spk
 			_lastTriggerArguments.reset();
 
 			std::apply(
-				[this](auto&&... p_arguments)
-				{
+				[this](auto &&...p_arguments) {
 					trigger(p_arguments...);
 				},
 				arguments);
@@ -175,11 +173,11 @@ namespace spk
 		ContractProvider() = default;
 		~ContractProvider() override = default;
 
-		ContractProvider(const ContractProvider&) = delete;
-		ContractProvider& operator=(const ContractProvider&) = delete;
+		ContractProvider(const ContractProvider &) = delete;
+		ContractProvider &operator=(const ContractProvider &) = delete;
 
-		ContractProvider(ContractProvider&&) noexcept = delete;
-		ContractProvider& operator=(ContractProvider&&) noexcept = delete;
+		ContractProvider(ContractProvider &&) noexcept = delete;
+		ContractProvider &operator=(ContractProvider &&) noexcept = delete;
 
 		Contract subscribe(Callback p_callback)
 		{
@@ -198,8 +196,7 @@ namespace spk
 				if (isDelayBlocked())
 				{
 					_lastTriggerArguments.emplace(p_arguments...);
-					deferUntilUnblocked([this]()
-					{
+					deferUntilUnblocked([this]() {
 						_triggerDeferred();
 					});
 				}
@@ -237,7 +234,7 @@ namespace spk
 
 		void invalidateAllContracts()
 		{
-			for (auto& element : _links)
+			for (auto &element : _links)
 			{
 				if (element != nullptr)
 				{
@@ -252,7 +249,7 @@ namespace spk
 		{
 			size_t result = 0;
 
-			for (const auto& element : _links)
+			for (const auto &element : _links)
 			{
 				if (element != nullptr && element->function != nullptr)
 				{

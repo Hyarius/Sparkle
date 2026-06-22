@@ -9,6 +9,6 @@ namespace spk
 	class OpenGLViewport
 	{
 	public:
-		static void apply(const spk::Viewport& p_viewport, const spk::SurfaceState& p_surfaceState);
+		static void apply(const spk::Viewport &p_viewport, const spk::SurfaceState &p_surfaceState);
 	};
 }

@@ -2,7 +2,7 @@
 
 namespace spk
 {
-	std::string toString(const VerticalAlignment& p_alignment)
+	std::string toString(const VerticalAlignment &p_alignment)
 	{
 		switch (p_alignment)
 		{
@@ -16,7 +16,7 @@ namespace spk
 		return "Unknown VerticalAlignment";
 	}
 
-	std::wstring toWstring(const VerticalAlignment& p_alignment)
+	std::wstring toWstring(const VerticalAlignment &p_alignment)
 	{
 		switch (p_alignment)
 		{
@@ -30,13 +30,13 @@ namespace spk
 		return L"Unknown VerticalAlignment";
 	}
 
-	std::ostream& operator<<(std::ostream& p_stream, const VerticalAlignment& p_alignment)
+	std::ostream &operator<<(std::ostream &p_stream, const VerticalAlignment &p_alignment)
 	{
 		p_stream << toString(p_alignment);
 		return p_stream;
 	}
 
-	std::wostream& operator<<(std::wostream& p_stream, const VerticalAlignment& p_alignment)
+	std::wostream &operator<<(std::wostream &p_stream, const VerticalAlignment &p_alignment)
 	{
 		p_stream << toWstring(p_alignment);
 		return p_stream;

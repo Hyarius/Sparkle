@@ -12,18 +12,18 @@ namespace spk
 	{
 	}
 
-	Image::Image(const std::filesystem::path& p_path)
+	Image::Image(const std::filesystem::path &p_path)
 	{
 		loadFromFile(p_path);
 	}
 
-	void Image::loadFromFile(const std::filesystem::path& p_path)
+	void Image::loadFromFile(const std::filesystem::path &p_path)
 	{
 		int width = 0;
 		int height = 0;
 		int channels = 0;
 
-		stbi_uc* rawData = stbi_load(p_path.string().c_str(), &width, &height, &channels, 0);
+		stbi_uc *rawData = stbi_load(p_path.string().c_str(), &width, &height, &channels, 0);
 		if (rawData == nullptr)
 		{
 			throw std::runtime_error("Image: failed to load file: " + p_path.string());
@@ -40,14 +40,14 @@ namespace spk
 			Mipmap::Enable);
 	}
 
-	void Image::loadFromData(const std::vector<uint8_t>& p_data)
+	void Image::loadFromData(const std::vector<uint8_t> &p_data)
 	{
 		int width = 0;
 		int height = 0;
 		int channels = 0;
 
-		stbi_uc* rawData = stbi_load_from_memory(
-			reinterpret_cast<const stbi_uc*>(p_data.data()),
+		stbi_uc *rawData = stbi_load_from_memory(
+			reinterpret_cast<const stbi_uc *>(p_data.data()),
 			static_cast<int>(p_data.size()),
 			&width,
 			&height,

@@ -5,11 +5,11 @@
 
 #include <GL/glew.h>
 
+#include "structures/graphics/rendering/command/spk_render_command.hpp"
 #include "structures/graphics/spk_index_buffer_object.hpp"
 #include "structures/graphics/spk_primitive.hpp"
-#include "structures/graphics/spk_vertex_array_object.hpp"
 #include "structures/graphics/spk_program.hpp"
-#include "structures/graphics/rendering/command/spk_render_command.hpp"
+#include "structures/graphics/spk_vertex_array_object.hpp"
 
 namespace spk
 {
@@ -37,6 +37,6 @@ namespace spk
 			std::optional<GLsizei> p_count = std::nullopt,
 			std::size_t p_offset = 0);
 
-		void execute(spk::RenderContext& p_renderContext) override;
+		void execute(spk::RenderContext &p_renderContext) override;
 	};
 }

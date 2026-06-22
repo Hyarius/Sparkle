@@ -1,0 +1,41 @@
+BasedOnStyle: LLVM
+NamespaceIndentation: All
+IndentWidth: 4
+TabWidth: 4
+UseTab: Always
+
+AlwaysBreakAfterReturnType: None
+AlwaysBreakAfterDefinitionReturnType: None
+PenaltyReturnTypeOnItsOwnLine: 1000000
+
+AlignAfterOpenBracket: AlwaysBreak
+BinPackParameters: false
+BinPackArguments: false
+AllowAllParametersOfDeclarationOnNextLine: true
+PenaltyBreakBeforeFirstCallParameter: 0
+
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterCaseLabel: true
+  AfterClass: true
+  AfterControlStatement: true
+  AfterEnum: true
+  AfterFunction: true
+  AfterNamespace: true
+  AfterStruct: true
+  BeforeElse: true
+  BeforeLambdaBody: false
+
+BreakConstructorInitializers: AfterColon
+PackConstructorInitializers: Never
+ColumnLimit: 0
+AllowShortFunctionsOnASingleLine: None
+AllowShortBlocksOnASingleLine: false
+AllowShortLambdasOnASingleLine: false
+ContinuationIndentWidth: 4
+FixNamespaceComments: false
+AccessModifierOffset: -4
+BreakTemplateDeclarations: Yes
+InsertBraces: true           # remove if your clang-format errors on this (older versions)
+AllowShortEnumsOnASingleLine: false
+IndentPPDirectives: AfterHash

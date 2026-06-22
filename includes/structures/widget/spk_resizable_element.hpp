@@ -41,13 +41,13 @@ namespace spk
 			void releaseDesired() const;
 			void releaseMaximal() const;
 
-			void setMinimal(const spk::Vector2UInt& p_minimalValue);
-			void setDesired(const spk::Vector2UInt& p_desiredValue);
-			void setMaximal(const spk::Vector2UInt& p_maximalValue);
+			void setMinimal(const spk::Vector2UInt &p_minimalValue);
+			void setDesired(const spk::Vector2UInt &p_desiredValue);
+			void setMaximal(const spk::Vector2UInt &p_maximalValue);
 
-			[[nodiscard]] const spk::Vector2UInt& minimal() const;
-			[[nodiscard]] const spk::Vector2UInt& desired() const;
-			[[nodiscard]] const spk::Vector2UInt& maximal() const;
+			[[nodiscard]] const spk::Vector2UInt &minimal() const;
+			[[nodiscard]] const spk::Vector2UInt &desired() const;
+			[[nodiscard]] const spk::Vector2UInt &maximal() const;
 		};
 
 	private:
@@ -57,9 +57,9 @@ namespace spk
 		ResizableElement() = default;
 		virtual ~ResizableElement() = default;
 
-		virtual void setGeometry(const spk::Rect2D& p_geometry) = 0;
+		virtual void setGeometry(const spk::Rect2D &p_geometry) = 0;
 
-		[[nodiscard]] SizeHint& sizeHint();
-		[[nodiscard]] const SizeHint& sizeHint() const;
+		[[nodiscard]] SizeHint &sizeHint();
+		[[nodiscard]] const SizeHint &sizeHint() const;
 	};
 }

@@ -21,32 +21,29 @@ namespace
 
 namespace spk
 {
-	ScrollBar::ScrollBar(const std::string& p_name, spk::Widget* p_parent) :
+	ScrollBar::ScrollBar(const std::string &p_name, spk::Widget *p_parent) :
 		ScrollBar(p_name, spk::Orientation::Horizontal, p_parent)
 	{
 	}
 
 	ScrollBar::ScrollBar(
-		const std::string& p_name,
+		const std::string &p_name,
 		spk::Orientation p_orientation,
-		spk::Widget* p_parent) :
+		spk::Widget *p_parent) :
 		spk::Widget(p_name, p_parent),
 		_negativeButton(p_name + "::negativeButton", this),
 		_positiveButton(p_name + "::positiveButton", this),
 		_sliderBar(p_name + "::sliderBar", p_orientation, this)
 	{
-		_negativeButtonContract = _negativeButton.subscribeToClick([this]()
-		{
+		_negativeButtonContract = _negativeButton.subscribeToClick([this]() {
 			setRatio(_sliderBar.ratio() - _step);
 		});
 
-		_positiveButtonContract = _positiveButton.subscribeToClick([this]()
-		{
+		_positiveButtonContract = _positiveButton.subscribeToClick([this]() {
 			setRatio(_sliderBar.ratio() + _step);
 		});
 
-		_sliderBarContract = _sliderBar.subscribeToEdition([this](float p_ratio)
-		{
+		_sliderBarContract = _sliderBar.subscribeToEdition([this](float p_ratio) {
 			_onEditionProvider.trigger(p_ratio);
 		});
 
@@ -145,32 +142,32 @@ namespace spk
 		return _step;
 	}
 
-	spk::PushButton& ScrollBar::negativeButton()
+	spk::PushButton &ScrollBar::negativeButton()
 	{
 		return _negativeButton;
 	}
 
-	const spk::PushButton& ScrollBar::negativeButton() const
+	const spk::PushButton &ScrollBar::negativeButton() const
 	{
 		return _negativeButton;
 	}
 
-	spk::PushButton& ScrollBar::positiveButton()
+	spk::PushButton &ScrollBar::positiveButton()
 	{
 		return _positiveButton;
 	}
 
-	const spk::PushButton& ScrollBar::positiveButton() const
+	const spk::PushButton &ScrollBar::positiveButton() const
 	{
 		return _positiveButton;
 	}
 
-	spk::SliderBar& ScrollBar::sliderBar()
+	spk::SliderBar &ScrollBar::sliderBar()
 	{
 		return _sliderBar;
 	}
 
-	const spk::SliderBar& ScrollBar::sliderBar() const
+	const spk::SliderBar &ScrollBar::sliderBar() const
 	{
 		return _sliderBar;
 	}

@@ -40,7 +40,7 @@ namespace spk
 		value_type _step{static_cast<value_type>(1)};
 		bool _isRefreshingText = false;
 
-		[[nodiscard]] static bool _isEmptyOrSignOnly(const std::string& p_text)
+		[[nodiscard]] static bool _isEmptyOrSignOnly(const std::string &p_text)
 		{
 			if (p_text.empty() == true || p_text == "-" || p_text == "+")
 			{
@@ -58,7 +58,7 @@ namespace spk
 			return false;
 		}
 
-		[[nodiscard]] static ValidationState _parseValue(const std::string& p_text, value_type& p_outValue)
+		[[nodiscard]] static ValidationState _parseValue(const std::string &p_text, value_type &p_outValue)
 		{
 			if constexpr (std::is_unsigned_v<value_type>)
 			{
@@ -75,9 +75,9 @@ namespace spk
 
 			if constexpr (std::is_integral_v<value_type>)
 			{
-				const char* begin = p_text.data();
-				const char* end = p_text.data() + p_text.size();
-				const char* parseBegin = (p_text.front() == '+') ? begin + 1 : begin;
+				const char *begin = p_text.data();
+				const char *end = p_text.data() + p_text.size();
+				const char *parseBegin = (p_text.front() == '+') ? begin + 1 : begin;
 
 				value_type value{};
 				auto [ptr, ec] = std::from_chars(parseBegin, end, value, 10);
@@ -111,7 +111,7 @@ namespace spk
 			}
 		}
 
-		[[nodiscard]] static std::string _formatValue(const value_type& p_value)
+		[[nodiscard]] static std::string _formatValue(const value_type &p_value)
 		{
 			return std::to_string(p_value);
 		}
@@ -150,7 +150,7 @@ namespace spk
 		}
 
 	public:
-		explicit NumericSpinBox(const std::string& p_name, spk::Widget* p_parent = nullptr) :
+		explicit NumericSpinBox(const std::string &p_name, spk::Widget *p_parent = nullptr) :
 			spk::Widget(p_name, p_parent),
 			_valueEdit(p_name + "::valueEdit", this),
 			_lowerButton(p_name + "::lowerButton", this),
@@ -161,7 +161,7 @@ namespace spk
 
 			_valueEdit.setPlaceholder("...");
 			_valueEdit.setValidationCallback(
-				[](const spk::Font::Text& p_text) {
+				[](const spk::Font::Text &p_text) {
 					std::string utf8;
 					utf8.reserve(p_text.size());
 					for (char32_t codepoint : p_text)
@@ -177,18 +177,15 @@ namespace spk
 					return _parseValue(utf8, ignored);
 				});
 
-			_onTextEditionContract = _valueEdit.subscribeToEdition([this](const spk::Font::Text&)
-			{
+			_onTextEditionContract = _valueEdit.subscribeToEdition([this](const spk::Font::Text &) {
 				_syncValueFromTextIfValid();
 			});
 
-			_raiseContract = _raiseButton.subscribeToClick([this]()
-			{
+			_raiseContract = _raiseButton.subscribeToClick([this]() {
 				increase();
 			});
 
-			_lowerContract = _lowerButton.subscribeToClick([this]()
-			{
+			_lowerContract = _lowerButton.subscribeToClick([this]() {
 				decrease();
 			});
 
@@ -212,23 +209,23 @@ namespace spk
 			return _value.subscribe(std::move(p_callback));
 		}
 
-		void setValue(const value_type& p_value)
+		void setValue(const value_type &p_value)
 		{
 			_value = p_value;
 			_refreshValueText();
 		}
 
-		[[nodiscard]] const value_type& value() const
+		[[nodiscard]] const value_type &value() const
 		{
 			return _value.value();
 		}
 
-		void setStep(const value_type& p_step)
+		void setStep(const value_type &p_step)
 		{
 			_step = p_step;
 		}
 
-		[[nodiscard]] const value_type& step() const
+		[[nodiscard]] const value_type &step() const
 		{
 			return _step;
 		}
@@ -243,32 +240,32 @@ namespace spk
 			setValue(static_cast<value_type>(_value.value() - _step));
 		}
 
-		[[nodiscard]] spk::TextEdit& valueEdit()
+		[[nodiscard]] spk::TextEdit &valueEdit()
 		{
 			return _valueEdit;
 		}
 
-		[[nodiscard]] const spk::TextEdit& valueEdit() const
+		[[nodiscard]] const spk::TextEdit &valueEdit() const
 		{
 			return _valueEdit;
 		}
 
-		[[nodiscard]] spk::IconButton& raiseButton()
+		[[nodiscard]] spk::IconButton &raiseButton()
 		{
 			return _raiseButton;
 		}
 
-		[[nodiscard]] const spk::IconButton& raiseButton() const
+		[[nodiscard]] const spk::IconButton &raiseButton() const
 		{
 			return _raiseButton;
 		}
 
-		[[nodiscard]] spk::IconButton& lowerButton()
+		[[nodiscard]] spk::IconButton &lowerButton()
 		{
 			return _lowerButton;
 		}
 
-		[[nodiscard]] const spk::IconButton& lowerButton() const
+		[[nodiscard]] const spk::IconButton &lowerButton() const
 		{
 			return _lowerButton;
 		}

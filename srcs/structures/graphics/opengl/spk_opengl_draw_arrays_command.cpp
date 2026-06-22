@@ -27,7 +27,7 @@ namespace spk
 	{
 	}
 
-	void DrawArraysCommand::execute(spk::RenderContext& p_renderContext)
+	void DrawArraysCommand::execute(spk::RenderContext &p_renderContext)
 	{
 		if (_program != nullptr)
 		{

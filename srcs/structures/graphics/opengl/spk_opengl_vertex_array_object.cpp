@@ -15,7 +15,7 @@ namespace spk
 	std::uint64_t VertexArrayObject::_effectiveVersion() const
 	{
 		std::uint64_t version = _layoutVersion;
-		for (const VertexBufferBinding& binding : _vertexBufferBindings)
+		for (const VertexBufferBinding &binding : _vertexBufferBindings)
 		{
 			if (binding.buffer != nullptr)
 			{
@@ -31,20 +31,19 @@ namespace spk
 
 	void VertexArrayObject::_synchronize() const
 	{
-		spk::RenderContext* ctx = spk::RenderContext::current();
+		spk::RenderContext *ctx = spk::RenderContext::current();
 		if (ctx != nullptr && ctx->supportsOpenGLCommands() == true)
 		{
 			(void)gpu(*ctx);
 		}
 	}
 
-	spk::OpenGL::VertexArray& VertexArrayObject::gpu(const spk::RenderContext& p_context) const
+	spk::OpenGL::VertexArray &VertexArrayObject::gpu(const spk::RenderContext &p_context) const
 	{
 		return _gpu.resolve(
 			p_context,
 			_effectiveVersion(),
-			[this, &p_context]()
-			{
+			[this, &p_context]() {
 				auto vertexArray = std::make_unique<spk::OpenGL::VertexArray>();
 				if (p_context.isVertexArrayActive(vertexArray.get()) == false)
 				{
@@ -52,7 +51,7 @@ namespace spk
 					p_context.setActiveVertexArray(vertexArray.get());
 				}
 
-				for (const VertexBufferBinding& binding : _vertexBufferBindings)
+				for (const VertexBufferBinding &binding : _vertexBufferBindings)
 				{
 					if (binding.buffer == nullptr)
 					{
@@ -60,7 +59,7 @@ namespace spk
 					}
 
 					binding.buffer->activate(p_context);
-					const Attribute& attribute = binding.attribute;
+					const Attribute &attribute = binding.attribute;
 
 					glEnableVertexAttribArray(attribute.index);
 					glVertexAttribPointer(
@@ -69,7 +68,7 @@ namespace spk
 						attribute.componentType,
 						attribute.normalized == true ? GL_TRUE : GL_FALSE,
 						attribute.stride,
-						reinterpret_cast<const void*>(attribute.offset));
+						reinterpret_cast<const void *>(attribute.offset));
 				}
 
 				if (_indexBuffer != nullptr)
@@ -81,9 +80,9 @@ namespace spk
 			});
 	}
 
-	bool VertexArrayObject::hasGpu(const spk::RenderContext& p_context) const noexcept
+	bool VertexArrayObject::hasGpu(const spk::RenderContext &p_context) const noexcept
 	{
-		const spk::OpenGL::VertexArray* object = _gpu.find(p_context);
+		const spk::OpenGL::VertexArray *object = _gpu.find(p_context);
 		return object != nullptr && object->version() == _effectiveVersion();
 	}
 
@@ -94,10 +93,7 @@ namespace spk
 			throw std::runtime_error("spk::VertexArrayObject::addVertexBuffer requires a valid buffer");
 		}
 
-		_vertexBufferBindings.push_back(VertexBufferBinding{
-			.buffer = std::move(p_buffer),
-			.attribute = p_attribute
-		});
+		_vertexBufferBindings.push_back(VertexBufferBinding{.buffer = std::move(p_buffer), .attribute = p_attribute});
 		++_layoutVersion;
 		requestSynchronization();
 	}
@@ -123,12 +119,12 @@ namespace spk
 		requestSynchronization();
 	}
 
-	const std::shared_ptr<IndexBufferObject>& VertexArrayObject::indexBuffer() const noexcept
+	const std::shared_ptr<IndexBufferObject> &VertexArrayObject::indexBuffer() const noexcept
 	{
 		return _indexBuffer;
 	}
 
-	void VertexArrayObject::activate(const spk::RenderContext& p_context) const
+	void VertexArrayObject::activate(const spk::RenderContext &p_context) const
 	{
 		if (needsSynchronization() == true)
 		{
@@ -136,7 +132,7 @@ namespace spk
 		}
 
 		bool childrenClean = true;
-		for (const VertexBufferBinding& binding : _vertexBufferBindings)
+		for (const VertexBufferBinding &binding : _vertexBufferBindings)
 		{
 			if (binding.buffer != nullptr && binding.buffer->hasGpu(p_context) == false)
 			{
@@ -158,7 +154,7 @@ namespace spk
 				glBindVertexArray(0);
 				p_context.setActiveVertexArray(nullptr);
 			}
-			for (const VertexBufferBinding& binding : _vertexBufferBindings)
+			for (const VertexBufferBinding &binding : _vertexBufferBindings)
 			{
 				if (binding.buffer != nullptr)
 				{
@@ -171,7 +167,7 @@ namespace spk
 			}
 		}
 
-		spk::OpenGL::VertexArray& vertexArray = gpu(p_context);
+		spk::OpenGL::VertexArray &vertexArray = gpu(p_context);
 		if (p_context.isVertexArrayActive(&vertexArray) == false)
 		{
 			glBindVertexArray(vertexArray.id());
@@ -181,7 +177,7 @@ namespace spk
 
 	void VertexArrayObject::deactivate() const
 	{
-		spk::RenderContext* context = spk::RenderContext::current();
+		spk::RenderContext *context = spk::RenderContext::current();
 		if (context != nullptr && context->isVertexArrayActive(nullptr) == true)
 		{
 			return;

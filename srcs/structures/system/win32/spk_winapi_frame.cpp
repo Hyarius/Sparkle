@@ -1,6 +1,5 @@
 #include "structures/system/win32/spk_winapi_frame.hpp"
 
-
 #include <windowsx.h>
 
 #include "utils/spk_winapi_helpers.hpp"
@@ -183,15 +182,14 @@ namespace spk
 		}
 	}
 
-	Frame::Frame(std::shared_ptr<WindowClass> p_class, const spk::Rect2D& p_rect, const std::string& p_title) :
+	Frame::Frame(std::shared_ptr<WindowClass> p_class, const spk::Rect2D &p_rect, const std::string &p_title) :
 		spk::IFrame(std::make_shared<spk::SurfaceState>()),
 		_class(std::move(p_class)),
 		_window(
 			_class,
 			p_rect,
 			p_title,
-			[this](HWND p_handle, UINT p_message, WPARAM p_wParam, LPARAM p_lParam)
-			{
+			[this](HWND p_handle, UINT p_message, WPARAM p_wParam, LPARAM p_lParam) {
 				return _windowProcedure(p_handle, p_message, p_wParam, p_lParam);
 			}),
 		_title(p_title),
@@ -206,20 +204,20 @@ namespace spk
 		_window.destroy();
 	}
 
-	void Frame::resize(const spk::Rect2D& p_rect)
+	void Frame::resize(const spk::Rect2D &p_rect)
 	{
 		_window.resize(p_rect);
 		_rect = _window.clientRect();
 		surfaceState()->setRect(_rect);
 	}
 
-	void Frame::setTitle(const std::string& p_title)
+	void Frame::setTitle(const std::string &p_title)
 	{
 		_window.setTitle(p_title);
 		_title = p_title;
 	}
 
-	void Frame::setCursor(const std::string& p_name)
+	void Frame::setCursor(const std::string &p_name)
 	{
 		spk::Cursor cursor = spk::Cursor::get(p_name);
 		_window.setCursor(cursor);
@@ -264,4 +262,3 @@ namespace spk
 		return _window.deviceContext();
 	}
 }
-

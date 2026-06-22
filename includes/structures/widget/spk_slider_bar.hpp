@@ -34,22 +34,22 @@ namespace spk
 		float _maxValue = 100.0f;
 
 		void _refreshBodyGeometry();
-		[[nodiscard]] float _ratioFromPosition(const spk::Vector2Int& p_position) const;
+		[[nodiscard]] float _ratioFromPosition(const spk::Vector2Int &p_position) const;
 
 	protected:
 		void _onGeometryChange() override;
-		void _onMouseButtonPressedEvent(spk::MouseButtonPressedEvent& p_event) override;
-		void _onMouseButtonReleasedEvent(spk::MouseButtonReleasedEvent& p_event) override;
-		void _onMouseMovedEvent(spk::MouseMovedEvent& p_event) override;
+		void _onMouseButtonPressedEvent(spk::MouseButtonPressedEvent &p_event) override;
+		void _onMouseButtonReleasedEvent(spk::MouseButtonReleasedEvent &p_event) override;
+		void _onMouseMovedEvent(spk::MouseMovedEvent &p_event) override;
 
 	public:
-		explicit SliderBar(const std::string& p_name, spk::Widget* p_parent = nullptr);
+		explicit SliderBar(const std::string &p_name, spk::Widget *p_parent = nullptr);
 		SliderBar(
-			const std::string& p_name,
+			const std::string &p_name,
 			spk::Orientation p_orientation,
-			spk::Widget* p_parent = nullptr);
+			spk::Widget *p_parent = nullptr);
 
-		void applyStyle(const spk::WidgetStyle& p_style) override;
+		void applyStyle(const spk::WidgetStyle &p_style) override;
 
 		Contract subscribeToEdition(Callback p_callback);
 
@@ -67,9 +67,9 @@ namespace spk
 		[[nodiscard]] float maxValue() const;
 		[[nodiscard]] bool isDragged() const;
 
-		[[nodiscard]] spk::Panel& background();
-		[[nodiscard]] const spk::Panel& background() const;
-		[[nodiscard]] spk::Panel& body();
-		[[nodiscard]] const spk::Panel& body() const;
+		[[nodiscard]] spk::Panel &background();
+		[[nodiscard]] const spk::Panel &background() const;
+		[[nodiscard]] spk::Panel &body();
+		[[nodiscard]] const spk::Panel &body() const;
 	};
 }

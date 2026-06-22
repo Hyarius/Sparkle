@@ -34,11 +34,11 @@ namespace spk
 		void _onGeometryChange() override;
 
 	public:
-		explicit ScrollBar(const std::string& p_name, spk::Widget* p_parent = nullptr);
+		explicit ScrollBar(const std::string &p_name, spk::Widget *p_parent = nullptr);
 		ScrollBar(
-			const std::string& p_name,
+			const std::string &p_name,
 			spk::Orientation p_orientation,
-			spk::Widget* p_parent = nullptr);
+			spk::Widget *p_parent = nullptr);
 
 		Contract subscribeToEdition(Callback p_callback);
 
@@ -51,11 +51,11 @@ namespace spk
 		[[nodiscard]] float ratio() const;
 		[[nodiscard]] float step() const;
 
-		[[nodiscard]] spk::PushButton& negativeButton();
-		[[nodiscard]] const spk::PushButton& negativeButton() const;
-		[[nodiscard]] spk::PushButton& positiveButton();
-		[[nodiscard]] const spk::PushButton& positiveButton() const;
-		[[nodiscard]] spk::SliderBar& sliderBar();
-		[[nodiscard]] const spk::SliderBar& sliderBar() const;
+		[[nodiscard]] spk::PushButton &negativeButton();
+		[[nodiscard]] const spk::PushButton &negativeButton() const;
+		[[nodiscard]] spk::PushButton &positiveButton();
+		[[nodiscard]] const spk::PushButton &positiveButton() const;
+		[[nodiscard]] spk::SliderBar &sliderBar();
+		[[nodiscard]] const spk::SliderBar &sliderBar() const;
 	};
 }

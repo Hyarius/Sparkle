@@ -1,6 +1,5 @@
 #pragma once
 
-
 #include <functional>
 #include <memory>
 #include <string>
@@ -33,24 +32,24 @@ namespace spk
 	public:
 		WindowRuntime(
 			std::shared_ptr<WindowClass> p_windowClass,
-			const spk::Rect2D& p_rect,
-			const std::string& p_title,
+			const spk::Rect2D &p_rect,
+			const std::string &p_title,
 			Procedure p_procedure = nullptr,
 			DWORD p_style = WS_OVERLAPPEDWINDOW,
 			DWORD p_extendedStyle = 0);
-		WindowRuntime(const WindowRuntime&) = delete;
-		WindowRuntime(WindowRuntime&& p_other) noexcept;
+		WindowRuntime(const WindowRuntime &) = delete;
+		WindowRuntime(WindowRuntime &&p_other) noexcept;
 		~WindowRuntime();
 
-		WindowRuntime& operator=(const WindowRuntime&) = delete;
-		WindowRuntime& operator=(WindowRuntime&& p_other) noexcept;
+		WindowRuntime &operator=(const WindowRuntime &) = delete;
+		WindowRuntime &operator=(WindowRuntime &&p_other) noexcept;
 
 		void show(int p_command = SW_SHOWNORMAL);
 		void hide();
 		void destroy();
-		void setTitle(const std::string& p_title);
-		void resize(const spk::Rect2D& p_rect);
-		void setCursor(const spk::Cursor& p_cursor) const;
+		void setTitle(const std::string &p_title);
+		void resize(const spk::Rect2D &p_rect);
+		void setCursor(const spk::Cursor &p_cursor) const;
 
 		[[nodiscard]] HWND handle() const;
 		[[nodiscard]] HDC deviceContext() const;
@@ -60,4 +59,3 @@ namespace spk
 		[[nodiscard]] bool isValid() const;
 	};
 }
-

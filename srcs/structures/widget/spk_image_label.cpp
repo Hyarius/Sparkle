@@ -7,16 +7,16 @@
 
 namespace spk
 {
-	ImageLabel::ImageLabel(const std::string& p_name, spk::Widget* p_parent) :
+	ImageLabel::ImageLabel(const std::string &p_name, spk::Widget *p_parent) :
 		spk::Widget(p_name, p_parent)
 	{
 		activate();
 	}
 
 	ImageLabel::ImageLabel(
-		const std::string& p_name,
+		const std::string &p_name,
 		std::shared_ptr<spk::Texture> p_texture,
-		spk::Widget* p_parent) :
+		spk::Widget *p_parent) :
 		spk::Widget(p_name, p_parent)
 	{
 		setTexture(std::move(p_texture));
@@ -50,7 +50,7 @@ namespace spk
 		invalidateRenderUnit();
 	}
 
-	void ImageLabel::setSection(const spk::Texture::Section& p_section)
+	void ImageLabel::setSection(const spk::Texture::Section &p_section)
 	{
 		if (_section == p_section)
 		{
@@ -72,12 +72,12 @@ namespace spk
 		invalidateRenderUnit();
 	}
 
-	const std::shared_ptr<spk::Texture>& ImageLabel::texture() const
+	const std::shared_ptr<spk::Texture> &ImageLabel::texture() const
 	{
 		return _texture;
 	}
 
-	const spk::Texture::Section& ImageLabel::section() const
+	const spk::Texture::Section &ImageLabel::section() const
 	{
 		return _section;
 	}

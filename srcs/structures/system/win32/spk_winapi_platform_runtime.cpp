@@ -1,6 +1,5 @@
 #include "structures/system/win32/spk_winapi_platform_runtime.hpp"
 
-
 #include "structures/system/win32/spk_winapi_frame.hpp"
 #include "structures/system/win32/spk_winapi_window.hpp"
 
@@ -11,7 +10,7 @@ namespace spk
 	{
 	}
 
-	std::unique_ptr<spk::IFrame> PlatformRuntime::createFrame(const spk::Rect2D& p_rect, const std::string& p_title)
+	std::unique_ptr<spk::IFrame> PlatformRuntime::createFrame(const spk::Rect2D &p_rect, const std::string &p_title)
 	{
 		return std::make_unique<Frame>(_windowClass, p_rect, p_title);
 	}
@@ -29,4 +28,3 @@ namespace spk
 		}
 	}
 }
-

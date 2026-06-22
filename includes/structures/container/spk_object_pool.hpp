@@ -17,7 +17,7 @@ namespace spk
 
 	public:
 		using Generator = std::function<std::unique_ptr<TType>()>;
-		using OnObtain = std::function<void(TType&)>;
+		using OnObtain = std::function<void(TType &)>;
 
 		class ReturnToPoolDeleter
 		{
@@ -27,12 +27,12 @@ namespace spk
 		public:
 			ReturnToPoolDeleter() = default;
 
-			explicit ReturnToPoolDeleter(const std::weak_ptr<Data>& p_data) :
+			explicit ReturnToPoolDeleter(const std::weak_ptr<Data> &p_data) :
 				_data(p_data)
 			{
 			}
 
-			void operator()(TType* p_ptr) const
+			void operator()(TType *p_ptr) const
 			{
 				if (p_ptr == nullptr)
 				{
@@ -73,7 +73,7 @@ namespace spk
 
 		std::shared_ptr<Data> _data;
 
-		TType* _obtainRawPointer()
+		TType *_obtainRawPointer()
 		{
 			if (_data->closed == true)
 			{
@@ -85,7 +85,7 @@ namespace spk
 				throw std::logic_error("spk::ObjectPool: generator not set");
 			}
 
-			TType* result = nullptr;
+			TType *result = nullptr;
 
 			if (_data->availableObjects.empty() == true)
 			{
@@ -128,11 +128,11 @@ namespace spk
 			close();
 		}
 
-		ObjectPool(const ObjectPool&) = delete;
-		ObjectPool& operator=(const ObjectPool&) = delete;
+		ObjectPool(const ObjectPool &) = delete;
+		ObjectPool &operator=(const ObjectPool &) = delete;
 
-		ObjectPool(ObjectPool&&) = delete;
-		ObjectPool& operator=(ObjectPool&&) = delete;
+		ObjectPool(ObjectPool &&) = delete;
+		ObjectPool &operator=(ObjectPool &&) = delete;
 
 		void configure(Generator p_generator, OnObtain p_onObtain = nullptr)
 		{

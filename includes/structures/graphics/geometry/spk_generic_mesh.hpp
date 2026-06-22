@@ -56,7 +56,7 @@ namespace spk
 			std::unordered_set<Vertex> seenNew;
 			std::size_t count = 0;
 
-			for (const Vertex& vertex : p_vertices)
+			for (const Vertex &vertex : p_vertices)
 			{
 				if (_vertexLookup.count(vertex) == 0 && seenNew.insert(vertex).second)
 				{
@@ -67,7 +67,7 @@ namespace spk
 			return count;
 		}
 
-		[[nodiscard]] Index _findOrAddVertex(const Vertex& p_vertex)
+		[[nodiscard]] Index _findOrAddVertex(const Vertex &p_vertex)
 		{
 			auto it = _vertexLookup.find(p_vertex);
 			if (it != _vertexLookup.end())
@@ -89,10 +89,10 @@ namespace spk
 
 	public:
 		GenericMesh() = default;
-		GenericMesh(const GenericMesh&) = default;
-		GenericMesh& operator=(const GenericMesh&) = default;
-		GenericMesh(GenericMesh&&) noexcept = default;
-		GenericMesh& operator=(GenericMesh&&) noexcept = default;
+		GenericMesh(const GenericMesh &) = default;
+		GenericMesh &operator=(const GenericMesh &) = default;
+		GenericMesh(GenericMesh &&) noexcept = default;
+		GenericMesh &operator=(GenericMesh &&) noexcept = default;
 		~GenericMesh() = default;
 
 		void clear()
@@ -112,14 +112,14 @@ namespace spk
 			_layoutBuffer.indexes().reserve(p_indexCount * sizeof(Index));
 		}
 
-		void addShape(const Vertex& p_a, const Vertex& p_b, const Vertex& p_c)
+		void addShape(const Vertex &p_a, const Vertex &p_b, const Vertex &p_c)
 		{
 			const Vertex vertices[] = {p_a, p_b, p_c};
 
 			addShape(std::span<const Vertex>(vertices, 3));
 		}
 
-		void addShape(const Vertex& p_a, const Vertex& p_b, const Vertex& p_c, const Vertex& p_d)
+		void addShape(const Vertex &p_a, const Vertex &p_b, const Vertex &p_c, const Vertex &p_d)
 		{
 			const Vertex vertices[] = {p_a, p_b, p_c, p_d};
 
@@ -138,7 +138,7 @@ namespace spk
 			Shape shape;
 			shape.reserve(p_vertices.size());
 
-			for (const Vertex& vertex : p_vertices)
+			for (const Vertex &vertex : p_vertices)
 			{
 				shape.emplace_back(_findOrAddVertex(vertex));
 			}
@@ -153,7 +153,7 @@ namespace spk
 			_shapes.emplace_back(std::move(shape));
 		}
 
-		void addShape(const std::vector<Vertex>& p_vertices)
+		void addShape(const std::vector<Vertex> &p_vertices)
 		{
 			addShape(std::span<const Vertex>(p_vertices.data(), p_vertices.size()));
 		}
@@ -163,22 +163,22 @@ namespace spk
 			return _shapes.size();
 		}
 
-		[[nodiscard]] const std::vector<Shape>& shapes() const
+		[[nodiscard]] const std::vector<Shape> &shapes() const
 		{
 			return _shapes;
 		}
 
 		[[nodiscard]] std::span<const Vertex> vertices() const
 		{
-			return std::span<const Vertex>(reinterpret_cast<const Vertex*>(_layoutBuffer.vertices().data()), _layoutBuffer.vertices().size() / sizeof(Vertex));
+			return std::span<const Vertex>(reinterpret_cast<const Vertex *>(_layoutBuffer.vertices().data()), _layoutBuffer.vertices().size() / sizeof(Vertex));
 		}
 
 		[[nodiscard]] std::span<const Index> indexes() const
 		{
-			return std::span<const Index>(reinterpret_cast<const Index*>(_layoutBuffer.indexes().data()), _layoutBuffer.indexes().size() / sizeof(Index));
+			return std::span<const Index>(reinterpret_cast<const Index *>(_layoutBuffer.indexes().data()), _layoutBuffer.indexes().size() / sizeof(Index));
 		}
 
-		[[nodiscard]] const spk::LayoutBufferObject& layoutBuffer() const
+		[[nodiscard]] const spk::LayoutBufferObject &layoutBuffer() const
 		{
 			return _layoutBuffer;
 		}

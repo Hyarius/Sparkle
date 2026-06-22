@@ -4,7 +4,7 @@ namespace spk
 {
 	namespace OpenGL
 	{
-		Buffer::Buffer(GLenum p_target, GLenum p_usage, const void* p_data, std::size_t p_size) :
+		Buffer::Buffer(GLenum p_target, GLenum p_usage, const void *p_data, std::size_t p_size) :
 			_target(p_target),
 			_usage(p_usage)
 		{
@@ -31,7 +31,7 @@ namespace spk
 			return _allocatedSize;
 		}
 
-		void Buffer::upload(const void* p_data, std::size_t p_size)
+		void Buffer::upload(const void *p_data, std::size_t p_size)
 		{
 			glBindBuffer(_target, _id);
 

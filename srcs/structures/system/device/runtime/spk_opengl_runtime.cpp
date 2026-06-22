@@ -1,14 +1,13 @@
 #include "structures/system/device/runtime/spk_opengl_runtime.hpp"
 
-
 #include <algorithm>
 #include <cstdint>
 #include <stdexcept>
 #include <typeinfo>
 #include <vector>
 
-#include <Windows.h>
 #include <GL/glew.h>
+#include <Windows.h>
 
 #include <stb_image_write.h>
 
@@ -17,9 +16,9 @@
 
 namespace spk
 {
-	std::unique_ptr<spk::RenderContext> GPUPlatformRuntime::createRenderContext(spk::IFrame& p_frame)
+	std::unique_ptr<spk::RenderContext> GPUPlatformRuntime::createRenderContext(spk::IFrame &p_frame)
 	{
-		spk::Frame& frame = requireFrame<spk::Frame>(p_frame);
+		spk::Frame &frame = requireFrame<spk::Frame>(p_frame);
 		return std::make_unique<RenderContext>(frame);
 	}
 
@@ -28,7 +27,7 @@ namespace spk
 		glFinish();
 	}
 
-	void GPUPlatformRuntime::saveScreenshot(const std::filesystem::path& p_outputPath, const spk::Rect2D& p_rect) const
+	void GPUPlatformRuntime::saveScreenshot(const std::filesystem::path &p_outputPath, const spk::Rect2D &p_rect) const
 	{
 		const int width = static_cast<int>(p_rect.width());
 		const int height = static_cast<int>(p_rect.height());
@@ -62,7 +61,7 @@ namespace spk
 		}
 	}
 
-	void GPUPlatformRuntime::saveScreenshot(const std::filesystem::path& p_outputPath) const
+	void GPUPlatformRuntime::saveScreenshot(const std::filesystem::path &p_outputPath) const
 	{
 		GLint viewport[4] = {0, 0, 0, 0};
 		glGetIntegerv(GL_VIEWPORT, viewport);
@@ -76,4 +75,3 @@ namespace spk
 				static_cast<std::size_t>(viewport[3])));
 	}
 }
-

@@ -5,7 +5,7 @@
 
 namespace spk
 {
-	PromptPanel::PromptPanel(const std::string& p_name, spk::Widget* p_parent) :
+	PromptPanel::PromptPanel(const std::string &p_name, spk::Widget *p_parent) :
 		spk::Widget(p_name, p_parent),
 		_background(p_name + "::background", this),
 		_textArea(p_name + "::textArea", this),
@@ -51,35 +51,35 @@ namespace spk
 		_textArea.setText(p_text);
 	}
 
-	const spk::Font::Text& PromptPanel::message() const
+	const spk::Font::Text &PromptPanel::message() const
 	{
 		return _textArea.text();
 	}
 
-	spk::PushButton* PromptPanel::addButton(const std::string& p_name, std::string_view p_label)
+	spk::PushButton *PromptPanel::addButton(const std::string &p_name, std::string_view p_label)
 	{
-		spk::PushButton* result = _commandPanel.addButton(p_name, p_label);
+		spk::PushButton *result = _commandPanel.addButton(p_name, p_label);
 		_onGeometryChange();
 		return result;
 	}
 
-	spk::PushButton* PromptPanel::button(const std::string& p_name)
+	spk::PushButton *PromptPanel::button(const std::string &p_name)
 	{
 		return _commandPanel.button(p_name);
 	}
 
-	void PromptPanel::removeButton(const std::string& p_name)
+	void PromptPanel::removeButton(const std::string &p_name)
 	{
 		_commandPanel.removeButton(p_name);
 		_onGeometryChange();
 	}
 
-	spk::CommandPanel::Contract PromptPanel::subscribe(const std::string& p_name, spk::CommandPanel::Callback p_callback)
+	spk::CommandPanel::Contract PromptPanel::subscribe(const std::string &p_name, spk::CommandPanel::Callback p_callback)
 	{
 		return _commandPanel.subscribe(p_name, std::move(p_callback));
 	}
 
-	void PromptPanel::setButtonPadding(const spk::Vector2UInt& p_padding)
+	void PromptPanel::setButtonPadding(const spk::Vector2UInt &p_padding)
 	{
 		_commandPanel.setElementPadding(p_padding);
 	}
@@ -94,32 +94,32 @@ namespace spk
 		return _commandPanel.sizePolicy();
 	}
 
-	spk::Panel& PromptPanel::background()
+	spk::Panel &PromptPanel::background()
 	{
 		return _background;
 	}
 
-	const spk::Panel& PromptPanel::background() const
+	const spk::Panel &PromptPanel::background() const
 	{
 		return _background;
 	}
 
-	spk::TextArea& PromptPanel::textArea()
+	spk::TextArea &PromptPanel::textArea()
 	{
 		return _textArea;
 	}
 
-	const spk::TextArea& PromptPanel::textArea() const
+	const spk::TextArea &PromptPanel::textArea() const
 	{
 		return _textArea;
 	}
 
-	spk::CommandPanel& PromptPanel::commandPanel()
+	spk::CommandPanel &PromptPanel::commandPanel()
 	{
 		return _commandPanel;
 	}
 
-	const spk::CommandPanel& PromptPanel::commandPanel() const
+	const spk::CommandPanel &PromptPanel::commandPanel() const
 	{
 		return _commandPanel;
 	}

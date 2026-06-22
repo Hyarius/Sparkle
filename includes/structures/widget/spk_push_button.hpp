@@ -45,64 +45,64 @@ namespace spk
 
 	protected:
 		void _onGeometryChange() override;
-		void _onMouseMovedEvent(spk::MouseMovedEvent& p_event) override;
-		void _onMouseButtonPressedEvent(spk::MouseButtonPressedEvent& p_event) override;
-		void _onMouseButtonReleasedEvent(spk::MouseButtonReleasedEvent& p_event) override;
+		void _onMouseMovedEvent(spk::MouseMovedEvent &p_event) override;
+		void _onMouseButtonPressedEvent(spk::MouseButtonPressedEvent &p_event) override;
+		void _onMouseButtonReleasedEvent(spk::MouseButtonReleasedEvent &p_event) override;
 
 	public:
-		explicit PushButton(const std::string& p_name, spk::Widget* p_parent = nullptr);
+		explicit PushButton(const std::string &p_name, spk::Widget *p_parent = nullptr);
 		PushButton(
-			const std::string& p_name,
+			const std::string &p_name,
 			std::string_view p_text,
-			spk::Widget* p_parent = nullptr);
+			spk::Widget *p_parent = nullptr);
 		PushButton(
-			const std::string& p_name,
+			const std::string &p_name,
 			std::string_view p_text,
-			const spk::WidgetStyle& p_style,
-			spk::Widget* p_parent = nullptr);
+			const spk::WidgetStyle &p_style,
+			spk::Widget *p_parent = nullptr);
 		PushButton(
-			const std::string& p_name,
+			const std::string &p_name,
 			std::string_view p_text,
-			const spk::WidgetStyle& p_releasedStyle,
-			const spk::WidgetStyle& p_pressedStyle,
-			spk::Widget* p_parent = nullptr);
+			const spk::WidgetStyle &p_releasedStyle,
+			const spk::WidgetStyle &p_pressedStyle,
+			spk::Widget *p_parent = nullptr);
 
-		void applyStyle(const spk::WidgetStyle& p_style) override;
-		void applyStyle(const spk::WidgetStyle& p_releasedStyle, const spk::WidgetStyle& p_pressedStyle);
+		void applyStyle(const spk::WidgetStyle &p_style) override;
+		void applyStyle(const spk::WidgetStyle &p_releasedStyle, const spk::WidgetStyle &p_pressedStyle);
 		Contract subscribeToClick(Callback p_callback);
 
 		void useDefaultStyles();
-		void setText(const spk::Font::Text& p_text);
+		void setText(const spk::Font::Text &p_text);
 		void setText(std::string_view p_text);
 		void setAlignment(spk::HorizontalAlignment p_horizontal, spk::VerticalAlignment p_vertical);
-		void setIcon(std::shared_ptr<spk::Texture> p_texture, const spk::Texture::Section& p_section = {{0.0f, 0.0f}, {1.0f, 1.0f}});
+		void setIcon(std::shared_ptr<spk::Texture> p_texture, const spk::Texture::Section &p_section = {{0.0f, 0.0f}, {1.0f, 1.0f}});
 		void setIcon(std::shared_ptr<spk::SpriteSheet> p_spriteSheet, size_t p_spriteID);
-		void setIconSize(const spk::Vector2UInt& p_iconSize);
+		void setIconSize(const spk::Vector2UInt &p_iconSize);
 		void resetIconSize();
-		void setIconPadding(const spk::Vector2UInt& p_iconPadding);
+		void setIconPadding(const spk::Vector2UInt &p_iconPadding);
 		void resetIconPadding();
 		void removeIcon();
 		void setFlat(bool p_state);
 
 		[[nodiscard]] bool hasIcon() const;
-		[[nodiscard]] const std::optional<spk::Vector2UInt>& iconSize() const;
-		[[nodiscard]] const std::optional<spk::Vector2UInt>& iconPadding() const;
+		[[nodiscard]] const std::optional<spk::Vector2UInt> &iconSize() const;
+		[[nodiscard]] const std::optional<spk::Vector2UInt> &iconPadding() const;
 		[[nodiscard]] bool isFlat() const;
 
 		[[nodiscard]] bool isHovered() const;
 		[[nodiscard]] bool isPressed() const;
 
-		[[nodiscard]] spk::Panel& releasedBackground();
-		[[nodiscard]] const spk::Panel& releasedBackground() const;
-		[[nodiscard]] spk::Panel& pressedBackground();
-		[[nodiscard]] const spk::Panel& pressedBackground() const;
-		[[nodiscard]] spk::TextLabel& releasedLabel();
-		[[nodiscard]] const spk::TextLabel& releasedLabel() const;
-		[[nodiscard]] spk::TextLabel& pressedLabel();
-		[[nodiscard]] const spk::TextLabel& pressedLabel() const;
-		[[nodiscard]] spk::ImageLabel& releasedIcon();
-		[[nodiscard]] const spk::ImageLabel& releasedIcon() const;
-		[[nodiscard]] spk::ImageLabel& pressedIcon();
-		[[nodiscard]] const spk::ImageLabel& pressedIcon() const;
+		[[nodiscard]] spk::Panel &releasedBackground();
+		[[nodiscard]] const spk::Panel &releasedBackground() const;
+		[[nodiscard]] spk::Panel &pressedBackground();
+		[[nodiscard]] const spk::Panel &pressedBackground() const;
+		[[nodiscard]] spk::TextLabel &releasedLabel();
+		[[nodiscard]] const spk::TextLabel &releasedLabel() const;
+		[[nodiscard]] spk::TextLabel &pressedLabel();
+		[[nodiscard]] const spk::TextLabel &pressedLabel() const;
+		[[nodiscard]] spk::ImageLabel &releasedIcon();
+		[[nodiscard]] const spk::ImageLabel &releasedIcon() const;
+		[[nodiscard]] spk::ImageLabel &pressedIcon();
+		[[nodiscard]] const spk::ImageLabel &pressedIcon() const;
 	};
 }

@@ -59,48 +59,48 @@ namespace spk
 		_maximal.release();
 	}
 
-	void ResizableElement::SizeHint::setMinimal(const spk::Vector2UInt& p_minimalValue)
+	void ResizableElement::SizeHint::setMinimal(const spk::Vector2UInt &p_minimalValue)
 	{
 		_minimal.configure([p_minimalValue]() {
 			return p_minimalValue;
 		});
 	}
 
-	void ResizableElement::SizeHint::setDesired(const spk::Vector2UInt& p_desiredValue)
+	void ResizableElement::SizeHint::setDesired(const spk::Vector2UInt &p_desiredValue)
 	{
 		_desired.configure([p_desiredValue]() {
 			return p_desiredValue;
 		});
 	}
 
-	void ResizableElement::SizeHint::setMaximal(const spk::Vector2UInt& p_maximalValue)
+	void ResizableElement::SizeHint::setMaximal(const spk::Vector2UInt &p_maximalValue)
 	{
 		_maximal.configure([p_maximalValue]() {
 			return p_maximalValue;
 		});
 	}
 
-	const spk::Vector2UInt& ResizableElement::SizeHint::minimal() const
+	const spk::Vector2UInt &ResizableElement::SizeHint::minimal() const
 	{
 		return _minimal.get();
 	}
 
-	const spk::Vector2UInt& ResizableElement::SizeHint::desired() const
+	const spk::Vector2UInt &ResizableElement::SizeHint::desired() const
 	{
 		return _desired.get();
 	}
 
-	const spk::Vector2UInt& ResizableElement::SizeHint::maximal() const
+	const spk::Vector2UInt &ResizableElement::SizeHint::maximal() const
 	{
 		return _maximal.get();
 	}
 
-	ResizableElement::SizeHint& ResizableElement::sizeHint()
+	ResizableElement::SizeHint &ResizableElement::sizeHint()
 	{
 		return _sizeHint;
 	}
 
-	const ResizableElement::SizeHint& ResizableElement::sizeHint() const
+	const ResizableElement::SizeHint &ResizableElement::sizeHint() const
 	{
 		return _sizeHint;
 	}

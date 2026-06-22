@@ -4,7 +4,7 @@
 
 namespace spk
 {
-	ContainerWidget::ContainerWidget(const std::string& p_name, spk::Widget* p_parent) :
+	ContainerWidget::ContainerWidget(const std::string &p_name, spk::Widget *p_parent) :
 		spk::Widget(p_name, p_parent)
 	{
 		activate();
@@ -25,7 +25,7 @@ namespace spk
 		_refreshContentGeometry();
 	}
 
-	void ContainerWidget::setContent(spk::Widget* p_content)
+	void ContainerWidget::setContent(spk::Widget *p_content)
 	{
 		if (p_content != nullptr && p_content->parent() != this)
 		{
@@ -36,7 +36,7 @@ namespace spk
 		_refreshContentGeometry();
 	}
 
-	void ContainerWidget::setContentAnchor(const spk::Vector2Int& p_contentAnchor)
+	void ContainerWidget::setContentAnchor(const spk::Vector2Int &p_contentAnchor)
 	{
 		if (_contentAnchor == p_contentAnchor)
 		{
@@ -47,7 +47,7 @@ namespace spk
 		_refreshContentGeometry();
 	}
 
-	void ContainerWidget::setContentSize(const spk::Vector2UInt& p_contentSize)
+	void ContainerWidget::setContentSize(const spk::Vector2UInt &p_contentSize)
 	{
 		if (_contentSize == p_contentSize)
 		{
@@ -58,22 +58,22 @@ namespace spk
 		_refreshContentGeometry();
 	}
 
-	spk::Widget* ContainerWidget::content()
+	spk::Widget *ContainerWidget::content()
 	{
 		return _content;
 	}
 
-	const spk::Widget* ContainerWidget::content() const
+	const spk::Widget *ContainerWidget::content() const
 	{
 		return _content;
 	}
 
-	const spk::Vector2Int& ContainerWidget::contentAnchor() const
+	const spk::Vector2Int &ContainerWidget::contentAnchor() const
 	{
 		return _contentAnchor;
 	}
 
-	const spk::Vector2UInt& ContainerWidget::contentSize() const
+	const spk::Vector2UInt &ContainerWidget::contentSize() const
 	{
 		return _contentSize;
 	}

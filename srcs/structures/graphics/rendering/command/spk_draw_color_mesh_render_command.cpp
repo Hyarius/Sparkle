@@ -4,12 +4,12 @@
 
 #include <GL/glew.h>
 
+#include "spk_generated_resources.hpp"
+#include "structures/graphics/rendering/context/spk_render_context.hpp"
+#include "structures/graphics/rendering/state/spk_viewport.hpp"
 #include "structures/graphics/spk_layout_buffer_object.hpp"
 #include "structures/graphics/spk_program.hpp"
 #include "structures/graphics/spk_uniform_buffer_object.hpp"
-#include "structures/graphics/rendering/context/spk_render_context.hpp"
-#include "structures/graphics/rendering/state/spk_viewport.hpp"
-#include "spk_generated_resources.hpp"
 
 namespace spk
 {
@@ -20,7 +20,7 @@ namespace spk
 	{
 	}
 
-	spk::Program& DrawColorMeshRenderCommand::_sharedProgram()
+	spk::Program &DrawColorMeshRenderCommand::_sharedProgram()
 	{
 		static spk::Program program(
 			SPARKLE_GET_RESOURCE_AS_STRING("resources/shaders/color_mesh/draw_color_mesh.vert"),
@@ -28,20 +28,20 @@ namespace spk
 		return program;
 	}
 
-	void DrawColorMeshRenderCommand::execute(spk::RenderContext& p_renderContext)
+	void DrawColorMeshRenderCommand::execute(spk::RenderContext &p_renderContext)
 	{
 		if (_mesh == nullptr)
 		{
 			return;
 		}
 
-		const spk::LayoutBufferObject& layoutBuffer = _mesh->layoutBuffer();
+		const spk::LayoutBufferObject &layoutBuffer = _mesh->layoutBuffer();
 		if (layoutBuffer.indexCount() == 0)
 		{
 			return;
 		}
 
-		spk::OpenGL::Program& program = _sharedProgram().gpu(p_renderContext);
+		spk::OpenGL::Program &program = _sharedProgram().gpu(p_renderContext);
 
 		program.activate();
 		layoutBuffer.activate(p_renderContext);

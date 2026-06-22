@@ -1,6 +1,5 @@
 #include "structures/system/win32/spk_winapi_window.hpp"
 
-
 #include <stdexcept>
 #include <vector>
 
@@ -11,12 +10,12 @@ namespace spk
 {
 	LRESULT CALLBACK WindowRuntime::_staticWindowProcedure(HWND p_handle, UINT p_message, WPARAM p_wParam, LPARAM p_lParam)
 	{
-		WindowRuntime* window = reinterpret_cast<WindowRuntime*>(GetWindowLongPtrW(p_handle, GWLP_USERDATA));
+		WindowRuntime *window = reinterpret_cast<WindowRuntime *>(GetWindowLongPtrW(p_handle, GWLP_USERDATA));
 
 		if (p_message == WM_NCCREATE)
 		{
-			auto* createStruct = reinterpret_cast<CREATESTRUCTW*>(p_lParam);
-			window = reinterpret_cast<WindowRuntime*>(createStruct->lpCreateParams);
+			auto *createStruct = reinterpret_cast<CREATESTRUCTW *>(p_lParam);
+			window = reinterpret_cast<WindowRuntime *>(createStruct->lpCreateParams);
 			window->_handle = p_handle;
 			SetWindowLongPtrW(p_handle, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(window));
 		}
@@ -52,8 +51,8 @@ namespace spk
 
 	WindowRuntime::WindowRuntime(
 		std::shared_ptr<WindowClass> p_windowClass,
-		const spk::Rect2D& p_rect,
-		const std::string& p_title,
+		const spk::Rect2D &p_rect,
+		const std::string &p_title,
 		Procedure p_procedure,
 		DWORD p_style,
 		DWORD p_extendedStyle) :
@@ -69,8 +68,7 @@ namespace spk
 			static_cast<LONG>(p_rect.left()),
 			static_cast<LONG>(p_rect.top()),
 			static_cast<LONG>(p_rect.right()),
-			static_cast<LONG>(p_rect.bottom())
-		};
+			static_cast<LONG>(p_rect.bottom())};
 		if (AdjustWindowRectEx(&nativeRect, p_style, FALSE, p_extendedStyle) == FALSE)
 		{
 			throwLastError("AdjustWindowRectEx");
@@ -96,7 +94,7 @@ namespace spk
 		}
 	}
 
-	WindowRuntime::WindowRuntime(WindowRuntime&& p_other) noexcept :
+	WindowRuntime::WindowRuntime(WindowRuntime &&p_other) noexcept :
 		_windowClass(std::move(p_other._windowClass)),
 		_handle(p_other._handle),
 		_procedure(std::move(p_other._procedure))
@@ -113,7 +111,7 @@ namespace spk
 		destroy();
 	}
 
-	WindowRuntime& WindowRuntime::operator=(WindowRuntime&& p_other) noexcept
+	WindowRuntime &WindowRuntime::operator=(WindowRuntime &&p_other) noexcept
 	{
 		if (this == &p_other)
 		{
@@ -164,7 +162,7 @@ namespace spk
 		}
 	}
 
-	void WindowRuntime::setTitle(const std::string& p_title)
+	void WindowRuntime::setTitle(const std::string &p_title)
 	{
 		if (_handle != nullptr && SetWindowTextW(_handle, toWideString(p_title).c_str()) == FALSE)
 		{
@@ -172,7 +170,7 @@ namespace spk
 		}
 	}
 
-	void WindowRuntime::resize(const spk::Rect2D& p_rect)
+	void WindowRuntime::resize(const spk::Rect2D &p_rect)
 	{
 		if (_handle == nullptr)
 		{
@@ -183,8 +181,7 @@ namespace spk
 			static_cast<LONG>(p_rect.left()),
 			static_cast<LONG>(p_rect.top()),
 			static_cast<LONG>(p_rect.right()),
-			static_cast<LONG>(p_rect.bottom())
-		};
+			static_cast<LONG>(p_rect.bottom())};
 
 		const DWORD style = static_cast<DWORD>(GetWindowLongPtrW(_handle, GWL_STYLE));
 		const DWORD extendedStyle = static_cast<DWORD>(GetWindowLongPtrW(_handle, GWL_EXSTYLE));
@@ -206,7 +203,7 @@ namespace spk
 		}
 	}
 
-	void WindowRuntime::setCursor(const spk::Cursor& p_cursor) const
+	void WindowRuntime::setCursor(const spk::Cursor &p_cursor) const
 	{
 		if (_handle != nullptr && p_cursor.isValid() == true)
 		{
@@ -275,4 +272,3 @@ namespace spk
 		return _handle != nullptr && IsWindow(_handle) == TRUE;
 	}
 }
-

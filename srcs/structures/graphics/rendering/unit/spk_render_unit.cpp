@@ -4,7 +4,7 @@
 
 namespace spk
 {
-	RenderUnit::RenderUnit(std::vector<std::unique_ptr<spk::RenderCommand>>&& p_commands) :
+	RenderUnit::RenderUnit(std::vector<std::unique_ptr<spk::RenderCommand>> &&p_commands) :
 		_commands(std::move(p_commands))
 	{
 	}
@@ -19,14 +19,14 @@ namespace spk
 		return (_commands.size());
 	}
 
-	const std::vector<std::unique_ptr<spk::RenderCommand>>& RenderUnit::commands() const
+	const std::vector<std::unique_ptr<spk::RenderCommand>> &RenderUnit::commands() const
 	{
 		return (_commands);
 	}
 
-	void RenderUnit::execute(spk::RenderContext& p_renderContext)
+	void RenderUnit::execute(spk::RenderContext &p_renderContext)
 	{
-		for (const std::unique_ptr<spk::RenderCommand>& command : _commands)
+		for (const std::unique_ptr<spk::RenderCommand> &command : _commands)
 		{
 			if (command != nullptr)
 			{

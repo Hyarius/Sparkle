@@ -10,15 +10,15 @@
 
 namespace
 {
-	[[nodiscard]] bool sameColor(const spk::Color& p_left, const spk::Color& p_right)
+	[[nodiscard]] bool sameColor(const spk::Color &p_left, const spk::Color &p_right)
 	{
 		return p_left.r == p_right.r &&
-			p_left.g == p_right.g &&
-			p_left.b == p_right.b &&
-			p_left.a == p_right.a;
+			   p_left.g == p_right.g &&
+			   p_left.b == p_right.b &&
+			   p_left.a == p_right.a;
 	}
 
-	[[nodiscard]] std::string toUTF8(const spk::Font::Text& p_text)
+	[[nodiscard]] std::string toUTF8(const spk::Font::Text &p_text)
 	{
 		std::string result;
 		result.reserve(p_text.size());
@@ -71,7 +71,7 @@ namespace spk
 		});
 	}
 
-	TextEdit::TextEdit(const std::string& p_name, spk::Widget* p_parent) :
+	TextEdit::TextEdit(const std::string &p_name, spk::Widget *p_parent) :
 		spk::Widget(p_name, p_parent)
 	{
 		_configureSizeHint();
@@ -80,9 +80,9 @@ namespace spk
 	}
 
 	TextEdit::TextEdit(
-		const std::string& p_name,
-		const spk::WidgetStyle& p_style,
-		spk::Widget* p_parent) :
+		const std::string &p_name,
+		const spk::WidgetStyle &p_style,
+		spk::Widget *p_parent) :
 		spk::Widget(p_name, p_parent)
 	{
 		_configureSizeHint();
@@ -90,15 +90,14 @@ namespace spk
 		activate();
 	}
 
-	void TextEdit::_bindStyle(const spk::WidgetStyle& p_style)
+	void TextEdit::_bindStyle(const spk::WidgetStyle &p_style)
 	{
-		_styleEditionContract = p_style.subscribeToEdition([this](const spk::WidgetStyle& p_editedStyle)
-		{
+		_styleEditionContract = p_style.subscribeToEdition([this](const spk::WidgetStyle &p_editedStyle) {
 			applyStyle(p_editedStyle);
 		});
 	}
 
-	void TextEdit::applyStyle(const spk::WidgetStyle& p_style)
+	void TextEdit::applyStyle(const spk::WidgetStyle &p_style)
 	{
 		setSpriteSheet(p_style.nineSliceSpriteSheet());
 		setCornerSize(p_style.nineSliceCornerSize());
@@ -114,7 +113,7 @@ namespace spk
 		applyStyle(spk::WidgetStyle::Collection::style(spk::WidgetStyle::Collection::Default));
 	}
 
-	void TextEdit::useStyle(const spk::WidgetStyle& p_style)
+	void TextEdit::useStyle(const spk::WidgetStyle &p_style)
 	{
 		_bindStyle(p_style);
 		applyStyle(p_style);
@@ -140,8 +139,9 @@ namespace spk
 			_lowerCursor = _cursor;
 
 			while (_lowerCursor != 0 &&
-				_font->computeStringSize(
-					textToRender.substr(_lowerCursor - 1, _cursor - _lowerCursor + 1), _textSize).x <= availableWidth)
+				   _font->computeStringSize(
+							textToRender.substr(_lowerCursor - 1, _cursor - _lowerCursor + 1), _textSize)
+						   .x <= availableWidth)
 			{
 				_lowerCursor--;
 			}
@@ -154,8 +154,9 @@ namespace spk
 			_higherCursor = _cursor;
 
 			while (_higherCursor < textToRender.size() &&
-				_font->computeStringSize(
-					textToRender.substr(_lowerCursor, _higherCursor - _lowerCursor + 1), _textSize).x <= availableWidth)
+				   _font->computeStringSize(
+							textToRender.substr(_lowerCursor, _higherCursor - _lowerCursor + 1), _textSize)
+						   .x <= availableWidth)
 			{
 				_higherCursor++;
 			}
@@ -234,7 +235,7 @@ namespace spk
 		_needHigherCursorUpdate = true;
 	}
 
-	void TextEdit::_onUpdate(const spk::UpdateTick& p_tick)
+	void TextEdit::_onUpdate(const spk::UpdateTick &p_tick)
 	{
 		const bool newRenderCursor = (p_tick.timestamp.milliseconds() / 250) % 2 == 0;
 
@@ -248,7 +249,7 @@ namespace spk
 		}
 	}
 
-	void TextEdit::_onMouseMovedEvent(spk::MouseMovedEvent& p_event)
+	void TextEdit::_onMouseMovedEvent(spk::MouseMovedEvent &p_event)
 	{
 		const bool hovered = absoluteGeometry().contains(p_event.device().position);
 		if (hovered == _isHovered)
@@ -266,7 +267,7 @@ namespace spk
 		p_event.device().requestCursor(hovered == true ? "IBeam" : "Arrow");
 	}
 
-	void TextEdit::_onMouseButtonPressedEvent(spk::MouseButtonPressedEvent& p_event)
+	void TextEdit::_onMouseButtonPressedEvent(spk::MouseButtonPressedEvent &p_event)
 	{
 		if (_isEditEnabled == false)
 		{
@@ -292,7 +293,7 @@ namespace spk
 		}
 	}
 
-	void TextEdit::_onKeyPressedEvent(spk::KeyPressedEvent& p_event)
+	void TextEdit::_onKeyPressedEvent(spk::KeyPressedEvent &p_event)
 	{
 		if (_isEditEnabled == false || hasFocus(FocusType::Keyboard) == false)
 		{
@@ -324,7 +325,7 @@ namespace spk
 		p_event.consume();
 	}
 
-	void TextEdit::_onTextInputEvent(spk::TextInputEvent& p_event)
+	void TextEdit::_onTextInputEvent(spk::TextInputEvent &p_event)
 	{
 		if (_isEditEnabled == false || hasFocus(FocusType::Keyboard) == false)
 		{
@@ -377,7 +378,7 @@ namespace spk
 		_onEditionProvider.trigger(_text);
 	}
 
-	TextEdit::ValidationState TextEdit::_validate(const spk::Font::Text& p_text) const
+	TextEdit::ValidationState TextEdit::_validate(const spk::Font::Text &p_text) const
 	{
 		if (_validationCallback == nullptr)
 		{
@@ -473,7 +474,7 @@ namespace spk
 		invalidateRenderUnit();
 	}
 
-	void TextEdit::setCornerSize(const spk::Vector2Int& p_cornerSize)
+	void TextEdit::setCornerSize(const spk::Vector2Int &p_cornerSize)
 	{
 		if (p_cornerSize.x < 0 || p_cornerSize.y < 0)
 		{
@@ -504,7 +505,7 @@ namespace spk
 		invalidateRenderUnit();
 	}
 
-	void TextEdit::setTextSize(const spk::Font::Size& p_textSize)
+	void TextEdit::setTextSize(const spk::Font::Size &p_textSize)
 	{
 		if (_textSize == p_textSize)
 		{
@@ -517,7 +518,7 @@ namespace spk
 		invalidateRenderUnit();
 	}
 
-	void TextEdit::setGlyphColor(const spk::Color& p_color)
+	void TextEdit::setGlyphColor(const spk::Color &p_color)
 	{
 		if (sameColor(_glyphColor, p_color) == true)
 		{
@@ -528,7 +529,7 @@ namespace spk
 		invalidateRenderUnit();
 	}
 
-	void TextEdit::setOutlineColor(const spk::Color& p_color)
+	void TextEdit::setOutlineColor(const spk::Color &p_color)
 	{
 		if (sameColor(_outlineColor, p_color) == true)
 		{
@@ -539,7 +540,7 @@ namespace spk
 		invalidateRenderUnit();
 	}
 
-	void TextEdit::setCursorColor(const spk::Color& p_color)
+	void TextEdit::setCursorColor(const spk::Color &p_color)
 	{
 		if (sameColor(_cursorColor, p_color) == true)
 		{
@@ -561,7 +562,7 @@ namespace spk
 		invalidateRenderUnit();
 	}
 
-	void TextEdit::setText(const spk::Font::Text& p_text)
+	void TextEdit::setText(const spk::Font::Text &p_text)
 	{
 		_text = p_text;
 		_cursor = _text.size();
@@ -576,7 +577,7 @@ namespace spk
 		setText(spk::Font::textFromUTF8(p_text));
 	}
 
-	void TextEdit::setPlaceholder(const spk::Font::Text& p_placeholder)
+	void TextEdit::setPlaceholder(const spk::Font::Text &p_placeholder)
 	{
 		_placeholder = p_placeholder;
 		if (_text.empty() == true)
@@ -645,7 +646,7 @@ namespace spk
 		return _placeholder;
 	}
 
-	const spk::Font::Text& TextEdit::text() const
+	const spk::Font::Text &TextEdit::text() const
 	{
 		return _text;
 	}
@@ -655,7 +656,7 @@ namespace spk
 		return toUTF8(_text);
 	}
 
-	const spk::Font::Text& TextEdit::placeholder() const
+	const spk::Font::Text &TextEdit::placeholder() const
 	{
 		return _placeholder;
 	}
@@ -665,32 +666,32 @@ namespace spk
 		return _cursor;
 	}
 
-	const std::shared_ptr<spk::SpriteSheet>& TextEdit::spriteSheet() const
+	const std::shared_ptr<spk::SpriteSheet> &TextEdit::spriteSheet() const
 	{
 		return _spriteSheet;
 	}
 
-	const spk::Vector2Int& TextEdit::cornerSize() const
+	const spk::Vector2Int &TextEdit::cornerSize() const
 	{
 		return _cornerSize;
 	}
 
-	const std::shared_ptr<spk::Font>& TextEdit::font() const
+	const std::shared_ptr<spk::Font> &TextEdit::font() const
 	{
 		return _font;
 	}
 
-	const spk::Font::Size& TextEdit::textSize() const
+	const spk::Font::Size &TextEdit::textSize() const
 	{
 		return _textSize;
 	}
 
-	const spk::Color& TextEdit::glyphColor() const
+	const spk::Color &TextEdit::glyphColor() const
 	{
 		return _glyphColor;
 	}
 
-	const spk::Color& TextEdit::outlineColor() const
+	const spk::Color &TextEdit::outlineColor() const
 	{
 		return _outlineColor;
 	}

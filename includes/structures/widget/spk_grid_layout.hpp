@@ -73,7 +73,7 @@ namespace spk
 			{
 				for (size_t c = 0; c < _size.x; ++c)
 				{
-					Element* element = _elements[_idx(r, c)].get();
+					Element *element = _elements[_idx(r, c)].get();
 					if (element == nullptr || (element->widget() == nullptr && element->layout() == nullptr))
 					{
 						continue;
@@ -137,7 +137,7 @@ namespace spk
 			_ensureSize((_size.y == 0) ? 1 : _size.y, _size.x + 1);
 		}
 
-		Element* setWidget(size_t p_column, size_t p_row, spk::Widget* p_widget, SizePolicy p_sizePolicy = SizePolicy::Extend)
+		Element *setWidget(size_t p_column, size_t p_row, spk::Widget *p_widget, SizePolicy p_sizePolicy = SizePolicy::Extend)
 		{
 			if (p_widget == nullptr)
 			{
@@ -158,7 +158,7 @@ namespace spk
 			return _elements[index].get();
 		}
 
-		void setGeometry(const spk::Rect2D& p_geometry) override
+		void setGeometry(const spk::Rect2D &p_geometry) override
 		{
 			if (_size.x == 0 || _size.y == 0)
 			{
@@ -177,7 +177,7 @@ namespace spk
 			{
 				for (size_t y = 0; y < _size.y; y++)
 				{
-					const auto& element = _elements[_idx(y, x)];
+					const auto &element = _elements[_idx(y, x)];
 
 					if (element == nullptr || (element->widget() == nullptr && element->layout() == nullptr))
 					{
@@ -296,15 +296,11 @@ namespace spk
 				size_t anchorOnY = 0;
 				for (size_t y = 0; y < _size.y; y++)
 				{
-					const auto& element = _elements[_idx(y, x)];
+					const auto &element = _elements[_idx(y, x)];
 
 					if (element != nullptr)
 					{
-						element->setGeometry(spk::Rect2D(
-							p_geometry.anchor.x + static_cast<int>(anchorOnX),
-							p_geometry.anchor.y + static_cast<int>(anchorOnY),
-							static_cast<unsigned int>(finalSizeOnX[x]),
-							static_cast<unsigned int>(finalSizeOnY[y])));
+						element->setGeometry(spk::Rect2D(p_geometry.anchor.x + static_cast<int>(anchorOnX), p_geometry.anchor.y + static_cast<int>(anchorOnY), static_cast<unsigned int>(finalSizeOnX[x]), static_cast<unsigned int>(finalSizeOnY[y])));
 					}
 					anchorOnY += finalSizeOnY[y] + _elementPadding.y;
 				}
@@ -333,7 +329,7 @@ namespace spk
 
 		void addEmptyColumn() = delete;
 
-		Element* setWidget(size_t p_column, size_t p_row, spk::Widget* p_widget, SizePolicy p_sizePolicy = SizePolicy::Extend)
+		Element *setWidget(size_t p_column, size_t p_row, spk::Widget *p_widget, SizePolicy p_sizePolicy = SizePolicy::Extend)
 		{
 			if (p_column >= NbColumns)
 			{
@@ -364,7 +360,7 @@ namespace spk
 
 		void addEmptyRow() = delete;
 
-		Element* setWidget(size_t p_column, size_t p_row, spk::Widget* p_widget, SizePolicy p_sizePolicy = SizePolicy::Extend)
+		Element *setWidget(size_t p_column, size_t p_row, spk::Widget *p_widget, SizePolicy p_sizePolicy = SizePolicy::Extend)
 		{
 			if (p_row >= NbRows)
 			{
@@ -401,7 +397,7 @@ namespace spk
 		void addEmptyRow() = delete;
 		void addEmptyColumn() = delete;
 
-		Element* setWidget(size_t p_column, size_t p_row, spk::Widget* p_widget, SizePolicy p_sizePolicy = SizePolicy::Extend)
+		Element *setWidget(size_t p_column, size_t p_row, spk::Widget *p_widget, SizePolicy p_sizePolicy = SizePolicy::Extend)
 		{
 			if (p_column >= NbColumns || p_row >= NbRows)
 			{

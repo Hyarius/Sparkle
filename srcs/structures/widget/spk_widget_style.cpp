@@ -15,7 +15,7 @@ namespace
 
 	constexpr spk::Vector2Int DefaultNineSliceCornerSize = {8, 8};
 
-	void validateSpriteSheet(const std::shared_ptr<spk::SpriteSheet>& p_spriteSheet, const char* p_name)
+	void validateSpriteSheet(const std::shared_ptr<spk::SpriteSheet> &p_spriteSheet, const char *p_name)
 	{
 		if (p_spriteSheet == nullptr)
 		{
@@ -28,7 +28,7 @@ namespace
 		}
 	}
 
-	void validateCornerSize(const spk::Vector2Int& p_cornerSize, const char* p_name)
+	void validateCornerSize(const spk::Vector2Int &p_cornerSize, const char *p_name)
 	{
 		if (p_cornerSize.x < 0 || p_cornerSize.y < 0)
 		{
@@ -36,12 +36,12 @@ namespace
 		}
 	}
 
-	[[nodiscard]] bool sameColor(const spk::Color& p_left, const spk::Color& p_right)
+	[[nodiscard]] bool sameColor(const spk::Color &p_left, const spk::Color &p_right)
 	{
 		return p_left.r == p_right.r &&
-			p_left.g == p_right.g &&
-			p_left.b == p_right.b &&
-			p_left.a == p_right.a;
+			   p_left.g == p_right.g &&
+			   p_left.b == p_right.b &&
+			   p_left.a == p_right.a;
 	}
 }
 
@@ -56,12 +56,12 @@ namespace spk
 	{
 	}
 
-	WidgetStyle::WidgetStyle(const WidgetStyle& p_other)
+	WidgetStyle::WidgetStyle(const WidgetStyle &p_other)
 	{
 		_copyValuesFrom(p_other);
 	}
 
-	WidgetStyle& WidgetStyle::operator=(const WidgetStyle& p_other)
+	WidgetStyle &WidgetStyle::operator=(const WidgetStyle &p_other)
 	{
 		if (this != &p_other)
 		{
@@ -71,12 +71,12 @@ namespace spk
 		return *this;
 	}
 
-	WidgetStyle::WidgetStyle(WidgetStyle&& p_other) noexcept
+	WidgetStyle::WidgetStyle(WidgetStyle &&p_other) noexcept
 	{
 		*this = std::move(p_other);
 	}
 
-	WidgetStyle& WidgetStyle::operator=(WidgetStyle&& p_other) noexcept
+	WidgetStyle &WidgetStyle::operator=(WidgetStyle &&p_other) noexcept
 	{
 		if (this != &p_other)
 		{
@@ -93,7 +93,7 @@ namespace spk
 		return *this;
 	}
 
-	void WidgetStyle::_copyValuesFrom(const spk::WidgetStyle& p_other)
+	void WidgetStyle::_copyValuesFrom(const spk::WidgetStyle &p_other)
 	{
 		_nineSliceSpriteSheet = p_other._nineSliceSpriteSheet;
 		_nineSliceCornerSize = p_other._nineSliceCornerSize;
@@ -125,7 +125,7 @@ namespace spk
 
 	namespace
 	{
-		[[nodiscard]] spk::WidgetStyle makeNineSliceVariant(const char* p_texturePath)
+		[[nodiscard]] spk::WidgetStyle makeNineSliceVariant(const char *p_texturePath)
 		{
 			spk::WidgetStyle result = spk::WidgetStyle::makeDefault();
 			auto spriteSheet = std::make_shared<spk::SpriteSheet>(
@@ -173,8 +173,7 @@ namespace spk
 	WidgetStyle::Contract WidgetStyle::subscribeToEdition(Callback p_callback) const
 	{
 		return _editionProvider.subscribe(
-			[p_callback = std::move(p_callback)](const spk::WidgetStyle* p_style)
-			{
+			[p_callback = std::move(p_callback)](const spk::WidgetStyle *p_style) {
 				if (p_style != nullptr)
 				{
 					p_callback(*p_style);
@@ -189,12 +188,12 @@ namespace spk
 		notifyEdition();
 	}
 
-	void WidgetStyle::setCornerSize(const spk::Vector2Int& p_cornerSize)
+	void WidgetStyle::setCornerSize(const spk::Vector2Int &p_cornerSize)
 	{
 		setNineSliceCornerSize(p_cornerSize);
 	}
 
-	void WidgetStyle::setNineSliceCornerSize(const spk::Vector2Int& p_cornerSize)
+	void WidgetStyle::setNineSliceCornerSize(const spk::Vector2Int &p_cornerSize)
 	{
 		validateCornerSize(p_cornerSize, "WidgetStyle nine-slice corner size");
 		if (_nineSliceCornerSize == p_cornerSize)
@@ -225,7 +224,7 @@ namespace spk
 		notifyEdition();
 	}
 
-	void WidgetStyle::setTextSize(const spk::Font::Size& p_textSize)
+	void WidgetStyle::setTextSize(const spk::Font::Size &p_textSize)
 	{
 		if (_textSize == p_textSize)
 		{
@@ -235,7 +234,7 @@ namespace spk
 		notifyEdition();
 	}
 
-	void WidgetStyle::setGlyphColor(const spk::Color& p_color)
+	void WidgetStyle::setGlyphColor(const spk::Color &p_color)
 	{
 		if (sameColor(_glyphColor, p_color) == true)
 		{
@@ -245,7 +244,7 @@ namespace spk
 		notifyEdition();
 	}
 
-	void WidgetStyle::setOutlineColor(const spk::Color& p_color)
+	void WidgetStyle::setOutlineColor(const spk::Color &p_color)
 	{
 		if (sameColor(_outlineColor, p_color) == true)
 		{
@@ -255,7 +254,7 @@ namespace spk
 		notifyEdition();
 	}
 
-	void WidgetStyle::setTextPadding(const spk::Vector2Int& p_padding)
+	void WidgetStyle::setTextPadding(const spk::Vector2Int &p_padding)
 	{
 		if (_textPadding == p_padding)
 		{
@@ -265,15 +264,42 @@ namespace spk
 		notifyEdition();
 	}
 
-	const std::shared_ptr<spk::SpriteSheet>& WidgetStyle::nineSliceSpriteSheet() const { return _nineSliceSpriteSheet; }
-	const spk::Vector2Int& WidgetStyle::cornerSize() const { return _nineSliceCornerSize; }
-	const spk::Vector2Int& WidgetStyle::nineSliceCornerSize() const { return _nineSliceCornerSize; }
-	const std::shared_ptr<spk::SpriteSheet>& WidgetStyle::iconSpriteSheet() const { return _iconSpriteSheet; }
-	const std::shared_ptr<spk::Font>& WidgetStyle::font() const { return _font; }
-	const spk::Font::Size& WidgetStyle::textSize() const { return _textSize; }
-	const spk::Color& WidgetStyle::glyphColor() const { return _glyphColor; }
-	const spk::Color& WidgetStyle::outlineColor() const { return _outlineColor; }
-	const spk::Vector2Int& WidgetStyle::textPadding() const { return _textPadding; }
+	const std::shared_ptr<spk::SpriteSheet> &WidgetStyle::nineSliceSpriteSheet() const
+	{
+		return _nineSliceSpriteSheet;
+	}
+	const spk::Vector2Int &WidgetStyle::cornerSize() const
+	{
+		return _nineSliceCornerSize;
+	}
+	const spk::Vector2Int &WidgetStyle::nineSliceCornerSize() const
+	{
+		return _nineSliceCornerSize;
+	}
+	const std::shared_ptr<spk::SpriteSheet> &WidgetStyle::iconSpriteSheet() const
+	{
+		return _iconSpriteSheet;
+	}
+	const std::shared_ptr<spk::Font> &WidgetStyle::font() const
+	{
+		return _font;
+	}
+	const spk::Font::Size &WidgetStyle::textSize() const
+	{
+		return _textSize;
+	}
+	const spk::Color &WidgetStyle::glyphColor() const
+	{
+		return _glyphColor;
+	}
+	const spk::Color &WidgetStyle::outlineColor() const
+	{
+		return _outlineColor;
+	}
+	const spk::Vector2Int &WidgetStyle::textPadding() const
+	{
+		return _textPadding;
+	}
 
 	WidgetStyle::Collection::Collection()
 	{
@@ -285,7 +311,7 @@ namespace spk
 		_styles.emplace(std::string(DefaultInterfaceWindowTitle), spk::WidgetStyle::makeDefaultInterfaceWindowTitle());
 	}
 
-	WidgetStyle::Collection& WidgetStyle::Collection::instance()
+	WidgetStyle::Collection &WidgetStyle::Collection::instance()
 	{
 		static WidgetStyle::Collection result;
 		return result;
@@ -296,9 +322,9 @@ namespace spk
 		return instance()._styles.contains(keyFrom(p_name));
 	}
 
-	spk::WidgetStyle& WidgetStyle::Collection::style(std::string_view p_name)
+	spk::WidgetStyle &WidgetStyle::Collection::style(std::string_view p_name)
 	{
-		auto& styles = instance()._styles;
+		auto &styles = instance()._styles;
 		const std::string key = keyFrom(p_name);
 
 		auto [iterator, inserted] = styles.try_emplace(key, spk::WidgetStyle::makeDefault());
@@ -307,9 +333,9 @@ namespace spk
 		return iterator->second;
 	}
 
-	void WidgetStyle::Collection::setStyle(std::string_view p_name, const spk::WidgetStyle& p_style)
+	void WidgetStyle::Collection::setStyle(std::string_view p_name, const spk::WidgetStyle &p_style)
 	{
-		spk::WidgetStyle& target = style(p_name);
+		spk::WidgetStyle &target = style(p_name);
 		target = p_style;
 		target.notifyEdition();
 	}

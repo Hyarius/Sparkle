@@ -35,7 +35,7 @@ namespace spk
 	{
 	}
 
-	void DrawElementsCommand::execute(spk::RenderContext& p_renderContext)
+	void DrawElementsCommand::execute(spk::RenderContext &p_renderContext)
 	{
 		if (_indexBuffer == nullptr)
 		{
@@ -57,6 +57,6 @@ namespace spk
 			spk::OpenGL::primitiveType(_primitive),
 			count,
 			_indexBuffer->elementType(),
-			reinterpret_cast<const void*>(_offset));
+			reinterpret_cast<const void *>(_offset));
 	}
 }

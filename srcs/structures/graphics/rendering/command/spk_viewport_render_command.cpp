@@ -10,12 +10,12 @@
 
 namespace spk
 {
-	ViewportCommand::ViewportCommand(const spk::Viewport& p_viewport) :
+	ViewportCommand::ViewportCommand(const spk::Viewport &p_viewport) :
 		_viewport(p_viewport)
 	{
 	}
 
-	void ViewportCommand::execute(spk::RenderContext& p_renderContext)
+	void ViewportCommand::execute(spk::RenderContext &p_renderContext)
 	{
 		if (p_renderContext.supportsOpenGLCommands() == false)
 		{
@@ -31,8 +31,8 @@ namespace spk
 		_viewport.activate();
 		spk::OpenGLViewport::apply(_viewport, *surfaceState);
 
-		spk::UniformBufferObject& viewportBuffer = spk::Viewport::viewportUniformBuffer();
-		const spk::Matrix4x4& viewportMatrix = _viewport.matrix();
+		spk::UniformBufferObject &viewportBuffer = spk::Viewport::viewportUniformBuffer();
+		const spk::Matrix4x4 &viewportMatrix = _viewport.matrix();
 		viewportBuffer.edit(&viewportMatrix, sizeof(viewportMatrix));
 		viewportBuffer.activate(p_renderContext);
 	}

@@ -1,6 +1,5 @@
 #include "structures/system/win32/spk_winapi_class.hpp"
 
-
 #include <utility>
 
 #include "utils/spk_winapi_helpers.hpp"
@@ -48,7 +47,7 @@ namespace spk
 		_isRegistered = true;
 	}
 
-	WindowClass::WindowClass(WindowClass&& p_other) noexcept :
+	WindowClass::WindowClass(WindowClass &&p_other) noexcept :
 		_instance(p_other._instance),
 		_name(std::move(p_other._name)),
 		_nativeName(std::move(p_other._nativeName)),
@@ -66,7 +65,7 @@ namespace spk
 		}
 	}
 
-	WindowClass& WindowClass::operator=(WindowClass&& p_other) noexcept
+	WindowClass &WindowClass::operator=(WindowClass &&p_other) noexcept
 	{
 		if (this == &p_other)
 		{
@@ -92,9 +91,8 @@ namespace spk
 		return _instance;
 	}
 
-	const std::string& WindowClass::name() const
+	const std::string &WindowClass::name() const
 	{
 		return _name;
 	}
 }
-

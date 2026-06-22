@@ -29,7 +29,7 @@ namespace spk
 		_buffers[std::string(p_name)] = std::move(p_buffer);
 	}
 
-	spk::UniformBufferObject& GPUDataBufferCenter::getUBO(std::string_view p_name)
+	spk::UniformBufferObject &GPUDataBufferCenter::getUBO(std::string_view p_name)
 	{
 		const auto it = _buffers.find(std::string(p_name));
 		if (it == _buffers.end())
@@ -37,7 +37,7 @@ namespace spk
 			throw std::runtime_error("spk::GPUDataBufferCenter::getUBO could not find the requested buffer");
 		}
 
-		auto* buffer = std::get_if<std::shared_ptr<spk::UniformBufferObject>>(&it->second);
+		auto *buffer = std::get_if<std::shared_ptr<spk::UniformBufferObject>>(&it->second);
 		if (buffer == nullptr || *buffer == nullptr)
 		{
 			throw std::runtime_error("spk::GPUDataBufferCenter::getUBO found a buffer with a different type");
@@ -46,7 +46,7 @@ namespace spk
 		return **buffer;
 	}
 
-	spk::ShaderStorageBufferObject& GPUDataBufferCenter::getSSBO(std::string_view p_name)
+	spk::ShaderStorageBufferObject &GPUDataBufferCenter::getSSBO(std::string_view p_name)
 	{
 		const auto it = _buffers.find(std::string(p_name));
 		if (it == _buffers.end())
@@ -54,7 +54,7 @@ namespace spk
 			throw std::runtime_error("spk::GPUDataBufferCenter::getSSBO could not find the requested buffer");
 		}
 
-		auto* buffer = std::get_if<std::shared_ptr<spk::ShaderStorageBufferObject>>(&it->second);
+		auto *buffer = std::get_if<std::shared_ptr<spk::ShaderStorageBufferObject>>(&it->second);
 		if (buffer == nullptr || *buffer == nullptr)
 		{
 			throw std::runtime_error("spk::GPUDataBufferCenter::getSSBO found a buffer with a different type");

@@ -17,8 +17,8 @@ namespace spk
 	class SpinBox : public spk::Widget
 	{
 	public:
-		using Callback = spk::ContractProvider<const TType&>::Callback;
-		using Contract = spk::ContractProvider<const TType&>::Contract;
+		using Callback = spk::ContractProvider<const TType &>::Callback;
+		using Contract = spk::ContractProvider<const TType &>::Contract;
 
 	private:
 		spk::PushButton _downButton;
@@ -64,25 +64,22 @@ namespace spk
 		}
 
 	public:
-		explicit SpinBox(const std::string& p_name, spk::Widget* p_parent = nullptr) :
+		explicit SpinBox(const std::string &p_name, spk::Widget *p_parent = nullptr) :
 			spk::Widget(p_name, p_parent),
 			_downButton(p_name + "::downButton", "-", this),
 			_valueEdit(p_name + "::valueEdit", this),
 			_upButton(p_name + "::upButton", "+", this),
 			_value(static_cast<TType>(0))
 		{
-			_onValueEditionContract = _value.subscribe([this](const TType&)
-			{
+			_onValueEditionContract = _value.subscribe([this](const TType &) {
 				_refreshValueText();
 			});
 
-			_downButtonContract = _downButton.subscribeToClick([this]()
-			{
+			_downButtonContract = _downButton.subscribeToClick([this]() {
 				_value = _clampedValue(_value.value() - _step);
 			});
 
-			_upButtonContract = _upButton.subscribeToClick([this]()
-			{
+			_upButtonContract = _upButton.subscribeToClick([this]() {
 				_value = _clampedValue(_value.value() + _step);
 			});
 
@@ -90,7 +87,7 @@ namespace spk
 			_valueEdit.disableEdit();
 			_refreshValueText();
 
-			const auto& iconset =
+			const auto &iconset =
 				spk::WidgetStyle::Collection::style(spk::WidgetStyle::Collection::Default).iconSpriteSheet();
 			if (iconset != nullptr)
 			{
@@ -162,42 +159,42 @@ namespace spk
 			_maxLimit.reset();
 		}
 
-		[[nodiscard]] const std::optional<TType>& minimalLimit() const
+		[[nodiscard]] const std::optional<TType> &minimalLimit() const
 		{
 			return _minLimit;
 		}
 
-		[[nodiscard]] const std::optional<TType>& maximalLimit() const
+		[[nodiscard]] const std::optional<TType> &maximalLimit() const
 		{
 			return _maxLimit;
 		}
 
-		[[nodiscard]] spk::PushButton& downButton()
+		[[nodiscard]] spk::PushButton &downButton()
 		{
 			return _downButton;
 		}
 
-		[[nodiscard]] const spk::PushButton& downButton() const
+		[[nodiscard]] const spk::PushButton &downButton() const
 		{
 			return _downButton;
 		}
 
-		[[nodiscard]] spk::PushButton& upButton()
+		[[nodiscard]] spk::PushButton &upButton()
 		{
 			return _upButton;
 		}
 
-		[[nodiscard]] const spk::PushButton& upButton() const
+		[[nodiscard]] const spk::PushButton &upButton() const
 		{
 			return _upButton;
 		}
 
-		[[nodiscard]] spk::TextEdit& valueEdit()
+		[[nodiscard]] spk::TextEdit &valueEdit()
 		{
 			return _valueEdit;
 		}
 
-		[[nodiscard]] const spk::TextEdit& valueEdit() const
+		[[nodiscard]] const spk::TextEdit &valueEdit() const
 		{
 			return _valueEdit;
 		}

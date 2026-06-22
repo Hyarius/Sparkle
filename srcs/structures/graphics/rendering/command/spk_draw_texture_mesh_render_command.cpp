@@ -3,18 +3,18 @@
 #include <cstdint>
 #include <span>
 
+#include "spk_generated_resources.hpp"
+#include "structures/graphics/rendering/context/spk_render_context.hpp"
+#include "structures/graphics/rendering/state/spk_viewport.hpp"
 #include "structures/graphics/spk_layout_buffer_object.hpp"
 #include "structures/graphics/spk_program.hpp"
 #include "structures/graphics/spk_uniform_buffer_object.hpp"
-#include "structures/graphics/rendering/context/spk_render_context.hpp"
-#include "structures/graphics/rendering/state/spk_viewport.hpp"
-#include "spk_generated_resources.hpp"
 
 namespace spk
 {
 	DrawTextureMeshRenderCommand::DrawTextureMeshRenderCommand(
-		const spk::Texture& p_texture,
-		const spk::TextureMesh2D& p_mesh) :
+		const spk::Texture &p_texture,
+		const spk::TextureMesh2D &p_mesh) :
 		_texture(p_texture),
 		_mesh(p_mesh),
 		_viewportBuffer(spk::Viewport::viewportUniformBuffer()),
@@ -23,7 +23,7 @@ namespace spk
 		_textureSampler.bind(_texture);
 	}
 
-	spk::Program& DrawTextureMeshRenderCommand::_sharedProgram()
+	spk::Program &DrawTextureMeshRenderCommand::_sharedProgram()
 	{
 		static spk::Program program(
 			SPARKLE_GET_RESOURCE_AS_STRING("resources/shaders/texture_mesh/draw_texture_mesh.vert"),
@@ -31,14 +31,14 @@ namespace spk
 		return program;
 	}
 
-	void DrawTextureMeshRenderCommand::execute(spk::RenderContext& p_renderContext)
+	void DrawTextureMeshRenderCommand::execute(spk::RenderContext &p_renderContext)
 	{
 		if (_mesh.layoutBuffer().indexCount() == 0)
 		{
 			return;
 		}
 
-		spk::OpenGL::Program& program = _sharedProgram().gpu(p_renderContext);
+		spk::OpenGL::Program &program = _sharedProgram().gpu(p_renderContext);
 
 		program.activate();
 		_mesh.layoutBuffer().activate(p_renderContext);

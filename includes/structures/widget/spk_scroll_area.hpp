@@ -26,28 +26,28 @@ namespace spk
 
 	protected:
 		void _onGeometryChange() override;
-		void _onMouseWheelScrolledEvent(spk::MouseWheelScrolledEvent& p_event) override;
+		void _onMouseWheelScrolledEvent(spk::MouseWheelScrolledEvent &p_event) override;
 
 	public:
-		explicit IScrollArea(const std::string& p_name, spk::Widget* p_parent = nullptr);
+		explicit IScrollArea(const std::string &p_name, spk::Widget *p_parent = nullptr);
 
-		void setContent(spk::Widget* p_content);
-		void setContentSize(const spk::Vector2UInt& p_contentSize);
+		void setContent(spk::Widget *p_content);
+		void setContentSize(const spk::Vector2UInt &p_contentSize);
 		void setScrollBarVisible(spk::Orientation p_orientation, bool p_state);
 		void setScrollBarWidth(unsigned int p_scrollBarWidth);
 
-		[[nodiscard]] spk::Widget* content();
-		[[nodiscard]] const spk::Widget* content() const;
-		[[nodiscard]] const spk::Vector2UInt& contentSize() const;
+		[[nodiscard]] spk::Widget *content();
+		[[nodiscard]] const spk::Widget *content() const;
+		[[nodiscard]] const spk::Vector2UInt &contentSize() const;
 		[[nodiscard]] unsigned int scrollBarWidth() const;
 		[[nodiscard]] spk::Vector2UInt viewSize() const;
 
-		[[nodiscard]] spk::ContainerWidget& container();
-		[[nodiscard]] const spk::ContainerWidget& container() const;
-		[[nodiscard]] spk::ScrollBar& horizontalScrollBar();
-		[[nodiscard]] const spk::ScrollBar& horizontalScrollBar() const;
-		[[nodiscard]] spk::ScrollBar& verticalScrollBar();
-		[[nodiscard]] const spk::ScrollBar& verticalScrollBar() const;
+		[[nodiscard]] spk::ContainerWidget &container();
+		[[nodiscard]] const spk::ContainerWidget &container() const;
+		[[nodiscard]] spk::ScrollBar &horizontalScrollBar();
+		[[nodiscard]] const spk::ScrollBar &horizontalScrollBar() const;
+		[[nodiscard]] spk::ScrollBar &verticalScrollBar();
+		[[nodiscard]] const spk::ScrollBar &verticalScrollBar() const;
 	};
 
 	template <typename TContentType>
@@ -60,7 +60,7 @@ namespace spk
 		using spk::IScrollArea::setContent;
 
 	public:
-		explicit ScrollArea(const std::string& p_name, spk::Widget* p_parent = nullptr) :
+		explicit ScrollArea(const std::string &p_name, spk::Widget *p_parent = nullptr) :
 			spk::IScrollArea(p_name, p_parent),
 			_contentObject(p_name + "::content", &container())
 		{
@@ -68,12 +68,12 @@ namespace spk
 			_contentObject.activate();
 		}
 
-		[[nodiscard]] TContentType& contentObject()
+		[[nodiscard]] TContentType &contentObject()
 		{
 			return _contentObject;
 		}
 
-		[[nodiscard]] const TContentType& contentObject() const
+		[[nodiscard]] const TContentType &contentObject() const
 		{
 			return _contentObject;
 		}

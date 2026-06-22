@@ -65,7 +65,7 @@ namespace spk
 	{
 	}
 
-	LayoutBufferObject::LayoutBufferObject(const LayoutBufferObject& p_other) :
+	LayoutBufferObject::LayoutBufferObject(const LayoutBufferObject &p_other) :
 		LayoutBufferObject()
 	{
 		_attributes = p_other._attributes;
@@ -76,7 +76,7 @@ namespace spk
 		_rebuildVertexArray();
 	}
 
-	LayoutBufferObject& LayoutBufferObject::operator=(const LayoutBufferObject& p_other)
+	LayoutBufferObject &LayoutBufferObject::operator=(const LayoutBufferObject &p_other)
 	{
 		if (this != &p_other)
 		{
@@ -94,7 +94,7 @@ namespace spk
 	LayoutBufferObject::LayoutBufferObject(std::span<const Attribute> p_attributes) :
 		LayoutBufferObject()
 	{
-		for (const Attribute& attribute : p_attributes)
+		for (const Attribute &attribute : p_attributes)
 		{
 			addAttribute(attribute);
 		}
@@ -110,7 +110,7 @@ namespace spk
 		_vertexArray->clearVertexBuffers();
 
 		std::size_t offset = 0;
-		for (const Attribute& attribute : _attributes)
+		for (const Attribute &attribute : _attributes)
 		{
 			_vertexArray->addVertexBuffer(
 				_vertexBuffer,
@@ -120,8 +120,7 @@ namespace spk
 					.componentType = Attribute::componentType(attribute.type),
 					.normalized = attribute.normalized,
 					.stride = static_cast<GLsizei>(_vertexSize),
-					.offset = offset
-				});
+					.offset = offset});
 			offset += Attribute::typeSize(attribute.type);
 		}
 
@@ -142,7 +141,7 @@ namespace spk
 		_rebuildVertexArray();
 	}
 
-	void LayoutBufferObject::addAttribute(const Attribute& p_attribute)
+	void LayoutBufferObject::addAttribute(const Attribute &p_attribute)
 	{
 		if (hasAttribute(p_attribute.index) == true)
 		{
@@ -156,19 +155,14 @@ namespace spk
 
 	void LayoutBufferObject::addAttribute(Attribute::Index p_index, Attribute::Type p_type, bool p_normalized)
 	{
-		addAttribute(Attribute{
-			.index = p_index,
-			.type = p_type,
-			.normalized = p_normalized
-		});
+		addAttribute(Attribute{.index = p_index, .type = p_type, .normalized = p_normalized});
 	}
 
 	bool LayoutBufferObject::hasAttribute(Attribute::Index p_index) const
 	{
 		return std::ranges::any_of(
 			_attributes,
-			[p_index](const Attribute& p_attribute)
-			{
+			[p_index](const Attribute &p_attribute) {
 				return p_attribute.index == p_index;
 			});
 	}
@@ -193,7 +187,7 @@ namespace spk
 		return indexCount() != 0;
 	}
 
-	void LayoutBufferObject::setVertexBytes(const void* p_data, std::size_t p_size)
+	void LayoutBufferObject::setVertexBytes(const void *p_data, std::size_t p_size)
 	{
 		if (_vertexSize == 0 && p_size != 0)
 		{
@@ -214,7 +208,7 @@ namespace spk
 		_vertexCount = _vertexSize == 0 ? 0 : p_size / _vertexSize;
 	}
 
-	void LayoutBufferObject::appendVertexBytes(const void* p_data, std::size_t p_size)
+	void LayoutBufferObject::appendVertexBytes(const void *p_data, std::size_t p_size)
 	{
 		if (_vertexSize == 0 && p_size != 0)
 		{
@@ -255,12 +249,12 @@ namespace spk
 		_rebuildVertexArray();
 	}
 
-	[[nodiscard]] spk::VertexBufferObject& LayoutBufferObject::vertices() const
+	[[nodiscard]] spk::VertexBufferObject &LayoutBufferObject::vertices() const
 	{
 		return *_vertexBuffer;
 	}
-	
-	[[nodiscard]] spk::IndexBufferObject& LayoutBufferObject::indexes() const
+
+	[[nodiscard]] spk::IndexBufferObject &LayoutBufferObject::indexes() const
 	{
 		return *_indexBuffer;
 	}
@@ -273,11 +267,11 @@ namespace spk
 			return {};
 		}
 		return std::span<const std::uint32_t>(
-			reinterpret_cast<const std::uint32_t*>(bytes.data()),
+			reinterpret_cast<const std::uint32_t *>(bytes.data()),
 			bytes.size() / sizeof(std::uint32_t));
 	}
 
-	void LayoutBufferObject::activate(const spk::RenderContext& p_context) const
+	void LayoutBufferObject::activate(const spk::RenderContext &p_context) const
 	{
 		_vertexArray->activate(p_context);
 	}

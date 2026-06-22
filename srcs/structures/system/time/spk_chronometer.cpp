@@ -77,7 +77,7 @@ namespace spk
 		return TimeUtils::getTime() - _startTime;
 	}
 
-	const char* toString(Chronometer::State p_state) noexcept
+	const char *toString(Chronometer::State p_state) noexcept
 	{
 		switch (p_state)
 		{
@@ -94,7 +94,7 @@ namespace spk
 		return "UnknownState";
 	}
 
-	const wchar_t* toWstring(Chronometer::State p_state) noexcept
+	const wchar_t *toWstring(Chronometer::State p_state) noexcept
 	{
 		switch (p_state)
 		{
@@ -112,12 +112,12 @@ namespace spk
 	}
 }
 
-std::ostream& operator<<(std::ostream& p_os, spk::Chronometer::State p_state)
+std::ostream &operator<<(std::ostream &p_os, spk::Chronometer::State p_state)
 {
 	return (p_os << spk::toString(p_state));
 }
 
-std::wostream& operator<<(std::wostream& p_wos, spk::Chronometer::State p_state)
+std::wostream &operator<<(std::wostream &p_wos, spk::Chronometer::State p_state)
 {
 	return (p_wos << spk::toWstring(p_state));
 }

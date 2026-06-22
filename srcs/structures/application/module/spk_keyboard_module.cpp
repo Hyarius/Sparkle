@@ -6,7 +6,7 @@ namespace spk
 {
 	KeyboardModule::KeyboardModule() = default;
 
-	void KeyboardModule::_treatEvent(spk::KeyboardEventRecord& p_event)
+	void KeyboardModule::_treatEvent(spk::KeyboardEventRecord &p_event)
 	{
 		if (widget() == nullptr)
 		{
@@ -15,19 +15,15 @@ namespace spk
 
 		std::visit(
 			spk::Overloaded{
-				[this](spk::KeyPressedRecord& p_record)
-				{
+				[this](spk::KeyPressedRecord &p_record) {
 					_keyboard[p_record.key] = spk::InputState::Down;
 				},
-				[this](spk::KeyReleasedRecord& p_record)
-				{
+				[this](spk::KeyReleasedRecord &p_record) {
 					_keyboard[p_record.key] = spk::InputState::Up;
 				},
-				[this](spk::TextInputRecord& p_record)
-				{
+				[this](spk::TextInputRecord &p_record) {
 					_keyboard.glyph = p_record.glyph;
-				}
-			},
+				}},
 			p_event);
 
 		widget()->dispatchKeyboardEvent(p_event, _keyboard);
@@ -48,12 +44,12 @@ namespace spk
 		}
 	}
 
-	spk::Keyboard& KeyboardModule::keyboard()
+	spk::Keyboard &KeyboardModule::keyboard()
 	{
 		return _keyboard;
 	}
 
-	const spk::Keyboard& KeyboardModule::keyboard() const
+	const spk::Keyboard &KeyboardModule::keyboard() const
 	{
 		return _keyboard;
 	}

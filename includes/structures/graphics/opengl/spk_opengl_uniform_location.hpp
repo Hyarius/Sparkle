@@ -11,7 +11,7 @@ namespace spk::OpenGL
 	class UniformLocation : public spk::OpenGL::Object
 	{
 	public:
-		GLint location  = -1;
-		bool  validated = false;
+		GLint location = -1;
+		bool validated = false;
 	};
 }

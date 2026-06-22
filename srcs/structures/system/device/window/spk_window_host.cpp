@@ -35,7 +35,7 @@ namespace spk
 		}
 	}
 
-	void WindowHost::_bindOrValidatePlatformThread(const char* p_operation) const
+	void WindowHost::_bindOrValidatePlatformThread(const char *p_operation) const
 	{
 		if (std::this_thread::get_id() != _platformThreadID)
 		{
@@ -45,7 +45,7 @@ namespace spk
 		}
 	}
 
-	void WindowHost::_bindOrValidateRenderThreadLocked(const char* p_operation)
+	void WindowHost::_bindOrValidateRenderThreadLocked(const char *p_operation)
 	{
 		const std::thread::id currentThreadID = std::this_thread::get_id();
 		if (_renderThreadID.has_value() == false)
@@ -62,7 +62,7 @@ namespace spk
 		}
 	}
 
-	void WindowHost::_validateRenderThreadLocked(const char* p_operation) const
+	void WindowHost::_validateRenderThreadLocked(const char *p_operation) const
 	{
 		if (_renderThreadID.has_value() == false || _renderThreadID.value() != std::this_thread::get_id())
 		{
@@ -113,7 +113,7 @@ namespace spk
 		return (_renderThreadID.has_value() == true && _renderThreadID.value() == std::this_thread::get_id());
 	}
 
-	void WindowHost::resize(const spk::Rect2D& p_rect)
+	void WindowHost::resize(const spk::Rect2D &p_rect)
 	{
 		_bindOrValidatePlatformThread(__FUNCTION__);
 
@@ -125,7 +125,7 @@ namespace spk
 		_frame->resize(p_rect);
 	}
 
-	void WindowHost::notifyFrameResized(const spk::Rect2D& p_rect)
+	void WindowHost::notifyFrameResized(const spk::Rect2D &p_rect)
 	{
 		std::scoped_lock lock(_renderThreadMutex);
 
@@ -138,7 +138,7 @@ namespace spk
 		_renderContext->notifyResize(p_rect);
 	}
 
-	void WindowHost::setTitle(const std::string& p_title)
+	void WindowHost::setTitle(const std::string &p_title)
 	{
 		_bindOrValidatePlatformThread(__FUNCTION__);
 
@@ -150,7 +150,7 @@ namespace spk
 		_frame->setTitle(p_title);
 	}
 
-	void WindowHost::setCursor(const std::string& p_name)
+	void WindowHost::setCursor(const std::string &p_name)
 	{
 		_bindOrValidatePlatformThread(__FUNCTION__);
 
@@ -252,7 +252,7 @@ namespace spk
 		return true;
 	}
 
-	RenderContext& WindowHost::renderContext()
+	RenderContext &WindowHost::renderContext()
 	{
 		std::scoped_lock lock(_renderThreadMutex);
 		if (_ensureRenderContextLocked() == false || _renderContext == nullptr || _renderContext->isValid() == false)

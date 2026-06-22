@@ -12,7 +12,7 @@ namespace spk
 {
 	namespace
 	{
-		std::shared_ptr<spk::RenderUnit> _createRenderPassPreparationUnit(const spk::Viewport& p_viewport)
+		std::shared_ptr<spk::RenderUnit> _createRenderPassPreparationUnit(const spk::Viewport &p_viewport)
 		{
 			spk::RenderUnitBuilder builder;
 			builder.emplace<spk::ViewportCommand>(p_viewport);
@@ -21,7 +21,7 @@ namespace spk
 		}
 	}
 
-	void WindowSnapshotManager::rebuild(const spk::Widget& p_rootWidget, spk::RenderModule& p_renderModule)
+	void WindowSnapshotManager::rebuild(const spk::Widget &p_rootWidget, spk::RenderModule &p_renderModule)
 	{
 		spk::RenderSnapshotBuilder builder;
 		builder.append(_createRenderPassPreparationUnit(p_rootWidget.viewport()));

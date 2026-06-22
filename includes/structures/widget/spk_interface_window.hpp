@@ -16,7 +16,7 @@ namespace spk
 	class IInterfaceWindow : public spk::ScalableWidget
 	{
 	public:
-		using ResizeContractProvider = spk::ContractProvider<const spk::Vector2UInt&>;
+		using ResizeContractProvider = spk::ContractProvider<const spk::Vector2UInt &>;
 		using ResizeContract = ResizeContractProvider::Contract;
 		using ResizeCallback = ResizeContractProvider::Callback;
 		using EventContract = spk::ContractProvider<>::Contract;
@@ -29,7 +29,7 @@ namespace spk
 			std::uint32_t right = 0;
 			std::uint32_t bottom = 0;
 
-			[[nodiscard]] bool operator==(const ContentPadding&) const noexcept = default;
+			[[nodiscard]] bool operator==(const ContentPadding &) const noexcept = default;
 		};
 
 		enum class Event
@@ -68,23 +68,23 @@ namespace spk
 			void _deactivateMenuButton(Button p_button);
 
 		public:
-			MenuBar(const std::string& p_name, spk::Widget* p_parent);
+			MenuBar(const std::string &p_name, spk::Widget *p_parent);
 
-			[[nodiscard]] spk::TextLabel& titleLabel();
-			[[nodiscard]] const spk::TextLabel& titleLabel() const;
-			[[nodiscard]] spk::PushButton& minimizeButton();
-			[[nodiscard]] const spk::PushButton& minimizeButton() const;
-			[[nodiscard]] spk::PushButton& maximizeButton();
-			[[nodiscard]] const spk::PushButton& maximizeButton() const;
-			[[nodiscard]] spk::PushButton& closeButton();
-			[[nodiscard]] const spk::PushButton& closeButton() const;
+			[[nodiscard]] spk::TextLabel &titleLabel();
+			[[nodiscard]] const spk::TextLabel &titleLabel() const;
+			[[nodiscard]] spk::PushButton &minimizeButton();
+			[[nodiscard]] const spk::PushButton &minimizeButton() const;
+			[[nodiscard]] spk::PushButton &maximizeButton();
+			[[nodiscard]] const spk::PushButton &maximizeButton() const;
+			[[nodiscard]] spk::PushButton &closeButton();
+			[[nodiscard]] const spk::PushButton &closeButton() const;
 		};
 
 	private:
 		spk::Panel _backgroundFrame;
 		spk::Panel _minimizedBackgroundFrame;
 		MenuBar _menuBar;
-		spk::Widget* _content = nullptr;
+		spk::Widget *_content = nullptr;
 		std::optional<ContentPadding> _contentPadding;
 
 		unsigned int _menuHeight = 20;
@@ -106,31 +106,31 @@ namespace spk
 		[[nodiscard]] ContentPadding _effectiveContentPadding() const;
 
 		void _onGeometryChange() override;
-		void _onMouseMovedEvent(spk::MouseMovedEvent& p_event) override;
-		void _onMouseButtonPressedEvent(spk::MouseButtonPressedEvent& p_event) override;
-		void _onMouseButtonReleasedEvent(spk::MouseButtonReleasedEvent& p_event) override;
+		void _onMouseMovedEvent(spk::MouseMovedEvent &p_event) override;
+		void _onMouseButtonPressedEvent(spk::MouseButtonPressedEvent &p_event) override;
+		void _onMouseButtonReleasedEvent(spk::MouseButtonReleasedEvent &p_event) override;
 
 	public:
-		explicit IInterfaceWindow(const std::string& p_name, spk::Widget* p_parent = nullptr);
+		explicit IInterfaceWindow(const std::string &p_name, spk::Widget *p_parent = nullptr);
 
 		ResizeContract subscribeOnResize(ResizeCallback p_callback);
 		EventContract subscribeTo(Event p_event, EventCallback p_callback);
 
-		[[nodiscard]] MenuBar& menuBar();
-		[[nodiscard]] const MenuBar& menuBar() const;
-		[[nodiscard]] spk::Panel& backgroundFrame();
-		[[nodiscard]] const spk::Panel& backgroundFrame() const;
-		[[nodiscard]] spk::Panel& minimizedBackgroundFrame();
-		[[nodiscard]] const spk::Panel& minimizedBackgroundFrame() const;
+		[[nodiscard]] MenuBar &menuBar();
+		[[nodiscard]] const MenuBar &menuBar() const;
+		[[nodiscard]] spk::Panel &backgroundFrame();
+		[[nodiscard]] const spk::Panel &backgroundFrame() const;
+		[[nodiscard]] spk::Panel &minimizedBackgroundFrame();
+		[[nodiscard]] const spk::Panel &minimizedBackgroundFrame() const;
 
-		void setContent(spk::Widget* p_content);
-		[[nodiscard]] spk::Widget* content();
-		[[nodiscard]] const spk::Widget* content() const;
+		void setContent(spk::Widget *p_content);
+		[[nodiscard]] spk::Widget *content();
+		[[nodiscard]] const spk::Widget *content() const;
 
 		void setTitle(std::string_view p_title);
-		void setContentPadding(const ContentPadding& p_padding);
+		void setContentPadding(const ContentPadding &p_padding);
 		void resetContentPadding();
-		void setMinimumContentSize(const spk::Vector2UInt& p_minimumContentSize);
+		void setMinimumContentSize(const spk::Vector2UInt &p_minimumContentSize);
 		void setMenuHeight(unsigned int p_menuHeight);
 		[[nodiscard]] ContentPadding contentPadding() const;
 		[[nodiscard]] unsigned int menuHeight() const;
@@ -158,7 +158,7 @@ namespace spk
 		using spk::IInterfaceWindow::setContent;
 
 	public:
-		explicit InterfaceWindow(const std::string& p_name, spk::Widget* p_parent = nullptr) :
+		explicit InterfaceWindow(const std::string &p_name, spk::Widget *p_parent = nullptr) :
 			spk::IInterfaceWindow(p_name, p_parent),
 			_contentObject(p_name + "::content", &backgroundFrame())
 		{
@@ -166,12 +166,12 @@ namespace spk
 			_contentObject.activate();
 		}
 
-		[[nodiscard]] TContentType& contentObject()
+		[[nodiscard]] TContentType &contentObject()
 		{
 			return _contentObject;
 		}
 
-		[[nodiscard]] const TContentType& contentObject() const
+		[[nodiscard]] const TContentType &contentObject() const
 		{
 			return _contentObject;
 		}

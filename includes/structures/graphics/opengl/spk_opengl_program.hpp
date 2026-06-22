@@ -5,8 +5,8 @@
 
 #include <GL/glew.h>
 
-#include "structures/graphics/spk_primitive.hpp"
 #include "structures/graphics/opengl/spk_opengl_object.hpp"
+#include "structures/graphics/spk_primitive.hpp"
 
 namespace spk
 {
@@ -17,16 +17,16 @@ namespace spk
 		private:
 			GLuint _id = 0;
 
-			static GLuint _compileShader(GLenum p_type, const std::string& p_source);
+			static GLuint _compileShader(GLenum p_type, const std::string &p_source);
 
 		public:
-			Program(const std::string& p_vertexShaderSource, const std::string& p_fragmentShaderSource);
+			Program(const std::string &p_vertexShaderSource, const std::string &p_fragmentShaderSource);
 			~Program();
 
-			Program(const Program&) = delete;
-			Program& operator=(const Program&) = delete;
-			Program(Program&&) noexcept = delete;
-			Program& operator=(Program&&) noexcept = delete;
+			Program(const Program &) = delete;
+			Program &operator=(const Program &) = delete;
+			Program(Program &&) noexcept = delete;
+			Program &operator=(Program &&) noexcept = delete;
 
 			[[nodiscard]] GLuint id() const noexcept;
 

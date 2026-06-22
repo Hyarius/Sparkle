@@ -12,13 +12,13 @@
 
 namespace spk
 {
-	std::deque<Texture::ID>& Texture::_availableIDs()
+	std::deque<Texture::ID> &Texture::_availableIDs()
 	{
 		static std::deque<ID> ids;
 		return ids;
 	}
 
-	Texture::ID& Texture::_nextID()
+	Texture::ID &Texture::_nextID()
 	{
 		static ID next = 0;
 		return next;
@@ -26,7 +26,7 @@ namespace spk
 
 	Texture::ID Texture::_takeId()
 	{
-		auto& available = _availableIDs();
+		auto &available = _availableIDs();
 		if (available.empty() == false)
 		{
 			ID result = available.back();
@@ -53,7 +53,7 @@ namespace spk
 	{
 	}
 
-	Texture::SharedState::SharedState(const SharedState& p_other) :
+	Texture::SharedState::SharedState(const SharedState &p_other) :
 		id(Texture::_takeId())
 	{
 		std::shared_ptr<Resource> copiedResource;
@@ -114,7 +114,7 @@ namespace spk
 		return _state->resource != nullptr ? _state->resource : std::make_shared<Resource>();
 	}
 
-	const Texture::Resource& Texture::_resourceData() const
+	const Texture::Resource &Texture::_resourceData() const
 	{
 		static const Resource emptyResource;
 
@@ -127,7 +127,7 @@ namespace spk
 		return _state->resource != nullptr ? *_state->resource : emptyResource;
 	}
 
-	void Texture::_publishResource(const std::shared_ptr<Resource>& p_resource)
+	void Texture::_publishResource(const std::shared_ptr<Resource> &p_resource)
 	{
 		if (p_resource == nullptr)
 		{
@@ -148,14 +148,14 @@ namespace spk
 
 	void Texture::_synchronize() const
 	{
-		spk::RenderContext* ctx = spk::RenderContext::current();
+		spk::RenderContext *ctx = spk::RenderContext::current();
 		if (ctx != nullptr && ctx->supportsOpenGLCommands() == true)
 		{
 			(void)gpu(*ctx);
 		}
 	}
 
-	spk::OpenGL::Texture& Texture::gpu(const spk::RenderContext& p_context) const
+	spk::OpenGL::Texture &Texture::gpu(const spk::RenderContext &p_context) const
 	{
 		if (_state == nullptr)
 		{
@@ -165,20 +165,19 @@ namespace spk
 		return _state->gpu.resolve(
 			p_context,
 			version(),
-			[this]()
-			{
+			[this]() {
 				return std::make_unique<spk::OpenGL::Texture>(*this);
 			});
 	}
 
-	bool Texture::hasGpu(const spk::RenderContext& p_context) const noexcept
+	bool Texture::hasGpu(const spk::RenderContext &p_context) const noexcept
 	{
 		if (_state == nullptr)
 		{
 			return false;
 		}
 
-		const spk::OpenGL::Texture* object = _state->gpu.find(p_context);
+		const spk::OpenGL::Texture *object = _state->gpu.find(p_context);
 		return object != nullptr && object->version() == version();
 	}
 
@@ -196,12 +195,12 @@ namespace spk
 	{
 	}
 
-	bool Texture::Section::operator==(const Section& p_other) const noexcept
+	bool Texture::Section::operator==(const Section &p_other) const noexcept
 	{
 		return anchor == p_other.anchor && size == p_other.size;
 	}
 
-	bool Texture::Section::operator!=(const Section& p_other) const noexcept
+	bool Texture::Section::operator!=(const Section &p_other) const noexcept
 	{
 		return (*this == p_other) == false;
 	}
@@ -211,12 +210,12 @@ namespace spk
 	{
 	}
 
-	Texture::Texture(const Texture& p_other) :
+	Texture::Texture(const Texture &p_other) :
 		_state(p_other._state)
 	{
 	}
 
-	Texture& Texture::operator=(const Texture& p_other)
+	Texture &Texture::operator=(const Texture &p_other)
 	{
 		if (this != &p_other)
 		{
@@ -226,13 +225,13 @@ namespace spk
 		return *this;
 	}
 
-	Texture::Texture(Texture&& p_other) noexcept :
+	Texture::Texture(Texture &&p_other) noexcept :
 		SynchronizableTrait(std::move(p_other)),
 		_state(std::move(p_other._state))
 	{
 	}
 
-	Texture& Texture::operator=(Texture&& p_other) noexcept
+	Texture &Texture::operator=(Texture &&p_other) noexcept
 	{
 		if (this != &p_other)
 		{
@@ -262,8 +261,8 @@ namespace spk
 	}
 
 	void Texture::setPixels(
-		const std::vector<std::uint8_t>& p_data,
-		const spk::Vector2UInt& p_size,
+		const std::vector<std::uint8_t> &p_data,
+		const spk::Vector2UInt &p_size,
 		Format p_format,
 		Filtering p_filtering,
 		Wrap p_wrap,
@@ -281,8 +280,8 @@ namespace spk
 	}
 
 	void Texture::setPixels(
-		const std::vector<std::uint8_t>& p_data,
-		const spk::Vector2UInt& p_size,
+		const std::vector<std::uint8_t> &p_data,
+		const spk::Vector2UInt &p_size,
 		Format p_format)
 	{
 		std::shared_ptr<const Resource> currentResource = _resourceSnapshot();
@@ -299,8 +298,8 @@ namespace spk
 	}
 
 	void Texture::setPixels(
-		const std::uint8_t* p_data,
-		const spk::Vector2UInt& p_size,
+		const std::uint8_t *p_data,
+		const spk::Vector2UInt &p_size,
 		Format p_format,
 		Filtering p_filtering,
 		Wrap p_wrap,
@@ -327,8 +326,8 @@ namespace spk
 	}
 
 	void Texture::setPixels(
-		const std::uint8_t* p_data,
-		const spk::Vector2UInt& p_size,
+		const std::uint8_t *p_data,
+		const spk::Vector2UInt &p_size,
 		Format p_format)
 	{
 		std::shared_ptr<const Resource> currentResource = _resourceSnapshot();
@@ -382,12 +381,12 @@ namespace spk
 		return _state->id;
 	}
 
-	const std::vector<std::uint8_t>& Texture::pixels() const
+	const std::vector<std::uint8_t> &Texture::pixels() const
 	{
 		return _resourceData().pixels;
 	}
 
-	const spk::Vector2UInt& Texture::size() const
+	const spk::Vector2UInt &Texture::size() const
 	{
 		return _resourceData().size;
 	}
@@ -412,7 +411,7 @@ namespace spk
 		return _resourceData().mipmap;
 	}
 
-	void Texture::saveAsPng(const std::filesystem::path& p_path) const
+	void Texture::saveAsPng(const std::filesystem::path &p_path) const
 	{
 		std::shared_ptr<const Resource> resource = _resourceSnapshot();
 

@@ -95,12 +95,11 @@ namespace spk
 
 	void Window::_treatProcessedFrameEvent(spk::FrameEventRecord &p_event, bool p_isConsumed)
 	{
-		if (const auto* event = spk::getIf<spk::WindowCloseRequestedRecord>(p_event); event != nullptr)
+		if (const auto *event = spk::getIf<spk::WindowCloseRequestedRecord>(p_event); event != nullptr)
 		{
 			if (p_isConsumed == false)
 			{
-				_enqueuePlatformAction(PlatformAction{
-					.type = PlatformActionType::ValidateClosure});
+				_enqueuePlatformAction(PlatformAction{.type = PlatformActionType::ValidateClosure});
 			}
 			else
 			{
@@ -111,9 +110,7 @@ namespace spk
 
 		if (const auto *event = spk::getIf<spk::WindowResizedRecord>(p_event); event != nullptr)
 		{
-			_enqueueRenderAction(RenderAction{
-				.type = RenderActionType::NotifyResize,
-				.rect = event->rect});
+			_enqueueRenderAction(RenderAction{.type = RenderActionType::NotifyResize, .rect = event->rect});
 		}
 
 		if (spk::holds<spk::WindowDestroyedRecord>(p_event))
@@ -185,8 +182,7 @@ namespace spk
 	void Window::_processPendingFrameEvents()
 	{
 		_frameModule.processEvents(
-			[this](spk::FrameEventRecord& p_event, bool p_isConsumed) -> bool
-			{
+			[this](spk::FrameEventRecord &p_event, bool p_isConsumed) -> bool {
 				if (_isClosed.load() == true)
 				{
 					return false;
@@ -205,9 +201,7 @@ namespace spk
 		if (requestedShape != _appliedCursorShape)
 		{
 			_appliedCursorShape = requestedShape;
-			_enqueuePlatformAction(PlatformAction{
-				.type = PlatformActionType::SetCursor,
-				.cursorShape = requestedShape});
+			_enqueuePlatformAction(PlatformAction{.type = PlatformActionType::SetCursor, .cursorShape = requestedShape});
 		}
 	}
 
@@ -270,20 +264,17 @@ namespace spk
 		_updateModule.bindInputs(&_mouseModule.mouse(), &_keyboardModule.keyboard());
 
 		_frameEventQueueContract = _host.subscribeToFrameEvents(
-			[this](const spk::FrameEventRecord &p_event)
-			{
+			[this](const spk::FrameEventRecord &p_event) {
 				_enqueueFrameEvent(p_event);
 			});
 
 		_mouseEventQueueContract = _host.subscribeToMouseEvents(
-			[this](const spk::MouseEventRecord &p_event)
-			{
+			[this](const spk::MouseEventRecord &p_event) {
 				_enqueueMouseEvent(p_event);
 			});
 
 		_keyboardEventQueueContract = _host.subscribeToKeyboardEvents(
-			[this](const spk::KeyboardEventRecord &p_event)
-			{
+			[this](const spk::KeyboardEventRecord &p_event) {
 				_enqueueKeyboardEvent(p_event);
 			});
 
@@ -351,21 +342,17 @@ namespace spk
 			return;
 		}
 
-		_enqueuePlatformAction(PlatformAction{
-			.type = PlatformActionType::SetTitle,
-			.title = std::move(p_title)});
+		_enqueuePlatformAction(PlatformAction{.type = PlatformActionType::SetTitle, .title = std::move(p_title)});
 	}
 
-	void Window::_resize(const spk::Rect2D& p_rect)
+	void Window::_resize(const spk::Rect2D &p_rect)
 	{
 		if (_isClosed.load() == true)
 		{
 			return;
 		}
 
-		_enqueuePlatformAction(PlatformAction{
-			.type = PlatformActionType::ResizeFrame,
-			.rect = p_rect});
+		_enqueuePlatformAction(PlatformAction{.type = PlatformActionType::ResizeFrame, .rect = p_rect});
 	}
 
 	void Window::_setVSync(bool p_enabled)
@@ -375,12 +362,10 @@ namespace spk
 			return;
 		}
 
-		_enqueueRenderAction(RenderAction{
-			.type = RenderActionType::SetVSync,
-			.vSyncEnabled = p_enabled});
+		_enqueueRenderAction(RenderAction{.type = RenderActionType::SetVSync, .vSyncEnabled = p_enabled});
 	}
 
-	spk::Widget& Window::_centralWidget()
+	spk::Widget &Window::_centralWidget()
 	{
 		return _rootWidget;
 	}
@@ -451,8 +436,7 @@ namespace spk
 			return;
 		}
 
-		_enqueuePlatformAction(PlatformAction{
-			.type = PlatformActionType::RequestClosure});
+		_enqueuePlatformAction(PlatformAction{.type = PlatformActionType::RequestClosure});
 	}
 
 	bool Window::isClosed() const

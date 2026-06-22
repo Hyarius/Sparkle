@@ -30,9 +30,9 @@ namespace spk
 			std::string_view p_name,
 			std::shared_ptr<spk::ShaderStorageBufferObject> p_buffer);
 
-		static spk::UniformBufferObject& getUBO(std::string_view p_name);
+		static spk::UniformBufferObject &getUBO(std::string_view p_name);
 
-		static spk::ShaderStorageBufferObject& getSSBO(std::string_view p_name);
+		static spk::ShaderStorageBufferObject &getSSBO(std::string_view p_name);
 
 		[[nodiscard]] static bool contains(std::string_view p_name);
 

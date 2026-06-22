@@ -7,16 +7,16 @@
 
 namespace spk
 {
-	AnimationLabel::AnimationLabel(const std::string& p_name, spk::Widget* p_parent) :
+	AnimationLabel::AnimationLabel(const std::string &p_name, spk::Widget *p_parent) :
 		spk::Widget(p_name, p_parent)
 	{
 		activate();
 	}
 
 	AnimationLabel::AnimationLabel(
-		const std::string& p_name,
+		const std::string &p_name,
 		std::shared_ptr<spk::SpriteSheet> p_spriteSheet,
-		spk::Widget* p_parent) :
+		spk::Widget *p_parent) :
 		spk::Widget(p_name, p_parent)
 	{
 		setSpriteSheet(std::move(p_spriteSheet));
@@ -33,8 +33,7 @@ namespace spk
 		{
 			const spk::Vector2UInt spriteCoordinates = {
 				static_cast<unsigned int>(_currentSprite % _spriteSheet->nbSprite().x),
-				static_cast<unsigned int>(_currentSprite / _spriteSheet->nbSprite().x)
-			};
+				static_cast<unsigned int>(_currentSprite / _spriteSheet->nbSprite().x)};
 
 			builder.emplace<spk::SpriteRenderCommand>(
 				*_spriteSheet,
@@ -46,7 +45,7 @@ namespace spk
 		return builder.build();
 	}
 
-	void AnimationLabel::_onUpdate(const spk::UpdateTick& p_tick)
+	void AnimationLabel::_onUpdate(const spk::UpdateTick &p_tick)
 	{
 		(void)p_tick;
 
@@ -92,7 +91,7 @@ namespace spk
 		invalidateRenderUnit();
 	}
 
-	void AnimationLabel::setLoopSpeed(const spk::Duration& p_duration)
+	void AnimationLabel::setLoopSpeed(const spk::Duration &p_duration)
 	{
 		_timer = spk::Timer(p_duration);
 		_currentSprite = _rangeStart;
@@ -123,7 +122,7 @@ namespace spk
 		invalidateRenderUnit();
 	}
 
-	const std::shared_ptr<spk::SpriteSheet>& AnimationLabel::spriteSheet() const
+	const std::shared_ptr<spk::SpriteSheet> &AnimationLabel::spriteSheet() const
 	{
 		return _spriteSheet;
 	}

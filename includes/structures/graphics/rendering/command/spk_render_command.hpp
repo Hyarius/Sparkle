@@ -9,6 +9,6 @@ namespace spk
 	public:
 		virtual ~RenderCommand() = default;
 
-		virtual void execute(spk::RenderContext& p_renderContext) = 0;
+		virtual void execute(spk::RenderContext &p_renderContext) = 0;
 	};
 }

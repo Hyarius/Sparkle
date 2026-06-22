@@ -30,7 +30,7 @@ namespace spk
 		mutable std::uint64_t _prunedAtGeneration = 0;
 
 		template <typename TFactory>
-		std::unique_ptr<TGpuObject> _build(std::uint64_t p_version, std::uint64_t p_contentVersion, TFactory&& p_factory)
+		std::unique_ptr<TGpuObject> _build(std::uint64_t p_version, std::uint64_t p_contentVersion, TFactory &&p_factory)
 		{
 			std::unique_ptr<TGpuObject> object = p_factory();
 			object->_version = p_version;
@@ -46,10 +46,10 @@ namespace spk
 			release();
 		}
 
-		CachedOpenGLObjectCollection(const CachedOpenGLObjectCollection&) = delete;
-		CachedOpenGLObjectCollection& operator=(const CachedOpenGLObjectCollection&) = delete;
+		CachedOpenGLObjectCollection(const CachedOpenGLObjectCollection &) = delete;
+		CachedOpenGLObjectCollection &operator=(const CachedOpenGLObjectCollection &) = delete;
 
-		CachedOpenGLObjectCollection(CachedOpenGLObjectCollection&& p_other) noexcept :
+		CachedOpenGLObjectCollection(CachedOpenGLObjectCollection &&p_other) noexcept :
 			_entries(std::move(p_other._entries)),
 			_prunedAtGeneration(p_other._prunedAtGeneration)
 		{
@@ -57,7 +57,7 @@ namespace spk
 			p_other._prunedAtGeneration = 0;
 		}
 
-		CachedOpenGLObjectCollection& operator=(CachedOpenGLObjectCollection&& p_other) noexcept
+		CachedOpenGLObjectCollection &operator=(CachedOpenGLObjectCollection &&p_other) noexcept
 		{
 			if (this != &p_other)
 			{
@@ -74,12 +74,12 @@ namespace spk
 		// p_factory; a p_contentVersion mismatch alone updates in place through
 		// p_refresh (e.g. glBufferSubData). p_context must be current.
 		template <typename TFactory, typename TRefresh>
-		TGpuObject& resolve(
-			const spk::RenderContext& p_context,
+		TGpuObject &resolve(
+			const spk::RenderContext &p_context,
 			std::uint64_t p_version,
 			std::uint64_t p_contentVersion,
-			TFactory&& p_factory,
-			TRefresh&& p_refresh)
+			TFactory &&p_factory,
+			TRefresh &&p_refresh)
 		{
 			assert(spk::OpenGL::isContextCurrent(p_context) == true);
 
@@ -87,8 +87,8 @@ namespace spk
 
 			// Single-pass scan: if the entry for this context is clean, return
 			// immediately (hot path — no mutex, no second scan).
-			Entry* found = nullptr;
-			for (Entry& entry : _entries)
+			Entry *found = nullptr;
+			for (Entry &entry : _entries)
 			{
 				if (entry.contextId == contextId)
 				{
@@ -111,7 +111,7 @@ namespace spk
 				found = nullptr; // pointer may be invalidated by swap-and-pop below
 				for (std::size_t index = 0; index < _entries.size();)
 				{
-					Entry& entry = _entries[index];
+					Entry &entry = _entries[index];
 					if (entry.contextId != contextId && spk::OpenGL::isContextAlive(entry.contextId) == false)
 					{
 						entry = std::move(_entries.back());
@@ -125,7 +125,7 @@ namespace spk
 				_prunedAtGeneration = currentGeneration;
 
 				// Re-find after prune since swap-and-pop may have reorganised the vector.
-				for (Entry& entry : _entries)
+				for (Entry &entry : _entries)
 				{
 					if (entry.contextId == contextId)
 					{
@@ -150,9 +150,7 @@ namespace spk
 
 			if (found == nullptr)
 			{
-				_entries.push_back(Entry{
-					.contextId = contextId,
-					.object = _build(p_version, p_contentVersion, p_factory)});
+				_entries.push_back(Entry{.contextId = contextId, .object = _build(p_version, p_contentVersion, p_factory)});
 				found = &_entries.back();
 			}
 			else if (found->object->contentVersion() != p_contentVersion)
@@ -166,15 +164,16 @@ namespace spk
 
 		// Single-version resolution for create-once objects (programs, textures...).
 		template <typename TFactory>
-		TGpuObject& resolve(const spk::RenderContext& p_context, std::uint64_t p_version, TFactory&& p_factory)
+		TGpuObject &resolve(const spk::RenderContext &p_context, std::uint64_t p_version, TFactory &&p_factory)
 		{
-			return resolve(p_context, p_version, p_version, std::forward<TFactory>(p_factory), [](TGpuObject&) {});
+			return resolve(p_context, p_version, p_version, std::forward<TFactory>(p_factory), [](TGpuObject &) {
+			});
 		}
 
-		[[nodiscard]] TGpuObject* find(const spk::RenderContext& p_context) const noexcept
+		[[nodiscard]] TGpuObject *find(const spk::RenderContext &p_context) const noexcept
 		{
 			const std::uint64_t contextId = spk::OpenGL::contextIdOf(p_context);
-			for (const Entry& entry : _entries)
+			for (const Entry &entry : _entries)
 			{
 				if (entry.contextId == contextId)
 				{
@@ -186,7 +185,7 @@ namespace spk
 
 		void release()
 		{
-			for (Entry& entry : _entries)
+			for (Entry &entry : _entries)
 			{
 				spk::OpenGL::releaseObject(std::move(entry.object));
 			}

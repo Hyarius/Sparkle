@@ -9,9 +9,9 @@
 #include <GL/glew.h>
 
 #include "structures/container/spk_binary_field.hpp"
+#include "structures/design_pattern/spk_synchronizable_trait.hpp"
 #include "structures/graphics/opengl/spk_cached_opengl_object_collection.hpp"
 #include "structures/graphics/opengl/spk_opengl_buffer.hpp"
-#include "structures/design_pattern/spk_synchronizable_trait.hpp"
 
 namespace spk
 {
@@ -55,7 +55,7 @@ namespace spk
 		spk::BinaryField _field;
 
 		std::uint64_t _structureVersion = 1; // target / usage
-		std::uint64_t _contentVersion = 1;   // bytes / size
+		std::uint64_t _contentVersion = 1;	 // bytes / size
 
 		mutable spk::CachedOpenGLObjectCollection<spk::OpenGL::Buffer> _gpu;
 
@@ -70,10 +70,10 @@ namespace spk
 			std::size_t p_size = 0);
 		~BufferObject() = default;
 
-		BufferObject(const BufferObject&) = delete;
-		BufferObject& operator=(const BufferObject&) = delete;
-		BufferObject(BufferObject&&) noexcept = delete;
-		BufferObject& operator=(BufferObject&&) noexcept = delete;
+		BufferObject(const BufferObject &) = delete;
+		BufferObject &operator=(const BufferObject &) = delete;
+		BufferObject(BufferObject &&) noexcept = delete;
+		BufferObject &operator=(BufferObject &&) noexcept = delete;
 
 		[[nodiscard]] Target target() const noexcept;
 		[[nodiscard]] Usage usage() const noexcept;
@@ -84,26 +84,26 @@ namespace spk
 
 		// Resolves (uploading if needed) this buffer's GPU copy for p_context.
 		// p_context must be the current context.
-		[[nodiscard]] spk::OpenGL::Buffer& gpu(const spk::RenderContext& p_context) const;
-		[[nodiscard]] bool hasGpu(const spk::RenderContext& p_context) const noexcept;
+		[[nodiscard]] spk::OpenGL::Buffer &gpu(const spk::RenderContext &p_context) const;
+		[[nodiscard]] bool hasGpu(const spk::RenderContext &p_context) const noexcept;
 
 		void resize(std::size_t p_size);
 		void reserve(std::size_t p_size);
 		void clear();
-		void edit(const void* p_data, std::size_t p_size, std::size_t p_offset = 0);
-		void append(const void* p_data, std::size_t p_size);
+		void edit(const void *p_data, std::size_t p_size, std::size_t p_offset = 0);
+		void append(const void *p_data, std::size_t p_size);
 
-		[[nodiscard]] std::uint8_t* data();
-		[[nodiscard]] const std::uint8_t* data() const;
+		[[nodiscard]] std::uint8_t *data();
+		[[nodiscard]] const std::uint8_t *data() const;
 		[[nodiscard]] std::span<std::uint8_t> bytes();
 		[[nodiscard]] std::span<const std::uint8_t> bytes() const;
-		[[nodiscard]] spk::BinaryField& field();
-		[[nodiscard]] const spk::BinaryField& field() const;
+		[[nodiscard]] spk::BinaryField &field();
+		[[nodiscard]] const spk::BinaryField &field() const;
 		[[nodiscard]] bool empty() const;
 
-		virtual void activate(const spk::RenderContext& p_context) const;
+		virtual void activate(const spk::RenderContext &p_context) const;
 		virtual void deactivate() const;
-		void activateBase(const spk::RenderContext& p_context, GLuint p_bindingPoint) const;
-		void activateRange(const spk::RenderContext& p_context, GLuint p_bindingPoint, GLintptr p_offset, GLsizeiptr p_size) const;
+		void activateBase(const spk::RenderContext &p_context, GLuint p_bindingPoint) const;
+		void activateRange(const spk::RenderContext &p_context, GLuint p_bindingPoint, GLintptr p_offset, GLsizeiptr p_size) const;
 	};
 }

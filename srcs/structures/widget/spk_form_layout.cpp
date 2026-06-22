@@ -7,12 +7,12 @@
 
 namespace
 {
-	[[nodiscard]] bool hasRenderable(const spk::FormLayout::Element* p_element)
+	[[nodiscard]] bool hasRenderable(const spk::FormLayout::Element *p_element)
 	{
 		return (p_element != nullptr) && (p_element->widget() != nullptr || p_element->layout() != nullptr);
 	}
 
-	[[nodiscard]] uint32_t heightForPolicy(const spk::FormLayout::Element* p_element)
+	[[nodiscard]] uint32_t heightForPolicy(const spk::FormLayout::Element *p_element)
 	{
 		switch (p_element->sizePolicy())
 		{
@@ -29,7 +29,7 @@ namespace
 		return 0;
 	}
 
-	void accumulateColumn(const spk::FormLayout::Element* p_element, uint32_t& p_columnWidth, bool& p_columnExpandable)
+	void accumulateColumn(const spk::FormLayout::Element *p_element, uint32_t &p_columnWidth, bool &p_columnExpandable)
 	{
 		if (hasRenderable(p_element) == false)
 		{
@@ -55,7 +55,7 @@ namespace
 		}
 	}
 
-	[[nodiscard]] bool elementVerticallyExpandable(const spk::FormLayout::Element* p_element)
+	[[nodiscard]] bool elementVerticallyExpandable(const spk::FormLayout::Element *p_element)
 	{
 		if (p_element == nullptr)
 		{
@@ -75,7 +75,7 @@ namespace
 		std::vector<bool> rowExpandable;
 	};
 
-	[[nodiscard]] ScanResult scanRowsAndColumns(spk::FormLayout& p_layout, size_t p_rowCount)
+	[[nodiscard]] ScanResult scanRowsAndColumns(spk::FormLayout &p_layout, size_t p_rowCount)
 	{
 		ScanResult result;
 		result.rowHeights.resize(p_rowCount, 0);
@@ -83,8 +83,8 @@ namespace
 
 		for (size_t row = 0; row < p_rowCount; ++row)
 		{
-			auto* label = p_layout.elements()[2 * row].get();
-			auto* field = p_layout.elements()[2 * row + 1].get();
+			auto *label = p_layout.elements()[2 * row].get();
+			auto *field = p_layout.elements()[2 * row + 1].get();
 			const bool labelRenderable = hasRenderable(label);
 			const bool fieldRenderable = hasRenderable(field);
 
@@ -118,7 +118,7 @@ namespace
 		return result;
 	}
 
-	void ensureSomethingExpands(bool& p_labelExpandable, bool& p_fieldExpandable)
+	void ensureSomethingExpands(bool &p_labelExpandable, bool &p_fieldExpandable)
 	{
 		if (p_labelExpandable == false && p_fieldExpandable == false)
 		{
@@ -127,9 +127,11 @@ namespace
 		}
 	}
 
-	void ensureSomeRowsExpand(std::vector<bool>& p_rowExpandable)
+	void ensureSomeRowsExpand(std::vector<bool> &p_rowExpandable)
 	{
-		const bool any = std::any_of(p_rowExpandable.begin(), p_rowExpandable.end(), [](bool p_value) { return p_value; });
+		const bool any = std::any_of(p_rowExpandable.begin(), p_rowExpandable.end(), [](bool p_value) {
+			return p_value;
+		});
 		if (any == false)
 		{
 			std::fill(p_rowExpandable.begin(), p_rowExpandable.end(), true);
@@ -140,8 +142,8 @@ namespace
 		uint32_t p_extraWidth,
 		bool p_labelExpandable,
 		bool p_fieldExpandable,
-		uint32_t& p_labelWidth,
-		uint32_t& p_fieldWidth)
+		uint32_t &p_labelWidth,
+		uint32_t &p_fieldWidth)
 	{
 		const uint32_t expandables = static_cast<uint32_t>(p_labelExpandable) + static_cast<uint32_t>(p_fieldExpandable);
 		if (expandables == 0U || p_extraWidth == 0U)
@@ -162,7 +164,7 @@ namespace
 		}
 	}
 
-	void distributeExtraHeight(uint32_t p_extraHeight, const std::vector<bool>& p_rowExpandable, std::vector<int>& p_rowHeights)
+	void distributeExtraHeight(uint32_t p_extraHeight, const std::vector<bool> &p_rowExpandable, std::vector<int> &p_rowHeights)
 	{
 		if (p_extraHeight == 0U)
 		{
@@ -188,11 +190,11 @@ namespace
 	}
 
 	void placeAllCells(
-		spk::FormLayout& p_layout,
-		const spk::Rect2D& p_geometry,
+		spk::FormLayout &p_layout,
+		const spk::Rect2D &p_geometry,
 		uint32_t p_labelWidth,
 		uint32_t p_fieldWidth,
-		const std::vector<int>& p_rowHeights)
+		const std::vector<int> &p_rowHeights)
 	{
 		int y = p_geometry.anchor.y;
 		const uint32_t paddingX = p_layout.elementPadding().x;
@@ -202,17 +204,15 @@ namespace
 		{
 			const uint32_t height = static_cast<uint32_t>(p_rowHeights[row]);
 
-			auto* label = p_layout.elements()[2 * row].get();
-			auto* field = p_layout.elements()[2 * row + 1].get();
+			auto *label = p_layout.elements()[2 * row].get();
+			auto *field = p_layout.elements()[2 * row + 1].get();
 			const bool labelRenderable = hasRenderable(label);
 			const bool fieldRenderable = hasRenderable(field);
 
 			if (labelRenderable == true && fieldRenderable == true)
 			{
 				label->setGeometry(spk::Rect2D({p_geometry.anchor.x, y}, {p_labelWidth, height}));
-				field->setGeometry(spk::Rect2D(
-					{p_geometry.anchor.x + static_cast<int>(p_labelWidth + paddingX), y},
-					{p_fieldWidth, height}));
+				field->setGeometry(spk::Rect2D({p_geometry.anchor.x + static_cast<int>(p_labelWidth + paddingX), y}, {p_fieldWidth, height}));
 			}
 			else if (labelRenderable == true)
 			{
@@ -241,15 +241,15 @@ namespace spk
 	}
 
 	FormLayout::FormElement FormLayout::addRow(
-		spk::Widget* p_labelWidget,
-		spk::Widget* p_fieldWidget,
+		spk::Widget *p_labelWidget,
+		spk::Widget *p_fieldWidget,
 		SizePolicy p_labelPolicy,
 		SizePolicy p_fieldPolicy)
 	{
 		return FormElement{addWidget(p_labelWidget, p_labelPolicy), addWidget(p_fieldWidget, p_fieldPolicy)};
 	}
 
-	void FormLayout::removeRow(const FormElement& p_row)
+	void FormLayout::removeRow(const FormElement &p_row)
 	{
 		removeElement(p_row.labelElement);
 		removeElement(p_row.fieldElement);
@@ -260,7 +260,7 @@ namespace spk
 		return _elements.size() / 2;
 	}
 
-	void FormLayout::setGeometry(const spk::Rect2D& p_geometry)
+	void FormLayout::setGeometry(const spk::Rect2D &p_geometry)
 	{
 		const size_t rowCount = nbRow();
 		if (rowCount == 0U)
@@ -302,19 +302,17 @@ namespace spk
 		uint32_t fieldColumnWidth = 0U;
 		std::vector<uint32_t> rowHeights(rowCountValue, 0U);
 
-		const auto elementMinWidth = [](Element* p_element) -> uint32_t
-		{
+		const auto elementMinWidth = [](Element *p_element) -> uint32_t {
 			return (hasRenderable(p_element) ? p_element->minimalSize().x : 0U);
 		};
-		const auto elementMinHeight = [](Element* p_element) -> uint32_t
-		{
+		const auto elementMinHeight = [](Element *p_element) -> uint32_t {
 			return (hasRenderable(p_element) ? p_element->minimalSize().y : 0U);
 		};
 
 		for (size_t row = 0; row < rowCountValue; ++row)
 		{
-			Element* labelElement = _elements[2 * row].get();
-			Element* fieldElement = _elements[2 * row + 1].get();
+			Element *labelElement = _elements[2 * row].get();
+			Element *fieldElement = _elements[2 * row + 1].get();
 
 			labelColumnWidth = std::max(labelColumnWidth, elementMinWidth(labelElement));
 			fieldColumnWidth = std::max(fieldColumnWidth, elementMinWidth(fieldElement));

@@ -6,7 +6,7 @@ namespace spk
 {
 	UpdateModule::UpdateModule() = default;
 
-	void UpdateModule::bindInputs(spk::Mouse* p_mouse, spk::Keyboard* p_keyboard)
+	void UpdateModule::bindInputs(spk::Mouse *p_mouse, spk::Keyboard *p_keyboard)
 	{
 		_mouse = p_mouse;
 		_keyboard = p_keyboard;

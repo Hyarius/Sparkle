@@ -15,10 +15,10 @@ namespace spk
 
 	void Font::Atlas::loadAllRenderableGlyphs()
 	{
-		auto& resource = *_resource;
+		auto &resource = *_resource;
 		std::unordered_set<int> rendered;
 
-		for (const auto& block : unicodeBlocks)
+		for (const auto &block : unicodeBlocks)
 		{
 			for (int codepoint = block.first; codepoint <= block.second; ++codepoint)
 			{
@@ -37,9 +37,9 @@ namespace spk
 		_uploadTexture();
 	}
 
-	spk::Vector2Int Font::Atlas::_computeGlyphPosition(const spk::Vector2UInt& p_glyphSize)
+	spk::Vector2Int Font::Atlas::_computeGlyphPosition(const spk::Vector2UInt &p_glyphSize)
 	{
-		auto& resource = *_resource;
+		auto &resource = *_resource;
 		using Quadrant = Resource::Quadrant;
 
 		if ((resource.nextGlyphAnchor.x + static_cast<int>(p_glyphSize.x)) >=
@@ -56,13 +56,11 @@ namespace spk
 			resource.nextLineAnchor.y = result.y + static_cast<int>(p_glyphSize.y);
 		}
 
-		auto _overflowQuadrant = [&]()
-		{
+		auto _overflowQuadrant = [&]() {
 			return resource.nextLineAnchor.y >= resource.quadrantAnchor.y + static_cast<int>(resource.quadrantSize.y);
 		};
 
-		auto _resetToQuadrant = [&](spk::Vector2Int p_anchor)
-		{
+		auto _resetToQuadrant = [&](spk::Vector2Int p_anchor) {
 			resource.quadrantAnchor = p_anchor;
 			result = resource.nextGlyphAnchor = resource.nextLineAnchor = p_anchor;
 			resource.nextGlyphAnchor.x += static_cast<int>(p_glyphSize.x);
@@ -95,9 +93,7 @@ namespace spk
 			if (_overflowQuadrant())
 			{
 				resource.currentQuadrant = Quadrant::DownRight;
-				_resetToQuadrant(spk::Vector2Int(
-					static_cast<int>(resource.atlasSize.x / 2),
-					static_cast<int>(resource.atlasSize.y / 2)));
+				_resetToQuadrant(spk::Vector2Int(static_cast<int>(resource.atlasSize.x / 2), static_cast<int>(resource.atlasSize.y / 2)));
 			}
 			break;
 
@@ -116,7 +112,7 @@ namespace spk
 
 	void Font::Atlas::_loadGlyph(Codepoint p_codepoint)
 	{
-		auto& resource = *_resource;
+		auto &resource = *_resource;
 		const float scale = stbtt_ScaleForMappingEmToPixels(&resource.fontInfo, static_cast<float>(resource.textSize));
 		const int stbCodepoint = static_cast<int>(p_codepoint);
 		const size_t sdfPadding = resource.outlineSize == 0 ? 0 : resource.outlineSize + 2;
@@ -126,7 +122,7 @@ namespace spk
 		int xOffset = 0;
 		int yOffset = 0;
 
-		uint8_t* glyphBitmap = stbtt_GetCodepointSDF(
+		uint8_t *glyphBitmap = stbtt_GetCodepointSDF(
 			&resource.fontInfo,
 			scale,
 			stbCodepoint,
@@ -153,8 +149,8 @@ namespace spk
 		glyph.baselineOffset = spk::Vector2Int(-xOffset, -yOffset);
 
 		const spk::Vector2 halfPixel = 0.5f / spk::Vector2(
-			static_cast<float>(resource.atlasSize.x),
-			static_cast<float>(resource.atlasSize.y));
+												  static_cast<float>(resource.atlasSize.x),
+												  static_cast<float>(resource.atlasSize.y));
 
 		glyph.positions[0] = spk::Vector2Int(xOffset, yOffset);
 		glyph.positions[1] = spk::Vector2Int(xOffset, yOffset + height);
@@ -184,21 +180,19 @@ namespace spk
 		stbtt_FreeBitmap(glyphBitmap, nullptr);
 	}
 
-	void Font::_loadFromData(const std::vector<uint8_t>& p_data)
+	void Font::_loadFromData(const std::vector<uint8_t> &p_data)
 	{
 		_fontData = p_data;
-		stbtt_InitFont(&_fontInfo, reinterpret_cast<const unsigned char*>(_fontData.data()), 0);
+		stbtt_InitFont(&_fontInfo, reinterpret_cast<const unsigned char *>(_fontData.data()), 0);
 	}
 
-	void Font::_loadFromFile(const std::filesystem::path& p_path)
+	void Font::_loadFromFile(const std::filesystem::path &p_path)
 	{
 		std::ifstream file(p_path, std::ios::binary);
 		if (file.is_open() == false)
 		{
 			throw std::runtime_error("Font: failed to open file: " + p_path.string());
 		}
-		_loadFromData(std::vector<uint8_t>(
-			std::istreambuf_iterator<char>(file),
-			std::istreambuf_iterator<char>()));
+		_loadFromData(std::vector<uint8_t>(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>()));
 	}
 }

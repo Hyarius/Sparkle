@@ -7,18 +7,18 @@
 #include <string>
 #include <vector>
 
-#include "structures/design_pattern/spk_contract_provider.hpp"
 #include "structures/application/module/spk_frame_module.hpp"
-#include "structures/system/device/runtime/spk_opengl_runtime.hpp"
 #include "structures/application/module/spk_keyboard_module.hpp"
 #include "structures/application/module/spk_mouse_module.hpp"
-#include "structures/system/device/runtime/spk_platform_runtime.hpp"
 #include "structures/application/module/spk_render_module.hpp"
-#include "structures/system/thread/spk_thread_safe_contract.hpp"
-#include "structures/system/thread/spk_thread_safe_deque.hpp"
 #include "structures/application/module/spk_update_module.hpp"
+#include "structures/design_pattern/spk_contract_provider.hpp"
+#include "structures/system/device/runtime/spk_opengl_runtime.hpp"
+#include "structures/system/device/runtime/spk_platform_runtime.hpp"
 #include "structures/system/device/window/spk_window_host.hpp"
 #include "structures/system/device/window/spk_window_snapshot_manager.hpp"
+#include "structures/system/thread/spk_thread_safe_contract.hpp"
+#include "structures/system/thread/spk_thread_safe_deque.hpp"
 
 namespace spk
 {
@@ -27,7 +27,7 @@ namespace spk
 	class Window
 	{
 	public:
-		using ClosureEventProvider = spk::ContractProvider<Window*>;
+		using ClosureEventProvider = spk::ContractProvider<Window *>;
 		using ClosureEventProviderMutex = std::recursive_mutex;
 		using ClosureContract = spk::ThreadSafeContract<ClosureEventProvider::Contract, ClosureEventProviderMutex>;
 		using ClosureCallback = ClosureEventProvider::Callback;
@@ -107,11 +107,11 @@ namespace spk
 		[[nodiscard]] std::vector<PlatformAction> _drainPendingPlatformActions();
 		[[nodiscard]] std::vector<RenderAction> _drainPendingRenderActions();
 
-		void _treatProcessedFrameEvent(spk::FrameEventRecord& p_event, bool p_isConsumed);
+		void _treatProcessedFrameEvent(spk::FrameEventRecord &p_event, bool p_isConsumed);
 
 		void _rebuildRenderSnapshot();
 
-		void _executePlatformAction(const PlatformAction& p_action);
+		void _executePlatformAction(const PlatformAction &p_action);
 		void _triggerClosureNotificationIfPending();
 		void _releasePlatformResourcesIfReady();
 
@@ -121,12 +121,12 @@ namespace spk
 		void _processPendingEvents();
 
 		void _releaseRenderResources();
-		void _executeRenderAction(const RenderAction& p_action);
+		void _executeRenderAction(const RenderAction &p_action);
 
 		void _setTitle(std::string p_title);
-		void _resize(const spk::Rect2D& p_rect);
+		void _resize(const spk::Rect2D &p_rect);
 		void _setVSync(bool p_enabled);
-		[[nodiscard]] spk::Widget& _centralWidget();
+		[[nodiscard]] spk::Widget &_centralWidget();
 
 		friend class spk::WindowHandle;
 
@@ -134,17 +134,17 @@ namespace spk
 		Window(std::shared_ptr<PlatformRuntime> p_platformRuntime, std::shared_ptr<GPUPlatformRuntime> p_gpuPlatformRuntime, Configuration p_configuration);
 		~Window();
 
-		[[nodiscard]] spk::WindowHost& host();
-		[[nodiscard]] const spk::WindowHost& host() const;
+		[[nodiscard]] spk::WindowHost &host();
+		[[nodiscard]] const spk::WindowHost &host() const;
 
-		[[nodiscard]] spk::Mouse& mouse();
-		[[nodiscard]] const spk::Mouse& mouse() const;
+		[[nodiscard]] spk::Mouse &mouse();
+		[[nodiscard]] const spk::Mouse &mouse() const;
 
-		[[nodiscard]] spk::Keyboard& keyboard();
-		[[nodiscard]] const spk::Keyboard& keyboard() const;
+		[[nodiscard]] spk::Keyboard &keyboard();
+		[[nodiscard]] const spk::Keyboard &keyboard() const;
 
-		[[nodiscard]] spk::Widget& rootWidget();
-		[[nodiscard]] const spk::Widget& rootWidget() const;
+		[[nodiscard]] spk::Widget &rootWidget();
+		[[nodiscard]] const spk::Widget &rootWidget() const;
 
 		void executePendingPlatformActions();
 		void update();

@@ -5,15 +5,15 @@
 
 #include <GL/glew.h>
 
+#include "spk_generated_resources.hpp"
 #include "structures/graphics/geometry/spk_texture_mesh_2d.hpp"
-#include "structures/graphics/spk_uniform_buffer_object.hpp"
 #include "structures/graphics/rendering/context/spk_render_context.hpp"
 #include "structures/graphics/rendering/state/spk_viewport.hpp"
-#include "spk_generated_resources.hpp"
+#include "structures/graphics/spk_uniform_buffer_object.hpp"
 
 namespace
 {
-	[[nodiscard]] float outlineThickness(const spk::Font::Size& p_size)
+	[[nodiscard]] float outlineThickness(const spk::Font::Size &p_size)
 	{
 		if (p_size.outline == 0)
 		{
@@ -27,7 +27,7 @@ namespace
 
 namespace spk
 {
-	spk::Program& DrawFontRenderCommand::_sharedProgram()
+	spk::Program &DrawFontRenderCommand::_sharedProgram()
 	{
 		static spk::Program program(
 			SPARKLE_GET_RESOURCE_AS_STRING("resources/shaders/font/draw_font.vert"),
@@ -36,8 +36,8 @@ namespace spk
 	}
 
 	DrawFontRenderCommand::DrawFontRenderCommand(
-		const spk::Font::Atlas& p_atlas,
-		const spk::TextureMesh2D& p_mesh,
+		const spk::Font::Atlas &p_atlas,
+		const spk::TextureMesh2D &p_mesh,
 		spk::Font::Size p_size,
 		spk::Color p_color,
 		spk::Color p_outlineColor) :
@@ -56,14 +56,14 @@ namespace spk
 		_outlineThicknessUniform.set(outlineThickness(p_size));
 	}
 
-	void DrawFontRenderCommand::execute(spk::RenderContext& p_renderContext)
+	void DrawFontRenderCommand::execute(spk::RenderContext &p_renderContext)
 	{
 		if (_mesh.layoutBuffer().indexCount() == 0)
 		{
 			return;
 		}
 
-		spk::OpenGL::Program& program = _sharedProgram().gpu(p_renderContext);
+		spk::OpenGL::Program &program = _sharedProgram().gpu(p_renderContext);
 
 		program.activate();
 		_mesh.layoutBuffer().activate(p_renderContext);

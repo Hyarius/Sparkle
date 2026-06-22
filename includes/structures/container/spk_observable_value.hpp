@@ -12,14 +12,14 @@ namespace spk
 		requires std::move_constructible<TType> &&
 				 std::default_initializable<TType> &&
 				 spk::comparison_compatible<TType>
-	class ObservableValue : public ContractProvider<const TType&>
+	class ObservableValue : public ContractProvider<const TType &>
 	{
 	private:
 		TType _value = TType();
 
-		using ContractProvider<const TType&>::trigger;
+		using ContractProvider<const TType &>::trigger;
 
-		ObservableValue& _assign(const TType& p_value)
+		ObservableValue &_assign(const TType &p_value)
 		{
 			if (_value != p_value)
 			{
@@ -30,7 +30,7 @@ namespace spk
 			return *this;
 		}
 
-		ObservableValue& _assign(TType&& p_value)
+		ObservableValue &_assign(TType &&p_value)
 		{
 			if (_value != p_value)
 			{
@@ -44,29 +44,29 @@ namespace spk
 	public:
 		ObservableValue() = default;
 
-		ObservableValue(const TType& p_value) :
+		ObservableValue(const TType &p_value) :
 			_value(p_value)
 		{
 		}
 
-		ObservableValue(TType&& p_value) :
+		ObservableValue(TType &&p_value) :
 			_value(std::move(p_value))
 		{
 		}
 
-		operator const TType&() const
+		operator const TType &() const
 		{
 			return _value;
 		}
 
-		const TType& value() const
+		const TType &value() const
 		{
 			return _value;
 		}
 
 		template <typename TOther>
-			requires std::assignable_from<TType&, const TOther&>
-		ObservableValue& set(const TOther& p_value)
+			requires std::assignable_from<TType &, const TOther &>
+		ObservableValue &set(const TOther &p_value)
 		{
 			TType newValue = _value;
 			newValue = p_value;
@@ -74,8 +74,8 @@ namespace spk
 		}
 
 		template <typename TOther>
-			requires std::assignable_from<TType&, const TOther&>
-		ObservableValue& operator=(const TOther& p_value)
+			requires std::assignable_from<TType &, const TOther &>
+		ObservableValue &operator=(const TOther &p_value)
 		{
 			TType newValue = _value;
 			newValue = p_value;
@@ -84,35 +84,35 @@ namespace spk
 
 		template <typename TOther>
 			requires spk::addable_with<TType, TOther>
-		auto operator+(const TOther& p_value) const -> decltype(_value + p_value)
+		auto operator+(const TOther &p_value) const -> decltype(_value + p_value)
 		{
 			return _value + p_value;
 		}
 
 		template <typename TOther>
 			requires spk::subtractable_with<TType, TOther>
-		auto operator-(const TOther& p_value) const -> decltype(_value - p_value)
+		auto operator-(const TOther &p_value) const -> decltype(_value - p_value)
 		{
 			return _value - p_value;
 		}
 
 		template <typename TOther>
 			requires spk::multiplicable_with<TType, TOther>
-		auto operator*(const TOther& p_value) const -> decltype(_value * p_value)
+		auto operator*(const TOther &p_value) const -> decltype(_value * p_value)
 		{
 			return _value * p_value;
 		}
 
 		template <typename TOther>
 			requires spk::dividable_with<TType, TOther>
-		auto operator/(const TOther& p_value) const -> decltype(_value / p_value)
+		auto operator/(const TOther &p_value) const -> decltype(_value / p_value)
 		{
 			return _value / p_value;
 		}
 
 		template <typename TOther>
 			requires spk::add_assignable_with<TType, TOther>
-		ObservableValue& operator+=(const TOther& p_value)
+		ObservableValue &operator+=(const TOther &p_value)
 		{
 			TType newValue = _value;
 			newValue += p_value;
@@ -121,7 +121,7 @@ namespace spk
 
 		template <typename TOther>
 			requires spk::subtract_assignable_with<TType, TOther>
-		ObservableValue& operator-=(const TOther& p_value)
+		ObservableValue &operator-=(const TOther &p_value)
 		{
 			TType newValue = _value;
 			newValue -= p_value;
@@ -130,7 +130,7 @@ namespace spk
 
 		template <typename TOther>
 			requires spk::multiply_assignable_with<TType, TOther>
-		ObservableValue& operator*=(const TOther& p_value)
+		ObservableValue &operator*=(const TOther &p_value)
 		{
 			TType newValue = _value;
 			newValue *= p_value;
@@ -139,7 +139,7 @@ namespace spk
 
 		template <typename TOther>
 			requires spk::divide_assignable_with<TType, TOther>
-		ObservableValue& operator/=(const TOther& p_value)
+		ObservableValue &operator/=(const TOther &p_value)
 		{
 			TType newValue = _value;
 			newValue /= p_value;
@@ -148,47 +148,47 @@ namespace spk
 
 		template <typename TOther>
 			requires spk::equality_comparable_with<TType, TOther>
-		bool operator==(const TOther& p_value) const
+		bool operator==(const TOther &p_value) const
 		{
 			return _value == p_value;
 		}
 
 		template <typename TOther>
 			requires spk::equality_comparable_with<TType, TOther>
-		bool operator!=(const TOther& p_value) const
+		bool operator!=(const TOther &p_value) const
 		{
 			return _value != p_value;
 		}
 
 		template <typename TOther>
 			requires spk::less_than_comparable_with<TType, TOther>
-		bool operator<(const TOther& p_value) const
+		bool operator<(const TOther &p_value) const
 		{
 			return _value < p_value;
 		}
 
 		template <typename TOther>
 			requires spk::less_equal_comparable_with<TType, TOther>
-		bool operator<=(const TOther& p_value) const
+		bool operator<=(const TOther &p_value) const
 		{
 			return _value <= p_value;
 		}
 
 		template <typename TOther>
 			requires spk::greater_than_comparable_with<TType, TOther>
-		bool operator>(const TOther& p_value) const
+		bool operator>(const TOther &p_value) const
 		{
 			return _value > p_value;
 		}
 
 		template <typename TOther>
 			requires spk::greater_equal_comparable_with<TType, TOther>
-		bool operator>=(const TOther& p_value) const
+		bool operator>=(const TOther &p_value) const
 		{
 			return _value >= p_value;
 		}
 
-		ObservableValue& operator++()
+		ObservableValue &operator++()
 			requires spk::pre_incrementable<TType>
 		{
 			TType newValue = _value;
@@ -196,7 +196,7 @@ namespace spk
 			return _assign(std::move(newValue));
 		}
 
-		ObservableValue& operator--()
+		ObservableValue &operator--()
 			requires spk::pre_decrementable<TType>
 		{
 			TType newValue = _value;

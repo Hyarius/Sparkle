@@ -1,6 +1,5 @@
 #pragma once
 
-
 #include <memory>
 #include <string>
 
@@ -28,12 +27,12 @@ namespace spk
 		void _startMouseLeaveTracking();
 
 	public:
-		Frame(std::shared_ptr<WindowClass> p_class, const spk::Rect2D& p_rect, const std::string& p_title);
+		Frame(std::shared_ptr<WindowClass> p_class, const spk::Rect2D &p_rect, const std::string &p_title);
 		~Frame() override;
 
-		void resize(const spk::Rect2D& p_rect) override;
-		void setTitle(const std::string& p_title) override;
-		void setCursor(const std::string& p_name) override;
+		void resize(const spk::Rect2D &p_rect) override;
+		void setTitle(const std::string &p_title) override;
+		void setCursor(const std::string &p_name) override;
 		void hide() override;
 		void requestClosure() override;
 		void validateClosure() override;
@@ -44,4 +43,3 @@ namespace spk
 		[[nodiscard]] HDC deviceContext() const;
 	};
 }
-

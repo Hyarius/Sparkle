@@ -141,37 +141,37 @@ namespace spk
 			return any();
 		}
 
-		constexpr Flags& operator|=(TFlagType p_value) noexcept
+		constexpr Flags &operator|=(TFlagType p_value) noexcept
 		{
 			set(p_value);
 			return *this;
 		}
 
-		constexpr Flags& operator&=(TFlagType p_value) noexcept
+		constexpr Flags &operator&=(TFlagType p_value) noexcept
 		{
 			_bits &= _toMask(p_value);
 			return *this;
 		}
 
-		constexpr Flags& operator^=(TFlagType p_value) noexcept
+		constexpr Flags &operator^=(TFlagType p_value) noexcept
 		{
 			toggle(p_value);
 			return *this;
 		}
 
-		constexpr Flags& operator|=(Flags p_other) noexcept
+		constexpr Flags &operator|=(Flags p_other) noexcept
 		{
 			_bits |= p_other._bits;
 			return *this;
 		}
 
-		constexpr Flags& operator&=(Flags p_other) noexcept
+		constexpr Flags &operator&=(Flags p_other) noexcept
 		{
 			_bits &= p_other._bits;
 			return *this;
 		}
 
-		constexpr Flags& operator^=(Flags p_other) noexcept
+		constexpr Flags &operator^=(Flags p_other) noexcept
 		{
 			_bits ^= p_other._bits;
 			return *this;
@@ -270,7 +270,7 @@ namespace spk
 }
 
 template <spk::enum_type TEnumType, spk::unsigned_storage TStorageType>
-std::ostream& operator<<(std::ostream& p_outputStream, const spk::Flags<TEnumType, TStorageType>& p_flags)
+std::ostream &operator<<(std::ostream &p_outputStream, const spk::Flags<TEnumType, TStorageType> &p_flags)
 {
 	const std::ios_base::fmtflags previousFlags = p_outputStream.flags();
 	p_outputStream << "0x" << std::hex << p_flags.raw();
@@ -279,7 +279,7 @@ std::ostream& operator<<(std::ostream& p_outputStream, const spk::Flags<TEnumTyp
 }
 
 template <spk::enum_type TEnumType, spk::unsigned_storage TStorageType>
-std::wostream& operator<<(std::wostream& p_outputStream, const spk::Flags<TEnumType, TStorageType>& p_flags)
+std::wostream &operator<<(std::wostream &p_outputStream, const spk::Flags<TEnumType, TStorageType> &p_flags)
 {
 	const std::ios_base::fmtflags previousFlags = p_outputStream.flags();
 	p_outputStream << L"0x" << std::hex << p_flags.raw();

@@ -38,18 +38,18 @@ namespace spk
 			std::weak_ptr<State> _state;
 			Mode _mode = Mode::Ignore;
 
-			void _tryRunDelayedOperation(State& p_state);
+			void _tryRunDelayedOperation(State &p_state);
 
 		public:
 			Blocker() = default;
-			explicit Blocker(const std::shared_ptr<State>& p_state, Mode p_mode);
+			explicit Blocker(const std::shared_ptr<State> &p_state, Mode p_mode);
 			~Blocker();
 
-			Blocker(const Blocker&) = delete;
-			Blocker& operator=(const Blocker&) = delete;
+			Blocker(const Blocker &) = delete;
+			Blocker &operator=(const Blocker &) = delete;
 
-			Blocker(Blocker&& p_other) noexcept;
-			Blocker& operator=(Blocker&& p_other) noexcept;
+			Blocker(Blocker &&p_other) noexcept;
+			Blocker &operator=(Blocker &&p_other) noexcept;
 
 			void release();
 			bool isValid() const;

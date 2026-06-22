@@ -29,7 +29,7 @@ namespace spk
 		}
 	}
 
-	void BlockableTrait::Blocker::_tryRunDelayedOperation(State& p_state)
+	void BlockableTrait::Blocker::_tryRunDelayedOperation(State &p_state)
 	{
 		if (p_state.delayedOperation == nullptr)
 		{
@@ -46,7 +46,7 @@ namespace spk
 		delayedOperation();
 	}
 
-	BlockableTrait::Blocker::Blocker(const std::shared_ptr<State>& p_state, Mode p_mode) :
+	BlockableTrait::Blocker::Blocker(const std::shared_ptr<State> &p_state, Mode p_mode) :
 		_state(p_state),
 		_mode(p_mode)
 	{
@@ -71,13 +71,13 @@ namespace spk
 		release();
 	}
 
-	BlockableTrait::Blocker::Blocker(Blocker&& p_other) noexcept :
+	BlockableTrait::Blocker::Blocker(Blocker &&p_other) noexcept :
 		_state(std::move(p_other._state)),
 		_mode(p_other._mode)
 	{
 	}
 
-	BlockableTrait::Blocker& BlockableTrait::Blocker::operator=(Blocker&& p_other) noexcept
+	BlockableTrait::Blocker &BlockableTrait::Blocker::operator=(Blocker &&p_other) noexcept
 	{
 		if (this != &p_other)
 		{

@@ -17,8 +17,8 @@ namespace spk
 	class WidgetStyle
 	{
 	public:
-		using Contract = spk::ContractProvider<const spk::WidgetStyle*>::Contract;
-		using Callback = std::function<void(const spk::WidgetStyle&)>;
+		using Contract = spk::ContractProvider<const spk::WidgetStyle *>::Contract;
+		using Callback = std::function<void(const spk::WidgetStyle &)>;
 		class Collection;
 
 	private:
@@ -32,16 +32,16 @@ namespace spk
 		spk::Color _outlineColor;
 		spk::Vector2Int _textPadding;
 
-		mutable spk::ContractProvider<const spk::WidgetStyle*> _editionProvider;
+		mutable spk::ContractProvider<const spk::WidgetStyle *> _editionProvider;
 
-		void _copyValuesFrom(const spk::WidgetStyle& p_other);
+		void _copyValuesFrom(const spk::WidgetStyle &p_other);
 
 	public:
 		WidgetStyle();
-		WidgetStyle(const WidgetStyle& p_other);
-		WidgetStyle& operator=(const WidgetStyle& p_other);
-		WidgetStyle(WidgetStyle&& p_other) noexcept;
-		WidgetStyle& operator=(WidgetStyle&& p_other) noexcept;
+		WidgetStyle(const WidgetStyle &p_other);
+		WidgetStyle &operator=(const WidgetStyle &p_other);
+		WidgetStyle(WidgetStyle &&p_other) noexcept;
+		WidgetStyle &operator=(WidgetStyle &&p_other) noexcept;
 
 		static WidgetStyle makeDefault();
 		static WidgetStyle makeDefaultPressed();
@@ -54,24 +54,24 @@ namespace spk
 		Contract subscribeToEdition(Callback p_callback) const;
 
 		void setNineSliceSpriteSheet(std::shared_ptr<spk::SpriteSheet> p_spriteSheet);
-		void setCornerSize(const spk::Vector2Int& p_cornerSize);
-		void setNineSliceCornerSize(const spk::Vector2Int& p_cornerSize);
+		void setCornerSize(const spk::Vector2Int &p_cornerSize);
+		void setNineSliceCornerSize(const spk::Vector2Int &p_cornerSize);
 		void setIconSpriteSheet(std::shared_ptr<spk::SpriteSheet> p_spriteSheet);
 		void setFont(std::shared_ptr<spk::Font> p_font);
-		void setTextSize(const spk::Font::Size& p_textSize);
-		void setGlyphColor(const spk::Color& p_color);
-		void setOutlineColor(const spk::Color& p_color);
-		void setTextPadding(const spk::Vector2Int& p_padding);
+		void setTextSize(const spk::Font::Size &p_textSize);
+		void setGlyphColor(const spk::Color &p_color);
+		void setOutlineColor(const spk::Color &p_color);
+		void setTextPadding(const spk::Vector2Int &p_padding);
 
-		[[nodiscard]] const std::shared_ptr<spk::SpriteSheet>& nineSliceSpriteSheet() const;
-		[[nodiscard]] const spk::Vector2Int& cornerSize() const;
-		[[nodiscard]] const spk::Vector2Int& nineSliceCornerSize() const;
-		[[nodiscard]] const std::shared_ptr<spk::SpriteSheet>& iconSpriteSheet() const;
-		[[nodiscard]] const std::shared_ptr<spk::Font>& font() const;
-		[[nodiscard]] const spk::Font::Size& textSize() const;
-		[[nodiscard]] const spk::Color& glyphColor() const;
-		[[nodiscard]] const spk::Color& outlineColor() const;
-		[[nodiscard]] const spk::Vector2Int& textPadding() const;
+		[[nodiscard]] const std::shared_ptr<spk::SpriteSheet> &nineSliceSpriteSheet() const;
+		[[nodiscard]] const spk::Vector2Int &cornerSize() const;
+		[[nodiscard]] const spk::Vector2Int &nineSliceCornerSize() const;
+		[[nodiscard]] const std::shared_ptr<spk::SpriteSheet> &iconSpriteSheet() const;
+		[[nodiscard]] const std::shared_ptr<spk::Font> &font() const;
+		[[nodiscard]] const spk::Font::Size &textSize() const;
+		[[nodiscard]] const spk::Color &glyphColor() const;
+		[[nodiscard]] const spk::Color &outlineColor() const;
+		[[nodiscard]] const spk::Vector2Int &textPadding() const;
 	};
 
 	class WidgetStyle::Collection
@@ -89,13 +89,13 @@ namespace spk
 		static constexpr std::string_view DefaultSliderBody = "default.sliderBody";
 		static constexpr std::string_view DefaultInterfaceWindowTitle = "default.interfaceWindow.title";
 
-		Collection(const Collection&) = delete;
-		Collection& operator=(const Collection&) = delete;
+		Collection(const Collection &) = delete;
+		Collection &operator=(const Collection &) = delete;
 
-		static Collection& instance();
+		static Collection &instance();
 
 		static bool contains(std::string_view p_name);
-		static spk::WidgetStyle& style(std::string_view p_name);
-		static void setStyle(std::string_view p_name, const spk::WidgetStyle& p_style);
+		static spk::WidgetStyle &style(std::string_view p_name);
+		static void setStyle(std::string_view p_name, const spk::WidgetStyle &p_style);
 	};
 }

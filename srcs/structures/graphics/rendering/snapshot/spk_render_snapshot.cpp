@@ -4,7 +4,7 @@
 
 namespace spk
 {
-	RenderSnapshot::RenderSnapshot(std::vector<std::shared_ptr<spk::RenderUnit>>&& p_units) :
+	RenderSnapshot::RenderSnapshot(std::vector<std::shared_ptr<spk::RenderUnit>> &&p_units) :
 		_units(std::move(p_units))
 	{
 	}
@@ -19,14 +19,14 @@ namespace spk
 		return (_units.size());
 	}
 
-	const std::vector<std::shared_ptr<spk::RenderUnit>>& RenderSnapshot::units() const
+	const std::vector<std::shared_ptr<spk::RenderUnit>> &RenderSnapshot::units() const
 	{
 		return (_units);
 	}
 
-	void RenderSnapshot::execute(spk::RenderContext& p_renderContext)
+	void RenderSnapshot::execute(spk::RenderContext &p_renderContext)
 	{
-		for (const std::shared_ptr<spk::RenderUnit>& unit : _units)
+		for (const std::shared_ptr<spk::RenderUnit> &unit : _units)
 		{
 			if (unit != nullptr)
 			{

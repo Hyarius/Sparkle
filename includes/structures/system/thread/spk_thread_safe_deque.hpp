@@ -18,11 +18,11 @@ namespace spk
 	public:
 		ThreadSafeDeque() = default;
 
-		ThreadSafeDeque(const ThreadSafeDeque&) = delete;
-		ThreadSafeDeque& operator=(const ThreadSafeDeque&) = delete;
+		ThreadSafeDeque(const ThreadSafeDeque &) = delete;
+		ThreadSafeDeque &operator=(const ThreadSafeDeque &) = delete;
 
-		ThreadSafeDeque(ThreadSafeDeque&&) = delete;
-		ThreadSafeDeque& operator=(ThreadSafeDeque&&) = delete;
+		ThreadSafeDeque(ThreadSafeDeque &&) = delete;
+		ThreadSafeDeque &operator=(ThreadSafeDeque &&) = delete;
 
 		void pushBack(TType p_value)
 		{
@@ -31,13 +31,13 @@ namespace spk
 		}
 
 		template <typename... TArguments>
-		void emplaceBack(TArguments&&... p_arguments)
+		void emplaceBack(TArguments &&...p_arguments)
 		{
 			std::scoped_lock lock(_mutex);
 			_values.emplace_back(std::forward<TArguments>(p_arguments)...);
 		}
 
-		[[nodiscard]] bool popFront(TType& p_output)
+		[[nodiscard]] bool popFront(TType &p_output)
 		{
 			std::scoped_lock lock(_mutex);
 
@@ -63,7 +63,7 @@ namespace spk
 			std::vector<TType> result;
 			result.reserve(values.size());
 
-			for (TType& value : values)
+			for (TType &value : values)
 			{
 				result.push_back(std::move(value));
 			}

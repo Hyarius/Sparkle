@@ -43,14 +43,12 @@ namespace spk
 	void Timestamp::_rebindCaches()
 	{
 		_millisecondsCache.configure(
-			[this]()
-			{
+			[this]() {
 				return _nanoseconds / 1'000'000LL;
 			});
 
 		_secondsCache.configure(
-			[this]()
-			{
+			[this]() {
 				return static_cast<double>(_nanoseconds) / 1'000'000'000.0;
 			});
 	}
@@ -58,7 +56,8 @@ namespace spk
 	Timestamp::Timestamp()
 	{
 		_nanoseconds = std::chrono::duration_cast<std::chrono::nanoseconds>(
-			std::chrono::steady_clock::now().time_since_epoch()).count();
+						   std::chrono::steady_clock::now().time_since_epoch())
+						   .count();
 
 		_rebindCaches();
 	}
@@ -69,25 +68,25 @@ namespace spk
 		_rebindCaches();
 	}
 
-	Timestamp::Timestamp(const Duration& p_duration) :
+	Timestamp::Timestamp(const Duration &p_duration) :
 		_nanoseconds(p_duration.nanoseconds())
 	{
 		_rebindCaches();
 	}
 
-	Timestamp::Timestamp(const Timestamp& p_other) :
+	Timestamp::Timestamp(const Timestamp &p_other) :
 		_nanoseconds(p_other._nanoseconds)
 	{
 		_rebindCaches();
 	}
 
-	Timestamp::Timestamp(Timestamp&& p_other) noexcept :
+	Timestamp::Timestamp(Timestamp &&p_other) noexcept :
 		_nanoseconds(p_other._nanoseconds)
 	{
 		_rebindCaches();
 	}
 
-	Timestamp& Timestamp::operator=(const Timestamp& p_other)
+	Timestamp &Timestamp::operator=(const Timestamp &p_other)
 	{
 		if (this != &p_other)
 		{
@@ -98,7 +97,7 @@ namespace spk
 		return *this;
 	}
 
-	Timestamp& Timestamp::operator=(Timestamp&& p_other) noexcept
+	Timestamp &Timestamp::operator=(Timestamp &&p_other) noexcept
 	{
 		if (this != &p_other)
 		{
@@ -124,12 +123,12 @@ namespace spk
 		return _nanoseconds;
 	}
 
-	Duration Timestamp::operator-(const Timestamp& p_other) const
+	Duration Timestamp::operator-(const Timestamp &p_other) const
 	{
 		return Duration(static_cast<long double>(_nanoseconds - p_other._nanoseconds), TimeUnit::Nanosecond);
 	}
 
-	Timestamp Timestamp::operator+(const Duration& p_other) const noexcept
+	Timestamp Timestamp::operator+(const Duration &p_other) const noexcept
 	{
 		Timestamp result(*this);
 		result._nanoseconds += p_other.nanoseconds();
@@ -137,7 +136,7 @@ namespace spk
 		return result;
 	}
 
-	Timestamp Timestamp::operator-(const Duration& p_other) const noexcept
+	Timestamp Timestamp::operator-(const Duration &p_other) const noexcept
 	{
 		Timestamp result(*this);
 		result._nanoseconds -= p_other.nanoseconds();
@@ -145,46 +144,46 @@ namespace spk
 		return result;
 	}
 
-	Timestamp& Timestamp::operator+=(const Duration& p_other) noexcept
+	Timestamp &Timestamp::operator+=(const Duration &p_other) noexcept
 	{
 		_nanoseconds += p_other.nanoseconds();
 		_rebindCaches();
 		return *this;
 	}
 
-	Timestamp& Timestamp::operator-=(const Duration& p_other) noexcept
+	Timestamp &Timestamp::operator-=(const Duration &p_other) noexcept
 	{
 		_nanoseconds -= p_other.nanoseconds();
 		_rebindCaches();
 		return *this;
 	}
 
-	bool Timestamp::operator==(const Timestamp& p_other) const noexcept
+	bool Timestamp::operator==(const Timestamp &p_other) const noexcept
 	{
 		return _nanoseconds == p_other._nanoseconds;
 	}
 
-	bool Timestamp::operator!=(const Timestamp& p_other) const noexcept
+	bool Timestamp::operator!=(const Timestamp &p_other) const noexcept
 	{
 		return !(*this == p_other);
 	}
 
-	bool Timestamp::operator<(const Timestamp& p_other) const noexcept
+	bool Timestamp::operator<(const Timestamp &p_other) const noexcept
 	{
 		return _nanoseconds < p_other._nanoseconds;
 	}
 
-	bool Timestamp::operator>(const Timestamp& p_other) const noexcept
+	bool Timestamp::operator>(const Timestamp &p_other) const noexcept
 	{
 		return _nanoseconds > p_other._nanoseconds;
 	}
 
-	bool Timestamp::operator<=(const Timestamp& p_other) const noexcept
+	bool Timestamp::operator<=(const Timestamp &p_other) const noexcept
 	{
 		return _nanoseconds <= p_other._nanoseconds;
 	}
 
-	bool Timestamp::operator>=(const Timestamp& p_other) const noexcept
+	bool Timestamp::operator>=(const Timestamp &p_other) const noexcept
 	{
 		return _nanoseconds >= p_other._nanoseconds;
 	}

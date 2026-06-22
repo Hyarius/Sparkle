@@ -1,6 +1,5 @@
 #pragma once
 
-
 #include <memory>
 #include <string>
 
@@ -19,8 +18,7 @@ namespace spk
 		PlatformRuntime();
 		virtual ~PlatformRuntime();
 
-		virtual std::unique_ptr<IFrame> createFrame(const spk::Rect2D& p_rect, const std::string& p_title);
+		virtual std::unique_ptr<IFrame> createFrame(const spk::Rect2D &p_rect, const std::string &p_title);
 		virtual void pollEvents();
 	};
 }
-

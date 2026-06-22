@@ -2,7 +2,7 @@
 
 namespace spk
 {
-	SpacerWidget::SpacerWidget(const std::string& p_name, spk::Widget* p_parent) :
+	SpacerWidget::SpacerWidget(const std::string &p_name, spk::Widget *p_parent) :
 		spk::Widget(p_name, p_parent)
 	{
 		activate();

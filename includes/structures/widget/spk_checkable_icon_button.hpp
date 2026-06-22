@@ -32,15 +32,15 @@ namespace spk
 		void _onGeometryChange() override;
 
 	public:
-		explicit CheckableIconButton(const std::string& p_name, spk::Widget* p_parent = nullptr);
+		explicit CheckableIconButton(const std::string &p_name, spk::Widget *p_parent = nullptr);
 		CheckableIconButton(
-			const std::string& p_name,
+			const std::string &p_name,
 			size_t p_uncheckedIconSpriteID,
 			size_t p_checkedIconSpriteID,
-			spk::Widget* p_parent = nullptr);
+			spk::Widget *p_parent = nullptr);
 
-		void applyStyle(const spk::WidgetStyle& p_style) override;
-		void applyStyle(const spk::WidgetStyle& p_uncheckedStyle, const spk::WidgetStyle& p_checkedStyle);
+		void applyStyle(const spk::WidgetStyle &p_style) override;
+		void applyStyle(const spk::WidgetStyle &p_uncheckedStyle, const spk::WidgetStyle &p_checkedStyle);
 
 		[[nodiscard]] bool isChecked() const;
 		void setChecked(bool p_checked);
@@ -51,10 +51,10 @@ namespace spk
 		[[nodiscard]] size_t uncheckedIconSpriteID() const;
 		[[nodiscard]] size_t checkedIconSpriteID() const;
 
-		[[nodiscard]] spk::IconButton& uncheckedButton();
-		[[nodiscard]] const spk::IconButton& uncheckedButton() const;
-		[[nodiscard]] spk::IconButton& checkedButton();
-		[[nodiscard]] const spk::IconButton& checkedButton() const;
+		[[nodiscard]] spk::IconButton &uncheckedButton();
+		[[nodiscard]] const spk::IconButton &uncheckedButton() const;
+		[[nodiscard]] spk::IconButton &checkedButton();
+		[[nodiscard]] const spk::IconButton &checkedButton() const;
 
 		StateContract subscribeToState(StateCallback p_callback);
 		StateContract addStateCallback(bool p_state, std::function<void()> p_callback);

@@ -2,15 +2,15 @@
 
 namespace spk
 {
-	DynamicTextLabel::DynamicTextLabel(const std::string& p_name, spk::Widget* p_parent) :
+	DynamicTextLabel::DynamicTextLabel(const std::string &p_name, spk::Widget *p_parent) :
 		spk::TextLabel(p_name, p_parent)
 	{
 	}
 
 	DynamicTextLabel::DynamicTextLabel(
-		const std::string& p_name,
-		const TextProducer& p_textProducer,
-		spk::Widget* p_parent) :
+		const std::string &p_name,
+		const TextProducer &p_textProducer,
+		spk::Widget *p_parent) :
 		spk::TextLabel(p_name, p_parent)
 	{
 		setTextProducer(p_textProducer);
@@ -33,7 +33,7 @@ namespace spk
 		_refreshTimer.start();
 	}
 
-	void DynamicTextLabel::_onUpdate(const spk::UpdateTick& p_tick)
+	void DynamicTextLabel::_onUpdate(const spk::UpdateTick &p_tick)
 	{
 		spk::TextLabel::_onUpdate(p_tick);
 
@@ -52,7 +52,7 @@ namespace spk
 		}
 	}
 
-	void DynamicTextLabel::setTextProducer(const TextProducer& p_textProducer)
+	void DynamicTextLabel::setTextProducer(const TextProducer &p_textProducer)
 	{
 		_textProducer = p_textProducer;
 		if (_textProducer != nullptr)
@@ -63,7 +63,7 @@ namespace spk
 		}
 	}
 
-	void DynamicTextLabel::setRefreshDuration(const spk::Duration& p_refreshDuration)
+	void DynamicTextLabel::setRefreshDuration(const spk::Duration &p_refreshDuration)
 	{
 		_refreshTimer = spk::Timer(p_refreshDuration);
 		_refreshTimer.start();

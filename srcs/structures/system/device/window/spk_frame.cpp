@@ -18,22 +18,22 @@ namespace spk
 		_invalidateSurfaceState();
 	}
 
-	void IFrame::setCursor(const std::string& p_name)
+	void IFrame::setCursor(const std::string &p_name)
 	{
 		(void)p_name;
 	}
 
-	void IFrame::_emitMouseEvent(const spk::MouseEventRecord& p_event)
+	void IFrame::_emitMouseEvent(const spk::MouseEventRecord &p_event)
 	{
 		_mouseEventContractProvider.trigger(p_event);
 	}
 
-	void IFrame::_emitKeyboardEvent(const spk::KeyboardEventRecord& p_event)
+	void IFrame::_emitKeyboardEvent(const spk::KeyboardEventRecord &p_event)
 	{
 		_keyboardEventContractProvider.trigger(p_event);
 	}
 
-	void IFrame::_emitFrameEvent(const spk::FrameEventRecord& p_event)
+	void IFrame::_emitFrameEvent(const spk::FrameEventRecord &p_event)
 	{
 		if (spk::holds<spk::WindowDestroyedRecord>(p_event))
 		{

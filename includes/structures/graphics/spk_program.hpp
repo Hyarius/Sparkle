@@ -8,10 +8,10 @@
 
 #include <GL/glew.h>
 
-#include "structures/graphics/spk_primitive.hpp"
+#include "structures/design_pattern/spk_synchronizable_trait.hpp"
 #include "structures/graphics/opengl/spk_cached_opengl_object_collection.hpp"
 #include "structures/graphics/opengl/spk_opengl_program.hpp"
-#include "structures/design_pattern/spk_synchronizable_trait.hpp"
+#include "structures/graphics/spk_primitive.hpp"
 
 namespace spk
 {
@@ -34,10 +34,10 @@ namespace spk
 		Program() = default;
 		Program(std::string p_vertexShaderSource, std::string p_fragmentShaderSource);
 
-		Program(const Program&) = delete;
-		Program& operator=(const Program&) = delete;
-		Program(Program&&) noexcept = delete;
-		Program& operator=(Program&&) noexcept = delete;
+		Program(const Program &) = delete;
+		Program &operator=(const Program &) = delete;
+		Program(Program &&) noexcept = delete;
+		Program &operator=(Program &&) noexcept = delete;
 
 		[[nodiscard]] std::uint64_t version() const noexcept;
 
@@ -47,17 +47,17 @@ namespace spk
 
 		// Resolves (compiling if needed) this program's GPU copy for p_context.
 		// p_context must be the current context.
-		[[nodiscard]] spk::OpenGL::Program& gpu(const spk::RenderContext& p_context) const;
-		[[nodiscard]] bool hasGpu(const spk::RenderContext& p_context) const noexcept;
+		[[nodiscard]] spk::OpenGL::Program &gpu(const spk::RenderContext &p_context) const;
+		[[nodiscard]] bool hasGpu(const spk::RenderContext &p_context) const noexcept;
 
 		// Resolved against the current context (SynchronizableTrait / uniform glue).
 		[[nodiscard]] GLuint id() const;
 		[[nodiscard]] bool isLinked() const noexcept;
 
-		void activate(const spk::RenderContext& p_context) const;
+		void activate(const spk::RenderContext &p_context) const;
 		void deactivate() const;
 
-		void renderRaw(const spk::RenderContext& p_context, spk::Primitive p_primitive, std::size_t p_firstVertex, std::size_t p_vertexCount) const;
-		void render(const spk::RenderContext& p_context, spk::Primitive p_primitive, std::size_t p_firstIndex, std::size_t p_indexCount) const;
+		void renderRaw(const spk::RenderContext &p_context, spk::Primitive p_primitive, std::size_t p_firstVertex, std::size_t p_vertexCount) const;
+		void render(const spk::RenderContext &p_context, spk::Primitive p_primitive, std::size_t p_firstIndex, std::size_t p_indexCount) const;
 	};
 }

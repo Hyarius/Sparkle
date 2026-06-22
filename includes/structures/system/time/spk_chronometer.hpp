@@ -28,11 +28,11 @@ namespace spk
 		Chronometer() = default;
 		~Chronometer() = default;
 
-		Chronometer(const Chronometer& p_other) = default;
-		Chronometer(Chronometer&& p_other) noexcept = default;
+		Chronometer(const Chronometer &p_other) = default;
+		Chronometer(Chronometer &&p_other) noexcept = default;
 
-		Chronometer& operator=(const Chronometer& p_other) = default;
-		Chronometer& operator=(Chronometer&& p_other) noexcept = default;
+		Chronometer &operator=(const Chronometer &p_other) = default;
+		Chronometer &operator=(Chronometer &&p_other) noexcept = default;
 
 		void start();
 		void stop() noexcept;
@@ -44,9 +44,9 @@ namespace spk
 		[[nodiscard]] State state() const noexcept;
 	};
 
-	[[nodiscard]] const char* toString(Chronometer::State p_state) noexcept;
-	[[nodiscard]] const wchar_t* toWstring(Chronometer::State p_state) noexcept;
+	[[nodiscard]] const char *toString(Chronometer::State p_state) noexcept;
+	[[nodiscard]] const wchar_t *toWstring(Chronometer::State p_state) noexcept;
 }
 
-std::ostream& operator<<(std::ostream& p_os, spk::Chronometer::State p_state);
-std::wostream& operator<<(std::wostream& p_wos, spk::Chronometer::State p_state);
+std::ostream &operator<<(std::ostream &p_os, spk::Chronometer::State p_state);
+std::wostream &operator<<(std::wostream &p_wos, spk::Chronometer::State p_state);

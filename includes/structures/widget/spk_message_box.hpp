@@ -9,7 +9,7 @@
 #include "structures/widget/spk_text_area.hpp"
 
 #ifdef MessageBox
-#undef MessageBox
+#	undef MessageBox
 #endif
 
 namespace spk
@@ -30,14 +30,14 @@ namespace spk
 			void _onGeometryChange() override;
 
 		public:
-			Content(const std::string& p_name, spk::Widget* p_parent);
+			Content(const std::string &p_name, spk::Widget *p_parent);
 
-			[[nodiscard]] spk::VerticalLayout& layout();
-			[[nodiscard]] const spk::VerticalLayout& layout() const;
-			[[nodiscard]] spk::TextArea& textArea();
-			[[nodiscard]] const spk::TextArea& textArea() const;
-			[[nodiscard]] spk::CommandPanel& commandPanel();
-			[[nodiscard]] const spk::CommandPanel& commandPanel() const;
+			[[nodiscard]] spk::VerticalLayout &layout();
+			[[nodiscard]] const spk::VerticalLayout &layout() const;
+			[[nodiscard]] spk::TextArea &textArea();
+			[[nodiscard]] const spk::TextArea &textArea() const;
+			[[nodiscard]] spk::CommandPanel &commandPanel();
+			[[nodiscard]] const spk::CommandPanel &commandPanel() const;
 		};
 
 	private:
@@ -48,24 +48,24 @@ namespace spk
 		spk::IInterfaceWindow::EventContract _closeContract;
 
 	public:
-		explicit MessageBox(const std::string& p_name, spk::Widget* p_parent = nullptr);
+		explicit MessageBox(const std::string &p_name, spk::Widget *p_parent = nullptr);
 
-		[[nodiscard]] Content& content();
-		[[nodiscard]] const Content& content() const;
-		[[nodiscard]] spk::TextArea& textArea();
-		[[nodiscard]] const spk::TextArea& textArea() const;
-		[[nodiscard]] spk::CommandPanel& commandPanel();
-		[[nodiscard]] const spk::CommandPanel& commandPanel() const;
+		[[nodiscard]] Content &content();
+		[[nodiscard]] const Content &content() const;
+		[[nodiscard]] spk::TextArea &textArea();
+		[[nodiscard]] const spk::TextArea &textArea() const;
+		[[nodiscard]] spk::CommandPanel &commandPanel();
+		[[nodiscard]] const spk::CommandPanel &commandPanel() const;
 
 		virtual void setText(std::string_view p_text);
-		[[nodiscard]] const spk::Font::Text& text() const;
+		[[nodiscard]] const spk::Font::Text &text() const;
 
-		spk::PushButton* addButton(const std::string& p_name, std::string_view p_label);
-		[[nodiscard]] spk::PushButton* button(const std::string& p_name);
-		[[nodiscard]] const spk::PushButton* button(const std::string& p_name) const;
-		void removeButton(const std::string& p_name);
+		spk::PushButton *addButton(const std::string &p_name, std::string_view p_label);
+		[[nodiscard]] spk::PushButton *button(const std::string &p_name);
+		[[nodiscard]] const spk::PushButton *button(const std::string &p_name) const;
+		void removeButton(const std::string &p_name);
 
-		spk::CommandPanel::Contract subscribe(const std::string& p_name, spk::CommandPanel::Callback p_callback);
+		spk::CommandPanel::Contract subscribe(const std::string &p_name, spk::CommandPanel::Callback p_callback);
 
 		void setMinimalWidth(uint32_t p_width);
 	};
@@ -73,36 +73,36 @@ namespace spk
 	class InformationMessageBox : public spk::MessageBox
 	{
 	private:
-		spk::PushButton* _button = nullptr;
+		spk::PushButton *_button = nullptr;
 		spk::PushButton::Contract _contract;
 
 	public:
-		explicit InformationMessageBox(const std::string& p_name, spk::Widget* p_parent = nullptr);
+		explicit InformationMessageBox(const std::string &p_name, spk::Widget *p_parent = nullptr);
 
-		[[nodiscard]] spk::PushButton* button() const;
+		[[nodiscard]] spk::PushButton *button() const;
 	};
 
 	class RequestMessageBox : public spk::MessageBox
 	{
 	private:
-		spk::PushButton* _firstButton = nullptr;
+		spk::PushButton *_firstButton = nullptr;
 		spk::PushButton::Contract _firstContract;
 
-		spk::PushButton* _secondButton = nullptr;
+		spk::PushButton *_secondButton = nullptr;
 		spk::PushButton::Contract _secondContract;
 
 		spk::IInterfaceWindow::EventContract _requestCloseContract;
 
 	public:
-		explicit RequestMessageBox(const std::string& p_name, spk::Widget* p_parent = nullptr);
+		explicit RequestMessageBox(const std::string &p_name, spk::Widget *p_parent = nullptr);
 
 		void configure(
 			std::string_view p_firstCaption,
-			const std::function<void()>& p_firstAction,
+			const std::function<void()> &p_firstAction,
 			std::string_view p_secondCaption,
-			const std::function<void()>& p_secondAction);
+			const std::function<void()> &p_secondAction);
 
-		[[nodiscard]] spk::PushButton* firstButton() const;
-		[[nodiscard]] spk::PushButton* secondButton() const;
+		[[nodiscard]] spk::PushButton *firstButton() const;
+		[[nodiscard]] spk::PushButton *secondButton() const;
 	};
 }

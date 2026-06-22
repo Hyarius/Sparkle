@@ -29,22 +29,22 @@ namespace spk
 		std::string _designator;
 		BindingPoint _bindingPoint;
 		Type _type;
-		const spk::Program& _program;
+		const spk::Program &_program;
 		mutable spk::OpenGL::SamplerObject _gpu;
 
 	public:
-		SamplerObject(const std::string& p_name, Type p_type, BindingPoint p_bindingPoint, const spk::Program& p_program);
+		SamplerObject(const std::string &p_name, Type p_type, BindingPoint p_bindingPoint, const spk::Program &p_program);
 
-		void bind(const spk::Texture& p_texture);
+		void bind(const spk::Texture &p_texture);
 		void unbind();
 
-		[[nodiscard]] const spk::Texture* texture() const noexcept;
-		[[nodiscard]] const std::string& designator() const noexcept;
-		[[nodiscard]] const spk::Program& program() const noexcept;
+		[[nodiscard]] const spk::Texture *texture() const noexcept;
+		[[nodiscard]] const std::string &designator() const noexcept;
+		[[nodiscard]] const spk::Program &program() const noexcept;
 		[[nodiscard]] BindingPoint bindingPoint() const noexcept;
 		[[nodiscard]] Type type() const noexcept;
 
-		void activate(const spk::RenderContext& p_context) const;
+		void activate(const spk::RenderContext &p_context) const;
 		void deactivate() const;
 	};
 }

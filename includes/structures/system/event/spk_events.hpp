@@ -4,11 +4,11 @@
 #include <utility>
 #include <variant>
 
+#include "structures/math/spk_rect_2d.hpp"
+#include "structures/math/spk_vector2.hpp"
 #include "structures/system/device/input/spk_keyboard.hpp"
 #include "structures/system/device/input/spk_mouse.hpp"
-#include "structures/math/spk_rect_2d.hpp"
 #include "structures/system/time/spk_timestamp.hpp"
-#include "structures/math/spk_vector2.hpp"
 
 namespace spk
 {
@@ -18,7 +18,7 @@ namespace spk
 
 		EventRecord() = default;
 
-		explicit EventRecord(const spk::Timestamp& p_timestamp) :
+		explicit EventRecord(const spk::Timestamp &p_timestamp) :
 			timestamp(p_timestamp)
 		{
 		}
@@ -30,17 +30,17 @@ namespace spk
 	private:
 		static_assert(std::is_base_of_v<spk::EventRecord, TRecord>, "EventView<TRecord> requires an EventRecord-derived type");
 
-		const TRecord* _record = nullptr;
+		const TRecord *_record = nullptr;
 		bool _isConsumed = false;
 
 	public:
-		explicit EventView(const TRecord& p_record) :
+		explicit EventView(const TRecord &p_record) :
 			_record(&p_record)
 		{
 		}
 
 		template <typename TOtherRecord>
-		EventView(const EventView<TOtherRecord>&) = delete;
+		EventView(const EventView<TOtherRecord> &) = delete;
 
 		[[nodiscard]] bool isConsumed() const
 		{
@@ -52,27 +52,27 @@ namespace spk
 			_isConsumed = true;
 		}
 
-		[[nodiscard]] const spk::Timestamp& timestamp() const
+		[[nodiscard]] const spk::Timestamp &timestamp() const
 		{
 			return _record->timestamp;
 		}
 
-		[[nodiscard]] const TRecord& record() const
+		[[nodiscard]] const TRecord &record() const
 		{
 			return *_record;
 		}
 
-		[[nodiscard]] const TRecord& data() const
+		[[nodiscard]] const TRecord &data() const
 		{
 			return *_record;
 		}
 
-		[[nodiscard]] const TRecord* operator->() const
+		[[nodiscard]] const TRecord *operator->() const
 		{
 			return _record;
 		}
 
-		[[nodiscard]] const TRecord& operator*() const
+		[[nodiscard]] const TRecord &operator*() const
 		{
 			return *_record;
 		}
@@ -82,16 +82,16 @@ namespace spk
 	class DeviceEventView : public EventView<TRecord>
 	{
 	private:
-		const TDeviceType* _device = nullptr;
+		const TDeviceType *_device = nullptr;
 
 	public:
-		DeviceEventView(const TRecord& p_record, const TDeviceType& p_device) :
+		DeviceEventView(const TRecord &p_record, const TDeviceType &p_device) :
 			EventView<TRecord>(p_record),
 			_device(&p_device)
 		{
 		}
 
-		[[nodiscard]] const TDeviceType& device() const
+		[[nodiscard]] const TDeviceType &device() const
 		{
 			return *_device;
 		}
@@ -226,25 +226,25 @@ namespace spk
 	Overloaded(TVisitors...) -> Overloaded<TVisitors...>;
 
 	template <typename TRecord>
-	[[nodiscard]] std::decay_t<TRecord> makeEventRecord(TRecord&& p_record)
+	[[nodiscard]] std::decay_t<TRecord> makeEventRecord(TRecord &&p_record)
 	{
 		return std::forward<TRecord>(p_record);
 	}
 
 	template <typename TRecord, typename TVariant>
-	[[nodiscard]] bool holds(const TVariant& p_event)
+	[[nodiscard]] bool holds(const TVariant &p_event)
 	{
 		return std::holds_alternative<TRecord>(p_event);
 	}
 
 	template <typename TRecord, typename TVariant>
-	[[nodiscard]] TRecord* getIf(TVariant& p_event)
+	[[nodiscard]] TRecord *getIf(TVariant &p_event)
 	{
 		return std::get_if<TRecord>(&p_event);
 	}
 
 	template <typename TRecord, typename TVariant>
-	[[nodiscard]] const TRecord* getIf(const TVariant& p_event)
+	[[nodiscard]] const TRecord *getIf(const TVariant &p_event)
 	{
 		return std::get_if<TRecord>(&p_event);
 	}

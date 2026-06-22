@@ -12,12 +12,12 @@ namespace spk
 		return _isValid.load();
 	}
 
-	void SurfaceState::setRect(const spk::Rect2D& p_rect)
+	void SurfaceState::setRect(const spk::Rect2D &p_rect)
 	{
 		_rect = p_rect;
 	}
 
-	const spk::Rect2D& SurfaceState::rect() const
+	const spk::Rect2D &SurfaceState::rect() const
 	{
 		return _rect;
 	}

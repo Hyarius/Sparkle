@@ -1,11 +1,10 @@
 #include "utils/spk_winapi_helpers.hpp"
 
-
 #include <vector>
 
 namespace spk
 {
-	std::wstring toWideString(const std::string& p_value)
+	std::wstring toWideString(const std::string &p_value)
 	{
 		if (p_value.empty())
 		{
@@ -23,7 +22,7 @@ namespace spk
 		return result;
 	}
 
-	std::string toString(const std::wstring& p_value)
+	std::string toString(const std::wstring &p_value)
 	{
 		if (p_value.empty())
 		{
@@ -41,7 +40,7 @@ namespace spk
 		return result;
 	}
 
-	std::string lastErrorMessage(const std::string& p_context)
+	std::string lastErrorMessage(const std::string &p_context)
 	{
 		const DWORD errorCode = GetLastError();
 		LPWSTR buffer = nullptr;
@@ -74,9 +73,8 @@ namespace spk
 		return message;
 	}
 
-	void throwLastError(const std::string& p_context)
+	void throwLastError(const std::string &p_context)
 	{
 		throw std::runtime_error(lastErrorMessage(p_context));
 	}
 }
-

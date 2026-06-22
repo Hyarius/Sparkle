@@ -11,6 +11,6 @@ namespace spk
 	{
 		[[nodiscard]] std::uint64_t nowNsMono();
 		[[nodiscard]] Timestamp getTime();
-		void sleepFor(const spk::Duration& p_duration);
+		void sleepFor(const spk::Duration &p_duration);
 	}
 }

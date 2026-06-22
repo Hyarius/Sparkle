@@ -19,7 +19,7 @@ namespace spk
 			return Timestamp(static_cast<long double>(nowNsMono()), TimeUnit::Nanosecond);
 		}
 
-		void sleepFor(const spk::Duration& p_duration)
+		void sleepFor(const spk::Duration &p_duration)
 		{
 			if (p_duration < 1000_ns)
 			{

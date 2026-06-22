@@ -22,15 +22,15 @@ namespace spk
 		}
 	}
 
-	SliderBar::SliderBar(const std::string& p_name, spk::Widget* p_parent) :
+	SliderBar::SliderBar(const std::string &p_name, spk::Widget *p_parent) :
 		SliderBar(p_name, spk::Orientation::Horizontal, p_parent)
 	{
 	}
 
 	SliderBar::SliderBar(
-		const std::string& p_name,
+		const std::string &p_name,
 		spk::Orientation p_orientation,
-		spk::Widget* p_parent) :
+		spk::Widget *p_parent) :
 		spk::Widget(p_name, p_parent),
 		_background(
 			p_name + "::background",
@@ -45,7 +45,7 @@ namespace spk
 		activate();
 	}
 
-	void SliderBar::applyStyle(const spk::WidgetStyle& p_style)
+	void SliderBar::applyStyle(const spk::WidgetStyle &p_style)
 	{
 		_background.applyStyle(p_style);
 	}
@@ -99,7 +99,7 @@ namespace spk
 		_refreshBodyGeometry();
 	}
 
-	float SliderBar::_ratioFromPosition(const spk::Vector2Int& p_position) const
+	float SliderBar::_ratioFromPosition(const spk::Vector2Int &p_position) const
 	{
 		const bool horizontal = (_orientation == spk::Orientation::Horizontal);
 
@@ -125,7 +125,7 @@ namespace spk
 		return std::clamp((localPosition - static_cast<float>(bodyLength) / 2.0f) / range, 0.0f, 1.0f);
 	}
 
-	void SliderBar::_onMouseButtonPressedEvent(spk::MouseButtonPressedEvent& p_event)
+	void SliderBar::_onMouseButtonPressedEvent(spk::MouseButtonPressedEvent &p_event)
 	{
 		if (p_event->button != spk::Mouse::Left)
 		{
@@ -150,7 +150,7 @@ namespace spk
 		p_event.consume();
 	}
 
-	void SliderBar::_onMouseButtonReleasedEvent(spk::MouseButtonReleasedEvent& p_event)
+	void SliderBar::_onMouseButtonReleasedEvent(spk::MouseButtonReleasedEvent &p_event)
 	{
 		if (p_event->button != spk::Mouse::Left || _isDragged == false)
 		{
@@ -162,7 +162,7 @@ namespace spk
 		p_event.consume();
 	}
 
-	void SliderBar::_onMouseMovedEvent(spk::MouseMovedEvent& p_event)
+	void SliderBar::_onMouseMovedEvent(spk::MouseMovedEvent &p_event)
 	{
 		if (_isDragged == false)
 		{
@@ -292,22 +292,22 @@ namespace spk
 		return _isDragged;
 	}
 
-	spk::Panel& SliderBar::background()
+	spk::Panel &SliderBar::background()
 	{
 		return _background;
 	}
 
-	const spk::Panel& SliderBar::background() const
+	const spk::Panel &SliderBar::background() const
 	{
 		return _background;
 	}
 
-	spk::Panel& SliderBar::body()
+	spk::Panel &SliderBar::body()
 	{
 		return _body;
 	}
 
-	const spk::Panel& SliderBar::body() const
+	const spk::Panel &SliderBar::body() const
 	{
 		return _body;
 	}

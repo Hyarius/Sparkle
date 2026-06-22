@@ -16,18 +16,18 @@ namespace spk
 		RenderSnapshotBuilder() = default;
 		~RenderSnapshotBuilder() = default;
 
-		RenderSnapshotBuilder(const RenderSnapshotBuilder&) = delete;
-		RenderSnapshotBuilder& operator=(const RenderSnapshotBuilder&) = delete;
+		RenderSnapshotBuilder(const RenderSnapshotBuilder &) = delete;
+		RenderSnapshotBuilder &operator=(const RenderSnapshotBuilder &) = delete;
 
-		RenderSnapshotBuilder(RenderSnapshotBuilder&&) noexcept = default;
-		RenderSnapshotBuilder& operator=(RenderSnapshotBuilder&&) noexcept = default;
+		RenderSnapshotBuilder(RenderSnapshotBuilder &&) noexcept = default;
+		RenderSnapshotBuilder &operator=(RenderSnapshotBuilder &&) noexcept = default;
 
 		void clear();
-		void append(const std::shared_ptr<spk::RenderUnit>& p_unit);
+		void append(const std::shared_ptr<spk::RenderUnit> &p_unit);
 
 		[[nodiscard]] bool empty() const;
 		[[nodiscard]] size_t size() const;
-		[[nodiscard]] const std::vector<std::shared_ptr<spk::RenderUnit>>& units() const;
+		[[nodiscard]] const std::vector<std::shared_ptr<spk::RenderUnit>> &units() const;
 
 		[[nodiscard]] spk::RenderSnapshot build();
 	};

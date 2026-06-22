@@ -44,27 +44,27 @@ namespace spk
 
 		struct Layout
 		{
-			std::uint8_t* data = nullptr;
+			std::uint8_t *data = nullptr;
 			std::vector<Section> sections;
 		};
 
 		std::shared_ptr<Layout> _layout;
 		std::size_t _sectionID = invalidSectionID;
 
-		BinaryField(const std::shared_ptr<Layout>& p_layout, std::size_t p_sectionID);
+		BinaryField(const std::shared_ptr<Layout> &p_layout, std::size_t p_sectionID);
 
-		Section& _section();
-		const Section& _section() const;
+		Section &_section();
+		const Section &_section() const;
 
 		std::size_t _findChild(std::string_view p_name) const;
 		BinaryField _addSection(std::string_view p_name, std::size_t p_offset, std::size_t p_size, Kind p_kind);
 
 		template <typename TValueType>
-		void _writeExact(const TValueType& p_value)
+		void _writeExact(const TValueType &p_value)
 		{
 			static_assert(std::is_trivially_copyable_v<TValueType>);
 
-			Section& section = _section();
+			Section &section = _section();
 			if (sizeof(TValueType) != section.size)
 			{
 				throw std::runtime_error("BinaryField assignment received a value with the wrong size.");
@@ -75,7 +75,7 @@ namespace spk
 
 	public:
 		BinaryField() = default;
-		BinaryField(std::uint8_t* p_data, std::size_t p_size);
+		BinaryField(std::uint8_t *p_data, std::size_t p_size);
 
 		bool isValid() const;
 
@@ -84,8 +84,8 @@ namespace spk
 		std::size_t offset() const;
 		std::size_t count() const;
 		std::size_t elementSize() const;
-		std::uint8_t* data();
-		const std::uint8_t* data() const;
+		std::uint8_t *data();
+		const std::uint8_t *data() const;
 
 		BinaryField addValue(std::string_view p_name, std::size_t p_offset, std::size_t p_size);
 		BinaryField addObject(std::string_view p_name, std::size_t p_offset, std::size_t p_size);
@@ -95,18 +95,18 @@ namespace spk
 		BinaryField operator[](std::size_t p_index);
 
 		template <typename TValueType>
-		BinaryField& operator=(const TValueType& p_value)
+		BinaryField &operator=(const TValueType &p_value)
 		{
 			_writeExact(p_value);
 			return *this;
 		}
 
 		template <typename TValueType, std::size_t NSize>
-		BinaryField& operator=(const std::array<TValueType, NSize>& p_values)
+		BinaryField &operator=(const std::array<TValueType, NSize> &p_values)
 		{
 			static_assert(std::is_trivially_copyable_v<TValueType>);
 
-			Section& section = _section();
+			Section &section = _section();
 			if (sizeof(TValueType) * NSize != section.size)
 			{
 				throw std::runtime_error("BinaryField array assignment received values with the wrong size.");
@@ -117,7 +117,7 @@ namespace spk
 		}
 
 		template <typename TValueType>
-		BinaryField& set(const TValueType& p_value)
+		BinaryField &set(const TValueType &p_value)
 		{
 			_writeExact(p_value);
 			return *this;
@@ -128,7 +128,7 @@ namespace spk
 		{
 			static_assert(std::is_trivially_copyable_v<TValueType>);
 
-			const Section& section = _section();
+			const Section &section = _section();
 			if (sizeof(TValueType) != section.size)
 			{
 				throw std::runtime_error("BinaryField::as received a type with the wrong size.");

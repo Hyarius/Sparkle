@@ -63,8 +63,8 @@ namespace spk
 			Section();
 			Section(spk::Vector2 p_anchor, spk::Vector2 p_size);
 
-			bool operator==(const Section& p_other) const noexcept;
-			bool operator!=(const Section& p_other) const noexcept;
+			bool operator==(const Section &p_other) const noexcept;
+			bool operator!=(const Section &p_other) const noexcept;
 
 			static const Section whole;
 		};
@@ -91,16 +91,16 @@ namespace spk
 			std::shared_ptr<const Resource> resource;
 
 			SharedState();
-			SharedState(const SharedState& p_other);
+			SharedState(const SharedState &p_other);
 			~SharedState();
 
-			SharedState& operator=(const SharedState& p_other) = delete;
-			SharedState(SharedState&& p_other) noexcept = delete;
-			SharedState& operator=(SharedState&& p_other) noexcept = delete;
+			SharedState &operator=(const SharedState &p_other) = delete;
+			SharedState(SharedState &&p_other) noexcept = delete;
+			SharedState &operator=(SharedState &&p_other) noexcept = delete;
 		};
 
-		static std::deque<ID>& _availableIDs();
-		static ID& _nextID();
+		static std::deque<ID> &_availableIDs();
+		static ID &_nextID();
 		static ID _takeId();
 		static void _releaseId(ID p_id);
 
@@ -108,8 +108,8 @@ namespace spk
 
 		void _ensureResource();
 		[[nodiscard]] std::shared_ptr<const Resource> _resourceSnapshot() const;
-		[[nodiscard]] const Resource& _resourceData() const;
-		void _publishResource(const std::shared_ptr<Resource>& p_resource);
+		[[nodiscard]] const Resource &_resourceData() const;
+		void _publishResource(const std::shared_ptr<Resource> &p_resource);
 		static size_t _getBytesPerPixel(Format p_format);
 
 	protected:
@@ -122,56 +122,56 @@ namespace spk
 		virtual ~Texture() = default;
 
 		// Cheap handle copy. Does NOT duplicate pixels.
-		Texture(const Texture& p_other);
-		Texture& operator=(const Texture& p_other);
+		Texture(const Texture &p_other);
+		Texture &operator=(const Texture &p_other);
 
-		Texture(Texture&& p_other) noexcept;
-		Texture& operator=(Texture&& p_other) noexcept;
+		Texture(Texture &&p_other) noexcept;
+		Texture &operator=(Texture &&p_other) noexcept;
 
 		// Explicit deep copy. Duplicates pixels and creates a new texture identity.
 		[[nodiscard]] Texture clone() const;
 
 		void setPixels(
-			const std::vector<std::uint8_t>& p_data,
-			const spk::Vector2UInt& p_size,
+			const std::vector<std::uint8_t> &p_data,
+			const spk::Vector2UInt &p_size,
 			Format p_format,
 			Filtering p_filtering,
 			Wrap p_wrap,
 			Mipmap p_mipmap);
 
 		void setPixels(
-			const std::vector<std::uint8_t>& p_data,
-			const spk::Vector2UInt& p_size,
+			const std::vector<std::uint8_t> &p_data,
+			const spk::Vector2UInt &p_size,
 			Format p_format);
 
 		void setPixels(
-			const std::uint8_t* p_data,
-			const spk::Vector2UInt& p_size,
+			const std::uint8_t *p_data,
+			const spk::Vector2UInt &p_size,
 			Format p_format,
 			Filtering p_filtering,
 			Wrap p_wrap,
 			Mipmap p_mipmap);
 
 		void setPixels(
-			const std::uint8_t* p_data,
-			const spk::Vector2UInt& p_size,
+			const std::uint8_t *p_data,
+			const spk::Vector2UInt &p_size,
 			Format p_format);
 
 		void setProperties(Filtering p_filtering, Wrap p_wrap, Mipmap p_mipmap);
 
 		[[nodiscard]] std::uint64_t version() const noexcept;
 
-		[[nodiscard]] spk::OpenGL::Texture& gpu(const spk::RenderContext& p_context) const;
-		[[nodiscard]] bool hasGpu(const spk::RenderContext& p_context) const noexcept;
+		[[nodiscard]] spk::OpenGL::Texture &gpu(const spk::RenderContext &p_context) const;
+		[[nodiscard]] bool hasGpu(const spk::RenderContext &p_context) const noexcept;
 
 		[[nodiscard]] ID id() const;
-		[[nodiscard]] const std::vector<std::uint8_t>& pixels() const;
-		[[nodiscard]] const spk::Vector2UInt& size() const;
+		[[nodiscard]] const std::vector<std::uint8_t> &pixels() const;
+		[[nodiscard]] const spk::Vector2UInt &size() const;
 		[[nodiscard]] Format format() const;
 		[[nodiscard]] Filtering filtering() const;
 		[[nodiscard]] Wrap wrap() const;
 		[[nodiscard]] Mipmap mipmap() const;
 
-		void saveAsPng(const std::filesystem::path& p_path) const;
+		void saveAsPng(const std::filesystem::path &p_path) const;
 	};
 }

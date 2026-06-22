@@ -10,13 +10,13 @@
 namespace spk
 {
 	template <typename TType>
-	requires (!std::is_void_v<TType>)
+		requires(!std::is_void_v<TType>)
 	class CachedData
 	{
 	public:
 		using ValueType = TType;
 		using Generator = std::function<TType()>;
-		using Destructor = std::function<void(TType&)>;
+		using Destructor = std::function<void(TType &)>;
 
 	private:
 		Generator _generator = nullptr;
@@ -68,40 +68,40 @@ namespace spk
 			release();
 		}
 
-		CachedData(const CachedData&) = delete;
-		CachedData& operator=(const CachedData&) = delete;
+		CachedData(const CachedData &) = delete;
+		CachedData &operator=(const CachedData &) = delete;
 
-		CachedData(CachedData&&) = delete;
-		CachedData& operator=(CachedData&&) = delete;
+		CachedData(CachedData &&) = delete;
+		CachedData &operator=(CachedData &&) = delete;
 
-		TType& get()
+		TType &get()
 		{
 			_generateData();
 			return _data.value();
 		}
 
-		const TType& get() const
+		const TType &get() const
 		{
 			_generateData();
 			return _data.value();
 		}
 
-		TType& operator*()
+		TType &operator*()
 		{
 			return get();
 		}
 
-		const TType& operator*() const
+		const TType &operator*() const
 		{
 			return get();
 		}
 
-		TType* operator->()
+		TType *operator->()
 		{
 			return &(get());
 		}
 
-		const TType* operator->() const
+		const TType *operator->() const
 		{
 			return &(get());
 		}
@@ -118,13 +118,13 @@ namespace spk
 			_destructor = std::move(p_destructor);
 		}
 
-		void set(const TType& p_value)
+		void set(const TType &p_value)
 		{
 			_destroyData();
 			_data = p_value;
 		}
 
-		void set(TType&& p_value)
+		void set(TType &&p_value)
 		{
 			_destroyData();
 			_data = std::move(p_value);
@@ -147,14 +147,14 @@ namespace spk
 			return _data.has_value();
 		}
 
-		TType& refresh()
+		TType &refresh()
 		{
 			_destroyData();
 			_generateData();
 			return _data.value();
 		}
 
-		const TType& refresh() const
+		const TType &refresh() const
 		{
 			_destroyData();
 			_generateData();

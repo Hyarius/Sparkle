@@ -16,8 +16,8 @@ namespace spk
 			mutable spk::CachedOpenGLObjectCollection<spk::OpenGL::UniformLocation> _locationCache;
 
 		public:
-			void activate(const spk::RenderContext& p_context, const spk::SamplerObject& p_sampler) const;
-			void deactivate(const spk::SamplerObject& p_sampler) const;
+			void activate(const spk::RenderContext &p_context, const spk::SamplerObject &p_sampler) const;
+			void deactivate(const spk::SamplerObject &p_sampler) const;
 		};
 	}
 }

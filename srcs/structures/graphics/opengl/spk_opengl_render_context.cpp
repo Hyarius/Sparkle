@@ -1,6 +1,5 @@
 #include "structures/graphics/opengl/spk_opengl_render_context.hpp"
 
-
 #include <stdexcept>
 #include <unordered_map>
 #include <utility>
@@ -11,22 +10,22 @@
 
 namespace
 {
-	using WGLSwapIntervalEXTPtr = BOOL(WINAPI*)(int);
+	using WGLSwapIntervalEXTPtr = BOOL(WINAPI *)(int);
 
 	// Live-context registry: lets handle destructors route GPU objects to their
 	// owning context (or detect it died). The storage intentionally survives
 	// process teardown because static GPU handles may release after normal static
 	// objects have already been destroyed.
-	std::mutex& contextRegistryMutex()
+	std::mutex &contextRegistryMutex()
 	{
-		static std::mutex* mutex = new std::mutex();
+		static std::mutex *mutex = new std::mutex();
 		return *mutex;
 	}
 
-	std::unordered_map<std::uint64_t, spk::RenderContext*>& contextRegistry()
+	std::unordered_map<std::uint64_t, spk::RenderContext *> &contextRegistry()
 	{
-		static std::unordered_map<std::uint64_t, spk::RenderContext*>* registry =
-			new std::unordered_map<std::uint64_t, spk::RenderContext*>();
+		static std::unordered_map<std::uint64_t, spk::RenderContext *> *registry =
+			new std::unordered_map<std::uint64_t, spk::RenderContext *>();
 		return *registry;
 	}
 
@@ -81,7 +80,7 @@ namespace spk
 		_registerSelf();
 	}
 
-	RenderContext::RenderContext(spk::Frame& p_frame) :
+	RenderContext::RenderContext(spk::Frame &p_frame) :
 		_surfaceState(p_frame.surfaceState()),
 		_valid(true),
 		_windowHandle(p_frame.handle()),
@@ -116,7 +115,7 @@ namespace spk
 		{
 			throw std::runtime_error(
 				"spk::RenderContext failed to initialize GLEW: " +
-				std::string(reinterpret_cast<const char*>(glewGetErrorString(glewResult))));
+				std::string(reinterpret_cast<const char *>(glewGetErrorString(glewResult))));
 		}
 
 		glEnable(GL_BLEND);
@@ -160,7 +159,7 @@ namespace spk
 			HDC previousDeviceContext = wglGetCurrentDC();
 			HGLRC previousRenderContext = wglGetCurrentContext();
 
-			RenderContext* previousCurrent = s_current;
+			RenderContext *previousCurrent = s_current;
 
 			if (wglMakeCurrent(_deviceContext, _renderContext) == TRUE)
 			{
@@ -195,12 +194,12 @@ namespace spk
 		}
 	}
 
-	RenderContext* RenderContext::current() noexcept
+	RenderContext *RenderContext::current() noexcept
 	{
 		return s_current;
 	}
 
-	RenderContext* RenderContext::fromId(std::uint64_t p_id) noexcept
+	RenderContext *RenderContext::fromId(std::uint64_t p_id) noexcept
 	{
 		std::scoped_lock lock(contextRegistryMutex());
 		const auto it = contextRegistry().find(p_id);
@@ -239,29 +238,29 @@ namespace spk
 		pending.clear();
 	}
 
-	bool RenderContext::isProgramActive(const spk::OpenGL::Program* p_program) const noexcept
+	bool RenderContext::isProgramActive(const spk::OpenGL::Program *p_program) const noexcept
 	{
 		return _bindingCache.program.has_value() == true && _bindingCache.program.value() == p_program;
 	}
 
-	void RenderContext::setActiveProgram(const spk::OpenGL::Program* p_program) const noexcept
+	void RenderContext::setActiveProgram(const spk::OpenGL::Program *p_program) const noexcept
 	{
 		_bindingCache.program = p_program;
 	}
 
-	bool RenderContext::isVertexArrayActive(const spk::OpenGL::VertexArray* p_vertexArray) const noexcept
+	bool RenderContext::isVertexArrayActive(const spk::OpenGL::VertexArray *p_vertexArray) const noexcept
 	{
 		return _bindingCache.vertexArray.has_value() == true && _bindingCache.vertexArray.value() == p_vertexArray;
 	}
 
-	void RenderContext::setActiveVertexArray(const spk::OpenGL::VertexArray* p_vertexArray) const noexcept
+	void RenderContext::setActiveVertexArray(const spk::OpenGL::VertexArray *p_vertexArray) const noexcept
 	{
 		_bindingCache.vertexArray = p_vertexArray;
 	}
 
 	bool RenderContext::isUniformBufferBaseActive(
 		std::uint32_t p_bindingPoint,
-		const spk::OpenGL::Buffer* p_buffer) const noexcept
+		const spk::OpenGL::Buffer *p_buffer) const noexcept
 	{
 		return p_bindingPoint < BindingCache::TrackedUniformBindingPoints &&
 			   _bindingCache.uniformBuffers[p_bindingPoint].has_value() == true &&
@@ -270,7 +269,7 @@ namespace spk
 
 	void RenderContext::setActiveUniformBufferBase(
 		std::uint32_t p_bindingPoint,
-		const spk::OpenGL::Buffer* p_buffer) const noexcept
+		const spk::OpenGL::Buffer *p_buffer) const noexcept
 	{
 		if (p_bindingPoint >= BindingCache::TrackedUniformBindingPoints)
 		{
@@ -280,7 +279,7 @@ namespace spk
 		_bindingCache.uniformBuffers[p_bindingPoint] = p_buffer;
 	}
 
-	void RenderContext::onProgramDeleted(const spk::OpenGL::Program& p_program) const noexcept
+	void RenderContext::onProgramDeleted(const spk::OpenGL::Program &p_program) const noexcept
 	{
 		if (_bindingCache.program.has_value() == true && _bindingCache.program.value() == &p_program)
 		{
@@ -288,7 +287,7 @@ namespace spk
 		}
 	}
 
-	void RenderContext::onVertexArrayDeleted(const spk::OpenGL::VertexArray& p_vertexArray) const noexcept
+	void RenderContext::onVertexArrayDeleted(const spk::OpenGL::VertexArray &p_vertexArray) const noexcept
 	{
 		if (_bindingCache.vertexArray.has_value() == true && _bindingCache.vertexArray.value() == &p_vertexArray)
 		{
@@ -297,7 +296,7 @@ namespace spk
 		}
 	}
 
-	void RenderContext::onBufferDeleted(const spk::OpenGL::Buffer& p_buffer) const noexcept
+	void RenderContext::onBufferDeleted(const spk::OpenGL::Buffer &p_buffer) const noexcept
 	{
 		for (std::size_t i = 0; i < _bindingCache.uniformBuffers.size(); ++i)
 		{
@@ -379,14 +378,14 @@ namespace spk
 			return;
 		}
 
-		auto* swapInterval = reinterpret_cast<WGLSwapIntervalEXTPtr>(wglGetProcAddress("wglSwapIntervalEXT"));
+		auto *swapInterval = reinterpret_cast<WGLSwapIntervalEXTPtr>(wglGetProcAddress("wglSwapIntervalEXT"));
 		if (swapInterval != nullptr)
 		{
 			swapInterval(p_enabled == true ? 1 : 0);
 		}
 	}
 
-	void RenderContext::notifyResize(const spk::Rect2D& p_rect)
+	void RenderContext::notifyResize(const spk::Rect2D &p_rect)
 	{
 		surfaceState()->setRect(p_rect);
 
@@ -399,4 +398,3 @@ namespace spk
 		glViewport(0, 0, static_cast<GLsizei>(p_rect.width()), static_cast<GLsizei>(p_rect.height()));
 	}
 }
-

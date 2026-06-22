@@ -7,11 +7,11 @@
 
 #include <GL/glew.h>
 
-#include "structures/graphics/opengl/spk_cached_opengl_object_collection.hpp"
-#include "structures/graphics/spk_index_buffer_object.hpp"
-#include "structures/graphics/opengl/spk_opengl_vertex_array.hpp"
-#include "structures/graphics/spk_vertex_buffer_object.hpp"
 #include "structures/design_pattern/spk_synchronizable_trait.hpp"
+#include "structures/graphics/opengl/spk_cached_opengl_object_collection.hpp"
+#include "structures/graphics/opengl/spk_opengl_vertex_array.hpp"
+#include "structures/graphics/spk_index_buffer_object.hpp"
+#include "structures/graphics/spk_vertex_buffer_object.hpp"
 
 namespace spk
 {
@@ -53,24 +53,24 @@ namespace spk
 		VertexArrayObject();
 		~VertexArrayObject() = default;
 
-		VertexArrayObject(const VertexArrayObject&) = delete;
-		VertexArrayObject& operator=(const VertexArrayObject&) = delete;
-		VertexArrayObject(VertexArrayObject&&) noexcept = delete;
-		VertexArrayObject& operator=(VertexArrayObject&&) noexcept = delete;
+		VertexArrayObject(const VertexArrayObject &) = delete;
+		VertexArrayObject &operator=(const VertexArrayObject &) = delete;
+		VertexArrayObject(VertexArrayObject &&) noexcept = delete;
+		VertexArrayObject &operator=(VertexArrayObject &&) noexcept = delete;
 
 		// Resolves (building if needed) this vertex array's GPU copy for p_context.
 		// p_context must be the current context.
-		[[nodiscard]] spk::OpenGL::VertexArray& gpu(const spk::RenderContext& p_context) const;
-		[[nodiscard]] bool hasGpu(const spk::RenderContext& p_context) const noexcept;
+		[[nodiscard]] spk::OpenGL::VertexArray &gpu(const spk::RenderContext &p_context) const;
+		[[nodiscard]] bool hasGpu(const spk::RenderContext &p_context) const noexcept;
 
 		void addVertexBuffer(std::shared_ptr<VertexBufferObject> p_buffer, Attribute p_attribute);
 		void clearVertexBuffers();
 
 		void setIndexBuffer(std::shared_ptr<IndexBufferObject> p_buffer);
 		void clearIndexBuffer();
-		[[nodiscard]] const std::shared_ptr<IndexBufferObject>& indexBuffer() const noexcept;
+		[[nodiscard]] const std::shared_ptr<IndexBufferObject> &indexBuffer() const noexcept;
 
-		void activate(const spk::RenderContext& p_context) const;
+		void activate(const spk::RenderContext &p_context) const;
 		void deactivate() const;
 	};
 }

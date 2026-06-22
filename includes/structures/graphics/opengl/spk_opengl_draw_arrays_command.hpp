@@ -4,10 +4,10 @@
 
 #include <GL/glew.h>
 
-#include "structures/graphics/spk_vertex_array_object.hpp"
+#include "structures/graphics/rendering/command/spk_render_command.hpp"
 #include "structures/graphics/spk_primitive.hpp"
 #include "structures/graphics/spk_program.hpp"
-#include "structures/graphics/rendering/command/spk_render_command.hpp"
+#include "structures/graphics/spk_vertex_array_object.hpp"
 
 namespace spk
 {
@@ -29,6 +29,6 @@ namespace spk
 			GLint p_first,
 			GLsizei p_count);
 
-		void execute(spk::RenderContext& p_renderContext) override;
+		void execute(spk::RenderContext &p_renderContext) override;
 	};
 }

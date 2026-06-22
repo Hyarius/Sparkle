@@ -1,6 +1,5 @@
 #pragma once
 
-
 #include <string>
 
 #include <Windows.h>
@@ -21,15 +20,14 @@ namespace spk
 
 	public:
 		WindowClass(std::string p_name, WNDPROC p_windowProcedure, HINSTANCE p_instance = GetModuleHandleW(nullptr));
-		WindowClass(const WindowClass&) = delete;
-		WindowClass(WindowClass&& p_other) noexcept;
+		WindowClass(const WindowClass &) = delete;
+		WindowClass(WindowClass &&p_other) noexcept;
 		~WindowClass();
 
-		WindowClass& operator=(const WindowClass&) = delete;
-		WindowClass& operator=(WindowClass&& p_other) noexcept;
+		WindowClass &operator=(const WindowClass &) = delete;
+		WindowClass &operator=(WindowClass &&p_other) noexcept;
 
 		[[nodiscard]] HINSTANCE instance() const;
-		[[nodiscard]] const std::string& name() const;
+		[[nodiscard]] const std::string &name() const;
 	};
 }
-

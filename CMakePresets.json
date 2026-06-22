@@ -47,30 +47,24 @@
 			}
 		},
 		{
-			"name": "coverage",
+			"name": "clang-tidy",
 			"inherits": "default",
-			"description": "Configure for Debug test build with LLVM coverage instrumentation. Requires a Clang/LLVM compiler.",
+			"description": "Configure with clang-tidy analysis enabled",
 			"cacheVariables": {
-				"ENABLE_TESTS": "ON",
-				"ENABLE_COVERAGE": "ON",
-				"CMAKE_BUILD_TYPE": "Debug"
+				"SPARKLE_ENABLE_CLANG_TIDY": "ON",
+				"CMAKE_BUILD_TYPE": "Release"
 			}
 		},
 		{
 			"name": "coverage-clang",
-			"inherits": "coverage",
-			"description": "Configure for Debug test build with LLVM coverage instrumentation using clang from PATH",
-			"cacheVariables": {
-				"CMAKE_CXX_COMPILER": "clang++"
-			}
-		},
-		{
-			"name": "clang-tidy",
 			"inherits": "default",
-			"description": "Configure for Debug build with clang-tidy analysis during compilation",
+			"description": "Configure Debug build with clang and coverage instrumentation enabled",
 			"cacheVariables": {
 				"CMAKE_BUILD_TYPE": "Debug",
-				"CMAKE_CXX_CLANG_TIDY": "clang-tidy"
+				"ENABLE_TESTS": "ON",
+				"SPARKLE_ENABLE_COVERAGE": "ON",
+				"CMAKE_C_COMPILER": "clang",
+				"CMAKE_CXX_COMPILER": "clang++"
 			}
 		},
 		{
@@ -102,10 +96,14 @@
 			"configurePreset": "test"
 		},
 		{
-			"name": "coverage",
-			"configurePreset": "coverage",
+			"name": "clang-tidy",
+			"configurePreset": "clang-tidy"
+		},
+		{
+			"name": "clang-tidy-fix",
+			"configurePreset": "clang-tidy",
 			"targets": [
-				"coverage"
+				"clang-tidy-fix"
 			]
 		},
 		{
@@ -113,13 +111,6 @@
 			"configurePreset": "coverage-clang",
 			"targets": [
 				"coverage"
-			]
-		},
-		{
-			"name": "clang-tidy",
-			"configurePreset": "clang-tidy",
-			"targets": [
-				"Sparkle"
 			]
 		},
 		{
@@ -147,10 +138,6 @@
 		{
 			"name": "test",
 			"configurePreset": "test"
-		},
-		{
-			"name": "coverage",
-			"configurePreset": "coverage"
 		},
 		{
 			"name": "coverage-clang",

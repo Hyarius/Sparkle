@@ -51,7 +51,7 @@ namespace spk
 		}
 	}
 
-	void WindowHandle::resize(const spk::Rect2D& p_rect) const
+	void WindowHandle::resize(const spk::Rect2D &p_rect) const
 	{
 		std::shared_ptr<spk::Window> window = _window.lock();
 
@@ -83,7 +83,7 @@ namespace spk
 		return window->host().rect();
 	}
 
-	spk::Widget& WindowHandle::centralWidget() const
+	spk::Widget &WindowHandle::centralWidget() const
 	{
 		std::shared_ptr<spk::Window> window = _window.lock();
 

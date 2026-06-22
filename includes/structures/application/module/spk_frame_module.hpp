@@ -2,8 +2,8 @@
 
 #include <functional>
 
-#include "structures/system/event/spk_events.hpp"
 #include "structures/application/module/spk_module.hpp"
+#include "structures/system/event/spk_events.hpp"
 #include "structures/system/thread/spk_thread_safe_deque.hpp"
 
 namespace spk
@@ -11,17 +11,17 @@ namespace spk
 	class FrameModule : public IModule
 	{
 	public:
-		using ProcessedEventCallback = std::function<bool(spk::FrameEventRecord&, bool)>;
+		using ProcessedEventCallback = std::function<bool(spk::FrameEventRecord &, bool)>;
 
 	private:
 		spk::ThreadSafeDeque<spk::FrameEventRecord> _events;
 
-		bool _treatEvent(spk::FrameEventRecord& p_event);
+		bool _treatEvent(spk::FrameEventRecord &p_event);
 
 	public:
 		FrameModule();
 
 		void pushEvent(spk::FrameEventRecord p_event);
-		void processEvents(const ProcessedEventCallback& p_processedEventCallback = nullptr);
+		void processEvents(const ProcessedEventCallback &p_processedEventCallback = nullptr);
 	};
 }

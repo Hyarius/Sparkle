@@ -2,10 +2,10 @@
 
 #include <memory>
 
-#include "structures/math/spk_rect_2d.hpp"
 #include "structures/graphics/rendering/command/spk_draw_texture_mesh_render_command.hpp"
 #include "structures/graphics/rendering/command/spk_render_command.hpp"
 #include "structures/graphics/spk_texture.hpp"
+#include "structures/math/spk_rect_2d.hpp"
 
 namespace spk
 {
@@ -16,11 +16,11 @@ namespace spk
 
 	public:
 		ImageRenderCommand(
-			const spk::Texture& p_texture,
+			const spk::Texture &p_texture,
 			spk::Texture::Section p_section,
 			spk::Rect2D p_screenRect,
 			float p_depth = 0.0f);
 
-		void execute(spk::RenderContext& p_renderContext) override;
+		void execute(spk::RenderContext &p_renderContext) override;
 	};
 }

@@ -25,17 +25,17 @@ namespace spk
 		void _restartTimer();
 
 	protected:
-		void _onUpdate(const spk::UpdateTick& p_tick) override;
+		void _onUpdate(const spk::UpdateTick &p_tick) override;
 
 	public:
-		explicit DynamicTextLabel(const std::string& p_name, spk::Widget* p_parent = nullptr);
+		explicit DynamicTextLabel(const std::string &p_name, spk::Widget *p_parent = nullptr);
 		DynamicTextLabel(
-			const std::string& p_name,
-			const TextProducer& p_textProducer,
-			spk::Widget* p_parent = nullptr);
+			const std::string &p_name,
+			const TextProducer &p_textProducer,
+			spk::Widget *p_parent = nullptr);
 
-		void setTextProducer(const TextProducer& p_textProducer);
-		void setRefreshDuration(const spk::Duration& p_refreshDuration);
+		void setTextProducer(const TextProducer &p_textProducer);
+		void setRefreshDuration(const spk::Duration &p_refreshDuration);
 		void refresh();
 	};
 }

@@ -27,13 +27,13 @@ namespace spk
 
 	public:
 		Timer() = default;
-		explicit Timer(const Duration& p_expectedDuration);
+		explicit Timer(const Duration &p_expectedDuration);
 
-		Timer(const Timer& p_other) = default;
-		Timer(Timer&& p_other) noexcept = default;
+		Timer(const Timer &p_other) = default;
+		Timer(Timer &&p_other) noexcept = default;
 
-		Timer& operator=(const Timer& p_other) = default;
-		Timer& operator=(Timer&& p_other) noexcept = default;
+		Timer &operator=(const Timer &p_other) = default;
+		Timer &operator=(Timer &&p_other) noexcept = default;
 
 		[[nodiscard]] State state() const noexcept;
 		[[nodiscard]] Duration elapsed() const noexcept;
@@ -47,9 +47,9 @@ namespace spk
 		void resume();
 	};
 
-	[[nodiscard]] const char* toString(Timer::State p_state) noexcept;
-	[[nodiscard]] const wchar_t* toWstring(Timer::State p_state) noexcept;
+	[[nodiscard]] const char *toString(Timer::State p_state) noexcept;
+	[[nodiscard]] const wchar_t *toWstring(Timer::State p_state) noexcept;
 }
 
-std::ostream& operator<<(std::ostream& p_os, spk::Timer::State p_state);
-std::wostream& operator<<(std::wostream& p_wos, spk::Timer::State p_state);
+std::ostream &operator<<(std::ostream &p_os, spk::Timer::State p_state);
+std::wostream &operator<<(std::wostream &p_wos, spk::Timer::State p_state);

@@ -17,10 +17,10 @@ namespace spk
 			VertexArray();
 			~VertexArray();
 
-			VertexArray(const VertexArray&) = delete;
-			VertexArray& operator=(const VertexArray&) = delete;
-			VertexArray(VertexArray&&) = delete;
-			VertexArray& operator=(VertexArray&&) = delete;
+			VertexArray(const VertexArray &) = delete;
+			VertexArray &operator=(const VertexArray &) = delete;
+			VertexArray(VertexArray &&) = delete;
+			VertexArray &operator=(VertexArray &&) = delete;
 
 			[[nodiscard]] GLuint id() const noexcept;
 		};

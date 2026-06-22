@@ -28,15 +28,11 @@ namespace spk
 			const unsigned int contentHeight =
 				(geometry().height() > _menuBar.height()) ? geometry().height() - _menuBar.height() : 0;
 
-			_content.setGeometry(spk::Rect2D(
-				0,
-				static_cast<int>(_menuBar.height()),
-				geometry().width(),
-				contentHeight));
+			_content.setGeometry(spk::Rect2D(0, static_cast<int>(_menuBar.height()), geometry().width(), contentHeight));
 		}
 
 	public:
-		explicit Workspace(const std::string& p_name, spk::Widget* p_parent = nullptr) :
+		explicit Workspace(const std::string &p_name, spk::Widget *p_parent = nullptr) :
 			spk::Widget(p_name, p_parent),
 			_content(p_name + "::content", this),
 			_menuBar(p_name + "::menuBar", this)
@@ -56,22 +52,22 @@ namespace spk
 			activate();
 		}
 
-		[[nodiscard]] spk::MenuBar& menuBar()
+		[[nodiscard]] spk::MenuBar &menuBar()
 		{
 			return _menuBar;
 		}
 
-		[[nodiscard]] const spk::MenuBar& menuBar() const
+		[[nodiscard]] const spk::MenuBar &menuBar() const
 		{
 			return _menuBar;
 		}
 
-		[[nodiscard]] TContentType& content()
+		[[nodiscard]] TContentType &content()
 		{
 			return _content;
 		}
 
-		[[nodiscard]] const TContentType& content() const
+		[[nodiscard]] const TContentType &content() const
 		{
 			return _content;
 		}

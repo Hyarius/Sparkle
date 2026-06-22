@@ -6,14 +6,14 @@ namespace spk
 {
 	FrameModule::FrameModule() = default;
 
-	bool FrameModule::_treatEvent(spk::FrameEventRecord& p_event)
+	bool FrameModule::_treatEvent(spk::FrameEventRecord &p_event)
 	{
 		if (widget() == nullptr)
 		{
 			return false;
 		}
 
-		if (auto* event = spk::getIf<spk::WindowResizedRecord>(p_event); event != nullptr)
+		if (auto *event = spk::getIf<spk::WindowResizedRecord>(p_event); event != nullptr)
 		{
 			widget()->setGeometry(event->rect.atOrigin());
 			widget()->invalidateRenderUnitTree();
@@ -27,7 +27,7 @@ namespace spk
 		_events.pushBack(std::move(p_event));
 	}
 
-	void FrameModule::processEvents(const ProcessedEventCallback& p_processedEventCallback)
+	void FrameModule::processEvents(const ProcessedEventCallback &p_processedEventCallback)
 	{
 		spk::FrameEventRecord event;
 

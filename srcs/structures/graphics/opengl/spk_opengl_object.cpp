@@ -6,7 +6,7 @@ namespace spk::OpenGL
 {
 	Object::Object()
 	{
-		spk::RenderContext* context = spk::RenderContext::current();
+		spk::RenderContext *context = spk::RenderContext::current();
 		if (context != nullptr)
 		{
 			_contextId = context->id();
@@ -15,7 +15,7 @@ namespace spk::OpenGL
 
 	bool Object::_ownsCurrentContext() const noexcept
 	{
-		spk::RenderContext* context = spk::RenderContext::current();
+		spk::RenderContext *context = spk::RenderContext::current();
 		return context != nullptr && context->id() == _contextId;
 	}
 
@@ -34,12 +34,12 @@ namespace spk::OpenGL
 		return _contentVersion;
 	}
 
-	std::uint64_t contextIdOf(const spk::RenderContext& p_context) noexcept
+	std::uint64_t contextIdOf(const spk::RenderContext &p_context) noexcept
 	{
 		return p_context.id();
 	}
 
-	bool isContextCurrent(const spk::RenderContext& p_context) noexcept
+	bool isContextCurrent(const spk::RenderContext &p_context) noexcept
 	{
 		return spk::RenderContext::current() == &p_context;
 	}
@@ -54,27 +54,27 @@ namespace spk::OpenGL
 		return spk::RenderContext::deathGeneration();
 	}
 
-	void notifyProgramDeleted(const Program& p_program) noexcept
+	void notifyProgramDeleted(const Program &p_program) noexcept
 	{
-		spk::RenderContext* current = spk::RenderContext::current();
+		spk::RenderContext *current = spk::RenderContext::current();
 		if (current != nullptr)
 		{
 			current->onProgramDeleted(p_program);
 		}
 	}
 
-	void notifyVertexArrayDeleted(const VertexArray& p_vertexArray) noexcept
+	void notifyVertexArrayDeleted(const VertexArray &p_vertexArray) noexcept
 	{
-		spk::RenderContext* current = spk::RenderContext::current();
+		spk::RenderContext *current = spk::RenderContext::current();
 		if (current != nullptr)
 		{
 			current->onVertexArrayDeleted(p_vertexArray);
 		}
 	}
 
-	void notifyBufferDeleted(const Buffer& p_buffer) noexcept
+	void notifyBufferDeleted(const Buffer &p_buffer) noexcept
 	{
-		spk::RenderContext* current = spk::RenderContext::current();
+		spk::RenderContext *current = spk::RenderContext::current();
 		if (current != nullptr)
 		{
 			current->onBufferDeleted(p_buffer);
@@ -88,13 +88,13 @@ namespace spk::OpenGL
 			return;
 		}
 
-		spk::RenderContext* current = spk::RenderContext::current();
+		spk::RenderContext *current = spk::RenderContext::current();
 		if (current != nullptr && current->id() == p_object->contextId())
 		{
 			return; // destroyed in place; the destructor may issue GL calls
 		}
 
-		spk::RenderContext* owner = spk::RenderContext::fromId(p_object->contextId());
+		spk::RenderContext *owner = spk::RenderContext::fromId(p_object->contextId());
 		if (owner != nullptr)
 		{
 			owner->scheduleRelease(std::move(p_object));

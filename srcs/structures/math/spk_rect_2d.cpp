@@ -2,23 +2,27 @@
 
 namespace spk
 {
-	Rect2D::Rect2D(const Rect2D::Anchor &p_anchor, const Rect2D::Size &p_size) : anchor(p_anchor),
-																				 size(p_size)
+	Rect2D::Rect2D(const Rect2D::Anchor &p_anchor, const Rect2D::Size &p_size) :
+		anchor(p_anchor),
+		size(p_size)
 	{
 	}
 
-	Rect2D::Rect2D(const Rect2D::Anchor &p_anchor, const std::size_t p_width, const std::size_t p_height) : anchor(p_anchor),
-																											size(static_cast<Size::value_type>(p_width), static_cast<Size::value_type>(p_height))
+	Rect2D::Rect2D(const Rect2D::Anchor &p_anchor, const std::size_t p_width, const std::size_t p_height) :
+		anchor(p_anchor),
+		size(static_cast<Size::value_type>(p_width), static_cast<Size::value_type>(p_height))
 	{
 	}
 
-	Rect2D::Rect2D(const int p_x, const int p_y, const Rect2D::Size &p_size) : anchor(p_x, p_y),
-																			   size(p_size)
+	Rect2D::Rect2D(const int p_x, const int p_y, const Rect2D::Size &p_size) :
+		anchor(p_x, p_y),
+		size(p_size)
 	{
 	}
 
-	Rect2D::Rect2D(const int p_x, const int p_y, const std::size_t p_width, const std::size_t p_height) : anchor(p_x, p_y),
-																										  size(static_cast<Size::value_type>(p_width), static_cast<Size::value_type>(p_height))
+	Rect2D::Rect2D(const int p_x, const int p_y, const std::size_t p_width, const std::size_t p_height) :
+		anchor(p_x, p_y),
+		size(static_cast<Size::value_type>(p_width), static_cast<Size::value_type>(p_height))
 	{
 	}
 

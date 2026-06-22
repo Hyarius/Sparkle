@@ -23,7 +23,7 @@ namespace spk
 			}
 		}
 
-		void Texture::_convertFormat(spk::Texture::Format p_format, GLint& p_internalFormat, GLenum& p_externalFormat)
+		void Texture::_convertFormat(spk::Texture::Format p_format, GLint &p_internalFormat, GLenum &p_externalFormat)
 		{
 			switch (p_format)
 			{
@@ -100,11 +100,11 @@ namespace spk
 			}
 		}
 
-		Texture::Texture(const spk::Texture& p_source)
+		Texture::Texture(const spk::Texture &p_source)
 		{
 			std::shared_ptr<const spk::Texture::Resource> sourceResource = p_source._resourceSnapshot();
 
-			const spk::Vector2UInt& sz = sourceResource->size;
+			const spk::Vector2UInt &sz = sourceResource->size;
 			if (sz.x == 0 || sz.y == 0 || sourceResource->format == spk::Texture::Format::Error)
 			{
 				return;

@@ -41,20 +41,20 @@ namespace spk
 		void _onGeometryChange() override;
 
 	public:
-		explicit DebugOverlay(const std::string& p_name, spk::Widget* p_parent = nullptr);
+		explicit DebugOverlay(const std::string &p_name, spk::Widget *p_parent = nullptr);
 
 		void configureRows(size_t p_rows, size_t p_defaultColumns);
 		void setRowColumns(size_t p_row, size_t p_columns);
 
 		void setText(size_t p_row, size_t p_column, std::string_view p_text);
 		void setFont(std::shared_ptr<spk::Font> p_font);
-		void setFontColor(const spk::Color& p_glyphColor, const spk::Color& p_outlineColor);
+		void setFontColor(const spk::Color &p_glyphColor, const spk::Color &p_outlineColor);
 		void setFontOutlineSize(size_t p_outlineSize);
 		void setMaxGlyphSize(size_t p_maxGlyphSize);
 
 		[[nodiscard]] size_t nbRow() const;
 		[[nodiscard]] size_t nbColumn(size_t p_row) const;
-		[[nodiscard]] const spk::TextLabel* label(size_t p_row, size_t p_column) const;
+		[[nodiscard]] const spk::TextLabel *label(size_t p_row, size_t p_column) const;
 		[[nodiscard]] uint32_t labelHeight() const;
 	};
 }

@@ -34,7 +34,7 @@ namespace
 			static_cast<int>(std::max(1u, p_controlHeight / 12u)));
 	}
 
-	void applyCompactMetrics(spk::PushButton& p_button, unsigned int p_controlHeight)
+	void applyCompactMetrics(spk::PushButton &p_button, unsigned int p_controlHeight)
 	{
 		const spk::Font::Size textSize = compactTextSize(p_controlHeight);
 		const spk::Vector2Int textPadding = compactTextPadding(p_controlHeight);
@@ -48,14 +48,14 @@ namespace
 
 namespace spk
 {
-	MenuBar::Menu::Item::Item(const std::string& p_name, spk::Widget* p_parent) :
+	MenuBar::Menu::Item::Item(const std::string &p_name, spk::Widget *p_parent) :
 		spk::PushButton(p_name, p_parent)
 	{
 		setFlat(true);
 		setAlignment(spk::HorizontalAlignment::Left, spk::VerticalAlignment::Centered);
 	}
 
-	MenuBar::Menu::Break::Break(const std::string& p_name, spk::Widget* p_parent) :
+	MenuBar::Menu::Break::Break(const std::string &p_name, spk::Widget *p_parent) :
 		spk::Widget(p_name, p_parent),
 		_spriteSheet(defaultBreakSpriteSheet())
 	{
@@ -74,7 +74,7 @@ namespace spk
 			return builder.build();
 		}
 
-		const spk::Rect2D& rect = geometry();
+		const spk::Rect2D &rect = geometry();
 		const unsigned int capSize = std::min(_height, rect.width() / 2);
 		const unsigned int middleWidth = rect.width() - capSize * 2;
 
@@ -130,14 +130,14 @@ namespace spk
 		return _height;
 	}
 
-	MenuBar::Menu::Menu(const std::string& p_name, spk::Widget* p_parent) :
+	MenuBar::Menu::Menu(const std::string &p_name, spk::Widget *p_parent) :
 		spk::Widget(p_name, p_parent),
 		_backgroundFrame(p_name + "::backgroundFrame", this)
 	{
 		sizeHint().configureMinimalGenerator([this]() {
 			spk::Vector2UInt result = {0, 0};
 
-			for (const auto& element : _elements)
+			for (const auto &element : _elements)
 			{
 				if (result.y != 0)
 				{
@@ -162,9 +162,9 @@ namespace spk
 		}
 
 		_controlHeight = p_controlHeight;
-		for (const auto& element : _elements)
+		for (const auto &element : _elements)
 		{
-			if (auto* button = dynamic_cast<spk::PushButton*>(element.item.get()); button != nullptr)
+			if (auto *button = dynamic_cast<spk::PushButton *>(element.item.get()); button != nullptr)
 			{
 				applyCompactMetrics(*button, _controlHeight);
 			}
@@ -181,19 +181,17 @@ namespace spk
 		const int contentWidth =
 			static_cast<int>(geometry().width()) - cornerSize.x * 2 - ItemSpacing * 2;
 
-		for (const auto& element : _elements)
+		for (const auto &element : _elements)
 		{
 			const spk::Vector2UInt elementSize = element.item->minimalSize();
 
-			element.item->setGeometry(spk::Rect2D(
-				anchor,
-				spk::Vector2UInt(static_cast<unsigned int>(std::max(0, contentWidth)), elementSize.y)));
+			element.item->setGeometry(spk::Rect2D(anchor, spk::Vector2UInt(static_cast<unsigned int>(std::max(0, contentWidth)), elementSize.y)));
 
 			anchor.y += static_cast<int>(elementSize.y) + ItemSpacing;
 		}
 	}
 
-	void MenuBar::Menu::_onMouseButtonPressedEvent(spk::MouseButtonPressedEvent& p_event)
+	void MenuBar::Menu::_onMouseButtonPressedEvent(spk::MouseButtonPressedEvent &p_event)
 	{
 		if (absoluteGeometry().contains(p_event.device().position) == false)
 		{
@@ -206,7 +204,7 @@ namespace spk
 		return _elements.size();
 	}
 
-	MenuBar::Menu::Item* MenuBar::Menu::addItem(std::string_view p_itemName, std::function<void()> p_callback)
+	MenuBar::Menu::Item *MenuBar::Menu::addItem(std::string_view p_itemName, std::function<void()> p_callback)
 	{
 		auto item = std::make_unique<Item>(name() + "::" + std::string(p_itemName), this);
 
@@ -214,8 +212,7 @@ namespace spk
 		applyCompactMetrics(*item, _controlHeight);
 
 		spk::PushButton::Contract contract = item->subscribeToClick(
-			[this, callback = std::move(p_callback)]()
-			{
+			[this, callback = std::move(p_callback)]() {
 				if (callback != nullptr)
 				{
 					callback();
@@ -223,7 +220,7 @@ namespace spk
 				deactivate();
 			});
 
-		Item* result = item.get();
+		Item *result = item.get();
 		_elements.push_back({std::move(item), std::move(contract)});
 
 		_refreshOwningBar();
@@ -231,11 +228,11 @@ namespace spk
 		return result;
 	}
 
-	MenuBar::Menu::Break* MenuBar::Menu::addBreak()
+	MenuBar::Menu::Break *MenuBar::Menu::addBreak()
 	{
 		auto item = std::make_unique<Break>(name() + "::break", this);
 
-		Break* result = item.get();
+		Break *result = item.get();
 		_elements.push_back({std::move(item), spk::PushButton::Contract()});
 
 		_refreshOwningBar();
@@ -245,7 +242,7 @@ namespace spk
 
 	void MenuBar::Menu::_refreshOwningBar()
 	{
-		MenuBar* bar = dynamic_cast<MenuBar*>(parent());
+		MenuBar *bar = dynamic_cast<MenuBar *>(parent());
 		if (bar != nullptr)
 		{
 			bar->_onGeometryChange();
@@ -256,7 +253,7 @@ namespace spk
 		}
 	}
 
-	MenuBar::MenuBar(const std::string& p_name, spk::Widget* p_parent) :
+	MenuBar::MenuBar(const std::string &p_name, spk::Widget *p_parent) :
 		spk::Widget(p_name, p_parent),
 		_backgroundFrame(p_name + "::backgroundFrame", this)
 	{
@@ -270,7 +267,7 @@ namespace spk
 		const spk::Vector2Int cornerSize = _backgroundFrame.cornerSize();
 		spk::Vector2Int anchor = cornerSize;
 
-		for (auto& entry : _menus)
+		for (auto &entry : _menus)
 		{
 			const unsigned int buttonHeight =
 				(_height > static_cast<unsigned int>(BarContentInset * 2))
@@ -286,9 +283,7 @@ namespace spk
 
 			entry->menuButton->setGeometry(spk::Rect2D(anchor, buttonSize));
 
-			entry->menu->setGeometry(spk::Rect2D(
-				{anchor.x, static_cast<int>(_height)},
-				entry->menu->minimalSize()));
+			entry->menu->setGeometry(spk::Rect2D({anchor.x, static_cast<int>(_height)}, entry->menu->minimalSize()));
 
 			anchor.x += static_cast<int>(buttonSize.x) + ItemSpacing;
 		}
@@ -310,7 +305,7 @@ namespace spk
 		return _menus.size();
 	}
 
-	MenuBar::Menu* MenuBar::addMenu(std::string_view p_menuName)
+	MenuBar::Menu *MenuBar::addMenu(std::string_view p_menuName)
 	{
 		std::unique_ptr<MenuEntry> newMenuEntry = std::make_unique<MenuEntry>();
 
@@ -324,14 +319,13 @@ namespace spk
 			name() + "::" + std::string(p_menuName) + "Menu",
 			this);
 
-		MenuEntry* rawMenuEntryPtr = newMenuEntry.get();
+		MenuEntry *rawMenuEntryPtr = newMenuEntry.get();
 
 		newMenuEntry->menuButtonContract = newMenuEntry->menuButton->subscribeToClick(
-			[this, rawMenuEntryPtr]()
-			{
+			[this, rawMenuEntryPtr]() {
 				const bool wasActivated = rawMenuEntryPtr->menu->isActivated();
 
-				for (auto& entry : _menus)
+				for (auto &entry : _menus)
 				{
 					entry->menu->deactivate();
 				}
@@ -351,7 +345,7 @@ namespace spk
 		return _menus.back()->menu.get();
 	}
 
-	spk::PushButton* MenuBar::menuButton(size_t p_index)
+	spk::PushButton *MenuBar::menuButton(size_t p_index)
 	{
 		if (p_index >= _menus.size())
 		{

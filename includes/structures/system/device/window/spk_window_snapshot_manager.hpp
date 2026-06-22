@@ -8,6 +8,6 @@ namespace spk
 	class WindowSnapshotManager
 	{
 	public:
-		void rebuild(const spk::Widget& p_rootWidget, spk::RenderModule& p_renderModule);
+		void rebuild(const spk::Widget &p_rootWidget, spk::RenderModule &p_renderModule);
 	};
 }

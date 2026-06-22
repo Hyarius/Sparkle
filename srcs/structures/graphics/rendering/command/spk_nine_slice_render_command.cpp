@@ -10,14 +10,13 @@ namespace
 		return {
 			static_cast<float>(p_x),
 			static_cast<float>(p_y),
-			p_depth
-		};
+			p_depth};
 	}
 
 	void validateArguments(
-		const spk::SpriteSheet& p_spriteSheet,
-		const spk::Rect2D& p_screenRect,
-		const spk::Vector2Int& p_cornerSize)
+		const spk::SpriteSheet &p_spriteSheet,
+		const spk::Rect2D &p_screenRect,
+		const spk::Vector2Int &p_cornerSize)
 	{
 		if (p_spriteSheet.nbSprite() != spk::Vector2UInt{3, 3})
 		{
@@ -40,7 +39,7 @@ namespace
 namespace spk
 {
 	NineSliceRenderCommand::NineSliceRenderCommand(
-		const spk::SpriteSheet& p_spriteSheet,
+		const spk::SpriteSheet &p_spriteSheet,
 		spk::Rect2D p_screenRect,
 		spk::Vector2Int p_cornerSize,
 		float p_depth)
@@ -51,14 +50,12 @@ namespace spk
 			p_screenRect.left(),
 			p_screenRect.left() + p_cornerSize.x,
 			p_screenRect.right() - p_cornerSize.x,
-			p_screenRect.right()
-		};
+			p_screenRect.right()};
 		const std::array<int, 4> yPositions = {
 			p_screenRect.top(),
 			p_screenRect.top() + p_cornerSize.y,
 			p_screenRect.bottom() - p_cornerSize.y,
-			p_screenRect.bottom()
-		};
+			p_screenRect.bottom()};
 
 		spk::TextureMesh2D mesh;
 		mesh.reserve(9 * 4, 9 * 6);
@@ -67,7 +64,7 @@ namespace spk
 		{
 			for (std::uint32_t x = 0; x < 3; ++x)
 			{
-				const spk::SpriteSheet::Sprite& sprite = p_spriteSheet.sprite({x, y});
+				const spk::SpriteSheet::Sprite &sprite = p_spriteSheet.sprite({x, y});
 				const spk::Vector2 topLeftUV = sprite.anchor;
 				const spk::Vector2 bottomLeftUV = {sprite.anchor.x, sprite.anchor.y + sprite.size.y};
 				const spk::Vector2 bottomRightUV = sprite.anchor + sprite.size;
@@ -85,7 +82,7 @@ namespace spk
 			p_spriteSheet, mesh);
 	}
 
-	void NineSliceRenderCommand::execute(spk::RenderContext& p_renderContext)
+	void NineSliceRenderCommand::execute(spk::RenderContext &p_renderContext)
 	{
 		_textureCommand->execute(p_renderContext);
 	}

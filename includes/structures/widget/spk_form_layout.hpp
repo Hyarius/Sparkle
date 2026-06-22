@@ -17,22 +17,22 @@ namespace spk
 	public:
 		struct FormElement
 		{
-			Element* labelElement = nullptr;
-			Element* fieldElement = nullptr;
+			Element *labelElement = nullptr;
+			Element *fieldElement = nullptr;
 		};
 
 		FormLayout();
 
 		FormElement addRow(
-			spk::Widget* p_labelWidget,
-			spk::Widget* p_fieldWidget,
+			spk::Widget *p_labelWidget,
+			spk::Widget *p_fieldWidget,
 			SizePolicy p_labelPolicy = SizePolicy::Minimum,
 			SizePolicy p_fieldPolicy = SizePolicy::Extend);
 
-		void removeRow(const FormElement& p_row);
+		void removeRow(const FormElement &p_row);
 
 		[[nodiscard]] size_t nbRow() const;
 
-		void setGeometry(const spk::Rect2D& p_geometry) override;
+		void setGeometry(const spk::Rect2D &p_geometry) override;
 	};
 }

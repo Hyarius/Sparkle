@@ -2,7 +2,7 @@
 
 namespace spk
 {
-	spk::WindowHandle WindowRegistry::createWindow(const WindowID& p_id, std::shared_ptr<PlatformRuntime> p_platformRuntime, std::shared_ptr<GPUPlatformRuntime> p_gpuPlatformRuntime, spk::Window::Configuration p_configuration)
+	spk::WindowHandle WindowRegistry::createWindow(const WindowID &p_id, std::shared_ptr<PlatformRuntime> p_platformRuntime, std::shared_ptr<GPUPlatformRuntime> p_gpuPlatformRuntime, spk::Window::Configuration p_configuration)
 	{
 		{
 			std::scoped_lock lock(_mutex);
@@ -23,14 +23,13 @@ namespace spk
 		auto [iterator, inserted] = _windows.emplace(
 			p_id,
 			Entry{
-				.window = std::move(newWindow)
-			});
+				.window = std::move(newWindow)});
 
 		(void)inserted;
 		return spk::WindowHandle(std::weak_ptr<spk::Window>(iterator->second.window));
 	}
 
-	spk::WindowHandle WindowRegistry::window(const WindowID& p_id) const
+	spk::WindowHandle WindowRegistry::window(const WindowID &p_id) const
 	{
 		std::scoped_lock lock(_mutex);
 
@@ -43,7 +42,7 @@ namespace spk
 		return spk::WindowHandle(std::weak_ptr<spk::Window>(iterator->second.window));
 	}
 
-	bool WindowRegistry::contains(const WindowID& p_id) const
+	bool WindowRegistry::contains(const WindowID &p_id) const
 	{
 		std::scoped_lock lock(_mutex);
 		return _windows.contains(p_id);
@@ -62,7 +61,7 @@ namespace spk
 		std::vector<std::weak_ptr<spk::Window>> result;
 		result.reserve(_windows.size());
 
-		for (const auto& [id, entry] : _windows)
+		for (const auto &[id, entry] : _windows)
 		{
 			(void)id;
 			result.push_back(entry.window);
@@ -89,7 +88,7 @@ namespace spk
 		}
 	}
 
-	void WindowRegistry::requestWindowClosing(const WindowID& p_id)
+	void WindowRegistry::requestWindowClosing(const WindowID &p_id)
 	{
 		std::shared_ptr<spk::Window> windowToClose;
 

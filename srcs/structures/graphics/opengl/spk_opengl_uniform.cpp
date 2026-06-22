@@ -4,7 +4,7 @@
 
 namespace
 {
-	std::string normalizeUniformName(const std::string& p_name)
+	std::string normalizeUniformName(const std::string &p_name)
 	{
 		const std::string arraySuffix = "[0]";
 
@@ -20,7 +20,7 @@ namespace
 
 namespace spk::OpenGL
 {
-	GLint Uniform::findLocation(GLuint p_programId, const std::string& p_name)
+	GLint Uniform::findLocation(GLuint p_programId, const std::string &p_name)
 	{
 		GLint location = glGetUniformLocation(p_programId, p_name.c_str());
 
@@ -43,9 +43,9 @@ namespace spk::OpenGL
 
 	void Uniform::validateDeclaration(
 		GLuint p_programId,
-		const std::string& p_name,
+		const std::string &p_name,
 		GLenum p_expectedType,
-		const char* p_expectedTypeName,
+		const char *p_expectedTypeName,
 		std::size_t p_expectedCount)
 	{
 		const std::string normalizedName = normalizeUniformName(p_name);
@@ -53,14 +53,14 @@ namespace spk::OpenGL
 		GLuint uniformIndex = GL_INVALID_INDEX;
 
 		{
-			const GLchar* uniformNames[] = {normalizedName.c_str()};
+			const GLchar *uniformNames[] = {normalizedName.c_str()};
 			glGetUniformIndices(p_programId, 1, uniformNames, &uniformIndex);
 		}
 
 		if (uniformIndex == GL_INVALID_INDEX)
 		{
 			const std::string arrayElementName = normalizedName + "[0]";
-			const GLchar* uniformNames[] = {arrayElementName.c_str()};
+			const GLchar *uniformNames[] = {arrayElementName.c_str()};
 			glGetUniformIndices(p_programId, 1, uniformNames, &uniformIndex);
 		}
 

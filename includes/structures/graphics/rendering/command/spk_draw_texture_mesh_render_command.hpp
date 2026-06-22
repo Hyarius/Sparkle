@@ -1,11 +1,11 @@
 #pragma once
 
-#include "structures/graphics/rendering/command/spk_render_command.hpp"
-#include "structures/graphics/spk_texture.hpp"
 #include "structures/graphics/geometry/spk_texture_mesh_2d.hpp"
+#include "structures/graphics/rendering/command/spk_render_command.hpp"
 #include "structures/graphics/spk_layout_buffer_object.hpp"
 #include "structures/graphics/spk_program.hpp"
 #include "structures/graphics/spk_sampler_object.hpp"
+#include "structures/graphics/spk_texture.hpp"
 #include "structures/graphics/spk_uniform_buffer_object.hpp"
 
 namespace spk
@@ -15,16 +15,16 @@ namespace spk
 	private:
 		spk::Texture _texture;
 		spk::TextureMesh2D _mesh;
-		const spk::UniformBufferObject& _viewportBuffer;
+		const spk::UniformBufferObject &_viewportBuffer;
 		spk::SamplerObject _textureSampler;
 
-		[[nodiscard]] static spk::Program& _sharedProgram();
+		[[nodiscard]] static spk::Program &_sharedProgram();
 
 	public:
 		DrawTextureMeshRenderCommand(
-			const spk::Texture& p_texture,
-			const spk::TextureMesh2D& p_mesh);
+			const spk::Texture &p_texture,
+			const spk::TextureMesh2D &p_mesh);
 
-		void execute(spk::RenderContext& p_renderContext) override;
+		void execute(spk::RenderContext &p_renderContext) override;
 	};
 }

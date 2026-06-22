@@ -14,19 +14,19 @@ namespace spk
 		std::vector<std::shared_ptr<spk::RenderUnit>> _units;
 
 	public:
-		explicit RenderSnapshot(std::vector<std::shared_ptr<spk::RenderUnit>>&& p_units = {});
+		explicit RenderSnapshot(std::vector<std::shared_ptr<spk::RenderUnit>> &&p_units = {});
 		~RenderSnapshot() = default;
 
-		RenderSnapshot(const RenderSnapshot&) = delete;
-		RenderSnapshot& operator=(const RenderSnapshot&) = delete;
+		RenderSnapshot(const RenderSnapshot &) = delete;
+		RenderSnapshot &operator=(const RenderSnapshot &) = delete;
 
-		RenderSnapshot(RenderSnapshot&&) noexcept = default;
-		RenderSnapshot& operator=(RenderSnapshot&&) noexcept = default;
+		RenderSnapshot(RenderSnapshot &&) noexcept = default;
+		RenderSnapshot &operator=(RenderSnapshot &&) noexcept = default;
 
 		[[nodiscard]] bool empty() const;
 		[[nodiscard]] size_t size() const;
-		[[nodiscard]] const std::vector<std::shared_ptr<spk::RenderUnit>>& units() const;
+		[[nodiscard]] const std::vector<std::shared_ptr<spk::RenderUnit>> &units() const;
 
-		void execute(spk::RenderContext& p_renderContext);
+		void execute(spk::RenderContext &p_renderContext);
 	};
 }

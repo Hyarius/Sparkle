@@ -16,6 +16,7 @@ endif()
 include(CMakePackageConfigHelpers)
 include(GNUInstallDirs)
 include(cmake/add_resources.cmake)
+include(cmake/add_coverage.cmake)
 
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
     set(ARCH_FOLDER x64)
@@ -34,33 +35,6 @@ set(SPARKLE_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/includes")
 set(SPARKLE_RESOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/resources")
 
 option(ENABLE_PLAYGROUND "Build the Sparkle playground executable" OFF)
-option(ENABLE_COVERAGE "Build tests with LLVM source-based coverage instrumentation" OFF)
-
-if(ENABLE_COVERAGE)
-    if(NOT ENABLE_TESTS)
-        message(FATAL_ERROR "ENABLE_COVERAGE requires ENABLE_TESTS=ON")
-    endif()
-
-    if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-        message(FATAL_ERROR "ENABLE_COVERAGE currently requires Clang/LLVM")
-    endif()
-
-    find_program(LLVM_COV_EXECUTABLE llvm-cov REQUIRED)
-    find_program(LLVM_PROFDATA_EXECUTABLE llvm-profdata REQUIRED)
-
-    function(sparkle_enable_coverage target_name)
-        target_compile_options(${target_name} PRIVATE
-            -O0
-            -g
-            -fprofile-instr-generate
-            -fcoverage-mapping
-        )
-        target_link_options(${target_name} PRIVATE
-            -fprofile-instr-generate
-            -fcoverage-mapping
-        )
-    endfunction()
-endif()
 
 add_subdirectory(tools)
 
@@ -95,6 +69,51 @@ file(GLOB_RECURSE SPARKLE_TEST_RESOURCE_FILES
 
 add_resources(${SPARKLE_RESOURCE_FILES} ${SPARKLE_TEST_RESOURCE_FILES})
 
+    ########################################
+    #          Static analysis             #
+    ########################################
+option(SPARKLE_ENABLE_CLANG_TIDY "Enable clang-tidy analysis during builds" OFF)
+
+if (SPARKLE_ENABLE_CLANG_TIDY)
+    find_program(SPARKLE_CLANG_TIDY_EXECUTABLE NAMES clang-tidy)
+
+    if (SPARKLE_CLANG_TIDY_EXECUTABLE)
+        # Keep clang-tidy aligned with the exceptions-enabled build (some Windows toolchains
+        # default to -fno-exceptions when invoked in clang-cl mode).
+        set(SPARKLE_CLANG_TIDY_COMMON_ARGS --warnings-as-errors=*)
+
+        if (MSVC)
+            list(APPEND SPARKLE_CLANG_TIDY_COMMON_ARGS --extra-arg=/EHsc)
+        else()
+            list(APPEND SPARKLE_CLANG_TIDY_COMMON_ARGS --extra-arg=-fexceptions --extra-arg=-fcxx-exceptions)
+        endif()
+
+        set(SPARKLE_CLANG_TIDY_FIX_ARGS ${SPARKLE_CLANG_TIDY_COMMON_ARGS} --fix --format-style=file)
+        set(CMAKE_CXX_CLANG_TIDY "${SPARKLE_CLANG_TIDY_EXECUTABLE};${SPARKLE_CLANG_TIDY_COMMON_ARGS}")
+    else()
+        message(FATAL_ERROR "SPARKLE_ENABLE_CLANG_TIDY is ON but clang-tidy was not found. Install LLVM or disable the option.")
+    endif()
+
+    if (SPARKLE_CLANG_TIDY_EXECUTABLE)
+        add_custom_target(clang-tidy-fix
+            COMMAND ${SPARKLE_CLANG_TIDY_EXECUTABLE} ${SPARKLE_CLANG_TIDY_FIX_ARGS} -p ${CMAKE_BINARY_DIR} ${SPARKLE_SOURCES}
+            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+            COMMENT "Applying clang-tidy fixes across Sparkle sources"
+            VERBATIM
+        )
+    endif()
+endif()
+
+    ########################################
+    #          Coverage instrumentation    #
+    ########################################
+option(SPARKLE_ENABLE_COVERAGE "Enable code coverage instrumentation for supported toolchains" OFF)
+set(SPARKLE_COVERAGE_MIN_LINE_RATE "95" CACHE STRING "Minimum line coverage percentage required by the coverage target.")
+
+if (SPARKLE_ENABLE_COVERAGE AND NOT ENABLE_TESTS)
+    message(FATAL_ERROR "SPARKLE_ENABLE_COVERAGE=ON requires ENABLE_TESTS=ON so that coverage can run the unit suite.")
+endif()
+
 find_package(Stb REQUIRED)
 
 find_package(GLEW REQUIRED)
@@ -102,10 +121,6 @@ find_package(OpenGL REQUIRED)
 
 add_library(Sparkle STATIC ${SPARKLE_SOURCES} ${SPARKLE_HEADERS})
 add_library(Sparkle::Sparkle ALIAS Sparkle)
-
-if(ENABLE_COVERAGE)
-    sparkle_enable_coverage(Sparkle)
-endif()
 
 add_dependencies(Sparkle SparkleResourcesHeaderTarget)
 target_sources(Sparkle PRIVATE "${SPARKLE_RESOURCES_HEADER}")
@@ -201,8 +216,15 @@ export(
 
 if (ENABLE_TESTS)
 	enable_testing()
-    
+
 	add_subdirectory(tests)
+
+	if (SPARKLE_ENABLE_COVERAGE)
+		sparkle_enable_coverage(
+			TEST_TARGET SparkleTest
+			LIBRARIES Sparkle
+		)
+	endif()
 endif()
 
 if (ENABLE_PLAYGROUND)

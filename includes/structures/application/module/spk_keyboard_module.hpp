@@ -1,8 +1,8 @@
 #pragma once
 
-#include "structures/system/event/spk_events.hpp"
-#include "structures/system/device/input/spk_keyboard.hpp"
 #include "structures/application/module/spk_module.hpp"
+#include "structures/system/device/input/spk_keyboard.hpp"
+#include "structures/system/event/spk_events.hpp"
 #include "structures/system/thread/spk_thread_safe_deque.hpp"
 
 namespace spk
@@ -14,7 +14,7 @@ namespace spk
 		spk::ThreadSafeDeque<spk::KeyboardEventRecord> _events;
 
 	private:
-		void _treatEvent(spk::KeyboardEventRecord& p_event);
+		void _treatEvent(spk::KeyboardEventRecord &p_event);
 
 	public:
 		KeyboardModule();
@@ -22,7 +22,7 @@ namespace spk
 		void pushEvent(spk::KeyboardEventRecord p_event);
 		void processEvents();
 
-		[[nodiscard]] spk::Keyboard& keyboard();
-		[[nodiscard]] const spk::Keyboard& keyboard() const;
+		[[nodiscard]] spk::Keyboard &keyboard();
+		[[nodiscard]] const spk::Keyboard &keyboard() const;
 	};
 }

@@ -1,9 +1,9 @@
 #include "structures/widget/spk_widget.hpp"
 
+#include "structures/graphics/rendering/command/spk_viewport_render_command.hpp"
+#include "structures/graphics/rendering/unit/spk_render_unit_builder.hpp"
 #include <algorithm>
 #include <memory>
-#include "structures/graphics/rendering/unit/spk_render_unit_builder.hpp"
-#include "structures/graphics/rendering/command/spk_viewport_render_command.hpp"
 
 namespace spk
 {
@@ -14,7 +14,7 @@ namespace spk
 			return std::make_unique<spk::Viewport>();
 		}
 
-		std::shared_ptr<spk::RenderUnit> makeViewportUnit(const spk::Viewport& p_viewport)
+		std::shared_ptr<spk::RenderUnit> makeViewportUnit(const spk::Viewport &p_viewport)
 		{
 			if (p_viewport.geometry().empty() == true ||
 				p_viewport.scissor().empty() == true)
@@ -37,11 +37,11 @@ namespace spk
 	{
 	}
 
-	void Widget::applyStyle(const spk::WidgetStyle&)
+	void Widget::applyStyle(const spk::WidgetStyle &)
 	{
 	}
 
-	void Widget::onParentChanged(spk::Widget* p_oldParent, spk::Widget* p_newParent)
+	void Widget::onParentChanged(spk::Widget *p_oldParent, spk::Widget *p_newParent)
 	{
 		(void)p_oldParent;
 		(void)p_newParent;
@@ -53,28 +53,83 @@ namespace spk
 		(void)p_tick;
 	}
 
-	void Widget::_onWindowCloseRequestedEvent(spk::WindowCloseRequestedEvent &p_event) { (void)p_event; }
-	void Widget::_onWindowDestroyedEvent(spk::WindowDestroyedEvent &p_event) { (void)p_event; }
-	void Widget::_onWindowMovedEvent(spk::WindowMovedEvent &p_event) { (void)p_event; }
-	void Widget::_onWindowResizedEvent(spk::WindowResizedEvent &p_event) { (void)p_event; }
-	void Widget::_onWindowFocusGainedEvent(spk::WindowFocusGainedEvent &p_event) { (void)p_event; }
-	void Widget::_onWindowFocusLostEvent(spk::WindowFocusLostEvent &p_event) { (void)p_event; }
-	void Widget::_onWindowShownEvent(spk::WindowShownEvent &p_event) { (void)p_event; }
-	void Widget::_onWindowHiddenEvent(spk::WindowHiddenEvent &p_event) { (void)p_event; }
-	void Widget::_onMouseEnteredEvent(spk::MouseEnteredWindowEvent &p_event) { (void)p_event; }
-	void Widget::_onMouseLeftEvent(spk::MouseLeftWindowEvent &p_event) { (void)p_event; }
-	void Widget::_onMouseMovedEvent(spk::MouseMovedEvent &p_event) { (void)p_event; }
-	void Widget::_onMouseWheelScrolledEvent(spk::MouseWheelScrolledEvent &p_event) { (void)p_event; }
-	void Widget::_onMouseButtonPressedEvent(spk::MouseButtonPressedEvent &p_event) { (void)p_event; }
-	void Widget::_onMouseButtonReleasedEvent(spk::MouseButtonReleasedEvent &p_event) { (void)p_event; }
-	void Widget::_onMouseButtonDoubleClickedEvent(spk::MouseButtonDoubleClickedEvent &p_event) { (void)p_event; }
-	void Widget::_onKeyPressedEvent(spk::KeyPressedEvent &p_event) { (void)p_event; }
-	void Widget::_onKeyReleasedEvent(spk::KeyReleasedEvent &p_event) { (void)p_event; }
-	void Widget::_onTextInputEvent(spk::TextInputEvent &p_event) { (void)p_event; }
+	void Widget::_onWindowCloseRequestedEvent(spk::WindowCloseRequestedEvent &p_event)
+	{
+		(void)p_event;
+	}
+	void Widget::_onWindowDestroyedEvent(spk::WindowDestroyedEvent &p_event)
+	{
+		(void)p_event;
+	}
+	void Widget::_onWindowMovedEvent(spk::WindowMovedEvent &p_event)
+	{
+		(void)p_event;
+	}
+	void Widget::_onWindowResizedEvent(spk::WindowResizedEvent &p_event)
+	{
+		(void)p_event;
+	}
+	void Widget::_onWindowFocusGainedEvent(spk::WindowFocusGainedEvent &p_event)
+	{
+		(void)p_event;
+	}
+	void Widget::_onWindowFocusLostEvent(spk::WindowFocusLostEvent &p_event)
+	{
+		(void)p_event;
+	}
+	void Widget::_onWindowShownEvent(spk::WindowShownEvent &p_event)
+	{
+		(void)p_event;
+	}
+	void Widget::_onWindowHiddenEvent(spk::WindowHiddenEvent &p_event)
+	{
+		(void)p_event;
+	}
+	void Widget::_onMouseEnteredEvent(spk::MouseEnteredWindowEvent &p_event)
+	{
+		(void)p_event;
+	}
+	void Widget::_onMouseLeftEvent(spk::MouseLeftWindowEvent &p_event)
+	{
+		(void)p_event;
+	}
+	void Widget::_onMouseMovedEvent(spk::MouseMovedEvent &p_event)
+	{
+		(void)p_event;
+	}
+	void Widget::_onMouseWheelScrolledEvent(spk::MouseWheelScrolledEvent &p_event)
+	{
+		(void)p_event;
+	}
+	void Widget::_onMouseButtonPressedEvent(spk::MouseButtonPressedEvent &p_event)
+	{
+		(void)p_event;
+	}
+	void Widget::_onMouseButtonReleasedEvent(spk::MouseButtonReleasedEvent &p_event)
+	{
+		(void)p_event;
+	}
+	void Widget::_onMouseButtonDoubleClickedEvent(spk::MouseButtonDoubleClickedEvent &p_event)
+	{
+		(void)p_event;
+	}
+	void Widget::_onKeyPressedEvent(spk::KeyPressedEvent &p_event)
+	{
+		(void)p_event;
+	}
+	void Widget::_onKeyReleasedEvent(spk::KeyReleasedEvent &p_event)
+	{
+		(void)p_event;
+	}
+	void Widget::_onTextInputEvent(spk::TextInputEvent &p_event)
+	{
+		(void)p_event;
+	}
 
-	Widget::Widget(const std::string &p_name, spk::Widget *p_parent) : spk::HierarchyTrait<Widget>(p_parent),
-																	   _name(p_name),
-																	   _viewport(makeViewport())
+	Widget::Widget(const std::string &p_name, spk::Widget *p_parent) :
+		spk::HierarchyTrait<Widget>(p_parent),
+		_name(p_name),
+		_viewport(makeViewport())
 	{
 		_updateAbsoluteGeometryAndScissor();
 	}
@@ -84,7 +139,7 @@ namespace spk
 		releaseAllFocus();
 	}
 
-	Widget* Widget::focusedWidget(FocusType p_focusType)
+	Widget *Widget::focusedWidget(FocusType p_focusType)
 	{
 		return _focusedWidgets[static_cast<int>(p_focusType)];
 	}
@@ -199,7 +254,7 @@ namespace spk
 			_viewport->setScissor(_scissor);
 		}
 
-		for (auto* child : children())
+		for (auto *child : children())
 		{
 			if (child != nullptr)
 			{
@@ -227,7 +282,7 @@ namespace spk
 
 		invalidateRenderUnit();
 
-		for (const auto* child : children())
+		for (const auto *child : children())
 		{
 			if (child != nullptr)
 			{
@@ -241,12 +296,12 @@ namespace spk
 		return (_geometry);
 	}
 
-	const spk::Rect2D& Widget::absoluteGeometry() const
+	const spk::Rect2D &Widget::absoluteGeometry() const
 	{
 		return _absoluteGeometry;
 	}
 
-	const spk::Rect2D& Widget::scissor() const
+	const spk::Rect2D &Widget::scissor() const
 	{
 		return _scissor;
 	}
@@ -256,7 +311,7 @@ namespace spk
 		return (_renderCommandsDirty);
 	}
 
-	const spk::Viewport& Widget::viewport() const
+	const spk::Viewport &Widget::viewport() const
 	{
 		return *_viewport;
 	}
@@ -297,9 +352,7 @@ namespace spk
 			(parent() != nullptr)
 				? parent()->absoluteGeometry()
 				: spk::Rect2D(
-					0, 0,
-					static_cast<unsigned int>(std::max(_absoluteGeometry.right(), 1)),
-					static_cast<unsigned int>(std::max(_absoluteGeometry.bottom(), 1)));
+					  0, 0, static_cast<unsigned int>(std::max(_absoluteGeometry.right(), 1)), static_cast<unsigned int>(std::max(_absoluteGeometry.bottom(), 1)));
 
 		p_builder.append(makeViewportUnit(spk::Viewport(frameGeometry, _scissor)));
 		p_builder.append(renderUnit());
@@ -337,62 +390,106 @@ namespace spk
 	{
 		return std::visit(
 			spk::Overloaded{
-				[this](const spk::WindowCloseRequestedRecord &p_record)
-				{ spk::WindowCloseRequestedEvent event(p_record); _propagate(event, &spk::Widget::_onWindowCloseRequestedEvent); return event.isConsumed(); },
-				[this](const spk::WindowDestroyedRecord &p_record)
-				{ spk::WindowDestroyedEvent event(p_record); _propagate(event, &spk::Widget::_onWindowDestroyedEvent); return event.isConsumed(); },
-				[this](const spk::WindowMovedRecord &p_record)
-				{ spk::WindowMovedEvent event(p_record); _propagate(event, &spk::Widget::_onWindowMovedEvent); return event.isConsumed(); },
-				[this](const spk::WindowResizedRecord &p_record)
-				{ spk::WindowResizedEvent event(p_record); _propagate(event, &spk::Widget::_onWindowResizedEvent); return event.isConsumed(); },
-				[this](const spk::WindowFocusGainedRecord &p_record)
-				{ spk::WindowFocusGainedEvent event(p_record); _propagate(event, &spk::Widget::_onWindowFocusGainedEvent); return event.isConsumed(); },
-				[this](const spk::WindowFocusLostRecord &p_record)
-				{ spk::WindowFocusLostEvent event(p_record); _propagate(event, &spk::Widget::_onWindowFocusLostEvent); return event.isConsumed(); },
-				[this](const spk::WindowShownRecord &p_record)
-				{ spk::WindowShownEvent event(p_record); _propagate(event, &spk::Widget::_onWindowShownEvent); return event.isConsumed(); },
-				[this](const spk::WindowHiddenRecord &p_record)
-				{ spk::WindowHiddenEvent event(p_record); _propagate(event, &spk::Widget::_onWindowHiddenEvent); return event.isConsumed(); }},
+				[this](const spk::WindowCloseRequestedRecord &p_record) {
+					spk::WindowCloseRequestedEvent event(p_record);
+					_propagate(event, &spk::Widget::_onWindowCloseRequestedEvent);
+					return event.isConsumed();
+				},
+				[this](const spk::WindowDestroyedRecord &p_record) {
+					spk::WindowDestroyedEvent event(p_record);
+					_propagate(event, &spk::Widget::_onWindowDestroyedEvent);
+					return event.isConsumed();
+				},
+				[this](const spk::WindowMovedRecord &p_record) {
+					spk::WindowMovedEvent event(p_record);
+					_propagate(event, &spk::Widget::_onWindowMovedEvent);
+					return event.isConsumed();
+				},
+				[this](const spk::WindowResizedRecord &p_record) {
+					spk::WindowResizedEvent event(p_record);
+					_propagate(event, &spk::Widget::_onWindowResizedEvent);
+					return event.isConsumed();
+				},
+				[this](const spk::WindowFocusGainedRecord &p_record) {
+					spk::WindowFocusGainedEvent event(p_record);
+					_propagate(event, &spk::Widget::_onWindowFocusGainedEvent);
+					return event.isConsumed();
+				},
+				[this](const spk::WindowFocusLostRecord &p_record) {
+					spk::WindowFocusLostEvent event(p_record);
+					_propagate(event, &spk::Widget::_onWindowFocusLostEvent);
+					return event.isConsumed();
+				},
+				[this](const spk::WindowShownRecord &p_record) {
+					spk::WindowShownEvent event(p_record);
+					_propagate(event, &spk::Widget::_onWindowShownEvent);
+					return event.isConsumed();
+				},
+				[this](const spk::WindowHiddenRecord &p_record) {
+					spk::WindowHiddenEvent event(p_record);
+					_propagate(event, &spk::Widget::_onWindowHiddenEvent);
+					return event.isConsumed();
+				}},
 			p_event);
 	}
 
 	void Widget::dispatchMouseEvent(spk::MouseEventRecord &p_event, spk::Mouse &p_mouse)
 	{
-		Widget* focused = _focusedWidgets[static_cast<int>(FocusType::Mouse)];
-		Widget* target = (focused != nullptr) ? focused : this;
+		Widget *focused = _focusedWidgets[static_cast<int>(FocusType::Mouse)];
+		Widget *target = (focused != nullptr) ? focused : this;
 
 		std::visit(
 			spk::Overloaded{
-				[target, &p_mouse](const spk::MouseEnteredRecord &p_record)
-				{ spk::MouseEnteredWindowEvent event(p_record, p_mouse); target->_propagate(event, &spk::Widget::_onMouseEnteredEvent); },
-				[target, &p_mouse](const spk::MouseLeftRecord &p_record)
-				{ spk::MouseLeftWindowEvent event(p_record, p_mouse); target->_propagate(event, &spk::Widget::_onMouseLeftEvent); },
-				[target, &p_mouse](const spk::MouseMovedRecord &p_record)
-				{ spk::MouseMovedEvent event(p_record, p_mouse); target->_propagate(event, &spk::Widget::_onMouseMovedEvent); },
-				[target, &p_mouse](const spk::MouseWheelScrolledRecord &p_record)
-				{ spk::MouseWheelScrolledEvent event(p_record, p_mouse); target->_propagate(event, &spk::Widget::_onMouseWheelScrolledEvent); },
-				[target, &p_mouse](const spk::MouseButtonPressedRecord &p_record)
-				{ spk::MouseButtonPressedEvent event(p_record, p_mouse); target->_propagate(event, &spk::Widget::_onMouseButtonPressedEvent); },
-				[target, &p_mouse](const spk::MouseButtonReleasedRecord &p_record)
-				{ spk::MouseButtonReleasedEvent event(p_record, p_mouse); target->_propagate(event, &spk::Widget::_onMouseButtonReleasedEvent); },
-				[target, &p_mouse](const spk::MouseButtonDoubleClickedRecord &p_record)
-				{ spk::MouseButtonDoubleClickedEvent event(p_record, p_mouse); target->_propagate(event, &spk::Widget::_onMouseButtonDoubleClickedEvent); }},
+				[target, &p_mouse](const spk::MouseEnteredRecord &p_record) {
+					spk::MouseEnteredWindowEvent event(p_record, p_mouse);
+					target->_propagate(event, &spk::Widget::_onMouseEnteredEvent);
+				},
+				[target, &p_mouse](const spk::MouseLeftRecord &p_record) {
+					spk::MouseLeftWindowEvent event(p_record, p_mouse);
+					target->_propagate(event, &spk::Widget::_onMouseLeftEvent);
+				},
+				[target, &p_mouse](const spk::MouseMovedRecord &p_record) {
+					spk::MouseMovedEvent event(p_record, p_mouse);
+					target->_propagate(event, &spk::Widget::_onMouseMovedEvent);
+				},
+				[target, &p_mouse](const spk::MouseWheelScrolledRecord &p_record) {
+					spk::MouseWheelScrolledEvent event(p_record, p_mouse);
+					target->_propagate(event, &spk::Widget::_onMouseWheelScrolledEvent);
+				},
+				[target, &p_mouse](const spk::MouseButtonPressedRecord &p_record) {
+					spk::MouseButtonPressedEvent event(p_record, p_mouse);
+					target->_propagate(event, &spk::Widget::_onMouseButtonPressedEvent);
+				},
+				[target, &p_mouse](const spk::MouseButtonReleasedRecord &p_record) {
+					spk::MouseButtonReleasedEvent event(p_record, p_mouse);
+					target->_propagate(event, &spk::Widget::_onMouseButtonReleasedEvent);
+				},
+				[target, &p_mouse](const spk::MouseButtonDoubleClickedRecord &p_record) {
+					spk::MouseButtonDoubleClickedEvent event(p_record, p_mouse);
+					target->_propagate(event, &spk::Widget::_onMouseButtonDoubleClickedEvent);
+				}},
 			p_event);
 	}
 
 	void Widget::dispatchKeyboardEvent(spk::KeyboardEventRecord &p_event, spk::Keyboard &p_keyboard)
 	{
-		Widget* focused = _focusedWidgets[static_cast<int>(FocusType::Keyboard)];
-		Widget* target = (focused != nullptr) ? focused : this;
+		Widget *focused = _focusedWidgets[static_cast<int>(FocusType::Keyboard)];
+		Widget *target = (focused != nullptr) ? focused : this;
 
 		std::visit(
 			spk::Overloaded{
-				[target, &p_keyboard](const spk::KeyPressedRecord &p_record)
-				{ spk::KeyPressedEvent event(p_record, p_keyboard); target->_propagate(event, &spk::Widget::_onKeyPressedEvent); },
-				[target, &p_keyboard](const spk::KeyReleasedRecord &p_record)
-				{ spk::KeyReleasedEvent event(p_record, p_keyboard); target->_propagate(event, &spk::Widget::_onKeyReleasedEvent); },
-				[target, &p_keyboard](const spk::TextInputRecord &p_record)
-				{ spk::TextInputEvent event(p_record, p_keyboard); target->_propagate(event, &spk::Widget::_onTextInputEvent); }},
+				[target, &p_keyboard](const spk::KeyPressedRecord &p_record) {
+					spk::KeyPressedEvent event(p_record, p_keyboard);
+					target->_propagate(event, &spk::Widget::_onKeyPressedEvent);
+				},
+				[target, &p_keyboard](const spk::KeyReleasedRecord &p_record) {
+					spk::KeyReleasedEvent event(p_record, p_keyboard);
+					target->_propagate(event, &spk::Widget::_onKeyReleasedEvent);
+				},
+				[target, &p_keyboard](const spk::TextInputRecord &p_record) {
+					spk::TextInputEvent event(p_record, p_keyboard);
+					target->_propagate(event, &spk::Widget::_onTextInputEvent);
+				}},
 			p_event);
 	}
 }

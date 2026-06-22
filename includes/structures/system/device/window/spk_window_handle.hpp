@@ -27,10 +27,10 @@ namespace spk
 
 		void requestClosure() const;
 		void setTitle(std::string p_title) const;
-		void resize(const spk::Rect2D& p_rect) const;
+		void resize(const spk::Rect2D &p_rect) const;
 		void setVSync(bool p_enabled) const;
 
 		[[nodiscard]] spk::Rect2D rect() const;
-		[[nodiscard]] spk::Widget& centralWidget() const;
+		[[nodiscard]] spk::Widget &centralWidget() const;
 	};
 }

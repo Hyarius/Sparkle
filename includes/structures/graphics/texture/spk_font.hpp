@@ -11,8 +11,8 @@
 
 #include "stb_truetype.h"
 
-#include "structures/graphics/spk_texture.hpp"
 #include "structures/design_pattern/spk_contract_provider.hpp"
+#include "structures/graphics/spk_texture.hpp"
 #include "structures/math/spk_vector2.hpp"
 
 namespace spk
@@ -37,7 +37,7 @@ namespace spk
 
 			static inline std::vector<unsigned int> indexesOrder = {0, 1, 2, 2, 1, 3};
 
-			void rescale(const spk::Vector2& p_scaleRatio);
+			void rescale(const spk::Vector2 &p_scaleRatio);
 		};
 
 		struct Size
@@ -59,17 +59,17 @@ namespace spk
 			{
 			}
 
-			constexpr bool operator==(const Size& p_other) const
+			constexpr bool operator==(const Size &p_other) const
 			{
 				return glyph == p_other.glyph && outline == p_other.outline;
 			}
 
-			constexpr bool operator!=(const Size& p_other) const
+			constexpr bool operator!=(const Size &p_other) const
 			{
 				return (*this == p_other) == false;
 			}
 
-			constexpr bool operator<(const Size& p_other) const
+			constexpr bool operator<(const Size &p_other) const
 			{
 				return glyph < p_other.glyph || (glyph == p_other.glyph && outline < p_other.outline);
 			}
@@ -87,7 +87,7 @@ namespace spk
 			struct Resource
 			{
 				spk::ContractProvider<> onEditionContractProvider;
-				const stbtt_fontinfo& fontInfo;
+				const stbtt_fontinfo &fontInfo;
 
 				std::unordered_map<Codepoint, Glyph> glyphs;
 				Glyph unknownGlyph;
@@ -112,55 +112,55 @@ namespace spk
 				size_t textSize;
 				size_t outlineSize;
 
-				Resource(const stbtt_fontinfo& p_fontInfo, size_t p_textSize, size_t p_outlineSize);
+				Resource(const stbtt_fontinfo &p_fontInfo, size_t p_textSize, size_t p_outlineSize);
 
-				Resource(const Resource&) = delete;
-				Resource& operator=(const Resource&) = delete;
-				Resource(Resource&&) noexcept = delete;
-				Resource& operator=(Resource&&) noexcept = delete;
+				Resource(const Resource &) = delete;
+				Resource &operator=(const Resource &) = delete;
+				Resource(Resource &&) noexcept = delete;
+				Resource &operator=(Resource &&) noexcept = delete;
 			};
 
 			std::shared_ptr<Resource> _resource;
 
-			void _rescaleGlyphs(const spk::Vector2& p_scaleRatio);
-			void _resizeData(const spk::Vector2UInt& p_size);
-			spk::Vector2Int _computeGlyphPosition(const spk::Vector2UInt& p_glyphSize);
+			void _rescaleGlyphs(const spk::Vector2 &p_scaleRatio);
+			void _resizeData(const spk::Vector2UInt &p_size);
+			spk::Vector2Int _computeGlyphPosition(const spk::Vector2UInt &p_glyphSize);
 			void _applyGlyphPixel(
-				const uint8_t* p_pixelsToApply,
-				const spk::Vector2Int& p_glyphPosition,
-				const spk::Vector2UInt& p_glyphSize);
+				const uint8_t *p_pixelsToApply,
+				const spk::Vector2Int &p_glyphPosition,
+				const spk::Vector2UInt &p_glyphSize);
 			void _loadGlyph(Codepoint p_codepoint);
 			void _uploadTexture();
 
 		public:
 			Atlas(
-				const stbtt_fontinfo& p_fontInfo,
-				const Data& p_fontData,
+				const stbtt_fontinfo &p_fontInfo,
+				const Data &p_fontData,
 				size_t p_textSize,
 				size_t p_outlineSize,
 				Filtering p_filtering = Filtering::Linear,
 				Wrap p_wrap = Wrap::ClampToEdge,
 				Mipmap p_mipmap = Mipmap::Enable);
 
-			Contract subscribe(const Job& p_job);
+			Contract subscribe(const Job &p_job);
 
-			void loadGlyphs(const Text& p_glyphsToLoad);
+			void loadGlyphs(const Text &p_glyphsToLoad);
 			void loadGlyphs(std::string_view p_utf8GlyphsToLoad);
 			void loadAllRenderableGlyphs();
 
-			const Glyph& operator[](Codepoint p_codepoint);
-			const Glyph& glyph(Codepoint p_codepoint);
+			const Glyph &operator[](Codepoint p_codepoint);
+			const Glyph &glyph(Codepoint p_codepoint);
 
 			spk::Vector2UInt computeCharSize(Codepoint p_codepoint);
-			spk::Vector2UInt computeStringSize(const Text& p_string);
+			spk::Vector2UInt computeStringSize(const Text &p_string);
 			spk::Vector2UInt computeStringSize(std::string_view p_utf8String);
-			spk::Vector2Int computeStringBaselineOffset(const Text& p_string);
+			spk::Vector2Int computeStringBaselineOffset(const Text &p_string);
 			spk::Vector2Int computeStringBaselineOffset(std::string_view p_utf8String);
 		};
 
 	private:
-		void _loadFromFile(const std::filesystem::path& p_path);
-		void _loadFromData(const std::vector<uint8_t>& p_data);
+		void _loadFromFile(const std::filesystem::path &p_path);
+		void _loadFromData(const std::vector<uint8_t> &p_data);
 
 		std::map<Size, std::shared_ptr<Atlas>> _atlases;
 		Data _fontData;
@@ -174,31 +174,31 @@ namespace spk
 		[[nodiscard]] static Text textFromUTF8(std::string_view p_text);
 
 		static Font fromRawData(
-			const std::vector<uint8_t>& p_data,
+			const std::vector<uint8_t> &p_data,
 			Filtering p_filtering = Filtering::Nearest,
 			Wrap p_wrap = Wrap::ClampToEdge,
 			Mipmap p_mipmap = Mipmap::Disable);
 
 		Font();
-		explicit Font(const std::filesystem::path& p_path);
+		explicit Font(const std::filesystem::path &p_path);
 
 		void setProperties(Filtering p_filtering, Wrap p_wrap, Mipmap p_mipmap);
 
-		spk::Vector2UInt computeCharSize(Codepoint p_codepoint, const Size& p_size);
-		spk::Vector2UInt computeStringSize(const Text& p_string, const Size& p_size);
-		spk::Vector2UInt computeStringSize(std::string_view p_utf8String, const Size& p_size);
-		spk::Vector2Int computeStringBaselineOffset(const Text& p_string, const Size& p_size);
-		spk::Vector2Int computeStringBaselineOffset(std::string_view p_utf8String, const Size& p_size);
+		spk::Vector2UInt computeCharSize(Codepoint p_codepoint, const Size &p_size);
+		spk::Vector2UInt computeStringSize(const Text &p_string, const Size &p_size);
+		spk::Vector2UInt computeStringSize(std::string_view p_utf8String, const Size &p_size);
+		spk::Vector2Int computeStringBaselineOffset(const Text &p_string, const Size &p_size);
+		spk::Vector2Int computeStringBaselineOffset(std::string_view p_utf8String, const Size &p_size);
 
 		Size computeOptimalTextSize(
-			const Text& p_string,
+			const Text &p_string,
 			float p_outlineSizeRatio,
-			const spk::Vector2UInt& p_textArea);
+			const spk::Vector2UInt &p_textArea);
 		Size computeOptimalTextSize(
 			std::string_view p_utf8String,
 			float p_outlineSizeRatio,
-			const spk::Vector2UInt& p_textArea);
+			const spk::Vector2UInt &p_textArea);
 
-		std::shared_ptr<Atlas> atlas(const Size& p_size);
+		std::shared_ptr<Atlas> atlas(const Size &p_size);
 	};
 }

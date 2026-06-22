@@ -19,18 +19,18 @@ namespace spk
 		[[nodiscard]] spk::RenderUnit _buildRenderUnit() const override;
 
 	public:
-		explicit ImageLabel(const std::string& p_name, spk::Widget* p_parent = nullptr);
+		explicit ImageLabel(const std::string &p_name, spk::Widget *p_parent = nullptr);
 		ImageLabel(
-			const std::string& p_name,
+			const std::string &p_name,
 			std::shared_ptr<spk::Texture> p_texture,
-			spk::Widget* p_parent = nullptr);
+			spk::Widget *p_parent = nullptr);
 
 		void setTexture(std::shared_ptr<spk::Texture> p_texture);
-		void setSection(const spk::Texture::Section& p_section);
+		void setSection(const spk::Texture::Section &p_section);
 		void setDepth(float p_depth);
 
-		[[nodiscard]] const std::shared_ptr<spk::Texture>& texture() const;
-		[[nodiscard]] const spk::Texture::Section& section() const;
+		[[nodiscard]] const std::shared_ptr<spk::Texture> &texture() const;
+		[[nodiscard]] const spk::Texture::Section &section() const;
 		[[nodiscard]] float depth() const;
 	};
 }

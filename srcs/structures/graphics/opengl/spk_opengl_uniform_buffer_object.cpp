@@ -3,8 +3,8 @@
 #include <stdexcept>
 #include <string>
 
-#include "structures/graphics/spk_program.hpp"
 #include "structures/graphics/rendering/context/spk_render_context.hpp"
+#include "structures/graphics/spk_program.hpp"
 
 namespace spk
 {
@@ -19,7 +19,7 @@ namespace spk
 		return _bindingPoint;
 	}
 
-	void UniformBufferObject::validateFor(spk::Program& p_program) const
+	void UniformBufferObject::validateFor(spk::Program &p_program) const
 	{
 		const GLuint programID = p_program.id();
 		GLint activeBlocks = 0;
@@ -43,7 +43,7 @@ namespace spk
 			std::to_string(_bindingPoint) + "]");
 	}
 
-	void UniformBufferObject::activate(const spk::RenderContext& p_context) const
+	void UniformBufferObject::activate(const spk::RenderContext &p_context) const
 	{
 		if (needsSynchronization() == true)
 		{
@@ -52,7 +52,7 @@ namespace spk
 
 		// glBindBufferBase also binds the generic GL_UNIFORM_BUFFER target, so the
 		// plain glBindBuffer from BufferObject::activate would be redundant.
-		spk::OpenGL::Buffer& buffer = gpu(p_context);
+		spk::OpenGL::Buffer &buffer = gpu(p_context);
 		if (p_context.isUniformBufferBaseActive(_bindingPoint, &buffer) == true)
 		{
 			return;

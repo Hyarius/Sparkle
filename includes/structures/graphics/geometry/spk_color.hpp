@@ -27,7 +27,7 @@ namespace spk
 			return {r, g, b, a};
 		}
 
-		friend std::ostream& operator<<(std::ostream& p_outputStream, const Color& p_color)
+		friend std::ostream &operator<<(std::ostream &p_outputStream, const Color &p_color)
 		{
 			p_outputStream << "[" << p_color.r << " - " << p_color.g << " - " << p_color.b << " - " << p_color.a << "]";
 			return p_outputStream;
