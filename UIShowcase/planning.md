@@ -1120,8 +1120,7 @@ cmake --build build/UIShowcase/debug
                 "CMAKE_CXX_STANDARD": "23",
                 "CMAKE_CXX_STANDARD_REQUIRED": "ON",
                 "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
-                "VCPKG_TARGET_TRIPLET": "x64-windows",
-                "SPARKLE_GPU_BACKEND": "OPENGL"
+                "VCPKG_TARGET_TRIPLET": "x64-windows"
             }
         },
         {

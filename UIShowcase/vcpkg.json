@@ -1,0 +1,11 @@
+{
+  "name": "sparkle-ui-showcase",
+  "version-string": "0.0.1",
+  "description": "Standalone interactive showcase application for the Sparkle UI widget library.",
+  "dependencies": [
+    "glew",
+    "opengl",
+    "stb"
+  ],
+  "builtin-baseline": "ded9717095600a356b624cab03326e44764afed4"
+}

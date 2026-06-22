@@ -4,15 +4,18 @@ function(add_resources)
     endif()
 
     set(_resource_files ${ARGV})
-    set(_generated_header "${CMAKE_BINARY_DIR}/spk_generated_resources.hpp")
-    set(_base_dir "${CMAKE_SOURCE_DIR}")
+    # Use the Sparkle project's own directories (not CMAKE_SOURCE_DIR/CMAKE_BINARY_DIR)
+    # so resource generation keeps working when Sparkle is consumed through
+    # add_subdirectory(), where the top-level project is the consumer.
+    set(_generated_header "${PROJECT_BINARY_DIR}/spk_generated_resources.hpp")
+    set(_base_dir "${PROJECT_SOURCE_DIR}")
     set(_resource_depends)
 
     foreach(_resource_file IN LISTS _resource_files)
         if(IS_ABSOLUTE "${_resource_file}")
             list(APPEND _resource_depends "${_resource_file}")
         else()
-            list(APPEND _resource_depends "${CMAKE_SOURCE_DIR}/${_resource_file}")
+            list(APPEND _resource_depends "${PROJECT_SOURCE_DIR}/${_resource_file}")
         endif()
     endforeach()
 

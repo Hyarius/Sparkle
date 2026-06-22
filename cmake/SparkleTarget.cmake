@@ -23,7 +23,7 @@ set_target_properties(Sparkle
 target_include_directories(Sparkle
     PUBLIC
         $<BUILD_INTERFACE:${SPARKLE_INCLUDE_DIR}>
-        $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}>
+        $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}>
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
     PRIVATE
         ${Stb_INCLUDE_DIR}

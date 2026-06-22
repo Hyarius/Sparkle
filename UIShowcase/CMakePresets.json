@@ -1,0 +1,73 @@
+{
+    "version": 3,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 16,
+        "patch": 0
+    },
+    "configurePresets": [
+        {
+            "name": "default",
+            "hidden": true,
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/../build/UIShowcase/${presetName}",
+            "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+            "cacheVariables": {
+                "CMAKE_CXX_STANDARD": "23",
+                "CMAKE_CXX_STANDARD_REQUIRED": "ON",
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+                "VCPKG_TARGET_TRIPLET": "x64-windows"
+            }
+        },
+        {
+            "name": "debug",
+            "inherits": "default",
+            "description": "Configure the standalone UI showcase in Debug mode using the local Sparkle source tree.",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "SPARKLE_UI_SHOWCASE_USE_LOCAL_SPARKLE": "ON"
+            }
+        },
+        {
+            "name": "release",
+            "inherits": "default",
+            "description": "Configure the standalone UI showcase in Release mode using the local Sparkle source tree.",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "SPARKLE_UI_SHOWCASE_USE_LOCAL_SPARKLE": "ON"
+            }
+        },
+        {
+            "name": "installed-debug",
+            "inherits": "default",
+            "description": "Configure the standalone UI showcase in Debug mode using an installed Sparkle package.",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "SPARKLE_UI_SHOWCASE_USE_LOCAL_SPARKLE": "OFF"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "debug",
+            "configurePreset": "debug",
+            "targets": [
+                "SparkleUIShowcase"
+            ]
+        },
+        {
+            "name": "release",
+            "configurePreset": "release",
+            "targets": [
+                "SparkleUIShowcase"
+            ]
+        },
+        {
+            "name": "installed-debug",
+            "configurePreset": "installed-debug",
+            "targets": [
+                "SparkleUIShowcase"
+            ]
+        }
+    ]
+}

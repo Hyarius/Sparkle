@@ -17,8 +17,7 @@
 				"CMAKE_CXX_STANDARD_REQUIRED": "ON",
 				"VCPKG_TARGET_TRIPLET": "x64-windows",
 				"CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
-				"CMAKE_INSTALL_PREFIX": "$env{ProgramFiles(x86)}/EreliaStudio/Sparkle",
-				"SPARKLE_GPU_BACKEND": "OPENGL"
+				"CMAKE_INSTALL_PREFIX": "$env{ProgramFiles(x86)}/EreliaStudio/Sparkle"
 			}
 		},
 		{
