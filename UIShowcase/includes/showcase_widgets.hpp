@@ -91,6 +91,46 @@ namespace showcase
 		}
 	};
 
+	// A container widget that owns a horizontal layout and drives it from its own geometry,
+	// applying a uniform inner padding. Pages use it to lay widgets out in a row, typically as
+	// a single Fixed-height element inside a VerticalStack.
+	class HorizontalStack : public spk::Widget
+	{
+	private:
+		spk::HorizontalLayout _layout;
+		spk::Vector2Int _padding = {0, 0};
+
+	public:
+		explicit HorizontalStack(const std::string &p_name, spk::Widget *p_parent = nullptr) :
+			spk::Widget(p_name, p_parent)
+		{
+			_layout.setElementPadding({8, 8});
+			activate();
+		}
+
+		[[nodiscard]] spk::HorizontalLayout &layout()
+		{
+			return _layout;
+		}
+
+		void setPadding(const spk::Vector2Int &p_padding)
+		{
+			_padding = p_padding;
+			_onGeometryChange();
+		}
+
+	protected:
+		void _onGeometryChange() override
+		{
+			const spk::Rect2D bounds = geometry().atOrigin();
+
+			const int innerWidth = static_cast<int>(bounds.size.x) - (_padding.x * 2);
+			const int innerHeight = static_cast<int>(bounds.size.y) - (_padding.y * 2);
+
+			_layout.setGeometry(makeRect(bounds.anchor.x + _padding.x, bounds.anchor.y + _padding.y, innerWidth, innerHeight));
+		}
+	};
+
 	// A nine-slice Panel that owns a layout and drives it from its own geometry, inset by a
 	// uniform padding. This lets each showcase section position its children through a layout
 	// instead of manual geometry, while still drawing a panel background.

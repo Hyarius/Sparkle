@@ -2,8 +2,15 @@
 
 #include <utility>
 
+#include "pages/buttons_page.hpp"
+#include "pages/images_page.hpp"
+#include "pages/input_page.hpp"
+#include "pages/labels_page.hpp"
 #include "pages/overview_page.hpp"
+#include "pages/panels_page.hpp"
 #include "pages/placeholder_page.hpp"
+#include "pages/scroll_page.hpp"
+#include "pages/sliders_page.hpp"
 
 namespace showcase
 {
@@ -48,18 +55,31 @@ namespace showcase
 		}
 	}
 
+	namespace
+	{
+		// Registers a fully implemented page that builds itself from a default-constructed instance.
+		template <typename TPage>
+		void addPage(ShowcasePageRegistry &p_registry, std::string p_category, std::string p_name)
+		{
+			p_registry.add(
+				std::move(p_category),
+				std::move(p_name),
+				[]() -> std::unique_ptr<ShowcasePage> { return std::make_unique<TPage>(); });
+		}
+	}
+
 	void registerDefaultPages(ShowcasePageRegistry &p_registry)
 	{
-		p_registry.add("Widgets", "Overview", []() -> std::unique_ptr<ShowcasePage> { return std::make_unique<OverviewPage>(); });
+		addPage<OverviewPage>(p_registry, "Widgets", "Overview");
 
-		// Milestone 1 - existing widgets. Implemented incrementally; placeholders for now.
-		addPlaceholder(p_registry, "Widgets", "Labels / Text", "spk::TextLabel, DynamicTextLabel and TextArea showcase.", "partial", {});
-		addPlaceholder(p_registry, "Widgets", "Panels / Slice9", "spk::Panel and nine-slice WidgetStyle rendering.", "partial", {});
-		addPlaceholder(p_registry, "Widgets", "Buttons / Commands", "PushButton, IconButton, CheckableIconButton, CommandPanel.", "partial", {});
-		addPlaceholder(p_registry, "Widgets", "Images / Animation", "spk::ImageLabel and spk::AnimationLabel.", "partial", {});
-		addPlaceholder(p_registry, "Widgets", "Sliders", "spk::SliderBar, later paired with progress bars.", "partial", {});
-		addPlaceholder(p_registry, "Widgets", "Input", "spk::TextEdit, SpinBox and NumericSpinBox.", "partial", {});
-		addPlaceholder(p_registry, "Widgets", "Scroll", "spk::ScrollBar and ScrollArea clipping.", "partial", {});
+		// Milestone 1 - existing widget gallery.
+		addPage<LabelsPage>(p_registry, "Widgets", "Labels / Text");
+		addPage<PanelsPage>(p_registry, "Widgets", "Panels / Slice9");
+		addPage<ButtonsPage>(p_registry, "Widgets", "Buttons / Commands");
+		addPage<ImagesPage>(p_registry, "Widgets", "Images / Animation");
+		addPage<SlidersPage>(p_registry, "Widgets", "Sliders");
+		addPage<InputPage>(p_registry, "Widgets", "Input");
+		addPage<ScrollPage>(p_registry, "Widgets", "Scroll");
 
 		// Milestone 2 - layouts.
 		addPlaceholder(p_registry, "Layouts", "Layout Lab", "Move widgets between horizontal, vertical, grid and form layouts.", "missing", {});
