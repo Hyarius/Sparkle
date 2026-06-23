@@ -345,6 +345,20 @@ namespace spk
 
 		if (wglMakeCurrent(_deviceContext, _renderContext) == FALSE)
 		{
+			// The window can be destroyed on the platform thread (validateClosure ->
+			// DestroyWindow) between the isValid() check above and this call: our cached
+			// handles stay non-null, so isValid() still reports true, but the drawable is
+			// gone and wglMakeCurrent fails against a stale HDC. That is a recoverable
+			// "context lost" during teardown, not a fatal error, so invalidate this
+			// context and let the caller skip the frame. A failure while the window is
+			// still alive is a genuine error and is surfaced.
+			if (IsWindow(_windowHandle) == FALSE)
+			{
+				_valid = false;
+				s_current = nullptr;
+				return;
+			}
+
 			spk::throwLastError("wglMakeCurrent");
 		}
 
@@ -390,6 +404,13 @@ namespace spk
 		}
 
 		makeCurrent();
+
+		// makeCurrent() invalidates the context if the window died concurrently.
+		if (isValid() == false)
+		{
+			return;
+		}
+
 		glViewport(0, 0, static_cast<GLsizei>(p_rect.width()), static_cast<GLsizei>(p_rect.height()));
 	}
 }

@@ -249,7 +249,10 @@ namespace spk
 		}
 
 		_renderContext->makeCurrent();
-		return true;
+
+		// makeCurrent() can lose the context if the window is destroyed mid-call; report
+		// that to the render loop so it skips the frame instead of using a dead context.
+		return _renderContext->isValid();
 	}
 
 	RenderContext &WindowHost::renderContext()
