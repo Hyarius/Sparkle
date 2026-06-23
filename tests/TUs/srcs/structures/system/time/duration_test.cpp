@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include <chrono>
+#include <sstream>
 #include <thread>
 #include <utility>
 
@@ -284,4 +285,35 @@ TEST(Duration_ChronoInteropTest, ConvertedDurationCanBeUsedByStandardSleepFor)
 	const spk::Duration duration;
 
 	EXPECT_NO_THROW(std::this_thread::sleep_for(duration.toChronoNanoseconds()));
+}
+
+TEST(Duration_StringConversionTest, ConvertsToRequestedUnitString)
+{
+	const spk::Duration duration(1.5L, spk::TimeUnit::Second);
+
+	EXPECT_EQ(duration.toString(spk::TimeUnit::Second), "1.5s");
+	EXPECT_EQ(duration.toString(spk::TimeUnit::Millisecond), "1500ms");
+	EXPECT_EQ(duration.toString(), "1500000000ns");
+}
+
+TEST(Duration_StringConversionTest, ConvertsToRequestedUnitWideString)
+{
+	const spk::Duration duration(1.5L, spk::TimeUnit::Second);
+
+	EXPECT_EQ(duration.toWstring(spk::TimeUnit::Second), L"1.5s");
+	EXPECT_EQ(duration.toWstring(spk::TimeUnit::Millisecond), L"1500ms");
+	EXPECT_EQ(duration.toWstring(), L"1500000000ns");
+}
+
+TEST(Duration_StreamTest, StreamsDefaultNanosecondString)
+{
+	const spk::Duration duration(1.5L, spk::TimeUnit::Second);
+	std::ostringstream outputStream;
+	std::wostringstream wideOutputStream;
+
+	outputStream << duration;
+	wideOutputStream << duration;
+
+	EXPECT_EQ(outputStream.str(), "1500000000ns");
+	EXPECT_EQ(wideOutputStream.str(), L"1500000000ns");
 }

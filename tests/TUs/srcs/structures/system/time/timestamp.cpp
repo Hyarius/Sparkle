@@ -1,10 +1,11 @@
 #include <gtest/gtest.h>
 
+#include <sstream>
 #include <utility>
 
 #include "structures/system/time/spk_duration.hpp"
-#include "type/spk_time_unit.hpp"
 #include "structures/system/time/spk_timestamp.hpp"
+#include "type/spk_time_unit.hpp"
 
 TEST(Timestamp_ConstructionTest, DefaultConstructorProducesMonotonicTimestamps)
 {
@@ -215,4 +216,35 @@ TEST(Timestamp_CacheBehaviorTest, CacheStaysCorrectAfterMutation)
 	EXPECT_EQ(timestamp.nanoseconds(), 1500000000LL);
 	EXPECT_EQ(timestamp.milliseconds(), 1500LL);
 	EXPECT_DOUBLE_EQ(timestamp.seconds(), 1.5);
+}
+
+TEST(Timestamp_StringConversionTest, ConvertsToRequestedUnitString)
+{
+	const spk::Timestamp timestamp(1.5L, spk::TimeUnit::Second);
+
+	EXPECT_EQ(timestamp.toString(spk::TimeUnit::Second), "1.5s");
+	EXPECT_EQ(timestamp.toString(spk::TimeUnit::Millisecond), "1500ms");
+	EXPECT_EQ(timestamp.toString(), "1500000000ns");
+}
+
+TEST(Timestamp_StringConversionTest, ConvertsToRequestedUnitWideString)
+{
+	const spk::Timestamp timestamp(1.5L, spk::TimeUnit::Second);
+
+	EXPECT_EQ(timestamp.toWstring(spk::TimeUnit::Second), L"1.5s");
+	EXPECT_EQ(timestamp.toWstring(spk::TimeUnit::Millisecond), L"1500ms");
+	EXPECT_EQ(timestamp.toWstring(), L"1500000000ns");
+}
+
+TEST(Timestamp_StreamTest, StreamsDefaultNanosecondString)
+{
+	const spk::Timestamp timestamp(1.5L, spk::TimeUnit::Second);
+	std::ostringstream outputStream;
+	std::wostringstream wideOutputStream;
+
+	outputStream << timestamp;
+	wideOutputStream << timestamp;
+
+	EXPECT_EQ(outputStream.str(), "1500000000ns");
+	EXPECT_EQ(wideOutputStream.str(), L"1500000000ns");
 }

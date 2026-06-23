@@ -2,6 +2,8 @@
 
 #include <chrono>
 #include <limits>
+#include <ostream>
+#include <sstream>
 #include <stdexcept>
 
 namespace spk
@@ -186,5 +188,67 @@ namespace spk
 	bool Timestamp::operator>=(const Timestamp &p_other) const noexcept
 	{
 		return _nanoseconds >= p_other._nanoseconds;
+	}
+
+	std::string Timestamp::toString(const TimeUnit p_unit) const
+	{
+		std::ostringstream outputStream;
+
+		switch (p_unit)
+		{
+		case TimeUnit::Second:
+			outputStream << seconds() << "s";
+			break;
+
+		case TimeUnit::Millisecond:
+			outputStream << milliseconds() << "ms";
+			break;
+
+		case TimeUnit::Nanosecond:
+			outputStream << nanoseconds() << "ns";
+			break;
+
+		default:
+			throw std::invalid_argument("spk::Timestamp: unknown TimeUnit");
+		}
+
+		return outputStream.str();
+	}
+
+	std::wstring Timestamp::toWstring(const TimeUnit p_unit) const
+	{
+		std::wostringstream outputStream;
+
+		switch (p_unit)
+		{
+		case TimeUnit::Second:
+			outputStream << seconds() << L"s";
+			break;
+
+		case TimeUnit::Millisecond:
+			outputStream << milliseconds() << L"ms";
+			break;
+
+		case TimeUnit::Nanosecond:
+			outputStream << nanoseconds() << L"ns";
+			break;
+
+		default:
+			throw std::invalid_argument("spk::Timestamp: unknown TimeUnit");
+		}
+
+		return outputStream.str();
+	}
+
+	std::ostream &operator<<(std::ostream &p_stream, const Timestamp &p_timestamp)
+	{
+		p_stream << p_timestamp.toString();
+		return p_stream;
+	}
+
+	std::wostream &operator<<(std::wostream &p_stream, const Timestamp &p_timestamp)
+	{
+		p_stream << p_timestamp.toWstring();
+		return p_stream;
 	}
 }

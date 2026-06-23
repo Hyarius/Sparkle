@@ -1,6 +1,8 @@
 #pragma once
 
 #include <cstdint>
+#include <iosfwd>
+#include <string>
 
 #include "structures/container/spk_cached_data.hpp"
 #include "structures/system/time/spk_duration.hpp"
@@ -47,5 +49,11 @@ namespace spk
 		bool operator>(const Timestamp &p_other) const noexcept;
 		bool operator<=(const Timestamp &p_other) const noexcept;
 		bool operator>=(const Timestamp &p_other) const noexcept;
+
+		[[nodiscard]] std::string toString(TimeUnit p_unit = TimeUnit::Nanosecond) const;
+		[[nodiscard]] std::wstring toWstring(TimeUnit p_unit = TimeUnit::Nanosecond) const;
+
+		friend std::ostream &operator<<(std::ostream &p_stream, const Timestamp &p_timestamp);
+		friend std::wostream &operator<<(std::wostream &p_stream, const Timestamp &p_timestamp);
 	};
 }

@@ -2,6 +2,8 @@
 
 #include <chrono>
 #include <cstdint>
+#include <iosfwd>
+#include <string>
 
 #include "structures/container/spk_cached_data.hpp"
 #include "type/spk_time_unit.hpp"
@@ -59,6 +61,12 @@ namespace spk
 		bool operator>(const Duration &p_other) const noexcept;
 		bool operator<=(const Duration &p_other) const noexcept;
 		bool operator>=(const Duration &p_other) const noexcept;
+
+		[[nodiscard]] std::string toString(TimeUnit p_unit = TimeUnit::Nanosecond) const;
+		[[nodiscard]] std::wstring toWstring(TimeUnit p_unit = TimeUnit::Nanosecond) const;
+
+		friend std::ostream &operator<<(std::ostream &p_stream, const Duration &p_duration);
+		friend std::wostream &operator<<(std::wostream &p_stream, const Duration &p_duration);
 	};
 
 	Duration operator""_s(long double p_value);
