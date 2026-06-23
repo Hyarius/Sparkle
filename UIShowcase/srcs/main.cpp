@@ -2,8 +2,17 @@
 
 #include <sparkle.hpp>
 
-#include "showcase_page_registry.hpp"
-#include "showcase_root.hpp"
+class MainWidget : public spk::Widget
+{
+private:
+
+public:
+	MainWidget(const std::string& p_name, spk::Widget* p_parent) :
+		spk::Widget(p_name, p_parent)
+	{
+
+	}
+};
 
 int main()
 {
@@ -12,16 +21,14 @@ int main()
 		spk::Application application;
 
 		spk::WindowHandle window = application.createWindow(
-			"Sparkle UI Showcase",
+			"UIShowcaseID",
 			spk::Window::Configuration{
 				.rect = spk::Rect2D(80, 80, 1280, 800),
 				.title = "Sparkle UI Showcase"});
 
-		showcase::ShowcasePageRegistry registry;
-		showcase::registerDefaultPages(registry);
-
-		showcase::ShowcaseRoot root("ShowcaseRoot", registry, &window.centralWidget());
-		root.setGeometry(window.centralWidget().geometry());
+		MainWidget mainWidget = MainWidget("./MainWidget", window.centralWidget());
+		mainWidget.setGeometry(window.rect());
+		mainWidget.activate();
 
 		std::cout << "Sparkle UI Showcase opened. Close the window to exit." << std::endl;
 		return application.run();
