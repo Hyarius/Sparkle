@@ -56,6 +56,19 @@ namespace spk
 		return {0u, 0u};
 	}
 
+	spk::Vector2UInt Layout::Element::minimalSizeFor(const spk::Vector2UInt &p_availableSize) const
+	{
+		if (_widget != nullptr)
+		{
+			return _widget->minimalSizeFor(p_availableSize);
+		}
+		if (_layout != nullptr)
+		{
+			return _layout->minimalSizeFor(p_availableSize);
+		}
+		return {0u, 0u};
+	}
+
 	spk::Vector2UInt Layout::Element::fixedSize() const
 	{
 		if (_widget != nullptr)
@@ -117,26 +130,26 @@ namespace spk
 	spk::Vector2UInt Layout::minimalSize() const
 	{
 		// Layouts have no invalidation hook on their children, so refresh on query.
-		sizeHint().releaseMinimal();
-		return sizeHint().minimal();
+		releaseMinimalSize();
+		return spk::ResizableElement::minimalSize();
 	}
 
 	spk::Vector2UInt Layout::fixedSize() const
 	{
-		sizeHint().releaseDesired();
-		return sizeHint().desired();
+		releaseFixedSize();
+		return spk::ResizableElement::fixedSize();
 	}
 
 	spk::Vector2UInt Layout::maximalSize() const
 	{
-		sizeHint().releaseMaximal();
-		return sizeHint().maximal();
+		releaseMaximalSize();
+		return spk::ResizableElement::maximalSize();
 	}
 
 	void Layout::clear()
 	{
 		_elements.clear();
-		sizeHint().release();
+		releaseSizeCache();
 	}
 
 	Layout::Element *Layout::addWidget(spk::Widget *p_widget, SizePolicy p_sizePolicy)
@@ -147,7 +160,7 @@ namespace spk
 		}
 
 		_elements.push_back(std::make_unique<Element>(p_widget, p_sizePolicy, spk::Vector2UInt{0, 0}));
-		sizeHint().release();
+		releaseSizeCache();
 		return _elements.back().get();
 	}
 
@@ -159,7 +172,7 @@ namespace spk
 		}
 
 		_elements.push_back(std::make_unique<Element>(p_layout, p_sizePolicy, spk::Vector2UInt{0, 0}));
-		sizeHint().release();
+		releaseSizeCache();
 		return _elements.back().get();
 	}
 
@@ -192,7 +205,7 @@ namespace spk
 			if (*it != nullptr && (*it)->widget() == p_widget)
 			{
 				_elements.erase(it);
-				sizeHint().release();
+				releaseSizeCache();
 				return;
 			}
 		}
@@ -212,7 +225,7 @@ namespace spk
 			if (*it != nullptr && (*it)->layout() == p_layout)
 			{
 				_elements.erase(it);
-				sizeHint().release();
+				releaseSizeCache();
 				return;
 			}
 		}
@@ -223,7 +236,7 @@ namespace spk
 	void Layout::setElementPadding(const spk::Vector2UInt &p_padding)
 	{
 		_elementPadding = p_padding;
-		sizeHint().release();
+		releaseSizeCache();
 	}
 
 	const spk::Vector2UInt &Layout::elementPadding() const

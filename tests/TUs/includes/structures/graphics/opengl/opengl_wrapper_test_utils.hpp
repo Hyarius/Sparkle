@@ -48,13 +48,17 @@ namespace sparkle_test
 		{
 			if (s_platformRuntime != nullptr)
 			{
+				s_renderContext->makeCurrent();
+				s_gpuRuntime->waitUntilWorkDone();
+				delete s_renderContext;
+				s_renderContext = nullptr;
+
 				s_frame->validateClosure();
 				s_platformRuntime->pollEvents();
-				delete s_renderContext;
+
 				delete s_gpuRuntime;
 				delete s_frame;
 				delete s_platformRuntime;
-				s_renderContext = nullptr;
 				s_gpuRuntime = nullptr;
 				s_frame = nullptr;
 				s_platformRuntime = nullptr;

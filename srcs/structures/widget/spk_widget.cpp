@@ -203,36 +203,6 @@ namespace spk
 		setGeometry(spk::Rect2D(_geometry.anchor + p_delta, _geometry.size));
 	}
 
-	void Widget::setMinimalSize(const spk::Vector2UInt &p_size)
-	{
-		sizeHint().setMinimal(p_size);
-	}
-
-	void Widget::setFixedSize(const spk::Vector2UInt &p_size)
-	{
-		sizeHint().setDesired(p_size);
-	}
-
-	void Widget::setMaximalSize(const spk::Vector2UInt &p_size)
-	{
-		sizeHint().setMaximal(p_size);
-	}
-
-	spk::Vector2UInt Widget::minimalSize() const
-	{
-		return sizeHint().minimal();
-	}
-
-	spk::Vector2UInt Widget::fixedSize() const
-	{
-		return sizeHint().desired();
-	}
-
-	spk::Vector2UInt Widget::maximalSize() const
-	{
-		return sizeHint().maximal();
-	}
-
 	void Widget::_updateAbsoluteGeometryAndScissor()
 	{
 		spk::HierarchyTrait<Widget>::HierarchyMutationGuard guard(this);
@@ -267,12 +237,12 @@ namespace spk
 	{
 		_renderCommandsDirty = true;
 
-		// A change affecting rendering usually affects size hints too; releasing up the
-		// hierarchy keeps cached parent hints (which aggregate child hints) consistent.
-		sizeHint().release();
+		// A change affecting rendering usually affects cached sizes too; releasing up
+		// the hierarchy keeps cached parent sizes (which aggregate child sizes) consistent.
+		releaseSizeCache();
 		for (Widget *ancestor = parent(); ancestor != nullptr; ancestor = ancestor->parent())
 		{
-			ancestor->sizeHint().release();
+			ancestor->releaseSizeCache();
 		}
 	}
 

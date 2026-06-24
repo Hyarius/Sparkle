@@ -59,7 +59,7 @@ namespace spk
 		ValidationCallback _validationCallback;
 
 		void _bindStyle(const spk::WidgetStyle &p_style);
-		void _configureSizeHint();
+		void _configureSizeCache();
 		void _notifyEdition();
 		[[nodiscard]] ValidationState _validate(const spk::Font::Text &p_text) const;
 

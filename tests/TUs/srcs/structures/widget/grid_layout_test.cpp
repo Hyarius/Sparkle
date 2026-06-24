@@ -187,6 +187,25 @@ TEST(GridLayoutTest, MaximumPolicyUsesElementMaximalSize)
 	EXPECT_EQ(cappedWidget.geometry().width(), 80u);
 }
 
+TEST(GridLayoutTest, MaximalSizeCapsMinimumPolicyGeometry)
+{
+	spk::GridLayout layout;
+	spk::Widget wideWidget("Wide");
+	spk::Widget cappedWidget("Capped");
+
+	wideWidget.setMinimalSize({200u, 20u});
+	cappedWidget.setMinimalSize({40u, 20u});
+	cappedWidget.setMaximalSize({80u, 40u});
+
+	layout.setWidget(0, 0, &wideWidget, spk::Layout::SizePolicy::Minimum);
+	layout.setWidget(0, 1, &cappedWidget, spk::Layout::SizePolicy::Minimum);
+
+	layout.setGeometry(spk::Rect2D(0, 0, 200u, 100u));
+
+	EXPECT_EQ(wideWidget.geometry().width(), 200u);
+	EXPECT_EQ(cappedWidget.geometry().width(), 80u);
+}
+
 TEST(GridLayoutFixedTest, OutOfBoundsColumnThrows)
 {
 	spk::GridLayoutFixedColumns<2> layout;

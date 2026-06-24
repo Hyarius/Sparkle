@@ -59,7 +59,7 @@ namespace spk
 		spk::Widget(p_name, p_parent),
 		_spriteSheet(defaultBreakSpriteSheet())
 	{
-		sizeHint().configureMinimalGenerator([this]() {
+		configureMinimalSizeGenerator([this]() {
 			return spk::Vector2UInt(1, _height);
 		});
 		activate();
@@ -134,7 +134,7 @@ namespace spk
 		spk::Widget(p_name, p_parent),
 		_backgroundFrame(p_name + "::backgroundFrame", this)
 	{
-		sizeHint().configureMinimalGenerator([this]() {
+		configureMinimalSizeGenerator([this]() {
 			spk::Vector2UInt result = {0, 0};
 
 			for (const auto &element : _elements)
@@ -169,7 +169,7 @@ namespace spk
 				applyCompactMetrics(*button, _controlHeight);
 			}
 		}
-		sizeHint().releaseMinimal();
+		releaseMinimalSize();
 	}
 
 	void MenuBar::Menu::_onGeometryChange()

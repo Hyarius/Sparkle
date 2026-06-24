@@ -55,9 +55,9 @@ namespace
 
 namespace spk
 {
-	void TextEdit::_configureSizeHint()
+	void TextEdit::_configureSizeCache()
 	{
-		sizeHint().configureMinimalGenerator([this]() {
+		configureMinimalSizeGenerator([this]() {
 			spk::Vector2UInt result = {0, 0};
 
 			if (_font != nullptr && _placeholder.empty() == false)
@@ -74,7 +74,7 @@ namespace spk
 	TextEdit::TextEdit(const std::string &p_name, spk::Widget *p_parent) :
 		spk::Widget(p_name, p_parent)
 	{
-		_configureSizeHint();
+		_configureSizeCache();
 		useDefaultStyle();
 		activate();
 	}
@@ -85,7 +85,7 @@ namespace spk
 		spk::Widget *p_parent) :
 		spk::Widget(p_name, p_parent)
 	{
-		_configureSizeHint();
+		_configureSizeCache();
 		useStyle(p_style);
 		activate();
 	}

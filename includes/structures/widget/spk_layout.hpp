@@ -45,6 +45,7 @@ namespace spk
 			[[nodiscard]] bool isLayout() const;
 
 			[[nodiscard]] spk::Vector2UInt minimalSize() const;
+			[[nodiscard]] spk::Vector2UInt minimalSizeFor(const spk::Vector2UInt &p_availableSize) const;
 			[[nodiscard]] spk::Vector2UInt fixedSize() const;
 			[[nodiscard]] spk::Vector2UInt maximalSize() const;
 			void setGeometry(const spk::Rect2D &p_geometry);
@@ -65,9 +66,9 @@ namespace spk
 
 		void setGeometry(const spk::Rect2D &p_geometry) override = 0;
 
-		[[nodiscard]] spk::Vector2UInt minimalSize() const;
-		[[nodiscard]] spk::Vector2UInt fixedSize() const;
-		[[nodiscard]] spk::Vector2UInt maximalSize() const;
+		[[nodiscard]] spk::Vector2UInt minimalSize() const override;
+		[[nodiscard]] spk::Vector2UInt fixedSize() const override;
+		[[nodiscard]] spk::Vector2UInt maximalSize() const override;
 
 		virtual void clear();
 

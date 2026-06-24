@@ -43,8 +43,8 @@ namespace spk
 
 		void setGeometry(const spk::Rect2D &p_geometry) override;
 
-		void setMinimumSize(const spk::Vector2UInt &p_minimumSize);
-		void setMaximumSize(const spk::Vector2UInt &p_maximumSize);
+		void setMinimalSize(const spk::Vector2UInt &p_minimumSize) override;
+		void setMaximalSize(const spk::Vector2UInt &p_maximumSize) override;
 
 		[[nodiscard]] bool isResizing() const;
 	};

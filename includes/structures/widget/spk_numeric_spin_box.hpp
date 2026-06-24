@@ -191,7 +191,7 @@ namespace spk
 
 			_refreshValueText();
 
-			sizeHint().configureMinimalGenerator([this]() {
+			configureMinimalSizeGenerator([this]() {
 				const spk::Vector2UInt editSize = _valueEdit.minimalSize();
 				const spk::Vector2UInt lowerSize = _lowerButton.minimalSize();
 				const spk::Vector2UInt raiseSize = _raiseButton.minimalSize();

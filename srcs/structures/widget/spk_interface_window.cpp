@@ -58,7 +58,7 @@ namespace spk
 		_closeButton.releasedBackground().setCornerSize(TitleButtonCornerSize);
 		_closeButton.pressedBackground().setCornerSize(TitleButtonCornerSize);
 
-		sizeHint().configureMinimalGenerator([this]() {
+		configureMinimalSizeGenerator([this]() {
 			const spk::Vector2UInt titleSize = _titleLabel.minimalSize();
 			const unsigned int buttonSize = _minimumControlButtonSize();
 
@@ -445,7 +445,7 @@ namespace spk
 
 		// Re-applies the current geometry through setGeometry so the new minimum can clamp it;
 		// setGeometry early-returns when nothing changes, which keeps resize callbacks from recursing.
-		setMinimumSize({width, height});
+		setMinimalSize({width, height});
 		setGeometry(geometry());
 	}
 

@@ -11,12 +11,9 @@ namespace spk
 	{
 		_layout.setElementPadding({8, 8});
 
-		_textArea.setBackgroundVisible(false);
-		_textArea.setCornerSize({0, 0});
-
 		_compose();
 
-		sizeHint().configureMinimalGenerator([this]() {
+		configureMinimalSizeGenerator([this]() {
 			const spk::Vector2UInt commandPanelSize = _commandPanel.minimalSize();
 
 			if (_textArea.text().empty() == true)
@@ -168,6 +165,7 @@ namespace spk
 	void MessageBox::setMinimalWidth(uint32_t p_width)
 	{
 		_minimalWidth = p_width;
+		_content.textArea().setMinimalWidth(p_width);
 
 		const spk::Vector2UInt commandPanelMinimalSize = _content.commandPanel().minimalSize();
 		const spk::Vector2UInt textAreaMinimalSize =

@@ -279,6 +279,24 @@ TEST(CachedDataTest, ConfigureWithoutCachedValueDoesNotCallDestructor)
 	EXPECT_EQ(cache.get(), 20);
 }
 
+TEST(CachedDataTest, GetAfterSetDoesNotCallGenerator)
+{
+	int generationCount = 0;
+
+	spk::CachedData<int> cache([&generationCount]()
+	{
+		++generationCount;
+		return 12;
+	});
+
+	cache.set(42);
+
+	EXPECT_TRUE(cache.isCached());
+	EXPECT_EQ(cache.get(), 42);
+	EXPECT_EQ(cache.get(), 42);
+	EXPECT_EQ(generationCount, 0);
+}
+
 TEST(CachedDataTest, SetByCopyStoresValueWithoutUsingGenerator)
 {
 	int generationCount = 0;

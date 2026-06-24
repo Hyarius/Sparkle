@@ -4,104 +4,86 @@
 
 namespace spk
 {
-	ResizableElement::SizeHint::SizeHint(
-		Generator p_minimalGenerator,
-		Generator p_desiredGenerator,
-		Generator p_maximalGenerator)
+	void ResizableElement::configureSizeGenerators(
+		SizeGenerator p_minimalGenerator,
+		SizeGenerator p_fixedGenerator,
+		SizeGenerator p_maximalGenerator)
 	{
-		configure(std::move(p_minimalGenerator), std::move(p_desiredGenerator), std::move(p_maximalGenerator));
+		configureMinimalSizeGenerator(std::move(p_minimalGenerator));
+		configureFixedSizeGenerator(std::move(p_fixedGenerator));
+		configureMaximalSizeGenerator(std::move(p_maximalGenerator));
 	}
 
-	void ResizableElement::SizeHint::configure(
-		Generator p_minimalGenerator,
-		Generator p_desiredGenerator,
-		Generator p_maximalGenerator)
+	void ResizableElement::configureMinimalSizeGenerator(SizeGenerator p_generator)
 	{
-		configureMinimalGenerator(std::move(p_minimalGenerator));
-		configureDesiredGenerator(std::move(p_desiredGenerator));
-		configureMaximalGenerator(std::move(p_maximalGenerator));
+		_minimalSize.configure(std::move(p_generator));
 	}
 
-	void ResizableElement::SizeHint::configureMinimalGenerator(Generator p_generator)
+	void ResizableElement::configureFixedSizeGenerator(SizeGenerator p_generator)
 	{
-		_minimal.configure(std::move(p_generator));
+		_fixedSize.configure(std::move(p_generator));
 	}
 
-	void ResizableElement::SizeHint::configureDesiredGenerator(Generator p_generator)
+	void ResizableElement::configureMaximalSizeGenerator(SizeGenerator p_generator)
 	{
-		_desired.configure(std::move(p_generator));
+		_maximalSize.configure(std::move(p_generator));
 	}
 
-	void ResizableElement::SizeHint::configureMaximalGenerator(Generator p_generator)
+	void ResizableElement::releaseSizeCache() const
 	{
-		_maximal.configure(std::move(p_generator));
+		releaseMinimalSize();
+		releaseFixedSize();
+		releaseMaximalSize();
 	}
 
-	void ResizableElement::SizeHint::release() const
+	void ResizableElement::releaseMinimalSize() const
 	{
-		releaseMinimal();
-		releaseDesired();
-		releaseMaximal();
+		_minimalSize.release();
 	}
 
-	void ResizableElement::SizeHint::releaseMinimal() const
+	void ResizableElement::releaseFixedSize() const
 	{
-		_minimal.release();
+		_fixedSize.release();
 	}
 
-	void ResizableElement::SizeHint::releaseDesired() const
+	void ResizableElement::releaseMaximalSize() const
 	{
-		_desired.release();
+		_maximalSize.release();
 	}
 
-	void ResizableElement::SizeHint::releaseMaximal() const
+	void ResizableElement::setMinimalSize(const spk::Vector2UInt &p_minimalValue)
 	{
-		_maximal.release();
+		_minimalSize.set(p_minimalValue);
 	}
 
-	void ResizableElement::SizeHint::setMinimal(const spk::Vector2UInt &p_minimalValue)
+	void ResizableElement::setFixedSize(const spk::Vector2UInt &p_fixedValue)
 	{
-		_minimal.configure([p_minimalValue]() {
-			return p_minimalValue;
-		});
+		_fixedSize.set(p_fixedValue);
 	}
 
-	void ResizableElement::SizeHint::setDesired(const spk::Vector2UInt &p_desiredValue)
+	void ResizableElement::setMaximalSize(const spk::Vector2UInt &p_maximalValue)
 	{
-		_desired.configure([p_desiredValue]() {
-			return p_desiredValue;
-		});
+		_maximalSize.set(p_maximalValue);
 	}
 
-	void ResizableElement::SizeHint::setMaximal(const spk::Vector2UInt &p_maximalValue)
+	spk::Vector2UInt ResizableElement::minimalSize() const
 	{
-		_maximal.configure([p_maximalValue]() {
-			return p_maximalValue;
-		});
+		return _minimalSize.get();
 	}
 
-	const spk::Vector2UInt &ResizableElement::SizeHint::minimal() const
+	spk::Vector2UInt ResizableElement::minimalSizeFor(const spk::Vector2UInt &p_availableSize) const
 	{
-		return _minimal.get();
+		(void)p_availableSize;
+		return minimalSize();
 	}
 
-	const spk::Vector2UInt &ResizableElement::SizeHint::desired() const
+	spk::Vector2UInt ResizableElement::fixedSize() const
 	{
-		return _desired.get();
+		return _fixedSize.get();
 	}
 
-	const spk::Vector2UInt &ResizableElement::SizeHint::maximal() const
+	spk::Vector2UInt ResizableElement::maximalSize() const
 	{
-		return _maximal.get();
-	}
-
-	ResizableElement::SizeHint &ResizableElement::sizeHint()
-	{
-		return _sizeHint;
-	}
-
-	const ResizableElement::SizeHint &ResizableElement::sizeHint() const
-	{
-		return _sizeHint;
+		return _maximalSize.get();
 	}
 }

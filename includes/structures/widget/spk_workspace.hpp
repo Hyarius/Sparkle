@@ -40,7 +40,7 @@ namespace spk
 			_content.activate();
 			_menuBar.activate();
 
-			sizeHint().configureMinimalGenerator([this]() {
+			configureMinimalSizeGenerator([this]() {
 				const spk::Vector2UInt menuBarSize = _menuBar.minimalSize();
 				const spk::Vector2UInt contentSize = _content.minimalSize();
 

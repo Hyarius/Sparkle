@@ -1,9 +1,9 @@
 #pragma once
 
+#include <array>
 #include <limits>
 #include <memory>
 #include <string>
-#include <array>
 
 #include "structures/design_pattern/spk_activable_trait.hpp"
 #include "structures/design_pattern/spk_inherence_trait.hpp"
@@ -124,14 +124,6 @@ namespace spk
 		void setGeometry(const spk::Rect2D &p_geometry) override;
 		void place(const spk::Vector2Int &p_anchor);
 		void move(const spk::Vector2Int &p_delta);
-
-		void setMinimalSize(const spk::Vector2UInt &p_size);
-		void setFixedSize(const spk::Vector2UInt &p_size);
-		void setMaximalSize(const spk::Vector2UInt &p_size);
-
-		[[nodiscard]] spk::Vector2UInt minimalSize() const;
-		[[nodiscard]] spk::Vector2UInt fixedSize() const;
-		[[nodiscard]] spk::Vector2UInt maximalSize() const;
 
 		[[nodiscard]] const spk::Rect2D &absoluteGeometry() const;
 		[[nodiscard]] const spk::Rect2D &scissor() const;

@@ -21,7 +21,7 @@ TEST(MessageBoxTest, AddButtonRegistersInCommandPanel)
 {
 	spk::MessageBox messageBox("MessageBox");
 
-	spk::PushButton* button = messageBox.addButton("ok", "OK");
+	spk::PushButton *button = messageBox.addButton("ok", "OK");
 
 	ASSERT_NE(button, nullptr);
 	EXPECT_EQ(messageBox.button("ok"), button);
@@ -29,13 +29,6 @@ TEST(MessageBoxTest, AddButtonRegistersInCommandPanel)
 
 	messageBox.removeButton("ok");
 	EXPECT_EQ(messageBox.commandPanel().nbButton(), 0u);
-}
-
-TEST(MessageBoxTest, ContentTextAreaHasNoBackground)
-{
-	spk::MessageBox messageBox("MessageBox");
-
-	EXPECT_FALSE(messageBox.textArea().isBackgroundVisible());
 }
 
 TEST(MessageBoxTest, SetMinimalWidthGrowsMinimalSize)
@@ -99,9 +92,13 @@ TEST(RequestMessageBoxTest, ConfigureSetsCaptionsAndActions)
 	int declineCount = 0;
 	messageBox.configure(
 		"Accept",
-		[&acceptCount]() { ++acceptCount; },
+		[&acceptCount]() {
+			++acceptCount;
+		},
 		"Decline",
-		[&declineCount]() { ++declineCount; });
+		[&declineCount]() {
+			++declineCount;
+		});
 
 	EXPECT_EQ(messageBox.firstButton()->releasedLabel().text(), spk::Font::textFromUTF8("Accept"));
 	EXPECT_EQ(messageBox.secondButton()->releasedLabel().text(), spk::Font::textFromUTF8("Decline"));
@@ -130,7 +127,9 @@ TEST(MessageBoxTest, SubscribeTriggersButtonClick)
 	messageBox.addButton("yes", "Yes");
 
 	int clickCount = 0;
-	auto contract = messageBox.subscribe("yes", [&clickCount]() { ++clickCount; });
+	auto contract = messageBox.subscribe("yes", [&clickCount]() {
+		++clickCount;
+	});
 
 	const spk::Rect2D buttonRect = messageBox.button("yes")->viewport().geometry();
 	const spk::Vector2Int clickPos = {
@@ -150,7 +149,7 @@ TEST(MessageBoxTest, SubscribeTriggersButtonClick)
 TEST(MessageBoxTest, ConstAccessorsReturnSameObjects)
 {
 	spk::MessageBox messageBox("MessageBox");
-	const spk::MessageBox& cmb = messageBox;
+	const spk::MessageBox &cmb = messageBox;
 
 	EXPECT_EQ(&cmb.content(), &messageBox.content());
 	EXPECT_EQ(&cmb.textArea(), &messageBox.textArea());
@@ -170,9 +169,12 @@ TEST(RequestMessageBoxTest, SecondButtonTriggersDeclineAndCloses)
 	int declineCount = 0;
 	messageBox.configure(
 		"Yes",
-		[]() {},
+		[]() {
+		},
 		"No",
-		[&declineCount]() { ++declineCount; });
+		[&declineCount]() {
+			++declineCount;
+		});
 
 	const spk::Rect2D buttonRect = messageBox.secondButton()->viewport().geometry();
 	const spk::Vector2Int clickPos = {
@@ -245,7 +247,11 @@ TEST(RequestMessageBoxVisualTest, RendersDefault)
 
 	spk::RequestMessageBox box("RequestBox");
 	box.setText("Are you sure you want to proceed?");
-	box.configure("Yes", []() {}, "No", []() {});
+	box.configure("Yes", []() {
+	},
+				  "No",
+				  []() {
+				  });
 
 	const sparkle_test::ImageComparisonResult result =
 		spk::test::compareSnapshot(box, "RequestMessageBoxVisual", "default", captureRect);

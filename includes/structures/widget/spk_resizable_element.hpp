@@ -11,47 +11,19 @@ namespace spk
 	class ResizableElement
 	{
 	public:
-		class SizeHint
-		{
-		public:
-			using Generator = spk::CachedData<spk::Vector2UInt>::Generator;
-
-		private:
-			mutable spk::CachedData<spk::Vector2UInt> _minimal{[]() {
-				return spk::Vector2UInt(0, 0);
-			}};
-			mutable spk::CachedData<spk::Vector2UInt> _desired{[]() {
-				return spk::Vector2UInt(0, 0);
-			}};
-			mutable spk::CachedData<spk::Vector2UInt> _maximal{[]() {
-				return std::numeric_limits<spk::Vector2UInt>::max();
-			}};
-
-		public:
-			SizeHint() = default;
-			SizeHint(Generator p_minimalGenerator, Generator p_desiredGenerator, Generator p_maximalGenerator);
-
-			void configure(Generator p_minimalGenerator, Generator p_desiredGenerator, Generator p_maximalGenerator);
-			void configureMinimalGenerator(Generator p_generator);
-			void configureDesiredGenerator(Generator p_generator);
-			void configureMaximalGenerator(Generator p_generator);
-
-			void release() const;
-			void releaseMinimal() const;
-			void releaseDesired() const;
-			void releaseMaximal() const;
-
-			void setMinimal(const spk::Vector2UInt &p_minimalValue);
-			void setDesired(const spk::Vector2UInt &p_desiredValue);
-			void setMaximal(const spk::Vector2UInt &p_maximalValue);
-
-			[[nodiscard]] const spk::Vector2UInt &minimal() const;
-			[[nodiscard]] const spk::Vector2UInt &desired() const;
-			[[nodiscard]] const spk::Vector2UInt &maximal() const;
-		};
+		using SizeGenerator = spk::CachedData<spk::Vector2UInt>::Generator;
 
 	private:
-		mutable SizeHint _sizeHint;
+		mutable spk::CachedData<spk::Vector2UInt> _minimalSize{[]() -> spk::Vector2UInt {
+			return spk::Vector2UInt(0, 0);
+		}};
+		mutable spk::CachedData<spk::Vector2UInt> _fixedSize{[]() -> spk::Vector2UInt {
+			return spk::Vector2UInt(0, 0);
+		}};
+		mutable spk::CachedData<spk::Vector2UInt> _maximalSize{[]() -> spk::Vector2UInt {
+			constexpr auto maximumValue = (std::numeric_limits<spk::Vector2UInt::value_type>::max)();
+			return spk::Vector2UInt(maximumValue, maximumValue);
+		}};
 
 	public:
 		ResizableElement() = default;
@@ -59,7 +31,26 @@ namespace spk
 
 		virtual void setGeometry(const spk::Rect2D &p_geometry) = 0;
 
-		[[nodiscard]] SizeHint &sizeHint();
-		[[nodiscard]] const SizeHint &sizeHint() const;
+		void configureSizeGenerators(
+			SizeGenerator p_minimalGenerator,
+			SizeGenerator p_fixedGenerator,
+			SizeGenerator p_maximalGenerator);
+		void configureMinimalSizeGenerator(SizeGenerator p_generator);
+		void configureFixedSizeGenerator(SizeGenerator p_generator);
+		void configureMaximalSizeGenerator(SizeGenerator p_generator);
+
+		void releaseSizeCache() const;
+		void releaseMinimalSize() const;
+		void releaseFixedSize() const;
+		void releaseMaximalSize() const;
+
+		virtual void setMinimalSize(const spk::Vector2UInt &p_minimalValue);
+		virtual void setFixedSize(const spk::Vector2UInt &p_fixedValue);
+		virtual void setMaximalSize(const spk::Vector2UInt &p_maximalValue);
+
+		[[nodiscard]] virtual spk::Vector2UInt minimalSize() const;
+		[[nodiscard]] virtual spk::Vector2UInt minimalSizeFor(const spk::Vector2UInt &p_availableSize) const;
+		[[nodiscard]] virtual spk::Vector2UInt fixedSize() const;
+		[[nodiscard]] virtual spk::Vector2UInt maximalSize() const;
 	};
 }

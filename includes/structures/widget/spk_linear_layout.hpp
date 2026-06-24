@@ -45,6 +45,7 @@ namespace spk
 		{
 			Element *elt = nullptr;
 			int size = 0;
+			int secondarySize = 0;
 			int minP = 0;
 			int maxP = std::numeric_limits<int>::max();
 			int minS = 0;
@@ -93,6 +94,21 @@ namespace spk
 			}
 		}
 
+		static spk::Vector2UInt _sizeFromPrimarySecondary(const int p_primary, const int p_secondary)
+		{
+			const unsigned int primary = static_cast<unsigned int>(std::max(0, p_primary));
+			const unsigned int secondary = static_cast<unsigned int>(std::max(0, p_secondary));
+
+			if constexpr (_horizontalMode)
+			{
+				return {primary, secondary};
+			}
+			else
+			{
+				return {secondary, primary};
+			}
+		}
+
 		static void _applyExtendPolicy(Item &p_item, const int p_requestedSize, const bool p_shouldExtend)
 		{
 			p_item.extend = p_shouldExtend;
@@ -129,32 +145,43 @@ namespace spk
 			}
 		}
 
-		static Item _makeItem(Element *p_element)
+		static Item _makeItem(Element *p_element, const int p_remainingPrimary, const int p_availableSecondary)
 		{
 			const spk::Vector2UInt requestedSize = p_element->size();
-			const spk::Vector2UInt minimalSize = p_element->minimalSize();
 			const spk::Vector2UInt maximalSize = p_element->maximalSize();
+
+			const int maxP = _saturatedPrimary(maximalSize);
+			const int maxS = _saturatedSecondary(maximalSize);
+			const int queryPrimary = std::clamp(p_remainingPrimary, 0, maxP);
+			const int querySecondary = std::clamp(p_availableSecondary, 0, maxS);
+			const spk::Vector2UInt minimalSize =
+				p_element->minimalSizeFor(_sizeFromPrimarySecondary(queryPrimary, querySecondary));
 
 			Item result;
 			result.elt = p_element;
 
 			result.minP = _saturatedPrimary(minimalSize);
-			result.maxP = std::max(result.minP, _saturatedPrimary(maximalSize));
+			result.maxP = std::max(result.minP, maxP);
 
 			result.minS = _saturatedSecondary(minimalSize);
-			result.maxS = std::max(result.minS, _saturatedSecondary(maximalSize));
+			result.maxS = std::max(result.minS, maxS);
 
 			_applySizePolicy(result, p_element->sizePolicy(), _saturatedPrimary(requestedSize));
 
 			result.size = std::clamp(result.size, result.minP, result.maxP);
+			result.secondarySize = result.minS;
 
 			return result;
 		}
 
-		std::vector<Item> _collectItems() const
+		std::vector<Item> _collectItems(const spk::Vector2UInt &p_availableSize) const
 		{
 			std::vector<Item> result;
 			result.reserve(_elements.size());
+
+			const int paddingTotal = static_cast<int>((_elements.empty() == false ? _elements.size() - 1 : 0) * _primary(_elementPadding));
+			int remainingPrimary = std::max(0, _primary(p_availableSize) - paddingTotal);
+			const int availableSecondary = std::max(0, _secondary(p_availableSize));
 
 			for (const auto &elementPointer : _elements)
 			{
@@ -165,7 +192,8 @@ namespace spk
 					continue;
 				}
 
-				result.push_back(_makeItem(element));
+				result.push_back(_makeItem(element, remainingPrimary, availableSecondary));
+				remainingPrimary = std::max(0, remainingPrimary - result.back().size);
 			}
 
 			return result;
@@ -226,6 +254,32 @@ namespace spk
 			}
 		}
 
+		static void _refreshMinimalSecondarySizes(std::vector<Item> &p_items, const int p_availableSecondary)
+		{
+			for (Item &item : p_items)
+			{
+				const spk::Vector2UInt maximalSize = item.elt->maximalSize();
+				const int maxS = _saturatedSecondary(maximalSize);
+				const int querySecondary = std::clamp(p_availableSecondary, 0, maxS);
+				const spk::Vector2UInt minimalSize =
+					item.elt->minimalSizeFor(_sizeFromPrimarySecondary(item.size, querySecondary));
+
+				item.minS = _saturatedSecondary(minimalSize);
+				item.maxS = std::max(item.minS, maxS);
+				item.secondarySize = item.minS;
+			}
+		}
+
+		static void _refreshGeometrySecondarySizes(std::vector<Item> &p_items, const int p_availableSecondary)
+		{
+			_refreshMinimalSecondarySizes(p_items, p_availableSecondary);
+
+			for (Item &item : p_items)
+			{
+				item.secondarySize = std::clamp(p_availableSecondary, item.minS, item.maxS);
+			}
+		}
+
 		void _applyGeometry(const std::vector<Item> &p_items, const spk::Rect2D &p_geometry, int p_padding)
 		{
 			int cursor = _primary(p_geometry.anchor);
@@ -239,8 +293,6 @@ namespace spk
 					cursor += p_padding;
 				}
 
-				const int secondarySize = std::clamp(_secondary(p_geometry.size), it.minS, it.maxS);
-
 				spk::Rect2D cell;
 				if constexpr (_horizontalMode)
 				{
@@ -248,14 +300,14 @@ namespace spk
 						cursor,
 						p_geometry.anchor.y,
 						static_cast<unsigned int>(std::max(0, it.size)),
-						static_cast<unsigned int>(std::max(0, secondarySize)));
+						static_cast<unsigned int>(std::max(0, it.secondarySize)));
 				}
 				else
 				{
 					cell = spk::Rect2D(
 						p_geometry.anchor.x,
 						cursor,
-						static_cast<unsigned int>(std::max(0, secondarySize)),
+						static_cast<unsigned int>(std::max(0, it.secondarySize)),
 						static_cast<unsigned int>(std::max(0, it.size)));
 				}
 
@@ -266,43 +318,34 @@ namespace spk
 		}
 
 	private:
-		[[nodiscard]] spk::Vector2UInt _computeMinimalSize() const
+		[[nodiscard]] spk::Vector2UInt _computeMinimalSizeFor(const spk::Vector2UInt &p_availableSize) const
 		{
 			if (_elements.empty() == true)
 			{
 				return {0u, 0u};
 			}
 
-			uint32_t primarySum = 0;
-			uint32_t secondaryMax = 0;
-			size_t count = 0;
-
-			for (const auto &elementPtr : _elements)
+			std::vector<Item> items = _collectItems(p_availableSize);
+			if (items.empty() == true)
 			{
-				if (elementPtr == nullptr || (elementPtr->widget() == nullptr && elementPtr->layout() == nullptr))
-				{
-					continue;
-				}
-
-				++count;
-				const spk::Vector2UInt min = elementPtr->minimalSize();
-
-				if constexpr (_horizontalMode)
-				{
-					primarySum += min.x;
-					secondaryMax = std::max(secondaryMax, min.y);
-				}
-				else
-				{
-					primarySum += min.y;
-					secondaryMax = std::max(secondaryMax, min.x);
-				}
+				return {0u, 0u};
 			}
 
-			if (count > 1)
+			uint32_t primarySum = 0;
+			uint32_t secondaryMax = 0;
+
+			_refreshMinimalSecondarySizes(items, std::max(0, _secondary(p_availableSize)));
+
+			for (const Item &item : items)
+			{
+				primarySum += static_cast<uint32_t>(std::max(0, item.size));
+				secondaryMax = std::max(secondaryMax, static_cast<uint32_t>(std::max(0, item.secondarySize)));
+			}
+
+			if (items.size() > 1)
 			{
 				const uint32_t pad = static_cast<uint32_t>(_primary(_elementPadding));
-				primarySum += pad * static_cast<uint32_t>(count - 1);
+				primarySum += pad * static_cast<uint32_t>(items.size() - 1);
 			}
 
 			if constexpr (_horizontalMode)
@@ -315,15 +358,25 @@ namespace spk
 			}
 		}
 
+		[[nodiscard]] spk::Vector2UInt _computeMinimalSize() const
+		{
+			return _computeMinimalSizeFor(std::numeric_limits<spk::Vector2UInt>::max());
+		}
+
 	public:
 		LinearLayout()
 		{
-			sizeHint().configureMinimalGenerator([this]() {
+			configureMinimalSizeGenerator([this]() {
 				return _computeMinimalSize();
 			});
-			sizeHint().configureDesiredGenerator([this]() {
+			configureFixedSizeGenerator([this]() {
 				return _computeMinimalSize();
 			});
+		}
+
+		[[nodiscard]] spk::Vector2UInt minimalSizeFor(const spk::Vector2UInt &p_availableSize) const override
+		{
+			return _computeMinimalSizeFor(p_availableSize);
 		}
 
 		void setGeometry(const spk::Rect2D &p_geometry) override
@@ -333,7 +386,7 @@ namespace spk
 				return;
 			}
 
-			std::vector<Item> items = _collectItems();
+			std::vector<Item> items = _collectItems(p_geometry.size);
 			if (items.empty() == true)
 			{
 				return;
@@ -346,6 +399,7 @@ namespace spk
 			const int extra = std::max(0, availablePrimary - (baseSum + paddingTotal));
 
 			_distributeExtra(items, extra);
+			_refreshGeometrySecondarySizes(items, std::max(0, _secondary(p_geometry.size)));
 			_applyGeometry(items, p_geometry, pad);
 		}
 	};

@@ -22,6 +22,7 @@ namespace spk
 		};
 
 		FormLayout();
+		[[nodiscard]] spk::Vector2UInt minimalSizeFor(const spk::Vector2UInt &p_availableSize) const override;
 
 		FormElement addRow(
 			spk::Widget *p_labelWidget,

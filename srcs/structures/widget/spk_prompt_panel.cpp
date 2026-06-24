@@ -11,14 +11,11 @@ namespace spk
 		_textArea(p_name + "::textArea", this),
 		_commandPanel(p_name + "::commandPanel", this)
 	{
-		_textArea.setBackgroundVisible(false);
-		_textArea.setCornerSize({0, 0});
-
 		_layout.setElementPadding({8, 8});
 		_layout.addWidget(&_textArea, spk::Layout::SizePolicy::Extend);
 		_layout.addWidget(&_commandPanel, spk::Layout::SizePolicy::Minimum);
 
-		sizeHint().configureMinimalGenerator([this]() {
+		configureMinimalSizeGenerator([this]() {
 			const spk::Vector2Int cornerSize = _background.cornerSize();
 			const spk::Vector2UInt commandPanelSize = _commandPanel.minimalSize();
 

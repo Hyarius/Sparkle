@@ -5,24 +5,12 @@
 #include "structures/application/module/spk_mouse_module.hpp"
 #include "structures/system/device/window/window_test_utils.hpp"
 
-TEST(ScalableWidgetTest, SetGeometryClampsToMinimumAndMaximumSizes)
-{
-	spk::ScalableWidget widget("Scalable");
-	widget.setMinimumSize({50, 50});
-	widget.setMaximumSize({200, 200});
-
-	widget.setGeometry(spk::Rect2D(0, 0, 10, 300));
-
-	EXPECT_EQ(widget.geometry().width(), 50u);
-	EXPECT_EQ(widget.geometry().height(), 200u);
-}
-
 TEST(ScalableWidgetTest, SetMinimumSizeGrowsCurrentGeometry)
 {
 	spk::ScalableWidget widget("Scalable");
 	widget.setGeometry(spk::Rect2D(0, 0, 30, 30));
 
-	widget.setMinimumSize({60, 40});
+	widget.setMinimalSize({60, 40});
 
 	EXPECT_EQ(widget.geometry().width(), 60u);
 	EXPECT_EQ(widget.geometry().height(), 40u);

@@ -91,7 +91,7 @@ namespace spk
 		_releasedIcon.deactivate();
 		_pressedIcon.deactivate();
 
-		sizeHint().configureMinimalGenerator([this]() {
+		configureMinimalSizeGenerator([this]() {
 			const spk::Vector2UInt releasedSize = _releasedLabel.minimalSize();
 			const spk::Vector2UInt pressedSize = _pressedLabel.minimalSize();
 			const spk::Vector2Int cornerSize = _releasedBackground.cornerSize();
@@ -258,7 +258,7 @@ namespace spk
 		}
 
 		_iconSize = p_iconSize;
-		sizeHint().releaseMinimal();
+		releaseMinimalSize();
 		_refreshIconGeometry();
 	}
 
@@ -270,7 +270,7 @@ namespace spk
 		}
 
 		_iconSize.reset();
-		sizeHint().releaseMinimal();
+		releaseMinimalSize();
 		_refreshIconGeometry();
 	}
 
@@ -282,7 +282,7 @@ namespace spk
 		}
 
 		_iconPadding = p_iconPadding;
-		sizeHint().releaseMinimal();
+		releaseMinimalSize();
 		_refreshIconGeometry();
 	}
 
@@ -294,7 +294,7 @@ namespace spk
 		}
 
 		_iconPadding.reset();
-		sizeHint().releaseMinimal();
+		releaseMinimalSize();
 		_refreshIconGeometry();
 	}
 

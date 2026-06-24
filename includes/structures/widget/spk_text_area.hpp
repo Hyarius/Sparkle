@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -7,7 +8,6 @@
 
 #include "structures/graphics/geometry/spk_color.hpp"
 #include "structures/graphics/texture/spk_font.hpp"
-#include "structures/graphics/texture/spk_sprite_sheet.hpp"
 #include "structures/math/spk_vector2.hpp"
 #include "structures/widget/spk_widget.hpp"
 #include "structures/widget/spk_widget_style.hpp"
@@ -19,8 +19,6 @@ namespace spk
 	class TextArea : public spk::Widget
 	{
 	private:
-		std::shared_ptr<spk::SpriteSheet> _spriteSheet;
-		spk::Vector2Int _cornerSize;
 		std::shared_ptr<spk::Font> _font;
 		spk::Font::Size _textSize;
 		spk::Color _glyphColor;
@@ -29,17 +27,18 @@ namespace spk
 
 		spk::Font::Text _text;
 		size_t _linePadding = 0;
-		bool _backgroundVisible = true;
+		size_t _minimalWidth = 0;
 		spk::HorizontalAlignment _horizontalAlignment = spk::HorizontalAlignment::Left;
 		spk::VerticalAlignment _verticalAlignment = spk::VerticalAlignment::Top;
 
 		spk::WidgetStyle::Contract _styleEditionContract;
 
+		void _configureSizeCache();
 		void _bindStyle(const spk::WidgetStyle &p_style);
 
-		[[nodiscard]] spk::Rect2D _innerGeometry() const;
 		[[nodiscard]] std::vector<spk::Font::Text> _composeLines(unsigned int p_availableWidth) const;
 		[[nodiscard]] unsigned int _lineHeight() const;
+		[[nodiscard]] unsigned int _minimalWidthAsUInt() const;
 
 	protected:
 		[[nodiscard]] spk::RenderUnit _buildRenderUnit() const override;
@@ -60,8 +59,6 @@ namespace spk
 		void useDefaultStyle();
 		void useStyle(const spk::WidgetStyle &p_style);
 
-		void setSpriteSheet(std::shared_ptr<spk::SpriteSheet> p_spriteSheet);
-		void setCornerSize(const spk::Vector2Int &p_cornerSize);
 		void setFont(std::shared_ptr<spk::Font> p_font);
 		void setTextSize(const spk::Font::Size &p_textSize);
 		void setGlyphColor(const spk::Color &p_color);
@@ -70,20 +67,18 @@ namespace spk
 
 		void setText(const spk::Font::Text &p_text);
 		void setText(std::string_view p_text);
+		void setMinimalWidth(size_t p_width);
 		void setLinePadding(size_t p_linePadding);
-		void setBackgroundVisible(bool p_state);
-		[[nodiscard]] bool isBackgroundVisible() const;
 		void setAlignment(spk::HorizontalAlignment p_horizontalAlignment, spk::VerticalAlignment p_verticalAlignment);
 
 		[[nodiscard]] spk::Vector2UInt computeMinimalSize(unsigned int p_availableWidth) const;
+		[[nodiscard]] spk::Vector2UInt minimalSizeFor(const spk::Vector2UInt &p_availableSize) const override;
 
 		[[nodiscard]] const spk::Font::Text &text() const;
 		[[nodiscard]] size_t linePadding() const;
 		[[nodiscard]] spk::HorizontalAlignment horizontalAlignment() const;
 		[[nodiscard]] spk::VerticalAlignment verticalAlignment() const;
 
-		[[nodiscard]] const std::shared_ptr<spk::SpriteSheet> &spriteSheet() const;
-		[[nodiscard]] const spk::Vector2Int &cornerSize() const;
 		[[nodiscard]] const std::shared_ptr<spk::Font> &font() const;
 		[[nodiscard]] const spk::Font::Size &textSize() const;
 		[[nodiscard]] const spk::Color &glyphColor() const;

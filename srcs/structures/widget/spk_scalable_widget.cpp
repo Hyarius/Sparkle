@@ -50,19 +50,18 @@ namespace spk
 		spk::Widget::setGeometry(clamped);
 	}
 
-	void ScalableWidget::setMinimumSize(const spk::Vector2UInt &p_minimumSize)
+	void ScalableWidget::setMinimalSize(const spk::Vector2UInt &p_minimalValue)
 	{
-		setMinimalSize(p_minimumSize);
+		ResizableElement::setMinimalSize(p_minimalValue);
 
-		if (geometry().size.x < p_minimumSize.x || geometry().size.y < p_minimumSize.y)
-		{
-			setGeometry(spk::Rect2D(geometry().anchor, spk::Vector2UInt(std::max(geometry().size.x, p_minimumSize.x), std::max(geometry().size.y, p_minimumSize.y))));
-		}
+		setGeometry(geometry());
 	}
 
-	void ScalableWidget::setMaximumSize(const spk::Vector2UInt &p_maximumSize)
+	void ScalableWidget::setMaximalSize(const spk::Vector2UInt &p_maximalValue)
 	{
-		setMaximalSize(p_maximumSize);
+		ResizableElement::setMaximalSize(p_maximalValue);
+
+		setGeometry(geometry());
 	}
 
 	bool ScalableWidget::isResizing() const

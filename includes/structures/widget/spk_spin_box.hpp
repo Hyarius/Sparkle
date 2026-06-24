@@ -97,7 +97,7 @@ namespace spk
 				_upButton.setIcon(iconset, 4);
 			}
 
-			sizeHint().configureMinimalGenerator([this]() {
+			configureMinimalSizeGenerator([this]() {
 				const spk::Vector2UInt downSize = _downButton.minimalSize();
 				const spk::Vector2UInt editSize = _valueEdit.minimalSize();
 				const spk::Vector2UInt upSize = _upButton.minimalSize();

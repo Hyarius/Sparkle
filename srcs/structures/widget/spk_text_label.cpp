@@ -31,7 +31,7 @@ namespace spk
 		spk::Widget(p_name, p_parent),
 		_text(spk::Font::textFromUTF8(p_text))
 	{
-		_configureSizeHint();
+		_configureSizeCache();
 		useDefaultStyle();
 		activate();
 	}
@@ -44,7 +44,7 @@ namespace spk
 		spk::Widget(p_name, p_parent),
 		_text(spk::Font::textFromUTF8(p_text))
 	{
-		_configureSizeHint();
+		_configureSizeCache();
 		useStyle(p_style);
 		activate();
 	}
@@ -77,9 +77,9 @@ namespace spk
 		applyStyle(p_style);
 	}
 
-	void TextLabel::_configureSizeHint()
+	void TextLabel::_configureSizeCache()
 	{
-		sizeHint().configureMinimalGenerator([this]() {
+		configureMinimalSizeGenerator([this]() {
 			spk::Vector2UInt result = {0, 0};
 
 			if (_font != nullptr && _text.empty() == false)

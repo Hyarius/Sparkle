@@ -39,7 +39,7 @@ namespace spk
 			toggle();
 		});
 
-		sizeHint().configureMinimalGenerator([this]() {
+		configureMinimalSizeGenerator([this]() {
 			const spk::Vector2UInt uncheckedSize = _uncheckedButton.minimalSize();
 			const spk::Vector2UInt checkedSize = _checkedButton.minimalSize();
 

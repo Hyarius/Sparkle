@@ -13,7 +13,7 @@ namespace spk
 		_layout.setElementPadding({10, 10});
 		_composeLayout();
 
-		sizeHint().configureMinimalGenerator([this]() {
+		configureMinimalSizeGenerator([this]() {
 			spk::Vector2UInt result = {0, 0};
 
 			if (_buttons.empty() == false)

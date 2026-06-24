@@ -1,10 +1,10 @@
 #include "structures/widget/spk_text_area.hpp"
 
 #include <algorithm>
+#include <limits>
 #include <stdexcept>
 #include <utility>
 
-#include "structures/graphics/rendering/command/spk_nine_slice_render_command.hpp"
 #include "structures/graphics/rendering/command/spk_text_render_command.hpp"
 
 namespace
@@ -53,6 +53,7 @@ namespace spk
 		spk::Widget(p_name, p_parent),
 		_text(spk::Font::textFromUTF8(p_text))
 	{
+		_configureSizeCache();
 		useDefaultStyle();
 		activate();
 	}
@@ -65,8 +66,16 @@ namespace spk
 		spk::Widget(p_name, p_parent),
 		_text(spk::Font::textFromUTF8(p_text))
 	{
+		_configureSizeCache();
 		useStyle(p_style);
 		activate();
+	}
+
+	void TextArea::_configureSizeCache()
+	{
+		configureMinimalSizeGenerator([this]() {
+			return computeMinimalSize(_minimalWidthAsUInt());
+		});
 	}
 
 	void TextArea::_bindStyle(const spk::WidgetStyle &p_style)
@@ -78,8 +87,6 @@ namespace spk
 
 	void TextArea::applyStyle(const spk::WidgetStyle &p_style)
 	{
-		setSpriteSheet(p_style.nineSliceSpriteSheet());
-		setCornerSize(p_style.nineSliceCornerSize());
 		setFont(p_style.font());
 		setTextSize(p_style.textSize());
 		setGlyphColor(p_style.glyphColor());
@@ -98,11 +105,6 @@ namespace spk
 		applyStyle(p_style);
 	}
 
-	spk::Rect2D TextArea::_innerGeometry() const
-	{
-		return geometry().shrink(_cornerSize);
-	}
-
 	unsigned int TextArea::_lineHeight() const
 	{
 		if (_font == nullptr)
@@ -111,6 +113,13 @@ namespace spk
 		}
 
 		return _font->computeStringSize(spk::Font::Text(U"Ajp|"), _textSize).y;
+	}
+
+	unsigned int TextArea::_minimalWidthAsUInt() const
+	{
+		return static_cast<unsigned int>(std::min(
+			_minimalWidth,
+			static_cast<size_t>(std::numeric_limits<spk::Vector2UInt::value_type>::max())));
 	}
 
 	std::vector<spk::Font::Text> TextArea::_composeLines(unsigned int p_availableWidth) const
@@ -177,23 +186,12 @@ namespace spk
 			return builder.build();
 		}
 
-		if (_spriteSheet != nullptr && _backgroundVisible == true)
-		{
-			builder.emplace<spk::NineSliceRenderCommand>(
-				*_spriteSheet,
-				geometry(),
-				_cornerSize,
-				_depth);
-		}
-
-		const spk::Rect2D inner = _innerGeometry();
-
-		if (_font == nullptr || _text.empty() == true || inner.empty() == true)
+		if (_font == nullptr || _text.empty() == true)
 		{
 			return builder.build();
 		}
 
-		const std::vector<spk::Font::Text> lines = _composeLines(inner.width());
+		const std::vector<spk::Font::Text> lines = _composeLines(geometry().width());
 		const unsigned int lineHeight = _lineHeight();
 		const unsigned int blockHeight =
 			(lines.empty() == true)
@@ -201,28 +199,28 @@ namespace spk
 				: static_cast<unsigned int>(lines.size()) * lineHeight +
 					  static_cast<unsigned int>(lines.size() - 1) * static_cast<unsigned int>(_linePadding);
 
-		int lineTop = inner.top();
+		int lineTop = geometry().top();
 		if (_verticalAlignment == spk::VerticalAlignment::Centered)
 		{
-			lineTop = inner.top() + (static_cast<int>(inner.height()) - static_cast<int>(blockHeight)) / 2;
+			lineTop = geometry().top() + (static_cast<int>(geometry().height()) - static_cast<int>(blockHeight)) / 2;
 		}
 		else if (_verticalAlignment == spk::VerticalAlignment::Down)
 		{
-			lineTop = inner.bottom() - static_cast<int>(blockHeight);
+			lineTop = geometry().bottom() - static_cast<int>(blockHeight);
 		}
 
 		for (const spk::Font::Text &line : lines)
 		{
 			if (line.empty() == false)
 			{
-				int anchorX = inner.left();
+				int anchorX = geometry().left();
 				if (_horizontalAlignment == spk::HorizontalAlignment::Centered)
 				{
-					anchorX = inner.left() + static_cast<int>(inner.width() / 2);
+					anchorX = geometry().left() + static_cast<int>(geometry().width() / 2);
 				}
 				else if (_horizontalAlignment == spk::HorizontalAlignment::Right)
 				{
-					anchorX = inner.right();
+					anchorX = geometry().right();
 				}
 
 				builder.emplace<spk::TextRenderCommand>(
@@ -250,14 +248,16 @@ namespace spk
 			return {0, 0};
 		}
 
-		const unsigned int innerWidth =
-			(p_availableWidth > static_cast<unsigned int>(_cornerSize.x * 2))
-				? p_availableWidth - static_cast<unsigned int>(_cornerSize.x * 2)
-				: 0;
+		const unsigned int minimalWidth = _minimalWidthAsUInt();
+		if (_text.empty() == true)
+		{
+			return {minimalWidth, 0};
+		}
 
-		const std::vector<spk::Font::Text> lines = _composeLines(innerWidth);
+		const unsigned int availableWidth = std::max(p_availableWidth, minimalWidth);
+		const std::vector<spk::Font::Text> lines = _composeLines(availableWidth);
 
-		unsigned int maxWidth = 0;
+		unsigned int maxWidth = minimalWidth;
 		for (const spk::Font::Text &line : lines)
 		{
 			maxWidth = std::max(maxWidth, _font->computeStringSize(line, _textSize).x);
@@ -269,41 +269,12 @@ namespace spk
 				: static_cast<unsigned int>(lines.size()) * _lineHeight() +
 					  static_cast<unsigned int>(lines.size() - 1) * static_cast<unsigned int>(_linePadding);
 
-		return {
-			maxWidth + static_cast<unsigned int>(_cornerSize.x * 2),
-			blockHeight + static_cast<unsigned int>(_cornerSize.y * 2)};
+		return {maxWidth, blockHeight};
 	}
 
-	void TextArea::setSpriteSheet(std::shared_ptr<spk::SpriteSheet> p_spriteSheet)
+	spk::Vector2UInt TextArea::minimalSizeFor(const spk::Vector2UInt &p_availableSize) const
 	{
-		if (p_spriteSheet == nullptr)
-		{
-			throw std::invalid_argument("TextArea sprite sheet cannot be null");
-		}
-
-		if (p_spriteSheet->nbSprite() != spk::Vector2UInt{3, 3})
-		{
-			throw std::invalid_argument("TextArea sprite sheet must contain a 3x3 grid");
-		}
-
-		_spriteSheet = std::move(p_spriteSheet);
-		invalidateRenderUnit();
-	}
-
-	void TextArea::setCornerSize(const spk::Vector2Int &p_cornerSize)
-	{
-		if (p_cornerSize.x < 0 || p_cornerSize.y < 0)
-		{
-			throw std::invalid_argument("TextArea corner size cannot be negative");
-		}
-
-		if (_cornerSize == p_cornerSize)
-		{
-			return;
-		}
-
-		_cornerSize = p_cornerSize;
-		invalidateRenderUnit();
+		return computeMinimalSize(p_availableSize.x);
 	}
 
 	void TextArea::setFont(std::shared_ptr<spk::Font> p_font)
@@ -377,20 +348,11 @@ namespace spk
 		setText(spk::Font::textFromUTF8(p_text));
 	}
 
-	void TextArea::setBackgroundVisible(bool p_state)
+	void TextArea::setMinimalWidth(size_t p_width)
 	{
-		if (_backgroundVisible == p_state)
-		{
-			return;
-		}
-
-		_backgroundVisible = p_state;
+		_minimalWidth = p_width;
+		_configureSizeCache();
 		invalidateRenderUnit();
-	}
-
-	bool TextArea::isBackgroundVisible() const
-	{
-		return _backgroundVisible;
 	}
 
 	void TextArea::setLinePadding(size_t p_linePadding)
@@ -436,16 +398,6 @@ namespace spk
 	spk::VerticalAlignment TextArea::verticalAlignment() const
 	{
 		return _verticalAlignment;
-	}
-
-	const std::shared_ptr<spk::SpriteSheet> &TextArea::spriteSheet() const
-	{
-		return _spriteSheet;
-	}
-
-	const spk::Vector2Int &TextArea::cornerSize() const
-	{
-		return _cornerSize;
 	}
 
 	const std::shared_ptr<spk::Font> &TextArea::font() const

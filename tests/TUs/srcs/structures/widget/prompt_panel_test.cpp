@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
 
-#include "structures/widget/spk_prompt_panel.hpp"
-#include "structures/widget/spk_widget_visual_test_helpers.hpp"
 #include "structures/application/module/spk_mouse_module.hpp"
 #include "structures/system/device/window/window_test_utils.hpp"
+#include "structures/widget/spk_prompt_panel.hpp"
+#include "structures/widget/spk_widget_visual_test_helpers.hpp"
 
 TEST(PromptPanelTest, SetMessageUpdatesTextArea)
 {
@@ -15,18 +15,11 @@ TEST(PromptPanelTest, SetMessageUpdatesTextArea)
 	EXPECT_EQ(panel.textArea().text(), spk::Font::textFromUTF8("Are you sure?"));
 }
 
-TEST(PromptPanelTest, TextAreaHasNoBackground)
-{
-	spk::PromptPanel panel("Prompt");
-
-	EXPECT_FALSE(panel.textArea().isBackgroundVisible());
-}
-
 TEST(PromptPanelTest, AddButtonRegistersInCommandPanel)
 {
 	spk::PromptPanel panel("Prompt");
 
-	spk::PushButton* button = panel.addButton("ok", "OK");
+	spk::PushButton *button = panel.addButton("ok", "OK");
 
 	ASSERT_NE(button, nullptr);
 	EXPECT_EQ(panel.button("ok"), button);
@@ -59,7 +52,9 @@ TEST(PromptPanelTest, SubscribeTriggersOnButtonClick)
 	panel.setGeometry(spk::Rect2D(0, 0, 400, 200));
 
 	int clickCount = 0;
-	auto contract = panel.subscribe("ok", [&clickCount]() { ++clickCount; });
+	auto contract = panel.subscribe("ok", [&clickCount]() {
+		++clickCount;
+	});
 
 	const spk::Rect2D buttonRect = panel.button("ok")->viewport().geometry();
 	const spk::Vector2Int clickPosition = {
@@ -100,7 +95,7 @@ TEST(PromptPanelTest, SetButtonPaddingForwardsToCommandPanel)
 TEST(PromptPanelTest, ConstAccessorsReturnSameObjects)
 {
 	spk::PromptPanel panel("Prompt");
-	const spk::PromptPanel& cpanel = panel;
+	const spk::PromptPanel &cpanel = panel;
 
 	EXPECT_EQ(&cpanel.background(), &panel.background());
 	EXPECT_EQ(&cpanel.textArea(), &panel.textArea());
@@ -110,7 +105,7 @@ TEST(PromptPanelTest, ConstAccessorsReturnSameObjects)
 TEST(PromptPanelTest, ButtonGetterReturnsAddedButton)
 {
 	spk::PromptPanel panel("Prompt");
-	spk::PushButton* added = panel.addButton("ok", "OK");
+	spk::PushButton *added = panel.addButton("ok", "OK");
 
 	EXPECT_EQ(panel.button("ok"), added);
 }

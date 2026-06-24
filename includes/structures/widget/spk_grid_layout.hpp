@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <limits>
 #include <numeric>
 #include <stdexcept>
 #include <vector>
@@ -61,54 +62,196 @@ namespace spk
 	private:
 		[[nodiscard]] spk::Vector2UInt _computeMinimalSize() const
 		{
+			return _computeMinimalSizeFor(std::numeric_limits<spk::Vector2UInt>::max());
+		}
+
+		[[nodiscard]] static spk::Vector2UInt _elementMinimalSizeFor(
+			const Element &p_element,
+			const spk::Vector2UInt &p_availableSize)
+		{
+			return p_element.minimalSizeFor(p_availableSize);
+		}
+
+		[[nodiscard]] static size_t _clampDimension(size_t p_value, size_t p_minimum, size_t p_maximum)
+		{
+			return std::clamp(p_value, p_minimum, std::max(p_minimum, p_maximum));
+		}
+
+		[[nodiscard]] static size_t _effectiveElementWidth(const Element &p_element, size_t p_cellWidth)
+		{
+			switch (p_element.sizePolicy())
+			{
+			case SizePolicy::Fixed:
+				return p_element.fixedSize().x;
+
+			case SizePolicy::Maximum:
+				return p_element.maximalSize().x;
+
+			default:
+			{
+				const spk::Vector2UInt maximalSize = p_element.maximalSize();
+				const size_t queryWidth = std::min(p_cellWidth, static_cast<size_t>(maximalSize.x));
+				const spk::Vector2UInt minimalSize = p_element.minimalSizeFor(
+					{static_cast<unsigned int>(queryWidth), std::numeric_limits<uint32_t>::max()});
+				return _clampDimension(
+					p_cellWidth,
+					static_cast<size_t>(minimalSize.x),
+					static_cast<size_t>(maximalSize.x));
+			}
+			}
+		}
+
+		[[nodiscard]] static size_t _effectiveElementHeight(
+			const Element &p_element,
+			size_t p_cellHeight,
+			size_t p_effectiveWidth)
+		{
+			switch (p_element.sizePolicy())
+			{
+			case SizePolicy::Fixed:
+				return p_element.fixedSize().y;
+
+			case SizePolicy::Maximum:
+				return p_element.maximalSize().y;
+
+			default:
+			{
+				const spk::Vector2UInt minimalSize = _elementMinimalSizeFor(
+					p_element,
+					{static_cast<unsigned int>(p_effectiveWidth),
+					 static_cast<unsigned int>(p_cellHeight)});
+				const spk::Vector2UInt maximalSize = p_element.maximalSize();
+				return _clampDimension(
+					p_cellHeight,
+					static_cast<size_t>(minimalSize.y),
+					static_cast<size_t>(maximalSize.y));
+			}
+			}
+		}
+
+		[[nodiscard]] spk::Vector2UInt _computeMinimalSizeFor(const spk::Vector2UInt &p_availableSize) const
+		{
 			if (_size.y == 0 || _size.x == 0)
 			{
 				return {0u, 0u};
 			}
 
-			std::vector<uint32_t> columnWidth(_size.x, 0);
-			std::vector<uint32_t> rowHeight(_size.y, 0);
+			std::vector<size_t> columnWidth(_size.x, 0);
+			std::vector<size_t> rowHeight(_size.y, 0);
 
-			for (size_t r = 0; r < _size.y; ++r)
+			const size_t totalPaddingX = (_size.x > 1) ? static_cast<size_t>(_size.x - 1) * _elementPadding.x : 0;
+			const size_t totalPaddingY = (_size.y > 1) ? static_cast<size_t>(_size.y - 1) * _elementPadding.y : 0;
+			const size_t availableContentWidth =
+				(p_availableSize.x > totalPaddingX) ? static_cast<size_t>(p_availableSize.x) - totalPaddingX : 0;
+			const size_t availableContentHeight =
+				(p_availableSize.y > totalPaddingY) ? static_cast<size_t>(p_availableSize.y) - totalPaddingY : 0;
+
+			for (size_t x = 0; x < _size.x; x++)
 			{
-				for (size_t c = 0; c < _size.x; ++c)
+				for (size_t y = 0; y < _size.y; y++)
 				{
-					Element *element = _elements[_idx(r, c)].get();
+					const auto &element = _elements[_idx(y, x)];
+
 					if (element == nullptr || (element->widget() == nullptr && element->layout() == nullptr))
 					{
 						continue;
 					}
 
-					const spk::Vector2UInt minSize = element->minimalSize();
-					columnWidth[c] = std::max(columnWidth[c], minSize.x);
-					rowHeight[r] = std::max(rowHeight[r], minSize.y);
+					const spk::Vector2UInt maximalSize = element->maximalSize();
+					const size_t queryWidth = std::min(availableContentWidth, static_cast<size_t>(maximalSize.x));
+					const size_t queryHeight = std::min(availableContentHeight, static_cast<size_t>(maximalSize.y));
+
+					switch (element->sizePolicy())
+					{
+					case SizePolicy::Fixed:
+					{
+						const spk::Vector2UInt fixedSizeValue = element->fixedSize();
+						columnWidth[x] = std::max(columnWidth[x], static_cast<size_t>(fixedSizeValue.x));
+						break;
+					}
+					case SizePolicy::Maximum:
+					{
+						columnWidth[x] = std::max(columnWidth[x], static_cast<size_t>(maximalSize.x));
+						break;
+					}
+					default:
+					{
+						const spk::Vector2UInt minimalValue = element->minimalSizeFor(
+							{static_cast<unsigned int>(queryWidth), static_cast<unsigned int>(queryHeight)});
+						columnWidth[x] = std::max(
+							columnWidth[x],
+							std::min(static_cast<size_t>(minimalValue.x), static_cast<size_t>(maximalSize.x)));
+						break;
+					}
+					}
 				}
 			}
 
-			uint32_t totalWidth = std::accumulate(columnWidth.begin(), columnWidth.end(), 0u);
-			uint32_t totalHeight = std::accumulate(rowHeight.begin(), rowHeight.end(), 0u);
-
-			if (_size.x > 1)
+			for (size_t x = 0; x < _size.x; x++)
 			{
-				totalWidth += static_cast<uint32_t>((_size.x - 1) * _elementPadding.x);
-			}
-			if (_size.y > 1)
-			{
-				totalHeight += static_cast<uint32_t>((_size.y - 1) * _elementPadding.y);
+				for (size_t y = 0; y < _size.y; y++)
+				{
+					const auto &element = _elements[_idx(y, x)];
+
+					if (element == nullptr || (element->widget() == nullptr && element->layout() == nullptr))
+					{
+						continue;
+					}
+
+					const size_t effectiveWidth = _effectiveElementWidth(*element, columnWidth[x]);
+
+					switch (element->sizePolicy())
+					{
+					case SizePolicy::Fixed:
+					{
+						const spk::Vector2UInt fixedSizeValue = element->fixedSize();
+						rowHeight[y] = std::max(rowHeight[y], static_cast<size_t>(fixedSizeValue.y));
+						break;
+					}
+					case SizePolicy::Maximum:
+					{
+						const spk::Vector2UInt maximalSizeValue = element->maximalSize();
+						rowHeight[y] = std::max(rowHeight[y], static_cast<size_t>(maximalSizeValue.y));
+						break;
+					}
+					default:
+					{
+						const spk::Vector2UInt minimalValue = _elementMinimalSizeFor(
+							*element,
+							{static_cast<unsigned int>(effectiveWidth),
+							 static_cast<unsigned int>(availableContentHeight)});
+						const spk::Vector2UInt maximalSizeValue = element->maximalSize();
+						rowHeight[y] = std::max(
+							rowHeight[y],
+							std::min(static_cast<size_t>(minimalValue.y), static_cast<size_t>(maximalSizeValue.y)));
+						break;
+					}
+					}
+				}
 			}
 
-			return {totalWidth, totalHeight};
+			const size_t totalWidth = std::accumulate(columnWidth.begin(), columnWidth.end(), size_t{0}) + totalPaddingX;
+			const size_t totalHeight = std::accumulate(rowHeight.begin(), rowHeight.end(), size_t{0}) + totalPaddingY;
+
+			return {
+				static_cast<unsigned int>(std::min(totalWidth, static_cast<size_t>(std::numeric_limits<uint32_t>::max()))),
+				static_cast<unsigned int>(std::min(totalHeight, static_cast<size_t>(std::numeric_limits<uint32_t>::max())))};
 		}
 
 	public:
 		GridLayout()
 		{
-			sizeHint().configureMinimalGenerator([this]() {
+			configureMinimalSizeGenerator([this]() {
 				return _computeMinimalSize();
 			});
-			sizeHint().configureDesiredGenerator([this]() {
+			configureFixedSizeGenerator([this]() {
 				return _computeMinimalSize();
 			});
+		}
+
+		[[nodiscard]] spk::Vector2UInt minimalSizeFor(const spk::Vector2UInt &p_availableSize) const override
+		{
+			return _computeMinimalSizeFor(p_availableSize);
 		}
 
 		void clear() override
@@ -164,6 +307,11 @@ namespace spk
 			{
 				return;
 			}
+
+			const size_t totalPaddingX = (_size.x > 1) ? static_cast<size_t>(_size.x - 1) * _elementPadding.x : 0;
+			const size_t totalPaddingY = (_size.y > 1) ? static_cast<size_t>(_size.y - 1) * _elementPadding.y : 0;
+			const size_t availableContentWidth =
+				(p_geometry.size.x > totalPaddingX) ? static_cast<size_t>(p_geometry.size.x) - totalPaddingX : 0;
 
 			std::vector<bool> isExtendableOnX(_size.x, false);
 			size_t nbExtendableOnX = 0;
@@ -242,7 +390,10 @@ namespace spk
 					}
 					default:
 					{
-						const spk::Vector2UInt minimalValue = element->minimalSize();
+						const spk::Vector2UInt maximalSizeValue = element->maximalSize();
+						const spk::Vector2UInt minimalValue = element->minimalSizeFor(
+							{static_cast<unsigned int>(std::min(availableContentWidth, static_cast<size_t>(maximalSizeValue.x))),
+							 static_cast<unsigned int>(p_geometry.size.y)});
 						minimalSizeOnX[x] = std::max(minimalSizeOnX[x], static_cast<size_t>(minimalValue.x));
 						minimalSizeOnY[y] = std::max(minimalSizeOnY[y], static_cast<size_t>(minimalValue.y));
 						break;
@@ -251,38 +402,78 @@ namespace spk
 				}
 			}
 
-			size_t spaceLeftX = p_geometry.size.x;
-			size_t spaceLeftY = p_geometry.size.y;
-
-			const size_t totalPaddingX = static_cast<size_t>(_size.x) * _elementPadding.x;
-			const size_t totalPaddingY = static_cast<size_t>(_size.y) * _elementPadding.y;
-			spaceLeftX = (spaceLeftX > totalPaddingX) ? spaceLeftX - totalPaddingX : 0;
-			spaceLeftY = (spaceLeftY > totalPaddingY) ? spaceLeftY - totalPaddingY : 0;
+			size_t spaceLeftX = (p_geometry.size.x > totalPaddingX) ? p_geometry.size.x - totalPaddingX : 0;
 
 			size_t sumColsMin = 0;
 			for (size_t x = 0; x < _size.x; ++x)
 			{
 				sumColsMin += minimalSizeOnX[x];
 			}
+
+			spaceLeftX = (spaceLeftX >= sumColsMin) ? spaceLeftX - sumColsMin : 0;
+
+			const size_t expandValueX = (nbExtendableOnX != 0) ? spaceLeftX / nbExtendableOnX : 0;
+
+			std::vector<size_t> finalSizeOnX(_size.x, 0);
+
+			for (size_t x = 0; x < _size.x; x++)
+			{
+				finalSizeOnX[x] = minimalSizeOnX[x] + (isExtendableOnX[x] ? expandValueX : 0);
+			}
+
+			std::fill(minimalSizeOnY.begin(), minimalSizeOnY.end(), 0);
+
+			for (size_t x = 0; x < _size.x; x++)
+			{
+				for (size_t y = 0; y < _size.y; y++)
+				{
+					const auto &element = _elements[_idx(y, x)];
+
+					if (element == nullptr || (element->widget() == nullptr && element->layout() == nullptr))
+					{
+						continue;
+					}
+
+					switch (element->sizePolicy())
+					{
+					case SizePolicy::Fixed:
+					{
+						const spk::Vector2UInt fixedSizeValue = element->fixedSize();
+						minimalSizeOnY[y] = std::max(minimalSizeOnY[y], static_cast<size_t>(fixedSizeValue.y));
+						break;
+					}
+					case SizePolicy::Maximum:
+					{
+						const spk::Vector2UInt maximalSizeValue = element->maximalSize();
+						minimalSizeOnY[y] = std::max(minimalSizeOnY[y], static_cast<size_t>(maximalSizeValue.y));
+						break;
+					}
+					default:
+					{
+						const size_t effectiveWidth = _effectiveElementWidth(*element, finalSizeOnX[x]);
+						const spk::Vector2UInt minimalValue =
+							_elementMinimalSizeFor(
+								*element,
+								{static_cast<unsigned int>(effectiveWidth),
+								 static_cast<unsigned int>(p_geometry.size.y)});
+						minimalSizeOnY[y] = std::max(minimalSizeOnY[y], static_cast<size_t>(minimalValue.y));
+						break;
+					}
+					}
+				}
+			}
+
+			size_t spaceLeftY = (p_geometry.size.y > totalPaddingY) ? p_geometry.size.y - totalPaddingY : 0;
 			size_t sumRowsMin = 0;
 			for (size_t y = 0; y < _size.y; ++y)
 			{
 				sumRowsMin += minimalSizeOnY[y];
 			}
 
-			spaceLeftX = (spaceLeftX >= sumColsMin) ? spaceLeftX - sumColsMin : 0;
 			spaceLeftY = (spaceLeftY >= sumRowsMin) ? spaceLeftY - sumRowsMin : 0;
-
-			const size_t expandValueX = (nbExtendableOnX != 0) ? spaceLeftX / nbExtendableOnX : 0;
 			const size_t expandValueY = (nbExtendableOnY != 0) ? spaceLeftY / nbExtendableOnY : 0;
 
-			std::vector<size_t> finalSizeOnX(_size.x, 0);
 			std::vector<size_t> finalSizeOnY(_size.y, 0);
-
-			for (size_t x = 0; x < _size.x; x++)
-			{
-				finalSizeOnX[x] = minimalSizeOnX[x] + (isExtendableOnX[x] ? expandValueX : 0);
-			}
 
 			for (size_t y = 0; y < _size.y; y++)
 			{
@@ -300,7 +491,10 @@ namespace spk
 
 					if (element != nullptr)
 					{
-						element->setGeometry(spk::Rect2D(p_geometry.anchor.x + static_cast<int>(anchorOnX), p_geometry.anchor.y + static_cast<int>(anchorOnY), static_cast<unsigned int>(finalSizeOnX[x]), static_cast<unsigned int>(finalSizeOnY[y])));
+						const size_t elementWidth = _effectiveElementWidth(*element, finalSizeOnX[x]);
+						const size_t elementHeight = _effectiveElementHeight(*element, finalSizeOnY[y], elementWidth);
+
+						element->setGeometry(spk::Rect2D(p_geometry.anchor.x + static_cast<int>(anchorOnX), p_geometry.anchor.y + static_cast<int>(anchorOnY), static_cast<unsigned int>(elementWidth), static_cast<unsigned int>(elementHeight)));
 					}
 					anchorOnY += finalSizeOnY[y] + _elementPadding.y;
 				}
