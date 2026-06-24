@@ -26,6 +26,7 @@ namespace spk
 		spk::PushButton::Contract _uncheckedClickContract;
 		spk::PushButton::Contract _checkedClickContract;
 
+		void _setup();
 		void _refreshState();
 
 	protected:

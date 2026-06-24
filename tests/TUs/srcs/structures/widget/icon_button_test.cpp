@@ -75,6 +75,21 @@ TEST(CheckableIconButtonTest, DefaultStateIsUnchecked)
 	EXPECT_FALSE(button.isChecked());
 	EXPECT_TRUE(button.uncheckedButton().isActivated());
 	EXPECT_FALSE(button.checkedButton().isActivated());
+	EXPECT_FALSE(button.uncheckedButton().hasIcon());
+	EXPECT_TRUE(button.checkedButton().hasIcon());
+	EXPECT_NE(button.checkedButton().iconset(), nullptr);
+	EXPECT_EQ(button.checkedIconSpriteID(), 8u);
+}
+
+TEST(CheckableIconButtonTest, DefaultUncheckedStateStaysIconlessAfterStyleRefresh)
+{
+	spk::CheckableIconButton button("Checkable");
+
+	button.applyStyle(spk::WidgetStyle::Collection::style(spk::WidgetStyle::Collection::Default));
+
+	EXPECT_FALSE(button.uncheckedButton().hasIcon());
+	EXPECT_TRUE(button.checkedButton().hasIcon());
+	EXPECT_EQ(button.checkedIconSpriteID(), 8u);
 }
 
 TEST(CheckableIconButtonTest, ConstructionAssignsOneIconPerState)

@@ -5,9 +5,32 @@
 
 namespace spk
 {
-	CheckableIconButton::CheckableIconButton(const std::string &p_name, spk::Widget *p_parent) :
-		CheckableIconButton(p_name, 8, 9, p_parent)
+	namespace
 	{
+		constexpr size_t UncheckedPlaceholderIconSpriteID = 0;
+		constexpr size_t DefaultCheckedIconSpriteID = 8;
+
+		[[nodiscard]] std::shared_ptr<spk::SpriteSheet> defaultIconset()
+		{
+			return spk::WidgetStyle::Collection::style(spk::WidgetStyle::Collection::Default).iconSpriteSheet();
+		}
+	}
+
+	CheckableIconButton::CheckableIconButton(const std::string &p_name, spk::Widget *p_parent) :
+		spk::Widget(p_name, p_parent),
+		_uncheckedButton(
+			p_name + "::uncheckedButton",
+			defaultIconset(),
+			UncheckedPlaceholderIconSpriteID,
+			this),
+		_checkedButton(
+			p_name + "::checkedButton",
+			defaultIconset(),
+			DefaultCheckedIconSpriteID,
+			this)
+	{
+		_uncheckedButton.removeIcon();
+		_setup();
 	}
 
 	CheckableIconButton::CheckableIconButton(
@@ -18,14 +41,19 @@ namespace spk
 		spk::Widget(p_name, p_parent),
 		_uncheckedButton(
 			p_name + "::uncheckedButton",
-			spk::WidgetStyle::Collection::style(spk::WidgetStyle::Collection::Default).iconSpriteSheet(),
+			defaultIconset(),
 			p_uncheckedIconSpriteID,
 			this),
 		_checkedButton(
 			p_name + "::checkedButton",
-			spk::WidgetStyle::Collection::style(spk::WidgetStyle::Collection::Default).iconSpriteSheet(),
+			defaultIconset(),
 			p_checkedIconSpriteID,
 			this)
+	{
+		_setup();
+	}
+
+	void CheckableIconButton::_setup()
 	{
 		_stateContract = _isChecked.subscribe([this](const bool &) {
 			_refreshState();
@@ -80,8 +108,21 @@ namespace spk
 
 	void CheckableIconButton::applyStyle(const spk::WidgetStyle &p_uncheckedStyle, const spk::WidgetStyle &p_checkedStyle)
 	{
+		const bool uncheckedHadIcon = _uncheckedButton.hasIcon();
+		const bool checkedHadIcon = _checkedButton.hasIcon();
+
 		_uncheckedButton.applyStyle(p_uncheckedStyle);
 		_checkedButton.applyStyle(p_checkedStyle);
+
+		if (uncheckedHadIcon == false)
+		{
+			_uncheckedButton.removeIcon();
+		}
+
+		if (checkedHadIcon == false)
+		{
+			_checkedButton.removeIcon();
+		}
 	}
 
 	bool CheckableIconButton::isChecked() const
