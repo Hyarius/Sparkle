@@ -75,6 +75,7 @@ function(sparkle_enable_coverage)
     )
 
     target_compile_options(${SPARKLE_COV_TEST_TARGET} PRIVATE ${_sparkle_cov_compile_flags})
+    target_compile_definitions(${SPARKLE_COV_TEST_TARGET} PRIVATE SPARKLE_ENABLE_LLVM_COVERAGE=1)
     target_link_options(${SPARKLE_COV_TEST_TARGET} PRIVATE ${_sparkle_cov_link_flags})
 
     if (SPARKLE_COV_LIBRARIES)

@@ -1,0 +1,98 @@
+#include "structures/widget/spk_game_engine_widget.hpp"
+
+#include <stdexcept>
+
+namespace spk
+{
+	GameEngineWidget::GameEngineWidget(const std::string &p_name, spk::Widget *p_parent) :
+		spk::Widget(p_name, p_parent),
+		_ownedGameEngine(std::make_unique<spk::GameEngine>()),
+		_gameEngine(_ownedGameEngine.get())
+	{
+	}
+
+	GameEngineWidget::~GameEngineWidget() = default;
+
+	void GameEngineWidget::_onUpdate(const spk::UpdateTick &p_tick)
+	{
+		if (_gameEngine == nullptr)
+		{
+			return;
+		}
+
+		_gameEngine->update(p_tick);
+		_gameEngine->synchronize();
+	}
+
+	spk::RenderUnit GameEngineWidget::_buildRenderUnit() const
+	{
+		spk::RenderUnitBuilder builder;
+
+		if (_gameEngine != nullptr)
+		{
+			_gameEngine->render(builder);
+		}
+
+		return builder.build();
+	}
+
+	void GameEngineWidget::_onGeometryChange()
+	{
+		invalidateRenderUnit();
+	}
+
+	void GameEngineWidget::_onWindowCloseRequestedEvent(spk::WindowCloseRequestedEvent &p_event) { _forward(p_event); }
+	void GameEngineWidget::_onWindowDestroyedEvent(spk::WindowDestroyedEvent &p_event) { _forward(p_event); }
+	void GameEngineWidget::_onWindowMovedEvent(spk::WindowMovedEvent &p_event) { _forward(p_event); }
+	void GameEngineWidget::_onWindowResizedEvent(spk::WindowResizedEvent &p_event) { _forward(p_event); }
+	void GameEngineWidget::_onWindowFocusGainedEvent(spk::WindowFocusGainedEvent &p_event) { _forward(p_event); }
+	void GameEngineWidget::_onWindowFocusLostEvent(spk::WindowFocusLostEvent &p_event) { _forward(p_event); }
+	void GameEngineWidget::_onWindowShownEvent(spk::WindowShownEvent &p_event) { _forward(p_event); }
+	void GameEngineWidget::_onWindowHiddenEvent(spk::WindowHiddenEvent &p_event) { _forward(p_event); }
+
+	void GameEngineWidget::_onMouseEnteredEvent(spk::MouseEnteredWindowEvent &p_event) { _forward(p_event); }
+	void GameEngineWidget::_onMouseLeftEvent(spk::MouseLeftWindowEvent &p_event) { _forward(p_event); }
+	void GameEngineWidget::_onMouseMovedEvent(spk::MouseMovedEvent &p_event) { _forward(p_event); }
+	void GameEngineWidget::_onMouseWheelScrolledEvent(spk::MouseWheelScrolledEvent &p_event) { _forward(p_event); }
+	void GameEngineWidget::_onMouseButtonPressedEvent(spk::MouseButtonPressedEvent &p_event) { _forward(p_event); }
+	void GameEngineWidget::_onMouseButtonReleasedEvent(spk::MouseButtonReleasedEvent &p_event) { _forward(p_event); }
+	void GameEngineWidget::_onMouseButtonDoubleClickedEvent(spk::MouseButtonDoubleClickedEvent &p_event) { _forward(p_event); }
+
+	void GameEngineWidget::_onKeyPressedEvent(spk::KeyPressedEvent &p_event) { _forward(p_event); }
+	void GameEngineWidget::_onKeyReleasedEvent(spk::KeyReleasedEvent &p_event) { _forward(p_event); }
+	void GameEngineWidget::_onTextInputEvent(spk::TextInputEvent &p_event) { _forward(p_event); }
+
+	spk::GameEngine &GameEngineWidget::gameEngine()
+	{
+		if (_gameEngine == nullptr)
+		{
+			throw std::runtime_error("GameEngineWidget has no game engine");
+		}
+
+		return *_gameEngine;
+	}
+
+	const spk::GameEngine &GameEngineWidget::gameEngine() const
+	{
+		if (_gameEngine == nullptr)
+		{
+			throw std::runtime_error("GameEngineWidget has no game engine");
+		}
+
+		return *_gameEngine;
+	}
+
+	void GameEngineWidget::setExternalGameEngine(spk::GameEngine *p_gameEngine)
+	{
+		_ownedGameEngine.reset();
+		_gameEngine = p_gameEngine;
+		invalidateRenderUnit();
+	}
+
+	void GameEngineWidget::resetOwnedGameEngine()
+	{
+		_ownedGameEngine = std::make_unique<spk::GameEngine>();
+		_gameEngine = _ownedGameEngine.get();
+		invalidateRenderUnit();
+	}
+}

@@ -6,10 +6,12 @@
 #include "structures/container/spk_flags.hpp"
 #include "structures/container/spk_object_pool.hpp"
 #include "structures/container/spk_observable_value.hpp"
+#include "structures/container/spk_uuid.hpp"
 #include "structures/design_pattern/spk_activable_trait.hpp"
 #include "structures/design_pattern/spk_blockable_trait.hpp"
 #include "structures/design_pattern/spk_contract_provider.hpp"
 #include "structures/design_pattern/spk_inherence_trait.hpp"
+#include "structures/design_pattern/spk_priorizable_trait.hpp"
 #include "structures/design_pattern/spk_synchronizable_trait.hpp"
 #include "structures/graphics/geometry/spk_color.hpp"
 #include "structures/system/thread/spk_thread_safe_contract.hpp"
@@ -103,6 +105,15 @@
 #include "structures/application/module/spk_mouse_module.hpp"
 #include "structures/application/module/spk_update_module.hpp"
 
+// Game engine (entity / component / logic)
+#include "structures/game_engine/spk_component.hpp"
+#include "structures/game_engine/spk_component_container.hpp"
+#include "structures/game_engine/spk_component_logic.hpp"
+#include "structures/game_engine/spk_component_logic_registry.hpp"
+#include "structures/game_engine/spk_component_registry.hpp"
+#include "structures/game_engine/spk_entity.hpp"
+#include "structures/game_engine/spk_game_engine.hpp"
+
 // Widget system
 #include "structures/widget/spk_action_bar.hpp"
 #include "structures/widget/spk_animation_label.hpp"
@@ -112,6 +123,7 @@
 #include "structures/widget/spk_debug_overlay.hpp"
 #include "structures/widget/spk_dynamic_text_label.hpp"
 #include "structures/widget/spk_form_layout.hpp"
+#include "structures/widget/spk_game_engine_widget.hpp"
 #include "structures/widget/spk_grid_layout.hpp"
 #include "structures/widget/spk_icon_button.hpp"
 #include "structures/widget/spk_image_label.hpp"
