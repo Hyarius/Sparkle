@@ -15,7 +15,7 @@ namespace spk
 
 		if (auto *event = spk::getIf<spk::WindowResizedRecord>(p_event); event != nullptr)
 		{
-			widget()->setGeometry(event->rect.atOrigin());
+			widget()->_onResize(event->rect.atOrigin());
 			widget()->invalidateRenderUnitTree();
 		}
 

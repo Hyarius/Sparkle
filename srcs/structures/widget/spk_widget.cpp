@@ -3,6 +3,7 @@
 #include "structures/graphics/rendering/command/spk_viewport_render_command.hpp"
 #include "structures/graphics/rendering/unit/spk_render_unit_builder.hpp"
 #include <algorithm>
+#include <cmath>
 #include <memory>
 
 namespace spk
@@ -188,9 +189,57 @@ namespace spk
 		}
 
 		_geometry = p_geometry;
+		// Capture the geometry as a fraction of the parent's size so a later window resize
+		// can rescale this widget proportionally (see onResize).
+		_computeRatio();
 		_updateAbsoluteGeometryAndScissor();
 		_onGeometryChange();
 		invalidateRenderUnit();
+	}
+
+	void Widget::_onResize(const spk::Rect2D &p_geometry)
+	{
+		spk::HierarchyTrait<Widget>::HierarchyMutationGuard guard(this);
+
+		// Apply the new geometry and refresh only this widget's viewport/scissor; children
+		// refresh themselves through their own _onResize below.
+		_geometry = p_geometry;
+		_updateSelfGeometryAndScissor();
+
+		// Rescale each child proportionally from the ratio it last captured, relative to this
+		// widget's new size, and recurse.
+		for (auto *child : children())
+		{
+			if (child == nullptr || child->_geometry.size.x == 0 || child->_geometry.size.y == 0)
+			{
+				continue;
+			}
+
+			child->_onResize(spk::Rect2D(
+				spk::Vector2Int(
+					static_cast<int>(std::lround(static_cast<float>(_geometry.size.x) * child->_anchorRatio.x)),
+					static_cast<int>(std::lround(static_cast<float>(_geometry.size.y) * child->_anchorRatio.y))),
+				spk::Vector2UInt(
+					static_cast<unsigned int>(std::lround(static_cast<float>(_geometry.size.x) * child->_sizeRatio.x)),
+					static_cast<unsigned int>(std::lround(static_cast<float>(_geometry.size.y) * child->_sizeRatio.y)))));
+		}
+
+		// Finally let this widget's own geometry logic run: layout-based widgets override
+		// _onGeometryChange to reposition the children they manage, overriding the proportional
+		// placement above for those children.
+		_onGeometryChange();
+		invalidateRenderUnit();
+	}
+
+	void Widget::_computeRatio()
+	{
+		const spk::Vector2UInt referenceSize =
+			(parent() != nullptr) ? parent()->_geometry.size : _geometry.size;
+
+		_anchorRatio.x = (referenceSize.x != 0) ? static_cast<float>(_geometry.anchor.x) / static_cast<float>(referenceSize.x) : 0.0f;
+		_anchorRatio.y = (referenceSize.y != 0) ? static_cast<float>(_geometry.anchor.y) / static_cast<float>(referenceSize.y) : 0.0f;
+		_sizeRatio.x = (referenceSize.x != 0) ? static_cast<float>(_geometry.size.x) / static_cast<float>(referenceSize.x) : 1.0f;
+		_sizeRatio.y = (referenceSize.y != 0) ? static_cast<float>(_geometry.size.y) / static_cast<float>(referenceSize.y) : 1.0f;
 	}
 
 	void Widget::place(const spk::Vector2Int &p_anchor)
@@ -203,10 +252,8 @@ namespace spk
 		setGeometry(spk::Rect2D(_geometry.anchor + p_delta, _geometry.size));
 	}
 
-	void Widget::_updateAbsoluteGeometryAndScissor()
+	void Widget::_updateSelfGeometryAndScissor()
 	{
-		spk::HierarchyTrait<Widget>::HierarchyMutationGuard guard(this);
-
 		_absoluteGeometry = _geometry;
 		if (parent() != nullptr)
 		{
@@ -223,6 +270,13 @@ namespace spk
 			_viewport->setGeometry(_absoluteGeometry);
 			_viewport->setScissor(_scissor);
 		}
+	}
+
+	void Widget::_updateAbsoluteGeometryAndScissor()
+	{
+		spk::HierarchyTrait<Widget>::HierarchyMutationGuard guard(this);
+
+		_updateSelfGeometryAndScissor();
 
 		for (auto *child : children())
 		{
