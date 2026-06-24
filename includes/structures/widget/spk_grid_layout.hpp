@@ -62,14 +62,22 @@ namespace spk
 	private:
 		[[nodiscard]] spk::Vector2UInt _computeMinimalSize() const
 		{
-			return _computeMinimalSizeFor(std::numeric_limits<spk::Vector2UInt>::max());
+			const spk::Vector2UInt unbounded = std::numeric_limits<spk::Vector2UInt>::max();
+			// Width is the *true* minimum: querying with no horizontal space makes a word-wrap
+			// widget report its narrowest (widest-word) width rather than its unwrapped single
+			// line, so a parent layout stays free to shrink us and let the content wrap.
+			// Height keeps the unbounded-width (preferred) value so a flexible widget is not
+			// over-constrained vertically.
+			return {
+				_computePreferredSizeFor({0u, unbounded.y}).x,
+				_computePreferredSizeFor(unbounded).y};
 		}
 
-		[[nodiscard]] static spk::Vector2UInt _elementMinimalSizeFor(
+		[[nodiscard]] static spk::Vector2UInt _elementPreferredSizeFor(
 			const Element &p_element,
 			const spk::Vector2UInt &p_availableSize)
 		{
-			return p_element.minimalSizeFor(p_availableSize);
+			return p_element.preferredSizeFor(p_availableSize);
 		}
 
 		[[nodiscard]] static size_t _clampDimension(size_t p_value, size_t p_minimum, size_t p_maximum)
@@ -91,11 +99,11 @@ namespace spk
 			{
 				const spk::Vector2UInt maximalSize = p_element.maximalSize();
 				const size_t queryWidth = std::min(p_cellWidth, static_cast<size_t>(maximalSize.x));
-				const spk::Vector2UInt minimalSize = p_element.minimalSizeFor(
+				const spk::Vector2UInt preferredSize = p_element.preferredSizeFor(
 					{static_cast<unsigned int>(queryWidth), std::numeric_limits<uint32_t>::max()});
 				return _clampDimension(
 					p_cellWidth,
-					static_cast<size_t>(minimalSize.x),
+					static_cast<size_t>(preferredSize.x),
 					static_cast<size_t>(maximalSize.x));
 			}
 			}
@@ -116,20 +124,20 @@ namespace spk
 
 			default:
 			{
-				const spk::Vector2UInt minimalSize = _elementMinimalSizeFor(
+				const spk::Vector2UInt preferredSize = _elementPreferredSizeFor(
 					p_element,
 					{static_cast<unsigned int>(p_effectiveWidth),
 					 static_cast<unsigned int>(p_cellHeight)});
 				const spk::Vector2UInt maximalSize = p_element.maximalSize();
 				return _clampDimension(
 					p_cellHeight,
-					static_cast<size_t>(minimalSize.y),
+					static_cast<size_t>(preferredSize.y),
 					static_cast<size_t>(maximalSize.y));
 			}
 			}
 		}
 
-		[[nodiscard]] spk::Vector2UInt _computeMinimalSizeFor(const spk::Vector2UInt &p_availableSize) const
+		[[nodiscard]] spk::Vector2UInt _computePreferredSizeFor(const spk::Vector2UInt &p_availableSize) const
 		{
 			if (_size.y == 0 || _size.x == 0)
 			{
@@ -176,11 +184,11 @@ namespace spk
 					}
 					default:
 					{
-						const spk::Vector2UInt minimalValue = element->minimalSizeFor(
+						const spk::Vector2UInt preferredValue = element->preferredSizeFor(
 							{static_cast<unsigned int>(queryWidth), static_cast<unsigned int>(queryHeight)});
 						columnWidth[x] = std::max(
 							columnWidth[x],
-							std::min(static_cast<size_t>(minimalValue.x), static_cast<size_t>(maximalSize.x)));
+							std::min(static_cast<size_t>(preferredValue.x), static_cast<size_t>(maximalSize.x)));
 						break;
 					}
 					}
@@ -216,14 +224,14 @@ namespace spk
 					}
 					default:
 					{
-						const spk::Vector2UInt minimalValue = _elementMinimalSizeFor(
+						const spk::Vector2UInt preferredValue = _elementPreferredSizeFor(
 							*element,
 							{static_cast<unsigned int>(effectiveWidth),
 							 static_cast<unsigned int>(availableContentHeight)});
 						const spk::Vector2UInt maximalSizeValue = element->maximalSize();
 						rowHeight[y] = std::max(
 							rowHeight[y],
-							std::min(static_cast<size_t>(minimalValue.y), static_cast<size_t>(maximalSizeValue.y)));
+							std::min(static_cast<size_t>(preferredValue.y), static_cast<size_t>(maximalSizeValue.y)));
 						break;
 					}
 					}
@@ -249,9 +257,9 @@ namespace spk
 			});
 		}
 
-		[[nodiscard]] spk::Vector2UInt minimalSizeFor(const spk::Vector2UInt &p_availableSize) const override
+		[[nodiscard]] spk::Vector2UInt preferredSizeFor(const spk::Vector2UInt &p_availableSize) const override
 		{
-			return _computeMinimalSizeFor(p_availableSize);
+			return _computePreferredSizeFor(p_availableSize);
 		}
 
 		void clear() override
@@ -391,11 +399,11 @@ namespace spk
 					default:
 					{
 						const spk::Vector2UInt maximalSizeValue = element->maximalSize();
-						const spk::Vector2UInt minimalValue = element->minimalSizeFor(
+						const spk::Vector2UInt preferredValue = element->preferredSizeFor(
 							{static_cast<unsigned int>(std::min(availableContentWidth, static_cast<size_t>(maximalSizeValue.x))),
 							 static_cast<unsigned int>(p_geometry.size.y)});
-						minimalSizeOnX[x] = std::max(minimalSizeOnX[x], static_cast<size_t>(minimalValue.x));
-						minimalSizeOnY[y] = std::max(minimalSizeOnY[y], static_cast<size_t>(minimalValue.y));
+						minimalSizeOnX[x] = std::max(minimalSizeOnX[x], static_cast<size_t>(preferredValue.x));
+						minimalSizeOnY[y] = std::max(minimalSizeOnY[y], static_cast<size_t>(preferredValue.y));
 						break;
 					}
 					}
@@ -451,12 +459,12 @@ namespace spk
 					default:
 					{
 						const size_t effectiveWidth = _effectiveElementWidth(*element, finalSizeOnX[x]);
-						const spk::Vector2UInt minimalValue =
-							_elementMinimalSizeFor(
+						const spk::Vector2UInt preferredValue =
+							_elementPreferredSizeFor(
 								*element,
 								{static_cast<unsigned int>(effectiveWidth),
 								 static_cast<unsigned int>(p_geometry.size.y)});
-						minimalSizeOnY[y] = std::max(minimalSizeOnY[y], static_cast<size_t>(minimalValue.y));
+						minimalSizeOnY[y] = std::max(minimalSizeOnY[y], static_cast<size_t>(preferredValue.y));
 						break;
 					}
 					}

@@ -34,7 +34,7 @@ namespace
 			std::min(p_availableHeight, maximalSize.y)};
 	}
 
-	[[nodiscard]] spk::Vector2UInt minimalSizeForElement(
+	[[nodiscard]] spk::Vector2UInt preferredSizeForElement(
 		const spk::FormLayout::Element *p_element,
 		uint32_t p_availableWidth,
 		uint32_t p_availableHeight)
@@ -44,7 +44,7 @@ namespace
 			return {0U, 0U};
 		}
 
-		return p_element->minimalSizeFor(availableForElement(p_element, p_availableWidth, p_availableHeight));
+		return p_element->preferredSizeFor(availableForElement(p_element, p_availableWidth, p_availableHeight));
 	}
 
 	[[nodiscard]] uint32_t widthForPolicy(
@@ -67,7 +67,7 @@ namespace
 		case spk::FormLayout::SizePolicy::HorizontalExtend:
 		case spk::FormLayout::SizePolicy::Extend:
 		case spk::FormLayout::SizePolicy::VerticalExtend:
-			return minimalSizeForElement(p_element, p_availableWidth, p_availableHeight).x;
+			return preferredSizeForElement(p_element, p_availableWidth, p_availableHeight).x;
 		}
 		return 0U;
 	}
@@ -87,7 +87,7 @@ namespace
 		case spk::FormLayout::SizePolicy::HorizontalExtend:
 		case spk::FormLayout::SizePolicy::Extend:
 		case spk::FormLayout::SizePolicy::VerticalExtend:
-			return minimalSizeForElement(p_element, p_availableWidth, p_availableHeight).y;
+			return preferredSizeForElement(p_element, p_availableWidth, p_availableHeight).y;
 		}
 		return 0;
 	}
@@ -401,10 +401,18 @@ namespace spk
 
 	spk::Vector2UInt FormLayout::_computeMinimalSize() const
 	{
-		return minimalSizeFor(std::numeric_limits<spk::Vector2UInt>::max());
+		const spk::Vector2UInt unbounded = std::numeric_limits<spk::Vector2UInt>::max();
+		// Width is the *true* minimum: querying with no horizontal space makes a word-wrap
+		// widget report its narrowest (widest-word) width rather than its unwrapped single
+		// line, so a parent layout stays free to shrink us and let the content wrap.
+		// Height keeps the unbounded-width (preferred) value so a flexible widget is not
+		// over-constrained vertically.
+		return {
+			preferredSizeFor({0u, unbounded.y}).x,
+			preferredSizeFor(unbounded).y};
 	}
 
-	spk::Vector2UInt FormLayout::minimalSizeFor(const spk::Vector2UInt &p_availableSize) const
+	spk::Vector2UInt FormLayout::preferredSizeFor(const spk::Vector2UInt &p_availableSize) const
 	{
 		const size_t rowCountValue = nbRow();
 		if (rowCountValue == 0U)

@@ -154,16 +154,16 @@ namespace spk
 			const int maxS = _saturatedSecondary(maximalSize);
 			const int queryPrimary = std::clamp(p_remainingPrimary, 0, maxP);
 			const int querySecondary = std::clamp(p_availableSecondary, 0, maxS);
-			const spk::Vector2UInt minimalSize =
-				p_element->minimalSizeFor(_sizeFromPrimarySecondary(queryPrimary, querySecondary));
+			const spk::Vector2UInt preferredSize =
+				p_element->preferredSizeFor(_sizeFromPrimarySecondary(queryPrimary, querySecondary));
 
 			Item result;
 			result.elt = p_element;
 
-			result.minP = _saturatedPrimary(minimalSize);
+			result.minP = _saturatedPrimary(preferredSize);
 			result.maxP = std::max(result.minP, maxP);
 
-			result.minS = _saturatedSecondary(minimalSize);
+			result.minS = _saturatedSecondary(preferredSize);
 			result.maxS = std::max(result.minS, maxS);
 
 			_applySizePolicy(result, p_element->sizePolicy(), _saturatedPrimary(requestedSize));
@@ -261,10 +261,10 @@ namespace spk
 				const spk::Vector2UInt maximalSize = item.elt->maximalSize();
 				const int maxS = _saturatedSecondary(maximalSize);
 				const int querySecondary = std::clamp(p_availableSecondary, 0, maxS);
-				const spk::Vector2UInt minimalSize =
-					item.elt->minimalSizeFor(_sizeFromPrimarySecondary(item.size, querySecondary));
+				const spk::Vector2UInt preferredSize =
+					item.elt->preferredSizeFor(_sizeFromPrimarySecondary(item.size, querySecondary));
 
-				item.minS = _saturatedSecondary(minimalSize);
+				item.minS = _saturatedSecondary(preferredSize);
 				item.maxS = std::max(item.minS, maxS);
 				item.secondarySize = item.minS;
 			}
@@ -318,7 +318,7 @@ namespace spk
 		}
 
 	private:
-		[[nodiscard]] spk::Vector2UInt _computeMinimalSizeFor(const spk::Vector2UInt &p_availableSize) const
+		[[nodiscard]] spk::Vector2UInt _computePreferredSizeFor(const spk::Vector2UInt &p_availableSize) const
 		{
 			if (_elements.empty() == true)
 			{
@@ -360,7 +360,15 @@ namespace spk
 
 		[[nodiscard]] spk::Vector2UInt _computeMinimalSize() const
 		{
-			return _computeMinimalSizeFor(std::numeric_limits<spk::Vector2UInt>::max());
+			const spk::Vector2UInt unbounded = std::numeric_limits<spk::Vector2UInt>::max();
+			// Width is the *true* minimum: querying with no horizontal space makes a word-wrap
+			// widget report its narrowest (widest-word) width rather than its unwrapped single
+			// line, so a parent layout stays free to shrink us and let the content wrap.
+			// Height keeps the unbounded-width (preferred) value so a flexible widget is not
+			// over-constrained vertically.
+			return {
+				_computePreferredSizeFor({0u, unbounded.y}).x,
+				_computePreferredSizeFor(unbounded).y};
 		}
 
 	public:
@@ -374,9 +382,9 @@ namespace spk
 			});
 		}
 
-		[[nodiscard]] spk::Vector2UInt minimalSizeFor(const spk::Vector2UInt &p_availableSize) const override
+		[[nodiscard]] spk::Vector2UInt preferredSizeFor(const spk::Vector2UInt &p_availableSize) const override
 		{
-			return _computeMinimalSizeFor(p_availableSize);
+			return _computePreferredSizeFor(p_availableSize);
 		}
 
 		void setGeometry(const spk::Rect2D &p_geometry) override

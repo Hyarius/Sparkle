@@ -21,7 +21,7 @@ namespace spk
 				return commandPanelSize;
 			}
 
-			const spk::Vector2UInt textAreaSize = _textArea.computeMinimalSize(
+			const spk::Vector2UInt textAreaSize = _textArea.computePreferredSize(
 				std::max(commandPanelSize.x, 200u));
 
 			return spk::Vector2UInt(
@@ -88,9 +88,9 @@ namespace spk
 			[this](const spk::Vector2UInt &p_availableSize) {
 				const spk::Vector2UInt commandPanelMinimalSize = _content.commandPanel().minimalSize();
 				const unsigned int textAreaWidth = std::max({commandPanelMinimalSize.x, p_availableSize.x, _minimalWidth});
-				const spk::Vector2UInt textAreaMinimalSize = _content.textArea().computeMinimalSize(textAreaWidth);
+				const spk::Vector2UInt textAreaPreferredSize = _content.textArea().computePreferredSize(textAreaWidth);
 
-				setMinimumContentSize(spk::Vector2UInt(std::max({textAreaMinimalSize.x, commandPanelMinimalSize.x, _minimalWidth}), textAreaMinimalSize.y + _content.layout().elementPadding().y + commandPanelMinimalSize.y));
+				setMinimumContentSize(spk::Vector2UInt(std::max({textAreaPreferredSize.x, commandPanelMinimalSize.x, _minimalWidth}), textAreaPreferredSize.y + _content.layout().elementPadding().y + commandPanelMinimalSize.y));
 			});
 	}
 
@@ -168,10 +168,10 @@ namespace spk
 		_content.textArea().setMinimalWidth(p_width);
 
 		const spk::Vector2UInt commandPanelMinimalSize = _content.commandPanel().minimalSize();
-		const spk::Vector2UInt textAreaMinimalSize =
-			_content.textArea().computeMinimalSize(std::max(commandPanelMinimalSize.x, p_width));
+		const spk::Vector2UInt textAreaPreferredSize =
+			_content.textArea().computePreferredSize(std::max(commandPanelMinimalSize.x, p_width));
 
-		setMinimumContentSize(spk::Vector2UInt(std::max({textAreaMinimalSize.x, commandPanelMinimalSize.x, p_width}), textAreaMinimalSize.y + _content.layout().elementPadding().y + commandPanelMinimalSize.y));
+		setMinimumContentSize(spk::Vector2UInt(std::max({textAreaPreferredSize.x, commandPanelMinimalSize.x, p_width}), textAreaPreferredSize.y + _content.layout().elementPadding().y + commandPanelMinimalSize.y));
 	}
 
 	InformationMessageBox::InformationMessageBox(const std::string &p_name, spk::Widget *p_parent) :

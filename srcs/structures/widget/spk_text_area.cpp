@@ -74,7 +74,7 @@ namespace spk
 	void TextArea::_configureSizeCache()
 	{
 		configureMinimalSizeGenerator([this]() {
-			return computeMinimalSize(_minimalWidthAsUInt());
+			return computePreferredSize(_minimalWidthAsUInt());
 		});
 	}
 
@@ -241,7 +241,7 @@ namespace spk
 		return builder.build();
 	}
 
-	spk::Vector2UInt TextArea::computeMinimalSize(unsigned int p_availableWidth) const
+	spk::Vector2UInt TextArea::computePreferredSize(unsigned int p_availableWidth) const
 	{
 		if (_font == nullptr)
 		{
@@ -272,9 +272,9 @@ namespace spk
 		return {maxWidth, blockHeight};
 	}
 
-	spk::Vector2UInt TextArea::minimalSizeFor(const spk::Vector2UInt &p_availableSize) const
+	spk::Vector2UInt TextArea::preferredSizeFor(const spk::Vector2UInt &p_availableSize) const
 	{
-		return computeMinimalSize(p_availableSize.x);
+		return computePreferredSize(p_availableSize.x);
 	}
 
 	void TextArea::setFont(std::shared_ptr<spk::Font> p_font)

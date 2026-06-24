@@ -74,7 +74,7 @@ namespace spk
 		return _minimalSize.get();
 	}
 
-	spk::Vector2UInt ResizableElement::minimalSizeFor(const spk::Vector2UInt &p_availableSize) const
+	spk::Vector2UInt ResizableElement::preferredSizeFor(const spk::Vector2UInt &p_availableSize) const
 	{
 		(void)p_availableSize;
 		return minimalSize();

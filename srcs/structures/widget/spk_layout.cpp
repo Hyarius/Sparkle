@@ -56,15 +56,15 @@ namespace spk
 		return {0u, 0u};
 	}
 
-	spk::Vector2UInt Layout::Element::minimalSizeFor(const spk::Vector2UInt &p_availableSize) const
+	spk::Vector2UInt Layout::Element::preferredSizeFor(const spk::Vector2UInt &p_availableSize) const
 	{
 		if (_widget != nullptr)
 		{
-			return _widget->minimalSizeFor(p_availableSize);
+			return _widget->preferredSizeFor(p_availableSize);
 		}
 		if (_layout != nullptr)
 		{
-			return _layout->minimalSizeFor(p_availableSize);
+			return _layout->preferredSizeFor(p_availableSize);
 		}
 		return {0u, 0u};
 	}

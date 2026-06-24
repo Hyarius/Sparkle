@@ -22,7 +22,7 @@ namespace spk
 			spk::Vector2UInt contentSize = commandPanelSize;
 			if (_textArea.text().empty() == false)
 			{
-				const spk::Vector2UInt textAreaSize = _textArea.computeMinimalSize(
+				const spk::Vector2UInt textAreaSize = _textArea.computePreferredSize(
 					std::max(commandPanelSize.x, 200u));
 
 				contentSize.x = std::max(textAreaSize.x, commandPanelSize.x);

@@ -45,7 +45,7 @@ namespace spk
 			[[nodiscard]] bool isLayout() const;
 
 			[[nodiscard]] spk::Vector2UInt minimalSize() const;
-			[[nodiscard]] spk::Vector2UInt minimalSizeFor(const spk::Vector2UInt &p_availableSize) const;
+			[[nodiscard]] spk::Vector2UInt preferredSizeFor(const spk::Vector2UInt &p_availableSize) const;
 			[[nodiscard]] spk::Vector2UInt fixedSize() const;
 			[[nodiscard]] spk::Vector2UInt maximalSize() const;
 			void setGeometry(const spk::Rect2D &p_geometry);

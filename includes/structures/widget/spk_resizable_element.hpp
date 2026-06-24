@@ -49,7 +49,7 @@ namespace spk
 		virtual void setMaximalSize(const spk::Vector2UInt &p_maximalValue);
 
 		[[nodiscard]] virtual spk::Vector2UInt minimalSize() const;
-		[[nodiscard]] virtual spk::Vector2UInt minimalSizeFor(const spk::Vector2UInt &p_availableSize) const;
+		[[nodiscard]] virtual spk::Vector2UInt preferredSizeFor(const spk::Vector2UInt &p_availableSize) const;
 		[[nodiscard]] virtual spk::Vector2UInt fixedSize() const;
 		[[nodiscard]] virtual spk::Vector2UInt maximalSize() const;
 	};

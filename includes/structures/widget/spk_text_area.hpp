@@ -71,8 +71,8 @@ namespace spk
 		void setLinePadding(size_t p_linePadding);
 		void setAlignment(spk::HorizontalAlignment p_horizontalAlignment, spk::VerticalAlignment p_verticalAlignment);
 
-		[[nodiscard]] spk::Vector2UInt computeMinimalSize(unsigned int p_availableWidth) const;
-		[[nodiscard]] spk::Vector2UInt minimalSizeFor(const spk::Vector2UInt &p_availableSize) const override;
+		[[nodiscard]] spk::Vector2UInt computePreferredSize(unsigned int p_availableWidth) const;
+		[[nodiscard]] spk::Vector2UInt preferredSizeFor(const spk::Vector2UInt &p_availableSize) const override;
 
 		[[nodiscard]] const spk::Font::Text &text() const;
 		[[nodiscard]] size_t linePadding() const;
