@@ -631,3 +631,84 @@ TEST(Vector2ConversionTest, AliasTypesMatchExpectedUnderlyingTypes)
 	static_assert(std::is_same_v<spk::Vector2Int, spk::IVector2<std::int32_t>>);
 	static_assert(std::is_same_v<spk::Vector2UInt, spk::IVector2<std::uint32_t>>);
 }
+
+TEST(Vector2BranchTest, EqualityShortCircuitsAtEachComponent)
+{
+	EXPECT_FALSE(spk::Vector2Int(1, 0) == spk::Vector2Int(9, 0));
+	EXPECT_FALSE(spk::Vector2Int(0, 1) == spk::Vector2Int(0, 9));
+	EXPECT_FALSE(spk::Vector2(1.0f, 0.0f) == spk::Vector2(9.0f, 0.0f));
+	EXPECT_FALSE(spk::Vector2(0.0f, 1.0f) == spk::Vector2(0.0f, 9.0f));
+}
+
+TEST(Vector2BranchTest, FloatDivisionRejectsZeroOnEachPath)
+{
+	EXPECT_THROW(static_cast<void>(spk::Vector2(1.0f, 2.0f) / spk::Vector2(0.0f, 1.0f)), std::invalid_argument);
+	EXPECT_THROW(static_cast<void>(spk::Vector2(1.0f, 2.0f) / spk::Vector2(1.0f, 0.0f)), std::invalid_argument);
+	EXPECT_THROW(static_cast<void>(spk::Vector2(1.0f, 2.0f) / 0.0f), std::invalid_argument);
+	EXPECT_THROW(static_cast<void>(10.0f / spk::Vector2(0.0f, 1.0f)), std::invalid_argument);
+	EXPECT_THROW(static_cast<void>(10.0f / spk::Vector2(1.0f, 0.0f)), std::invalid_argument);
+
+	spk::Vector2 compound(4.0f, 6.0f);
+	EXPECT_THROW(compound /= spk::Vector2(1.0f, 0.0f), std::invalid_argument);
+	EXPECT_THROW(compound /= 0.0f, std::invalid_argument);
+}
+
+TEST(Vector2BranchTest, IntegerDivisionRejectsZeroOnRemainingPaths)
+{
+	EXPECT_THROW(static_cast<void>(20 / spk::Vector2Int(0, 5)), std::invalid_argument);
+
+	spk::Vector2Int compound(8, 15);
+	EXPECT_THROW(compound /= spk::Vector2Int(1, 0), std::invalid_argument);
+}
+
+TEST(Vector2BranchTest, IsZeroCoversNonZeroFirstComponent)
+{
+	EXPECT_FALSE(spk::Vector2Int(1, 0).isZero());
+	EXPECT_FALSE(spk::Vector2(1.0f, 0.0f).isZero());
+	EXPECT_FALSE(spk::Vector2(0.0f, 1.0f).isZero());
+}
+
+TEST(Vector2BranchTest, IsBetweenCoversEachOutOfRangeComponent)
+{
+	const spk::Vector2 low(0.0f, 0.0f);
+	const spk::Vector2 high(4.0f, 4.0f);
+	EXPECT_FALSE(spk::Vector2::isBetween(spk::Vector2(-1.0f, 2.0f), low, high));
+	EXPECT_FALSE(spk::Vector2::isBetween(spk::Vector2(5.0f, 2.0f), low, high));
+	EXPECT_FALSE(spk::Vector2::isBetween(spk::Vector2(2.0f, -1.0f), low, high));
+	EXPECT_FALSE(spk::Vector2::isBetween(spk::Vector2(2.0f, 5.0f), low, high));
+}
+
+TEST(Vector2BranchTest, IntegerIsBetweenCoversEachOutOfRangeComponent)
+{
+	const spk::Vector2Int low(0, 0);
+	const spk::Vector2Int high(4, 4);
+	EXPECT_FALSE(spk::Vector2Int::isBetween(spk::Vector2Int(-1, 2), low, high));
+	EXPECT_FALSE(spk::Vector2Int::isBetween(spk::Vector2Int(5, 2), low, high));
+	EXPECT_FALSE(spk::Vector2Int::isBetween(spk::Vector2Int(2, -1), low, high));
+	EXPECT_FALSE(spk::Vector2Int::isBetween(spk::Vector2Int(2, 5), low, high));
+}
+
+TEST(Vector2BranchTest, ScalarAndCompoundDivisionCoverBothSides)
+{
+	EXPECT_EQ(spk::Vector2Int(8, 12) / 4, spk::Vector2Int(2, 3));
+	EXPECT_THROW(static_cast<void>(spk::Vector2Int(8, 12) / 0), std::invalid_argument);
+	EXPECT_EQ(spk::Vector2(8.0f, 12.0f) / 4.0f, spk::Vector2(2.0f, 3.0f));
+	EXPECT_THROW(static_cast<void>(spk::Vector2(8.0f, 12.0f) / 0.0f), std::invalid_argument);
+
+	spk::Vector2Int intVec(8, 12);
+	intVec /= spk::Vector2Int(2, 3);
+	EXPECT_EQ(intVec, spk::Vector2Int(4, 4));
+	EXPECT_THROW(intVec /= spk::Vector2Int(0, 1), std::invalid_argument);
+	EXPECT_THROW(intVec /= spk::Vector2Int(1, 0), std::invalid_argument);
+
+	spk::Vector2 floatVec(8.0f, 12.0f);
+	floatVec /= spk::Vector2(2.0f, 3.0f);
+	EXPECT_EQ(floatVec, spk::Vector2(4.0f, 4.0f));
+	EXPECT_THROW(floatVec /= spk::Vector2(0.0f, 1.0f), std::invalid_argument);
+	EXPECT_THROW(floatVec /= spk::Vector2(1.0f, 0.0f), std::invalid_argument);
+
+	spk::Vector2 floatScalar(8.0f, 12.0f);
+	floatScalar /= 4.0f;
+	EXPECT_EQ(floatScalar, spk::Vector2(2.0f, 3.0f));
+	EXPECT_THROW(floatScalar /= 0.0f, std::invalid_argument);
+}

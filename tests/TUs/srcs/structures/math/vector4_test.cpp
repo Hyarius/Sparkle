@@ -105,3 +105,63 @@ TEST(Vector4UtilityTest, SupportsLerpMinMaxClampBetweenAndConversion)
 	EXPECT_FLOAT_EQ(converted.w, 4.0f);
 	static_assert(std::is_same_v<spk::Vector4, spk::IVector4<float>>);
 }
+
+TEST(Vector4BranchTest, EqualityShortCircuitsAtEachComponent)
+{
+	EXPECT_FALSE(spk::Vector4Int(1, 0, 0, 0) == spk::Vector4Int(9, 0, 0, 0));
+	EXPECT_FALSE(spk::Vector4Int(0, 1, 0, 0) == spk::Vector4Int(0, 9, 0, 0));
+	EXPECT_FALSE(spk::Vector4Int(0, 0, 1, 0) == spk::Vector4Int(0, 0, 9, 0));
+	EXPECT_FALSE(spk::Vector4Int(0, 0, 0, 1) == spk::Vector4Int(0, 0, 0, 9));
+	EXPECT_TRUE(spk::Vector4Int(1, 2, 3, 4) != spk::Vector4Int(1, 2, 3, 5));
+
+	EXPECT_FALSE(spk::Vector4(1.0f, 0.0f, 0.0f, 0.0f) == spk::Vector4(9.0f, 0.0f, 0.0f, 0.0f));
+	EXPECT_FALSE(spk::Vector4(0.0f, 1.0f, 0.0f, 0.0f) == spk::Vector4(0.0f, 9.0f, 0.0f, 0.0f));
+	EXPECT_FALSE(spk::Vector4(0.0f, 0.0f, 1.0f, 0.0f) == spk::Vector4(0.0f, 0.0f, 9.0f, 0.0f));
+	EXPECT_FALSE(spk::Vector4(0.0f, 0.0f, 0.0f, 1.0f) == spk::Vector4(0.0f, 0.0f, 0.0f, 9.0f));
+}
+
+TEST(Vector4BranchTest, DivisionRejectsZeroOnEachComponentAndPath)
+{
+	EXPECT_THROW(static_cast<void>(spk::Vector4Int(1, 2, 3, 4) / spk::Vector4Int(0, 1, 1, 1)), std::invalid_argument);
+	EXPECT_THROW(static_cast<void>(spk::Vector4Int(1, 2, 3, 4) / spk::Vector4Int(1, 1, 0, 1)), std::invalid_argument);
+	EXPECT_THROW(static_cast<void>(spk::Vector4Int(1, 2, 3, 4) / spk::Vector4Int(1, 1, 1, 0)), std::invalid_argument);
+
+	EXPECT_THROW(static_cast<void>(20 / spk::Vector4Int(0, 1, 1, 1)), std::invalid_argument);
+	EXPECT_THROW(static_cast<void>(20 / spk::Vector4Int(1, 1, 0, 1)), std::invalid_argument);
+	EXPECT_THROW(static_cast<void>(20 / spk::Vector4Int(1, 1, 1, 0)), std::invalid_argument);
+
+	spk::Vector4Int compound(8, 12, 16, 20);
+	EXPECT_THROW(compound /= spk::Vector4Int(1, 1, 1, 0), std::invalid_argument);
+	EXPECT_THROW(compound /= 0, std::invalid_argument);
+}
+
+TEST(Vector4BranchTest, IsZeroCoversEachNonZeroComponent)
+{
+	EXPECT_FALSE(spk::Vector4Int(1, 0, 0, 0).isZero());
+	EXPECT_FALSE(spk::Vector4Int(0, 1, 0, 0).isZero());
+	EXPECT_FALSE(spk::Vector4Int(0, 0, 1, 0).isZero());
+	EXPECT_FALSE(spk::Vector4Int(0, 0, 0, 1).isZero());
+}
+
+TEST(Vector4BranchTest, FloatVectorDivisionRejectsZeroOnEachComponent)
+{
+	EXPECT_THROW(static_cast<void>(spk::Vector4(1.0f, 2.0f, 3.0f, 4.0f) / spk::Vector4(0.0f, 1.0f, 1.0f, 1.0f)), std::invalid_argument);
+	EXPECT_THROW(static_cast<void>(spk::Vector4(1.0f, 2.0f, 3.0f, 4.0f) / spk::Vector4(1.0f, 0.0f, 1.0f, 1.0f)), std::invalid_argument);
+	EXPECT_THROW(static_cast<void>(spk::Vector4(1.0f, 2.0f, 3.0f, 4.0f) / spk::Vector4(1.0f, 1.0f, 0.0f, 1.0f)), std::invalid_argument);
+	EXPECT_THROW(static_cast<void>(spk::Vector4(1.0f, 2.0f, 3.0f, 4.0f) / spk::Vector4(1.0f, 1.0f, 1.0f, 0.0f)), std::invalid_argument);
+}
+
+TEST(Vector4BranchTest, IsBetweenCoversEachOutOfRangeComponent)
+{
+	const spk::Vector4Int low(0, 0, 0, 0);
+	const spk::Vector4Int high(4, 4, 4, 4);
+
+	EXPECT_FALSE(spk::Vector4Int::isBetween(spk::Vector4Int(-1, 2, 2, 2), low, high));
+	EXPECT_FALSE(spk::Vector4Int::isBetween(spk::Vector4Int(5, 2, 2, 2), low, high));
+	EXPECT_FALSE(spk::Vector4Int::isBetween(spk::Vector4Int(2, -1, 2, 2), low, high));
+	EXPECT_FALSE(spk::Vector4Int::isBetween(spk::Vector4Int(2, 5, 2, 2), low, high));
+	EXPECT_FALSE(spk::Vector4Int::isBetween(spk::Vector4Int(2, 2, -1, 2), low, high));
+	EXPECT_FALSE(spk::Vector4Int::isBetween(spk::Vector4Int(2, 2, 5, 2), low, high));
+	EXPECT_FALSE(spk::Vector4Int::isBetween(spk::Vector4Int(2, 2, 2, -1), low, high));
+	EXPECT_FALSE(spk::Vector4Int::isBetween(spk::Vector4Int(2, 2, 2, 5), low, high));
+}

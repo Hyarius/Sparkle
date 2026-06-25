@@ -90,3 +90,55 @@ TEST(Vector3UtilityTest, SupportsLerpMinMaxClampBetweenAndConversion)
 	EXPECT_FLOAT_EQ(converted.z, 3.0f);
 	static_assert(std::is_same_v<spk::Vector3, spk::IVector3<float>>);
 }
+
+TEST(Vector3BranchTest, EqualityShortCircuitsAtEachComponent)
+{
+	EXPECT_FALSE(spk::Vector3Int(1, 0, 0) == spk::Vector3Int(9, 0, 0));
+	EXPECT_FALSE(spk::Vector3Int(0, 1, 0) == spk::Vector3Int(0, 9, 0));
+	EXPECT_FALSE(spk::Vector3Int(0, 0, 1) == spk::Vector3Int(0, 0, 9));
+	EXPECT_FALSE(spk::Vector3(1.0f, 0.0f, 0.0f) == spk::Vector3(9.0f, 0.0f, 0.0f));
+	EXPECT_FALSE(spk::Vector3(0.0f, 1.0f, 0.0f) == spk::Vector3(0.0f, 9.0f, 0.0f));
+	EXPECT_FALSE(spk::Vector3(0.0f, 0.0f, 1.0f) == spk::Vector3(0.0f, 0.0f, 9.0f));
+}
+
+TEST(Vector3BranchTest, DivisionRejectsZeroOnEachComponentAndPath)
+{
+	EXPECT_THROW(static_cast<void>(spk::Vector3Int(1, 2, 3) / spk::Vector3Int(0, 1, 1)), std::invalid_argument);
+	EXPECT_THROW(static_cast<void>(spk::Vector3Int(1, 2, 3) / spk::Vector3Int(1, 1, 0)), std::invalid_argument);
+	EXPECT_THROW(static_cast<void>(20 / spk::Vector3Int(0, 1, 1)), std::invalid_argument);
+	EXPECT_THROW(static_cast<void>(20 / spk::Vector3Int(1, 1, 0)), std::invalid_argument);
+
+	EXPECT_EQ(spk::Vector3Int(8, 12, 16) / 2, spk::Vector3Int(4, 6, 8));
+
+	spk::Vector3Int compound(8, 12, 16);
+	EXPECT_THROW(compound /= 0, std::invalid_argument);
+}
+
+TEST(Vector3BranchTest, IsZeroCoversEachNonZeroComponent)
+{
+	EXPECT_FALSE(spk::Vector3Int(1, 0, 0).isZero());
+	EXPECT_FALSE(spk::Vector3Int(0, 1, 0).isZero());
+	EXPECT_FALSE(spk::Vector3Int(0, 0, 1).isZero());
+
+	EXPECT_FALSE(spk::Vector3(1.0f, 0.0f, 0.0f).isZero());
+	EXPECT_FALSE(spk::Vector3(0.0f, 1.0f, 0.0f).isZero());
+	EXPECT_FALSE(spk::Vector3(0.0f, 0.0f, 1.0f).isZero());
+}
+
+TEST(Vector3BranchTest, InitializerListMinNonEmptyAndMaxEmpty)
+{
+	EXPECT_EQ(spk::Vector3Int::min({spk::Vector3Int(5, 2, 9), spk::Vector3Int(3, 4, 1)}), spk::Vector3Int(3, 2, 1));
+	EXPECT_THROW(static_cast<void>(spk::Vector3Int::max({})), std::invalid_argument);
+}
+
+TEST(Vector3BranchTest, IsBetweenCoversEachOutOfRangeComponent)
+{
+	const spk::Vector3Int low(0, 0, 0);
+	const spk::Vector3Int high(4, 4, 4);
+	EXPECT_FALSE(spk::Vector3Int::isBetween(spk::Vector3Int(-1, 2, 2), low, high));
+	EXPECT_FALSE(spk::Vector3Int::isBetween(spk::Vector3Int(5, 2, 2), low, high));
+	EXPECT_FALSE(spk::Vector3Int::isBetween(spk::Vector3Int(2, -1, 2), low, high));
+	EXPECT_FALSE(spk::Vector3Int::isBetween(spk::Vector3Int(2, 5, 2), low, high));
+	EXPECT_FALSE(spk::Vector3Int::isBetween(spk::Vector3Int(2, 2, -1), low, high));
+	EXPECT_FALSE(spk::Vector3Int::isBetween(spk::Vector3Int(2, 2, 5), low, high));
+}
