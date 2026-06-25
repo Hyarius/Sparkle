@@ -4,8 +4,8 @@
 
 #include "structures/game_engine/spk_component_logic.hpp"
 #include "structures/game_engine/spk_component_logic_registry.hpp"
-#include "structures/game_engine/spk_component_registry.hpp"
 #include "structures/game_engine/spk_entity.hpp"
+#include "structures/game_engine/spk_game_engine.hpp"
 
 namespace
 {
@@ -26,8 +26,6 @@ namespace
 	public:
 		std::string trace;
 		int sum = 0;
-		int synchronizedCount = 0;
-		int synchronizedSum = 0;
 		int renderStartedCount = 0;
 		int renderParsedCount = 0;
 		int renderExecutedCount = 0;
@@ -52,21 +50,6 @@ namespace
 		void _executeUpdate(const spk::UpdateTick &) override
 		{
 			trace += "E";
-		}
-
-		void _onSynchronizationStarted() override
-		{
-			synchronizedSum = 0;
-		}
-
-		void _parseComponentForSynchronization(ValueComponent &p_component) override
-		{
-			synchronizedSum += p_component.value;
-		}
-
-		void _executeSynchronization() override
-		{
-			++synchronizedCount;
 		}
 
 		void _onRenderStarted() override
@@ -108,67 +91,35 @@ namespace
 
 TEST(ComponentLogicTest, UpdateRunsBeginParseEndInOrderOverProcessableComponents)
 {
+	spk::GameEngine engine;
 	spk::Entity entity;
+	engine.addEntity(&entity);
 	entity.addComponent<ValueComponent>(2);
 	entity.addComponent<ValueComponent>(3);
-
-	spk::ComponentRegistry components;
-	for (const auto &component : entity.components())
-	{
-		components.add(component.get());
-	}
-	components.refreshProcessable();
 
 	spk::ComponentLogicRegistry logics;
 	ValueLogic &logic = logics.add<ValueLogic>();
 
 	spk::UpdateTick tick{};
-	logics.update(tick, components);
+	logics.update(tick, engine.componentRegistry());
 
 	EXPECT_EQ(logic.trace, "SPPE");
 	EXPECT_EQ(logic.sum, 5);
 }
 
-TEST(ComponentLogicTest, SynchronizeRunsBeginParseEndOverProcessableComponents)
-{
-	spk::Entity entity;
-	entity.addComponent<ValueComponent>(2);
-	entity.addComponent<ValueComponent>(3);
-
-	spk::ComponentRegistry components;
-	for (const auto &component : entity.components())
-	{
-		components.add(component.get());
-	}
-	components.refreshProcessable();
-
-	spk::ComponentLogicRegistry logics;
-	ValueLogic &logic = logics.add<ValueLogic>();
-
-	logics.synchronize(components);
-
-	EXPECT_EQ(logic.synchronizedSum, 5);
-	EXPECT_EQ(logic.synchronizedCount, 1);
-}
-
 TEST(ComponentLogicTest, RenderRunsBeginParseEndOverProcessableComponents)
 {
+	spk::GameEngine engine;
 	spk::Entity entity;
+	engine.addEntity(&entity);
 	entity.addComponent<ValueComponent>(2);
 	entity.addComponent<ValueComponent>(3);
-
-	spk::ComponentRegistry components;
-	for (const auto &component : entity.components())
-	{
-		components.add(component.get());
-	}
-	components.refreshProcessable();
 
 	spk::ComponentLogicRegistry logics;
 	ValueLogic &logic = logics.add<ValueLogic>();
 	spk::RenderUnitBuilder builder;
 
-	logics.render(builder, components);
+	logics.render(builder, engine.componentRegistry());
 
 	EXPECT_EQ(logic.renderStartedCount, 1);
 	EXPECT_EQ(logic.renderParsedCount, 2);
@@ -177,39 +128,35 @@ TEST(ComponentLogicTest, RenderRunsBeginParseEndOverProcessableComponents)
 
 TEST(ComponentLogicTest, DeactivatedLogicDoesNotRun)
 {
+	spk::GameEngine engine;
 	spk::Entity entity;
+	engine.addEntity(&entity);
 	entity.addComponent<ValueComponent>(4);
-
-	spk::ComponentRegistry components;
-	components.add(entity.components().front().get());
-	components.refreshProcessable();
 
 	spk::ComponentLogicRegistry logics;
 	ValueLogic &logic = logics.add<ValueLogic>();
 	logic.deactivate();
 
 	spk::UpdateTick tick{};
-	logics.update(tick, components);
+	logics.update(tick, engine.componentRegistry());
 
 	EXPECT_TRUE(logic.trace.empty());
 }
 
 TEST(ComponentLogicTest, UpdateSkipsNonProcessableComponents)
 {
+	spk::GameEngine engine;
 	spk::Entity entity;
+	engine.addEntity(&entity);
 	entity.addComponent<ValueComponent>(9);
 
-	spk::ComponentRegistry components;
-	components.add(entity.components().front().get());
-
 	entity.deactivate();
-	components.refreshProcessable();
 
 	spk::ComponentLogicRegistry logics;
 	ValueLogic &logic = logics.add<ValueLogic>();
 
 	spk::UpdateTick tick{};
-	logics.update(tick, components);
+	logics.update(tick, engine.componentRegistry());
 
 	// Begin/end still run, but no component is parsed.
 	EXPECT_EQ(logic.trace, "SE");
@@ -218,31 +165,27 @@ TEST(ComponentLogicTest, UpdateSkipsNonProcessableComponents)
 
 TEST(ComponentLogicTest, EventReachesPerComponentHook)
 {
+	spk::GameEngine engine;
 	spk::Entity entity;
+	engine.addEntity(&entity);
 	entity.addComponent<ValueComponent>(1);
-
-	spk::ComponentRegistry components;
-	components.add(entity.components().front().get());
-	components.refreshProcessable();
 
 	spk::ComponentLogicRegistry logics;
 	ValueLogic &logic = logics.add<ValueLogic>();
 
 	spk::WindowResizedRecord record;
 	spk::WindowResizedEvent event(record);
-	logics.dispatchEvent(event, components);
+	logics.dispatchEvent(event, engine.componentRegistry());
 
 	EXPECT_EQ(logic.resizedCount, 1);
 }
 
 TEST(ComponentLogicTest, EventConsumedDuringStartSkipsPerComponentHook)
 {
+	spk::GameEngine engine;
 	spk::Entity entity;
+	engine.addEntity(&entity);
 	entity.addComponent<ValueComponent>(1);
-
-	spk::ComponentRegistry components;
-	components.add(entity.components().front().get());
-	components.refreshProcessable();
 
 	spk::ComponentLogicRegistry logics;
 	ValueLogic &logic = logics.add<ValueLogic>();
@@ -250,7 +193,7 @@ TEST(ComponentLogicTest, EventConsumedDuringStartSkipsPerComponentHook)
 
 	spk::WindowResizedRecord record;
 	spk::WindowResizedEvent event(record);
-	logics.dispatchEvent(event, components);
+	logics.dispatchEvent(event, engine.componentRegistry());
 
 	EXPECT_EQ(logic.resizedStartedCount, 1);
 	EXPECT_EQ(logic.resizedCount, 0);

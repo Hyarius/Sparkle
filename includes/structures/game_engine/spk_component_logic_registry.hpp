@@ -113,19 +113,6 @@ namespace spk
 			}
 		}
 
-		void synchronize(spk::ComponentRegistry &p_registry)
-		{
-			_ensureSorted();
-
-			for (const std::unique_ptr<spk::IComponentLogic> &logic : _logics)
-			{
-				if (logic != nullptr && logic->isActivated() == true)
-				{
-					logic->onSynchronize(p_registry);
-				}
-			}
-		}
-
 		void render(
 			spk::RenderUnitBuilder &p_builder,
 			spk::ComponentRegistry &p_registry)

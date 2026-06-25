@@ -12,16 +12,11 @@ namespace spk
 	void GameEngineWidget::_onUpdate(const spk::UpdateTick &p_tick)
 	{
 		_gameEngine.update(p_tick);
-		_gameEngine.synchronize();
 	}
 
 	spk::RenderUnit GameEngineWidget::_buildRenderUnit() const
 	{
-		spk::RenderUnitBuilder builder;
-
-		_gameEngine.render(builder);
-
-		return builder.build();
+		return _gameEngine.buildRenderUnit();
 	}
 
 	void GameEngineWidget::_onGeometryChange()

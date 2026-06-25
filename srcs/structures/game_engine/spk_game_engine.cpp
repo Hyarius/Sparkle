@@ -1,6 +1,6 @@
 #include "structures/game_engine/spk_game_engine.hpp"
 
-#include <algorithm>
+#include "structures/game_engine/spk_component_store.hpp"
 
 namespace spk
 {
@@ -11,18 +11,25 @@ namespace spk
 
 	GameEngine::~GameEngine()
 	{
-		// Detach every entity while the registries are still alive.
-		clearEntities();
+		// Drop our buckets from the shared store. Entities still stamped with our UUID
+		// keep working (they just point at no live engine); they prune themselves when
+		// destroyed.
+		spk::ComponentStore::instance().clearEngine(_id);
+	}
+
+	const spk::UUID &GameEngine::id() const
+	{
+		return _id;
 	}
 
 	spk::ComponentRegistry &GameEngine::componentRegistry()
 	{
-		return _componentRegistry;
+		return _components;
 	}
 
 	const spk::ComponentRegistry &GameEngine::componentRegistry() const
 	{
-		return _componentRegistry;
+		return _components;
 	}
 
 	spk::ComponentLogicRegistry &GameEngine::logicRegistry()
@@ -35,35 +42,24 @@ namespace spk
 		return _logicRegistry;
 	}
 
-	void GameEngine::destroyEntity(spk::Entity &p_entity)
+	void GameEngine::addEntity(spk::Entity *p_entity)
 	{
-		auto iterator = std::find_if(
-			_entities.begin(),
-			_entities.end(),
-			[&p_entity](const std::unique_ptr<spk::Entity> &p_entry) {
-				return (p_entry.get() == &p_entity);
-			});
-
-		if (iterator == _entities.end())
+		if (p_entity == nullptr)
 		{
 			return;
 		}
 
-		// Detaching this entity's own components happens in ~Entity (via _registry);
-		// its children are orphaned by the hierarchy trait but remain registered.
-		_entities.erase(iterator);
-		_componentRegistry.invalidateProcessable();
+		p_entity->_setEngineId(_id);
 	}
 
-	void GameEngine::clearEntities()
+	void GameEngine::removeEntity(spk::Entity *p_entity)
 	{
-		_entities.clear();
-		_componentRegistry.clear();
-	}
+		if (p_entity == nullptr || p_entity->_engineId != _id)
+		{
+			return;
+		}
 
-	const std::vector<std::unique_ptr<spk::Entity>> &GameEngine::entities() const
-	{
-		return _entities;
+		p_entity->_setEngineId(spk::UUID::null());
 	}
 
 	void GameEngine::update(const spk::UpdateTick &p_tick)
@@ -73,31 +69,18 @@ namespace spk
 			return;
 		}
 
-		// Frame heartbeat: always recompute the processable subset so activation
-		// changes anywhere in the hierarchy are picked up.
-		_componentRegistry.refreshProcessable();
-		_logicRegistry.update(p_tick, _componentRegistry);
+		_logicRegistry.update(p_tick, _components);
 	}
 
-	void GameEngine::synchronize()
+	spk::RenderUnit GameEngine::buildRenderUnit()
 	{
-		if (isActivated() == false)
+		spk::RenderUnitBuilder builder;
+
+		if (isActivated() == true)
 		{
-			return;
+			_logicRegistry.render(builder, _components);
 		}
 
-		_componentRegistry.refreshProcessableIfDirty();
-		_logicRegistry.synchronize(_componentRegistry);
-	}
-
-	void GameEngine::render(spk::RenderUnitBuilder &p_builder)
-	{
-		if (isActivated() == false)
-		{
-			return;
-		}
-
-		_componentRegistry.refreshProcessableIfDirty();
-		_logicRegistry.render(p_builder, _componentRegistry);
+		return builder.build();
 	}
 }

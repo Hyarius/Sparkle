@@ -149,7 +149,8 @@ TEST(EntityTest, HierarchyActivationFollowsAncestors)
 TEST(EntityTest, ComponentManagementInsideEngineCoversRegistryPaths)
 {
 	spk::GameEngine engine;
-	spk::Entity &entity = engine.addEntity<spk::Entity>();
+	spk::Entity entity;
+	engine.addEntity(&entity);
 
 	HealthComponent &component = entity.addComponent<HealthComponent>(5);
 	EXPECT_EQ(entity.components().size(), 1u);

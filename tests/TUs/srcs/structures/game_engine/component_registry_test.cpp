@@ -1,6 +1,11 @@
 #include <gtest/gtest.h>
 
+#include <typeindex>
+#include <typeinfo>
+
+#include "structures/container/spk_uuid.hpp"
 #include "structures/game_engine/spk_component_registry.hpp"
+#include "structures/game_engine/spk_component_store.hpp"
 #include "structures/game_engine/spk_entity.hpp"
 
 namespace
@@ -18,88 +23,103 @@ namespace
 	};
 }
 
-TEST(ComponentRegistryTest, AddBucketsComponentsByType)
+// The store is a process-wide singleton; every test uses freshly generated engine UUIDs
+// so buckets never collide, and clears them at the end to avoid leaving dangling pointers.
+
+TEST(ComponentStoreTest, AddBucketsByTypeAndEngineAndTheViewReadsThem)
 {
 	spk::Entity entity;
 	PositionComponent &position = entity.addComponent<PositionComponent>();
 	VelocityComponent &velocity = entity.addComponent<VelocityComponent>();
+	const spk::UUID engineId = spk::UUID::generate();
 
-	spk::ComponentRegistry registry;
-	registry.add(&position);
-	registry.add(&velocity);
+	spk::ComponentStore &store = spk::ComponentStore::instance();
+	store.add(std::type_index(typeid(PositionComponent)), engineId, &position);
+	store.add(std::type_index(typeid(VelocityComponent)), engineId, &velocity);
 
-	EXPECT_EQ(registry.container<PositionComponent>().components().size(), 1u);
-	EXPECT_EQ(registry.container<VelocityComponent>().components().size(), 1u);
+	const spk::ComponentRegistry view(engineId);
+	EXPECT_EQ(view.components<PositionComponent>().size(), 1u);
+	EXPECT_EQ(view.components<VelocityComponent>().size(), 1u);
+
+	store.clearEngine(engineId);
 }
 
-TEST(ComponentRegistryTest, RemoveDropsFromCorrectBucket)
+TEST(ComponentStoreTest, ComponentsAreIsolatedByEngineUuid)
 {
 	spk::Entity entity;
 	PositionComponent &position = entity.addComponent<PositionComponent>();
+	const spk::UUID engineA = spk::UUID::generate();
+	const spk::UUID engineB = spk::UUID::generate();
 
-	spk::ComponentRegistry registry;
-	registry.add(&position);
-	registry.remove(&position);
+	spk::ComponentStore &store = spk::ComponentStore::instance();
+	store.add(std::type_index(typeid(PositionComponent)), engineA, &position);
 
-	EXPECT_TRUE(registry.container<PositionComponent>().components().empty());
+	EXPECT_EQ(spk::ComponentRegistry(engineA).components<PositionComponent>().size(), 1u);
+	EXPECT_TRUE(spk::ComponentRegistry(engineB).components<PositionComponent>().empty());
+
+	store.clearEngine(engineA);
 }
 
-TEST(ComponentRegistryTest, RefreshProcessablePopulatesProcessableSubset)
+TEST(ComponentStoreTest, RemoveDropsFromTheBucket)
 {
 	spk::Entity entity;
 	PositionComponent &position = entity.addComponent<PositionComponent>();
+	const spk::UUID engineId = spk::UUID::generate();
 
-	spk::ComponentRegistry registry;
-	registry.add(&position);
-	registry.refreshProcessable();
+	spk::ComponentStore &store = spk::ComponentStore::instance();
+	const std::type_index type = std::type_index(typeid(PositionComponent));
+	store.add(type, engineId, &position);
+	store.remove(type, engineId, &position);
 
-	EXPECT_EQ(registry.container<PositionComponent>().processableComponents().size(), 1u);
+	EXPECT_TRUE(spk::ComponentRegistry(engineId).components<PositionComponent>().empty());
 }
 
-TEST(ComponentRegistryTest, RefreshIfDirtyOnlyRecomputesAfterChange)
+TEST(ComponentStoreTest, MoveMigratesComponentBetweenEngines)
 {
 	spk::Entity entity;
 	PositionComponent &position = entity.addComponent<PositionComponent>();
+	const spk::UUID engineA = spk::UUID::generate();
+	const spk::UUID engineB = spk::UUID::generate();
 
-	spk::ComponentRegistry registry;
-	registry.add(&position);
-	registry.refreshProcessableIfDirty();
-	ASSERT_EQ(registry.container<PositionComponent>().processableComponents().size(), 1u);
+	spk::ComponentStore &store = spk::ComponentStore::instance();
+	const std::type_index type = std::type_index(typeid(PositionComponent));
+	store.add(type, engineA, &position);
+	store.move(type, engineA, engineB, &position);
 
-	// Without invalidation, a stale activation change is not yet reflected.
-	entity.deactivate();
-	registry.refreshProcessableIfDirty();
-	EXPECT_EQ(registry.container<PositionComponent>().processableComponents().size(), 1u);
+	EXPECT_TRUE(spk::ComponentRegistry(engineA).components<PositionComponent>().empty());
+	EXPECT_EQ(spk::ComponentRegistry(engineB).components<PositionComponent>().size(), 1u);
 
-	// After invalidation it is recomputed.
-	registry.invalidateProcessable();
-	registry.refreshProcessableIfDirty();
-	EXPECT_TRUE(registry.container<PositionComponent>().processableComponents().empty());
+	store.clearEngine(engineB);
 }
 
-TEST(ComponentRegistryTest, ClearEmptiesAllContainers)
+TEST(ComponentStoreTest, ClearEngineDropsEveryBucketForThatEngine)
 {
 	spk::Entity entity;
 	PositionComponent &position = entity.addComponent<PositionComponent>();
+	VelocityComponent &velocity = entity.addComponent<VelocityComponent>();
+	const spk::UUID engineId = spk::UUID::generate();
 
-	spk::ComponentRegistry registry;
-	registry.add(&position);
-	registry.clear();
+	spk::ComponentStore &store = spk::ComponentStore::instance();
+	store.add(std::type_index(typeid(PositionComponent)), engineId, &position);
+	store.add(std::type_index(typeid(VelocityComponent)), engineId, &velocity);
 
-	EXPECT_TRUE(registry.container<PositionComponent>().components().empty());
+	store.clearEngine(engineId);
+
+	EXPECT_TRUE(spk::ComponentRegistry(engineId).components<PositionComponent>().empty());
+	EXPECT_TRUE(spk::ComponentRegistry(engineId).components<VelocityComponent>().empty());
 }
 
-TEST(ComponentRegistryTest, NullAndUnknownComponentsAreIgnored)
+TEST(ComponentStoreTest, NullEngineIdAndNullComponentAreIgnored)
 {
-	spk::ComponentRegistry registry;
+	spk::ComponentStore &store = spk::ComponentStore::instance();
+	const std::type_index type = std::type_index(typeid(PositionComponent));
 
-	registry.add(nullptr);
-	registry.remove(nullptr);
+	store.add(type, spk::UUID::null(), nullptr);
+	store.remove(type, spk::UUID::null(), nullptr);
 
 	spk::Entity entity;
-	PositionComponent &component = entity.addComponent<PositionComponent>();
+	PositionComponent &position = entity.addComponent<PositionComponent>();
+	store.add(type, spk::UUID::null(), &position); // null engine id -> not stored
 
-	registry.remove(&component);
-
-	SUCCEED();
+	EXPECT_TRUE(spk::ComponentRegistry(spk::UUID::null()).components<PositionComponent>().empty());
 }

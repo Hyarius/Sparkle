@@ -1,6 +1,7 @@
 #pragma once
 
 #include <concepts>
+#include <vector>
 
 #include "structures/design_pattern/spk_activable_trait.hpp"
 #include "structures/design_pattern/spk_priorizable_trait.hpp"
@@ -23,7 +24,6 @@ namespace spk
 
 	private:
 		virtual void onUpdate(const spk::UpdateTick &p_tick, spk::ComponentRegistry &p_registry) = 0;
-		virtual void onSynchronize(spk::ComponentRegistry &p_registry) = 0;
 		virtual void onRender(
 			spk::RenderUnitBuilder &p_builder,
 			spk::ComponentRegistry &p_registry) = 0;
@@ -87,9 +87,11 @@ namespace spk
 
 			(this->*p_started)(p_event);
 
-			for (spk::Component *component : p_registry.container<TComponent>().processableComponents())
+			const std::vector<spk::Component *> &components = p_registry.components<TComponent>();
+
+			for (spk::Component *component : components)
 			{
-				if (component == nullptr || p_event.isConsumed() == true)
+				if (component == nullptr || component->isProcessable() == false || p_event.isConsumed() == true)
 				{
 					continue;
 				}
@@ -109,35 +111,17 @@ namespace spk
 
 			_onUpdateStarted(p_tick);
 
-			for (spk::Component *component : p_registry.container<TComponent>().processableComponents())
+			const std::vector<spk::Component *> &components = p_registry.components<TComponent>();
+
+			for (spk::Component *component : components)
 			{
-				if (component != nullptr)
+				if (component != nullptr && component->isProcessable() == true)
 				{
 					_parseComponentForUpdate(p_tick, *static_cast<TComponent *>(component));
 				}
 			}
 
 			_executeUpdate(p_tick);
-		}
-
-		void onSynchronize(spk::ComponentRegistry &p_registry) final
-		{
-			if (isActivated() == false)
-			{
-				return;
-			}
-
-			_onSynchronizationStarted();
-
-			for (spk::Component *component : p_registry.container<TComponent>().processableComponents())
-			{
-				if (component != nullptr)
-				{
-					_parseComponentForSynchronization(*static_cast<TComponent *>(component));
-				}
-			}
-
-			_executeSynchronization();
 		}
 
 		void onRender(
@@ -151,9 +135,11 @@ namespace spk
 
 			_onRenderStarted();
 
-			for (spk::Component *component : p_registry.container<TComponent>().processableComponents())
+			const std::vector<spk::Component *> &components = p_registry.components<TComponent>();
+
+			for (spk::Component *component : components)
 			{
-				if (component != nullptr)
+				if (component != nullptr && component->isProcessable() == true)
 				{
 					_parseComponentForRender(*static_cast<TComponent *>(component));
 				}
@@ -310,10 +296,6 @@ namespace spk
 		virtual void _onUpdateStarted(const spk::UpdateTick &p_tick) { (void)p_tick; }
 		virtual void _parseComponentForUpdate(const spk::UpdateTick &p_tick, TComponent &p_component) { (void)p_tick; (void)p_component; }
 		virtual void _executeUpdate(const spk::UpdateTick &p_tick) { (void)p_tick; }
-
-		virtual void _onSynchronizationStarted() {}
-		virtual void _parseComponentForSynchronization(TComponent &p_component) { (void)p_component; }
-		virtual void _executeSynchronization() {}
 
 		virtual void _onRenderStarted() {}
 		virtual void _parseComponentForRender(TComponent &p_component) { (void)p_component; }

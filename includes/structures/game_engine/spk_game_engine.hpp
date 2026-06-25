@@ -1,26 +1,61 @@
 #pragma once
 
 #include <concepts>
-#include <memory>
+#include <stdexcept>
 #include <utility>
-#include <vector>
 
+#include "structures/container/spk_uuid.hpp"
 #include "structures/design_pattern/spk_activable_trait.hpp"
 #include "structures/game_engine/spk_component_logic_registry.hpp"
 #include "structures/game_engine/spk_component_registry.hpp"
 #include "structures/game_engine/spk_entity.hpp"
+#include "structures/graphics/rendering/unit/spk_render_unit_builder.hpp"
 
 namespace spk
 {
+	class GameEngineWidget;
+	struct GameEngineTester;
+
+	// An engine is identified by a UUID and is a VIEW over the process-wide
+	// ComponentStore: it processes the components whose entity is registered with its
+	// UUID. The caller creates an spk::Entity and registers it:
+	//
+	//     spk::GameEngine engine;
+	//     spk::Entity     player;
+	//     player.addComponent<...>();
+	//     engine.addEntity(&player);
+	//
+	// addEntity stamps the entity's sub-tree with the engine UUID (its components move
+	// into store[type][engineId]); re-parenting between engines migrates them; destroying
+	// the engine drops its buckets. Activation is handled per-entity by the dual-state
+	// flag, so it never touches the store.
+	//
+	// The phase methods (update / synchronize / buildRenderUnit / dispatchEvent) are
+	// private: the engine is only ever driven by its owning GameEngineWidget.
 	class GameEngine : public spk::ActivableTrait
 	{
+		friend class spk::GameEngineWidget;
+		friend struct spk::GameEngineTester;
+
 	private:
-		// Order matters: the registries must outlive the entities, because ~Entity
-		// unregisters its components from _componentRegistry. Entities are therefore
-		// declared last so they are destroyed first.
-		spk::ComponentRegistry _componentRegistry;
+		spk::UUID _id = spk::UUID::generate();
+		spk::ComponentRegistry _components{_id};
 		spk::ComponentLogicRegistry _logicRegistry;
-		std::vector<std::unique_ptr<spk::Entity>> _entities;
+
+		void update(const spk::UpdateTick &p_tick);
+		[[nodiscard]] spk::RenderUnit buildRenderUnit();
+
+		// One template replaces the former 18 dispatchEvent overloads.
+		template <typename TEvent>
+		void dispatchEvent(TEvent &p_event)
+		{
+			if (isActivated() == false)
+			{
+				return;
+			}
+
+			_logicRegistry.dispatchEvent(p_event, _components);
+		}
 
 	public:
 		GameEngine();
@@ -31,6 +66,8 @@ namespace spk
 
 		GameEngine(GameEngine &&) noexcept = delete;
 		GameEngine &operator=(GameEngine &&) noexcept = delete;
+
+		[[nodiscard]] const spk::UUID &id() const;
 
 		[[nodiscard]] spk::ComponentRegistry &componentRegistry();
 		[[nodiscard]] const spk::ComponentRegistry &componentRegistry() const;
@@ -73,40 +110,12 @@ namespace spk
 			return *result;
 		}
 
-		template <typename TEntity, typename... TArguments>
-			requires std::derived_from<TEntity, spk::Entity>
-		TEntity &addEntity(TArguments &&...p_arguments)
-		{
-			auto entity = std::make_unique<TEntity>(std::forward<TArguments>(p_arguments)...);
-			TEntity &result = *entity;
-			_entities.push_back(std::move(entity));
+		// Stamp an externally-owned entity's sub-tree with this engine's UUID, wiring its
+		// components into the store. No-op if p_entity is null.
+		void addEntity(spk::Entity *p_entity);
 
-			// Incrementally register this entity's (and its sub-tree's) components.
-			result._setRegistry(&_componentRegistry);
-
-			return result;
-		}
-
-		void destroyEntity(spk::Entity &p_entity);
-		void clearEntities();
-
-		[[nodiscard]] const std::vector<std::unique_ptr<spk::Entity>> &entities() const;
-
-		void update(const spk::UpdateTick &p_tick);
-		void synchronize();
-		void render(spk::RenderUnitBuilder &p_builder);
-
-		// One template replaces the former 18 dispatchEvent overloads.
-		template <typename TEvent>
-		void dispatchEvent(TEvent &p_event)
-		{
-			if (isActivated() == false)
-			{
-				return;
-			}
-
-			_componentRegistry.refreshProcessableIfDirty();
-			_logicRegistry.dispatchEvent(p_event, _componentRegistry);
-		}
+		// Unstamp an entity previously registered here; the caller keeps ownership.
+		// No-op if p_entity is null or was not registered with this engine.
+		void removeEntity(spk::Entity *p_entity);
 	};
 }

@@ -8,6 +8,19 @@
 #include "structures/system/device/input/spk_mouse.hpp"
 #include "structures/system/event/spk_events.hpp"
 
+namespace spk
+{
+	// Test-only accessor for the engine's private, widget-driven phase methods.
+	struct GameEngineTester
+	{
+		static void update(spk::GameEngine &p_engine, const spk::UpdateTick &p_tick) { p_engine.update(p_tick); }
+		[[nodiscard]] static spk::RenderUnit buildRenderUnit(spk::GameEngine &p_engine) { return p_engine.buildRenderUnit(); }
+
+		template <typename TEvent>
+		static void dispatchEvent(spk::GameEngine &p_engine, TEvent &p_event) { p_engine.dispatchEvent(p_event); }
+	};
+}
+
 namespace
 {
 	class ValueComponent : public spk::Component
@@ -27,7 +40,6 @@ namespace
 	public:
 		int sum = 0;
 		int updateRuns = 0;
-		int synchronizeRuns = 0;
 		int renderRuns = 0;
 		int resizedCount = 0;
 
@@ -45,11 +57,6 @@ namespace
 		void _executeUpdate(const spk::UpdateTick &) override
 		{
 			++updateRuns;
-		}
-
-		void _executeSynchronization() override
-		{
-			++synchronizeRuns;
 		}
 
 		void _executeRender(spk::RenderUnitBuilder &) override
@@ -72,8 +79,6 @@ namespace
 	public:
 		int updateParses = 0;
 		int updateRuns = 0;
-		int syncParses = 0;
-		int syncRuns = 0;
 		int renderParses = 0;
 		int renderRuns = 0;
 		int eventParses = 0;
@@ -81,9 +86,6 @@ namespace
 	protected:
 		void _parseComponentForUpdate(const spk::UpdateTick &, ValueComponent &) override { ++updateParses; }
 		void _executeUpdate(const spk::UpdateTick &) override { ++updateRuns; }
-
-		void _parseComponentForSynchronization(ValueComponent &) override { ++syncParses; }
-		void _executeSynchronization() override { ++syncRuns; }
 
 		void _parseComponentForRender(ValueComponent &) override { ++renderParses; }
 		void _executeRender(spk::RenderUnitBuilder &) override { ++renderRuns; }
@@ -140,75 +142,75 @@ namespace
 
 		spk::WindowCloseRequestedRecord closeRecord;
 		spk::WindowCloseRequestedEvent closeEvent(closeRecord);
-		p_engine.dispatchEvent(closeEvent);
+		spk::GameEngineTester::dispatchEvent(p_engine, closeEvent);
 
 		spk::WindowDestroyedRecord destroyedRecord;
 		spk::WindowDestroyedEvent destroyedEvent(destroyedRecord);
-		p_engine.dispatchEvent(destroyedEvent);
+		spk::GameEngineTester::dispatchEvent(p_engine, destroyedEvent);
 
 		spk::WindowMovedRecord movedRecord;
 		spk::WindowMovedEvent movedEvent(movedRecord);
-		p_engine.dispatchEvent(movedEvent);
+		spk::GameEngineTester::dispatchEvent(p_engine, movedEvent);
 
 		spk::WindowResizedRecord resizedRecord;
 		spk::WindowResizedEvent resizedEvent(resizedRecord);
-		p_engine.dispatchEvent(resizedEvent);
+		spk::GameEngineTester::dispatchEvent(p_engine, resizedEvent);
 
 		spk::WindowFocusGainedRecord focusGainedRecord;
 		spk::WindowFocusGainedEvent focusGainedEvent(focusGainedRecord);
-		p_engine.dispatchEvent(focusGainedEvent);
+		spk::GameEngineTester::dispatchEvent(p_engine, focusGainedEvent);
 
 		spk::WindowFocusLostRecord focusLostRecord;
 		spk::WindowFocusLostEvent focusLostEvent(focusLostRecord);
-		p_engine.dispatchEvent(focusLostEvent);
+		spk::GameEngineTester::dispatchEvent(p_engine, focusLostEvent);
 
 		spk::WindowShownRecord shownRecord;
 		spk::WindowShownEvent shownEvent(shownRecord);
-		p_engine.dispatchEvent(shownEvent);
+		spk::GameEngineTester::dispatchEvent(p_engine, shownEvent);
 
 		spk::WindowHiddenRecord hiddenRecord;
 		spk::WindowHiddenEvent hiddenEvent(hiddenRecord);
-		p_engine.dispatchEvent(hiddenEvent);
+		spk::GameEngineTester::dispatchEvent(p_engine, hiddenEvent);
 
 		spk::MouseEnteredRecord enteredRecord;
 		spk::MouseEnteredWindowEvent enteredEvent(enteredRecord, mouse);
-		p_engine.dispatchEvent(enteredEvent);
+		spk::GameEngineTester::dispatchEvent(p_engine, enteredEvent);
 
 		spk::MouseLeftRecord leftRecord;
 		spk::MouseLeftWindowEvent leftEvent(leftRecord, mouse);
-		p_engine.dispatchEvent(leftEvent);
+		spk::GameEngineTester::dispatchEvent(p_engine, leftEvent);
 
 		spk::MouseMovedRecord mouseMovedRecord;
 		spk::MouseMovedEvent mouseMovedEvent(mouseMovedRecord, mouse);
-		p_engine.dispatchEvent(mouseMovedEvent);
+		spk::GameEngineTester::dispatchEvent(p_engine, mouseMovedEvent);
 
 		spk::MouseWheelScrolledRecord wheelRecord;
 		spk::MouseWheelScrolledEvent wheelEvent(wheelRecord, mouse);
-		p_engine.dispatchEvent(wheelEvent);
+		spk::GameEngineTester::dispatchEvent(p_engine, wheelEvent);
 
 		spk::MouseButtonPressedRecord pressedRecord;
 		spk::MouseButtonPressedEvent pressedEvent(pressedRecord, mouse);
-		p_engine.dispatchEvent(pressedEvent);
+		spk::GameEngineTester::dispatchEvent(p_engine, pressedEvent);
 
 		spk::MouseButtonReleasedRecord releasedRecord;
 		spk::MouseButtonReleasedEvent releasedEvent(releasedRecord, mouse);
-		p_engine.dispatchEvent(releasedEvent);
+		spk::GameEngineTester::dispatchEvent(p_engine, releasedEvent);
 
 		spk::MouseButtonDoubleClickedRecord doubleClickedRecord;
 		spk::MouseButtonDoubleClickedEvent doubleClickedEvent(doubleClickedRecord, mouse);
-		p_engine.dispatchEvent(doubleClickedEvent);
+		spk::GameEngineTester::dispatchEvent(p_engine, doubleClickedEvent);
 
 		spk::KeyPressedRecord keyPressedRecord;
 		spk::KeyPressedEvent keyPressedEvent(keyPressedRecord, keyboard);
-		p_engine.dispatchEvent(keyPressedEvent);
+		spk::GameEngineTester::dispatchEvent(p_engine, keyPressedEvent);
 
 		spk::KeyReleasedRecord keyReleasedRecord;
 		spk::KeyReleasedEvent keyReleasedEvent(keyReleasedRecord, keyboard);
-		p_engine.dispatchEvent(keyReleasedEvent);
+		spk::GameEngineTester::dispatchEvent(p_engine, keyReleasedEvent);
 
 		spk::TextInputRecord textRecord;
 		spk::TextInputEvent textEvent(textRecord, keyboard);
-		p_engine.dispatchEvent(textEvent);
+		spk::GameEngineTester::dispatchEvent(p_engine, textEvent);
 	}
 }
 
@@ -217,11 +219,12 @@ TEST(GameEngineTest, UpdateDrivesLogicOverRegisteredComponents)
 	spk::GameEngine engine;
 	SumLogic &logic = engine.add<SumLogic>();
 
-	spk::Entity &entity = engine.addEntity<spk::Entity>();
+	spk::Entity entity;
+	engine.addEntity(&entity);
 	entity.addComponent<ValueComponent>(7);
 
 	spk::UpdateTick tick{};
-	engine.update(tick);
+	spk::GameEngineTester::update(engine, tick);
 
 	EXPECT_EQ(logic.sum, 7);
 	EXPECT_EQ(logic.updateRuns, 1);
@@ -260,49 +263,54 @@ TEST(GameEngineTest, RequireLogicReturnsExistingLogicAndThrowsWhenMissing)
 	EXPECT_EQ(&engine.requireLogic<SumLogic>(), &logic);
 }
 
-TEST(GameEngineTest, DestroyEntityRemovesItsComponentsFromProcessing)
+TEST(GameEngineTest, RemoveEntityRemovesItsComponentsFromProcessing)
 {
 	spk::GameEngine engine;
 	SumLogic &logic = engine.add<SumLogic>();
 
-	spk::Entity &entity = engine.addEntity<spk::Entity>();
+	spk::Entity entity;
+	engine.addEntity(&entity);
 	entity.addComponent<ValueComponent>(5);
 
 	spk::UpdateTick tick{};
-	engine.update(tick);
+	spk::GameEngineTester::update(engine, tick);
 	ASSERT_EQ(logic.sum, 5);
 
-	engine.destroyEntity(entity);
-	engine.update(tick);
+	engine.removeEntity(&entity);
+	spk::GameEngineTester::update(engine, tick);
 
 	EXPECT_EQ(logic.sum, 0);
 }
 
-TEST(GameEngineTest, ClearEntitiesRemovesEverything)
+TEST(GameEngineTest, RemoveEntityIgnoresEntityNotRegisteredHere)
 {
 	spk::GameEngine engine;
 	SumLogic &logic = engine.add<SumLogic>();
 
-	spk::Entity &entity = engine.addEntity<spk::Entity>();
-	entity.addComponent<ValueComponent>(9);
+	spk::Entity registered;
+	engine.addEntity(&registered);
+	registered.addComponent<ValueComponent>(4);
 
-	engine.clearEntities();
+	spk::Entity stray;
+	stray.addComponent<ValueComponent>(99);
+
+	engine.removeEntity(&stray); // not registered here -> no-op, must not disturb anything
 
 	spk::UpdateTick tick{};
-	engine.update(tick);
+	spk::GameEngineTester::update(engine, tick);
 
-	EXPECT_EQ(logic.sum, 0);
-	EXPECT_TRUE(engine.entities().empty());
+	EXPECT_EQ(logic.sum, 4);
 }
 
 TEST(GameEngineTest, RenderDrivesRenderHook)
 {
 	spk::GameEngine engine;
 	SumLogic &logic = engine.add<SumLogic>();
-	engine.addEntity<spk::Entity>().addComponent<ValueComponent>(1);
+	spk::Entity entity;
+	engine.addEntity(&entity);
+	entity.addComponent<ValueComponent>(1);
 
-	spk::RenderUnitBuilder builder;
-	engine.render(builder);
+	(void)spk::GameEngineTester::buildRenderUnit(engine);
 
 	EXPECT_EQ(logic.renderRuns, 1);
 }
@@ -311,11 +319,13 @@ TEST(GameEngineTest, DispatchEventReachesLogic)
 {
 	spk::GameEngine engine;
 	SumLogic &logic = engine.add<SumLogic>();
-	engine.addEntity<spk::Entity>().addComponent<ValueComponent>(1);
+	spk::Entity entity;
+	engine.addEntity(&entity);
+	entity.addComponent<ValueComponent>(1);
 
 	spk::WindowResizedRecord record;
 	spk::WindowResizedEvent event(record);
-	engine.dispatchEvent(event);
+	spk::GameEngineTester::dispatchEvent(engine, event);
 
 	EXPECT_EQ(logic.resizedCount, 1);
 }
@@ -324,49 +334,48 @@ TEST(GameEngineTest, EntityActivationChangesInvalidateProcessableComponents)
 {
 	spk::GameEngine engine;
 	SumLogic &logic = engine.add<SumLogic>();
-	spk::Entity &entity = engine.addEntity<spk::Entity>();
+	spk::Entity entity;
+	engine.addEntity(&entity);
 	entity.addComponent<ValueComponent>(1);
 
 	spk::WindowResizedRecord record;
 
 	spk::WindowResizedEvent firstEvent(record);
-	engine.dispatchEvent(firstEvent);
+	spk::GameEngineTester::dispatchEvent(engine, firstEvent);
 	ASSERT_EQ(logic.resizedCount, 1);
 
 	entity.deactivate();
 
 	spk::WindowResizedEvent deactivatedEvent(record);
-	engine.dispatchEvent(deactivatedEvent);
+	spk::GameEngineTester::dispatchEvent(engine, deactivatedEvent);
 	EXPECT_EQ(logic.resizedCount, 1);
 
 	entity.activate();
 
 	spk::WindowResizedEvent reactivatedEvent(record);
-	engine.dispatchEvent(reactivatedEvent);
+	spk::GameEngineTester::dispatchEvent(engine, reactivatedEvent);
 	EXPECT_EQ(logic.resizedCount, 2);
 }
 
-TEST(GameEngineTest, DeactivatedEngineSkipsUpdateSynchronizeRenderAndDispatch)
+TEST(GameEngineTest, DeactivatedEngineSkipsUpdateRenderAndDispatch)
 {
 	spk::GameEngine engine;
 	SumLogic &logic = engine.add<SumLogic>();
-	engine.addEntity<spk::Entity>().addComponent<ValueComponent>(3);
+	spk::Entity entity;
+	engine.addEntity(&entity);
+	entity.addComponent<ValueComponent>(3);
 
 	engine.deactivate();
 
 	spk::UpdateTick tick{};
-	engine.update(tick);
-	engine.synchronize();
-
-	spk::RenderUnitBuilder builder;
-	engine.render(builder);
+	spk::GameEngineTester::update(engine, tick);
+	(void)spk::GameEngineTester::buildRenderUnit(engine);
 
 	spk::WindowResizedRecord record;
 	spk::WindowResizedEvent event(record);
-	engine.dispatchEvent(event);
+	spk::GameEngineTester::dispatchEvent(engine, event);
 
 	EXPECT_EQ(logic.updateRuns, 0);
-	EXPECT_EQ(logic.synchronizeRuns, 0);
 	EXPECT_EQ(logic.renderRuns, 0);
 	EXPECT_EQ(logic.resizedCount, 0);
 }
@@ -376,14 +385,15 @@ TEST(GameEngineTest, ComponentAddedAfterEntityIsPickedUpOnNextUpdate)
 	spk::GameEngine engine;
 	SumLogic &logic = engine.add<SumLogic>();
 
-	spk::Entity &entity = engine.addEntity<spk::Entity>();
+	spk::Entity entity;
+	engine.addEntity(&entity);
 
 	spk::UpdateTick tick{};
-	engine.update(tick);
+	spk::GameEngineTester::update(engine, tick);
 	ASSERT_EQ(logic.sum, 0);
 
 	entity.addComponent<ValueComponent>(4);
-	engine.update(tick);
+	spk::GameEngineTester::update(engine, tick);
 
 	EXPECT_EQ(logic.sum, 4);
 }
@@ -393,21 +403,18 @@ TEST(GameEngineTest, EveryPhaseAndEventTypeDrivesLogicHooks)
 	spk::GameEngine engine;
 	engine.add<PassiveValueLogic>();
 	TrackingValueLogic &tracker = engine.add<TrackingValueLogic>();
-	engine.addEntity<spk::Entity>().addComponent<ValueComponent>(1);
+	spk::Entity entity;
+	engine.addEntity(&entity);
+	entity.addComponent<ValueComponent>(1);
 
 	spk::UpdateTick tick{};
-	engine.update(tick);
-	engine.synchronize();
-
-	spk::RenderUnitBuilder builder;
-	engine.render(builder);
+	spk::GameEngineTester::update(engine, tick);
+	(void)spk::GameEngineTester::buildRenderUnit(engine);
 
 	dispatchEveryEventType(engine);
 
 	EXPECT_EQ(tracker.updateRuns, 1);
 	EXPECT_EQ(tracker.updateParses, 1);
-	EXPECT_EQ(tracker.syncRuns, 1);
-	EXPECT_EQ(tracker.syncParses, 1);
 	EXPECT_EQ(tracker.renderRuns, 1);
 	EXPECT_EQ(tracker.renderParses, 1);
 	EXPECT_EQ(tracker.eventParses, 18);
@@ -420,13 +427,14 @@ TEST(GameEngineTest, ConsumingLogicStopsPerComponentLoopAndLaterLogics)
 	TrackingValueLogic &tracker = engine.add<TrackingValueLogic>();
 	consumer.setPriority(10);
 
-	spk::Entity &entity = engine.addEntity<spk::Entity>();
+	spk::Entity entity;
+	engine.addEntity(&entity);
 	entity.addComponent<ValueComponent>(1);
 	entity.addComponent<ValueComponent>(2);
 
 	spk::WindowResizedRecord record;
 	spk::WindowResizedEvent event(record);
-	engine.dispatchEvent(event);
+	spk::GameEngineTester::dispatchEvent(engine, event);
 
 	EXPECT_EQ(consumer.parses, 1);
 	EXPECT_EQ(tracker.eventParses, 0);
@@ -436,45 +444,41 @@ TEST(GameEngineTest, DeactivatedLogicIsSkippedInEveryPhase)
 {
 	spk::GameEngine engine;
 	TrackingValueLogic &tracker = engine.add<TrackingValueLogic>();
-	engine.addEntity<spk::Entity>().addComponent<ValueComponent>(1);
+	spk::Entity entity;
+	engine.addEntity(&entity);
+	entity.addComponent<ValueComponent>(1);
 
 	tracker.deactivate();
 
 	spk::UpdateTick tick{};
-	engine.update(tick);
-	engine.synchronize();
-
-	spk::RenderUnitBuilder builder;
-	engine.render(builder);
+	spk::GameEngineTester::update(engine, tick);
+	(void)spk::GameEngineTester::buildRenderUnit(engine);
 
 	spk::WindowShownRecord record;
 	spk::WindowShownEvent event(record);
-	engine.dispatchEvent(event);
+	spk::GameEngineTester::dispatchEvent(engine, event);
 
 	EXPECT_EQ(tracker.updateRuns, 0);
-	EXPECT_EQ(tracker.syncRuns, 0);
 	EXPECT_EQ(tracker.renderRuns, 0);
 	EXPECT_EQ(tracker.eventParses, 0);
 }
 
-TEST(GameEngineTest, DeactivatedEngineSkipsSynchronizeRenderAndDispatch)
+TEST(GameEngineTest, DeactivatedEngineSkipsRenderAndDispatch)
 {
 	spk::GameEngine engine;
 	TrackingValueLogic &tracker = engine.add<TrackingValueLogic>();
-	engine.addEntity<spk::Entity>().addComponent<ValueComponent>(1);
+	spk::Entity entity;
+	engine.addEntity(&entity);
+	entity.addComponent<ValueComponent>(1);
 
 	engine.deactivate();
 
-	engine.synchronize();
-
-	spk::RenderUnitBuilder builder;
-	engine.render(builder);
+	(void)spk::GameEngineTester::buildRenderUnit(engine);
 
 	spk::WindowShownRecord record;
 	spk::WindowShownEvent event(record);
-	engine.dispatchEvent(event);
+	spk::GameEngineTester::dispatchEvent(engine, event);
 
-	EXPECT_EQ(tracker.syncRuns, 0);
 	EXPECT_EQ(tracker.renderRuns, 0);
 	EXPECT_EQ(tracker.eventParses, 0);
 }
@@ -491,25 +495,117 @@ TEST(GameEngineTest, LogicLookupHelpersCoverFoundAndMissingPaths)
 	EXPECT_EQ(&engine.add<TrackingValueLogic>(), &tracker);
 }
 
-TEST(GameEngineTest, DestroyEntityIgnoresEntityOwnedElsewhere)
-{
-	spk::GameEngine engine;
-	spk::Entity stray;
-
-	engine.destroyEntity(stray);
-
-	EXPECT_TRUE(engine.entities().empty());
-}
-
 TEST(GameEngineTest, AddingEntityWithChildrenCascadesRegistration)
 {
 	spk::GameEngine engine;
 	TrackingValueLogic &tracker = engine.add<TrackingValueLogic>();
 
-	engine.addEntity<ChildOwningEntity>();
+	ChildOwningEntity root;
+	engine.addEntity(&root);
 
 	spk::UpdateTick tick{};
-	engine.update(tick);
+	spk::GameEngineTester::update(engine, tick);
 
 	EXPECT_EQ(tracker.updateParses, 1);
+}
+
+TEST(GameEngineTest, EntityOutlivingEngineIsSafelyDetached)
+{
+	// Declared before the engine, so the entity is destroyed LAST: the engine is gone
+	// by the time ~Entity runs. The entity holds only the engine UUID (by value) and the
+	// store is process-wide, so nothing dangles when the engine dies first.
+	spk::Entity entity;
+	entity.addComponent<ValueComponent>(1);
+
+	{
+		spk::GameEngine engine;
+		engine.add<SumLogic>();
+		engine.addEntity(&entity);
+
+		spk::UpdateTick tick{};
+		spk::GameEngineTester::update(engine, tick);
+	}
+
+	// Still a usable, fully-owned entity; nothing dereferences the dead engine.
+	EXPECT_NO_THROW(entity.addComponent<ValueComponent>(2));
+	EXPECT_EQ(entity.components().size(), 2u);
+}
+
+TEST(GameEngineTest, EnginesProcessOnlyTheirOwnEntities)
+{
+	spk::GameEngine engineA;
+	spk::GameEngine engineB;
+	SumLogic &logicA = engineA.add<SumLogic>();
+	SumLogic &logicB = engineB.add<SumLogic>();
+
+	spk::Entity entityA;
+	engineA.addEntity(&entityA);
+	entityA.addComponent<ValueComponent>(10);
+
+	spk::Entity entityB;
+	engineB.addEntity(&entityB);
+	entityB.addComponent<ValueComponent>(20);
+
+	spk::UpdateTick tick{};
+	spk::GameEngineTester::update(engineA, tick);
+	spk::GameEngineTester::update(engineB, tick);
+
+	EXPECT_EQ(logicA.sum, 10);
+	EXPECT_EQ(logicB.sum, 20);
+}
+
+TEST(GameEngineTest, ReparentingMigratesComponentsBetweenEngines)
+{
+	spk::GameEngine engineA;
+	spk::GameEngine engineB;
+	SumLogic &logicA = engineA.add<SumLogic>();
+	SumLogic &logicB = engineB.add<SumLogic>();
+
+	spk::Entity rootB;
+	engineB.addEntity(&rootB);
+
+	spk::Entity child;
+	engineA.addEntity(&child);
+	child.addComponent<ValueComponent>(5);
+
+	spk::UpdateTick tick{};
+	spk::GameEngineTester::update(engineA, tick);
+	spk::GameEngineTester::update(engineB, tick);
+	ASSERT_EQ(logicA.sum, 5);
+	ASSERT_EQ(logicB.sum, 0);
+
+	// Re-parent under an entity that belongs to engine B: the child's component migrates
+	// from engine A's bucket to engine B's (the 2B live move).
+	child.setParent(&rootB);
+
+	spk::GameEngineTester::update(engineA, tick);
+	spk::GameEngineTester::update(engineB, tick);
+
+	EXPECT_EQ(logicA.sum, 0);
+	EXPECT_EQ(logicB.sum, 5);
+}
+
+TEST(GameEngineTest, DeactivatingParentStopsChildComponentsFromBeingProcessed)
+{
+	spk::GameEngine engine;
+	SumLogic &logic = engine.add<SumLogic>();
+
+	spk::Entity parent;
+	engine.addEntity(&parent);
+	spk::Entity child(&parent);
+	child.addComponent<ValueComponent>(8);
+
+	spk::UpdateTick tick{};
+	spk::GameEngineTester::update(engine, tick);
+	ASSERT_EQ(logic.sum, 8);
+
+	// Deactivating the parent cascades global-deactivation to the child sub-tree.
+	parent.deactivate();
+	spk::GameEngineTester::update(engine, tick);
+	EXPECT_EQ(logic.sum, 0);
+
+	// Reactivating restores it (the child's own local flag was never touched).
+	parent.activate();
+	spk::GameEngineTester::update(engine, tick);
+	EXPECT_EQ(logic.sum, 8);
 }

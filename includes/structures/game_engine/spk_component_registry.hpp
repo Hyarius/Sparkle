@@ -1,101 +1,45 @@
 #pragma once
 
-#include <typeindex>
-#include <typeinfo>
-#include <unordered_map>
+#include <vector>
 
-#include "structures/game_engine/spk_component_container.hpp"
+#include "structures/container/spk_uuid.hpp"
+#include "structures/game_engine/spk_component_store.hpp"
 
 namespace spk
 {
-	// Index of every component currently owned by the engine, bucketed by concrete type.
-	//
-	// Registration is INCREMENTAL: components are added/removed as entities attach/detach
-	// (no per-frame rebuild). Buckets are keyed by the component's runtime type
-	// (typeid(*component)). The "processable" subset is recomputed only when marked dirty.
+	class Component;
+
+	// A per-engine VIEW into the shared ComponentStore. It carries the engine's UUID and
+	// hands back that engine's slice of components for a given type. It owns nothing:
+	// storage lives in ComponentStore, membership is decided by each entity's engine UUID.
 	class ComponentRegistry
 	{
 	private:
-		std::unordered_map<std::type_index, spk::ComponentContainer> _containers;
-		bool _processableDirty = true;
-
-		[[nodiscard]] static std::type_index _key(const spk::Component *p_component)
-		{
-			return std::type_index(typeid(*p_component));
-		}
+		spk::UUID _engineId;
 
 	public:
 		ComponentRegistry() = default;
-		~ComponentRegistry() = default;
-
-		ComponentRegistry(const ComponentRegistry &) = delete;
-		ComponentRegistry &operator=(const ComponentRegistry &) = delete;
-
-		ComponentRegistry(ComponentRegistry &&) noexcept = default;
-		ComponentRegistry &operator=(ComponentRegistry &&) noexcept = default;
-
-		void add(spk::Component *p_component)
+		explicit ComponentRegistry(const spk::UUID &p_engineId) :
+			_engineId(p_engineId)
 		{
-			if (p_component == nullptr)
-			{
-				return;
-			}
-
-			_containers[_key(p_component)].add(p_component);
-			_processableDirty = true;
 		}
 
-		void remove(spk::Component *p_component)
+		[[nodiscard]] const spk::UUID &engineId() const
 		{
-			if (p_component == nullptr)
-			{
-				return;
-			}
-
-			auto iterator = _containers.find(_key(p_component));
-
-			if (iterator != _containers.end())
-			{
-				iterator->second.remove(p_component);
-				_processableDirty = true;
-			}
+			return _engineId;
 		}
 
-		void clear()
+		void setEngineId(const spk::UUID &p_engineId)
 		{
-			_containers.clear();
-			_processableDirty = true;
+			_engineId = p_engineId;
 		}
 
-		void invalidateProcessable()
-		{
-			_processableDirty = true;
-		}
-
-		void refreshProcessable()
-		{
-			for (auto &[typeIndex, container] : _containers)
-			{
-				(void)typeIndex;
-				container.refreshProcessable();
-			}
-
-			_processableDirty = false;
-		}
-
-		void refreshProcessableIfDirty()
-		{
-			if (_processableDirty == true)
-			{
-				refreshProcessable();
-			}
-		}
-
-		// Returns (creating if needed) the container for component type TComponent.
+		// This engine's components of type TComponent (all of them, active or not;
+		// callers skip inactive via Component::isProcessable()).
 		template <typename TComponent>
-		[[nodiscard]] spk::ComponentContainer &container()
+		[[nodiscard]] const std::vector<spk::Component *> &components() const
 		{
-			return _containers[std::type_index(typeid(TComponent))];
+			return spk::ComponentStore::instance().components<TComponent>(_engineId);
 		}
 	};
 }

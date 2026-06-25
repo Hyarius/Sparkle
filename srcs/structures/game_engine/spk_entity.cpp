@@ -1,6 +1,16 @@
 #include "structures/game_engine/spk_entity.hpp"
 
 #include <algorithm>
+#include <typeindex>
+#include <typeinfo>
+
+namespace
+{
+	std::type_index _componentType(const spk::Component *p_component)
+	{
+		return std::type_index(typeid(*p_component));
+	}
+}
 
 namespace spk
 {
@@ -8,18 +18,26 @@ namespace spk
 		spk::InherenceTrait<spk::Entity>(p_parent),
 		_uuid(spk::UUID::generate())
 	{
+		// Inherit engine membership from the parent (Entity::_onParentChanged does not
+		// fire during base construction, so seed it here).
+		_engineId = (parent() != nullptr ? parent()->_engineId : spk::UUID::null());
+
+		_activationContract = subscribeToActivation([this]() { _refreshGlobalActivated(); });
+		_deactivationContract = subscribeToDeactivation([this]() { _refreshGlobalActivated(); });
+
 		activate();
-		_activationContract = subscribeToActivation([this]() { _invalidateRegistryProcessable(); });
-		_deactivationContract = subscribeToDeactivation([this]() { _invalidateRegistryProcessable(); });
 	}
 
 	Entity::Entity(const spk::UUID &p_uuid, spk::Entity *p_parent) :
 		spk::InherenceTrait<spk::Entity>(p_parent),
 		_uuid(p_uuid)
 	{
+		_engineId = (parent() != nullptr ? parent()->_engineId : spk::UUID::null());
+
+		_activationContract = subscribeToActivation([this]() { _refreshGlobalActivated(); });
+		_deactivationContract = subscribeToDeactivation([this]() { _refreshGlobalActivated(); });
+
 		activate();
-		_activationContract = subscribeToActivation([this]() { _invalidateRegistryProcessable(); });
-		_deactivationContract = subscribeToDeactivation([this]() { _invalidateRegistryProcessable(); });
 	}
 
 	Entity::~Entity()
@@ -27,28 +45,61 @@ namespace spk
 		clearComponents();
 	}
 
-	void Entity::_setRegistry(spk::ComponentRegistry *p_registry)
+	void Entity::_refreshGlobalActivated()
 	{
-		if (_registry == p_registry)
+		const bool parentGlobal = (parent() != nullptr ? parent()->_globalActivated : true);
+		const bool newGlobal = (isActivated() == true && parentGlobal == true);
+
+		if (newGlobal == _globalActivated)
 		{
 			return;
 		}
 
-		if (_registry != nullptr)
+		_globalActivated = newGlobal;
+
+		for (spk::Entity *child : children())
 		{
-			for (const std::unique_ptr<spk::Component> &component : _components)
+			if (child != nullptr)
 			{
-				_registry->remove(component.get());
+				child->_refreshGlobalActivated();
 			}
 		}
+	}
 
-		_registry = p_registry;
-
-		if (_registry != nullptr)
+	void Entity::_setEngineId(const spk::UUID &p_engineId)
+	{
+		if (_engineId == p_engineId)
 		{
-			for (const std::unique_ptr<spk::Component> &component : _components)
+			return;
+		}
+
+		const spk::UUID oldId = _engineId;
+		_engineId = p_engineId;
+
+		spk::ComponentStore &store = spk::ComponentStore::instance();
+
+		for (const std::unique_ptr<spk::Component> &component : _components)
+		{
+			spk::Component *componentPtr = component.get();
+
+			if (componentPtr == nullptr)
 			{
-				_registry->add(component.get());
+				continue;
+			}
+
+			const std::type_index type = _componentType(componentPtr);
+
+			if (oldId.isNull() == false && p_engineId.isNull() == false)
+			{
+				store.move(type, oldId, p_engineId, componentPtr);
+			}
+			else if (oldId.isNull() == false)
+			{
+				store.remove(type, oldId, componentPtr);
+			}
+			else if (p_engineId.isNull() == false)
+			{
+				store.add(type, p_engineId, componentPtr);
 			}
 		}
 
@@ -56,17 +107,21 @@ namespace spk
 		{
 			if (child != nullptr)
 			{
-				child->_setRegistry(p_registry);
+				child->_setEngineId(p_engineId);
 			}
 		}
 	}
 
-	void Entity::_invalidateRegistryProcessable()
+	void Entity::_onParentChanged(spk::Entity *p_oldParent, spk::Entity *p_newParent)
 	{
-		if (_registry != nullptr)
-		{
-			_registry->invalidateProcessable();
-		}
+		(void)p_oldParent;
+
+		// Engine membership follows the (new) parent; detaching to no parent leaves the
+		// engine. Re-parenting between engines migrates the sub-tree's components.
+		_setEngineId(p_newParent != nullptr ? p_newParent->_engineId : spk::UUID::null());
+
+		// Effective activation depends on the parent, so recompute the sub-tree.
+		_refreshGlobalActivated();
 	}
 
 	const spk::UUID &Entity::uuid() const
@@ -76,19 +131,7 @@ namespace spk
 
 	bool Entity::isHierarchyActivated() const
 	{
-		const spk::Entity *current = this;
-
-		while (current != nullptr)
-		{
-			if (current->isActivated() == false)
-			{
-				return false;
-			}
-
-			current = current->parent();
-		}
-
-		return true;
+		return _globalActivated;
 	}
 
 	const std::vector<std::unique_ptr<spk::Component>> &Entity::components() const
@@ -110,9 +153,15 @@ namespace spk
 			return;
 		}
 
-		if (_registry != nullptr)
+		if (_engineId.isNull() == false)
 		{
-			_registry->remove(iterator->get());
+			spk::Component *componentPtr = iterator->get();
+
+			spk::ComponentStore::instance().remove(
+				_componentType(componentPtr),
+				_engineId,
+				componentPtr
+			);
 		}
 
 		(*iterator)->_detach();
@@ -121,11 +170,16 @@ namespace spk
 
 	void Entity::clearComponents()
 	{
+		spk::ComponentStore &store = spk::ComponentStore::instance();
+		const bool registered = (_engineId.isNull() == false);
+
 		for (const std::unique_ptr<spk::Component> &component : _components)
 		{
-			if (_registry != nullptr)
+			if (registered == true)
 			{
-				_registry->remove(component.get());
+				spk::Component *componentPtr = component.get();
+
+				store.remove(_componentType(componentPtr), _engineId, componentPtr);
 			}
 
 			component->_detach();

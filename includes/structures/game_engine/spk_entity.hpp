@@ -3,6 +3,8 @@
 #include <concepts>
 #include <memory>
 #include <stdexcept>
+#include <typeindex>
+#include <typeinfo>
 #include <utility>
 #include <vector>
 
@@ -10,7 +12,7 @@
 #include "structures/design_pattern/spk_activable_trait.hpp"
 #include "structures/design_pattern/spk_inherence_trait.hpp"
 #include "structures/game_engine/spk_component.hpp"
-#include "structures/game_engine/spk_component_registry.hpp"
+#include "structures/game_engine/spk_component_store.hpp"
 
 namespace spk
 {
@@ -23,15 +25,32 @@ namespace spk
 	private:
 		spk::UUID _uuid;
 		std::vector<std::unique_ptr<spk::Component>> _components;
-		spk::ComponentRegistry *_registry = nullptr;
+
+		// Engine membership by value: the UUID of the engine this entity (and, by
+		// propagation, its sub-tree) is registered with. Null = registered with none.
+		// No pointer to the engine, so nothing can dangle.
+		spk::UUID _engineId;
+
+		// Dual activation state. ActivableTrait::isActivated() is the LOCAL switch the
+		// user toggles; _globalActivated is the effective state = local AND parent's
+		// global. It is maintained incrementally on (de)activation and re-parenting so
+		// that Component::isProcessable() is an O(1) read instead of an ancestor walk.
+		bool _globalActivated = false;
 
 		spk::ActivableTrait::Contract _activationContract;
 		spk::ActivableTrait::Contract _deactivationContract;
 
-		// Set when the entity enters/leaves an engine; registers/unregisters every
-		// owned component and cascades to the sub-tree.
-		void _setRegistry(spk::ComponentRegistry *p_registry);
-		void _invalidateRegistryProcessable();
+		// Recompute _globalActivated from local state and the parent, cascading to the
+		// sub-tree only where the flag actually changes (so an individually-deactivated
+		// child stays off when an ancestor is re-activated).
+		void _refreshGlobalActivated();
+
+		// Re-key every owned component (and the sub-tree's) from the current engine UUID
+		// to p_engineId in the shared store. Used by registration and re-parent migration.
+		void _setEngineId(const spk::UUID &p_engineId);
+
+	protected:
+		void _onParentChanged(spk::Entity *p_oldParent, spk::Entity *p_newParent) override;
 
 	public:
 		explicit Entity(spk::Entity *p_parent = nullptr);
@@ -60,9 +79,9 @@ namespace spk
 			spk::Component *raw = component.get();
 			_components.push_back(std::move(component));
 
-			if (_registry != nullptr)
+			if (_engineId.isNull() == false)
 			{
-				_registry->add(raw);
+				spk::ComponentStore::instance().add(std::type_index(typeid(*raw)), _engineId, raw);
 			}
 
 			return result;
