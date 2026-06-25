@@ -32,3 +32,16 @@ TEST(OpenGLShaderStorageBufferObjectTest, CanClearBindingPoint)
 	EXPECT_FALSE(storageBuffer.bindingPoint().has_value());
 }
 
+TEST(OpenGLShaderStorageBufferObjectTest, ActivateWithoutBindingPointSkipsBaseBinding)
+{
+	sparkle_test::OpenGLTestContext context;
+	(void)context;
+
+	// No binding point configured: activate() must upload the buffer but skip
+	// glBindBufferBase (the has_value() == false branch).
+	spk::ShaderStorageBufferObject storageBuffer(spk::BufferObject::Usage::DynamicDraw, 16);
+	EXPECT_FALSE(storageBuffer.bindingPoint().has_value());
+	EXPECT_NO_THROW(storageBuffer.activate(context.renderContext()));
+	EXPECT_NE(storageBuffer.gpu(context.renderContext()).id(), 0u);
+}
+

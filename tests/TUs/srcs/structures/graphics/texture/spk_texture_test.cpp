@@ -2,6 +2,8 @@
 
 #include <algorithm>
 #include <filesystem>
+#include <stdexcept>
+#include <utility>
 
 #include "structures/graphics/spk_texture.hpp"
 
@@ -100,6 +102,39 @@ TEST(TextureTest, MoveConstructionTransfersOwnership)
 	EXPECT_EQ(src.id(), spk::Texture::InvalidID);
 }
 
+TEST(TextureTest, MovedFromTextureReportsDefaultReadableState)
+{
+	spk::Texture src;
+	src.setPixels(makePixels(2, 2, 4), {2, 2}, spk::Texture::Format::RGBA);
+
+	spk::Texture dst(std::move(src));
+	(void)dst;
+
+	EXPECT_EQ(src.version(), 0u);
+	EXPECT_TRUE(src.pixels().empty());
+	EXPECT_EQ(src.size(), (spk::Vector2UInt{0, 0}));
+	EXPECT_EQ(src.format(), spk::Texture::Format::Error);
+	EXPECT_EQ(src.clone().size(), (spk::Vector2UInt{0, 0}));
+}
+
+TEST(TextureTest, SetPropertiesOnMovedFromTextureRecreatesResource)
+{
+	spk::Texture src;
+	spk::Texture dst(std::move(src));
+	(void)dst;
+
+	src.setProperties(
+		spk::Texture::Filtering::Linear,
+		spk::Texture::Wrap::Repeat,
+		spk::Texture::Mipmap::Disable);
+
+	EXPECT_NE(src.id(), spk::Texture::InvalidID);
+	EXPECT_EQ(src.version(), 1u);
+	EXPECT_EQ(src.filtering(), spk::Texture::Filtering::Linear);
+	EXPECT_EQ(src.wrap(), spk::Texture::Wrap::Repeat);
+	EXPECT_EQ(src.mipmap(), spk::Texture::Mipmap::Disable);
+}
+
 TEST(TextureTest, MoveAssignmentTransfersOwnership)
 {
 	spk::Texture src;
@@ -113,6 +148,25 @@ TEST(TextureTest, MoveAssignmentTransfersOwnership)
 	EXPECT_EQ(dst.id(), srcId);
 	EXPECT_EQ(dst.size(), (spk::Vector2UInt{1, 1}));
 	EXPECT_EQ(src.id(), spk::Texture::InvalidID);
+}
+
+TEST(TextureTest, SelfAssignmentsLeaveTextureIntact)
+{
+	spk::Texture tex;
+	const auto pixels = makePixels(1, 1, 4);
+	tex.setPixels(pixels, {1, 1}, spk::Texture::Format::RGBA);
+	const spk::Texture::ID originalId = tex.id();
+	spk::Texture &sameTexture = tex;
+
+	tex = sameTexture;
+
+	EXPECT_EQ(tex.id(), originalId);
+	EXPECT_EQ(tex.pixels(), pixels);
+
+	tex = std::move(sameTexture);
+
+	EXPECT_EQ(tex.id(), originalId);
+	EXPECT_EQ(tex.pixels(), pixels);
 }
 
 TEST(TextureTest, CopyConstructionSharesResource)
@@ -190,6 +244,18 @@ TEST(TextureTest, ClonePreservesMetadataWithNewIdentity)
 	EXPECT_EQ(dst.filtering(), src.filtering());
 	EXPECT_EQ(dst.wrap(), src.wrap());
 	EXPECT_EQ(dst.mipmap(), src.mipmap());
+}
+
+TEST(TextureTest, CloneOfDefaultTextureKeepsEmptyResourceWithNewIdentity)
+{
+	spk::Texture src;
+
+	spk::Texture dst = src.clone();
+
+	EXPECT_NE(dst.id(), src.id());
+	EXPECT_EQ(dst.version(), 0u);
+	EXPECT_TRUE(dst.pixels().empty());
+	EXPECT_EQ(dst.size(), (spk::Vector2UInt{0, 0}));
 }
 
 TEST(TextureTest, CopyOfEmptyTextureSharesEmptyResource)
@@ -329,6 +395,17 @@ TEST(TextureTest, SaveAsPngThrowsForUnsupportedFormat)
 	EXPECT_THROW(tex.saveAsPng("unsupported-texture.png"), std::runtime_error);
 }
 
+TEST(TextureTest, SaveAsPngThrowsWhenWidthOrHeightIsZero)
+{
+	spk::Texture zeroWidth;
+	zeroWidth.setPixels(std::vector<uint8_t>{255, 0, 0, 255}, {0, 1}, spk::Texture::Format::RGBA);
+	EXPECT_THROW(zeroWidth.saveAsPng("zero-width-texture.png"), std::runtime_error);
+
+	spk::Texture zeroHeight;
+	zeroHeight.setPixels(std::vector<uint8_t>{255, 0, 0, 255}, {1, 0}, spk::Texture::Format::RGBA);
+	EXPECT_THROW(zeroHeight.saveAsPng("zero-height-texture.png"), std::runtime_error);
+}
+
 TEST(TextureTest, SaveAsPngWritesSupportedTexture)
 {
 	spk::Texture tex;
@@ -341,4 +418,26 @@ TEST(TextureTest, SaveAsPngWritesSupportedTexture)
 	EXPECT_TRUE(std::filesystem::exists(outputPath));
 
 	std::filesystem::remove(outputPath);
+}
+
+TEST(TextureTest, SaveAsPngWritesBgrTextureWithoutParentPath)
+{
+	spk::Texture tex;
+	tex.setPixels(std::vector<uint8_t>{255, 0, 0}, {1, 1}, spk::Texture::Format::BGR);
+
+	const std::filesystem::path outputPath = "sparkle-texture-bgr-test.png";
+	std::filesystem::remove(outputPath);
+
+	ASSERT_NO_THROW(tex.saveAsPng(outputPath));
+	EXPECT_TRUE(std::filesystem::exists(outputPath));
+
+	std::filesystem::remove(outputPath);
+}
+
+TEST(TextureTest, SaveAsPngThrowsWhenTargetPathIsDirectory)
+{
+	spk::Texture tex;
+	tex.setPixels(std::vector<uint8_t>{255, 0, 0, 255}, {1, 1}, spk::Texture::Format::RGBA);
+
+	EXPECT_THROW(tex.saveAsPng(std::filesystem::temp_directory_path()), std::runtime_error);
 }

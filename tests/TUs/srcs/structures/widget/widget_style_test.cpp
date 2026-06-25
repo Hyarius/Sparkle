@@ -22,6 +22,17 @@ namespace
 				spk::Vector2UInt{3, 3}));
 	}
 
+	[[nodiscard]] std::shared_ptr<spk::SpriteSheet> loadSpriteSheet(
+		const std::string& p_resourceName,
+		const spk::Vector2UInt& p_spriteCount)
+	{
+		const auto& bytes = SPARKLE_GET_RESOURCE(p_resourceName);
+		return std::make_shared<spk::SpriteSheet>(
+			spk::SpriteSheet::fromRawData(
+				std::vector<std::uint8_t>(bytes.begin(), bytes.end()),
+				p_spriteCount));
+	}
+
 	[[nodiscard]] bool sameColor(const spk::Color& p_left, const spk::Color& p_right)
 	{
 		return p_left.r == p_right.r &&
@@ -44,21 +55,25 @@ TEST(WidgetStyleTest, SettersUpdateValuesAndNotifySubscribers)
 		});
 
 	const auto spriteSheet = loadNineSlice("resources/textures/default_nine_slice_darker.png");
+	const auto iconSpriteSheet = loadSpriteSheet("resources/textures/default_iconset.png", {10, 10});
 	const auto font = std::make_shared<spk::Font>(
 		spk::Font::fromRawData(SPARKLE_GET_RESOURCE("resources/fonts/arial.ttf")));
 
 	style.setNineSliceSpriteSheet(spriteSheet);
-	style.setNineSliceCornerSize({5, 6});
+	style.setCornerSize({5, 6});
+	style.setIconSpriteSheet(iconSpriteSheet);
 	style.setFont(font);
 	style.setTextSize(spk::Font::Size(21, 2));
 	style.setGlyphColor(spk::Color(0.2f, 0.3f, 0.4f, 1.0f));
 	style.setOutlineColor(spk::Color(0.7f, 0.6f, 0.5f, 1.0f));
 	style.setTextPadding({3, 4});
 
-	EXPECT_EQ(notificationCount, 7);
+	EXPECT_EQ(notificationCount, 8);
 	EXPECT_EQ(lastStyle, &style);
 	EXPECT_EQ(style.nineSliceSpriteSheet(), spriteSheet);
+	EXPECT_EQ(style.cornerSize(), spk::Vector2Int(5, 6));
 	EXPECT_EQ(style.nineSliceCornerSize(), spk::Vector2Int(5, 6));
+	EXPECT_EQ(style.iconSpriteSheet(), iconSpriteSheet);
 	EXPECT_EQ(style.font(), font);
 	EXPECT_EQ(style.textSize(), spk::Font::Size(21, 2));
 	EXPECT_TRUE(sameColor(style.glyphColor(), spk::Color(0.2f, 0.3f, 0.4f, 1.0f)));
@@ -70,6 +85,7 @@ TEST(WidgetStyleTest, DefaultStyleUsesFixedCornerSizeAndDerivedTextPadding)
 {
 	const spk::WidgetStyle style = spk::WidgetStyle::makeDefault();
 
+	EXPECT_EQ(style.cornerSize(), spk::Vector2Int(8, 8));
 	EXPECT_EQ(style.nineSliceCornerSize(), spk::Vector2Int(8, 8));
 	EXPECT_EQ(style.textPadding(), spk::Vector2Int(16, 16));
 }
@@ -97,6 +113,19 @@ TEST(WidgetStyleTest, SettersSkipNotificationWhenValueIsUnchanged)
 	EXPECT_EQ(notificationCount, 0);
 }
 
+TEST(WidgetStyleTest, ColorSettersCompareGreenAndBlueChannels)
+{
+	spk::WidgetStyle style = spk::WidgetStyle::makeDefault();
+	int notificationCount = 0;
+	auto contract = style.subscribeToEdition([&](const spk::WidgetStyle&) { ++notificationCount; });
+
+	style.setGlyphColor(spk::Color(1.0f, 0.5f, 1.0f, 1.0f));
+	style.setGlyphColor(spk::Color(1.0f, 0.5f, 0.25f, 1.0f));
+
+	EXPECT_EQ(notificationCount, 2);
+	EXPECT_TRUE(sameColor(style.glyphColor(), spk::Color(1.0f, 0.5f, 0.25f, 1.0f)));
+}
+
 TEST(WidgetStyleTest, SettingNineSliceSpriteSheetPreservesConfiguredCornerSize)
 {
 	spk::WidgetStyle style = spk::WidgetStyle::makeDefault();
@@ -110,11 +139,31 @@ TEST(WidgetStyleTest, SettingNineSliceSpriteSheetPreservesConfiguredCornerSize)
 TEST(WidgetStyleTest, RejectsInvalidStyleValues)
 {
 	spk::WidgetStyle style = spk::WidgetStyle::makeDefault();
+	const auto invalidNineSlice = loadSpriteSheet("resources/textures/default_nine_slice.png", {2, 2});
 
 	EXPECT_THROW(style.setNineSliceSpriteSheet(nullptr), std::invalid_argument);
+	EXPECT_THROW(style.setNineSliceSpriteSheet(invalidNineSlice), std::invalid_argument);
+	EXPECT_THROW(style.setIconSpriteSheet(nullptr), std::invalid_argument);
 	EXPECT_THROW(style.setFont(nullptr), std::invalid_argument);
 	EXPECT_THROW(style.setNineSliceCornerSize({-1, 2}), std::invalid_argument);
 	EXPECT_THROW(style.setNineSliceCornerSize({2, -1}), std::invalid_argument);
+}
+
+TEST(WidgetStyleTest, SelfAssignmentLeavesValuesUnchanged)
+{
+	spk::WidgetStyle style = spk::WidgetStyle::makeDefault();
+	style.setNineSliceCornerSize({12, 14});
+	style.setTextSize(spk::Font::Size(23, 1));
+
+	spk::WidgetStyle* sameStyle = &style;
+	*sameStyle = style;
+	*sameStyle = std::move(*sameStyle);
+
+	EXPECT_EQ(style.nineSliceCornerSize(), spk::Vector2Int(12, 14));
+	EXPECT_EQ(style.textSize(), spk::Font::Size(23, 1));
+	EXPECT_NE(style.nineSliceSpriteSheet(), nullptr);
+	EXPECT_NE(style.iconSpriteSheet(), nullptr);
+	EXPECT_NE(style.font(), nullptr);
 }
 
 TEST(WidgetStyleTest, CollectionCreatesDefaultBasedNamedStyles)

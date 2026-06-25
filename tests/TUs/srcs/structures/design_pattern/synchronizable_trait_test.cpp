@@ -1,5 +1,8 @@
 #include <gtest/gtest.h>
 
+#include <stdexcept>
+#include <utility>
+
 #include "structures/design_pattern/spk_synchronizable_trait.hpp"
 
 namespace
@@ -17,11 +20,22 @@ namespace
 
 	public:
 		TestSynchronizable() = default;
+		TestSynchronizable(TestSynchronizable &&) noexcept = default;
+		TestSynchronizable &operator=(TestSynchronizable &&) noexcept = default;
 		~TestSynchronizable() = default;
 
 		int synchronizeCount() const
 		{
 			return _synchronizeCount;
+		}
+	};
+
+	class ThrowingSynchronizable : public spk::SynchronizableTrait
+	{
+	protected:
+		void _synchronize() const override
+		{
+			throw std::runtime_error("synchronization failed");
 		}
 	};
 }
@@ -218,4 +232,29 @@ TEST(SynchronizableTraitTest, MultipleRequestsAndForcesProduceExpectedSynchroniz
 
 	EXPECT_FALSE(object.needsSynchronization());
 	EXPECT_EQ(object.synchronizeCount(), 4);
+}
+
+TEST(SynchronizableTraitTest, SynchronizeRethrowsAndRestoresPendingFlagWhenImplementationThrows)
+{
+	ThrowingSynchronizable object;
+
+	object.requestSynchronization();
+	ASSERT_TRUE(object.needsSynchronization());
+
+	EXPECT_THROW(object.synchronize(), std::runtime_error);
+
+	// The implementation failed, so the object must remain marked for a retry.
+	EXPECT_TRUE(object.needsSynchronization());
+}
+
+TEST(SynchronizableTraitTest, MoveAssignmentFromSelfLeavesPendingSynchronizationFlagUntouched)
+{
+	TestSynchronizable object;
+	TestSynchronizable &sameObject = object;
+
+	object.requestSynchronization();
+	object = std::move(sameObject);
+
+	EXPECT_TRUE(object.needsSynchronization());
+	EXPECT_EQ(object.synchronizeCount(), 0);
 }

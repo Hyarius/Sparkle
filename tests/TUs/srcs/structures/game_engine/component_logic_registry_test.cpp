@@ -61,6 +61,10 @@ TEST(ComponentLogicRegistryTest, GetReturnsAddedLogicOrNull)
 
 	EXPECT_EQ(logics.get<OrderLogic<1>>(), &logic);
 	EXPECT_EQ(logics.get<OrderLogic<2>>(), nullptr);
+
+	const spk::ComponentLogicRegistry &constLogics = logics;
+	EXPECT_EQ(constLogics.get<OrderLogic<1>>(), &logic);
+	EXPECT_EQ(constLogics.get<OrderLogic<2>>(), nullptr);
 }
 
 TEST(ComponentLogicRegistryTest, HigherPriorityRunsFirst)
@@ -144,6 +148,22 @@ TEST(ComponentLogicRegistryTest, ConsumedEventStopsLowerPriorityLogics)
 
 	EXPECT_EQ(g_order, (std::vector<int>{1}));
 	EXPECT_TRUE(event.isConsumed());
+}
+
+TEST(ComponentLogicRegistryTest, DeactivatedLogicIsSkippedDuringEventDispatch)
+{
+	g_order.clear();
+
+	spk::ComponentLogicRegistry logics;
+	logics.add<OrderLogic<1>>().deactivate();
+
+	spk::ComponentRegistry components;
+	spk::WindowResizedRecord record;
+	spk::WindowResizedEvent event(record);
+	logics.dispatchEvent(event, components);
+
+	EXPECT_TRUE(g_order.empty());
+	EXPECT_FALSE(event.isConsumed());
 }
 
 TEST(ComponentLogicRegistryTest, ClearRemovesAllLogics)

@@ -224,6 +224,27 @@ TEST(BlockableTraitTest, MoveAssignedBlockerTransfersBlockingOwnership)
 	EXPECT_FALSE(secondObject.isBlocked());
 }
 
+TEST(BlockableTraitTest, SelfMoveAssignedBlockerKeepsBlockingOwnership)
+{
+	TestBlockable object;
+	auto blocker = object.block(TestBlockable::Mode::Delay);
+	auto &sameBlocker = blocker;
+
+	ASSERT_TRUE(object.isBlocked());
+	ASSERT_TRUE(blocker.isValid());
+
+	blocker = std::move(sameBlocker);
+
+	EXPECT_TRUE(blocker.isValid());
+	EXPECT_TRUE(object.isBlocked());
+	EXPECT_TRUE(object.isDelayBlocked());
+
+	blocker.release();
+
+	EXPECT_FALSE(object.isBlocked());
+	EXPECT_FALSE(object.isDelayBlocked());
+}
+
 TEST(BlockableTraitTest, TemporaryBlockerBlocksOnlyDuringItsLifetime)
 {
 	TestBlockable object;

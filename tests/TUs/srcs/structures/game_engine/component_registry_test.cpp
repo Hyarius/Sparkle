@@ -88,3 +88,18 @@ TEST(ComponentRegistryTest, ClearEmptiesAllContainers)
 
 	EXPECT_TRUE(registry.container<PositionComponent>().components().empty());
 }
+
+TEST(ComponentRegistryTest, NullAndUnknownComponentsAreIgnored)
+{
+	spk::ComponentRegistry registry;
+
+	registry.add(nullptr);
+	registry.remove(nullptr);
+
+	spk::Entity entity;
+	PositionComponent &component = entity.addComponent<PositionComponent>();
+
+	registry.remove(&component);
+
+	SUCCEED();
+}

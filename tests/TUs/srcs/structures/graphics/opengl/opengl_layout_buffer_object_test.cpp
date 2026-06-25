@@ -189,6 +189,24 @@ TEST_F(LBOFixture, SetVerticesWithEmptySpanSetsZeroCount)
 	EXPECT_EQ(lbo.vertexCount(), 0u);
 }
 
+TEST_F(LBOFixture, AppendVerticesIgnoresEmptySpanAndAppendsNonEmpty)
+{
+	LBO lbo;
+	lbo.addAttribute(0, Attr::Type::Vector2, false);
+
+	struct V2 { float x, y; };
+	const std::array<V2, 2> verts = {V2{0, 0}, V2{1, 1}};
+
+	lbo.appendVertices(std::span<const V2>{});
+	EXPECT_EQ(lbo.vertexCount(), 0u);
+
+	lbo.appendVertices(std::span<const V2>(verts));
+	EXPECT_EQ(lbo.vertexCount(), 2u);
+
+	lbo.appendVertices(std::span<const V2>{});
+	EXPECT_EQ(lbo.vertexCount(), 2u);
+}
+
 TEST_F(LBOFixture, SetIndexesUpdatesIndexCountAndIsIndexed)
 {
 	LBO lbo;

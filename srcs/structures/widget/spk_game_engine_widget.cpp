@@ -1,13 +1,9 @@
 #include "structures/widget/spk_game_engine_widget.hpp"
 
-#include <stdexcept>
-
 namespace spk
 {
 	GameEngineWidget::GameEngineWidget(const std::string &p_name, spk::Widget *p_parent) :
-		spk::Widget(p_name, p_parent),
-		_ownedGameEngine(std::make_unique<spk::GameEngine>()),
-		_gameEngine(_ownedGameEngine.get())
+		spk::Widget(p_name, p_parent)
 	{
 	}
 
@@ -15,23 +11,15 @@ namespace spk
 
 	void GameEngineWidget::_onUpdate(const spk::UpdateTick &p_tick)
 	{
-		if (_gameEngine == nullptr)
-		{
-			return;
-		}
-
-		_gameEngine->update(p_tick);
-		_gameEngine->synchronize();
+		_gameEngine.update(p_tick);
+		_gameEngine.synchronize();
 	}
 
 	spk::RenderUnit GameEngineWidget::_buildRenderUnit() const
 	{
 		spk::RenderUnitBuilder builder;
 
-		if (_gameEngine != nullptr)
-		{
-			_gameEngine->render(builder);
-		}
+		_gameEngine.render(builder);
 
 		return builder.build();
 	}
@@ -64,35 +52,11 @@ namespace spk
 
 	spk::GameEngine &GameEngineWidget::gameEngine()
 	{
-		if (_gameEngine == nullptr)
-		{
-			throw std::runtime_error("GameEngineWidget has no game engine");
-		}
-
-		return *_gameEngine;
+		return _gameEngine;
 	}
 
 	const spk::GameEngine &GameEngineWidget::gameEngine() const
 	{
-		if (_gameEngine == nullptr)
-		{
-			throw std::runtime_error("GameEngineWidget has no game engine");
-		}
-
-		return *_gameEngine;
-	}
-
-	void GameEngineWidget::setExternalGameEngine(spk::GameEngine *p_gameEngine)
-	{
-		_ownedGameEngine.reset();
-		_gameEngine = p_gameEngine;
-		invalidateRenderUnit();
-	}
-
-	void GameEngineWidget::resetOwnedGameEngine()
-	{
-		_ownedGameEngine = std::make_unique<spk::GameEngine>();
-		_gameEngine = _ownedGameEngine.get();
-		invalidateRenderUnit();
+		return _gameEngine;
 	}
 }

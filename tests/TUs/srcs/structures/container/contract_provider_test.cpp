@@ -952,6 +952,72 @@ TEST(ContractProviderTest, BlockedTriggerDoesNotDeliverParameters)
 	EXPECT_EQ(receivedValue, 111);
 }
 
+TEST(ContractProviderTest, DelayBlockDefersTriggerUntilReleased)
+{
+	spk::ContractProvider<> provider;
+	int callCount = 0;
+
+	auto contract = provider.subscribe([&callCount]()
+	{
+		++callCount;
+	});
+
+	auto blocker = provider.block(spk::BlockableTrait::Mode::Delay);
+
+	EXPECT_TRUE(provider.isBlocked());
+	EXPECT_TRUE(provider.isDelayBlocked());
+	EXPECT_FALSE(provider.isIgnoreBlocked());
+
+	provider.trigger();
+	EXPECT_EQ(callCount, 0);
+
+	blocker.release();
+
+	EXPECT_FALSE(provider.isBlocked());
+	EXPECT_EQ(callCount, 1);
+}
+
+TEST(ContractProviderTest, DelayBlockReplaysMostRecentArgumentsOnRelease)
+{
+	IntProvider provider;
+	int receivedValue = 0;
+	int callCount = 0;
+
+	auto contract = provider.subscribe([&receivedValue, &callCount](int p_value)
+	{
+		receivedValue = p_value;
+		++callCount;
+	});
+
+	auto blocker = provider.block(spk::BlockableTrait::Mode::Delay);
+
+	provider.emit(11);
+	provider.emit(22);
+	EXPECT_EQ(callCount, 0);
+
+	blocker.release();
+
+	EXPECT_EQ(callCount, 1);
+	EXPECT_EQ(receivedValue, 22);
+}
+
+TEST(ContractProviderTest, DelayBlockWithoutTriggerRunsNoDeferredOperationOnRelease)
+{
+	spk::ContractProvider<> provider;
+	int callCount = 0;
+
+	auto contract = provider.subscribe([&callCount]()
+	{
+		++callCount;
+	});
+
+	auto blocker = provider.block(spk::BlockableTrait::Mode::Delay);
+	blocker.release();
+
+	EXPECT_EQ(callCount, 0);
+	EXPECT_FALSE(provider.isBlocked());
+}
+
 TEST(ContractProviderTest, BlockedContractDoesNotReceiveTriggeredParameters)
 {
 	IntProvider provider;

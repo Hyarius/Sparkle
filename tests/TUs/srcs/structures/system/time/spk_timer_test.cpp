@@ -304,15 +304,19 @@ TEST(TimerTest, ElapsedRatioClampsToOneWhenTimedOut)
 
 TEST(TimerTest, ToStringReturnsExpectedValues)
 {
+	const spk::Timer::State unknownState = static_cast<spk::Timer::State>(-1);
+
 	EXPECT_STREQ(spk::toString(spk::Timer::State::Idle), "Idle");
 	EXPECT_STREQ(spk::toString(spk::Timer::State::Running), "Running");
 	EXPECT_STREQ(spk::toString(spk::Timer::State::Paused), "Paused");
 	EXPECT_STREQ(spk::toString(spk::Timer::State::TimedOut), "TimedOut");
+	EXPECT_STREQ(spk::toString(unknownState), "UnknownState");
 
 	EXPECT_STREQ(spk::toWstring(spk::Timer::State::Idle), L"Idle");
 	EXPECT_STREQ(spk::toWstring(spk::Timer::State::Running), L"Running");
 	EXPECT_STREQ(spk::toWstring(spk::Timer::State::Paused), L"Paused");
 	EXPECT_STREQ(spk::toWstring(spk::Timer::State::TimedOut), L"TimedOut");
+	EXPECT_STREQ(spk::toWstring(unknownState), L"UnknownState");
 }
 
 TEST(TimerTest, StreamOperatorsRenderStateNames)

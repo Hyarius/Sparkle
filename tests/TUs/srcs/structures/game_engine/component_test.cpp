@@ -38,9 +38,11 @@ TEST(ComponentTest, AttachedActiveComponentIsProcessable)
 {
 	spk::Entity entity;
 	ProbeComponent &component = entity.addComponent<ProbeComponent>();
+	const ProbeComponent &constComponent = component;
 
 	EXPECT_TRUE(component.hasEntity());
 	EXPECT_EQ(component.entity(), &entity);
+	EXPECT_EQ(constComponent.entity(), static_cast<const spk::Entity *>(&entity));
 	EXPECT_TRUE(component.isProcessable());
 }
 

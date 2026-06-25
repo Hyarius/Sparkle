@@ -2,6 +2,7 @@
 
 #include <stdexcept>
 
+#include "structures/game_engine/spk_game_engine.hpp"
 #include "structures/game_engine/spk_entity.hpp"
 
 namespace
@@ -22,6 +23,12 @@ namespace
 	{
 	public:
 		ArmorComponent() = default;
+	};
+
+	class MissingComponent : public spk::Component
+	{
+	public:
+		MissingComponent() = default;
 	};
 }
 
@@ -54,9 +61,19 @@ TEST(EntityTest, ComponentLookupFindsAddedComponent)
 {
 	spk::Entity entity;
 	HealthComponent &health = entity.addComponent<HealthComponent>(10);
+	const spk::Entity &constEntity = entity;
 
 	EXPECT_EQ(entity.component<HealthComponent>(), &health);
 	EXPECT_EQ(entity.component<ArmorComponent>(), nullptr);
+	EXPECT_EQ(constEntity.component<HealthComponent>(), static_cast<const HealthComponent *>(&health));
+	EXPECT_EQ(constEntity.component<ArmorComponent>(), nullptr);
+}
+
+TEST(EntityTest, ConstComponentLookupReturnsNullWhenEntityIsEmpty)
+{
+	const spk::Entity entity;
+
+	EXPECT_EQ(entity.component<HealthComponent>(), nullptr);
 }
 
 TEST(EntityTest, RequireComponentThrowsWhenMissing)
@@ -64,6 +81,19 @@ TEST(EntityTest, RequireComponentThrowsWhenMissing)
 	spk::Entity entity;
 
 	EXPECT_THROW((void)entity.requireComponent<HealthComponent>(), std::runtime_error);
+
+	const spk::Entity &constEntity = entity;
+	EXPECT_THROW((void)constEntity.requireComponent<HealthComponent>(), std::runtime_error);
+}
+
+TEST(EntityTest, RequireComponentReturnsExistingComponent)
+{
+	spk::Entity entity;
+	HealthComponent &health = entity.addComponent<HealthComponent>(15);
+	const spk::Entity &constEntity = entity;
+
+	EXPECT_EQ(&entity.requireComponent<HealthComponent>(), &health);
+	EXPECT_EQ(&constEntity.requireComponent<HealthComponent>(), static_cast<const HealthComponent *>(&health));
 }
 
 TEST(EntityTest, RemoveComponentByReferenceDropsIt)
@@ -83,6 +113,7 @@ TEST(EntityTest, RemoveComponentByTypeDropsIt)
 	entity.addComponent<HealthComponent>();
 
 	entity.removeComponent<HealthComponent>();
+	entity.removeComponent<ArmorComponent>();
 
 	EXPECT_EQ(entity.component<HealthComponent>(), nullptr);
 }
@@ -113,4 +144,38 @@ TEST(EntityTest, HierarchyActivationFollowsAncestors)
 	parent.activate();
 
 	EXPECT_TRUE(child.isHierarchyActivated());
+}
+
+TEST(EntityTest, ComponentManagementInsideEngineCoversRegistryPaths)
+{
+	spk::GameEngine engine;
+	spk::Entity &entity = engine.addEntity<spk::Entity>();
+
+	HealthComponent &component = entity.addComponent<HealthComponent>(5);
+	EXPECT_EQ(entity.components().size(), 1u);
+
+	entity.deactivate();
+	entity.activate();
+
+	entity.removeComponent(component);
+	EXPECT_TRUE(entity.components().empty());
+}
+
+TEST(EntityTest, LookupAndRemoveEdgeCases)
+{
+	spk::Entity entity;
+	entity.addComponent<HealthComponent>(1);
+	ArmorComponent &armor = entity.addComponent<ArmorComponent>();
+
+	EXPECT_EQ(entity.component<ArmorComponent>(), &armor);
+
+	entity.removeComponent<MissingComponent>();
+	EXPECT_EQ(entity.components().size(), 2u);
+
+	spk::Entity otherEntity;
+	HealthComponent &foreign = otherEntity.addComponent<HealthComponent>(2);
+	entity.removeComponent(foreign);
+	EXPECT_EQ(entity.components().size(), 2u);
+
+	EXPECT_EQ(entity.requireComponent<HealthComponent>().points, 1);
 }

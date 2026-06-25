@@ -52,9 +52,12 @@ TEST(MatrixTest, InitializerListUsesRowMajorInputIntoColumnStorage)
 TEST(MatrixTest, BoundsChecksColumnAndRowAccess)
 {
 	spk::Matrix2x2 matrix;
+	const spk::Matrix2x2 constMatrix;
 
 	EXPECT_THROW(matrix[2], std::invalid_argument);
 	EXPECT_THROW(matrix[0][2], std::invalid_argument);
+	EXPECT_THROW(constMatrix[2], std::invalid_argument);
+	EXPECT_THROW(constMatrix[0][2], std::invalid_argument);
 }
 
 TEST(MatrixTest, MultipliesMatrix3ByVector2UsingHomogeneousCoordinate)
@@ -125,6 +128,21 @@ TEST(MatrixTest, LookAtMovesCameraOrigin)
 	expectVectorNear(view * spk::Vector3(0.0f, 0.0f, 0.0f), spk::Vector3(0.0f, 0.0f, -5.0f));
 }
 
+TEST(MatrixTest, LookAtHandlesForwardParallelToUpVector)
+{
+	const spk::Matrix4x4 sameDirectionView = spk::Matrix4x4::lookAt(
+		spk::Vector3(0.0f, 0.0f, 0.0f),
+		spk::Vector3(0.0f, 1.0f, 0.0f),
+		spk::Vector3(0.0f, 1.0f, 0.0f));
+	const spk::Matrix4x4 inverseDirectionView = spk::Matrix4x4::lookAt(
+		spk::Vector3(0.0f, 0.0f, 0.0f),
+		spk::Vector3(0.0f, -1.0f, 0.0f),
+		spk::Vector3(0.0f, 1.0f, 0.0f));
+
+	expectVectorNear(sameDirectionView * spk::Vector3(0.0f, 0.0f, 0.0f), spk::Vector3(0.0f, 0.0f, 0.0f));
+	expectVectorNear(inverseDirectionView * spk::Vector3(0.0f, 0.0f, 0.0f), spk::Vector3(0.0f, 0.0f, 0.0f));
+}
+
 TEST(MatrixTest, DeterminantInvertibilityAndInverseWork)
 {
 	const spk::Matrix3x3 matrix{
@@ -136,6 +154,17 @@ TEST(MatrixTest, DeterminantInvertibilityAndInverseWork)
 	expectNear(matrix.determinant(), 24.0f);
 	EXPECT_TRUE(matrix.isInvertible());
 	EXPECT_EQ(matrix * matrix.inverse(), spk::Matrix3x3::identity());
+}
+
+TEST(MatrixTest, EqualityDetectsDifferentValues)
+{
+	spk::Matrix2x2 left;
+	spk::Matrix2x2 right;
+
+	right[1][0] = 2.0f;
+
+	EXPECT_FALSE(left == right);
+	EXPECT_TRUE(left != right);
 }
 
 TEST(MatrixTest, InverseThrowsForSingularMatrix)

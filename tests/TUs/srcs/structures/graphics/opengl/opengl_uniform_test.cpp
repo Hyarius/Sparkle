@@ -1,6 +1,11 @@
 #include <gtest/gtest.h>
 
+#include <array>
+#include <stdexcept>
+#include <vector>
+
 #include "structures/graphics/opengl/opengl_wrapper_test_utils.hpp"
+#include "structures/graphics/opengl/spk_opengl_uniform.hpp"
 #include "structures/graphics/spk_uniform.hpp"
 #include "structures/graphics/spk_program.hpp"
 
@@ -64,6 +69,12 @@ namespace
 			"	outColor = vec4(acc / 1000.0, 0.0, 0.0, 1.0);\n"
 			"}\n");
 	}
+}
+
+TEST(OpenGLUniformTest, BoolUniformSpecificationStoresFalseAsZero)
+{
+	EXPECT_EQ(spk::BoolUniformSpecification::toStoredValue(true), 1);
+	EXPECT_EQ(spk::BoolUniformSpecification::toStoredValue(false), 0);
 }
 
 TEST(OpenGLUniformTest, ScalarUniformsActivateAndStoreValues)
@@ -197,6 +208,28 @@ TEST(OpenGLUniformTest, ArrayUniformsActivateFromVectorAndInitializerList)
 	EXPECT_FALSE(aFloat.needsActivation());
 }
 
+TEST(OpenGLUniformTest, FindLocationHandlesShortAndExplicitMissingArrayNames)
+{
+	sparkle_test::OpenGLTestContext context;
+	const auto program = makeUniformProgram();
+	const GLuint programId = program->gpu(context.renderContext()).id();
+
+	EXPECT_EQ(spk::OpenGL::Uniform::findLocation(programId, "x"), -1);
+	EXPECT_EQ(spk::OpenGL::Uniform::findLocation(programId, "missing[0]"), -1);
+	EXPECT_NE(spk::OpenGL::Uniform::findLocation(programId, "aFloat"), -1);
+}
+
+TEST(OpenGLUniformTest, ValidateDeclarationReportsShortMissingName)
+{
+	sparkle_test::OpenGLTestContext context;
+	const auto program = makeUniformProgram();
+	const GLuint programId = program->gpu(context.renderContext()).id();
+
+	EXPECT_THROW(
+		spk::OpenGL::Uniform::validateDeclaration(programId, "x", GL_FLOAT, "float", 1),
+		std::runtime_error);
+}
+
 TEST(OpenGLUniformTest, ValidationErrorsAreReported)
 {
 	sparkle_test::OpenGLTestContext context;
@@ -213,6 +246,7 @@ TEST(OpenGLUniformTest, ValidationErrorsAreReported)
 
 	spk::FloatArrayUniform aFloat("aFloat[0]", *program, 2);
 	EXPECT_THROW(aFloat.set(nullptr, 2), std::runtime_error);
+	EXPECT_THROW(aFloat.set(nullptr, 0), std::runtime_error);
 	EXPECT_THROW(aFloat.set(std::vector<float>{1.0f}), std::runtime_error);
 	aFloat = {1.0f, 2.0f};
 	EXPECT_NO_THROW(aFloat.activate());

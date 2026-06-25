@@ -195,6 +195,15 @@ TEST(Rect2DContainsRectTest, ContainsReturnsFalseForRectOutside)
 	EXPECT_FALSE(outer.contains(other));
 }
 
+TEST(Rect2DContainsRectTest, ContainsReturnsFalseForEachOutOfBoundsSide)
+{
+	const spk::Rect2D outer(10, 20, 30, 40);
+
+	EXPECT_FALSE(outer.contains(spk::Rect2D(9, 25, 10, 10)));
+	EXPECT_FALSE(outer.contains(spk::Rect2D(15, 19, 10, 10)));
+	EXPECT_FALSE(outer.contains(spk::Rect2D(15, 55, 10, 10)));
+}
+
 TEST(Rect2DTranslationTest, TranslatedMovesAnchorAndPreservesSize)
 {
 	const spk::Rect2D rect(10, 20, 30, 40);

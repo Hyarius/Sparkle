@@ -473,6 +473,14 @@ TEST_F(ObjectPoolTest, returnedHandle_WhenPoolIsFull_ShouldDeleteObjectInsteadOf
 	EXPECT_EQ(TrackedObject::destructorCount, 1);
 }
 
+TEST_F(ObjectPoolTest, returnToPoolDeleter_ShouldIgnoreNullPointer)
+{
+	spk::ObjectPool<TrackedObject>::ReturnToPoolDeleter deleter;
+
+	EXPECT_NO_THROW(deleter(nullptr));
+	EXPECT_EQ(TrackedObject::destructorCount, 0);
+}
+
 TEST_F(ObjectPoolTest, objectPoolConstructor_ShouldConfigureCallbacksImmediately)
 {
 	spk::ObjectPool<TrackedObject> pool(

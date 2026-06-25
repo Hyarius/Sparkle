@@ -4,6 +4,7 @@
 #include <gtest/gtest.h>
 
 #include "structures/graphics/opengl/opengl_wrapper_test_utils.hpp"
+#include "structures/graphics/opengl/spk_opengl_buffer.hpp"
 
 
 TEST(OpenGLBufferObjectTest, SynchronizesBinaryFieldToGPU)
@@ -32,6 +33,26 @@ TEST(OpenGLBufferObjectTest, SynchronizesBinaryFieldToGPU)
 	EXPECT_EQ(gpuValues, values);
 	EXPECT_FALSE(buffer.needsSynchronization());
 	EXPECT_TRUE(buffer.hasGpu(context.renderContext()));
+}
+
+TEST(OpenGLBufferTest, AllocatedSizeReportsCurrentGpuAllocation)
+{
+	sparkle_test::OpenGLTestContext context;
+	(void)context;
+
+	std::array<std::uint32_t, 4> values = {1, 2, 3, 4};
+	spk::OpenGL::Buffer buffer(
+		GL_ARRAY_BUFFER,
+		GL_DYNAMIC_DRAW,
+		values.data(),
+		sizeof(values));
+
+	EXPECT_EQ(buffer.allocatedSize(), sizeof(values));
+
+	std::array<std::uint32_t, 4> replacement = {5, 6, 7, 8};
+	buffer.upload(replacement.data(), sizeof(replacement));
+
+	EXPECT_EQ(buffer.allocatedSize(), sizeof(replacement));
 }
 
 TEST(OpenGLBufferObjectTest, EditAppendAndResizeRequestSynchronization)
@@ -89,6 +110,8 @@ TEST(OpenGLBufferObjectTest, AccessorsAndViewsExposeCpuBuffer)
 
 	EXPECT_EQ(buffer.target(), spk::BufferObject::Target::Array);
 	EXPECT_EQ(buffer.usage(), spk::BufferObject::Usage::StreamDraw);
+	EXPECT_GT(buffer.contentVersion(), 1u);
+	EXPECT_FALSE(buffer.empty());
 	EXPECT_EQ(constBuffer.data()[0], 4u);
 	EXPECT_EQ(constBytes[2], 9u);
 	EXPECT_EQ(constBuffer.field().size(), 4u);
@@ -110,6 +133,32 @@ TEST(OpenGLBufferObjectTest, ClearResizesBufferToZero)
 	buffer.clear();
 	EXPECT_EQ(buffer.size(), 0u);
 	EXPECT_EQ(buffer.field().size(), 0u);
+	EXPECT_TRUE(buffer.empty());
+}
+
+TEST(OpenGLBufferObjectTest, EmptyBufferUploadsNullDataAndTracksGpuCache)
+{
+	sparkle_test::OpenGLTestContext context;
+	spk::RenderContext& renderContext = context.renderContext();
+
+	spk::BufferObject buffer(
+		spk::BufferObject::Target::Array,
+		spk::BufferObject::Usage::DynamicDraw,
+		0);
+
+	EXPECT_TRUE(buffer.empty());
+	EXPECT_FALSE(buffer.hasGpu(renderContext));
+
+	spk::OpenGL::Buffer& gpuBuffer = buffer.gpu(renderContext);
+
+	EXPECT_NE(gpuBuffer.id(), 0u);
+	EXPECT_EQ(gpuBuffer.allocatedSize(), 0u);
+	EXPECT_TRUE(buffer.hasGpu(renderContext));
+
+	std::array<std::uint8_t, 1> byte = {42};
+	buffer.append(byte.data(), byte.size());
+
+	EXPECT_FALSE(buffer.hasGpu(renderContext));
 }
 
 TEST(OpenGLBufferObjectTest, EditAndAppendValidateInputs)
@@ -124,6 +173,8 @@ TEST(OpenGLBufferObjectTest, EditAndAppendValidateInputs)
 
 	EXPECT_THROW(buffer.edit(nullptr, 1), std::runtime_error);
 	EXPECT_THROW(buffer.edit(nullptr, 0, 5), std::runtime_error);
+	std::array<std::uint8_t, 2> patch = {1, 2};
+	EXPECT_THROW(buffer.edit(patch.data(), patch.size(), 3), std::runtime_error);
 	EXPECT_THROW(buffer.append(nullptr, 1), std::runtime_error);
 
 	EXPECT_NO_THROW(buffer.edit(nullptr, 0));

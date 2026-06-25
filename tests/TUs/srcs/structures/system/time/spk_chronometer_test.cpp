@@ -173,13 +173,17 @@ TEST(ChronometerTest, ElapsedTimeIsMonotonicWhileRunning)
 
 TEST(ChronometerTest, ToStringReturnsExpectedValues)
 {
+	const spk::Chronometer::State unknownState = static_cast<spk::Chronometer::State>(-1);
+
 	EXPECT_STREQ(spk::toString(spk::Chronometer::State::Idle), "Idle");
 	EXPECT_STREQ(spk::toString(spk::Chronometer::State::Running), "Running");
 	EXPECT_STREQ(spk::toString(spk::Chronometer::State::Paused), "Paused");
+	EXPECT_STREQ(spk::toString(unknownState), "UnknownState");
 
 	EXPECT_STREQ(spk::toWstring(spk::Chronometer::State::Idle), L"Idle");
 	EXPECT_STREQ(spk::toWstring(spk::Chronometer::State::Running), L"Running");
 	EXPECT_STREQ(spk::toWstring(spk::Chronometer::State::Paused), L"Paused");
+	EXPECT_STREQ(spk::toWstring(unknownState), L"UnknownState");
 }
 
 TEST(ChronometerTest, StreamOperatorsRenderStateNames)

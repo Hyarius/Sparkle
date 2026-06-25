@@ -130,6 +130,21 @@ TEST(GenericMeshTest, ReusesDuplicateVerticesAcrossShapes)
 	EXPECT_EQ(mesh.nbShape(), 2u);
 }
 
+TEST(GenericMeshTest, ReusesDuplicateVerticesInsideShape)
+{
+	spk::Mesh2D mesh;
+	const spk::Vertex2D a{.position = {0.0f, 0.0f}};
+	const spk::Vertex2D b{.position = {1.0f, 0.0f}};
+	const std::array<spk::Vertex2D, 3> vertices{a, b, a};
+
+	mesh.addShape(std::span<const spk::Vertex2D>(vertices.data(), vertices.size()));
+
+	EXPECT_EQ(mesh.vertices().size(), 2u);
+	EXPECT_EQ(toVector(mesh.indexes()), (std::vector<std::uint32_t>{0, 1, 0}));
+	ASSERT_EQ(mesh.shapes().size(), 1u);
+	EXPECT_EQ(mesh.shapes()[0], (std::vector<std::uint32_t>{0, 1, 0}));
+}
+
 TEST(ColorMesh2DTest, ColorValuesVertexComparisonAndHashWork)
 {
 	const spk::Color color(0.1f, 0.2f, 0.3f, 0.4f);

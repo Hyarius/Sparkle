@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include <stdexcept>
 
 #include "structures/graphics/opengl/opengl_wrapper_test_utils.hpp"
 #include "structures/graphics/spk_sampler_object.hpp"
@@ -44,6 +45,24 @@ TEST(OpenGLSamplerObjectTest, BindAssociatesTexture)
 	EXPECT_EQ(sampler.texture()->id(), tex->id());
 }
 
+TEST(OpenGLSamplerObjectTest, TextureReturnsNullBeforeBindingAndAfterUnbind)
+{
+	sparkle_test::OpenGLTestContext context;
+	auto program = sparkle_test::makeSolidProgram(1.0f, 0.0f, 0.0f);
+
+	Texture texture;
+	SamplerObject sampler("uTex", SamplerObject::Type::Texture2D, 0, *program);
+
+	EXPECT_EQ(sampler.texture(), nullptr);
+
+	sampler.bind(texture);
+	ASSERT_NE(sampler.texture(), nullptr);
+
+	sampler.unbind();
+
+	EXPECT_EQ(sampler.texture(), nullptr);
+}
+
 TEST(OpenGLSamplerObjectTest, ActivateAndDeactivateDoNotThrow)
 {
 	sparkle_test::OpenGLTestContext context;
@@ -61,4 +80,34 @@ TEST(OpenGLSamplerObjectTest, ActivateAndDeactivateDoNotThrow)
 
 	EXPECT_NO_THROW(sampler.activate(context.renderContext()));
 	EXPECT_NO_THROW(sampler.deactivate());
+}
+
+TEST(OpenGLSamplerObjectTest, UnboundActivateAndDeactivateSupportEverySamplerType)
+{
+	sparkle_test::OpenGLTestContext context;
+	auto program = sparkle_test::makeSolidProgram(1.0f, 0.0f, 0.0f);
+
+	const SamplerObject::Type types[] = {
+		SamplerObject::Type::Texture1D,
+		SamplerObject::Type::Texture2D,
+		SamplerObject::Type::Texture3D,
+		SamplerObject::Type::TextureCubeMap
+	};
+
+	for (SamplerObject::Type type : types)
+	{
+		SamplerObject sampler("uTex", type, 0, *program);
+
+		EXPECT_NO_THROW(sampler.activate(context.renderContext()));
+		EXPECT_NO_THROW(sampler.deactivate());
+	}
+}
+
+TEST(OpenGLSamplerObjectTest, ActivateThrowsForUnsupportedSamplerType)
+{
+	sparkle_test::OpenGLTestContext context;
+	auto program = sparkle_test::makeSolidProgram(1.0f, 0.0f, 0.0f);
+	SamplerObject sampler("uTex", static_cast<SamplerObject::Type>(0xFFFF), 0, *program);
+
+	EXPECT_THROW(sampler.activate(context.renderContext()), std::runtime_error);
 }

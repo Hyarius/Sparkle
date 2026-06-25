@@ -3,6 +3,7 @@
 #include <atomic>
 #include <mutex>
 #include <thread>
+#include <utility>
 
 #include "structures/design_pattern/spk_contract_provider.hpp"
 #include "structures/system/thread/spk_thread_safe_contract.hpp"
@@ -14,6 +15,24 @@ TEST(ThreadSafeContractTest, StartsInvalid)
 	EXPECT_FALSE(contract.isValid());
 	EXPECT_NO_THROW(contract.resign());
 	EXPECT_NO_THROW(contract.relinquish());
+}
+
+TEST(ThreadSafeContractTest, DefaultBlockerIsInvalidAndReleasesAsNoOp)
+{
+	spk::ThreadSafeContract<spk::ContractProvider<>::Contract>::Blocker blocker;
+
+	EXPECT_FALSE(blocker.isValid());
+	EXPECT_NO_THROW(blocker.release());
+}
+
+TEST(ThreadSafeContractTest, BlockOnInvalidContractReturnsInvalidBlocker)
+{
+	spk::ThreadSafeContract<spk::ContractProvider<>::Contract> contract;
+
+	auto blocker = contract.block();
+
+	EXPECT_FALSE(blocker.isValid());
+	EXPECT_NO_THROW(blocker.release());
 }
 
 TEST(ThreadSafeContractTest, ResignUsesTheProvidedMutex)
@@ -134,6 +153,59 @@ TEST(ThreadSafeContractTest, BlockReturnsSynchronizedBlocker)
 	EXPECT_TRUE(blocker.isValid());
 
 	blocker.release();
+
+	{
+		std::scoped_lock lock(*mutex);
+		provider.trigger();
+	}
+
+	EXPECT_EQ(callCount, 1);
+}
+
+TEST(ThreadSafeContractTest, BlockerMoveAssignmentFromSelfPreservesBlock)
+{
+	spk::ContractProvider<> provider;
+	std::shared_ptr<std::mutex> mutex = std::make_shared<std::mutex>();
+	int callCount = 0;
+
+	spk::ThreadSafeContract<spk::ContractProvider<>::Contract> contract(
+		provider.subscribe([&callCount]()
+		{
+			++callCount;
+		}),
+		mutex);
+
+	auto blocker = contract.block();
+	auto &sameBlocker = blocker;
+
+	blocker = std::move(sameBlocker);
+
+	{
+		std::scoped_lock lock(*mutex);
+		provider.trigger();
+	}
+
+	EXPECT_EQ(callCount, 0);
+	EXPECT_TRUE(blocker.isValid());
+}
+
+TEST(ThreadSafeContractTest, ContractMoveAssignmentFromSelfPreservesContract)
+{
+	spk::ContractProvider<> provider;
+	std::shared_ptr<std::mutex> mutex = std::make_shared<std::mutex>();
+	int callCount = 0;
+
+	spk::ThreadSafeContract<spk::ContractProvider<>::Contract> contract(
+		provider.subscribe([&callCount]()
+		{
+			++callCount;
+		}),
+		mutex);
+	auto &sameContract = contract;
+
+	contract = std::move(sameContract);
+
+	EXPECT_TRUE(contract.isValid());
 
 	{
 		std::scoped_lock lock(*mutex);

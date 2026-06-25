@@ -1,6 +1,11 @@
 #include <gtest/gtest.h>
 
 
+#include <chrono>
+#include <filesystem>
+#include <fstream>
+#include <string>
+
 #include <stb_image_write.h>
 
 #include "structures/graphics/opengl/opengl_wrapper_test_utils.hpp"
@@ -54,6 +59,30 @@ TEST(SpriteSheetTest, LoadFromDataSetsCorrectSpriteCount)
 
 	EXPECT_EQ(sheet.nbSprite(), (spk::Vector2UInt{4, 4}));
 	EXPECT_EQ(sheet.sprites().size(), 16u);
+}
+
+TEST(SpriteSheetTest, PathConstructorLoadsImageAndBuildsSprites)
+{
+	sparkle_test::OpenGLTestContext context;
+	(void)context;
+
+	const auto suffix = std::chrono::steady_clock::now().time_since_epoch().count();
+	const std::filesystem::path path =
+		std::filesystem::temp_directory_path() /
+		("sparkle_sprite_sheet_constructor_test_" + std::to_string(suffix) + ".png");
+	const std::vector<uint8_t> pngData = makePngBytes(8, 8);
+
+	{
+		std::ofstream file(path, std::ios::binary);
+		ASSERT_TRUE(file.is_open());
+		file.write(reinterpret_cast<const char *>(pngData.data()), static_cast<std::streamsize>(pngData.size()));
+	}
+
+	spk::SpriteSheet sheet(path, {2, 2});
+	std::filesystem::remove(path);
+
+	EXPECT_EQ(sheet.nbSprite(), (spk::Vector2UInt{2, 2}));
+	EXPECT_EQ(sheet.sprites().size(), 4u);
 }
 
 TEST(SpriteSheetTest, UnitIsReciprocaOfSpriteCount)

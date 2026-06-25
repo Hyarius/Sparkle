@@ -1,14 +1,6 @@
 #include <iostream>
 #include <sparkle.hpp>
 
-class MainWidget
-{
-private:
-
-public:
-	
-};
-
 int main()
 {
 	spk::Application application;
@@ -19,7 +11,7 @@ int main()
 			.rect = spk::Rect2D(100, 100, 600, 500),
 			.title = "Widget Playground"});
 
-	
+	spk::GameEngineWidget gameEngineWidget("GameEngineWidget", &window.centralWidget());
 
 	return application.run();
 }

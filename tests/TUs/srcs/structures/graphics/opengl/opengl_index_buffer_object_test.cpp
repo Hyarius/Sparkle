@@ -1,5 +1,6 @@
 ﻿#include <array>
 #include <cstdint>
+#include <stdexcept>
 
 #include <gtest/gtest.h>
 
@@ -25,5 +26,28 @@ TEST(OpenGLIndexBufferObjectTest, StoresDrawMetadataAndSynchronizesData)
 	EXPECT_EQ(indexBuffer.elementType(), GL_UNSIGNED_SHORT);
 	EXPECT_EQ(indexBuffer.count(), indices.size());
 	EXPECT_EQ(gpuIndices, indices);
+}
+
+TEST(OpenGLIndexBufferObjectTest, SupportsUnsignedByteElementType)
+{
+	sparkle_test::OpenGLTestContext context;
+	(void)context;
+
+	IndexBufferObject indexBuffer(BufferObject::Usage::StaticDraw, 4);
+	indexBuffer.setElementType(GL_UNSIGNED_BYTE);
+
+	EXPECT_EQ(indexBuffer.elementType(), GL_UNSIGNED_BYTE);
+	EXPECT_EQ(indexBuffer.count(), 4u);
+}
+
+TEST(OpenGLIndexBufferObjectTest, RejectsUnsupportedElementType)
+{
+	sparkle_test::OpenGLTestContext context;
+	(void)context;
+
+	IndexBufferObject indexBuffer(BufferObject::Usage::StaticDraw, 4);
+	EXPECT_THROW(indexBuffer.setElementType(GL_FLOAT), std::runtime_error);
+	// The rejected type is not stored: the default remains in effect.
+	EXPECT_EQ(indexBuffer.elementType(), static_cast<GLenum>(GL_UNSIGNED_INT));
 }
 

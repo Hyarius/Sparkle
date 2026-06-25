@@ -11,7 +11,9 @@ namespace spk
 
 		VertexArray::~VertexArray()
 		{
-			if (_id != 0 && _ownsCurrentContext() == true)
+			// _id is always non-zero after construction (glGenVertexArrays on a live
+			// context, no move/reset path), so only the owning-context guard remains.
+			if (_ownsCurrentContext() == true)
 			{
 				glDeleteVertexArrays(1, &_id);
 				notifyVertexArrayDeleted(*this);

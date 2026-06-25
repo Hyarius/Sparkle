@@ -1,11 +1,14 @@
 #include <gtest/gtest.h>
 
 
+#include <filesystem>
 #include <memory>
+#include <string>
 
 #include "structures/graphics/opengl/opengl_wrapper_test_utils.hpp"
 #include "structures/graphics/rendering/command/render_command_test_utils.hpp"
 #include "structures/graphics/texture/spk_font.hpp"
+#include "utils/test_resource_path_utils.hpp"
 
 namespace
 {
@@ -106,6 +109,28 @@ TEST(FontTextTest, ConvertsUtf8StringToCodepoints)
 	EXPECT_EQ(spk::Font::textFromUTF8(text), spk::Font::Text(U"A\u00E9"));
 }
 
+TEST(FontTextTest, ConvertsThreeAndFourByteUtf8Sequences)
+{
+	const std::string text = std::string("\xE2\x82\xAC") + "\xF0\x9F\x98\x80";
+
+	EXPECT_EQ(spk::Font::textFromUTF8(text), spk::Font::Text(U"\u20AC\U0001F600"));
+}
+
+TEST(FontTextTest, ReplacesMalformedUtf8Sequences)
+{
+	const spk::Font::Codepoint replacement = U'\uFFFD';
+	const std::string badContinuation =
+		std::string("\xE2", 1) + "A" + std::string("\xAC", 1);
+
+	EXPECT_EQ(spk::Font::textFromUTF8(std::string("\x80", 1)), spk::Font::Text({replacement}));
+	EXPECT_EQ(spk::Font::textFromUTF8(std::string("\xE2\x82", 2)), spk::Font::Text({replacement}));
+	EXPECT_EQ(spk::Font::textFromUTF8(badContinuation), spk::Font::Text({replacement, U'A', replacement}));
+	EXPECT_EQ(spk::Font::textFromUTF8(std::string("\xC0\xAF", 2)), spk::Font::Text({replacement, replacement}));
+	EXPECT_EQ(spk::Font::textFromUTF8(std::string("\xF4\x90\x80\x80", 4)), spk::Font::Text({replacement, replacement, replacement, replacement}));
+	EXPECT_EQ(spk::Font::textFromUTF8(std::string("\xED\xA0\x80", 3)), spk::Font::Text({replacement, replacement, replacement}));
+	EXPECT_EQ(spk::Font::textFromUTF8(std::string("\xEE\x80\x80", 3)), spk::Font::Text({U'\uE000'}));
+}
+
 TEST(FontTest, DefaultConstructionDoesNotThrow)
 {
 	sparkle_test::OpenGLTestContext context;
@@ -120,6 +145,18 @@ TEST(FontTest, LoadFromNonexistentFileThrows)
 	(void)context;
 
 	EXPECT_THROW(spk::Font font("nonexistent_font.ttf"), std::runtime_error);
+}
+
+TEST(FontTest, PathConstructorLoadsFontFile)
+{
+	sparkle_test::OpenGLTestContext context;
+	(void)context;
+
+	const std::filesystem::path path = spk::test::testResourcesRoot() / "fonts" / "arial.ttf";
+
+	spk::Font font(path);
+
+	EXPECT_GT(font.computeCharSize(U'A', spk::Font::Size(24, 0)).x, 0u);
 }
 
 TEST(FontTest, SetPropertiesOnDefaultFontDoesNotThrow)

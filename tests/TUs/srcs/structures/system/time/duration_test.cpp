@@ -1,7 +1,9 @@
 #include <gtest/gtest.h>
 
 #include <chrono>
+#include <limits>
 #include <sstream>
+#include <stdexcept>
 #include <thread>
 #include <utility>
 
@@ -64,6 +66,23 @@ TEST(Duration_ConstructionTest, ConstructFromFractionalChronoDurationStoresCorre
 	EXPECT_DOUBLE_EQ(duration.seconds(), 0.0015);
 }
 
+TEST(Duration_ConstructionTest, ConstructFromOutOfRangeValueThrows)
+{
+	EXPECT_THROW(
+		spk::Duration(std::numeric_limits<long double>::max(), spk::TimeUnit::Nanosecond),
+		std::out_of_range);
+	EXPECT_THROW(
+		spk::Duration(-std::numeric_limits<long double>::max(), spk::TimeUnit::Nanosecond),
+		std::out_of_range);
+}
+
+TEST(Duration_ConstructionTest, ConstructFromUnknownTimeUnitThrows)
+{
+	const spk::TimeUnit unknownUnit = static_cast<spk::TimeUnit>(-1);
+
+	EXPECT_THROW(spk::Duration(1.0L, unknownUnit), std::invalid_argument);
+}
+
 TEST(Duration_ConstructionTest, CopyConstructorPreservesValue)
 {
 	const spk::Duration source(2.5L, spk::TimeUnit::Second);
@@ -115,6 +134,30 @@ TEST(Duration_AssignmentTest, MoveAssignmentPreservesValue)
 	EXPECT_EQ(destination.nanoseconds(), sourceNanoseconds);
 	EXPECT_EQ(destination.milliseconds(), sourceMilliseconds);
 	EXPECT_DOUBLE_EQ(destination.seconds(), sourceSeconds);
+}
+
+TEST(Duration_AssignmentTest, CopyAssignmentFromSelfPreservesValue)
+{
+	spk::Duration duration(3.25L, spk::TimeUnit::Second);
+	const spk::Duration &sameDuration = duration;
+
+	duration = sameDuration;
+
+	EXPECT_EQ(duration.nanoseconds(), 3250000000LL);
+	EXPECT_EQ(duration.milliseconds(), 3250LL);
+	EXPECT_DOUBLE_EQ(duration.seconds(), 3.25);
+}
+
+TEST(Duration_AssignmentTest, MoveAssignmentFromSelfPreservesValue)
+{
+	spk::Duration duration(3.25L, spk::TimeUnit::Second);
+	spk::Duration &sameDuration = duration;
+
+	duration = std::move(sameDuration);
+
+	EXPECT_EQ(duration.nanoseconds(), 3250000000LL);
+	EXPECT_EQ(duration.milliseconds(), 3250LL);
+	EXPECT_DOUBLE_EQ(duration.seconds(), 3.25);
 }
 
 TEST(Duration_LiteralTest, IntegerSecondsLiteralWorks)
@@ -296,6 +339,14 @@ TEST(Duration_StringConversionTest, ConvertsToRequestedUnitString)
 	EXPECT_EQ(duration.toString(), "1500000000ns");
 }
 
+TEST(Duration_StringConversionTest, ToStringRejectsUnknownTimeUnit)
+{
+	const spk::Duration duration(1.5L, spk::TimeUnit::Second);
+	const spk::TimeUnit unknownUnit = static_cast<spk::TimeUnit>(-1);
+
+	EXPECT_THROW(auto resultString = duration.toString(unknownUnit), std::invalid_argument);
+}
+
 TEST(Duration_StringConversionTest, ConvertsToRequestedUnitWideString)
 {
 	const spk::Duration duration(1.5L, spk::TimeUnit::Second);
@@ -303,6 +354,14 @@ TEST(Duration_StringConversionTest, ConvertsToRequestedUnitWideString)
 	EXPECT_EQ(duration.toWstring(spk::TimeUnit::Second), L"1.5s");
 	EXPECT_EQ(duration.toWstring(spk::TimeUnit::Millisecond), L"1500ms");
 	EXPECT_EQ(duration.toWstring(), L"1500000000ns");
+}
+
+TEST(Duration_StringConversionTest, ToWstringRejectsUnknownTimeUnit)
+{
+	const spk::Duration duration(1.5L, spk::TimeUnit::Second);
+	const spk::TimeUnit unknownUnit = static_cast<spk::TimeUnit>(-1);
+
+	EXPECT_THROW(auto resultString = duration.toWstring(unknownUnit), std::invalid_argument);
 }
 
 TEST(Duration_StreamTest, StreamsDefaultNanosecondString)

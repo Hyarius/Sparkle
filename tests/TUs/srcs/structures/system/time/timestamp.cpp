@@ -1,6 +1,8 @@
 #include <gtest/gtest.h>
 
+#include <limits>
 #include <sstream>
+#include <stdexcept>
 #include <utility>
 
 #include "structures/system/time/spk_duration.hpp"
@@ -50,6 +52,23 @@ TEST(Timestamp_ConstructionTest, ConstructFromDurationStoresCorrectValue)
 	EXPECT_EQ(timestamp.nanoseconds(), 2500000000LL);
 	EXPECT_EQ(timestamp.milliseconds(), 2500LL);
 	EXPECT_DOUBLE_EQ(timestamp.seconds(), 2.5);
+}
+
+TEST(Timestamp_ConstructionTest, ConstructFromOutOfRangeValueThrows)
+{
+	EXPECT_THROW(
+		spk::Timestamp(std::numeric_limits<long double>::max(), spk::TimeUnit::Nanosecond),
+		std::out_of_range);
+	EXPECT_THROW(
+		spk::Timestamp(-std::numeric_limits<long double>::max(), spk::TimeUnit::Nanosecond),
+		std::out_of_range);
+}
+
+TEST(Timestamp_ConstructionTest, ConstructFromUnknownTimeUnitThrows)
+{
+	const spk::TimeUnit unknownUnit = static_cast<spk::TimeUnit>(-1);
+
+	EXPECT_THROW(spk::Timestamp(1.0L, unknownUnit), std::invalid_argument);
 }
 
 TEST(Timestamp_ConstructionTest, CopyConstructorPreservesValue)
@@ -103,6 +122,30 @@ TEST(Timestamp_AssignmentTest, MoveAssignmentPreservesValue)
 	EXPECT_EQ(destination.nanoseconds(), sourceNanoseconds);
 	EXPECT_EQ(destination.milliseconds(), sourceMilliseconds);
 	EXPECT_DOUBLE_EQ(destination.seconds(), sourceSeconds);
+}
+
+TEST(Timestamp_AssignmentTest, CopyAssignmentFromSelfPreservesValue)
+{
+	spk::Timestamp timestamp(4.5L, spk::TimeUnit::Second);
+	const spk::Timestamp &sameTimestamp = timestamp;
+
+	timestamp = sameTimestamp;
+
+	EXPECT_EQ(timestamp.nanoseconds(), 4500000000LL);
+	EXPECT_EQ(timestamp.milliseconds(), 4500LL);
+	EXPECT_DOUBLE_EQ(timestamp.seconds(), 4.5);
+}
+
+TEST(Timestamp_AssignmentTest, MoveAssignmentFromSelfPreservesValue)
+{
+	spk::Timestamp timestamp(4.5L, spk::TimeUnit::Second);
+	spk::Timestamp &sameTimestamp = timestamp;
+
+	timestamp = std::move(sameTimestamp);
+
+	EXPECT_EQ(timestamp.nanoseconds(), 4500000000LL);
+	EXPECT_EQ(timestamp.milliseconds(), 4500LL);
+	EXPECT_DOUBLE_EQ(timestamp.seconds(), 4.5);
 }
 
 TEST(Timestamp_ArithmeticTest, DifferenceBetweenTwoTimestampsReturnsDuration)
@@ -227,6 +270,14 @@ TEST(Timestamp_StringConversionTest, ConvertsToRequestedUnitString)
 	EXPECT_EQ(timestamp.toString(), "1500000000ns");
 }
 
+TEST(Timestamp_StringConversionTest, ToStringRejectsUnknownTimeUnit)
+{
+	const spk::Timestamp timestamp(1.5L, spk::TimeUnit::Second);
+	const spk::TimeUnit unknownUnit = static_cast<spk::TimeUnit>(-1);
+
+	EXPECT_THROW(timestamp.toString(unknownUnit), std::invalid_argument);
+}
+
 TEST(Timestamp_StringConversionTest, ConvertsToRequestedUnitWideString)
 {
 	const spk::Timestamp timestamp(1.5L, spk::TimeUnit::Second);
@@ -234,6 +285,14 @@ TEST(Timestamp_StringConversionTest, ConvertsToRequestedUnitWideString)
 	EXPECT_EQ(timestamp.toWstring(spk::TimeUnit::Second), L"1.5s");
 	EXPECT_EQ(timestamp.toWstring(spk::TimeUnit::Millisecond), L"1500ms");
 	EXPECT_EQ(timestamp.toWstring(), L"1500000000ns");
+}
+
+TEST(Timestamp_StringConversionTest, ToWstringRejectsUnknownTimeUnit)
+{
+	const spk::Timestamp timestamp(1.5L, spk::TimeUnit::Second);
+	const spk::TimeUnit unknownUnit = static_cast<spk::TimeUnit>(-1);
+
+	EXPECT_THROW(timestamp.toWstring(unknownUnit), std::invalid_argument);
 }
 
 TEST(Timestamp_StreamTest, StreamsDefaultNanosecondString)

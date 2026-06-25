@@ -1,5 +1,8 @@
 #include <gtest/gtest.h>
 
+#include <stdexcept>
+#include <utility>
+
 #include "structures/graphics/opengl/opengl_wrapper_test_utils.hpp"
 #include "structures/graphics/opengl/spk_opengl_texture.hpp"
 #include "structures/graphics/spk_texture.hpp"
@@ -144,6 +147,18 @@ TEST(OpenGLTextureTest, MoveTransfersGpuCopiesToDestination)
 	EXPECT_EQ(dst.gpu(context.renderContext()).id(), originalId);
 }
 
+TEST(OpenGLTextureTest, MovedFromTextureCannotUploadAndReportsNoGpu)
+{
+	sparkle_test::OpenGLTestContext context;
+
+	spk::Texture src;
+	spk::Texture dst(std::move(src));
+	(void)dst;
+
+	EXPECT_THROW(auto& gpuValue = src.gpu(context.renderContext()), std::runtime_error);
+	EXPECT_FALSE(src.hasGpu(context.renderContext()));
+}
+
 TEST(OpenGLTextureTest, ForceSynchronizationUploadsToGPU)
 {
 	sparkle_test::OpenGLTestContext context;
@@ -196,9 +211,29 @@ TEST(OpenGLTextureTest, EmptyTextureProducesGLIdZero)
 	spk::Texture empty;
 	EXPECT_EQ(empty.gpu(context.renderContext()).id(), 0u);
 
+	spk::Texture zeroHeight;
+	zeroHeight.setPixels(std::vector<uint8_t>{255, 255, 255, 255}, {1, 0}, spk::Texture::Format::RGBA);
+	EXPECT_EQ(zeroHeight.gpu(context.renderContext()).id(), 0u);
+
 	spk::Texture invalidFormat;
 	invalidFormat.setPixels(std::vector<uint8_t>{255}, {1, 1}, spk::Texture::Format::Error);
 	EXPECT_EQ(invalidFormat.gpu(context.renderContext()).id(), 0u);
+}
+
+TEST(OpenGLTextureTest, UnsupportedNonErrorFormatProducesGLIdZero)
+{
+	sparkle_test::OpenGLTestContext context;
+
+	spk::Texture tex;
+	tex.setPixels(
+		std::vector<uint8_t>{255, 255, 255, 255},
+		{1, 1},
+		static_cast<spk::Texture::Format>(0xFFFF),
+		spk::Texture::Filtering::Nearest,
+		spk::Texture::Wrap::Repeat,
+		spk::Texture::Mipmap::Disable);
+
+	EXPECT_EQ(tex.gpu(context.renderContext()).id(), 0u);
 }
 
 TEST(OpenGLTextureTest, MoveAssignmentTransfersGpuCopies)

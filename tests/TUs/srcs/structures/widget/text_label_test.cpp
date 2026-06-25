@@ -108,9 +108,9 @@ TEST(TextLabelTest, SetHorizontalAlignmentSameIsNoOp)
 {
 	spk::TextLabel label("Label", "Hello");
 
-	label.setHorizontalAlignment(spk::HorizontalAlignment::Left);
+	label.setHorizontalAlignment(spk::HorizontalAlignment::Centered);
 
-	EXPECT_EQ(label.horizontalAlignment(), spk::HorizontalAlignment::Left);
+	EXPECT_EQ(label.horizontalAlignment(), spk::HorizontalAlignment::Centered);
 }
 
 TEST(TextLabelTest, SetHorizontalAlignmentUpdates)
@@ -126,9 +126,9 @@ TEST(TextLabelTest, SetVerticalAlignmentSameIsNoOp)
 {
 	spk::TextLabel label("Label", "Hello");
 
-	label.setVerticalAlignment(spk::VerticalAlignment::Top);
+	label.setVerticalAlignment(spk::VerticalAlignment::Centered);
 
-	EXPECT_EQ(label.verticalAlignment(), spk::VerticalAlignment::Top);
+	EXPECT_EQ(label.verticalAlignment(), spk::VerticalAlignment::Centered);
 }
 
 TEST(TextLabelTest, SetVerticalAlignmentUpdates)
@@ -144,10 +144,10 @@ TEST(TextLabelTest, SetAlignmentBothSameIsNoOp)
 {
 	spk::TextLabel label("Label", "Hello");
 
-	label.setAlignment(spk::HorizontalAlignment::Left, spk::VerticalAlignment::Top);
+	label.setAlignment(spk::HorizontalAlignment::Centered, spk::VerticalAlignment::Centered);
 
-	EXPECT_EQ(label.horizontalAlignment(), spk::HorizontalAlignment::Left);
-	EXPECT_EQ(label.verticalAlignment(), spk::VerticalAlignment::Top);
+	EXPECT_EQ(label.horizontalAlignment(), spk::HorizontalAlignment::Centered);
+	EXPECT_EQ(label.verticalAlignment(), spk::VerticalAlignment::Centered);
 }
 
 TEST(TextLabelTest, SetPaddingSameIsNoOp)
@@ -168,6 +168,16 @@ TEST(TextLabelTest, SetPaddingDifferentUpdates)
 	label.setPadding(newPadding);
 
 	EXPECT_EQ(label.padding(), newPadding);
+}
+
+TEST(TextLabelTest, RenderUnitIsEmptyWhenGeometryIsEmpty)
+{
+	spk::TextLabel label("Label", "Hello");
+
+	std::shared_ptr<spk::RenderUnit> renderUnit = label.renderUnit();
+
+	ASSERT_NE(renderUnit, nullptr);
+	EXPECT_TRUE(renderUnit->empty());
 }
 
 TEST(TextLabelTest, TextAnchorExercisesAllAlignmentBranches)

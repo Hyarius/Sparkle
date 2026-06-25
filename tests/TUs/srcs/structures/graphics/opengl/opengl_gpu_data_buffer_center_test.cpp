@@ -71,6 +71,23 @@ TEST_F(GPUDataBufferCenterFixture, AddSSBOStoresAndGetSSBORetrieves)
 	EXPECT_EQ(&retrieved, ssbo.get());
 }
 
+TEST_F(GPUDataBufferCenterFixture, AddUBOStoresAndGetUBORetrieves)
+{
+	auto ubo = makeUBO(4);
+	spk::GPUDataBufferCenter::addUBO("TestUBO", ubo);
+
+	EXPECT_TRUE(spk::GPUDataBufferCenter::contains("TestUBO"));
+	spk::UniformBufferObject& retrieved = spk::GPUDataBufferCenter::getUBO("TestUBO");
+	EXPECT_EQ(&retrieved, ubo.get());
+}
+
+TEST_F(GPUDataBufferCenterFixture, GetUBOThrowsWhenNameNotFound)
+{
+	EXPECT_THROW(
+		spk::GPUDataBufferCenter::getUBO("TestUBO"),
+		std::runtime_error);
+}
+
 TEST_F(GPUDataBufferCenterFixture, GetSSBOThrowsWhenNameNotFound)
 {
 	EXPECT_THROW(

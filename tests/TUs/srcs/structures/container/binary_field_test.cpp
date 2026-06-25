@@ -44,6 +44,18 @@ TEST(BinaryFieldTest, NullDataWithNonZeroSizeThrows)
 	EXPECT_THROW(spk::BinaryField(nullptr, 4), std::runtime_error);
 }
 
+TEST(BinaryFieldTest, ZeroSizeRootCanUseNullData)
+{
+	spk::BinaryField field(nullptr, 0);
+	const spk::BinaryField &constField = field;
+
+	EXPECT_TRUE(field.isValid());
+	EXPECT_EQ(field.data(), nullptr);
+	EXPECT_EQ(constField.data(), nullptr);
+	EXPECT_TRUE(field.bytes().empty());
+	EXPECT_TRUE(constField.bytes().empty());
+}
+
 TEST(BinaryFieldTest, AddsNamedValueAtExplicitOffset)
 {
 	std::array<std::uint8_t, 16> data{};
@@ -63,6 +75,7 @@ TEST(BinaryFieldTest, RejectsChildOutsideParentBounds)
 	spk::BinaryField root(data.data(), data.size());
 
 	EXPECT_THROW(root.addValue("TooLarge", 4, 8), std::runtime_error);
+	EXPECT_THROW(root.addValue("TooFar", 9, 1), std::runtime_error);
 }
 
 TEST(BinaryFieldTest, AddsObjectAndValidatesChildrenAgainstObjectSize)
@@ -136,6 +149,15 @@ TEST(BinaryFieldTest, AssignsTriviallyCopyableScalarWithExactSize)
 	EXPECT_THROW(value = std::uint16_t{0xFFFFu}, std::runtime_error);
 }
 
+TEST(BinaryFieldTest, SetRejectsWrongSizedScalar)
+{
+	std::array<std::uint8_t, 8> data{};
+	spk::BinaryField root(data.data(), data.size());
+	spk::BinaryField value = root.addValue("Value", 0, sizeof(std::uint32_t));
+
+	EXPECT_THROW(value.set(std::uint16_t{0xFFFFu}), std::runtime_error);
+}
+
 TEST(BinaryFieldTest, AssignsOneByteValueWithExplicitByteType)
 {
 	std::array<std::uint8_t, 4> data{};
@@ -159,6 +181,17 @@ TEST(BinaryFieldTest, AssignsStdArrayWhenByteSizeMatches)
 	EXPECT_EQ(data[2], 0xAAu);
 	EXPECT_EQ(data[3], 0xBBu);
 	EXPECT_EQ(data[4], 0xCCu);
+}
+
+TEST(BinaryFieldTest, ArrayAssignmentRejectsWrongByteSize)
+{
+	std::array<std::uint8_t, 8> data{};
+	spk::BinaryField root(data.data(), data.size());
+	spk::BinaryField values = root.addArray("Values", 1, 3, sizeof(std::uint8_t));
+
+	const std::array<std::uint8_t, 2> source{0xAAu, 0xBBu};
+
+	EXPECT_THROW(values = source, std::runtime_error);
 }
 
 TEST(BinaryFieldTest, IndexedArrayElementAssignmentChecksElementSize)
@@ -185,6 +218,17 @@ TEST(BinaryFieldTest, ObjectAssignmentCopiesExactObjectBytes)
 	EXPECT_EQ(object.as<Uint3>().x, 1u);
 	EXPECT_EQ(object.as<Uint3>().y, 2u);
 	EXPECT_EQ(object.as<Uint3>().z, 3u);
+}
+
+TEST(BinaryFieldTest, AsRejectsWrongSizedType)
+{
+	std::array<std::uint8_t, 8> data{};
+	spk::BinaryField root(data.data(), data.size());
+	spk::BinaryField value = root.addValue("Value", 0, sizeof(std::uint32_t));
+
+	value = std::uint32_t{0x12345678u};
+
+	EXPECT_THROW(value.as<std::uint16_t>(), std::runtime_error);
 }
 
 TEST(BinaryFieldTest, BytesExposeTheSelectedSection)

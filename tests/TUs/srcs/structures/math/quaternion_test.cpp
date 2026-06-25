@@ -153,6 +153,14 @@ TEST(QuaternionTest, LookAtSelectsEachLargestDiagonalBranch)
 		spk::Vector3(0.0f, 0.0f, -1.0f),
 		spk::Vector3(0.0f, -1.0f, 0.0f));
 	EXPECT_NEAR(rolledForward.dot(rolledForward), 1.0f, 0.000001f);
+
+	// trace <= 0 with m00 > m11 but m00 <= m22, reaching the second half of
+	// the m00-largest diagonal check before falling through to m22.
+	const spk::Quaternion m00NotGreaterThanM22 = spk::Quaternion::lookAt(
+		spk::Vector3::Zero,
+		spk::Vector3(-1.0f, -1.0f, -1.0f),
+		spk::Vector3(-0.75f, -1.0f, -0.75f));
+	EXPECT_NEAR(m00NotGreaterThanM22.dot(m00NotGreaterThanM22), 1.0f, 0.000001f);
 }
 
 TEST(QuaternionTest, SlerpCoversShortPathAndLinearFallback)

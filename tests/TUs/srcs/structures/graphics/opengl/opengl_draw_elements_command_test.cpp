@@ -96,6 +96,44 @@ TEST(OpenGLDrawElementsCommandTest, DrawsIndexedElementsFromIndexBuffer)
 	EXPECT_EQ(result.differentPixelCount, 0);
 }
 
+TEST(OpenGLDrawElementsCommandTest, DrawsWithExternallyBoundProgramAndVertexArray)
+{
+	constexpr int width = 24;
+	constexpr int height = 24;
+	sparkle_test::OpenGLTestContext context(spk::Rect2D(0, 0, width, height));
+	spk::RenderContext& renderContext = context.renderContext();
+
+	const auto program = sparkle_test::makeColorProgram();
+	const auto vertexArray = makeQuadVAO();
+	const auto indexBuffer = makeQuadIndexBuffer();
+
+	// Bind program + vertex array ourselves, then issue the index-buffer-only
+	// command: execute() must take the _program == nullptr and _vertexArray ==
+	// nullptr paths and reuse the externally bound state.
+	program->activate(renderContext);
+	vertexArray->activate(renderContext);
+
+	spk::RenderUnitBuilder builder;
+	spk::Viewport viewport(spk::Rect2D(0, 0, width, height));
+	builder.emplace<spk::ViewportCommand>(viewport);
+	builder.emplace<spk::ClearCommand>(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
+	builder.emplace<spk::DrawElementsCommand>(spk::Primitive::Triangles, indexBuffer);
+
+	spk::RenderUnit unit = builder.build();
+	unit.execute(renderContext);
+	context.gpuRuntime().waitUntilWorkDone();
+
+	const std::filesystem::path actual = sparkle_test::resultImagePath("draw_elements_command_external_actual.png");
+	const std::filesystem::path expected = sparkle_test::expectedImagePath("draw_elements_command_external_expected.png");
+	const std::filesystem::path diff = sparkle_test::resultImagePath("draw_elements_command_external_diff.png");
+	context.gpuRuntime().saveScreenshot(actual, spk::Rect2D(0, 0, width, height));
+	sparkle_test::writeSolidExpectedImage(expected, width, height, {255, 0, 0, 255});
+
+	const sparkle_test::ImageComparisonResult result = sparkle_test::compareImages(actual, expected, diff);
+	EXPECT_TRUE(result.matches) << "actual=[" << actual.string() << "] expected=[" << expected.string() << "] diff=[" << diff.string() << "]";
+	EXPECT_EQ(result.differentPixelCount, 0);
+}
+
 TEST(OpenGLDrawElementsCommandTest, ThrowsWhenIndexBufferIsMissing)
 {
 	sparkle_test::OpenGLTestContext context;

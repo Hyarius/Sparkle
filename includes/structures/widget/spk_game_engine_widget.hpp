@@ -1,6 +1,5 @@
 #pragma once
 
-#include <memory>
 #include <string>
 
 #include "structures/game_engine/spk_game_engine.hpp"
@@ -11,17 +10,13 @@ namespace spk
 	class GameEngineWidget : public spk::Widget
 	{
 	private:
-		std::unique_ptr<spk::GameEngine> _ownedGameEngine = nullptr;
-		spk::GameEngine *_gameEngine = nullptr;
+		mutable spk::GameEngine _gameEngine;
 
 		// Single forwarding point shared by every event override below.
 		template <typename TEvent>
 		void _forward(TEvent &p_event)
 		{
-			if (_gameEngine != nullptr)
-			{
-				_gameEngine->dispatchEvent(p_event);
-			}
+			_gameEngine.dispatchEvent(p_event);
 		}
 
 	protected:
@@ -56,8 +51,5 @@ namespace spk
 
 		[[nodiscard]] spk::GameEngine &gameEngine();
 		[[nodiscard]] const spk::GameEngine &gameEngine() const;
-
-		void setExternalGameEngine(spk::GameEngine *p_gameEngine);
-		void resetOwnedGameEngine();
 	};
 }
