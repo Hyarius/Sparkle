@@ -67,6 +67,11 @@
 			}
 		},
 		{
+			"name": "coverage",
+			"inherits": "coverage-clang",
+			"description": "Configure Debug test build with LLVM coverage instrumentation"
+		},
+		{
 			"name": "playground",
 			"inherits": "default",
 			"description": "Configure for Debug build with Playground executable",
@@ -120,6 +125,13 @@
 			]
 		},
 		{
+			"name": "coverage",
+			"configurePreset": "coverage",
+			"targets": [
+				"coverage"
+			]
+		},
+		{
 			"name": "playground",
 			"configurePreset": "playground",
 			"targets": [
@@ -148,6 +160,10 @@
 		{
 			"name": "coverage-clang",
 			"configurePreset": "coverage-clang"
+		},
+		{
+			"name": "coverage",
+			"configurePreset": "coverage"
 		},
 		{
 			"name": "playground",
