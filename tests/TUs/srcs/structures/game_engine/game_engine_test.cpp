@@ -10,7 +10,6 @@
 
 namespace spk
 {
-	// Test-only accessor for the engine's private, widget-driven phase methods.
 	struct GameEngineTester
 	{
 		static void update(spk::GameEngine &p_engine, const spk::UpdateTick &p_tick) { p_engine.update(p_tick); }
@@ -294,7 +293,7 @@ TEST(GameEngineTest, RemoveEntityIgnoresEntityNotRegisteredHere)
 	spk::Entity stray;
 	stray.addComponent<ValueComponent>(99);
 
-	engine.removeEntity(&stray); // not registered here -> no-op, must not disturb anything
+	engine.removeEntity(&stray);
 
 	spk::UpdateTick tick{};
 	spk::GameEngineTester::update(engine, tick);
@@ -511,9 +510,6 @@ TEST(GameEngineTest, AddingEntityWithChildrenCascadesRegistration)
 
 TEST(GameEngineTest, EntityOutlivingEngineIsSafelyDetached)
 {
-	// Declared before the engine, so the entity is destroyed LAST: the engine is gone
-	// by the time ~Entity runs. The entity holds only the engine UUID (by value) and the
-	// store is process-wide, so nothing dangles when the engine dies first.
 	spk::Entity entity;
 	entity.addComponent<ValueComponent>(1);
 
@@ -526,7 +522,6 @@ TEST(GameEngineTest, EntityOutlivingEngineIsSafelyDetached)
 		spk::GameEngineTester::update(engine, tick);
 	}
 
-	// Still a usable, fully-owned entity; nothing dereferences the dead engine.
 	EXPECT_NO_THROW(entity.addComponent<ValueComponent>(2));
 	EXPECT_EQ(entity.components().size(), 2u);
 }
@@ -574,8 +569,6 @@ TEST(GameEngineTest, ReparentingMigratesComponentsBetweenEngines)
 	ASSERT_EQ(logicA.sum, 5);
 	ASSERT_EQ(logicB.sum, 0);
 
-	// Re-parent under an entity that belongs to engine B: the child's component migrates
-	// from engine A's bucket to engine B's (the 2B live move).
 	child.setParent(&rootB);
 
 	spk::GameEngineTester::update(engineA, tick);
@@ -599,12 +592,10 @@ TEST(GameEngineTest, DeactivatingParentStopsChildComponentsFromBeingProcessed)
 	spk::GameEngineTester::update(engine, tick);
 	ASSERT_EQ(logic.sum, 8);
 
-	// Deactivating the parent cascades global-deactivation to the child sub-tree.
 	parent.deactivate();
 	spk::GameEngineTester::update(engine, tick);
 	EXPECT_EQ(logic.sum, 0);
 
-	// Reactivating restores it (the child's own local flag was never touched).
 	parent.activate();
 	spk::GameEngineTester::update(engine, tick);
 	EXPECT_EQ(logic.sum, 8);

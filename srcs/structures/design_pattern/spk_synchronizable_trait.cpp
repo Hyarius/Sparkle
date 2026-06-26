@@ -14,8 +14,6 @@ namespace spk
 
 	void SynchronizableTrait::synchronize() const
 	{
-		// Plain load first: the clean path (every draw) stays read-only instead
-		// of paying an atomic read-modify-write.
 		if (_needsSynchronization.load() == false)
 		{
 			return;

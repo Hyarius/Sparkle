@@ -14,15 +14,12 @@ namespace spk
 	class Workspace : public spk::Widget
 	{
 	private:
-		// Content is declared first so the menu bar (and its dropdowns) renders on top of it.
 		TContentType _content;
 		spk::MenuBar _menuBar;
 
 	protected:
 		void _onGeometryChange() override
 		{
-			// The menu bar receives the full rect so its dropdowns are not scissored away;
-			// only its background strip is _menuBar.height() tall.
 			_menuBar.setGeometry(geometry().atOrigin());
 
 			const unsigned int contentHeight =

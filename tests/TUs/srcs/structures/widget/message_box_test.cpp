@@ -4,7 +4,6 @@
 #include "structures/system/device/window/window_test_utils.hpp"
 #include "structures/widget/spk_widget_visual_test_helpers.hpp"
 
-// Included last so its MessageBox macro #undef wins over <Windows.h> pulled by the test utils.
 #include "structures/widget/spk_message_box.hpp"
 
 TEST(MessageBoxTest, SetTextUpdatesTextArea)

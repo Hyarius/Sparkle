@@ -37,8 +37,6 @@ TEST(ResizableElementSizeTest, SetValuesActAsConstantGenerators)
 	EXPECT_EQ(widget.fixedSize(), spk::Vector2UInt(30, 40));
 	EXPECT_EQ(widget.maximalSize(), spk::Vector2UInt(50, 60));
 
-	// A set value installs a constant generator, so it survives a cache release
-	// (releaseSizeCache is triggered on every geometry/render invalidation).
 	widget.releaseSizeCache();
 
 	EXPECT_EQ(widget.minimalSize(), spk::Vector2UInt(10, 20));

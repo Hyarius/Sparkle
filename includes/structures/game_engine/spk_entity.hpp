@@ -26,27 +26,15 @@ namespace spk
 		spk::UUID _uuid;
 		std::vector<std::unique_ptr<spk::Component>> _components;
 
-		// Engine membership by value: the UUID of the engine this entity (and, by
-		// propagation, its sub-tree) is registered with. Null = registered with none.
-		// No pointer to the engine, so nothing can dangle.
 		spk::UUID _engineId;
 
-		// Dual activation state. ActivableTrait::isActivated() is the LOCAL switch the
-		// user toggles; _globalActivated is the effective state = local AND parent's
-		// global. It is maintained incrementally on (de)activation and re-parenting so
-		// that Component::isProcessable() is an O(1) read instead of an ancestor walk.
 		bool _globalActivated = false;
 
 		spk::ActivableTrait::Contract _activationContract;
 		spk::ActivableTrait::Contract _deactivationContract;
 
-		// Recompute _globalActivated from local state and the parent, cascading to the
-		// sub-tree only where the flag actually changes (so an individually-deactivated
-		// child stays off when an ancestor is re-activated).
 		void _refreshGlobalActivated();
 
-		// Re-key every owned component (and the sub-tree's) from the current engine UUID
-		// to p_engineId in the shared store. Used by registration and re-parent migration.
 		void _setEngineId(const spk::UUID &p_engineId);
 
 	protected:

@@ -8,8 +8,6 @@
 
 namespace
 {
-	// Exposes the protected Widget overrides so the test can drive every forwarding
-	// path directly without standing up a full window/event pipeline.
 	class ExposedGameEngineWidget : public spk::GameEngineWidget
 	{
 	public:

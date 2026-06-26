@@ -597,7 +597,6 @@ TEST(PushButtonTest, FlatPressedStateShowsOnlyLabel)
 	EXPECT_FALSE(button.releasedBackground().isActivated());
 }
 
-// ---- Per-alignment-combination snapshot tests ----
 
 namespace
 {
@@ -657,7 +656,6 @@ INSTANTIATE_TEST_SUITE_P(
 	[](const ::testing::TestParamInfo<AlignmentParam>& info) { return info.param.name; }
 );
 
-// ---- Padding shifts the text anchor ----
 
 TEST(PushButtonVisualTest, PaddingShiftsTextAnchorFromTopLeft)
 {
@@ -719,7 +717,6 @@ TEST(PushButtonVisualTest, PaddingShiftsTextAnchorFromBottomRight)
 	EXPECT_TRUE(result.matches);
 }
 
-// ---- Alignment is preserved across pressed/released state changes ----
 
 TEST(PushButtonVisualTest, AlignmentPreservedWhenPressed)
 {

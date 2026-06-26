@@ -207,7 +207,6 @@ TEST(TextLabelTest, TextAnchorExercisesAllAlignmentBranches)
 	}
 }
 
-// ---- Per-alignment-combination snapshot tests ----
 
 namespace
 {
@@ -264,7 +263,6 @@ INSTANTIATE_TEST_SUITE_P(
 	[](const ::testing::TestParamInfo<AlignmentParam>& info) { return info.param.name; }
 );
 
-// ---- Padding shifts the anchor point ----
 
 TEST(TextLabelVisualTest, PaddingShiftsTextAnchorInward)
 {

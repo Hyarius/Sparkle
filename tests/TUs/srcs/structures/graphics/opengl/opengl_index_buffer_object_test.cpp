@@ -1,4 +1,4 @@
-﻿#include <array>
+#include <array>
 #include <cstdint>
 #include <stdexcept>
 
@@ -47,7 +47,6 @@ TEST(OpenGLIndexBufferObjectTest, RejectsUnsupportedElementType)
 
 	IndexBufferObject indexBuffer(BufferObject::Usage::StaticDraw, 4);
 	EXPECT_THROW(indexBuffer.setElementType(GL_FLOAT), std::runtime_error);
-	// The rejected type is not stored: the default remains in effect.
 	EXPECT_EQ(indexBuffer.elementType(), static_cast<GLenum>(GL_UNSIGNED_INT));
 }
 

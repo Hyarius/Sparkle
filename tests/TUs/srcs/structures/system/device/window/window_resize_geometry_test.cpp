@@ -83,8 +83,6 @@ TEST(WindowResizeGeometryTest, ResizedWindowUpdatesMainWidgetAndInsetChildGeomet
 
 namespace
 {
-	// Mirrors the UIShowcase MainWidget: fills the window and lays out a Minimum-height
-	// header above an Extend body, both via a padded vertical layout in _onGeometryChange.
 	class VLayoutHost : public spk::Widget
 	{
 	private:
@@ -125,7 +123,6 @@ TEST(WindowResizeGeometryTest, ResizedWindowReflowsNestedLayoutHost)
 	host.setGeometry(rootWidget.geometry());
 	host.activate();
 
-	// Inner area after shrink(5,5) is 1270x790; header takes its 40px minimum, body the rest.
 	EXPECT_EQ(host.geometry(), spk::Rect2D(0, 0, 1280, 800));
 	EXPECT_EQ(host.header.geometry(), spk::Rect2D(5, 5, 1270, 40));
 	EXPECT_EQ(host.body.geometry(), spk::Rect2D(5, 50, 1270, 745));
@@ -135,7 +132,6 @@ TEST(WindowResizeGeometryTest, ResizedWindowReflowsNestedLayoutHost)
 	bundle.platformRuntime->pollEvents();
 	bundle.window->update();
 
-	// Inner area 676x890; header 40px, body fills the rest. Nothing should exceed 686x900.
 	EXPECT_EQ(host.geometry(), spk::Rect2D(0, 0, 686, 900));
 	EXPECT_EQ(host.header.geometry(), spk::Rect2D(5, 5, 676, 40));
 	EXPECT_EQ(host.body.geometry(), spk::Rect2D(5, 50, 676, 845));
@@ -147,7 +143,6 @@ TEST(WindowResizeGeometryTest, ResizedWindowProportionallyRescalesPlainChildWith
 
 	spk::Widget &rootWidget = sparkle_test::WindowAccess::rootWidget(*bundle.window);
 
-	// A plain widget: no _onWindowResizedEvent, no layout, no _onGeometryChange override.
 	spk::Widget child("Child", &rootWidget);
 	child.setGeometry(spk::Rect2D(100, 100, 200, 200));
 	child.activate();
@@ -159,7 +154,6 @@ TEST(WindowResizeGeometryTest, ResizedWindowProportionallyRescalesPlainChildWith
 	bundle.window->update();
 
 	EXPECT_EQ(rootWidget.geometry(), spk::Rect2D(0, 0, 800, 800));
-	// Window doubled in both axes, so the child's anchor (1/4) and size (1/2) ratios double.
 	EXPECT_EQ(child.geometry(), spk::Rect2D(200, 200, 400, 400));
 	EXPECT_EQ(child.absoluteGeometry(), spk::Rect2D(200, 200, 400, 400));
 }

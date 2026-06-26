@@ -9,8 +9,8 @@
 namespace spk
 {
 	static const std::vector<std::pair<int, int>> unicodeBlocks = {
-		{0x0000, 0x007F}, // Basic Latin
-		{0x0080, 0x00FF}, // Latin-1 Supplement
+		{0x0000, 0x007F},
+		{0x0080, 0x00FF},
 	};
 
 	void Font::Atlas::loadAllRenderableGlyphs()

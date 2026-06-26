@@ -10,9 +10,6 @@
 
 namespace
 {
-	// Offscreen render target for visual captures. The hidden test window's back
-	// buffer has undefined pixel ownership and keeps color/depth leftovers from
-	// previous tests; a dedicated framebuffer guarantees a deterministic capture.
 	class OffscreenCaptureTarget
 	{
 	private:
@@ -114,8 +111,6 @@ namespace spk::test
 			context.gpuRuntime().saveScreenshot(actualPath, p_captureRect.atOrigin());
 		}
 
-		// Expected images are validated by hand and committed outside of the TU:
-		// a missing one is a failure, never something the test generates itself.
 		if (std::filesystem::exists(expectedPath) == false)
 		{
 			ADD_FAILURE() << "No expected image for " << p_widgetName << " (" << p_variant << ")."

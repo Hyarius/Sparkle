@@ -9,8 +9,6 @@ namespace spk
 {
 	namespace OpenGL
 	{
-		// GPU-side texture. Bound to the RenderContext that uploaded it and only
-		// usable while that context is current.
 		class Texture : public Object
 		{
 		private:

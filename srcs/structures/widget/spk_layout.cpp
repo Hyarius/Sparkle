@@ -129,7 +129,6 @@ namespace spk
 
 	spk::Vector2UInt Layout::minimalSize() const
 	{
-		// Layouts have no invalidation hook on their children, so refresh on query.
 		releaseMinimalSize();
 		return spk::ResizableElement::minimalSize();
 	}

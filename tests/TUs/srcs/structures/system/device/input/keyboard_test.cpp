@@ -151,7 +151,7 @@ namespace
 
 		return result;
 	}
-} // namespace
+}
 
 TEST(KeyboardTest, DefaultConstructorInitializesAllKeysToUp)
 {

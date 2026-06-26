@@ -12,10 +12,6 @@
 #include "structures/graphics/rendering/command/spk_color_rectangle_render_command.hpp"
 #include "structures/graphics/rendering/unit/spk_render_unit_builder.hpp"
 
-// Depth contract under test: vertex z is the layer, valid in [0, maxLayer], and a
-// HIGHER layer always covers a lower one regardless of draw order. The hidden test
-// window's back buffer has undefined pixel ownership, so every capture goes through
-// a dedicated offscreen framebuffer and pixels are asserted directly.
 
 namespace
 {
@@ -80,8 +76,6 @@ TEST(DepthOrderingRenderTest, PositiveDepthIsVisibleOnClearedTarget)
 
 TEST(DepthOrderingRenderTest, DepthOneCoversDepthZeroWhenDrawnFirst)
 {
-	// The depth-1 rectangle is drawn BEFORE the depth-0 one: only the depth buffer
-	// can keep it on top, draw order would yield the opposite result.
 	constexpr int width = 16;
 	constexpr int height = 16;
 	sparkle_test::OpenGLTestContext context(spk::Rect2D(0, 0, width, height));
@@ -128,10 +122,6 @@ TEST(DepthOrderingRenderTest, DepthOneCoversDepthZeroWhenDrawnLast)
 
 TEST(DepthOrderingRenderTest, IntermediateDepthsStackByLayerNotByDrawOrder)
 {
-	// Staircase overlap, drawn in scrambled order (5, 10, 0):
-	//   left third  -> only the depth-10 rect          -> green
-	//   middle      -> depth-10 over depth-5 (and 0)   -> green
-	//   right third -> depth-5 over depth-0            -> blue
 	constexpr int width = 18;
 	constexpr int height = 12;
 	sparkle_test::OpenGLTestContext context(spk::Rect2D(0, 0, width, height));
@@ -181,8 +171,6 @@ TEST(DepthOrderingRenderTest, EqualDepthsResolveByDrawOrder)
 
 TEST(DepthOrderingRenderTest, TopLayerIsVisibleAndCoversLowerLayers)
 {
-	// maxLayer itself sits exactly on the near plane, where float rounding of the
-	// projection can clip it: the highest reliably usable layer is just below it.
 	constexpr int width = 16;
 	constexpr int height = 16;
 	sparkle_test::OpenGLTestContext context(spk::Rect2D(0, 0, width, height));
@@ -206,8 +194,6 @@ TEST(DepthOrderingRenderTest, TopLayerIsVisibleAndCoversLowerLayers)
 
 TEST(DepthOrderingRenderTest, DepthBeyondMaxLayerIsClipped)
 {
-	// Documents the valid layer range [0, maxLayer]: anything farther than the
-	// near plane is clipped away instead of wrapping back into the scene.
 	constexpr int width = 16;
 	constexpr int height = 16;
 	sparkle_test::OpenGLTestContext context(spk::Rect2D(0, 0, width, height));

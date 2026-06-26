@@ -18,9 +18,6 @@ namespace spk
 	void PlatformRuntime::pollEvents()
 	{
 		MSG message{};
-		// Win32 window messages are delivered when this thread calls DispatchMessage.
-		// That means WndProc runs on this same thread; there is no separate OS-created
-		// platform thread. The platform thread is the thread running this pump.
 		while (PeekMessageW(&message, nullptr, 0, 0, PM_REMOVE) == TRUE)
 		{
 			TranslateMessage(&message);

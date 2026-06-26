@@ -221,9 +221,6 @@ TEST(TextAreaTest, GridLayoutMinimalWidthUsesNarrowestNotUnwrappedWidth)
 	spk::GridLayout layout;
 	layout.setWidget(0, 0, &textArea, spk::Layout::SizePolicy::Minimum);
 
-	// The layout's minimal width must be the text area's true minimum (narrowest wrap), not
-	// its unwrapped single-line width, otherwise a parent layout can never shrink it and the
-	// text overflows instead of wrapping.
 	EXPECT_EQ(layout.minimalSize().x, textArea.minimalSize().x);
 	EXPECT_LT(layout.minimalSize().x, textArea.computePreferredSize(600).x);
 }

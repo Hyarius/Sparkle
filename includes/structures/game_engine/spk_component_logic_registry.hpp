@@ -15,8 +15,6 @@
 
 namespace spk
 {
-	// Owns the engine's logics and runs them, highest priority first.
-	// Logics are added explicitly (engine.add<TLogic>()); there is no global catalog.
 	class ComponentLogicRegistry
 	{
 	private:
@@ -32,7 +30,6 @@ namespace spk
 				return;
 			}
 
-			// Higher priority runs first; stable so equal priorities keep insertion order.
 			std::stable_sort(
 				_logics.begin(),
 				_logics.end(),
@@ -128,8 +125,6 @@ namespace spk
 			}
 		}
 
-		// One template replaces the per-event dispatch loops: overload resolution on
-		// IComponentLogic::onEvent selects the right virtual for TEvent.
 		template <typename TEvent>
 		void dispatchEvent(TEvent &p_event, spk::ComponentRegistry &p_registry)
 		{

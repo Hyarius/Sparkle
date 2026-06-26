@@ -45,8 +45,6 @@ namespace spk
 
 	std::size_t IndexBufferObject::count() const noexcept
 	{
-		// setElementType() rejects unsupported types and the default is valid, so
-		// indexElementSize() is always non-zero here.
 		return size() / indexElementSize(_elementType);
 	}
 }

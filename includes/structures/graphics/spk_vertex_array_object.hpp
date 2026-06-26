@@ -58,8 +58,6 @@ namespace spk
 		VertexArrayObject(VertexArrayObject &&) noexcept = delete;
 		VertexArrayObject &operator=(VertexArrayObject &&) noexcept = delete;
 
-		// Resolves (building if needed) this vertex array's GPU copy for p_context.
-		// p_context must be the current context.
 		[[nodiscard]] spk::OpenGL::VertexArray &gpu(const spk::RenderContext &p_context) const;
 		[[nodiscard]] bool hasGpu(const spk::RenderContext &p_context) const noexcept;
 

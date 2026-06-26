@@ -10,8 +10,6 @@ namespace spk
 {
 	namespace OpenGL
 	{
-		// GPU-side buffer storage. Bound to the RenderContext that allocated it and
-		// only usable while that context is current.
 		class Buffer : public Object
 		{
 		private:
@@ -32,8 +30,6 @@ namespace spk
 			[[nodiscard]] GLuint id() const noexcept;
 			[[nodiscard]] std::size_t allocatedSize() const noexcept;
 
-			// Binds the buffer and uploads p_data: in place (glBufferSubData) when the
-			// size is unchanged, reallocating (glBufferData) otherwise.
 			void upload(const void *p_data, std::size_t p_size);
 		};
 	}

@@ -12,7 +12,6 @@ namespace spk
 	private:
 		mutable spk::GameEngine _gameEngine;
 
-		// Single forwarding point shared by every event override below.
 		template <typename TEvent>
 		void _forward(TEvent &p_event)
 		{

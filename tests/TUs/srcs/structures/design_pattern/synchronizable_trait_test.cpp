@@ -243,7 +243,6 @@ TEST(SynchronizableTraitTest, SynchronizeRethrowsAndRestoresPendingFlagWhenImple
 
 	EXPECT_THROW(object.synchronize(), std::runtime_error);
 
-	// The implementation failed, so the object must remain marked for a retry.
 	EXPECT_TRUE(object.needsSynchronization());
 }
 

@@ -1,4 +1,4 @@
-﻿#include <gtest/gtest.h>
+#include <gtest/gtest.h>
 
 #include "structures/graphics/opengl/opengl_wrapper_test_utils.hpp"
 
@@ -37,8 +37,6 @@ TEST(OpenGLShaderStorageBufferObjectTest, ActivateWithoutBindingPointSkipsBaseBi
 	sparkle_test::OpenGLTestContext context;
 	(void)context;
 
-	// No binding point configured: activate() must upload the buffer but skip
-	// glBindBufferBase (the has_value() == false branch).
 	spk::ShaderStorageBufferObject storageBuffer(spk::BufferObject::Usage::DynamicDraw, 16);
 	EXPECT_FALSE(storageBuffer.bindingPoint().has_value());
 	EXPECT_NO_THROW(storageBuffer.activate(context.renderContext()));

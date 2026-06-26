@@ -443,8 +443,6 @@ namespace spk
 		const uint32_t width = std::max(safeAdd(p_minimumContentSize.x, horizontalPadding), menuBarSize.x);
 		const uint32_t height = safeAdd(menuHeight, safeAdd(p_minimumContentSize.y, verticalPadding));
 
-		// Re-applies the current geometry through setGeometry so the new minimum can clamp it;
-		// setGeometry early-returns when nothing changes, which keeps resize callbacks from recursing.
 		setMinimalSize({width, height});
 		setGeometry(geometry());
 	}

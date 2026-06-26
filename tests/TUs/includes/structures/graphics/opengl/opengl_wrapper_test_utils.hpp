@@ -77,9 +77,6 @@ namespace sparkle_test
 		}
 	};
 
-	// Offscreen render target for pixel-assertion tests. The hidden test window's
-	// back buffer has undefined pixel ownership, so deterministic readbacks must go
-	// through a dedicated framebuffer (same rationale as the widget visual helper).
 	class OffscreenRenderTarget
 	{
 	private:
@@ -274,9 +271,6 @@ namespace sparkle_test
 		ASSERT_NE(stbi_write_png(p_path.string().c_str(), p_width, p_height, 4, pixels.data(), p_width * 4), 0);
 	}
 
-	// Saves a screenshot of p_rect from p_context, then compares it against p_expectedPath.
-	// If the expected image does not exist yet, the test fails with instructions to copy
-	// p_actualPath to p_expectedPath after visual validation.
 	inline void validateScreenshot(
 		OpenGLTestContext& p_context,
 		const spk::Rect2D& p_rect,

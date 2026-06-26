@@ -158,7 +158,6 @@ TEST(ComponentLogicTest, UpdateSkipsNonProcessableComponents)
 	spk::UpdateTick tick{};
 	logics.update(tick, engine.componentRegistry());
 
-	// Begin/end still run, but no component is parsed.
 	EXPECT_EQ(logic.trace, "SE");
 	EXPECT_EQ(logic.sum, 0);
 }

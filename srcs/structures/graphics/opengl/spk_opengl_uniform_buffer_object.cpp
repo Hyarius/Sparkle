@@ -50,8 +50,6 @@ namespace spk
 			synchronize();
 		}
 
-		// glBindBufferBase also binds the generic GL_UNIFORM_BUFFER target, so the
-		// plain glBindBuffer from BufferObject::activate would be redundant.
 		spk::OpenGL::Buffer &buffer = gpu(p_context);
 		if (p_context.isUniformBufferBaseActive(_bindingPoint, &buffer) == true)
 		{

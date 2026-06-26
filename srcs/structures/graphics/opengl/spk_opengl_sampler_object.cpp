@@ -50,9 +50,6 @@ namespace spk::OpenGL
 				return obj;
 			});
 
-		// The binding point never changes and glUniform1i is program state, so it
-		// only needs to be sent once per resolved location. The program must be
-		// active when the entry is first resolved.
 		if (loc.validated == false)
 		{
 			glUniform1i(loc.location, p_sampler.bindingPoint());

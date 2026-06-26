@@ -121,14 +121,12 @@ namespace spk
 		Texture();
 		virtual ~Texture() = default;
 
-		// Cheap handle copy. Does NOT duplicate pixels.
 		Texture(const Texture &p_other);
 		Texture &operator=(const Texture &p_other);
 
 		Texture(Texture &&p_other) noexcept;
 		Texture &operator=(Texture &&p_other) noexcept;
 
-		// Explicit deep copy. Duplicates pixels and creates a new texture identity.
 		[[nodiscard]] Texture clone() const;
 
 		void setPixels(

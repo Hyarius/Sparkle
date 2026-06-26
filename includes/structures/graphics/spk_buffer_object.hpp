@@ -54,8 +54,8 @@ namespace spk
 		std::vector<std::uint8_t> _cpuBuffer;
 		spk::BinaryField _field;
 
-		std::uint64_t _structureVersion = 1; // target / usage
-		std::uint64_t _contentVersion = 1;	 // bytes / size
+		std::uint64_t _structureVersion = 1;
+		std::uint64_t _contentVersion = 1;
 
 		mutable spk::CachedOpenGLObjectCollection<spk::OpenGL::Buffer> _gpu;
 
@@ -82,8 +82,6 @@ namespace spk
 		[[nodiscard]] std::uint64_t structureVersion() const noexcept;
 		[[nodiscard]] std::uint64_t contentVersion() const noexcept;
 
-		// Resolves (uploading if needed) this buffer's GPU copy for p_context.
-		// p_context must be the current context.
 		[[nodiscard]] spk::OpenGL::Buffer &gpu(const spk::RenderContext &p_context) const;
 		[[nodiscard]] bool hasGpu(const spk::RenderContext &p_context) const noexcept;
 

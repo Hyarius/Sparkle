@@ -6,8 +6,6 @@
 
 namespace spk::OpenGL
 {
-	// Per-context cache of a uniform's resolved location and validation state.
-	// No GL resource ownership: the destructor issues no GL calls.
 	class UniformLocation : public spk::OpenGL::Object
 	{
 	public:

@@ -45,12 +45,9 @@ namespace spk
 		[[nodiscard]] std::string vertexShaderSource() const;
 		[[nodiscard]] std::string fragmentShaderSource() const;
 
-		// Resolves (compiling if needed) this program's GPU copy for p_context.
-		// p_context must be the current context.
 		[[nodiscard]] spk::OpenGL::Program &gpu(const spk::RenderContext &p_context) const;
 		[[nodiscard]] bool hasGpu(const spk::RenderContext &p_context) const noexcept;
 
-		// Resolved against the current context (SynchronizableTrait / uniform glue).
 		[[nodiscard]] GLuint id() const;
 		[[nodiscard]] bool isLinked() const noexcept;
 

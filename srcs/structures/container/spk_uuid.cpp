@@ -26,7 +26,6 @@ namespace spk
 			byte = static_cast<std::uint8_t>(distribution(generator));
 		}
 
-		// RFC 4122 version 4 UUID.
 		bytes[6] = static_cast<std::uint8_t>((bytes[6] & 0x0Fu) | 0x40u);
 		bytes[8] = static_cast<std::uint8_t>((bytes[8] & 0x3Fu) | 0x80u);
 

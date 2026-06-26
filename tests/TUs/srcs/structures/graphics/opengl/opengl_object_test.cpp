@@ -28,8 +28,6 @@ namespace
 		}
 	}
 
-	// Object's constructor is protected and it allocates no GL resources, so a thin
-	// subclass lets tests drive the base-class context bookkeeping directly.
 	struct TestObject : spk::OpenGL::Object
 	{
 		using spk::OpenGL::Object::_ownsCurrentContext;
@@ -50,7 +48,7 @@ TEST(OpenGLObjectTest, ConstructsWithoutContextAndDoesNotOwnIt)
 	{
 		spk::RenderContext context(frame);
 		context.makeCurrent();
-	} // Destroying the only current context leaves no context current.
+	}
 
 	ASSERT_EQ(spk::RenderContext::current(), nullptr);
 
@@ -99,12 +97,9 @@ TEST(OpenGLObjectTest, ReleaseObjectSchedulesOnAliveOwnerWhenNotCurrent)
 	auto object = std::make_unique<TestObject>();
 	EXPECT_EQ(object->contextId(), owningContext.id());
 
-	// A different context is current: the owner is alive but not current, so the
-	// wrapper must be queued for release on its owner.
 	otherContext.makeCurrent();
 	EXPECT_NO_THROW(spk::OpenGL::releaseObject(std::move(object)));
 
-	// Queued object is destroyed when owningContext flushes during teardown.
 	baseFrame->validateClosure();
 	pumpWinApiMessages();
 }
@@ -120,7 +115,7 @@ TEST(OpenGLObjectTest, ReleaseObjectDropsWrapperWhenOwnerContextIsDead)
 		spk::RenderContext context(frame);
 		context.makeCurrent();
 		object = std::make_unique<TestObject>();
-	} // Owner context dies; no context remains current.
+	}
 
 	ASSERT_EQ(spk::RenderContext::current(), nullptr);
 	EXPECT_NO_THROW(spk::OpenGL::releaseObject(std::move(object)));
@@ -146,7 +141,7 @@ TEST(OpenGLObjectTest, NotifyDeletionsAreNoOpWithoutCurrentContext)
 			"#version 330 core\nvoid main() { gl_Position = vec4(0.0); }\n",
 			"#version 330 core\nout vec4 outColor;\nvoid main() { outColor = vec4(1.0); }\n");
 		vertexArray.emplace();
-	} // Context dies: the GL names are gone but the wrappers persist.
+	}
 
 	ASSERT_EQ(spk::RenderContext::current(), nullptr);
 	EXPECT_NO_THROW(spk::OpenGL::notifyBufferDeleted(*buffer));

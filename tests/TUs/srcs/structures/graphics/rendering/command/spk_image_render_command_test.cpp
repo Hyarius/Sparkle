@@ -53,7 +53,6 @@ TEST(ImageRenderCommandTest, DrawsPartialTextureSection)
 	sparkle_test::OpenGLTestContext context(spk::Rect2D(0, 0, width, height));
 	spk::RenderContext& renderContext = context.renderContext();
 
-	// 2x1 texture: left pixel red, right pixel green
 	std::vector<std::uint8_t> pixels = {255, 0, 0, 255, 0, 255, 0, 255};
 	auto texture = std::make_shared<Texture>();
 	texture->setPixels(
@@ -64,7 +63,6 @@ TEST(ImageRenderCommandTest, DrawsPartialTextureSection)
 		spk::Texture::Wrap::ClampToEdge,
 		spk::Texture::Mipmap::Disable);
 
-	// Section covering only the right (green) pixel
 	const spk::Texture::Section greenSection({0.5f, 0.0f}, {0.5f, 1.0f});
 
 	Viewport viewport(spk::Rect2D(0, 0, width, height));

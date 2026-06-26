@@ -10,14 +10,6 @@ namespace spk
 {
 	class Component;
 
-	// Non-owning index of components that all share the same concrete type, partitioned
-	// by the UUID of the engine they are registered with. Components are owned by their
-	// entity; the container only references them.
-	//
-	// Activation is NOT filtered here: every registered component of this type sits in
-	// its engine's bucket regardless of activation state. Iterating code skips inactive
-	// components inline via Component::isProcessable() (cheap, O(1) thanks to the
-	// precomputed Entity global-activation flag).
 	class ComponentContainer
 	{
 	private:

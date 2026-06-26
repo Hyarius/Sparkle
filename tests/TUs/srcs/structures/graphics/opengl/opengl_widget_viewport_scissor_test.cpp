@@ -228,8 +228,6 @@ TEST(OpenGLWidgetViewportScissorTest, VisualHierarchyIsClippedByParentScissors)
 	sparkle_test::OpenGLTestContext context(spk::Rect2D(0, 0, width, height));
 	spk::RenderContext& renderContext = context.renderContext();
 
-	// The scissor test is always enabled and its region survives from previous
-	// tests: cover the whole target so the clear is complete.
 	glViewport(0, 0, width, height);
 	glScissor(0, 0, width, height);
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -262,8 +260,6 @@ TEST(OpenGLWidgetViewportScissorTest, VisualHierarchyUsesUpdatedAbsoluteGeometry
 	sparkle_test::OpenGLTestContext context(spk::Rect2D(0, 0, width, height));
 	spk::RenderContext& renderContext = context.renderContext();
 
-	// The scissor test is always enabled and its region survives from previous
-	// tests: cover the whole target so the clear is complete.
 	glViewport(0, 0, width, height);
 	glScissor(0, 0, width, height);
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);

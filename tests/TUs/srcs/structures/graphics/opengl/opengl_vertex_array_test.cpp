@@ -53,8 +53,6 @@ TEST(OpenGLVertexArrayTest, SkipsDeletionWhenOwningContextIsNotCurrent)
 	auto vertexArray = std::make_unique<spk::OpenGL::VertexArray>();
 	EXPECT_NE(vertexArray->id(), 0u);
 
-	// Make a different context current, then destroy the VAO: _ownsCurrentContext()
-	// is false, so the destructor must skip glDeleteVertexArrays without crashing.
 	foreignContext.makeCurrent();
 	EXPECT_NO_THROW(vertexArray.reset());
 

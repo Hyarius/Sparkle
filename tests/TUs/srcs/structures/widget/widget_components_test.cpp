@@ -29,7 +29,6 @@ namespace
 	}
 }
 
-// --- Static focus management ---
 
 TEST_F(WidgetFocusTest, TakeFocusKeyboardSetsGlobalSlot)
 {
@@ -143,7 +142,6 @@ TEST_F(WidgetFocusTest, DestructorAutomaticallyReleasesFocus)
 	EXPECT_EQ(spk::Widget::focusedWidget(spk::Widget::FocusType::Mouse), nullptr);
 }
 
-// --- Event routing with keyboard focus ---
 
 TEST_F(WidgetFocusTest, KeyboardFocusRoutesEventToFocusedWidget)
 {
@@ -217,7 +215,6 @@ TEST_F(WidgetFocusTest, WithoutKeyboardFocusEventsPropagateThroughAllWidgets)
 	EXPECT_EQ(child.keyboardEventCount, 1);
 }
 
-// --- Event routing with mouse focus ---
 
 TEST_F(WidgetFocusTest, MouseFocusRoutesEventToFocusedWidget)
 {
@@ -291,7 +288,6 @@ TEST_F(WidgetFocusTest, WithoutMouseFocusEventsPropagateThroughAllWidgets)
 	EXPECT_EQ(child.mouseEventCount, 1);
 }
 
-// --- Focus types are independent ---
 
 TEST_F(WidgetFocusTest, KeyboardAndMouseFocusAreIndependent)
 {

@@ -18,8 +18,6 @@ namespace spk
 		spk::InherenceTrait<spk::Entity>(p_parent),
 		_uuid(spk::UUID::generate())
 	{
-		// Inherit engine membership from the parent (Entity::_onParentChanged does not
-		// fire during base construction, so seed it here).
 		_engineId = (parent() != nullptr ? parent()->_engineId : spk::UUID::null());
 
 		_activationContract = subscribeToActivation([this]() { _refreshGlobalActivated(); });
@@ -116,11 +114,8 @@ namespace spk
 	{
 		(void)p_oldParent;
 
-		// Engine membership follows the (new) parent; detaching to no parent leaves the
-		// engine. Re-parenting between engines migrates the sub-tree's components.
 		_setEngineId(p_newParent != nullptr ? p_newParent->_engineId : spk::UUID::null());
 
-		// Effective activation depends on the parent, so recompute the sub-tree.
 		_refreshGlobalActivated();
 	}
 

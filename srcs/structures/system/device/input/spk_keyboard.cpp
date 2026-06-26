@@ -142,7 +142,7 @@ namespace
 		{spk::Keyboard::AngleBracket, "AngleBracket"},
 		{spk::Keyboard::Process, "Process"},
 	});
-} // namespace
+}
 
 namespace spk
 {
@@ -190,4 +190,4 @@ namespace spk
 		p_stream << toWstring(p_key);
 		return p_stream;
 	}
-} // namespace spk
+}

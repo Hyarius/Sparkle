@@ -32,8 +32,6 @@ namespace spk
 		static inline std::atomic<std::uint64_t> s_deathGeneration = 0;
 		static inline thread_local RenderContext *s_current = nullptr;
 
-		// Monotonic, never reused: a cached {contextId, pointer} pair whose context
-		// died can never be revalidated, so a dangling pointer is unreachable.
 		const std::uint64_t _id = s_nextId.fetch_add(1);
 
 		std::shared_ptr<SurfaceState> _surfaceState;
@@ -43,8 +41,6 @@ namespace spk
 		HDC _deviceContext = nullptr;
 		HGLRC _renderContext = nullptr;
 
-		// GPU objects whose handle died while this context was alive but not
-		// current: they can only be glDelete*'d while this context is current.
 		std::mutex _releaseQueueMutex;
 		std::vector<std::unique_ptr<spk::OpenGL::Object>> _releaseQueue;
 

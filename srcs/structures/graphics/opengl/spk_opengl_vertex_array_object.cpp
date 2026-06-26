@@ -147,8 +147,6 @@ namespace spk
 
 		if (childrenClean == false)
 		{
-			// Child content refreshes (glBufferSubData, same id) happen with no VAO
-			// bound: an ELEMENT_ARRAY rebind would otherwise leak into the bound VAO.
 			if (p_context.isVertexArrayActive(nullptr) == false)
 			{
 				glBindVertexArray(0);

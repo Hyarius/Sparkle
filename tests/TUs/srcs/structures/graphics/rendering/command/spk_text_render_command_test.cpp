@@ -165,8 +165,6 @@ TEST(TextRenderCommandTest, CanExecuteTwiceWithConstructedCommand)
 
 TEST(TextRenderCommandTest, RebuildsDrawCommandAfterAtlasGrowth)
 {
-	// Regression test for stale glyph UVs: TextRenderCommand owns the text to
-	// mesh conversion and must recreate its draw command after the atlas grows.
 	constexpr int width = 64;
 	constexpr int height = 40;
 	sparkle_test::OpenGLTestContext context(spk::Rect2D(0, 0, width, height));

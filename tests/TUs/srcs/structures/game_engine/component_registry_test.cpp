@@ -23,9 +23,6 @@ namespace
 	};
 }
 
-// The store is a process-wide singleton; every test uses freshly generated engine UUIDs
-// so buckets never collide, and clears them at the end to avoid leaving dangling pointers.
-
 TEST(ComponentStoreTest, AddBucketsByTypeAndEngineAndTheViewReadsThem)
 {
 	spk::Entity entity;
@@ -119,7 +116,7 @@ TEST(ComponentStoreTest, NullEngineIdAndNullComponentAreIgnored)
 
 	spk::Entity entity;
 	PositionComponent &position = entity.addComponent<PositionComponent>();
-	store.add(type, spk::UUID::null(), &position); // null engine id -> not stored
+	store.add(type, spk::UUID::null(), &position);
 
 	EXPECT_TRUE(spk::ComponentRegistry(spk::UUID::null()).components<PositionComponent>().empty());
 }

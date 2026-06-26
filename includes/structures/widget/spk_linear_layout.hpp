@@ -361,11 +361,6 @@ namespace spk
 		[[nodiscard]] spk::Vector2UInt _computeMinimalSize() const
 		{
 			const spk::Vector2UInt unbounded = std::numeric_limits<spk::Vector2UInt>::max();
-			// Width is the *true* minimum: querying with no horizontal space makes a word-wrap
-			// widget report its narrowest (widest-word) width rather than its unwrapped single
-			// line, so a parent layout stays free to shrink us and let the content wrap.
-			// Height keeps the unbounded-width (preferred) value so a flexible widget is not
-			// over-constrained vertically.
 			return {
 				_computePreferredSizeFor({0u, unbounded.y}).x,
 				_computePreferredSizeFor(unbounded).y};

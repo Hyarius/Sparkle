@@ -53,9 +53,6 @@ namespace spk
 
 	void ResizableElement::setMinimalSize(const spk::Vector2UInt &p_minimalValue)
 	{
-		// Install a constant generator (not a one-shot cached value) so the size survives
-		// releaseSizeCache(): a value set with set() would be dropped on the next release
-		// and silently revert to the default generator.
 		_minimalSize.configure([p_minimalValue]() { return p_minimalValue; });
 	}
 

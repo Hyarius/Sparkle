@@ -17,8 +17,6 @@
 
 namespace spk
 {
-	// Non-template base: holds the program reference, per-context location cache,
-	// and the out-of-line resolve+validate helper so GL function calls stay in the .cpp.
 	class UniformBase : public spk::SynchronizableTrait
 	{
 	protected:
@@ -28,8 +26,6 @@ namespace spk
 
 		UniformBase(std::string p_name, spk::Program &p_program);
 
-		// Returns the per-context location entry, creating and validating it on first access.
-		// Defined in spk_uniform.cpp so GL calls stay out of this header.
 		[[nodiscard]] spk::OpenGL::UniformLocation &_resolveAndValidate(
 			GLenum p_expectedType,
 			const char *p_expectedTypeName,
@@ -52,9 +48,6 @@ namespace spk
 		}
 	};
 
-	// ---------------------------------------------------------------------------
-	// Storage specification traits
-	// ---------------------------------------------------------------------------
 
 	template <typename TValue>
 	struct UniformStorageSpecification
@@ -314,9 +307,6 @@ namespace spk
 		}
 	};
 
-	// ---------------------------------------------------------------------------
-	// ScalarUniform<TSpec>: one value, uploaded by TSpec::activate().
-	// ---------------------------------------------------------------------------
 
 	template <typename TSpec>
 	class ScalarUniform : public UniformBase
@@ -358,9 +348,6 @@ namespace spk
 		}
 	};
 
-	// ---------------------------------------------------------------------------
-	// ArrayUniform<TSpec>: fixed-length array, uploaded by TSpec::activateArray().
-	// ---------------------------------------------------------------------------
 
 	template <typename TSpec>
 	class ArrayUniform : public UniformBase
@@ -429,9 +416,6 @@ namespace spk
 		}
 	};
 
-	// ---------------------------------------------------------------------------
-	// Convenience aliases
-	// ---------------------------------------------------------------------------
 
 	using FloatUniform = ScalarUniform<FloatUniformSpecification>;
 	using BoolUniform = ScalarUniform<BoolUniformSpecification>;

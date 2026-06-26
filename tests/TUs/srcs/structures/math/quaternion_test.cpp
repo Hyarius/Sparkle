@@ -122,8 +122,6 @@ TEST(QuaternionTest, LookAtAcceptsDirectionParallelToRequestedUp)
 
 TEST(QuaternionTest, LookAtUsesVerticalFallbackWhenForwardParallelToCustomUp)
 {
-	// forward == up == +X makes (forward x up) zero, and |forward.y| < 0.999,
-	// exercising the vertical-fallback branch of lookAt.
 	const spk::Quaternion orientation = spk::Quaternion::lookAt(
 		spk::Vector3::Zero,
 		spk::Vector3(1.0f, 0.0f, 0.0f),
@@ -134,28 +132,23 @@ TEST(QuaternionTest, LookAtUsesVerticalFallbackWhenForwardParallelToCustomUp)
 
 TEST(QuaternionTest, LookAtSelectsEachLargestDiagonalBranch)
 {
-	// trace <= 0 with m11 the largest diagonal element (default up).
 	const spk::Quaternion yawAround = spk::Quaternion::lookAt(
 		spk::Vector3::Zero,
 		spk::Vector3(0.0f, 0.0f, 1.0f));
 	EXPECT_NEAR(yawAround.dot(yawAround), 1.0f, 0.000001f);
 
-	// trace <= 0 with m00 the largest diagonal element (inverted up).
 	const spk::Quaternion rollAround = spk::Quaternion::lookAt(
 		spk::Vector3::Zero,
 		spk::Vector3(0.0f, 0.0f, 1.0f),
 		spk::Vector3(0.0f, -1.0f, 0.0f));
 	EXPECT_NEAR(rollAround.dot(rollAround), 1.0f, 0.000001f);
 
-	// trace <= 0 falling through to the m22 branch.
 	const spk::Quaternion rolledForward = spk::Quaternion::lookAt(
 		spk::Vector3::Zero,
 		spk::Vector3(0.0f, 0.0f, -1.0f),
 		spk::Vector3(0.0f, -1.0f, 0.0f));
 	EXPECT_NEAR(rolledForward.dot(rolledForward), 1.0f, 0.000001f);
 
-	// trace <= 0 with m00 > m11 but m00 <= m22, reaching the second half of
-	// the m00-largest diagonal check before falling through to m22.
 	const spk::Quaternion m00NotGreaterThanM22 = spk::Quaternion::lookAt(
 		spk::Vector3::Zero,
 		spk::Vector3(-1.0f, -1.0f, -1.0f),
@@ -165,15 +158,12 @@ TEST(QuaternionTest, LookAtSelectsEachLargestDiagonalBranch)
 
 TEST(QuaternionTest, SlerpCoversShortPathAndLinearFallback)
 {
-	// Positive dot product (cosine >= 0) keeps the destination unchanged, and a
-	// moderate angle exercises the trigonometric interpolation path.
 	const spk::Quaternion moderate = spk::Quaternion::slerp(
 		spk::Quaternion::identity(),
 		spk::Quaternion::fromAxisAngle(spk::Vector3(0.0f, 0.0f, 1.0f), 90.0f),
 		0.5f);
 	EXPECT_NEAR(moderate.dot(moderate), 1.0f, 0.000001f);
 
-	// Nearly-identical quaternions (cosine > 0.9995) take the linear fallback.
 	const spk::Quaternion close = spk::Quaternion::slerp(
 		spk::Quaternion::identity(),
 		spk::Quaternion::fromAxisAngle(spk::Vector3(0.0f, 0.0f, 1.0f), 0.5f),

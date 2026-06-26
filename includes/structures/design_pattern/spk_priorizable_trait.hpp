@@ -6,8 +6,6 @@
 
 namespace spk
 {
-	// Gives a type an integer priority and notifies subscribers when it changes.
-	// Convention: HIGHER priority is processed FIRST.
 	class PriorizableTrait
 	{
 	public:

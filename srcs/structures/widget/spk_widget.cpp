@@ -189,8 +189,6 @@ namespace spk
 		}
 
 		_geometry = p_geometry;
-		// Capture the geometry as a fraction of the parent's size so a later window resize
-		// can rescale this widget proportionally (see onResize).
 		_computeRatio();
 		_updateAbsoluteGeometryAndScissor();
 		_onGeometryChange();
@@ -201,13 +199,9 @@ namespace spk
 	{
 		spk::HierarchyTrait<Widget>::HierarchyMutationGuard guard(this);
 
-		// Apply the new geometry and refresh only this widget's viewport/scissor; children
-		// refresh themselves through their own _onResize below.
 		_geometry = p_geometry;
 		_updateSelfGeometryAndScissor();
 
-		// Rescale each child proportionally from the ratio it last captured, relative to this
-		// widget's new size, and recurse.
 		for (auto *child : children())
 		{
 			if (child == nullptr || child->_geometry.size.x == 0 || child->_geometry.size.y == 0)
@@ -224,9 +218,6 @@ namespace spk
 					static_cast<unsigned int>(std::lround(static_cast<float>(_geometry.size.y) * child->_sizeRatio.y)))));
 		}
 
-		// Finally let this widget's own geometry logic run: layout-based widgets override
-		// _onGeometryChange to reposition the children they manage, overriding the proportional
-		// placement above for those children.
 		_onGeometryChange();
 		invalidateRenderUnit();
 	}
@@ -291,8 +282,6 @@ namespace spk
 	{
 		_renderCommandsDirty = true;
 
-		// A change affecting rendering usually affects cached sizes too; releasing up
-		// the hierarchy keeps cached parent sizes (which aggregate child sizes) consistent.
 		releaseSizeCache();
 		for (Widget *ancestor = parent(); ancestor != nullptr; ancestor = ancestor->parent())
 		{
@@ -368,10 +357,6 @@ namespace spk
 			return;
 		}
 
-		// A widget draws inside its parent's viewport: its render commands emit vertices
-		// in pixels relative to the parent viewport anchor, while the scissor stays the
-		// widget's own visible region. A parentless widget is framed from the window
-		// origin so that its own anchor places it correctly.
 		const spk::Rect2D frameGeometry =
 			(parent() != nullptr)
 				? parent()->absoluteGeometry()

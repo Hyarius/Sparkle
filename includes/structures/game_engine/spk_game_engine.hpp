@@ -16,22 +16,6 @@ namespace spk
 	class GameEngineWidget;
 	struct GameEngineTester;
 
-	// An engine is identified by a UUID and is a VIEW over the process-wide
-	// ComponentStore: it processes the components whose entity is registered with its
-	// UUID. The caller creates an spk::Entity and registers it:
-	//
-	//     spk::GameEngine engine;
-	//     spk::Entity     player;
-	//     player.addComponent<...>();
-	//     engine.addEntity(&player);
-	//
-	// addEntity stamps the entity's sub-tree with the engine UUID (its components move
-	// into store[type][engineId]); re-parenting between engines migrates them; destroying
-	// the engine drops its buckets. Activation is handled per-entity by the dual-state
-	// flag, so it never touches the store.
-	//
-	// The phase methods (update / synchronize / buildRenderUnit / dispatchEvent) are
-	// private: the engine is only ever driven by its owning GameEngineWidget.
 	class GameEngine : public spk::ActivableTrait
 	{
 		friend class spk::GameEngineWidget;
@@ -45,7 +29,6 @@ namespace spk
 		void update(const spk::UpdateTick &p_tick);
 		[[nodiscard]] spk::RenderUnit buildRenderUnit();
 
-		// One template replaces the former 18 dispatchEvent overloads.
 		template <typename TEvent>
 		void dispatchEvent(TEvent &p_event)
 		{
@@ -110,12 +93,8 @@ namespace spk
 			return *result;
 		}
 
-		// Stamp an externally-owned entity's sub-tree with this engine's UUID, wiring its
-		// components into the store. No-op if p_entity is null.
 		void addEntity(spk::Entity *p_entity);
 
-		// Unstamp an entity previously registered here; the caller keeps ownership.
-		// No-op if p_entity is null or was not registered with this engine.
 		void removeEntity(spk::Entity *p_entity);
 	};
 }

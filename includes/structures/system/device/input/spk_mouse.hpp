@@ -24,7 +24,6 @@ namespace spk
 		spk::Vector2Int deltaPosition = {0, 0};
 		float wheel = 0;
 
-		// Mutable so widgets can request a cursor from the const view exposed by mouse events.
 		mutable std::string requestedCursorShape = "Arrow";
 
 		void requestCursor(const std::string &p_name) const

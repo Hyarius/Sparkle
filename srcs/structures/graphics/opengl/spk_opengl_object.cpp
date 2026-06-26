@@ -91,7 +91,7 @@ namespace spk::OpenGL
 		spk::RenderContext *current = spk::RenderContext::current();
 		if (current != nullptr && current->id() == p_object->contextId())
 		{
-			return; // destroyed in place; the destructor may issue GL calls
+			return;
 		}
 
 		spk::RenderContext *owner = spk::RenderContext::fromId(p_object->contextId());
@@ -99,6 +99,5 @@ namespace spk::OpenGL
 		{
 			owner->scheduleRelease(std::move(p_object));
 		}
-		// Owner dead: destroyed in place; the destructor guard skips GL calls.
 	}
 }

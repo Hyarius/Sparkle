@@ -50,6 +50,5 @@ int main(int argc, char** argv)
 		std::fflush(stderr);
 	}
 #endif
-	// GoogleTest environments are already torn down; avoid post-main GL/CRT static teardown crashes.
 	std::_Exit(result);
 }

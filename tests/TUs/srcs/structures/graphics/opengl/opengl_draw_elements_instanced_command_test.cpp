@@ -115,9 +115,6 @@ TEST(OpenGLDrawElementsInstancedCommandTest, DrawsWithExternallyBoundProgramAndV
 	const auto vertexArray = makeHalfScreenQuadVAO();
 	const auto indexBuffer = makeQuadIndexBuffer();
 
-	// Bind program + vertex array ourselves, then issue the index-buffer-only
-	// command: execute() must take the _program == nullptr and _vertexArray ==
-	// nullptr paths and reuse the externally bound state.
 	program->activate(renderContext);
 	vertexArray->activate(renderContext);
 

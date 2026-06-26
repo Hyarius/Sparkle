@@ -139,7 +139,6 @@ namespace spk
 				return;
 			}
 
-			// Clicking the track jumps the body to the clicked position before dragging.
 			setRatio(_ratioFromPosition(p_event.device().position));
 		}
 

@@ -47,7 +47,6 @@ namespace
 		void notifyResize(const spk::Rect2D& p_rect) override { surfaceState()->setRect(p_rect); }
 	};
 
-	// A GPU runtime that expects FrameA specifically.
 	class FrameARuntime : public spk::GPUPlatformRuntime
 	{
 	public:

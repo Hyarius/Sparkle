@@ -11,9 +11,6 @@ namespace spk
 
 	GameEngine::~GameEngine()
 	{
-		// Drop our buckets from the shared store. Entities still stamped with our UUID
-		// keep working (they just point at no live engine); they prune themselves when
-		// destroyed.
 		spk::ComponentStore::instance().clearEngine(_id);
 	}
 

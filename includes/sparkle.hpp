@@ -1,6 +1,5 @@
 #pragma once
 
-// Traits & utilities
 #include "structures/container/spk_binary_field.hpp"
 #include "structures/container/spk_cached_data.hpp"
 #include "structures/container/spk_flags.hpp"
@@ -19,7 +18,6 @@
 #include "type/spk_concepts.hpp"
 #include "type/spk_constants.hpp"
 
-// Math & geometry
 #include "structures/graphics/geometry/spk_mesh.hpp"
 #include "structures/math/spk_approx_value.hpp"
 #include "structures/math/spk_matrix.hpp"
@@ -30,7 +28,6 @@
 #include "structures/math/spk_vector4.hpp"
 #include "utils/spk_math.hpp"
 
-// Time
 #include "structures/system/event/spk_update_tick.hpp"
 #include "structures/system/time/spk_chronometer.hpp"
 #include "structures/system/time/spk_duration.hpp"
@@ -39,13 +36,11 @@
 #include "type/spk_time_unit.hpp"
 #include "utils/spk_time_utils.hpp"
 
-// Input
 #include "structures/system/device/input/spk_keyboard.hpp"
 #include "structures/system/device/input/spk_mouse.hpp"
 #include "structures/system/event/spk_events.hpp"
 #include "type/spk_input_state.hpp"
 
-// Platform / GPU runtime interfaces
 #include "structures/graphics/opengl/spk_opengl_render_context.hpp"
 #include "structures/graphics/rendering/context/spk_render_context.hpp"
 #include "structures/system/device/runtime/spk_opengl_runtime.hpp"
@@ -58,7 +53,6 @@
 #include "structures/system/win32/spk_winapi_platform_runtime.hpp"
 #include "structures/system/win32/spk_winapi_window.hpp"
 
-// Rendering
 #include "structures/application/module/spk_render_module.hpp"
 #include "structures/graphics/geometry/spk_color_mesh_2d.hpp"
 #include "structures/graphics/geometry/spk_generic_mesh.hpp"
@@ -98,14 +92,12 @@
 #include "structures/graphics/texture/spk_image.hpp"
 #include "structures/graphics/texture/spk_sprite_sheet.hpp"
 
-// Modules
 #include "structures/application/module/spk_frame_module.hpp"
 #include "structures/application/module/spk_keyboard_module.hpp"
 #include "structures/application/module/spk_module.hpp"
 #include "structures/application/module/spk_mouse_module.hpp"
 #include "structures/application/module/spk_update_module.hpp"
 
-// Game engine (entity / component / logic)
 #include "structures/game_engine/spk_component.hpp"
 #include "structures/game_engine/spk_component_container.hpp"
 #include "structures/game_engine/spk_component_logic.hpp"
@@ -114,7 +106,6 @@
 #include "structures/game_engine/spk_entity.hpp"
 #include "structures/game_engine/spk_game_engine.hpp"
 
-// Widget system
 #include "structures/widget/spk_action_bar.hpp"
 #include "structures/widget/spk_animation_label.hpp"
 #include "structures/widget/spk_checkable_icon_button.hpp"
@@ -151,7 +142,6 @@
 #include "structures/widget/spk_workspace.hpp"
 #include "type/spk_orientation.hpp"
 
-// Window & application
 #include "structures/application/spk_application.hpp"
 #include "structures/system/device/window/spk_window.hpp"
 #include "structures/system/device/window/spk_window_handle.hpp"

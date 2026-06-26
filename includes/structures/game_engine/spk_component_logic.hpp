@@ -15,9 +15,6 @@ namespace spk
 {
 	class ComponentLogicRegistry;
 
-	// Type-erased base for a piece of logic applied to components.
-	// The engine stores these and drives them through the entry points below.
-	// Ordering between logics is given by PriorizableTrait (higher priority runs first).
 	class IComponentLogic : public spk::ActivableTrait, public spk::PriorizableTrait
 	{
 		friend class spk::ComponentLogicRegistry;
@@ -60,10 +57,6 @@ namespace spk
 		IComponentLogic &operator=(IComponentLogic &&) noexcept = delete;
 	};
 
-	// Logic applied to every processable component of type TComponent.
-	//
-	// Each phase exposes a begin -> per-component -> end triple so a logic can, for
-	// example, open a render batch, accumulate per component, then emit it once.
 	template <typename TComponent>
 		requires std::derived_from<TComponent, spk::Component>
 	class ComponentLogic : public spk::IComponentLogic

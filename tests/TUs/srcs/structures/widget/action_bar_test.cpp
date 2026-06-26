@@ -106,7 +106,6 @@ TEST(MenuBarTest, BreakSetSpriteSheetWrongSizeThrows)
 	spk::MenuBar::Menu* menu = menuBar.addMenu("File");
 	spk::MenuBar::Menu::Break* breakItem = menu->addBreak();
 
-	// The nine-slice spritesheet has 3x3 sprites (not 3x1), so it should be rejected.
 	auto wrongSheet = spk::WidgetStyle::makeDefault().nineSliceSpriteSheet();
 
 	EXPECT_THROW(breakItem->setSpriteSheet(wrongSheet), std::invalid_argument);
@@ -189,7 +188,6 @@ TEST(MenuBarTest, ClickOutsideOpenMenuClosesIt)
 
 	ASSERT_TRUE(menu->isActivated());
 
-	// Click well outside the menu (which is narrow and anchored near the left)
 	const spk::Vector2Int outsidePos = {350, 200};
 
 	spk::MouseModule mouseModule;

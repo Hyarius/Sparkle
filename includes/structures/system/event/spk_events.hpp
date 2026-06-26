@@ -100,14 +100,11 @@ namespace spk
 	struct WindowCloseRequestedRecord : public EventRecord
 	{
 		using EventRecord::EventRecord;
-		// Event corresponds to WM_CLOSE on WinAPI.
 	};
 
 	struct WindowDestroyedRecord : public EventRecord
 	{
 		using EventRecord::EventRecord;
-		// Event corresponds to the point where the native window runtime is effectively destroyed.
-		// Emitting this event invalidates the frame surface immediately, before subscribers are notified.
 	};
 
 	struct WindowMovedRecord : public EventRecord

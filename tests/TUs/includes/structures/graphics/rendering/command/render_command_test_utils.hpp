@@ -32,8 +32,6 @@ namespace sparkle_test
 		return spk::Font::fromRawData(std::vector<std::uint8_t>(bytes.begin(), bytes.end()));
 	}
 
-	// Enough distinct codepoints to overflow a freshly created atlas and force it
-	// to grow (which rescales every glyph UV it stores).
 	[[nodiscard]] inline spk::Font::Text manyGlyphsText()
 	{
 		spk::Font::Text text;
@@ -41,7 +39,7 @@ namespace sparkle_test
 		{
 			text.push_back(codepoint);
 		}
-		for (char32_t codepoint = 0x00C0; codepoint <= 0x00FF; ++codepoint) // Latin-1 letters
+		for (char32_t codepoint = 0x00C0; codepoint <= 0x00FF; ++codepoint)
 		{
 			text.push_back(codepoint);
 		}

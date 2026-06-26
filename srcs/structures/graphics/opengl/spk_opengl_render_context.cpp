@@ -135,22 +135,16 @@ namespace spk
 
 		glEnable(GL_SCISSOR_TEST);
 
-		// Registered last: a half-constructed context must not be reachable through
-		// fromId() (the destructor does not run when the constructor throws).
 		_registerSelf();
 	}
 
 	RenderContext::~RenderContext()
 	{
-		// Unregister first: handles releasing GPU objects from now on see this
-		// context as dead and drop their wrappers without GL calls.
 		_unregisterSelf();
 		s_deathGeneration.fetch_add(1, std::memory_order_relaxed);
 
 		if (_renderContext != nullptr)
 		{
-			// Queued GPU objects belong to this context and must be released while it
-			// is current; their ids would name unrelated objects in another context.
 			HDC previousDeviceContext = wglGetCurrentDC();
 			HGLRC previousRenderContext = wglGetCurrentContext();
 
@@ -229,7 +223,6 @@ namespace spk
 			std::scoped_lock lock(_releaseQueueMutex);
 			pending.swap(_releaseQueue);
 		}
-		// Destructors run GL calls: outside the lock, with this context current.
 		pending.clear();
 	}
 
@@ -286,7 +279,6 @@ namespace spk
 	{
 		if (_bindingCache.vertexArray.has_value() == true && _bindingCache.vertexArray.value() == &p_vertexArray)
 		{
-			// Deleting the bound vertex array reverts the binding to zero.
 			_bindingCache.vertexArray = nullptr;
 		}
 	}
@@ -345,13 +337,6 @@ namespace spk
 
 		if (wglMakeCurrent(_deviceContext, _renderContext) == FALSE)
 		{
-			// The window can be destroyed on the platform thread (validateClosure ->
-			// DestroyWindow) between the isValid() check above and this call: our cached
-			// handles stay non-null, so isValid() still reports true, but the drawable is
-			// gone and wglMakeCurrent fails against a stale HDC. That is a recoverable
-			// "context lost" during teardown, not a fatal error, so invalidate this
-			// context and let the caller skip the frame. A failure while the window is
-			// still alive is a genuine error and is surfaced.
 			if (IsWindow(_windowHandle) == FALSE)
 			{
 				_valid = false;
@@ -364,7 +349,6 @@ namespace spk
 
 		s_current = this;
 
-		// Another context (or raw GL between frames) may have changed bindings.
 		resetBindingCache();
 
 		flushReleaseQueue();
@@ -405,7 +389,6 @@ namespace spk
 
 		makeCurrent();
 
-		// makeCurrent() invalidates the context if the window died concurrently.
 		if (isValid() == false)
 		{
 			return;

@@ -62,8 +62,6 @@ namespace spk
 	{
 		std::vector<RenderAction> result = _pendingRenderActions.drain();
 
-		// NotifyResize and SetVSync are coalesced: only the last queued value matters.
-		// New action types must be added as explicit cases in both this function and _executeRenderAction.
 		std::optional<RenderAction> latestResizeAction;
 		std::optional<RenderAction> latestVSyncAction;
 

@@ -45,9 +45,6 @@ namespace spk
 		spk::Rect2D _absoluteGeometry;
 		spk::Rect2D _scissor;
 
-		// Geometry expressed as a fraction of the parent's size, captured every time the
-		// geometry is set. The default _onGeometryChange uses it to rescale children
-		// proportionally when this widget is resized.
 		spk::Vector2 _anchorRatio{0.0f, 0.0f};
 		spk::Vector2 _sizeRatio{1.0f, 1.0f};
 
@@ -57,10 +54,6 @@ namespace spk
 		void _updateSelfGeometryAndScissor();
 		void _computeRatio();
 
-		// Called (instead of setGeometry) by the frame module when the window is resized:
-		// applies p_geometry, rescales every child proportionally from the ratio it last
-		// captured, then runs _onGeometryChange so layout-based widgets can override that
-		// proportional placement for the children they manage.
 		void _onResize(const spk::Rect2D &p_geometry);
 
 		template <typename TEvent>

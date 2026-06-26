@@ -65,14 +65,8 @@ namespace spk
 		[[nodiscard]] bool isRunning() const;
 
 		void requestWindowClosing(const WindowID &p_id);
-		// Thread-safe external shutdown entry point. Applications that translate
-		// SIGINT, WM_QUIT, or other host signals should call quit() from their
-		// signal/message bridge instead of relying on widget-tree events.
 		void quit(int p_exitCode);
 		void stop();
-		// Worker-loop failures are transported with std::exception_ptr. If several
-		// worker loops fail concurrently, the first exception recorded under
-		// _failureMutex is rethrown by run(); later concurrent failures are ignored.
 		int run();
 	};
 }
