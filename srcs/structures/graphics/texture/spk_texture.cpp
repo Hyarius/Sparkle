@@ -352,6 +352,25 @@ namespace spk
 		_publishResource(resource);
 	}
 
+	void Texture::allocateRenderTarget(
+		const spk::Vector2UInt &p_size,
+		Format p_format,
+		Filtering p_filtering,
+		Wrap p_wrap)
+	{
+		auto resource = std::make_shared<Resource>();
+		resource->size = p_size;
+		resource->format = p_format;
+		resource->filtering = p_filtering;
+		resource->wrap = p_wrap;
+		resource->mipmap = Mipmap::Disable;
+
+		const size_t byteCount = p_size.x * p_size.y * _getBytesPerPixel(p_format);
+		resource->pixels.assign(byteCount, 0);
+
+		_publishResource(resource);
+	}
+
 	void Texture::setProperties(Filtering p_filtering, Wrap p_wrap, Mipmap p_mipmap)
 	{
 		std::shared_ptr<const Resource> currentResource = _resourceSnapshot();

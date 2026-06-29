@@ -27,6 +27,10 @@ namespace spk
 		[[nodiscard]] size_t size() const;
 		[[nodiscard]] const std::vector<std::unique_ptr<spk::RenderCommand>> &commands() const;
 
+		// Moves the owned commands out of this unit, leaving it empty. Used to
+		// splice one unit's commands into another builder.
+		[[nodiscard]] std::vector<std::unique_ptr<spk::RenderCommand>> takeCommands();
+
 		void execute(spk::RenderContext &p_renderContext);
 	};
 }

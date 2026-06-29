@@ -18,6 +18,8 @@ namespace spk
 		class Texture;
 	}
 
+	class FrameBufferObject;
+
 	class Texture : public SynchronizableTrait
 	{
 	public:
@@ -112,10 +114,20 @@ namespace spk
 		void _publishResource(const std::shared_ptr<Resource> &p_resource);
 		static size_t _getBytesPerPixel(Format p_format);
 
+		// Allocate empty GPU storage of the given size to be used as a render
+		// target (no CPU upload, no mipmaps). Only spk::FrameBufferObject, which
+		// owns its color attachment, is allowed to turn a Texture into one.
+		void allocateRenderTarget(
+			const spk::Vector2UInt &p_size,
+			Format p_format = Format::RGBA,
+			Filtering p_filtering = Filtering::Linear,
+			Wrap p_wrap = Wrap::ClampToEdge);
+
 	protected:
 		void _synchronize() const override;
 
 		friend class spk::OpenGL::Texture;
+		friend class spk::FrameBufferObject;
 
 	public:
 		Texture();

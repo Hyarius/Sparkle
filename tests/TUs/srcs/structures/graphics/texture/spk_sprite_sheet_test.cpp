@@ -130,10 +130,9 @@ TEST(SpriteSheetTest, SpritesAreEvenlySpaced)
 	const auto& s10 = sheet.sprite({1, 0});
 	const auto& s01 = sheet.sprite({0, 1});
 
-	// Each sprite is its cell (unit = 0.5) inset by half a texel on every
-	// side, so the visible size is unit minus one full texel (1/64 here).
-	EXPECT_NEAR(s00.size.x, 0.5f - 1.0f / 64.0f, 1e-4f);
-	EXPECT_NEAR(s00.size.y, 0.5f - 1.0f / 64.0f, 1e-4f);
+	// Each sprite spans its full cell (unit = 0.5) with no texel inset.
+	EXPECT_NEAR(s00.size.x, 0.5f, 1e-4f);
+	EXPECT_NEAR(s00.size.y, 0.5f, 1e-4f);
 	EXPECT_GT(s10.anchor.x, s00.anchor.x);
 	EXPECT_GT(s01.anchor.y, s00.anchor.y);
 }

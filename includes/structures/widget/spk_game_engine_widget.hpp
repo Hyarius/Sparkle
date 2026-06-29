@@ -3,6 +3,7 @@
 #include <string>
 
 #include "structures/game_engine/spk_game_engine.hpp"
+#include "structures/graphics/spk_framebuffer_object.hpp"
 #include "structures/widget/spk_widget.hpp"
 
 namespace spk
@@ -11,6 +12,7 @@ namespace spk
 	{
 	private:
 		mutable spk::GameEngine _gameEngine;
+		spk::FrameBufferObject _frameBuffer;
 
 		template <typename TEvent>
 		void _forward(TEvent &p_event)

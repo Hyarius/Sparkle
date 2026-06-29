@@ -133,10 +133,23 @@ TEST(GameEngineWidgetTest, GameEngineAccessorsReturnTheOwnedEngine)
 	EXPECT_EQ(&constWidget.gameEngine(), &widget.gameEngine());
 }
 
-TEST(GameEngineWidgetTest, BuildsAnEmptyRenderUnitWithoutCrashing)
+TEST(GameEngineWidgetTest, BuildsFrameBufferPassthroughWhenSized)
 {
 	spk::GameEngineWidget widget("Game");
 	widget.setGeometry(spk::Rect2D(0, 0, 32, 32));
+
+	auto renderUnit = widget.renderUnit();
+
+	ASSERT_NE(renderUnit, nullptr);
+	// The engine renders into an off-screen framebuffer that is then blitted onto
+	// the widget. With an empty engine the unit is the scaffolding only: bind the
+	// framebuffer, clear it, return to the screen and blit the color attachment.
+	EXPECT_EQ(renderUnit->size(), 4u);
+}
+
+TEST(GameEngineWidgetTest, BuildsNoRenderUnitUntilSized)
+{
+	spk::GameEngineWidget widget("Game");
 
 	auto renderUnit = widget.renderUnit();
 

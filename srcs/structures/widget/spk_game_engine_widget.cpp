@@ -1,5 +1,13 @@
 #include "structures/widget/spk_game_engine_widget.hpp"
 
+#include <array>
+
+#include <GL/glew.h>
+
+#include "structures/graphics/opengl/spk_opengl_clear_command.hpp"
+#include "structures/graphics/rendering/command/spk_image_render_command.hpp"
+#include "structures/graphics/rendering/command/spk_use_framebuffer_render_command.hpp"
+
 namespace spk
 {
 	GameEngineWidget::GameEngineWidget(const std::string &p_name, spk::Widget *p_parent) :
@@ -16,11 +24,38 @@ namespace spk
 
 	spk::RenderUnit GameEngineWidget::_buildRenderUnit() const
 	{
-		return _gameEngine.buildRenderUnit();
+		const spk::Vector2UInt &frameBufferSize = _frameBuffer.size();
+		if (frameBufferSize.x == 0 || frameBufferSize.y == 0)
+		{
+			return spk::RenderUnit();
+		}
+
+		spk::RenderUnitBuilder builder;
+
+		// 1. Bind the off-screen framebuffer, clear it (color + depth, so entities
+		//    depth-sort against a fresh buffer each frame) and render the engine
+		//    into it through the framebuffer's own viewport.
+		builder.emplace<spk::UseFrameBufferRenderCommand>(&_frameBuffer, _frameBuffer.viewport());
+		builder.emplace<spk::ClearCommand>(
+			std::array<float, 4>{0.0f, 0.0f, 0.0f, 0.0f},
+			static_cast<GLbitfield>(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT));
+		builder.add(_gameEngine.buildRenderUnit());
+
+		// 2. Return to the screen and blit the color attachment onto this widget's
+		//    rectangle. The section is vertically flipped because a render-to-
+		//    texture target is stored bottom-up relative to screen coordinates.
+		builder.emplace<spk::UseFrameBufferRenderCommand>(nullptr, viewport());
+
+		const spk::Texture::Section flippedSection({0.0f, 1.0f}, {1.0f, -1.0f});
+		const spk::Rect2D localRect({0, 0}, frameBufferSize);
+		builder.emplace<spk::ImageRenderCommand>(_frameBuffer.colorAttachment(), flippedSection, localRect);
+
+		return builder.build();
 	}
 
 	void GameEngineWidget::_onGeometryChange()
 	{
+		_frameBuffer.resize(geometry().size);
 		invalidateRenderUnit();
 	}
 

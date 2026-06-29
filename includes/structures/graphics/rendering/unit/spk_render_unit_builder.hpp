@@ -36,6 +36,9 @@ namespace spk
 			}
 		}
 
+		// Appends every command of an existing unit, in order, leaving it empty.
+		void add(spk::RenderUnit &&p_unit);
+
 		template <typename TCommand, typename... TArguments>
 		TCommand &emplace(TArguments &&...p_arguments)
 		{

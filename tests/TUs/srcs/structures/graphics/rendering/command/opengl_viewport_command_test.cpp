@@ -8,7 +8,7 @@
 
 using Viewport = spk::Viewport;
 
-TEST(ViewportCommandTest, AppliesRectToOpenGL::Viewport)
+TEST(ViewportCommandTest, AppliesRectToOpenGLViewport)
 {
 	sparkle_test::OpenGLTestContext context;
 	spk::RenderContext& renderContext = context.renderContext();
