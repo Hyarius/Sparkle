@@ -8,17 +8,17 @@
 
 #include <GL/glew.h>
 
-#include "components/camera2d.hpp"
-#include "components/sprite_renderer2d.hpp"
-#include "components/transform2d.hpp"
-#include "entity2d.hpp"
-#include "rendering/camera_update_render_command.hpp"
-#include "rendering/instanced_sprite_render_command.hpp"
+#include "structures/game_engine/spk_camera_2d.hpp"
 #include "structures/game_engine/spk_component_logic.hpp"
 #include "structures/game_engine/spk_entity.hpp"
+#include "structures/game_engine/spk_entity_2d.hpp"
+#include "structures/game_engine/spk_sprite_renderer_2d.hpp"
+#include "structures/game_engine/spk_transform_2d.hpp"
+#include "structures/graphics/rendering/command/spk_camera_update_render_command.hpp"
+#include "structures/graphics/rendering/command/spk_instanced_sprite_render_command.hpp"
 #include "structures/math/spk_matrix.hpp"
 
-namespace pg
+namespace spk
 {
 	class SpriteRenderLogic : public spk::ComponentLogic<SpriteRenderer2D>
 	{
@@ -64,6 +64,7 @@ namespace pg
 	protected:
 		void _onRenderStarted(std::size_t p_componentCount) override
 		{
+			(void)p_componentCount;
 			_renderCommands.clear();
 			_camera = Camera2D::mainCamera();
 			if (_camera != nullptr)

@@ -1,17 +1,17 @@
-#include "component2d.hpp"
+#include "structures/game_engine/spk_component_2d.hpp"
 
 #include <stdexcept>
 
-#include "entity2d.hpp"
 #include "structures/game_engine/spk_entity.hpp"
+#include "structures/game_engine/spk_entity_2d.hpp"
 
-namespace pg
+namespace spk
 {
 	void Component2D::_onAttached(spk::Entity &p_entity)
 	{
 		if (dynamic_cast<Entity2D *>(&p_entity) == nullptr)
 		{
-			throw std::invalid_argument("pg::Component2D can only be attached to pg::Entity2D");
+			throw std::invalid_argument("spk::Component2D can only be attached to spk::Entity2D");
 		}
 	}
 

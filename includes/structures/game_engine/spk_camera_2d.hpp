@@ -1,14 +1,14 @@
 #pragma once
 
-#include "component2d.hpp"
 #include "structures/container/spk_cached_data.hpp"
+#include "structures/game_engine/spk_component_2d.hpp"
 #include "structures/math/spk_matrix.hpp"
 #include "structures/math/spk_rect_2d.hpp"
 #include "structures/math/spk_vector2.hpp"
 
-namespace pg
+namespace spk
 {
-	class Camera2D : public Component2D
+	class Camera2D : public spk::Component2D
 	{
 	private:
 		static Camera2D *_mainCamera;

@@ -6,14 +6,14 @@
 #include <filesystem>
 #include <string>
 
-#include "components/animation2d.hpp"
-#include "components/camera2d.hpp"
 #include "components/player_controller.hpp"
-#include "components/sprite_renderer2d.hpp"
-#include "components/transform2d.hpp"
-#include "logics/animation_logic.hpp"
 #include "logics/player_control_logic.hpp"
-#include "logics/sprite_render_logic.hpp"
+#include "structures/game_engine/spk_animation_2d.hpp"
+#include "structures/game_engine/spk_animation_logic.hpp"
+#include "structures/game_engine/spk_camera_2d.hpp"
+#include "structures/game_engine/spk_sprite_render_logic.hpp"
+#include "structures/game_engine/spk_sprite_renderer_2d.hpp"
+#include "structures/game_engine/spk_transform_2d.hpp"
 #include "structures/graphics/geometry/spk_primitive_object.hpp"
 
 #ifndef PG_RESOURCE_DIR
@@ -63,9 +63,9 @@ namespace
 		return std::string(p_value.begin(), p_value.end());
 	}
 
-	[[nodiscard]] pg::Animation2D makeRowAnimation(std::uint32_t p_row, std::uint32_t p_columnCount)
+	[[nodiscard]] spk::Animation2D makeRowAnimation(std::uint32_t p_row, std::uint32_t p_columnCount)
 	{
-		pg::Animation2D animation;
+		spk::Animation2D animation;
 		animation.loop = true;
 		animation.frameDuration = spk::Duration(120.0L, spk::TimeUnit::Millisecond);
 		for (std::uint32_t column = 0; column < p_columnCount; ++column)
@@ -98,18 +98,18 @@ namespace pg
 		spk::GameEngine &engine = gameEngine();
 
 		engine.add<PlayerControlLogic>().setPriority(20);
-		engine.add<AnimationLogic>().setPriority(10);
-		engine.add<SpriteRenderLogic>();
+		engine.add<spk::AnimationLogic>().setPriority(10);
+		engine.add<spk::SpriteRenderLogic>();
 
-		Camera2D &camera = _cameraEntity.addComponent<Camera2D>();
+		spk::Camera2D &camera = _cameraEntity.addComponent<spk::Camera2D>();
 		camera.setPixelsPerUnit({64.0f, 64.0f});
 		camera.makeMain();
 
 		_player.transform().setPosition({0.0f, 0.0f});
-		SpriteRenderer2D &playerSprite = _player.addComponent<SpriteRenderer2D>();
+		spk::SpriteRenderer2D &playerSprite = _player.addComponent<spk::SpriteRenderer2D>();
 		playerSprite.setSpriteSheet(&_spriteSheet);
 		playerSprite.setMesh(&_spriteMesh);
-		AnimationController2D &playerAnimation = _player.addComponent<AnimationController2D>();
+		spk::AnimationController2D &playerAnimation = _player.addComponent<spk::AnimationController2D>();
 		playerAnimation.addAnimation(L"down", makeRowAnimation(0, 4));
 		playerAnimation.addAnimation(L"side", makeRowAnimation(1, 4));
 		playerAnimation.addAnimation(L"up", makeRowAnimation(2, 4));
@@ -119,17 +119,17 @@ namespace pg
 		engine.addEntity(&_player);
 
 		_objectA.transform().setPosition({-3.0f, 1.0f});
-		SpriteRenderer2D &spriteA = _objectA.addComponent<SpriteRenderer2D>();
+		spk::SpriteRenderer2D &spriteA = _objectA.addComponent<spk::SpriteRenderer2D>();
 		spriteA.setSpriteSheet(&_spriteSheet);
 		spriteA.setMesh(&_spriteMesh);
 		spriteA.setSprite(_spriteSheet.sprite({0u, 0u}));
 		engine.addEntity(&_objectA);
 
 		_objectB.transform().setPosition({3.0f, -1.0f});
-		SpriteRenderer2D &spriteB = _objectB.addComponent<SpriteRenderer2D>();
+		spk::SpriteRenderer2D &spriteB = _objectB.addComponent<spk::SpriteRenderer2D>();
 		spriteB.setSpriteSheet(&_spriteSheet);
 		spriteB.setMesh(&_spriteMesh);
-		AnimationController2D &animationB = _objectB.addComponent<AnimationController2D>();
+		spk::AnimationController2D &animationB = _objectB.addComponent<spk::AnimationController2D>();
 		animationB.addAnimation(L"idle", makeRowAnimation(2, 4));
 		animationB.play(L"idle");
 		engine.addEntity(&_objectB);
@@ -157,7 +157,7 @@ namespace pg
 	{
 		spk::GameEngineWidget::_onGeometryChange();
 
-		if (Camera2D *camera = Camera2D::mainCamera(); camera != nullptr)
+		if (spk::Camera2D *camera = spk::Camera2D::mainCamera(); camera != nullptr)
 		{
 			camera->setViewport(geometry());
 		}
@@ -183,24 +183,24 @@ namespace pg
 		spk::RenderUnit unit = spk::GameEngineWidget::_buildRenderUnit();
 		_renderDurationNs.store(nowNs() - start, std::memory_order_relaxed);
 
-		_spriteCount.store(SpriteRenderLogic::lastSpriteCount(), std::memory_order_relaxed);
-		_polygonCount.store(SpriteRenderLogic::lastPolygonCount(), std::memory_order_relaxed);
+		_spriteCount.store(spk::SpriteRenderLogic::lastSpriteCount(), std::memory_order_relaxed);
+		_polygonCount.store(spk::SpriteRenderLogic::lastPolygonCount(), std::memory_order_relaxed);
 		return unit;
 	}
 
 	void GameSceneWidget::_refreshOverlay(const spk::UpdateTick &p_tick)
 	{
-		const Transform2D &transform = _player.transform();
+		const spk::Transform2D &transform = _player.transform();
 		_overlay.setText(Position, 1, formatVector(transform.position()));
 		_overlay.setText(Rotation, 1, formatFloat(transform.rotation(), " deg"));
 
-		if (const SpriteRenderer2D *sprite = _player.component<SpriteRenderer2D>(); sprite != nullptr)
+		if (const spk::SpriteRenderer2D *sprite = _player.component<spk::SpriteRenderer2D>(); sprite != nullptr)
 		{
 			_overlay.setText(Size, 1, formatVector(sprite->sprite().size));
 			_overlay.setText(SpriteCell, 1, formatVector(sprite->sprite().anchor));
 		}
 
-		if (const AnimationController2D *animation = _player.component<AnimationController2D>(); animation != nullptr)
+		if (const spk::AnimationController2D *animation = _player.component<spk::AnimationController2D>(); animation != nullptr)
 		{
 			std::string name = animation->hasCurrent() ? narrow(animation->currentName()) : "none";
 			name += animation->isPlaying() ? " (playing)" : " (idle)";

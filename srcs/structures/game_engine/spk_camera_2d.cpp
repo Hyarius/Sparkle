@@ -1,10 +1,10 @@
-#include "components/camera2d.hpp"
+#include "structures/game_engine/spk_camera_2d.hpp"
 
-#include "components/transform2d.hpp"
-#include "entity2d.hpp"
 #include "structures/game_engine/spk_entity.hpp"
+#include "structures/game_engine/spk_entity_2d.hpp"
+#include "structures/game_engine/spk_transform_2d.hpp"
 
-namespace pg
+namespace spk
 {
 	Camera2D *Camera2D::_mainCamera = nullptr;
 

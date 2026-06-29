@@ -1,8 +1,8 @@
-#include "rendering/camera_update_render_command.hpp"
+#include "structures/graphics/rendering/command/spk_camera_update_render_command.hpp"
 
 #include "structures/graphics/spk_buffer_object.hpp"
 
-namespace pg
+namespace spk
 {
 	CameraUpdateRenderCommand::CameraUpdateRenderCommand(GLuint p_bindingPoint, const spk::Matrix4x4 &p_viewProjection) :
 		_viewProjection(p_viewProjection),

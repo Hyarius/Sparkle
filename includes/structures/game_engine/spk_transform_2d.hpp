@@ -1,16 +1,16 @@
 #pragma once
 
-#include "component2d.hpp"
 #include "structures/container/spk_cached_data.hpp"
 #include "structures/design_pattern/spk_contract_provider.hpp"
+#include "structures/game_engine/spk_component_2d.hpp"
 #include "structures/math/spk_matrix.hpp"
 #include "structures/math/spk_vector2.hpp"
 
-namespace pg
+namespace spk
 {
 	class Entity2D;
 
-	class Transform2D : public Component2D
+	class Transform2D : public spk::Component2D
 	{
 		friend class Entity2D;
 

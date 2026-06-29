@@ -2,7 +2,7 @@
 
 #include "structures/game_engine/spk_component.hpp"
 
-namespace pg
+namespace spk
 {
 	class Entity2D;
 

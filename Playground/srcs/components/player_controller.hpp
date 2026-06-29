@@ -1,10 +1,10 @@
 #pragma once
 
-#include "component2d.hpp"
+#include "structures/game_engine/spk_component_2d.hpp"
 
 namespace pg
 {
-	class PlayerController : public Component2D
+	class PlayerController : public spk::Component2D
 	{
 	private:
 		float _speed = 4.0f;

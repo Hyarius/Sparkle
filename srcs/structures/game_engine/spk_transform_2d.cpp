@@ -1,11 +1,11 @@
-#include "components/transform2d.hpp"
+#include "structures/game_engine/spk_transform_2d.hpp"
 
 #include <utility>
 
-#include "entity2d.hpp"
 #include "structures/game_engine/spk_entity.hpp"
+#include "structures/game_engine/spk_entity_2d.hpp"
 
-namespace pg
+namespace spk
 {
 	Transform2D::Transform2D() :
 		_modelTransform([this]() { return _generateModelTransform(); }),

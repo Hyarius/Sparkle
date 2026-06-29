@@ -1,53 +1,16 @@
-#include "rendering/instanced_sprite_render_command.hpp"
+#include "structures/graphics/rendering/command/spk_instanced_sprite_render_command.hpp"
 
-#include <filesystem>
-#include <fstream>
-#include <mutex>
-#include <sstream>
-#include <stdexcept>
-#include <string>
-
+#include "spk_generated_resources.hpp"
 #include "structures/graphics/spk_buffer_object.hpp"
 #include "structures/graphics/spk_primitive.hpp"
 
-#ifndef PG_RESOURCE_DIR
-#	define PG_RESOURCE_DIR "."
-#endif
-
-namespace
-{
-	[[nodiscard]] std::filesystem::path shaderPath(const std::string &p_fileName)
-	{
-		return std::filesystem::path(PG_RESOURCE_DIR) / "shaders" / "sprite_batch" / p_fileName;
-	}
-
-	[[nodiscard]] std::string readFile(const std::filesystem::path &p_path)
-	{
-		std::ifstream stream(p_path, std::ios::binary);
-		if (stream.is_open() == false)
-		{
-			throw std::runtime_error("pg::InstancedSpriteRenderCommand: cannot open shader file [" + p_path.string() + "]");
-		}
-
-		std::ostringstream buffer;
-		buffer << stream.rdbuf();
-		return buffer.str();
-	}
-}
-
-namespace pg
+namespace spk
 {
 	spk::Program &InstancedSpriteRenderCommand::_program()
 	{
-		static spk::Program program;
-		static std::once_flag initialization;
-
-		std::call_once(initialization, [&]() {
-			program.setSources(
-				readFile(shaderPath("sprite_batch.vert")),
-				readFile(shaderPath("sprite_batch.frag")));
-		});
-
+		static spk::Program program(
+			SPARKLE_GET_RESOURCE_AS_STRING("resources/shaders/sprite_batch/sprite_batch.vert"),
+			SPARKLE_GET_RESOURCE_AS_STRING("resources/shaders/sprite_batch/sprite_batch.frag"));
 		return program;
 	}
 

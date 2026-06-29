@@ -1,10 +1,10 @@
 #pragma once
 
-#include "components/transform2d.hpp"
 #include "structures/game_engine/spk_entity.hpp"
+#include "structures/game_engine/spk_transform_2d.hpp"
 #include "structures/math/spk_vector2.hpp"
 
-namespace pg
+namespace spk
 {
 	class Entity2D : public spk::Entity
 	{

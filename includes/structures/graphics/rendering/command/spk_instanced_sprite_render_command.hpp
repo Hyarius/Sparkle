@@ -3,6 +3,8 @@
 #include <cstddef>
 #include <type_traits>
 
+#include <GL/glew.h>
+
 #include "structures/graphics/geometry/spk_texture_mesh_2d.hpp"
 #include "structures/graphics/rendering/command/spk_render_command.hpp"
 #include "structures/graphics/spk_program.hpp"
@@ -11,7 +13,7 @@
 #include "structures/graphics/texture/spk_sprite_sheet.hpp"
 #include "structures/math/spk_matrix.hpp"
 
-namespace pg
+namespace spk
 {
 	class InstancedSpriteRenderCommand : public spk::RenderCommand
 	{

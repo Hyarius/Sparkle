@@ -6,7 +6,7 @@
 #include "structures/graphics/spk_uniform_buffer_object.hpp"
 #include "structures/math/spk_matrix.hpp"
 
-namespace pg
+namespace spk
 {
 	class CameraUpdateRenderCommand : public spk::RenderCommand
 	{

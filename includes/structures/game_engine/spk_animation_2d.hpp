@@ -4,11 +4,11 @@
 #include <unordered_map>
 #include <vector>
 
-#include "component2d.hpp"
+#include "structures/game_engine/spk_component_2d.hpp"
 #include "structures/math/spk_vector2.hpp"
 #include "structures/system/time/spk_duration.hpp"
 
-namespace pg
+namespace spk
 {
 	struct Animation2D
 	{
@@ -17,7 +17,7 @@ namespace pg
 		bool loop = true;
 	};
 
-	class AnimationController2D : public Component2D
+	class AnimationController2D : public spk::Component2D
 	{
 	private:
 		std::unordered_map<std::wstring, Animation2D> _animations;
@@ -55,7 +55,7 @@ namespace pg
 
 			_playing = true;
 		}
-		
+
 		void stop()
 		{
 			_playing = false;

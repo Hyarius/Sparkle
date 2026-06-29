@@ -3,12 +3,12 @@
 #include <cmath>
 #include <string>
 
-#include "components/animation2d.hpp"
 #include "components/player_controller.hpp"
-#include "components/transform2d.hpp"
-#include "entity2d.hpp"
+#include "structures/game_engine/spk_animation_2d.hpp"
 #include "structures/game_engine/spk_component_logic.hpp"
 #include "structures/game_engine/spk_entity.hpp"
+#include "structures/game_engine/spk_entity_2d.hpp"
+#include "structures/game_engine/spk_transform_2d.hpp"
 #include "structures/system/device/input/spk_keyboard.hpp"
 
 namespace pg
@@ -24,7 +24,7 @@ namespace pg
 				return;
 			}
 
-			Transform2D *transform = entity->component<Transform2D>();
+			spk::Transform2D *transform = entity->component<spk::Transform2D>();
 			if (transform == nullptr)
 			{
 				return;
@@ -38,7 +38,7 @@ namespace pg
 			if (keyboard[spk::Keyboard::D] == spk::InputState::Down) { direction.x += 1.0f; }
 			if (keyboard[spk::Keyboard::Q] == spk::InputState::Down) { direction.x -= 1.0f; }
 
-			AnimationController2D *animation = entity->component<AnimationController2D>();
+			spk::AnimationController2D *animation = entity->component<spk::AnimationController2D>();
 
 			if (direction.isZero() == true)
 			{

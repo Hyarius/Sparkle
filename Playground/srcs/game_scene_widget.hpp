@@ -4,7 +4,7 @@
 #include <cstddef>
 #include <string>
 
-#include "entity2d.hpp"
+#include "structures/game_engine/spk_entity_2d.hpp"
 #include "structures/graphics/geometry/spk_texture_mesh_2d.hpp"
 #include "structures/graphics/texture/spk_sprite_sheet.hpp"
 #include "structures/widget/spk_debug_overlay.hpp"
@@ -18,10 +18,10 @@ namespace pg
 		spk::SpriteSheet _spriteSheet;
 		spk::TextureMesh2D _spriteMesh;
 
-		Entity2D _player;
-		Entity2D _cameraEntity{&_player};
-		Entity2D _objectA;
-		Entity2D _objectB;
+		spk::Entity2D _player;
+		spk::Entity2D _cameraEntity{&_player};
+		spk::Entity2D _objectA;
+		spk::Entity2D _objectB;
 
 		spk::DebugOverlay _overlay;
 

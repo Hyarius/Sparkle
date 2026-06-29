@@ -3,13 +3,13 @@
 #include <algorithm>
 #include <cstddef>
 
-#include "components/animation2d.hpp"
-#include "components/sprite_renderer2d.hpp"
-#include "entity2d.hpp"
+#include "structures/game_engine/spk_animation_2d.hpp"
 #include "structures/game_engine/spk_component_logic.hpp"
 #include "structures/game_engine/spk_entity.hpp"
+#include "structures/game_engine/spk_entity_2d.hpp"
+#include "structures/game_engine/spk_sprite_renderer_2d.hpp"
 
-namespace pg
+namespace spk
 {
 	class AnimationLogic : public spk::ComponentLogic<AnimationController2D>
 	{

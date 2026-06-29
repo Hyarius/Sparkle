@@ -1,21 +1,19 @@
 #pragma once
 
-#include "component2d.hpp"
+#include "structures/game_engine/spk_component_2d.hpp"
 #include "structures/graphics/texture/spk_sprite_sheet.hpp"
 
 namespace spk
 {
 	class TextureMesh2D;
-}
 
-namespace pg
-{
-	class SpriteRenderer2D : public Component2D
+	class SpriteRenderer2D : public spk::Component2D
 	{
 	private:
 		const spk::TextureMesh2D *_mesh = nullptr;
 		const spk::SpriteSheet *_spriteSheet = nullptr;
 		spk::SpriteSheet::Sprite _sprite = spk::SpriteSheet::Sprite::whole;
+
 	public:
 		SpriteRenderer2D() = default;
 
