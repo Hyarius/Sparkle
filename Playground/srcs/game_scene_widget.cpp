@@ -209,8 +209,14 @@ namespace pg
 
 		_overlay.setText(Sprites, 1, std::to_string(_spriteCount.load(std::memory_order_relaxed)));
 		_overlay.setText(Polygons, 1, std::to_string(_polygonCount.load(std::memory_order_relaxed)));
-		_overlay.setText(UpdateTime, 1, std::to_string(_updateDurationNs.load(std::memory_order_relaxed)) + " ns");
-		_overlay.setText(RenderTime, 1, std::to_string(_renderDurationNs.load(std::memory_order_relaxed)) + " ns");
+		_overlay.setText(
+			UpdateTime,
+			1,
+			formatFloat(static_cast<float>(_updateDurationNs.load(std::memory_order_relaxed)) / 1.0e6f, " ms"));
+		_overlay.setText(
+			RenderTime,
+			1,
+			formatFloat(static_cast<float>(_renderDurationNs.load(std::memory_order_relaxed)) / 1.0e6f, " ms"));
 		_overlay.setText(DeltaTime, 1, std::to_string(p_tick.deltaTime.milliseconds()) + " ms");
 	}
 }

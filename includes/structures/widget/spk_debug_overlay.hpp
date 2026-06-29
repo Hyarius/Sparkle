@@ -7,7 +7,7 @@
 
 #include "structures/graphics/geometry/spk_color.hpp"
 #include "structures/graphics/texture/spk_font.hpp"
-#include "structures/widget/spk_linear_layout.hpp"
+#include "structures/widget/spk_grid_layout.hpp"
 #include "structures/widget/spk_text_label.hpp"
 #include "structures/widget/spk_widget.hpp"
 
@@ -18,11 +18,10 @@ namespace spk
 	private:
 		struct Row
 		{
-			std::unique_ptr<spk::HorizontalLayout> layout = std::make_unique<spk::HorizontalLayout>();
 			std::vector<std::unique_ptr<spk::TextLabel>> labels;
 		};
 
-		spk::VerticalLayout _layout;
+		spk::GridLayout _layout;
 		std::vector<Row> _rows;
 
 		size_t _outlineSize = 0;

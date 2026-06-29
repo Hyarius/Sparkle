@@ -39,19 +39,17 @@ namespace spk
 	{
 		_layout.clear();
 
-		for (Row &row : _rows)
+		for (size_t r = 0; r < _rows.size(); ++r)
 		{
-			row.layout->clear();
+			Row &row = _rows[r];
 
-			for (auto &label : row.labels)
+			for (size_t c = 0; c < row.labels.size(); ++c)
 			{
-				if (label != nullptr)
+				if (row.labels[c] != nullptr)
 				{
-					row.layout->addWidget(label.get(), spk::Layout::SizePolicy::Extend);
+					_layout.setWidget(c, r, row.labels[c].get(), spk::Layout::SizePolicy::Extend);
 				}
 			}
-
-			_layout.addLayout(row.layout.get(), spk::Layout::SizePolicy::Extend);
 		}
 	}
 
