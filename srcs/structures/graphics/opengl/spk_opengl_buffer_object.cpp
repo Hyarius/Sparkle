@@ -17,6 +17,11 @@ namespace spk
 		requestSynchronization();
 	}
 
+	void BufferObject::_validateNewSize(std::size_t p_newSize) const
+	{
+		(void)p_newSize;
+	}
+
 	void BufferObject::_resetField()
 	{
 		_field = spk::BinaryField(_cpuBuffer.data(), _cpuBuffer.size());
@@ -88,6 +93,8 @@ namespace spk
 
 	void BufferObject::resize(std::size_t p_size)
 	{
+		_validateNewSize(p_size);
+
 		std::scoped_lock lock(_mutex);
 		_cpuBuffer.resize(p_size);
 		_resetField();
@@ -127,23 +134,49 @@ namespace spk
 		requestSynchronization();
 	}
 
-	void BufferObject::append(const void *p_data, std::size_t p_size)
+	std::size_t BufferObject::_reserveBack(std::size_t p_size, std::size_t p_alignment)
+	{
+		std::scoped_lock lock(_mutex);
+
+		std::size_t offset = _cpuBuffer.size();
+		if (p_alignment > 1)
+		{
+			const std::size_t remainder = offset % p_alignment;
+			if (remainder != 0)
+			{
+				offset += p_alignment - remainder;
+			}
+		}
+
+		_validateNewSize(offset + p_size);
+
+		_cpuBuffer.resize(offset + p_size);
+		_resetField();
+		++_contentVersion;
+		requestSynchronization();
+
+		return offset;
+	}
+
+	std::uint8_t *BufferObject::_addressAt(std::size_t p_offset) noexcept
+	{
+		return _cpuBuffer.data() + p_offset;
+	}
+
+	std::size_t BufferObject::append(const void *p_data, std::size_t p_size)
 	{
 		if (p_data == nullptr && p_size != 0)
 		{
 			throw std::runtime_error("spk::BufferObject::append received null data with a non-zero size");
 		}
 
-		std::scoped_lock lock(_mutex);
-		const std::size_t offset = _cpuBuffer.size();
-		_cpuBuffer.resize(offset + p_size);
+		const std::size_t offset = _reserveBack(p_size, 1);
 		if (p_size != 0)
 		{
 			std::memcpy(_cpuBuffer.data() + offset, p_data, p_size);
 		}
-		_resetField();
-		++_contentVersion;
-		requestSynchronization();
+
+		return offset;
 	}
 
 	std::uint8_t *BufferObject::data()

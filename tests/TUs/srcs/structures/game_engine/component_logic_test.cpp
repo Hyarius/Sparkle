@@ -27,6 +27,7 @@ namespace
 		std::string trace;
 		int sum = 0;
 		int renderStartedCount = 0;
+		std::size_t renderComponentCount = 0;
 		int renderParsedCount = 0;
 		int renderExecutedCount = 0;
 		int resizedStartedCount = 0;
@@ -52,9 +53,10 @@ namespace
 			trace += "E";
 		}
 
-		void _onRenderStarted() override
+		void _onRenderStarted(std::size_t p_componentCount) override
 		{
 			++renderStartedCount;
+			renderComponentCount = p_componentCount;
 		}
 
 		void _parseComponentForRender(ValueComponent &) override
@@ -122,8 +124,30 @@ TEST(ComponentLogicTest, RenderRunsBeginParseEndOverProcessableComponents)
 	logics.render(builder, engine.componentRegistry());
 
 	EXPECT_EQ(logic.renderStartedCount, 1);
+	EXPECT_EQ(logic.renderComponentCount, 2u);
 	EXPECT_EQ(logic.renderParsedCount, 2);
 	EXPECT_EQ(logic.renderExecutedCount, 1);
+}
+
+TEST(ComponentLogicTest, RenderStartCountExcludesNonProcessableComponents)
+{
+	spk::GameEngine engine;
+	spk::Entity activeEntity;
+	spk::Entity inactiveEntity;
+	engine.addEntity(&activeEntity);
+	engine.addEntity(&inactiveEntity);
+	activeEntity.addComponent<ValueComponent>(2);
+	inactiveEntity.addComponent<ValueComponent>(3);
+	inactiveEntity.deactivate();
+
+	spk::ComponentLogicRegistry logics;
+	ValueLogic &logic = logics.add<ValueLogic>();
+	spk::RenderUnitBuilder builder;
+
+	logics.render(builder, engine.componentRegistry());
+
+	EXPECT_EQ(logic.renderComponentCount, 1u);
+	EXPECT_EQ(logic.renderParsedCount, 1);
 }
 
 TEST(ComponentLogicTest, DeactivatedLogicDoesNotRun)

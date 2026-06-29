@@ -17,6 +17,7 @@
 #include "structures/system/thread/spk_thread_safe_deque.hpp"
 #include "type/spk_concepts.hpp"
 #include "type/spk_constants.hpp"
+#include "type/spk_padding.hpp"
 
 #include "structures/graphics/geometry/spk_mesh.hpp"
 #include "structures/math/spk_approx_value.hpp"
@@ -57,6 +58,7 @@
 #include "structures/graphics/geometry/spk_color_mesh_2d.hpp"
 #include "structures/graphics/geometry/spk_generic_mesh.hpp"
 #include "structures/graphics/geometry/spk_mesh_2d.hpp"
+#include "structures/graphics/geometry/spk_primitive_object.hpp"
 #include "structures/graphics/geometry/spk_texture_mesh_2d.hpp"
 #include "structures/graphics/opengl/spk_opengl_clear_command.hpp"
 #include "structures/graphics/opengl/spk_opengl_draw_arrays_command.hpp"

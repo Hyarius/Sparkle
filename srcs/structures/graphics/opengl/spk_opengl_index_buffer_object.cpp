@@ -47,4 +47,15 @@ namespace spk
 	{
 		return size() / indexElementSize(_elementType);
 	}
+
+	void IndexBufferObject::_validateCast(std::size_t p_typeSize) const
+	{
+		const std::size_t expected = indexElementSize(_elementType);
+		if (p_typeSize != expected)
+		{
+			throw std::runtime_error(
+				"spk::IndexBufferObject::cast index type of size [" + std::to_string(p_typeSize) +
+				"] does not match the configured element size [" + std::to_string(expected) + "]");
+		}
+	}
 }

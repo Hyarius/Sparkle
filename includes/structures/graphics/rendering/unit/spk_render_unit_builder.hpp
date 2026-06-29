@@ -28,6 +28,14 @@ namespace spk
 		[[nodiscard]] bool empty() const;
 		[[nodiscard]] size_t size() const;
 
+		void add(std::unique_ptr<spk::RenderCommand> p_command)
+		{
+			if (p_command != nullptr)
+			{
+				_commands.emplace_back(std::move(p_command));
+			}
+		}
+
 		template <typename TCommand, typename... TArguments>
 		TCommand &emplace(TArguments &&...p_arguments)
 		{

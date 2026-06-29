@@ -14,4 +14,16 @@ target_link_libraries(SparklePlayground
 		Sparkle::Sparkle
 )
 
+target_include_directories(SparklePlayground
+	PRIVATE
+		"${CMAKE_CURRENT_SOURCE_DIR}/srcs"
+)
+
+# Absolute path to the Playground resources so the executable can load them
+# regardless of the working directory it is launched from.
+target_compile_definitions(SparklePlayground
+	PRIVATE
+		PG_RESOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/resources"
+)
+
 target_compile_features(SparklePlayground PRIVATE cxx_std_23)

@@ -1,9 +1,56 @@
-﻿#include <gtest/gtest.h>
+﻿#include <cstdint>
+#include <stdexcept>
+#include <type_traits>
+
+#include <gtest/gtest.h>
 
 #include "structures/graphics/opengl/opengl_wrapper_test_utils.hpp"
 
 using BufferObject = spk::BufferObject;
 using UniformBufferObject = spk::UniformBufferObject;
+
+namespace
+{
+	struct ViewportBlock
+	{
+		float projection[16] = {};
+	};
+
+	static_assert(std::is_trivially_copyable_v<ViewportBlock>);
+	static_assert(sizeof(ViewportBlock) == 64);
+}
+
+TEST(OpenGLUniformBufferObjectTest, CastOverlaysBufferAndTracksWrites)
+{
+	UniformBufferObject uniformBuffer(0, BufferObject::Usage::DynamicDraw, sizeof(ViewportBlock));
+
+	const std::uint64_t before = uniformBuffer.contentVersion();
+
+	ViewportBlock &block = uniformBuffer.cast<ViewportBlock>();
+	EXPECT_EQ(static_cast<void *>(&block), static_cast<void *>(uniformBuffer.data()));
+	EXPECT_GT(uniformBuffer.contentVersion(), before);
+
+	block.projection[0] = 3.5f;
+	block.projection[15] = 9.0f;
+
+	const ViewportBlock &readOnly =
+		static_cast<const UniformBufferObject &>(uniformBuffer).cast<ViewportBlock>();
+	EXPECT_FLOAT_EQ(readOnly.projection[0], 3.5f);
+	EXPECT_FLOAT_EQ(readOnly.projection[15], 9.0f);
+}
+
+TEST(OpenGLUniformBufferObjectTest, CastThrowsWhenTypeSizeDoesNotMatchBuffer)
+{
+	UniformBufferObject uniformBuffer(0, BufferObject::Usage::DynamicDraw, sizeof(ViewportBlock) - 4);
+
+	EXPECT_THROW({ [[maybe_unused]] ViewportBlock &block = uniformBuffer.cast<ViewportBlock>(); }, std::runtime_error);
+	EXPECT_THROW(
+		{
+			[[maybe_unused]] const ViewportBlock &block =
+				static_cast<const UniformBufferObject &>(uniformBuffer).cast<ViewportBlock>();
+		},
+		std::runtime_error);
+}
 
 TEST(OpenGLUniformBufferObjectTest, BindsConfiguredBindingPoint)
 {

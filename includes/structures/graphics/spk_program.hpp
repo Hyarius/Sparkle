@@ -56,5 +56,6 @@ namespace spk
 
 		void renderRaw(const spk::RenderContext &p_context, spk::Primitive p_primitive, std::size_t p_firstVertex, std::size_t p_vertexCount) const;
 		void render(const spk::RenderContext &p_context, spk::Primitive p_primitive, std::size_t p_firstIndex, std::size_t p_indexCount) const;
+		void renderInstanced(const spk::RenderContext &p_context, spk::Primitive p_primitive, std::size_t p_firstIndex, std::size_t p_indexCount, std::size_t p_instanceCount) const;
 	};
 }

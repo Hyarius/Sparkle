@@ -1,6 +1,8 @@
 #pragma once
 
+#include <algorithm>
 #include <concepts>
+#include <cstddef>
 #include <vector>
 
 #include "structures/design_pattern/spk_activable_trait.hpp"
@@ -126,9 +128,15 @@ namespace spk
 				return;
 			}
 
-			_onRenderStarted();
-
 			const std::vector<spk::Component *> &components = p_registry.components<TComponent>();
+			const std::size_t componentCount = static_cast<std::size_t>(std::count_if(
+				components.begin(),
+				components.end(),
+				[](const spk::Component *p_component) {
+					return p_component != nullptr && p_component->isProcessable() == true;
+				}));
+
+			_onRenderStarted(componentCount);
 
 			for (spk::Component *component : components)
 			{
@@ -290,7 +298,7 @@ namespace spk
 		virtual void _parseComponentForUpdate(const spk::UpdateTick &p_tick, TComponent &p_component) { (void)p_tick; (void)p_component; }
 		virtual void _executeUpdate(const spk::UpdateTick &p_tick) { (void)p_tick; }
 
-		virtual void _onRenderStarted() {}
+		virtual void _onRenderStarted(std::size_t p_componentCount) { (void)p_componentCount; }
 		virtual void _parseComponentForRender(TComponent &p_component) { (void)p_component; }
 		virtual void _executeRender(spk::RenderUnitBuilder &p_builder) { (void)p_builder; }
 

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <cstdint>
 #include <limits>
 #include <span>
@@ -9,6 +10,8 @@
 #include <utility>
 #include <vector>
 
+#include "structures/container/spk_cached_data.hpp"
+#include "structures/graphics/spk_buffer_object.hpp"
 #include "structures/graphics/spk_layout_buffer_object.hpp"
 #include "type/spk_concepts.hpp"
 
@@ -23,12 +26,107 @@ namespace spk
 		using Index = std::uint32_t;
 		using Shape = std::vector<Index>;
 
+	private:
+		class HashKey
+		{
+		private:
+			mutable const spk::BufferObject *_vertexSource = nullptr;
+			mutable const spk::BufferObject *_indexSource = nullptr;
+			mutable spk::CachedData<std::uint32_t> _cache;
+
+			void _configure()
+			{
+				_cache.configure([this]() { return _compute(); });
+			}
+
+			[[nodiscard]] std::uint32_t _compute() const
+			{
+				std::uint32_t hash = 2166136261u; // FNV-1a (32-bit)
+
+				const auto mix = [&hash](std::span<const std::uint8_t> p_bytes) {
+					for (const std::uint8_t byte : p_bytes)
+					{
+						hash ^= static_cast<std::uint32_t>(byte);
+						hash *= 16777619u;
+					}
+				};
+
+				if (_vertexSource != nullptr)
+				{
+					mix(_vertexSource->bytes());
+				}
+				if (_indexSource != nullptr)
+				{
+					mix(_indexSource->bytes());
+				}
+				return hash;
+			}
+
+		public:
+			HashKey()
+			{
+				_configure();
+			}
+
+			~HashKey() = default;
+
+			HashKey(const HashKey &)
+			{
+				_configure();
+			}
+
+			HashKey &operator=(const HashKey &)
+			{
+				_vertexSource = nullptr;
+				_indexSource = nullptr;
+				_cache.release();
+				return *this;
+			}
+
+			HashKey(HashKey &&) noexcept
+			{
+				_configure();
+			}
+
+			HashKey &operator=(HashKey &&) noexcept
+			{
+				_vertexSource = nullptr;
+				_indexSource = nullptr;
+				_cache.release();
+				return *this;
+			}
+
+			[[nodiscard]] bool isBound() const
+			{
+				return _vertexSource != nullptr || _indexSource != nullptr;
+			}
+
+			void bind(const spk::BufferObject *p_vertexSource, const spk::BufferObject *p_indexSource) const
+			{
+				_vertexSource = p_vertexSource;
+				_indexSource = p_indexSource;
+				_cache.release();
+			}
+
+			void invalidate() const
+			{
+				_cache.release();
+			}
+
+			[[nodiscard]] std::uint32_t value() const
+			{
+				return _cache.get();
+			}
+		};
+
 	protected:
 		spk::LayoutBufferObject _layoutBuffer;
 
 	private:
 		std::unordered_map<Vertex, Index> _vertexLookup;
 		std::vector<Shape> _shapes;
+
+		HashKey _hashKey;
 
 		void _ensureCanAppendVertices(std::size_t p_vertexCount) const
 		{
@@ -101,6 +199,7 @@ namespace spk
 			_layoutBuffer.setVertices(std::span<const Vertex>{});
 			_layoutBuffer.setIndexes(std::span<const Index>{});
 			_vertexLookup.clear();
+			_hashKey.invalidate();
 		}
 
 		void reserve(std::size_t p_vertexCount, std::size_t p_indexCount)
@@ -151,6 +250,7 @@ namespace spk
 			}
 
 			_shapes.emplace_back(std::move(shape));
+			_hashKey.invalidate();
 		}
 
 		void addShape(const std::vector<Vertex> &p_vertices)
@@ -181,6 +281,15 @@ namespace spk
 		[[nodiscard]] const spk::LayoutBufferObject &layoutBuffer() const
 		{
 			return _layoutBuffer;
+		}
+
+		[[nodiscard]] std::uint32_t hashKey() const
+		{
+			if (_hashKey.isBound() == false)
+			{
+				_hashKey.bind(&_layoutBuffer.vertices(), &_layoutBuffer.indexes());
+			}
+			return _hashKey.value();
 		}
 	};
 }

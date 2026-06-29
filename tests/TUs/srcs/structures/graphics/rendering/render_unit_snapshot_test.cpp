@@ -6,6 +6,7 @@
 #include "structures/graphics/opengl/opengl_wrapper_test_utils.hpp"
 #include "structures/graphics/rendering/snapshot/spk_render_snapshot.hpp"
 #include "structures/graphics/rendering/unit/spk_render_unit.hpp"
+#include "structures/graphics/rendering/unit/spk_render_unit_builder.hpp"
 
 namespace
 {
@@ -40,6 +41,19 @@ TEST(RenderUnitTest, ExecuteSkipsNullCommandsAndExecutesValidCommands)
 
 	unit.execute(context.renderContext());
 
+	EXPECT_EQ(executionCount, 1);
+}
+
+TEST(RenderUnitBuilderTest, AddTransfersAnExistingCommand)
+{
+	sparkle_test::OpenGLTestContext context;
+	int executionCount = 0;
+	spk::RenderUnitBuilder builder;
+
+	builder.add(std::make_unique<CountingRenderCommand>(executionCount));
+
+	EXPECT_EQ(builder.size(), 1u);
+	builder.build().execute(context.renderContext());
 	EXPECT_EQ(executionCount, 1);
 }
 

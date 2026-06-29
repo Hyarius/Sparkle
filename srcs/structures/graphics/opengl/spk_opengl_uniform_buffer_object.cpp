@@ -19,6 +19,16 @@ namespace spk
 		return _bindingPoint;
 	}
 
+	void UniformBufferObject::_validateCast(std::size_t p_typeSize) const
+	{
+		if (p_typeSize != size())
+		{
+			throw std::runtime_error(
+				"spk::UniformBufferObject::cast type of size [" + std::to_string(p_typeSize) +
+				"] does not match the buffer size [" + std::to_string(size()) + "]");
+		}
+	}
+
 	void UniformBufferObject::validateFor(spk::Program &p_program) const
 	{
 		const GLuint programID = p_program.id();

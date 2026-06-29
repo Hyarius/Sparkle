@@ -5,6 +5,7 @@
 
 #include "structures/graphics/opengl/opengl_wrapper_test_utils.hpp"
 #include "structures/graphics/opengl/spk_opengl_buffer.hpp"
+#include "structures/graphics/spk_buffer_object.hpp"
 
 
 TEST(OpenGLBufferObjectTest, SynchronizesBinaryFieldToGPU)
@@ -179,6 +180,24 @@ TEST(OpenGLBufferObjectTest, EditAndAppendValidateInputs)
 
 	EXPECT_NO_THROW(buffer.edit(nullptr, 0));
 	EXPECT_NO_THROW(buffer.append(nullptr, 0));
+}
+
+TEST(OpenGLBufferObjectTest, AppendReturnsWrittenOffset)
+{
+	sparkle_test::OpenGLTestContext context;
+	(void)context;
+
+	spk::BufferObject buffer(
+		spk::BufferObject::Target::Array,
+		spk::BufferObject::Usage::DynamicDraw,
+		0);
+
+	std::array<std::uint8_t, 2> first = {1, 2};
+	std::array<std::uint8_t, 3> second = {3, 4, 5};
+
+	EXPECT_EQ(buffer.append(first.data(), first.size()), 0u);
+	EXPECT_EQ(buffer.append(second.data(), second.size()), 2u);
+	EXPECT_EQ(buffer.append(nullptr, 0), 5u);
 }
 
 TEST(OpenGLBufferObjectTest, ActivationHelpersBindBaseAndRange)

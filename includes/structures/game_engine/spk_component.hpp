@@ -18,6 +18,7 @@ namespace spk
 
 	protected:
 		Component();
+		virtual void _onAttached(spk::Entity &p_entity);
 
 	public:
 		~Component() override;

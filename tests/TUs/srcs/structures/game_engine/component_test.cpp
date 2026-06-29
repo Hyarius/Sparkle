@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 
+#include <stdexcept>
+
 #include "structures/game_engine/spk_component.hpp"
 #include "structures/game_engine/spk_entity.hpp"
 
@@ -9,6 +11,15 @@ namespace
 	{
 	public:
 		ProbeComponent() = default;
+	};
+
+	class RejectingComponent : public spk::Component
+	{
+	protected:
+		void _onAttached(spk::Entity &) override
+		{
+			throw std::invalid_argument("rejected entity");
+		}
 	};
 }
 
@@ -65,4 +76,12 @@ TEST(ComponentTest, ComponentIsNotProcessableWhenEntityHierarchyDeactivated)
 
 	EXPECT_TRUE(component.isActivated());
 	EXPECT_FALSE(component.isProcessable());
+}
+
+TEST(ComponentTest, AttachmentHookCanRejectAnEntityBeforeInsertion)
+{
+	spk::Entity entity;
+
+	EXPECT_THROW(entity.addComponent<RejectingComponent>(), std::invalid_argument);
+	EXPECT_TRUE(entity.components().empty());
 }

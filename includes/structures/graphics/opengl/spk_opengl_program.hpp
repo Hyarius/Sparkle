@@ -35,6 +35,7 @@ namespace spk
 
 			void renderRaw(spk::Primitive p_primitive, std::size_t p_firstVertex, std::size_t p_vertexCount) const;
 			void render(spk::Primitive p_primitive, std::size_t p_firstIndex, std::size_t p_indexCount) const;
+			void renderInstanced(spk::Primitive p_primitive, std::size_t p_firstIndex, std::size_t p_indexCount, std::size_t p_instanceCount) const;
 		};
 	}
 }

@@ -11,8 +11,17 @@ namespace spk
 
 	Component::~Component() = default;
 
+	void Component::_onAttached(spk::Entity &p_entity)
+	{
+		(void)p_entity;
+	}
+
 	void Component::_attach(spk::Entity *p_entity)
 	{
+		if (p_entity != nullptr)
+		{
+			_onAttached(*p_entity);
+		}
 		_entity = p_entity;
 	}
 

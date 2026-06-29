@@ -138,6 +138,17 @@ namespace spk
 				GL_UNSIGNED_INT,
 				reinterpret_cast<const void *>(static_cast<std::uintptr_t>(p_firstIndex) * sizeof(std::uint32_t)));
 		}
+
+		void Program::renderInstanced(spk::Primitive p_primitive, std::size_t p_firstIndex, std::size_t p_indexCount, std::size_t p_instanceCount) const
+		{
+			activate();
+			glDrawElementsInstanced(
+				spk::OpenGL::primitiveType(p_primitive),
+				static_cast<GLsizei>(p_indexCount),
+				GL_UNSIGNED_INT,
+				reinterpret_cast<const void *>(static_cast<std::uintptr_t>(p_firstIndex) * sizeof(std::uint32_t)),
+				static_cast<GLsizei>(p_instanceCount));
+		}
 	}
 
 	Program::Program(std::string p_vertexShaderSource, std::string p_fragmentShaderSource) :
@@ -243,5 +254,11 @@ namespace spk
 	{
 		synchronize();
 		gpu(p_context).render(p_primitive, p_firstIndex, p_indexCount);
+	}
+
+	void Program::renderInstanced(const spk::RenderContext &p_context, spk::Primitive p_primitive, std::size_t p_firstIndex, std::size_t p_indexCount, std::size_t p_instanceCount) const
+	{
+		synchronize();
+		gpu(p_context).renderInstanced(p_primitive, p_firstIndex, p_indexCount, p_instanceCount);
 	}
 }

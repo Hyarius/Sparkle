@@ -41,7 +41,7 @@ namespace spk
 
 			if (p_spriteCount == spk::Vector2UInt(1, 1))
 			{
-				_sprites.push_back({spk::Vector2(0.0f, 0.0f) + halfPixel, _unit - halfPixel});
+				_sprites.push_back({spk::Vector2(0.0f, 0.0f), _unit});
 			}
 			else
 			{
@@ -51,7 +51,7 @@ namespace spk
 					{
 						const spk::Vector2 anchor =
 							spk::Vector2(static_cast<float>(x), static_cast<float>(y)) * _unit;
-						_sprites.push_back({anchor + halfPixel, _unit - halfPixel});
+						_sprites.push_back({anchor, _unit});
 					}
 				}
 			}

@@ -63,6 +63,12 @@ namespace spk
 		void _resetField();
 		void _synchronize() const override;
 
+		virtual void _validateNewSize(std::size_t p_newSize) const;
+
+		std::size_t _reserveBack(std::size_t p_size, std::size_t p_alignment);
+
+		[[nodiscard]] std::uint8_t *_addressAt(std::size_t p_offset) noexcept;
+
 	public:
 		explicit BufferObject(
 			Target p_target = Target::Array,
@@ -87,9 +93,10 @@ namespace spk
 
 		void resize(std::size_t p_size);
 		void reserve(std::size_t p_size);
-		void clear();
+		virtual void clear();
 		void edit(const void *p_data, std::size_t p_size, std::size_t p_offset = 0);
-		void append(const void *p_data, std::size_t p_size);
+
+		std::size_t append(const void *p_data, std::size_t p_size);
 
 		[[nodiscard]] std::uint8_t *data();
 		[[nodiscard]] const std::uint8_t *data() const;
