@@ -29,7 +29,7 @@ namespace spk
 		}
 
 		_viewport.activate();
-		spk::OpenGLViewport::apply(_viewport, *surfaceState);
+		spk::OpenGL::Viewport::apply(_viewport, *surfaceState);
 
 		spk::UniformBufferObject &viewportBuffer = spk::Viewport::viewportUniformBuffer();
 		const spk::Matrix4x4 &viewportMatrix = _viewport.matrix();

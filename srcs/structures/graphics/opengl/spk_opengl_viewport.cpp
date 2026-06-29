@@ -6,14 +6,14 @@
 
 #include "structures/system/device/window/spk_surface_state.hpp"
 
-namespace spk
+namespace spk::OpenGL
 {
-	void OpenGLViewport::apply(const spk::Viewport &p_viewport, const spk::SurfaceState &p_surfaceState)
+	void Viewport::apply(const spk::Viewport &p_viewport, const spk::SurfaceState &p_surfaceState)
 	{
 		const spk::Vector2UInt &windowSize = p_surfaceState.rect().size;
 		if (windowSize.x == 0 || windowSize.y == 0)
 		{
-			throw std::runtime_error("spk::OpenGLViewport::apply() - window size must be positive");
+			throw std::runtime_error("spk::OpenGL::Viewport::apply() - window size must be positive");
 		}
 
 		const spk::Rect2D &geometry = p_viewport.geometry();

@@ -8,7 +8,7 @@
 
 using Viewport = spk::Viewport;
 
-TEST(OpenGLViewportTest, TwoArgConstructorSetsGeometryAndScissorIndependently)
+TEST(OpenGL::ViewportTest, TwoArgConstructorSetsGeometryAndScissorIndependently)
 {
 	sparkle_test::OpenGLTestContext context;
 	(void)context;
@@ -22,7 +22,7 @@ TEST(OpenGLViewportTest, TwoArgConstructorSetsGeometryAndScissorIndependently)
 	EXPECT_EQ(viewport.scissor(), scissor);
 }
 
-TEST(OpenGLViewportTest, ActivateThrowsWhenWindowWidthIsZero)
+TEST(OpenGL::ViewportTest, ActivateThrowsWhenWindowWidthIsZero)
 {
 	sparkle_test::OpenGLTestContext context(spk::Rect2D(0, 0, 0, 32));
 	spk::RenderContext& renderContext = context.renderContext();
@@ -30,11 +30,11 @@ TEST(OpenGLViewportTest, ActivateThrowsWhenWindowWidthIsZero)
 	Viewport viewport(spk::Rect2D(0, 0, 10, 10));
 
 	EXPECT_THROW(
-		spk::OpenGLViewport::apply(viewport, *renderContext.surfaceState()),
+		spk::OpenGL::Viewport::apply(viewport, *renderContext.surfaceState()),
 		std::runtime_error);
 }
 
-TEST(OpenGLViewportTest, ActivateThrowsWhenWindowHeightIsZero)
+TEST(OpenGL::ViewportTest, ActivateThrowsWhenWindowHeightIsZero)
 {
 	sparkle_test::OpenGLTestContext context(spk::Rect2D(0, 0, 32, 0));
 	spk::RenderContext& renderContext = context.renderContext();
@@ -42,11 +42,11 @@ TEST(OpenGLViewportTest, ActivateThrowsWhenWindowHeightIsZero)
 	Viewport viewport(spk::Rect2D(0, 0, 10, 10));
 
 	EXPECT_THROW(
-		spk::OpenGLViewport::apply(viewport, *renderContext.surfaceState()),
+		spk::OpenGL::Viewport::apply(viewport, *renderContext.surfaceState()),
 		std::runtime_error);
 }
 
-TEST(OpenGLViewportTest, ActivateSetsActiveViewportPointer)
+TEST(OpenGL::ViewportTest, ActivateSetsActiveViewportPointer)
 {
 	sparkle_test::OpenGLTestContext context;
 	spk::RenderContext& renderContext = context.renderContext();
@@ -57,7 +57,7 @@ TEST(OpenGLViewportTest, ActivateSetsActiveViewportPointer)
 	EXPECT_EQ(spk::Viewport::activeViewport(), &viewport);
 }
 
-TEST(OpenGLViewportTest, ConvertScreenToOpenGLVector2IntMapsOriginCorrectly)
+TEST(OpenGL::ViewportTest, ConvertScreenToOpenGLVector2IntMapsOriginCorrectly)
 {
 	sparkle_test::OpenGLTestContext context;
 	spk::RenderContext& renderContext = context.renderContext();
@@ -75,7 +75,7 @@ TEST(OpenGLViewportTest, ConvertScreenToOpenGLVector2IntMapsOriginCorrectly)
 	spk::Viewport::setMaxLayer(savedMaxLayer);
 }
 
-TEST(OpenGLViewportTest, ConvertScreenToOpenGLIntXYOverloadMatchesVector2Int)
+TEST(OpenGL::ViewportTest, ConvertScreenToOpenGLIntXYOverloadMatchesVector2Int)
 {
 	sparkle_test::OpenGLTestContext context;
 	spk::RenderContext& renderContext = context.renderContext();
@@ -94,7 +94,7 @@ TEST(OpenGLViewportTest, ConvertScreenToOpenGLIntXYOverloadMatchesVector2Int)
 	spk::Viewport::setMaxLayer(savedMaxLayer);
 }
 
-TEST(OpenGLViewportTest, ConvertScreenToOpenGLWithLayerReturnsVector3)
+TEST(OpenGL::ViewportTest, ConvertScreenToOpenGLWithLayerReturnsVector3)
 {
 	sparkle_test::OpenGLTestContext context;
 	spk::RenderContext& renderContext = context.renderContext();
