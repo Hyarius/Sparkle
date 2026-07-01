@@ -214,3 +214,46 @@ TEST(ThreadSafeContractTest, ContractMoveAssignmentFromSelfPreservesContract)
 
 	EXPECT_EQ(callCount, 1);
 }
+
+TEST(ThreadSafeContractTest, BlockerMoveAssignmentReleasesTargetAndTransfersSource)
+{
+	spk::ContractProvider<> provider;
+	const std::shared_ptr<std::mutex> mutex = std::make_shared<std::mutex>();
+	int firstCalls = 0;
+	int secondCalls = 0;
+	spk::ThreadSafeContract<spk::ContractProvider<>::Contract> first(
+		provider.subscribe([&firstCalls]() { ++firstCalls; }), mutex);
+	spk::ThreadSafeContract<spk::ContractProvider<>::Contract> second(
+		provider.subscribe([&secondCalls]() { ++secondCalls; }), mutex);
+	auto firstBlocker = first.block();
+	auto secondBlocker = second.block();
+
+	firstBlocker = std::move(secondBlocker);
+	provider.trigger();
+
+	EXPECT_EQ(firstCalls, 1);
+	EXPECT_EQ(secondCalls, 0);
+	EXPECT_TRUE(firstBlocker.isValid());
+	EXPECT_FALSE(secondBlocker.isValid());
+}
+
+TEST(ThreadSafeContractTest, ContractMoveAssignmentResignsTargetAndTransfersSource)
+{
+	spk::ContractProvider<> provider;
+	const std::shared_ptr<std::mutex> mutex = std::make_shared<std::mutex>();
+	int firstCalls = 0;
+	int secondCalls = 0;
+	spk::ThreadSafeContract<spk::ContractProvider<>::Contract> target(
+		provider.subscribe([&firstCalls]() { ++firstCalls; }), mutex);
+	spk::ThreadSafeContract<spk::ContractProvider<>::Contract> source(
+		provider.subscribe([&secondCalls]() { ++secondCalls; }), mutex);
+
+	target = std::move(source);
+	provider.trigger();
+
+	EXPECT_EQ(firstCalls, 0);
+	EXPECT_EQ(secondCalls, 1);
+	EXPECT_TRUE(target.isValid());
+	EXPECT_FALSE(source.isValid());
+	EXPECT_EQ(provider.nbContracts(), 1u);
+}

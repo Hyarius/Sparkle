@@ -165,3 +165,11 @@ TEST(Vector4BranchTest, IsBetweenCoversEachOutOfRangeComponent)
 	EXPECT_FALSE(spk::Vector4Int::isBetween(spk::Vector4Int(2, 2, 2, -1), low, high));
 	EXPECT_FALSE(spk::Vector4Int::isBetween(spk::Vector4Int(2, 2, 2, 5), low, high));
 }
+
+TEST(Vector4CoverageTest, UnsignedStreamOperator)
+{
+	std::ostringstream output;
+	output << spk::Vector4UInt(3u, 4u, 5u, 6u);
+
+	EXPECT_EQ(output.str(), "(3, 4, 5, 6)");
+}

@@ -1,10 +1,23 @@
 #include <gtest/gtest.h>
 
+#include <stdexcept>
+
 #include "structures/widget/spk_interface_window.hpp"
 #include "structures/widget/spk_panel.hpp"
 #include "structures/widget/spk_widget_visual_test_helpers.hpp"
 #include "structures/application/module/spk_mouse_module.hpp"
 #include "structures/system/device/window/window_test_utils.hpp"
+
+namespace
+{
+	class InterfaceWindowTester : public spk::InterfaceWindow<spk::Panel>
+	{
+	public:
+		using spk::InterfaceWindow<spk::Panel>::InterfaceWindow;
+		using spk::IInterfaceWindow::_onMouseButtonPressedEvent;
+		using spk::IInterfaceWindow::_onMouseButtonReleasedEvent;
+	};
+}
 
 TEST(InterfaceWindowTest, ConstructionActivatesAndOwnsTypedContent)
 {
@@ -384,6 +397,90 @@ TEST(InterfaceWindowTest, IsMovingGetterReflectsState)
 	mouseModule.processEvents();
 
 	EXPECT_TRUE(window.isMoving());
+}
+
+TEST(InterfaceWindowTest, EveryMenuButtonCanBeActivatedAndDeactivated)
+{
+	spk::InterfaceWindow<spk::Panel> window("Window");
+
+	window.deactivateMenuButton(spk::IInterfaceWindow::MenuBar::Button::Maximize);
+	window.deactivateMenuButton(spk::IInterfaceWindow::MenuBar::Button::Close);
+	EXPECT_FALSE(window.menuBar().maximizeButton().isActivated());
+	EXPECT_FALSE(window.menuBar().closeButton().isActivated());
+
+	window.activateMenuButton(spk::IInterfaceWindow::MenuBar::Button::Maximize);
+	window.activateMenuButton(spk::IInterfaceWindow::MenuBar::Button::Close);
+	EXPECT_TRUE(window.menuBar().maximizeButton().isActivated());
+	EXPECT_TRUE(window.menuBar().closeButton().isActivated());
+}
+
+TEST(InterfaceWindowTest, ConstMenuBarAccessorsReturnControlObjects)
+{
+	spk::InterfaceWindow<spk::Panel> window("Window");
+	const spk::IInterfaceWindow::MenuBar &menu = window.menuBar();
+
+	EXPECT_EQ(&menu.titleLabel(), &window.menuBar().titleLabel());
+	EXPECT_EQ(&menu.minimizeButton(), &window.menuBar().minimizeButton());
+	EXPECT_EQ(&menu.maximizeButton(), &window.menuBar().maximizeButton());
+	EXPECT_EQ(&menu.closeButton(), &window.menuBar().closeButton());
+}
+
+TEST(InterfaceWindowTest, UnknownSubscriptionEventThrows)
+{
+	spk::InterfaceWindow<spk::Panel> window("Window");
+
+	EXPECT_THROW(
+		window.subscribeTo(static_cast<spk::IInterfaceWindow::Event>(-1), []() {}),
+		std::invalid_argument);
+}
+
+TEST(InterfaceWindowTest, RepeatedContentPaddingAndResetAreNoOps)
+{
+	spk::InterfaceWindow<spk::Panel> window("Window");
+	const spk::IInterfaceWindow::ContentPadding padding{1u, 2u, 3u, 4u};
+
+	window.setContentPadding(padding);
+	window.setContentPadding(padding);
+	EXPECT_EQ(window.contentPadding(), padding);
+
+	window.resetContentPadding();
+	EXPECT_NO_THROW(window.resetContentPadding());
+}
+
+TEST(InterfaceWindowTest, PressInsideContentConsumesEventWithoutStartingMove)
+{
+	InterfaceWindowTester window("Window");
+	window.setGeometry(spk::Rect2D(0, 0, 300u, 200u));
+	spk::Mouse mouse;
+	mouse.position = {150, 100};
+	spk::MouseButtonPressedRecord record;
+	record.button = spk::Mouse::Left;
+	spk::MouseButtonPressedEvent event(record, mouse);
+
+	window._onMouseButtonPressedEvent(event);
+
+	EXPECT_TRUE(event.isConsumed());
+	EXPECT_FALSE(window.isMoving());
+}
+
+TEST(InterfaceWindowTest, AlreadyConsumedPressAndNonLeftReleaseAreIgnored)
+{
+	InterfaceWindowTester window("Window");
+	window.setGeometry(spk::Rect2D(0, 0, 300u, 200u));
+	spk::Mouse mouse;
+	mouse.position = {10, 10};
+	spk::MouseButtonPressedRecord pressRecord;
+	pressRecord.button = spk::Mouse::Left;
+	spk::MouseButtonPressedEvent pressEvent(pressRecord, mouse);
+	pressEvent.consume();
+	window._onMouseButtonPressedEvent(pressEvent);
+	EXPECT_FALSE(window.isMoving());
+
+	spk::MouseButtonReleasedRecord releaseRecord;
+	releaseRecord.button = spk::Mouse::Right;
+	spk::MouseButtonReleasedEvent releaseEvent(releaseRecord, mouse);
+	window._onMouseButtonReleasedEvent(releaseEvent);
+	EXPECT_FALSE(releaseEvent.isConsumed());
 }
 
 TEST(InterfaceWindowVisualTest, RendersDefault)

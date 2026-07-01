@@ -170,7 +170,7 @@ TEST(CurveInterpolatorTest, EvaluateRejectsNonFiniteX)
 	curve.insert(0.0f, 0.0f);
 	curve.insert(1.0f, 1.0f);
 
-	EXPECT_THROW(curve.evaluate(NOT_A_NUMBER), std::invalid_argument);
+	EXPECT_THROW(auto value = curve.evaluate(NOT_A_NUMBER), std::invalid_argument);
 }
 
 TEST(CurveInterpolatorTest, EvaluateEmptyCurveReturnsZero)
@@ -373,8 +373,8 @@ TEST(CurveInterpolatorTest, ThrowExtrapolationThrowsOutsideDomain)
 		spk::CurveInterpolator::Interpolation::Linear,
 		spk::CurveInterpolator::Extrapolation::Throw);
 
-	EXPECT_THROW(curve.evaluate(-1.0f), std::out_of_range);
-	EXPECT_THROW(curve.evaluate(2.0f), std::out_of_range);
+	EXPECT_THROW(auto value = curve.evaluate(-1.0f), std::out_of_range);
+	EXPECT_THROW(auto value = curve.evaluate(2.0f), std::out_of_range);
 }
 
 // ---------------------------------------------------------------------------

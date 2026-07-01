@@ -189,3 +189,62 @@ TEST(MatrixTest, StringifiesRows)
 
 	EXPECT_EQ(matrix.toString(), "[1, 2]\n[3, 4]");
 }
+
+TEST(MatrixTest, IdentityIsAvailableForEveryPublicSquareMatrixType)
+{
+	EXPECT_EQ(spk::Matrix2x2::identity(), spk::Matrix2x2());
+	EXPECT_EQ(spk::Matrix3x3::identity(), spk::Matrix3x3());
+	EXPECT_EQ(spk::Matrix4x4::identity(), spk::Matrix4x4());
+}
+
+TEST(MatrixTest, VectorTranslationAndScaleOverloadsMatchScalarOverloads)
+{
+	const spk::Vector3 translation(3.0f, 4.0f, 5.0f);
+	const spk::Vector3 scale(2.0f, 6.0f, 8.0f);
+
+	EXPECT_EQ(spk::Matrix4x4::translation(translation), spk::Matrix4x4::translation(3.0f, 4.0f, 5.0f));
+	EXPECT_EQ(spk::Matrix4x4::scale(scale), spk::Matrix4x4::scale(2.0f, 6.0f, 8.0f));
+}
+
+TEST(MatrixTest, BoundsAndInitializerValidationCoverAllPublicMatrixSizes)
+{
+	spk::Matrix3x3 matrix3;
+	const spk::Matrix4x4 matrix4;
+
+	EXPECT_THROW(matrix3[3], std::invalid_argument);
+	EXPECT_THROW(matrix3[0][3], std::invalid_argument);
+	EXPECT_THROW(matrix4[4], std::invalid_argument);
+	EXPECT_THROW(matrix4[0][4], std::invalid_argument);
+	EXPECT_THROW((spk::Matrix2x2{1.0f}), std::invalid_argument);
+	EXPECT_THROW((spk::Matrix4x4{1.0f, 2.0f}), std::invalid_argument);
+}
+
+TEST(MatrixTest, TwoByTwoInverseHandlesPivotSwap)
+{
+	const spk::Matrix2x2 matrix{
+		0.0f, 2.0f,
+		1.0f, 3.0f
+	};
+
+	EXPECT_EQ(matrix * matrix.inverse(), spk::Matrix2x2::identity());
+}
+
+TEST(MatrixTest, FourByFourInverseReversesTranslationAndScale)
+{
+	const spk::Matrix4x4 matrix =
+		spk::Matrix4x4::translation(spk::Vector3(3.0f, -4.0f, 5.0f)) *
+		spk::Matrix4x4::scale(spk::Vector3(2.0f, 3.0f, 4.0f));
+
+	EXPECT_EQ(matrix * matrix.inverse(), spk::Matrix4x4::identity());
+}
+
+TEST(MatrixTest, StreamOperatorCoversThreeAndFourDimensionalMatrices)
+{
+	std::ostringstream matrix3Output;
+	matrix3Output << spk::Matrix3x3::identity();
+	EXPECT_EQ(matrix3Output.str(), "[1, 0, 0]\n[0, 1, 0]\n[0, 0, 1]");
+
+	std::ostringstream matrix4Output;
+	matrix4Output << spk::Matrix4x4::identity();
+	EXPECT_EQ(matrix4Output.str(), "[1, 0, 0, 0]\n[0, 1, 0, 0]\n[0, 0, 1, 0]\n[0, 0, 0, 1]");
+}

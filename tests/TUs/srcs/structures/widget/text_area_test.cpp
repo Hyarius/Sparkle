@@ -296,3 +296,80 @@ TEST(TextAreaTest, StyleEditionRefreshesProperties)
 
 	EXPECT_EQ(textArea.textSize(), spk::Font::Size(28, 1));
 }
+
+TEST(TextAreaTest, PublicStylePropertiesReflectSetters)
+{
+	spk::TextArea textArea("TextArea", "Hello");
+	const auto font = textArea.font();
+	ASSERT_NE(font, nullptr);
+
+	textArea.setFont(font);
+	textArea.setTextSize(spk::Font::Size(17, 2));
+	textArea.setGlyphColor(spk::Color(0.1f, 0.2f, 0.3f, 0.4f));
+	textArea.setOutlineColor(spk::Color(0.5f, 0.6f, 0.7f, 0.8f));
+	textArea.setDepth(3.5f);
+
+	EXPECT_EQ(textArea.font(), font);
+	EXPECT_EQ(textArea.textSize(), spk::Font::Size(17, 2));
+	EXPECT_FLOAT_EQ(textArea.glyphColor().r, 0.1f);
+	EXPECT_FLOAT_EQ(textArea.glyphColor().g, 0.2f);
+	EXPECT_FLOAT_EQ(textArea.outlineColor().b, 0.7f);
+	EXPECT_FLOAT_EQ(textArea.depth(), 3.5f);
+}
+
+TEST(TextAreaTest, RepeatedPropertyValuesAreNoOps)
+{
+	spk::TextArea textArea("TextArea", "Same");
+
+	textArea.setText("Same");
+	textArea.setTextSize(textArea.textSize());
+	textArea.setGlyphColor(textArea.glyphColor());
+	textArea.setOutlineColor(textArea.outlineColor());
+	textArea.setLinePadding(textArea.linePadding());
+	textArea.setAlignment(textArea.horizontalAlignment(), textArea.verticalAlignment());
+	textArea.setDepth(textArea.depth());
+
+	EXPECT_EQ(textArea.text(), spk::Font::textFromUTF8("Same"));
+}
+
+TEST(TextAreaTest, EmptyGeometryWithTextBuildsNoCommands)
+{
+	spk::TextArea textArea("TextArea", "Visible only with geometry");
+
+	const auto unit = textArea.renderUnit();
+
+	ASSERT_NE(unit, nullptr);
+	EXPECT_TRUE(unit->empty());
+}
+
+TEST(TextAreaTest, EmptyParagraphsArePreservedWithoutRenderCommands)
+{
+	spk::TextArea textArea("TextArea", "\n");
+	textArea.setGeometry(spk::Rect2D(0, 0, 100u, 100u));
+
+	const auto unit = textArea.renderUnit();
+
+	ASSERT_NE(unit, nullptr);
+	EXPECT_TRUE(unit->empty());
+	EXPECT_GT(textArea.computePreferredSize(100u).y, 0u);
+}
+
+TEST(TextAreaTest, CenteredAlignmentBuildsCommands)
+{
+	spk::TextArea textArea("TextArea", "Centered");
+	textArea.setAlignment(spk::HorizontalAlignment::Centered, spk::VerticalAlignment::Centered);
+	textArea.setGeometry(spk::Rect2D(0, 0, 200u, 100u));
+
+	ASSERT_NE(textArea.renderUnit(), nullptr);
+	EXPECT_EQ(textArea.renderUnit()->size(), 1u);
+}
+
+TEST(TextAreaTest, RightDownAlignmentBuildsCommands)
+{
+	spk::TextArea textArea("TextArea", "Right down");
+	textArea.setAlignment(spk::HorizontalAlignment::Right, spk::VerticalAlignment::Down);
+	textArea.setGeometry(spk::Rect2D(0, 0, 200u, 100u));
+
+	ASSERT_NE(textArea.renderUnit(), nullptr);
+	EXPECT_EQ(textArea.renderUnit()->size(), 1u);
+}

@@ -6,6 +6,7 @@
 #include "structures/graphics/opengl/opengl_wrapper_test_utils.hpp"
 #include "structures/graphics/opengl/spk_opengl_buffer.hpp"
 #include "structures/graphics/spk_buffer_object.hpp"
+#include "structures/system/win32/spk_winapi_platform_runtime.hpp"
 
 
 TEST(OpenGLBufferObjectTest, SynchronizesBinaryFieldToGPU)
@@ -226,5 +227,48 @@ TEST(OpenGLBufferObjectTest, ActivationHelpersBindBaseAndRange)
 	GLint boundUniform = 1;
 	glGetIntegerv(GL_UNIFORM_BUFFER_BINDING, &boundUniform);
 	EXPECT_EQ(boundUniform, 0);
+}
+
+TEST(OpenGLBufferObjectTest, CachePrunesDestroyedContextAndRefreshesSurvivingContext)
+{
+	spk::PlatformRuntime platformRuntime;
+	auto firstFrame = platformRuntime.createFrame(spk::Rect2D(400, 400, 32, 32), "BufferCacheFirst");
+	auto secondFrame = platformRuntime.createFrame(spk::Rect2D(440, 440, 32, 32), "BufferCacheSecond");
+	ASSERT_NE(firstFrame, nullptr);
+	ASSERT_NE(secondFrame, nullptr);
+	auto &firstNativeFrame = dynamic_cast<spk::Frame &>(*firstFrame);
+	auto &secondNativeFrame = dynamic_cast<spk::Frame &>(*secondFrame);
+
+	spk::BufferObject buffer(
+		spk::BufferObject::Target::Array,
+		spk::BufferObject::Usage::DynamicDraw,
+		4u);
+	auto firstContext = std::make_unique<spk::RenderContext>(firstNativeFrame);
+	spk::OpenGL::Buffer &firstGpu = buffer.gpu(*firstContext);
+	EXPECT_TRUE(buffer.hasGpu(*firstContext));
+	EXPECT_EQ(firstGpu.contextId(), firstContext->id());
+
+	auto secondContext = std::make_unique<spk::RenderContext>(secondNativeFrame);
+	spk::OpenGL::Buffer &secondGpu = buffer.gpu(*secondContext);
+	EXPECT_TRUE(buffer.hasGpu(*secondContext));
+	EXPECT_EQ(secondGpu.contextId(), secondContext->id());
+
+	secondContext->makeCurrent();
+	firstContext.reset();
+	EXPECT_EQ(spk::RenderContext::current(), secondContext.get());
+
+	const std::array<std::uint8_t, 4> replacement{4u, 3u, 2u, 1u};
+	buffer.edit(replacement.data(), replacement.size());
+	EXPECT_FALSE(buffer.hasGpu(*secondContext));
+
+	spk::OpenGL::Buffer &refreshedGpu = buffer.gpu(*secondContext);
+	EXPECT_EQ(&refreshedGpu, &secondGpu);
+	EXPECT_TRUE(buffer.hasGpu(*secondContext));
+
+	firstFrame->validateClosure();
+	platformRuntime.pollEvents();
+	secondContext.reset();
+	secondFrame->validateClosure();
+	platformRuntime.pollEvents();
 }
 

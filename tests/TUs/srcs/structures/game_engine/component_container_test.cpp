@@ -113,3 +113,27 @@ TEST(ComponentContainerTest, ComponentsForUnknownEngineIsEmpty)
 	EXPECT_TRUE(container.empty());
 	EXPECT_TRUE(container.components(spk::UUID::generate()).empty());
 }
+
+TEST(ComponentContainerTest, RemoveFromUnknownEngineIsANoOp)
+{
+	spk::Entity entity;
+	BoxComponent &component = entity.addComponent<BoxComponent>();
+	spk::ComponentContainer container;
+
+	EXPECT_NO_THROW(container.remove(spk::UUID::generate(), &component));
+	EXPECT_TRUE(container.empty());
+}
+
+TEST(ComponentContainerTest, MoveWithinSameEngineIsANoOp)
+{
+	spk::Entity entity;
+	BoxComponent &component = entity.addComponent<BoxComponent>();
+	const spk::UUID engineId = spk::UUID::generate();
+	spk::ComponentContainer container;
+	container.add(engineId, &component);
+
+	container.move(engineId, engineId, &component);
+
+	ASSERT_EQ(container.components(engineId).size(), 1u);
+	EXPECT_EQ(container.components(engineId).front(), &component);
+}

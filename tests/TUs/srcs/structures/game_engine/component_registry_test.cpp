@@ -120,3 +120,51 @@ TEST(ComponentStoreTest, NullEngineIdAndNullComponentAreIgnored)
 
 	EXPECT_TRUE(spk::ComponentRegistry(spk::UUID::null()).components<PositionComponent>().empty());
 }
+
+TEST(ComponentRegistryTest, EngineIdCanBeReadAndChanged)
+{
+	const spk::UUID firstId = spk::UUID::generate();
+	const spk::UUID secondId = spk::UUID::generate();
+	spk::ComponentRegistry registry(firstId);
+
+	EXPECT_EQ(registry.engineId(), firstId);
+
+	registry.setEngineId(secondId);
+
+	EXPECT_EQ(registry.engineId(), secondId);
+}
+
+TEST(ComponentStoreTest, MoveWithinSameEngineKeepsComponentRegistered)
+{
+	spk::Entity entity;
+	PositionComponent &position = entity.addComponent<PositionComponent>();
+	const spk::UUID engineId = spk::UUID::generate();
+	const std::type_index type(typeid(PositionComponent));
+	spk::ComponentStore &store = spk::ComponentStore::instance();
+	store.add(type, engineId, &position);
+
+	store.move(type, engineId, engineId, &position);
+
+	ASSERT_EQ(spk::ComponentRegistry(engineId).components<PositionComponent>().size(), 1u);
+	EXPECT_EQ(spk::ComponentRegistry(engineId).components<PositionComponent>().front(), &position);
+	store.clearEngine(engineId);
+}
+
+TEST(ComponentStoreTest, ClearEnginePreservesBucketsForOtherEngines)
+{
+	spk::Entity entity;
+	PositionComponent &position = entity.addComponent<PositionComponent>();
+	VelocityComponent &velocity = entity.addComponent<VelocityComponent>();
+	const spk::UUID engineA = spk::UUID::generate();
+	const spk::UUID engineB = spk::UUID::generate();
+	spk::ComponentStore &store = spk::ComponentStore::instance();
+	store.add(std::type_index(typeid(PositionComponent)), engineA, &position);
+	store.add(std::type_index(typeid(VelocityComponent)), engineB, &velocity);
+
+	store.clearEngine(engineA);
+
+	EXPECT_TRUE(spk::ComponentRegistry(engineA).components<PositionComponent>().empty());
+	ASSERT_EQ(spk::ComponentRegistry(engineB).components<VelocityComponent>().size(), 1u);
+	EXPECT_EQ(spk::ComponentRegistry(engineB).components<VelocityComponent>().front(), &velocity);
+	store.clearEngine(engineB);
+}

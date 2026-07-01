@@ -275,7 +275,7 @@ TEST(Timestamp_StringConversionTest, ToStringRejectsUnknownTimeUnit)
 	const spk::Timestamp timestamp(1.5L, spk::TimeUnit::Second);
 	const spk::TimeUnit unknownUnit = static_cast<spk::TimeUnit>(-1);
 
-	EXPECT_THROW(timestamp.toString(unknownUnit), std::invalid_argument);
+	EXPECT_THROW(auto value = timestamp.toString(unknownUnit), std::invalid_argument);
 }
 
 TEST(Timestamp_StringConversionTest, ConvertsToRequestedUnitWideString)
@@ -292,7 +292,7 @@ TEST(Timestamp_StringConversionTest, ToWstringRejectsUnknownTimeUnit)
 	const spk::Timestamp timestamp(1.5L, spk::TimeUnit::Second);
 	const spk::TimeUnit unknownUnit = static_cast<spk::TimeUnit>(-1);
 
-	EXPECT_THROW(timestamp.toWstring(unknownUnit), std::invalid_argument);
+	EXPECT_THROW(auto value = timestamp.toWstring(unknownUnit), std::invalid_argument);
 }
 
 TEST(Timestamp_StreamTest, StreamsDefaultNanosecondString)

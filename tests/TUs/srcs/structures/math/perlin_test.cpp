@@ -114,33 +114,33 @@ TEST(PerlinTest, Raw1DRejectsNonFiniteInput)
 {
 	const spk::Perlin perlin;
 
-	EXPECT_THROW(perlin.raw1D(NOT_A_NUMBER), std::invalid_argument);
+	EXPECT_THROW(auto value = perlin.raw1D(NOT_A_NUMBER), std::invalid_argument);
 }
 
 TEST(PerlinTest, Raw2DRejectsNonFiniteInput)
 {
 	const spk::Perlin perlin;
 
-	EXPECT_THROW(perlin.raw2D(NOT_A_NUMBER, 0.0f), std::invalid_argument);
-	EXPECT_THROW(perlin.raw2D(0.0f, INFINITY_VALUE), std::invalid_argument);
+	EXPECT_THROW(auto value = perlin.raw2D(NOT_A_NUMBER, 0.0f), std::invalid_argument);
+	EXPECT_THROW(auto value = perlin.raw2D(0.0f, INFINITY_VALUE), std::invalid_argument);
 }
 
 TEST(PerlinTest, Raw3DRejectsNonFiniteInput)
 {
 	const spk::Perlin perlin;
 
-	EXPECT_THROW(perlin.raw3D(NOT_A_NUMBER, 0.0f, 0.0f), std::invalid_argument);
-	EXPECT_THROW(perlin.raw3D(0.0f, NOT_A_NUMBER, 0.0f), std::invalid_argument);
-	EXPECT_THROW(perlin.raw3D(0.0f, 0.0f, NOT_A_NUMBER), std::invalid_argument);
+	EXPECT_THROW(auto value = perlin.raw3D(NOT_A_NUMBER, 0.0f, 0.0f), std::invalid_argument);
+	EXPECT_THROW(auto value = perlin.raw3D(0.0f, NOT_A_NUMBER, 0.0f), std::invalid_argument);
+	EXPECT_THROW(auto value = perlin.raw3D(0.0f, 0.0f, NOT_A_NUMBER), std::invalid_argument);
 }
 
 TEST(PerlinTest, SampleRejectsNonFiniteRange)
 {
 	const spk::Perlin perlin;
 
-	EXPECT_THROW(perlin.sample1D(0.5f, NOT_A_NUMBER, 1.0f), std::invalid_argument);
-	EXPECT_THROW(perlin.sample2D(0.5f, 0.5f, 0.0f, NOT_A_NUMBER), std::invalid_argument);
-	EXPECT_THROW(perlin.sample3D(0.5f, 0.5f, 0.5f, NOT_A_NUMBER, 1.0f), std::invalid_argument);
+	EXPECT_THROW(auto value = perlin.sample1D(0.5f, NOT_A_NUMBER, 1.0f), std::invalid_argument);
+	EXPECT_THROW(auto value = perlin.sample2D(0.5f, 0.5f, 0.0f, NOT_A_NUMBER), std::invalid_argument);
+	EXPECT_THROW(auto value = perlin.sample3D(0.5f, 0.5f, 0.5f, NOT_A_NUMBER, 1.0f), std::invalid_argument);
 }
 
 TEST(PerlinTest, RawValuesStayWithinNormalizedBounds)

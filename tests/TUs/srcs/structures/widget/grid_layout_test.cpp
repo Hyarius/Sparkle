@@ -5,6 +5,15 @@
 #include "structures/widget/spk_grid_layout.hpp"
 #include "structures/widget/spk_widget.hpp"
 
+namespace
+{
+	class GridLayoutTester : public spk::GridLayout
+	{
+	public:
+		using spk::GridLayout::_resizeGrid;
+	};
+}
+
 TEST(GridLayoutTest, SetWidgetGrowsGrid)
 {
 	spk::GridLayout layout;
@@ -244,4 +253,120 @@ TEST(GridLayoutFixedTest, FixedGridInitialisesWithCorrectDimensions)
 
 	EXPECT_EQ(layout.columnCount(), 3u);
 	EXPECT_EQ(layout.rowCount(), 2u);
+}
+
+TEST(GridLayoutTest, PreferredAndFixedSizeOfEmptyGridAreZero)
+{
+	spk::GridLayout layout;
+
+	EXPECT_EQ(layout.preferredSizeFor({100u, 100u}), spk::Vector2UInt::Zero);
+	EXPECT_EQ(layout.fixedSize(), spk::Vector2UInt::Zero);
+}
+
+TEST(GridLayoutTest, PreferredSizeHandlesFixedMaximumAndMinimumPolicies)
+{
+	spk::GridLayout layout;
+	spk::Widget fixed("Fixed");
+	spk::Widget maximum("Maximum");
+	spk::Widget minimum("Minimum");
+	fixed.setFixedSize({30u, 20u});
+	maximum.setMaximalSize({40u, 25u});
+	minimum.setMinimalSize({10u, 15u});
+	layout.setWidget(0, 0, &fixed, spk::Layout::SizePolicy::Fixed);
+	layout.setWidget(1, 0, &maximum, spk::Layout::SizePolicy::Maximum);
+	layout.setWidget(2, 0, &minimum, spk::Layout::SizePolicy::Minimum);
+	layout.setElementPadding({5u, 0u});
+
+	EXPECT_EQ(layout.preferredSizeFor({200u, 100u}), spk::Vector2UInt(90u, 25u));
+	EXPECT_EQ(layout.fixedSize(), layout.minimalSize());
+}
+
+TEST(GridLayoutTest, SettingSameCellAgainReplacesElement)
+{
+	spk::GridLayout layout;
+	spk::Widget first("First");
+	spk::Widget second("Second");
+
+	layout.setWidget(0, 0, &first);
+	spk::Layout::Element *element = layout.setWidget(0, 0, &second, spk::Layout::SizePolicy::Fixed);
+
+	ASSERT_NE(element, nullptr);
+	EXPECT_EQ(element->widget(), &second);
+	EXPECT_EQ(element->sizePolicy(), spk::Layout::SizePolicy::Fixed);
+	EXPECT_EQ(layout.elements().size(), 1u);
+}
+
+TEST(GridLayoutTest, EmptyRowsAndColumnsCanBeAddedToExistingGrid)
+{
+	spk::GridLayout layout;
+	spk::Widget widget("Widget");
+	layout.setWidget(0, 0, &widget);
+
+	layout.addEmptyRow();
+	layout.addEmptyColumn();
+
+	EXPECT_EQ(layout.rowCount(), 2u);
+	EXPECT_EQ(layout.columnCount(), 2u);
+}
+
+TEST(GridLayoutTest, ResizeToCurrentDimensionsIsANoOp)
+{
+	GridLayoutTester layout;
+	layout._resizeGrid(2u, 3u);
+
+	layout._resizeGrid(2u, 3u);
+
+	EXPECT_EQ(layout.rowCount(), 2u);
+	EXPECT_EQ(layout.columnCount(), 3u);
+}
+
+TEST(GridLayoutTest, SparseGridGeometrySkipsEmptyCells)
+{
+	spk::GridLayout layout;
+	spk::Widget widget("Widget");
+	layout.setWidget(1, 1, &widget);
+
+	EXPECT_NO_THROW(layout.setGeometry(spk::Rect2D(0, 0, 100u, 100u)));
+	EXPECT_FALSE(widget.geometry().empty());
+}
+
+TEST(GridLayoutTest, GeometrySmallerThanMinimumClampsRemainingSpaceToZero)
+{
+	spk::GridLayout layout;
+	spk::Widget widget("Widget");
+	widget.setMinimalSize({100u, 80u});
+	layout.setWidget(0, 0, &widget, spk::Layout::SizePolicy::Minimum);
+
+	layout.setGeometry(spk::Rect2D(0, 0, 10u, 5u));
+
+	EXPECT_EQ(widget.geometry().size, spk::Vector2UInt(100u, 80u));
+}
+
+TEST(GridLayoutFixedTest, ValidCellsCanBeSetForFixedDimensions)
+{
+	spk::Widget first("First");
+	spk::Widget second("Second");
+	spk::Widget third("Third");
+	spk::GridLayoutFixedColumns<2> columns;
+	spk::GridLayoutFixedRows<2> rows;
+	spk::GridLayoutFixedGrid<2, 2> grid;
+
+	EXPECT_NE(columns.setWidget(1, 2, &first), nullptr);
+	EXPECT_NE(rows.setWidget(2, 1, &second), nullptr);
+	EXPECT_NE(grid.setWidget(1, 1, &third), nullptr);
+	EXPECT_EQ(columns.rowCount(), 3u);
+	EXPECT_EQ(rows.columnCount(), 3u);
+}
+
+TEST(GridLayoutFixedTest, ZeroDimensionSpecializationsStayEmpty)
+{
+	spk::GridLayoutFixedColumns<0> columns;
+	spk::GridLayoutFixedRows<0> rows;
+	spk::GridLayoutFixedGrid<0, 2> zeroColumns;
+	spk::GridLayoutFixedGrid<2, 0> zeroRows;
+
+	EXPECT_EQ(columns.columnCount(), 0u);
+	EXPECT_EQ(rows.rowCount(), 0u);
+	EXPECT_EQ(zeroColumns.columnCount(), 0u);
+	EXPECT_EQ(zeroRows.rowCount(), 0u);
 }

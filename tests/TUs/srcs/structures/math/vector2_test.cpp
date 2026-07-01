@@ -712,3 +712,16 @@ TEST(Vector2BranchTest, ScalarAndCompoundDivisionCoverBothSides)
 	EXPECT_EQ(floatScalar, spk::Vector2(2.0f, 3.0f));
 	EXPECT_THROW(floatScalar /= 0.0f, std::invalid_argument);
 }
+
+TEST(Vector2CoverageTest, UnsignedStreamDivisionAndUpperBoundaryPaths)
+{
+	std::ostringstream output;
+	output << spk::Vector2UInt(3u, 4u);
+	EXPECT_EQ(output.str(), "(3, 4)");
+
+	EXPECT_THROW(static_cast<void>(spk::Vector2UInt(8u, 12u) / 0u), std::invalid_argument);
+	EXPECT_TRUE(spk::Vector2UInt::isBetween(
+		spk::Vector2UInt(2u, 4u),
+		spk::Vector2UInt(0u, 0u),
+		spk::Vector2UInt(4u, 4u)));
+}

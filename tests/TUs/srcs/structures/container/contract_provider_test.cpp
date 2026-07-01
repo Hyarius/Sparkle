@@ -712,6 +712,52 @@ TEST(ContractProviderTest, TriggerIsSafeOnEmptyProvider)
 	EXPECT_EQ(provider.nbContracts(), 0u);
 }
 
+TEST(ContractProviderTest, DefaultContractOperationsAreSafe)
+{
+	spk::ContractProvider<>::Contract contract;
+
+	EXPECT_FALSE(contract.isValid());
+	EXPECT_FALSE(contract.block().isValid());
+	EXPECT_NO_THROW(contract.resign());
+	EXPECT_NO_THROW(contract.relinquish());
+}
+
+TEST(ContractProviderTest, SelfMoveAssignmentKeepsSubscription)
+{
+	spk::ContractProvider<> provider;
+	int callCount = 0;
+	auto contract = provider.subscribe([&callCount]() { ++callCount; });
+
+	contract = std::move(contract);
+	provider.trigger();
+
+	EXPECT_TRUE(contract.isValid());
+	EXPECT_EQ(callCount, 1);
+	EXPECT_EQ(provider.nbContracts(), 1u);
+}
+
+TEST(ContractProviderTest, ThrowingCallbackDoesNotLeaveProviderReentrancyLocked)
+{
+	spk::ContractProvider<> provider;
+	bool shouldThrow = true;
+	int successfulCalls = 0;
+	auto contract = provider.subscribe([&]()
+	{
+		if (shouldThrow)
+		{
+			shouldThrow = false;
+			throw std::runtime_error("callback failed");
+		}
+		++successfulCalls;
+	});
+
+	EXPECT_THROW(provider.trigger(), std::runtime_error);
+	EXPECT_NO_THROW(provider.trigger());
+
+	EXPECT_TRUE(contract.isValid());
+	EXPECT_EQ(successfulCalls, 1);
+}
+
 namespace
 {
 	class IntProvider : public spk::ContractProvider<int>

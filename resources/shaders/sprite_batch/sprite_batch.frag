@@ -7,5 +7,10 @@ out vec4 outColor;
 
 void main()
 {
-	outColor = texture(uTexture, vertexUV);
+	vec4 color = texture(uTexture, vertexUV);
+	if (color.a < 0.5)
+	{
+		discard;
+	}
+	outColor = color;
 }

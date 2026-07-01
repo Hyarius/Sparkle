@@ -527,6 +527,38 @@ TEST(PushButtonTest, SetIconPaddingOverridesIconInset)
 	EXPECT_EQ(button.releasedIcon().geometry(), spk::Rect2D(18, 18, 12, 12));
 }
 
+TEST(PushButtonTest, IconSizeCanBeRepeatedAndReset)
+{
+	spk::PushButton button("Button");
+	button.setGeometry(spk::Rect2D(0, 0, 48u, 48u));
+	button.setIcon(spk::WidgetStyle::makeDefault().iconSpriteSheet(), 0u);
+
+	EXPECT_NO_THROW(button.resetIconSize());
+	button.setIconSize({12u, 14u});
+	button.setIconSize({12u, 14u});
+	ASSERT_TRUE(button.iconSize().has_value());
+
+	button.resetIconSize();
+	EXPECT_FALSE(button.iconSize().has_value());
+	EXPECT_NO_THROW(button.resetIconSize());
+}
+
+TEST(PushButtonTest, IconPaddingCanBeRepeatedAndReset)
+{
+	spk::PushButton button("Button");
+	button.setGeometry(spk::Rect2D(0, 0, 48u, 48u));
+	button.setIcon(spk::WidgetStyle::makeDefault().iconSpriteSheet(), 0u);
+
+	EXPECT_NO_THROW(button.resetIconPadding());
+	button.setIconPadding({3u, 4u});
+	button.setIconPadding({3u, 4u});
+	ASSERT_TRUE(button.iconPadding().has_value());
+
+	button.resetIconPadding();
+	EXPECT_FALSE(button.iconPadding().has_value());
+	EXPECT_NO_THROW(button.resetIconPadding());
+}
+
 TEST(PushButtonTest, SetIconNullSpriteSheetThrows)
 {
 	spk::PushButton button("Button", "OK");

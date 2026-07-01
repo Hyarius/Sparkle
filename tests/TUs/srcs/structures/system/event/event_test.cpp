@@ -50,6 +50,94 @@ TEST(EventViewTest, ConsumeUpdatesOnlyTheView)
 	EXPECT_TRUE(event.isConsumed());
 }
 
+TEST(EventViewTest, ConsumeIsAvailableForEveryFrameEventInstantiation)
+{
+	spk::WindowCloseRequestedRecord close;
+	spk::WindowDestroyedRecord destroyed;
+	spk::WindowMovedRecord moved;
+	spk::WindowResizedRecord resized;
+	spk::WindowFocusGainedRecord focusGained;
+	spk::WindowFocusLostRecord focusLost;
+	spk::WindowShownRecord shown;
+	spk::WindowHiddenRecord hidden;
+
+	spk::WindowCloseRequestedEvent closeEvent(close);
+	spk::WindowDestroyedEvent destroyedEvent(destroyed);
+	spk::WindowMovedEvent movedEvent(moved);
+	spk::WindowResizedEvent resizedEvent(resized);
+	spk::WindowFocusGainedEvent focusGainedEvent(focusGained);
+	spk::WindowFocusLostEvent focusLostEvent(focusLost);
+	spk::WindowShownEvent shownEvent(shown);
+	spk::WindowHiddenEvent hiddenEvent(hidden);
+
+	closeEvent.consume();
+	destroyedEvent.consume();
+	movedEvent.consume();
+	resizedEvent.consume();
+	focusGainedEvent.consume();
+	focusLostEvent.consume();
+	shownEvent.consume();
+	hiddenEvent.consume();
+
+	EXPECT_TRUE(closeEvent.isConsumed());
+	EXPECT_TRUE(destroyedEvent.isConsumed());
+	EXPECT_TRUE(movedEvent.isConsumed());
+	EXPECT_TRUE(resizedEvent.isConsumed());
+	EXPECT_TRUE(focusGainedEvent.isConsumed());
+	EXPECT_TRUE(focusLostEvent.isConsumed());
+	EXPECT_TRUE(shownEvent.isConsumed());
+	EXPECT_TRUE(hiddenEvent.isConsumed());
+}
+
+TEST(EventViewTest, ConsumeIsAvailableForEveryDeviceEventInstantiation)
+{
+	spk::Mouse mouse;
+	spk::Keyboard keyboard;
+	spk::MouseEnteredRecord entered;
+	spk::MouseLeftRecord left;
+	spk::MouseMovedRecord moved;
+	spk::MouseWheelScrolledRecord wheel;
+	spk::MouseButtonPressedRecord pressed;
+	spk::MouseButtonReleasedRecord released;
+	spk::MouseButtonDoubleClickedRecord doubleClicked;
+	spk::KeyPressedRecord keyPressed;
+	spk::KeyReleasedRecord keyReleased;
+	spk::TextInputRecord text;
+
+	spk::MouseEnteredWindowEvent enteredEvent(entered, mouse);
+	spk::MouseLeftWindowEvent leftEvent(left, mouse);
+	spk::MouseMovedEvent movedEvent(moved, mouse);
+	spk::MouseWheelScrolledEvent wheelEvent(wheel, mouse);
+	spk::MouseButtonPressedEvent pressedEvent(pressed, mouse);
+	spk::MouseButtonReleasedEvent releasedEvent(released, mouse);
+	spk::MouseButtonDoubleClickedEvent doubleClickedEvent(doubleClicked, mouse);
+	spk::KeyPressedEvent keyPressedEvent(keyPressed, keyboard);
+	spk::KeyReleasedEvent keyReleasedEvent(keyReleased, keyboard);
+	spk::TextInputEvent textEvent(text, keyboard);
+
+	enteredEvent.consume();
+	leftEvent.consume();
+	movedEvent.consume();
+	wheelEvent.consume();
+	pressedEvent.consume();
+	releasedEvent.consume();
+	doubleClickedEvent.consume();
+	keyPressedEvent.consume();
+	keyReleasedEvent.consume();
+	textEvent.consume();
+
+	EXPECT_TRUE(enteredEvent.isConsumed());
+	EXPECT_TRUE(leftEvent.isConsumed());
+	EXPECT_TRUE(movedEvent.isConsumed());
+	EXPECT_TRUE(wheelEvent.isConsumed());
+	EXPECT_TRUE(pressedEvent.isConsumed());
+	EXPECT_TRUE(releasedEvent.isConsumed());
+	EXPECT_TRUE(doubleClickedEvent.isConsumed());
+	EXPECT_TRUE(keyPressedEvent.isConsumed());
+	EXPECT_TRUE(keyReleasedEvent.isConsumed());
+	EXPECT_TRUE(textEvent.isConsumed());
+}
+
 TEST(EventViewTest, TimestampReturnsRecordTimestamp)
 {
 	const spk::Timestamp timestamp(777.0L, spk::TimeUnit::Millisecond);

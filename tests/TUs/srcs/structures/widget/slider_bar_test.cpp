@@ -146,6 +146,79 @@ TEST(SliderBarTest, VerticalOrientationMovesBodyAlongHeight)
 	EXPECT_EQ(slider.body().geometry(), spk::Rect2D(0, 80, 20, 20));
 }
 
+TEST(SliderBarTest, ApplyStyleAndPanelAccessorsAreAvailable)
+{
+	spk::SliderBar slider("Slider");
+	spk::WidgetStyle style = spk::WidgetStyle::makeDefault();
+	EXPECT_NO_THROW(slider.applyStyle(style));
+
+	const spk::SliderBar &constSlider = slider;
+	EXPECT_EQ(&constSlider.background(), &slider.background());
+	EXPECT_EQ(&constSlider.body(), &slider.body());
+}
+
+TEST(SliderBarTest, SettingCurrentOrientationIsANoOp)
+{
+	spk::SliderBar slider("Slider", spk::Orientation::Horizontal);
+
+	slider.setOrientation(spk::Orientation::Horizontal);
+
+	EXPECT_EQ(slider.orientation(), spk::Orientation::Horizontal);
+}
+
+TEST(SliderBarTest, EqualRangeForcesValueToMinimumRatio)
+{
+	spk::SliderBar slider("Slider");
+	slider.setRatio(0.75f);
+	slider.setRange(5.0f, 5.0f);
+
+	slider.setValue(100.0f);
+
+	EXPECT_FLOAT_EQ(slider.ratio(), 0.0f);
+	EXPECT_FLOAT_EQ(slider.value(), 5.0f);
+}
+
+TEST(SliderBarTest, NonLeftPressAndReleaseDoNotStartDrag)
+{
+	spk::SliderBar slider("Slider");
+	slider.setGeometry(spk::Rect2D(0, 0, 100u, 20u));
+	spk::MouseModule mouseModule;
+	mouseModule.bind(&slider);
+	mouseModule.pushEvent(spk::MouseEventRecord(spk::makeEventRecord(
+		spk::MouseMovedRecord{.position = {5, 10}})));
+	mouseModule.pushEvent(spk::MouseEventRecord(spk::makeEventRecord(
+		spk::MouseButtonPressedRecord{.button = spk::Mouse::Right})));
+	mouseModule.pushEvent(spk::MouseEventRecord(spk::makeEventRecord(
+		spk::MouseButtonReleasedRecord{.button = spk::Mouse::Right})));
+	mouseModule.processEvents();
+
+	EXPECT_FALSE(slider.isDragged());
+	EXPECT_FLOAT_EQ(slider.ratio(), 0.0f);
+}
+
+TEST(SliderBarTest, DraggingWhenBodyFillsTrackKeepsRatio)
+{
+	spk::SliderBar slider("Slider");
+	slider.setGeometry(spk::Rect2D(0, 0, 20u, 20u));
+	spk::MouseModule mouseModule;
+	mouseModule.bind(&slider);
+	mouseModule.pushEvent(spk::MouseEventRecord(spk::makeEventRecord(
+		spk::MouseMovedRecord{.position = {10, 10}})));
+	mouseModule.pushEvent(spk::MouseEventRecord(spk::makeEventRecord(
+		spk::MouseButtonPressedRecord{.button = spk::Mouse::Left})));
+	mouseModule.processEvents();
+	ASSERT_TRUE(slider.isDragged());
+
+	mouseModule.pushEvent(spk::MouseEventRecord(spk::makeEventRecord(
+		spk::MouseMovedRecord{.position = {15, 10}})));
+	mouseModule.pushEvent(spk::MouseEventRecord(spk::makeEventRecord(
+		spk::MouseButtonReleasedRecord{.button = spk::Mouse::Left})));
+	mouseModule.processEvents();
+
+	EXPECT_FALSE(slider.isDragged());
+	EXPECT_FLOAT_EQ(slider.ratio(), 0.0f);
+}
+
 TEST(SliderBarVisualTest, RendersHorizontalAtZero)
 {
 	const spk::Rect2D captureRect(0, 0, 240, 32);

@@ -3,7 +3,10 @@
 #include <memory>
 #include <stdexcept>
 
+#include "structures/game_engine/spk_animation_logic.hpp"
 #include "structures/game_engine/spk_game_engine.hpp"
+#include "structures/game_engine/spk_sprite_render_logic.hpp"
+#include "structures/graphics/geometry/spk_texture_mesh_2d.hpp"
 #include "structures/system/device/input/spk_keyboard.hpp"
 #include "structures/system/device/input/spk_mouse.hpp"
 #include "structures/system/event/spk_events.hpp"
@@ -227,6 +230,23 @@ TEST(GameEngineTest, UpdateDrivesLogicOverRegisteredComponents)
 
 	EXPECT_EQ(logic.sum, 7);
 	EXPECT_EQ(logic.updateRuns, 1);
+}
+
+TEST(GameEngineTest, IdIsNonNullAndMatchesComponentRegistry)
+{
+	spk::GameEngine engine;
+	const spk::GameEngine &constEngine = engine;
+
+	EXPECT_FALSE(engine.id().isNull());
+	EXPECT_EQ(constEngine.id(), engine.componentRegistry().engineId());
+}
+
+TEST(GameEngineTest, NullEntityOperationsAreNoOps)
+{
+	spk::GameEngine engine;
+
+	EXPECT_NO_THROW(engine.addEntity(nullptr));
+	EXPECT_NO_THROW(engine.removeEntity(nullptr));
 }
 
 TEST(GameEngineTest, AddReturnsSameLogicInstanceForSameType)
@@ -599,4 +619,176 @@ TEST(GameEngineTest, DeactivatingParentStopsChildComponentsFromBeingProcessed)
 	parent.activate();
 	spk::GameEngineTester::update(engine, tick);
 	EXPECT_EQ(logic.sum, 8);
+}
+
+TEST(AnimationLogicTest, ControllerWithoutRendererIsIgnored)
+{
+	spk::GameEngine engine;
+	engine.add<spk::AnimationLogic>();
+	spk::Entity2D entity;
+	engine.addEntity(&entity);
+	spk::AnimationController2D &controller = entity.addComponent<spk::AnimationController2D>();
+	spk::Animation2D animation;
+	animation.frames = {{0u, 0u}};
+	controller.addAnimation(L"idle", animation);
+	controller.play(L"idle");
+
+	spk::UpdateTick tick{};
+	tick.deltaTime = spk::Duration(0.5L, spk::TimeUnit::Second);
+	spk::GameEngineTester::update(engine, tick);
+
+	EXPECT_DOUBLE_EQ(controller.elapsedSeconds(), 0.0);
+}
+
+TEST(AnimationLogicTest, RendererWithoutSpriteSheetIsIgnored)
+{
+	spk::GameEngine engine;
+	engine.add<spk::AnimationLogic>();
+	spk::Entity2D entity;
+	engine.addEntity(&entity);
+	spk::AnimationController2D &controller = entity.addComponent<spk::AnimationController2D>();
+	entity.addComponent<spk::SpriteRenderer2D>();
+	spk::Animation2D animation;
+	animation.frames = {{0u, 0u}};
+	controller.addAnimation(L"idle", animation);
+	controller.play(L"idle");
+
+	spk::UpdateTick tick{};
+	tick.deltaTime = spk::Duration(0.5L, spk::TimeUnit::Second);
+	spk::GameEngineTester::update(engine, tick);
+
+	EXPECT_DOUBLE_EQ(controller.elapsedSeconds(), 0.0);
+}
+
+TEST(AnimationLogicTest, EmptyAnimationIsIgnored)
+{
+	spk::GameEngine engine;
+	engine.add<spk::AnimationLogic>();
+	spk::Entity2D entity;
+	engine.addEntity(&entity);
+	spk::AnimationController2D &controller = entity.addComponent<spk::AnimationController2D>();
+	spk::SpriteRenderer2D &renderer = entity.addComponent<spk::SpriteRenderer2D>();
+	spk::SpriteSheet emptySheet;
+	renderer.setSpriteSheet(&emptySheet);
+	controller.addAnimation(L"empty", spk::Animation2D{});
+	controller.play(L"empty");
+
+	spk::UpdateTick tick{};
+	tick.deltaTime = spk::Duration(0.5L, spk::TimeUnit::Second);
+	spk::GameEngineTester::update(engine, tick);
+
+	EXPECT_DOUBLE_EQ(controller.elapsedSeconds(), 0.0);
+}
+
+TEST(AnimationLogicTest, LoopingAnimationAdvancesBeforeInvalidSheetLookup)
+{
+	spk::GameEngine engine;
+	engine.add<spk::AnimationLogic>();
+	spk::Entity2D entity;
+	engine.addEntity(&entity);
+	spk::AnimationController2D &controller = entity.addComponent<spk::AnimationController2D>();
+	spk::SpriteRenderer2D &renderer = entity.addComponent<spk::SpriteRenderer2D>();
+	spk::SpriteSheet emptySheet;
+	renderer.setSpriteSheet(&emptySheet);
+	spk::Animation2D animation;
+	animation.frames = {{0u, 0u}, {1u, 0u}};
+	animation.frameDuration = spk::Duration(0.25L, spk::TimeUnit::Second);
+	animation.loop = true;
+	controller.addAnimation(L"walk", animation);
+	controller.play(L"walk");
+
+	spk::UpdateTick tick{};
+	tick.deltaTime = spk::Duration(0.75L, spk::TimeUnit::Second);
+	EXPECT_THROW(spk::GameEngineTester::update(engine, tick), std::out_of_range);
+
+	EXPECT_DOUBLE_EQ(controller.elapsedSeconds(), 0.75);
+}
+
+TEST(AnimationLogicTest, NonLoopingAnimationClampsBeforeInvalidSheetLookup)
+{
+	spk::GameEngine engine;
+	engine.add<spk::AnimationLogic>();
+	spk::Entity2D entity;
+	engine.addEntity(&entity);
+	spk::AnimationController2D &controller = entity.addComponent<spk::AnimationController2D>();
+	spk::SpriteRenderer2D &renderer = entity.addComponent<spk::SpriteRenderer2D>();
+	spk::SpriteSheet emptySheet;
+	renderer.setSpriteSheet(&emptySheet);
+	spk::Animation2D animation;
+	animation.frames = {{0u, 0u}, {1u, 0u}};
+	animation.frameDuration = spk::Duration();
+	animation.loop = false;
+	controller.addAnimation(L"once", animation);
+	controller.play(L"once");
+
+	spk::UpdateTick tick{};
+	tick.deltaTime = spk::Duration(1.0L, spk::TimeUnit::Second);
+	EXPECT_THROW(spk::GameEngineTester::update(engine, tick), std::out_of_range);
+
+	EXPECT_DOUBLE_EQ(controller.elapsedSeconds(), 1.0);
+}
+
+TEST(SpriteRenderLogicTest, RenderWithoutMainCameraProducesNoSprites)
+{
+	spk::GameEngine engine;
+	engine.add<spk::SpriteRenderLogic>();
+	spk::Entity2D entity;
+	engine.addEntity(&entity);
+	entity.addComponent<spk::SpriteRenderer2D>();
+
+	(void)spk::GameEngineTester::buildRenderUnit(engine);
+
+	EXPECT_EQ(spk::SpriteRenderLogic::lastSpriteCount(), 0u);
+	EXPECT_EQ(spk::SpriteRenderLogic::lastPolygonCount(), 0u);
+}
+
+TEST(SpriteRenderLogicTest, ZeroSizedMainCameraViewportSkipsSprite)
+{
+	spk::GameEngine engine;
+	engine.add<spk::SpriteRenderLogic>();
+	spk::Entity2D cameraEntity;
+	spk::Camera2D &camera = cameraEntity.addComponent<spk::Camera2D>();
+	camera.makeMain();
+	spk::Entity2D spriteEntity;
+	engine.addEntity(&spriteEntity);
+	spk::SpriteRenderer2D &renderer = spriteEntity.addComponent<spk::SpriteRenderer2D>();
+	spk::SpriteSheet sheet;
+	spk::TextureMesh2D mesh;
+	renderer.setSpriteSheet(&sheet);
+	renderer.setMesh(&mesh);
+
+	(void)spk::GameEngineTester::buildRenderUnit(engine);
+
+	EXPECT_EQ(spk::SpriteRenderLogic::lastSpriteCount(), 0u);
+	EXPECT_EQ(spk::SpriteRenderLogic::lastPolygonCount(), 0u);
+}
+
+TEST(SpriteRenderLogicTest, ValidSpritesAreBatchedAndCounted)
+{
+	spk::GameEngine engine;
+	engine.add<spk::SpriteRenderLogic>();
+	spk::Entity2D cameraEntity;
+	spk::Camera2D &camera = cameraEntity.addComponent<spk::Camera2D>();
+	camera.setViewport(spk::Rect2D(0, 0, 640, 480));
+	camera.makeMain();
+	spk::SpriteSheet sheet;
+	spk::TextureMesh2D mesh;
+
+	spk::Entity2D firstEntity;
+	engine.addEntity(&firstEntity);
+	spk::SpriteRenderer2D &first = firstEntity.addComponent<spk::SpriteRenderer2D>();
+	first.setSpriteSheet(&sheet);
+	first.setMesh(&mesh);
+
+	spk::Entity2D secondEntity;
+	engine.addEntity(&secondEntity);
+	spk::SpriteRenderer2D &second = secondEntity.addComponent<spk::SpriteRenderer2D>();
+	second.setSpriteSheet(&sheet);
+	second.setMesh(&mesh);
+
+	spk::RenderUnit unit = spk::GameEngineTester::buildRenderUnit(engine);
+
+	EXPECT_EQ(spk::SpriteRenderLogic::lastSpriteCount(), 2u);
+	EXPECT_EQ(spk::SpriteRenderLogic::lastPolygonCount(), 4u);
+	EXPECT_FALSE(unit.commands().empty());
 }

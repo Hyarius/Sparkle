@@ -9,6 +9,13 @@
 
 namespace
 {
+	class TextEditTester : public spk::TextEdit
+	{
+	public:
+		using spk::TextEdit::TextEdit;
+		using spk::TextEdit::_onUpdate;
+	};
+
 	void clickInside(spk::TextEdit& p_textEdit)
 	{
 		spk::MouseModule mouseModule;
@@ -246,6 +253,155 @@ TEST(TextEditTest, StyleEditionRefreshesProperties)
 	style.setTextSize(spk::Font::Size(24, 2));
 
 	EXPECT_EQ(textEdit.textSize(), spk::Font::Size(24, 2));
+}
+
+TEST(TextEditTest, PublicStylePropertiesReflectSetters)
+{
+	spk::TextEdit textEdit("TextEdit");
+	const auto sheet = textEdit.spriteSheet();
+	const auto font = textEdit.font();
+	ASSERT_NE(sheet, nullptr);
+	ASSERT_NE(font, nullptr);
+
+	textEdit.setSpriteSheet(sheet);
+	textEdit.setFont(font);
+	textEdit.setCornerSize({7, 8});
+	textEdit.setTextSize(spk::Font::Size(19, 2));
+	textEdit.setGlyphColor(spk::Color(0.1f, 0.2f, 0.3f, 0.4f));
+	textEdit.setOutlineColor(spk::Color(0.5f, 0.6f, 0.7f, 0.8f));
+	textEdit.setCursorColor(spk::Color(0.9f, 0.1f, 0.2f, 0.3f));
+	textEdit.setDepth(4.5f);
+
+	EXPECT_EQ(textEdit.spriteSheet(), sheet);
+	EXPECT_EQ(textEdit.font(), font);
+	EXPECT_EQ(textEdit.cornerSize(), spk::Vector2Int(7, 8));
+	EXPECT_EQ(textEdit.textSize(), spk::Font::Size(19, 2));
+	EXPECT_FLOAT_EQ(textEdit.glyphColor().r, 0.1f);
+	EXPECT_FLOAT_EQ(textEdit.outlineColor().g, 0.6f);
+	EXPECT_FLOAT_EQ(textEdit.depth(), 4.5f);
+
+	textEdit.setCursorColor(spk::Color(0.9f, 0.1f, 0.2f, 0.3f));
+	textEdit.setDepth(4.5f);
+}
+
+TEST(TextEditTest, RejectsSpriteSheetWithoutThreeByThreeGrid)
+{
+	spk::TextEdit textEdit("TextEdit");
+	auto invalidSheet = std::make_shared<spk::SpriteSheet>();
+
+	EXPECT_THROW(textEdit.setSpriteSheet(invalidSheet), std::invalid_argument);
+}
+
+TEST(TextEditTest, TextAsUtf8EncodesEveryUnicodeWidth)
+{
+	spk::TextEdit textEdit("TextEdit");
+	textEdit.setText(spk::Font::Text{U'A', U'\u00E9', U'\u20AC', U'\U0001F600'});
+
+	const std::string expected{
+		'A',
+		static_cast<char>(0xC3), static_cast<char>(0xA9),
+		static_cast<char>(0xE2), static_cast<char>(0x82), static_cast<char>(0xAC),
+		static_cast<char>(0xF0), static_cast<char>(0x9F), static_cast<char>(0x98), static_cast<char>(0x80)};
+	EXPECT_EQ(textEdit.textAsUTF8(), expected);
+}
+
+TEST(TextEditTest, ValidationStateUsesCurrentTextAndCallback)
+{
+	spk::TextEdit textEdit("TextEdit");
+	EXPECT_EQ(textEdit.validationState(), spk::TextEdit::ValidationState::Valid);
+
+	textEdit.setText("value");
+	textEdit.setValidationCallback([](const spk::Font::Text &p_text)
+	{
+		return p_text == spk::Font::textFromUTF8("value")
+			? spk::TextEdit::ValidationState::Undefined
+			: spk::TextEdit::ValidationState::Invalid;
+	});
+
+	EXPECT_EQ(textEdit.validationState(), spk::TextEdit::ValidationState::Undefined);
+}
+
+TEST(TextEditTest, BoundaryAndUnrelatedKeysAreIgnored)
+{
+	spk::TextEdit textEdit("TextEdit");
+	textEdit.setGeometry(spk::Rect2D(0, 0, 200, 40));
+	clickInside(textEdit);
+
+	pressKey(textEdit, spk::Keyboard::LeftArrow);
+	pressKey(textEdit, spk::Keyboard::RightArrow);
+	pressKey(textEdit, spk::Keyboard::Delete);
+	pressKey(textEdit, spk::Keyboard::Backspace);
+	pressKey(textEdit, spk::Keyboard::A);
+
+	EXPECT_TRUE(textEdit.text().empty());
+	EXPECT_EQ(textEdit.cursor(), 0u);
+	textEdit.releaseFocus(spk::Widget::FocusType::Keyboard);
+}
+
+TEST(TextEditTest, NonLeftClickIsIgnoredAndOutsideLeftClickReleasesFocus)
+{
+	spk::TextEdit textEdit("TextEdit");
+	textEdit.setGeometry(spk::Rect2D(0, 0, 200, 40));
+	clickInside(textEdit);
+	ASSERT_TRUE(textEdit.hasFocus(spk::Widget::FocusType::Keyboard));
+
+	spk::MouseModule mouseModule;
+	mouseModule.bind(&textEdit);
+	mouseModule.pushEvent(spk::MouseEventRecord(spk::makeEventRecord(
+		spk::MouseMovedRecord{.position = {300, 300}})));
+	mouseModule.pushEvent(spk::MouseEventRecord(spk::makeEventRecord(
+		spk::MouseButtonPressedRecord{.button = spk::Mouse::Right})));
+	mouseModule.processEvents();
+	EXPECT_TRUE(textEdit.hasFocus(spk::Widget::FocusType::Keyboard));
+
+	mouseModule.pushEvent(spk::MouseEventRecord(spk::makeEventRecord(
+		spk::MouseButtonPressedRecord{.button = spk::Mouse::Left})));
+	mouseModule.processEvents();
+	EXPECT_FALSE(textEdit.hasFocus(spk::Widget::FocusType::Keyboard));
+}
+
+TEST(TextEditTest, CursorBlinkUpdateRunsWithAndWithoutKeyboardFocus)
+{
+	TextEditTester textEdit("TextEdit");
+	textEdit.setGeometry(spk::Rect2D(0, 0, 200, 40));
+	spk::UpdateTick hiddenTick{};
+	hiddenTick.timestamp = spk::Timestamp(250.0L, spk::TimeUnit::Millisecond);
+	EXPECT_NO_THROW(textEdit._onUpdate(hiddenTick));
+
+	clickInside(textEdit);
+	spk::UpdateTick shownTick{};
+	shownTick.timestamp = spk::Timestamp(500.0L, spk::TimeUnit::Millisecond);
+	EXPECT_NO_THROW(textEdit._onUpdate(shownTick));
+	textEdit.releaseFocus(spk::Widget::FocusType::Keyboard);
+}
+
+TEST(TextEditTest, EmptyGeometryBuildsEmptyRenderUnit)
+{
+	spk::TextEdit textEdit("TextEdit");
+
+	const auto unit = textEdit.renderUnit();
+
+	ASSERT_NE(unit, nullptr);
+	EXPECT_TRUE(unit->empty());
+}
+
+TEST(TextEditTest, PlaceholderContributesToMinimalSize)
+{
+	spk::TextEdit textEdit("TextEdit");
+	textEdit.setPlaceholder("A reasonably long placeholder");
+
+	EXPECT_GT(textEdit.minimalSize().x, 0u);
+	EXPECT_GT(textEdit.minimalSize().y, 0u);
+}
+
+TEST(TextEditTest, RepeatedObscuredStateAndPlaceholderWithTextAreSafe)
+{
+	spk::TextEdit textEdit("TextEdit");
+	textEdit.setObscured(false);
+	textEdit.setText("content");
+	textEdit.setPlaceholder("unused");
+
+	EXPECT_EQ(textEdit.renderedText(), spk::Font::textFromUTF8("content"));
 }
 
 TEST(TextEditVisualTest, RendersEmptyWithPlaceholder)

@@ -71,8 +71,8 @@ TEST(Grid2DTest, IndexOfThrowsWhenOutOfRange)
 {
 	const spk::Grid2D<int> grid(spk::Vector2UInt(2, 2));
 
-	EXPECT_THROW(grid.indexOf(2, 0), std::out_of_range);
-	EXPECT_THROW(grid.indexOf(0, 2), std::out_of_range);
+	EXPECT_THROW(auto value = grid.indexOf(2, 0), std::out_of_range);
+	EXPECT_THROW(auto value = grid.indexOf(0, 2), std::out_of_range);
 }
 
 TEST(Grid2DTest, AtReadsAndWrites)
@@ -95,8 +95,8 @@ TEST(Grid2DTest, AtThrowsWhenOutOfRange)
 	spk::Grid2D<int> grid(spk::Vector2UInt(2, 2));
 	const spk::Grid2D<int> &constGrid = grid;
 
-	EXPECT_THROW(grid.at(2, 2), std::out_of_range);
-	EXPECT_THROW(constGrid.at(2, 2), std::out_of_range);
+	EXPECT_THROW(auto& value = grid.at(2, 2), std::out_of_range);
+	EXPECT_THROW(const auto& value = constGrid.at(2, 2), std::out_of_range);
 }
 
 TEST(Grid2DTest, CallOperatorReadsAndWrites)
