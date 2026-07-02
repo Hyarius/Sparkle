@@ -57,12 +57,14 @@ namespace
 
 namespace pg
 {
-	GameSceneWidget::GameSceneWidget(const std::string &p_name, spk::Widget *p_parent) :
+	GameSceneWidget::GameSceneWidget(const std::string &p_name, spk::Widget *p_parent, GameContext &p_context) :
 		spk::GameEngineWidget(p_name, p_parent),
+		_modeManager(p_context),
 		_overlay(p_name + "/DebugOverlay", this)
 	{
 		_buildScene();
 		_configureOverlay();
+		_modeManager.enterExploration();
 		activate();
 	}
 
@@ -162,6 +164,7 @@ namespace pg
 	void GameSceneWidget::_onUpdate(const spk::UpdateTick &p_tick)
 	{
 		const long long start = nowNs();
+		_modeManager.update(p_tick);
 		spk::GameEngineWidget::_onUpdate(p_tick);
 
 		const float deltaSeconds = static_cast<float>(p_tick.deltaTime.milliseconds()) / 1000.0f;

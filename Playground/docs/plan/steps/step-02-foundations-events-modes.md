@@ -58,3 +58,14 @@ methods so tests call them directly; wire real payloads in step 10 — note this
 
 `[build]`/`[test]`/`[run]` green; boot logs `ExplorationMode::enter`; no behavior change on
 screen. No `spk::` changes.
+
+## Implementation notes (2026-07-02)
+
+- `PlaygroundCore`, `SparklePlayground`, and `PlaygroundTests` build successfully with the
+  configured Windows Clang toolchain.
+- `ctest --preset playground --output-on-failure` passes all 25 tests (13 added here).
+- The startup smoke test remained running and logged `ExplorationMode::enter` before the
+  existing cube-scene message.
+- Event providers whose payload types do not exist remain documented at their landing steps;
+  `ModeManager::enterBattle` / `enterExploration` provide the transition seam until step 10.
+- No `spk::` source was changed.

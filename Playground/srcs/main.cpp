@@ -50,6 +50,7 @@
 #include <iostream>
 #include <sparkle.hpp>
 
+#include "core/game_context.hpp"
 #include "core/registries.hpp"
 #include "game_scene_widget.hpp"
 
@@ -59,6 +60,7 @@ int main()
 	{
 		pg::Registries registries;
 		registries.loadAll(std::filesystem::path(PG_RESOURCE_DIR) / "data");
+		pg::GameContext gameContext;
 
 		spk::Application application;
 
@@ -68,7 +70,7 @@ int main()
 				.rect = spk::Rect2D(100, 100, 800, 600),
 				.title = "3D Engine Playground"});
 
-		pg::GameSceneWidget scene("GameScene", &window.centralWidget());
+		pg::GameSceneWidget scene("GameScene", &window.centralWidget(), gameContext);
 		scene.setGeometry(window.centralWidget().geometry());
 		scene.activate();
 

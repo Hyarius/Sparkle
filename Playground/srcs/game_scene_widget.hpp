@@ -6,6 +6,7 @@
 
 #include "components/camera3d.hpp"
 #include "components/entity3d.hpp"
+#include "core/mode_manager.hpp"
 #include "structures/graphics/geometry/spk_texture_mesh_2d.hpp"
 #include "structures/graphics/texture/spk_sprite_sheet.hpp"
 #include "structures/widget/spk_debug_overlay.hpp"
@@ -19,6 +20,8 @@ namespace pg
 	class GameSceneWidget : public spk::GameEngineWidget
 	{
 	private:
+		ModeManager _modeManager;
+
 		spk::SpriteSheet _texture;
 		spk::TextureMesh2D _cubeMesh;
 
@@ -46,6 +49,6 @@ namespace pg
 		[[nodiscard]] spk::RenderUnit _buildRenderUnit() const override;
 
 	public:
-		GameSceneWidget(const std::string &p_name, spk::Widget *p_parent);
+		GameSceneWidget(const std::string &p_name, spk::Widget *p_parent, GameContext &p_context);
 	};
 }
