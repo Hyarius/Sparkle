@@ -1,0 +1,31 @@
+@startuml
+title Post-battle feat progression (creatures-feats.md §5, D25)
+participant "EndPhase" as End
+participant "EventCenter" as Bus
+participant "FeatBoardService" as FBS
+participant "BattleLog" as Log
+participant "CreatureUnit u\n(FeatBoardProgress)" as Unit
+participant "HUD (feat summary)" as HUD
+
+End -> Log : append BattleWon{unitSurvived}\nper surviving player unit (win only)
+End -> Bus : battleResolved(ctx, winner)
+Bus -> FBS : (subscription — BOTH outcomes)
+loop each player-side unit u
+  FBS -> Log : events where caster==u or\n(target==u && target!=caster)
+  FBS -> Unit : resetTransientRequirementProgress()
+  loop until no new completion
+    FBS -> Unit : evaluate REACHABLE nodes only:\nrequirements.evaluateEvents(events)\n(scope windows: ability/turn/fight/game)
+    alt node's requirements all complete
+      FBS -> Unit : nodeProgress.complete()\n(++count, reset req progress)
+      note right : neighbours become reachable\nwithin this same pass
+    end
+  end
+  FBS -> Unit : resetTransientRequirementProgress()
+  alt completions > 0
+    FBS -> Bus : featProgressUpdated(u, completions)
+  end
+  FBS -> Unit : applyProgress(u)\n= species base + replay ALL completed\nnode rewards → attributes/abilities/passives
+end
+Bus -> HUD : (subscription) → feat summary screen (step 22)
+note over FBS : Game-scope requirement progress persists\nacross fights and is saved; all other scopes reset.
+@enduml

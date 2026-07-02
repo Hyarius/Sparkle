@@ -1,0 +1,96 @@
+@startuml
+title pg:: engine core — context, modes, bus, data (01-architecture.md)
+skinparam packageStyle rectangle
+hide empty members
+
+package "spk::" {
+  class GameEngine
+  class GameEngineWidget
+  class "ContractProvider<Args...>" as ContractProvider
+  class "ObservableValue<T>" as ObservableValue
+}
+
+package "pg::core" {
+  class GameSceneWidget {
+    -scene entities (world, player, camera)
+    #_onUpdate(tick)
+    #_buildRenderUnit()
+  }
+  GameEngineWidget <|-- GameSceneWidget
+
+  class GameContext {
+    +WorldContext world
+    +PlayerData player
+  }
+  class WorldContext {
+    +int seed
+    +VoxelWorld world
+    +WorldNavigation navigation
+  }
+  class PlayerData {
+    +team : CreatureUnit[6]
+    +CreatureStorage storage
+    +position
+  }
+  GameContext *-- WorldContext
+  GameContext *-- PlayerData
+
+  class EventCenter {
+    +playerMoved : ContractProvider<Vector3Int>
+    +actorMoveRequested
+    +encounterTriggered : ContractProvider<EncounterSpawn>
+    +battleStarted / battleResolved
+    +battleEventOccurred : ContractProvider<const BattleEvent&>
+    +featProgressUpdated
+    +creatureImpressed / creatureRecruited
+  }
+  EventCenter ..> ContractProvider : built from
+
+  class ObservableResource {
+    +current / max : int
+    +set / setCurrent / change / reset
+    +ratio()
+  }
+  ObservableValue <|-- ObservableResource
+
+  abstract class Mode {
+    +enter() / exit() / update(tick)
+  }
+  class ModeManager {
+    -Mode* current
+    +enterExploration() / enterBattle(ctx)
+  }
+  class ExplorationMode
+  class BattleMode {
+    -BattleContext context
+    -BattleCoordinator coordinator
+  }
+  Mode <|-- ExplorationMode
+  Mode <|-- BattleMode
+  ModeManager o-- Mode
+  ModeManager ..> EventCenter : battleStarted/Resolved
+
+  class "Registry<T>" as Registry {
+    +load(dir)
+    +get(id) : const T&
+    +ids()
+  }
+  class JsonReader {
+    +require<T>(key) / optional<T>
+    +forbidUnknown(keys)
+  }
+  class "PolymorphicFactory<TBase>" as Factory {
+    +registerType(name, parseFn)
+    +parse(reader)
+  }
+  Registry ..> JsonReader
+  Factory ..> JsonReader
+}
+GameSceneWidget o-- GameEngine
+GameSceneWidget o-- ModeManager
+note bottom of ModeManager
+  Modes are control-states over ONE persistent
+  world/engine (D03): they swap input, HUD,
+  camera behavior and overlays — never the scene.
+end note
+@enduml

@@ -1,0 +1,25 @@
+@startuml
+title Save & load (save-meta.md)
+participant "HUD / autosave hook" as UI
+participant "SaveService" as SS
+participant "GameContext" as Ctx
+participant "saves/<slot>.json" as File
+participant "FeatBoardService" as FBS
+
+== Save ==
+UI -> SS : save(ctx, slot)
+SS -> Ctx : gather: worldSeed, respawnPoint,\nplayer position, clearedGyms/Trainers,\nper creature: speciesId +\nFeatBoardProgress.toJson() (uuid-keyed, D34)
+note right : attributes/abilities/passives AND form\nNOT saved — derived state (D35)
+SS -> File : write tmp → atomic rename
+
+== Load (at boot) ==
+UI -> SS : load(slot)
+SS -> File : parse (strict, versioned)
+SS --> Ctx : GameSaveData
+Ctx -> Ctx : applySeed(worldSeed)\n→ macro plan re-derives deterministically
+loop each saved creature
+  Ctx -> FBS : unit = CreatureUnit{species,\nprogress.fromJson (uuid-keyed;\nunknown uuids dropped + warned)}
+  FBS -> FBS : applyProgress(unit) — recompute\nattributes/abilities/passives/form from rewards
+end
+Ctx -> Ctx : place player at saved position,\nrespawnPoint restored
+@enduml

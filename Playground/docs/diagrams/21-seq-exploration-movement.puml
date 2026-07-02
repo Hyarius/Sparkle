@@ -1,0 +1,34 @@
+@startuml
+title Exploration click-to-move (D27; world.md §Actors)
+actor Player
+participant "ExplorationMode\n(input)" as Input
+participant "MousePicker" as Pick
+participant "EventCenter" as Bus
+participant "ActorPathLogic" as PathL
+participant "Pathfinder /\nWorldNavigation" as Nav
+participant "Actor (player)" as Actor
+participant "EncounterEmitter" as Enc
+
+Player -> Input : left click (screen px)
+Input -> Pick : pickStandable(world, screenToRay(camera, px))
+Pick --> Input : cell (or none → ignore)
+Input -> Bus : actorMoveRequested{player, cell}
+Bus -> PathL : (subscription)
+PathL -> Nav : findPath(graph, current, target)
+alt path found
+  Nav --> PathL : cells[]
+  PathL -> Actor : set path
+  loop each tick until path done
+    PathL -> Actor : advance along segment\n(Y from walk heights — smooth on slopes)
+    alt cell boundary reached
+      PathL -> Bus : playerMoved(cell)
+      Bus -> Enc : (subscription)
+      Enc -> Enc : tags at cell × biome rules\n→ maybe roll encounter
+    end
+  end
+else unreachable
+  Nav --> PathL : nullopt
+  PathL -> Input : invalid-target feedback (cell flash)
+end
+note over Input : a new click retargets from the current cell;\nZQSD / right-drag / wheel drive only the camera
+@enduml

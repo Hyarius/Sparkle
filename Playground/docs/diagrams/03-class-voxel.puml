@@ -1,0 +1,96 @@
+@startuml
+title pg:: voxel core (voxel.md — port of Unity Voxel/)
+hide empty members
+
+enum VoxelTraversal { Solid \n Passable }
+enum VoxelOrientation { PositiveX \n PositiveZ \n NegativeX \n NegativeZ }
+enum VoxelFlip { PositiveY \n NegativeY }
+enum VoxelAxisPlane { PosX NegX PosY \n NegY PosZ NegZ }
+
+class VoxelData {
+  +traversal : VoxelTraversal
+  +tags : vector<string>
+  +hasTag(tag)
+}
+class VoxelDefinition {
+  +id : string
+  +data : VoxelData
+  +shape : unique_ptr<VoxelShape>
+}
+abstract class VoxelShape {
+  +render : FaceSet
+  +mask : MaskSet  .. overlay decals (D31) ..
+  +heights(flip) : CardinalHeightSet
+  +initialize()
+  #_constructRenderFaces()*
+  #_constructMask()*
+  #_constructPositiveYHeights()*
+  .. no collision products (D30) ..
+}
+class FaceSet {
+  +innerFaces : vector<Face>
+  +outerShell : Face?[6 planes]
+}
+class Face {
+  +polygons : vector<Polygon>
+}
+class CardinalHeightSet {
+  +posX/negX/posZ/negZ/stationary : float
+  +get(direction)
+}
+class CubeShape
+class SlabShape {
+  +height : float = 0.5
+}
+class SlopeShape
+class StairShape {
+  +stepCount : int = 2
+}
+class CrossPlaneShape
+
+VoxelShape <|-- CubeShape
+VoxelShape <|-- SlabShape
+VoxelShape <|-- SlopeShape
+VoxelShape <|-- StairShape
+VoxelShape <|-- CrossPlaneShape
+VoxelDefinition *-- VoxelData
+VoxelDefinition *-- VoxelShape
+VoxelShape *-- FaceSet
+VoxelShape *-- CardinalHeightSet
+FaceSet *-- Face
+
+class VoxelCell {
+  +id : int32 = -1
+  +orientation : VoxelOrientation
+  +flip : VoxelFlip
+  +isEmpty()
+}
+class VoxelGrid {
+  +size : Vector3Int
+  +cell(x,y,z)
+}
+class VoxelRegistry {
+  +get(stringId) / get(numericId)
+  .. stable numeric ids, sorted load ..
+}
+class VoxelMesher <<static>> {
+  +buildRenderMesh(grid, registry) : Mesh3D
+  +buildMaskMesh(cells, maskOf, registry) : Mesh3D
+  .. maskOf(cell) → mask atlas cell; battle
+     overlay + world decals (D31) ..
+  -mapWorldPlaneToLocal(plane, orient, flip)
+  -isFaceOccludedByNeighbor(...)
+  -transformFaceCached(face, orient, flip)
+}
+VoxelGrid *-- VoxelCell
+VoxelMesher ..> VoxelGrid
+VoxelMesher ..> VoxelRegistry
+VoxelCell ..> VoxelRegistry : id →  definition
+
+note bottom of VoxelMesher
+  Shell face emitted unless neighbour's facing
+  shell face fully covers it; inner faces emitted
+  when any shell face visible. Cross-planes never
+  occlude and are never occluded.
+end note
+@enduml

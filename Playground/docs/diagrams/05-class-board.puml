@@ -1,0 +1,80 @@
+@startuml
+title pg:: board seam & pathfinding (board.md — port of Unity Board/ + BattleCellGraph/)
+hide empty members
+
+interface ICellSource {
+  +cell(pos) : const VoxelCell&
+  +registry() : const VoxelRegistry&
+}
+class WorldCellSource {
+  -world : VoxelWorld&
+  -originOffset : Vector3Int
+}
+class GridCellSource {
+  -grid : VoxelGrid&
+}
+ICellSource <|.. WorldCellSource
+ICellSource <|.. GridCellSource
+
+class TraversalGraph {
+  +Node { position; posX/negX/posZ/negZ : Node* }
+  +tryGetNode(cell) / allNodes()
+}
+class TraversalGraphBuilder <<static>> {
+  +build(source, bounds, excludedColumns)
+  .. nodes = standable cells (Solid + 2 clear);
+     edges: best column candidate with
+     |Δ edge height| <= 0.5 ..
+}
+class Pathfinder <<static>> {
+  +findPath(graph, from, to, blocked) : optional<path>
+  +floodReachable(graph, from, maxCost, blocked) : cells
+}
+TraversalGraphBuilder ..> ICellSource
+TraversalGraphBuilder ..> TraversalGraph : builds
+Pathfinder ..> TraversalGraph
+
+class BoardTerrainLayer {
+  +size : Vector3Int
+  +isInside(local)
+}
+class BoardNavigationLayer {
+  +graph : TraversalGraph
+  +rebuild(terrain, excluded)
+  +isStandable(local)
+}
+class BoardRuntimeRegistry {
+  +tryRegister/tryMove/swapUnits/remove(unit)
+  +tryGetUnitAt / tryGetPosition
+  +interactive objects (+durations)
+}
+class BoardData {
+  +terrain / navigation / runtime
+  +worldAnchor : Vector3Int
+  +borderCells
+  +isStandable / tryPlace / tryMove / ...
+}
+class BoardBuilder <<static>> {
+  +fromWorld(world, center, size) : BoardData
+  +fromGrid(grid) : BoardData
+}
+class LineOfSight <<static>> {
+  +hasLine(source, fromCell, toCell)
+  .. 3D DDA at walk height + 0.5 eye;
+     Solid blocks unless losTransparent ..
+}
+class BoardRaycaster <<static>> {
+  +resolveMouseCell(board, ray) : optional<cell>
+}
+BoardData *-- BoardTerrainLayer
+BoardData *-- BoardNavigationLayer
+BoardData *-- BoardRuntimeRegistry
+BoardTerrainLayer o-- ICellSource
+BoardNavigationLayer o-- TraversalGraph
+BoardBuilder ..> BoardData : builds
+note bottom of BoardBuilder
+  Gamma (D03): fromWorld wraps live voxels
+  (no copy, world read-only during battle);
+  tests & handcrafted boards use fromGrid.
+end note
+@enduml

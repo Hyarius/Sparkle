@@ -1,0 +1,86 @@
+@startuml
+title pg:: world — chunks, streaming, actors, generation (world.md)
+hide empty members
+
+class ChunkCoordinates {
+  +coords : Vector3Int
+  {static} +fromWorldCell(cell)
+  +worldOrigin()
+}
+class Chunk <<spk::Component, SynchronizableTrait>> {
+  {static} +Size : Vector3Int = 16³ (D29)
+  +coords : ChunkCoordinates
+  +grid : VoxelGrid
+  +renderMesh / maskMesh : Mesh3D  <<baked>>
+  +navSlice  <<baked>>
+  +setCell(local, cell) .. requestSynchronization ..
+  #_synchronize() .. rebuild baked products (D32) ..
+}
+class ChunkSynchronizationLogic <<spk::ComponentLogic>> {
+  .. baker: synchronize() chunks that
+     needsSynchronization() ..
+}
+ChunkSynchronizationLogic ..> Chunk
+class VoxelWorld {
+  +cell(worldCell) : const VoxelCell&
+  +setCell(worldCell, cell) .. fans out sync to
+     neighbour chunks on border edits ..
+  +loadFromMap(mapDef)
+  +forEachLoadedChunk(fn)
+}
+interface IChunkProvider {
+  +fill(Chunk&)
+}
+class MapChunkProvider
+class GeneratedChunkProvider {
+  -plan : MacroWorldPlan
+}
+class WorldStreamer {
+  +update(playerCell)
+  .. radius-based load/unload ..
+}
+IChunkProvider <|.. MapChunkProvider
+IChunkProvider <|.. GeneratedChunkProvider
+VoxelWorld *-- Chunk
+WorldStreamer o-- VoxelWorld
+WorldStreamer o-- IChunkProvider
+
+class ChunkRenderLogic <<spk::ComponentLogic>> {
+  .. render phase: emit draws of renderMesh
+     + maskMesh per chunk ..
+}
+ChunkRenderLogic ..> Chunk
+
+class Actor <<spk::Component>> {
+  +cell : Vector3Int
+  +path : optional<vector<Vector3Int>>
+  +speed
+}
+class ActorPathLogic <<spk::ComponentLogic>> {
+  .. on actorMoveRequested: A* on world graph,
+     advance path, emit playerMoved per cell ..
+}
+ActorPathLogic ..> Actor
+class WorldNavigation {
+  +graph over loaded region
+  +rebuildRegion(bounds)
+}
+class WorldRaycaster <<static>> {
+  +raycast(world, ray) : optional<VoxelHit>
+}
+class MacroWorldPlan {
+  +landMask / heights / rivers
+  +cities / settlements / biomeRegions
+  +transportGraph (roads, bridges, ports, tunnels)
+  +queryCell(cell) : PlanInfo
+}
+class MacroWorldGenerator {
+  +generate(seed, params) : MacroWorldPlan
+  .. Perlin landmass, PoissonDisk cities,
+     shuffled→Voronoi biomes, MST+extras,
+     A* roads on cost map ..
+}
+GeneratedChunkProvider ..> MacroWorldPlan
+MacroWorldGenerator ..> MacroWorldPlan : builds
+ActorPathLogic ..> WorldNavigation
+@enduml

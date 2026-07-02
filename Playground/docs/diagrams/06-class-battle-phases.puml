@@ -1,0 +1,75 @@
+@startuml
+title pg:: battle phase system (battle.md §2 — port of Unity proposition.md)
+hide empty members
+
+interface IBattlePhase {
+  +enter() / tick(dt) / exit()
+}
+class BattleOrchestrator {
+  -current : IBattlePhase*
+  +transitionTo(phase)
+  .. dumb state machine: never decides next ..
+}
+class BattleCoordinator {
+  -context : BattleContext&
+  -phases (created up front)
+  .. owns transition rules; reads context;
+     injects pending BattleAction into Resolution ..
+}
+class SetupPhase
+class PlacementPhase {
+  +onPlacementFinished : signal
+}
+class IdlePhase {
+  .. advance turn bars to next ready (D23),
+     select unit (player-side tie-break), beginTurn ..
+  +onUnitReady : signal
+}
+class PlayerTurnPhase {
+  .. binds battle input on enter, unbinds on exit ..
+  +onActionChosen : signal<BattleAction>
+}
+class EnemyTurnPhase {
+  .. AI evaluation → legal action or EndTurn ..
+  +onActionChosen : signal<BattleAction>
+}
+class ResolutionPhase {
+  -pending : BattleAction
+  +onResolved : signal
+}
+class EndPhase {
+  .. BattleWon events, battleResolved ..
+}
+IBattlePhase <|.. SetupPhase
+IBattlePhase <|.. PlacementPhase
+IBattlePhase <|.. IdlePhase
+IBattlePhase <|.. PlayerTurnPhase
+IBattlePhase <|.. EnemyTurnPhase
+IBattlePhase <|.. ResolutionPhase
+IBattlePhase <|.. EndPhase
+BattleOrchestrator o-- IBattlePhase
+BattleCoordinator o-- BattleOrchestrator
+BattleCoordinator ..> IBattlePhase : creates & wires signals
+
+package "rules (static, stateless)" {
+  class BattleTurnRules
+  class BattleActionValidator
+  class BattleActionResolver
+  class BattleStatusRules
+  class BattleResourceRules
+  class BattleOutcomeRules
+  class BattlePlacementRules
+  class LineOfSight
+}
+IdlePhase ..> BattleTurnRules
+ResolutionPhase ..> BattleActionValidator
+ResolutionPhase ..> BattleActionResolver
+PlacementPhase ..> BattlePlacementRules
+BattleCoordinator ..> BattleOutcomeRules
+
+note as N1
+Setup → Placement → Idle → PlayerTurn|EnemyTurn
+  → Resolution → (same turn continues | endTurn → Idle)
+  → ... → End
+end note
+@enduml

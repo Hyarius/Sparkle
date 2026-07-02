@@ -1,0 +1,55 @@
+@startuml
+title pg:: fake animation (animation.md — port of modelAnimationProposition.md)
+hide empty members
+
+enum LogicalPart {
+  Root Body Head Front Rear
+  DominantLimb OffLimb Weapon
+  Jaw Tail WholeRig
+}
+class AnimationRig <<spk::Component>> {
+  +parts : map<LogicalPart, Entity3D*>
+  +rest pose per part
+  +bind(modelRoot) / resolve(part)
+}
+class AnimationSet <<definition>> {
+  +idleRecipeName
+  +recipes : map<name, AnimationRecipe>
+  .. mandatory: Idle, TakeDamage, Death ..
+}
+class AnimationRecipe {
+  +name / loop
+  +phases[]
+}
+class AnimationPhase {
+  +duration
+  +steps[]  .. parallel within phase ..
+}
+abstract class AnimationStep <<polymorphic>> {
+  +part / easing / additive
+  +apply(rig, t, PoseAccumulator&)
+}
+class "MoveLocal {offset}\nRotateLocal {eulerOffset}\nScale {multiplier}\nShake {amplitude, frequency}\nFlash {color, intensity}\nWait / SpawnVfx / PlaySound" as Steps
+AnimationStep <|-- Steps
+AnimationSet *-- AnimationRecipe
+AnimationRecipe *-- AnimationPhase
+AnimationPhase o-- AnimationStep
+
+class Animator <<spk::Component>> {
+  +set / rig
+  +main, overlay : ChannelState
+  +play(name) / playOverlay(name)
+}
+class AnimatorLogic <<spk::ComponentLogic>> {
+  .. advance channels; rest pose + main + overlay
+     → part Transform3Ds; recipe end → idle ..
+}
+Animator --> AnimationSet
+Animator --> AnimationRig
+AnimatorLogic ..> Animator
+note bottom of AnimatorLogic
+  Board tile-to-tile movement is the path-driver
+  tween, NOT a recipe; the animator only layers
+  bob/lunge/recoil offsets on top.
+end note
+@enduml

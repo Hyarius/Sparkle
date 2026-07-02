@@ -68,6 +68,8 @@ namespace pg
 
 	void GameSceneWidget::_spawnStressCubes(const spk::Vector3 &p_center)
 	{
+		static constexpr size_t StressCubeCount = 1000;
+
 		static_assert(StressCubeCount % StressGridColumns == 0);
 
 		constexpr std::size_t rows = StressCubeCount / StressGridColumns;
@@ -77,6 +79,8 @@ namespace pg
 
 		spk::GameEngine &engine = gameEngine();
 
+		_cubes.resize(StressCubeCount);
+
 		for (std::size_t i = 0; i < _cubes.size(); ++i)
 		{
 			const std::size_t column = i % StressGridColumns;
@@ -85,19 +89,21 @@ namespace pg
 			const float x = (static_cast<float>(column) - halfColumns) * StressCubeSpacing;
 			const float z = (static_cast<float>(row) - halfRows) * StressCubeSpacing;
 
-			pg::Entity3D &cube = _cubes[i];
+			pg::Entity3D *cube = new pg::Entity3D();
 
-			pg::MeshRenderer3D &renderer = cube.addComponent<pg::MeshRenderer3D>();
+			pg::MeshRenderer3D &renderer = cube->addComponent<pg::MeshRenderer3D>();
 			renderer.setMesh(&_cubeMesh);
 			renderer.setTexture(&_texture);
 
-			cube.transform().setPosition({
+			cube->transform().setPosition({
 				p_center.x + x,
 				p_center.y,
 				p_center.z + z
 			});
 
-			engine.addEntity(&cube);
+			engine.addEntity(cube);
+
+			_cubes[i] = cube;
 		}
 	}
 
@@ -114,9 +120,9 @@ namespace pg
 
 		_camera = &_cameraEntity.addComponent<pg::Camera3D>();
 		_camera->setPerspective(60.0f, 0.1f, 1000.0f);
-_camera->setPosition({0.0f, 55.0f, 70.0f});
-_camera->setUp({0.0f, 1.0f, 0.0f});
-_camera->setTarget({0.0f, 0.0f, 0.0f});
+		_camera->setPosition({0.0f, 5.0f, -10.0f});
+		_camera->setUp({0.0f, 1.0f, 0.0f});
+		_camera->setTarget({0.0f, 0.0f, 0.0f});
 		_camera->makeMain();
 		engine.addEntity(&_cameraEntity);
 
@@ -166,9 +172,9 @@ _camera->setTarget({0.0f, 0.0f, 0.0f});
 		}
 		const spk::Quaternion rotation = spk::Quaternion::fromEuler({25.0f, _cubeYaw, 0.0f});
 
-		for (pg::Entity3D &cube : _cubes)
+		for (pg::Entity3D *cube : _cubes)
 		{
-			cube.transform().setRotation(rotation);
+			cube->transform().setRotation(rotation);
 		}
 
 		_updateDurationNs.store(nowNs() - start, std::memory_order_relaxed);

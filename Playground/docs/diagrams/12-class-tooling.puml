@@ -1,0 +1,61 @@
+@startuml
+title EreliaTools suite (tooling.md)
+hide empty members
+
+class ToolsWindow {
+  -tab bar
+  -active : IEditorPage*
+  -status bar / dirty prompts
+}
+interface IEditorPage {
+  +name()
+  +activate() / deactivate()
+  +hasUnsavedChanges() / save()
+}
+class VoxelModelerPage
+class WorldEditorPage
+class FeatBoardEditorPage
+class EncounterTeamEditorPage
+class AbilityStatusEditorPage
+IEditorPage <|.. VoxelModelerPage
+IEditorPage <|.. WorldEditorPage
+IEditorPage <|.. FeatBoardEditorPage
+IEditorPage <|.. EncounterTeamEditorPage
+IEditorPage <|.. AbilityStatusEditorPage
+ToolsWindow o-- IEditorPage
+
+package "shared building blocks (promotion candidates)" {
+  class Viewport3D <<widget>> {
+    .. own GameEngine + Camera3D + orbit;
+       renders a preview scene in its rect ..
+  }
+  class PropertyPanel <<widget>> {
+    +addInt/Float/String/Enum/Vec3/IdPicker rows
+    +polymorphic type picker (factory-driven)
+  }
+  class IdPicker <<widget>> {
+    .. searchable dropdown over Registry ids ..
+  }
+  class GraphCanvas <<widget>> {
+    .. pan/zoom node canvas: nodes, edges,
+       selection, drag ..
+  }
+  class JsonWriter {
+    +write(definition) .. pretty, stable key order ..
+  }
+}
+VoxelModelerPage ..> Viewport3D
+VoxelModelerPage ..> PropertyPanel
+WorldEditorPage ..> Viewport3D
+FeatBoardEditorPage ..> GraphCanvas
+FeatBoardEditorPage ..> PropertyPanel
+EncounterTeamEditorPage ..> Viewport3D
+EncounterTeamEditorPage ..> IdPicker
+AbilityStatusEditorPage ..> PropertyPanel
+IEditorPage ..> JsonWriter : save
+note bottom of ToolsWindow
+  Pages edit in-memory copies; Save writes
+  resources/data JSON + hot-reloads the page's
+  registry. Game and tools don't run concurrently.
+end note
+@enduml

@@ -1,0 +1,22 @@
+@startuml
+title Bootstrap — process start to exploration (01-architecture.md §2)
+actor User
+participant "main()" as Main
+participant "Registries" as Reg
+participant "GameContext" as Ctx
+participant "GameSceneWidget\n(GameEngine)" as Scene
+participant "ModeManager" as MM
+participant "ExplorationMode" as Explo
+
+User -> Main : launch SparklePlayground
+Main -> Main : create Application + Window
+Main -> Reg : load(PG_RESOURCE_DIR/data)\nconfig→voxels→…→biomes→maps
+note right : any JSON error aborts startup\nwith file + field context (D10)
+Main -> Ctx : create (seed → WorldContext, PlayerData)
+Main -> Scene : create + activate
+Scene -> Scene : build scene:\nVoxelWorld.loadFromMap(m1-testground)\nchunk entities, player Actor at playerSpawn,\ncamera entity, register logics
+Main -> MM : create
+MM -> Explo : enter()
+Explo -> Explo : activate exploration input +\nOrbitFollowCameraLogic + (no HUD in M1)
+Main -> Main : application.run()
+@enduml

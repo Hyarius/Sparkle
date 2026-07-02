@@ -1,0 +1,79 @@
+@startuml
+title pg:: encounters & taming (encounters-taming.md)
+hide empty members
+
+class BiomeDefinition <<definition>> {
+  +palette {surface, subsurface, deep, flora}
+  +encounterRules[]
+}
+class BiomeEncounterRule {
+  +trigger : tag string ("bush", "caveFloor")
+  +table : EncounterTable*
+  +chancePerStep : float
+}
+class EncounterTable <<definition>> {
+  +tiers[10] : noBadge..eightBadges, postGame
+  +tierForBadges(count)  .. empty falls back down ..
+}
+class EncounterTier {
+  +weightedTeams[] {displayName, weight, team[6]}
+}
+class EncounterTeamMember {
+  +speciesId / aiId
+  +completedNodes[] : node uuids
+  .. the whole power dial: stats, abilities
+     AND form derive from replay (D35) ..
+}
+BiomeDefinition *-- BiomeEncounterRule
+BiomeEncounterRule --> EncounterTable
+EncounterTable *-- EncounterTier
+EncounterTier *-- EncounterTeamMember
+
+class EncounterEmitter {
+  .. subscribes playerMoved (exploration only);
+     voxel tags at cell × biome rules → roll ..
+}
+class EncounterResolver {
+  +tryRoll(rule, cell) : optional<team>
+  .. seeded RNG; no re-roll on same cell;
+     tier by badges; weighted pick ..
+}
+class EncounterSpawn {
+  +enemyTeam / allowsTaming
+  +boardSize / placementStyle
+}
+class EncounterService {
+  .. encounterTriggered → instantiate units
+     (completedNodes → applyProgress), attach AI,
+     BoardBuilder.fromWorld, BattleContext,
+     battleStarted ..
+}
+EncounterEmitter ..> EncounterResolver
+EncounterResolver ..> EncounterSpawn : produces
+EncounterService ..> EncounterSpawn : consumes
+
+class TamingProfile {
+  +conditions : TamingCondition[]
+  .. own catalog over the shared
+     BattleCondition core (D33) ..
+}
+class TamingProgress {
+  +advancements[] / isImpressed / hasFailed
+  +evaluateEvents(events)
+  +markFailed()
+}
+class TamingService {
+  .. battleEventOccurred (allowsTaming only):
+     evaluate wild units live; impressed →
+     removeUnit + creatureImpressed.
+     battleResolved(Player wins): fresh recruits →
+     team or storage; loss → forfeit ..
+}
+class WildBattleUnit {
+  +tamingProgress
+}
+TamingProfile o-- "TamingCondition"
+WildBattleUnit *-- TamingProgress
+TamingService ..> WildBattleUnit
+"CreatureSpecies" *-- TamingProfile
+@enduml
