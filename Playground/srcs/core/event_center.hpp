@@ -5,10 +5,13 @@
 
 namespace pg
 {
+	class Actor;
+
 	struct EventCenter
 	{
-		// Step 07: actorMoveRequested(Actor &, spk::Vector3Int) when Actor exists.
+		spk::ContractProvider<Actor *, spk::Vector3Int> actorMoveRequested;
 		spk::ContractProvider<spk::Vector3Int> playerMoved;
+		spk::ContractProvider<spk::Vector3Int> invalidTarget;
 
 		// Step 08: encounterTriggered(const EncounterSpawn &) when EncounterSpawn exists.
 		// Step 10: battleStarted, battleResolved, battleTurnEnded and battleEventOccurred

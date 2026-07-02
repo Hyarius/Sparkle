@@ -5,14 +5,21 @@
 #include <cstdio>
 #include <filesystem>
 #include <iostream>
+#include <stdexcept>
 #include <string>
 
 #include "components/mesh_renderer3d.hpp"
 #include "core/registries.hpp"
+#include "geometry/primitive3d.hpp"
+#include "logics/actor_path_logic.hpp"
+#include "logics/camera_controller_logic.hpp"
 #include "logics/chunk_render_logic.hpp"
 #include "logics/chunk_synchronization_logic.hpp"
+#include "logics/exploration_input_logic.hpp"
+#include "logics/mesh_render_logic.hpp"
 #include "structures/math/spk_vector3.hpp"
 #include "world/voxel_world.hpp"
+#include "world/world_navigation.hpp"
 
 #ifndef PG_RESOURCE_DIR
 #	define PG_RESOURCE_DIR "."
@@ -23,6 +30,8 @@ namespace
 	enum OverlayRow : std::size_t
 	{
 		CameraPosition = 0,
+		PlayerCell,
+		HoveredCell,
 		LoadedChunks,
 		Meshes,
 		Triangles,
@@ -44,6 +53,12 @@ namespace
 		char buffer[80];
 		std::snprintf(buffer, sizeof(buffer), "(%.2f, %.2f, %.2f)", p_value.x, p_value.y, p_value.z);
 		return buffer;
+	}
+
+	[[nodiscard]] std::string formatVector(const spk::Vector3Int &p_value)
+	{
+		return "(" + std::to_string(p_value.x) + ", " + std::to_string(p_value.y) + ", " +
+			   std::to_string(p_value.z) + ")";
 	}
 
 	[[nodiscard]] std::string formatFloat(float p_value, const char *p_suffix = "")
@@ -74,6 +89,7 @@ namespace pg
 
 	GameSceneWidget::~GameSceneWidget()
 	{
+		_context.world.navigation.reset();
 		_context.world.world.reset();
 		_context.world.activeMap = nullptr;
 	}
@@ -89,6 +105,7 @@ namespace pg
 		spk::GameEngine &engine = gameEngine();
 		engine.add<pg::ChunkSynchronizationLogic>();
 		engine.add<pg::ChunkRenderLogic>(_texture, &_maskTexture);
+		engine.add<pg::MeshRenderLogic>(false);
 
 		_camera = &_cameraEntity.addComponent<pg::Camera3D>();
 		_camera->setPerspective(60.0f, 0.1f, 1000.0f);
@@ -101,6 +118,60 @@ namespace pg
 		_context.world.activeMap = &p_registries.maps().get("m1-testground");
 		_context.world.world = std::make_unique<VoxelWorld>(p_registries.voxels(), &engine);
 		_context.world.world->loadFromMap(*_context.world.activeMap);
+		_context.world.navigation = std::make_unique<WorldNavigation>(
+			*_context.world.world,
+			TraversalBounds{{0, 0, 0}, _context.world.activeMap->size()},
+			static_cast<float>(p_registries.gameRules().maxVerticalTraversalGap));
+
+		const MapMarker *spawnMarker = _context.world.activeMap->marker("playerSpawn");
+		if (spawnMarker == nullptr)
+		{
+			throw std::runtime_error("m1-testground is missing playerSpawn marker");
+		}
+		const auto spawnCell = _context.world.navigation->topStandableInColumn(
+			spawnMarker->at.x, spawnMarker->at.z);
+		if (!spawnCell.has_value())
+		{
+			throw std::runtime_error("playerSpawn column has no standable cell");
+		}
+
+		_playerMesh = std::make_shared<Mesh3D>(makeCube(0.65f));
+		_player = &_playerEntity.addComponent<Actor>();
+		_player->cell = *spawnCell;
+		_player->player = true;
+		_player->speed = 5.0f;
+		MeshRenderer3D &playerRenderer = _playerEntity.addComponent<MeshRenderer3D>();
+		playerRenderer.setMesh(_playerMesh);
+		playerRenderer.setTexture(&_texture);
+		playerRenderer.setTint({0.95f, 0.95f, 1.0f, 1.0f});
+		engine.addEntity(&_playerEntity);
+
+		MeshRenderer3D &hoverRenderer = _hoverEntity.addComponent<MeshRenderer3D>();
+		hoverRenderer.setMesh(std::make_shared<Mesh3D>());
+		hoverRenderer.setTexture(&_maskTexture);
+		hoverRenderer.setTint({1.0f, 1.0f, 1.0f, 0.7f});
+		hoverRenderer.setTranslucent(true);
+		engine.addEntity(&_hoverEntity);
+
+		ActorPathLogic &pathLogic = engine.add<ActorPathLogic>(
+			_context.events, *_context.world.navigation, *_context.world.world);
+		pathLogic.placeAtCell(*_player);
+		engine.add<CameraControllerLogic>(_context, *_camera);
+		const auto hovered = p_registries.gameRules().overlayMasks.at("hovered");
+		const auto invalid = p_registries.gameRules().overlayMasks.at("invalid");
+		_inputLogic = &engine.add<ExplorationInputLogic>(
+			_context,
+			*_context.world.world,
+			*_context.world.navigation,
+			*_camera,
+			hoverRenderer,
+			[this]() {
+				return spk::Vector2(
+					static_cast<float>(geometry().width()),
+					static_cast<float>(geometry().height()));
+			},
+			AtlasCell{hovered[0], hovered[1]},
+			AtlasCell{invalid[0], invalid[1]});
 		std::cout << "Loaded map 'm1-testground' as "
 				  << _context.world.world->loadedChunkCount() << " chunks" << std::endl;
 	}
@@ -112,6 +183,8 @@ namespace pg
 		_overlay.setFontOutlineSize(1);
 
 		_overlay.setText(CameraPosition, 0, "Camera position");
+		_overlay.setText(PlayerCell, 0, "Player cell");
+		_overlay.setText(HoveredCell, 0, "Hovered cell");
 		_overlay.setText(LoadedChunks, 0, "Loaded chunks");
 		_overlay.setText(Meshes, 0, "Meshes rendered");
 		_overlay.setText(Triangles, 0, "Triangles rendered");
@@ -129,6 +202,18 @@ namespace pg
 			_camera->setViewportSize(
 				static_cast<float>(geometry().width()),
 				static_cast<float>(geometry().height()));
+		}
+		if (_player != nullptr)
+		{
+			_overlay.setText(PlayerCell, 1, formatVector(_player->cell));
+		}
+		if (_inputLogic != nullptr && _inputLogic->hoveredCell().has_value())
+		{
+			_overlay.setText(HoveredCell, 1, formatVector(*_inputLogic->hoveredCell()));
+		}
+		else
+		{
+			_overlay.setText(HoveredCell, 1, "-");
 		}
 
 		const std::uint32_t overlayWidth = std::min<std::uint32_t>(geometry().size.x, 360u);

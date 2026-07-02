@@ -57,6 +57,7 @@ namespace pg
 			return true;
 		}
 		target->setCell(local, p_cell);
+		++_revision;
 
 		const std::array boundaries = {
 			std::pair{local.x == 0, spk::Vector3Int{-1, 0, 0}},
@@ -103,6 +104,7 @@ namespace pg
 		p_provider.fill(loaded);
 		Entity3D *entityPointer = entity.get();
 		_chunks.emplace(p_coordinates, LoadedChunk{.entity = std::move(entity), .chunk = &loaded});
+		++_revision;
 		if (_engine != nullptr)
 		{
 			_engine->addEntity(entityPointer);
@@ -134,6 +136,7 @@ namespace pg
 			_engine->removeEntity(iterator->second.entity.get());
 		}
 		_chunks.erase(iterator);
+		++_revision;
 
 		const std::array offsets = {
 			spk::Vector3Int{-1, 0, 0}, spk::Vector3Int{1, 0, 0},
@@ -180,11 +183,22 @@ namespace pg
 			}
 		}
 		_chunks.clear();
+		++_revision;
 	}
 
 	std::size_t VoxelWorld::loadedChunkCount() const noexcept
 	{
 		return _chunks.size();
+	}
+
+	std::size_t VoxelWorld::revision() const noexcept
+	{
+		return _revision;
+	}
+
+	const VoxelRegistry &VoxelWorld::registry() const noexcept
+	{
+		return *_registry;
 	}
 
 	std::vector<ChunkCoordinates> VoxelWorld::loadedChunkCoordinates() const

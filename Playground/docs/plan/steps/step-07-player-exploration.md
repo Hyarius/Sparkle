@@ -72,3 +72,21 @@ Path-driver: cell-reached event sequence for a known path; retarget mid-path.
   around the wall (not through), up the slope and stairs onto the plateau, hover highlight
   tracks the mouse (mask-textured), camera orbits/zooms smoothly, clicks on walls/void do
   nothing but flash invalid feedback.
+
+## Implementation notes (2026-07-02)
+
+- Shared board-side traversal builds standable nodes and best height-compatible four-way
+  links. A* and bounded Dijkstra flood operate on the same graph used by exploration.
+- `WorldNavigation` lazily rebuilds after the voxel-world revision changes. Slope and stair
+  links use oriented cardinal edge heights and the configured vertical-gap limit.
+- DDA raycasting reports entry planes and supports axis, diagonal, inside-solid, and miss
+  cases. Mouse unprojection uses the inverse camera view-projection matrix.
+- The player actor spawns from `playerSpawn`, moves along A* paths with center/edge height
+  interpolation, emits `playerMoved`, and supports mid-path retargeting.
+- Exploration input builds hovered/invalid one-cell mask meshes. The follow camera supports
+  ZQSD orbit, right-drag orbit, wheel zoom, pitch clamps, and smoothed targeting.
+- The actor/overlay render pass reuses the chunk pass camera/light state; this avoids
+  duplicate frame-state commands while preserving opaque-then-translucent ordering.
+- The Playground suite passes all 85 tests, including 12 new graph, path, movement,
+  raycasting, and picking tests. The visible exploration window remains stable with no
+  stderr diagnostics. No engine (`spk`) source files were changed.

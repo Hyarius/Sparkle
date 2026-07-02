@@ -74,7 +74,7 @@ int main()
 		scene.setGeometry(window.centralWidget().geometry());
 		scene.activate();
 
-		std::cout << "M1 chunked testground: plateau, ramps, stairs, walls, slabs, and bushes. Close the window to exit." << std::endl;
+		std::cout << "Exploration: left-click to move, right-drag or ZQSD to orbit, wheel to zoom. Close the window to exit." << std::endl;
 		return application.run();
 	} catch (const std::exception &exception)
 	{

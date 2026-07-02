@@ -2,11 +2,14 @@
 
 #include <atomic>
 #include <cstddef>
+#include <memory>
 #include <string>
 
 #include "components/camera3d.hpp"
+#include "components/actor.hpp"
 #include "components/entity3d.hpp"
 #include "core/mode_manager.hpp"
+#include "geometry/mesh3d.hpp"
 #include "structures/graphics/texture/spk_sprite_sheet.hpp"
 #include "structures/widget/spk_debug_overlay.hpp"
 #include "structures/widget/spk_game_engine_widget.hpp"
@@ -15,9 +18,9 @@ namespace pg
 {
 	class Registries;
 	class VoxelRegistry;
+	class ExplorationInputLogic;
 
-	// Step 5 scene: a hand-stamped voxel showcase proving meshing, neighbour culling,
-	// orientation/flip transforms, atlas UVs, and the existing lit depth-tested renderer.
+	// Step 7 exploration scene: chunked terrain, click-to-move actor, hover mask and orbit camera.
 	class GameSceneWidget : public spk::GameEngineWidget
 	{
 	private:
@@ -26,6 +29,11 @@ namespace pg
 
 		spk::SpriteSheet _texture;
 		spk::SpriteSheet _maskTexture;
+		std::shared_ptr<Mesh3D> _playerMesh;
+		pg::Entity3D _playerEntity;
+		pg::Entity3D _hoverEntity;
+		pg::Actor *_player = nullptr;
+		pg::ExplorationInputLogic *_inputLogic = nullptr;
 
 		pg::Entity3D _cameraEntity;
 		pg::Camera3D *_camera = nullptr;

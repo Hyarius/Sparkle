@@ -32,8 +32,14 @@ namespace pg
 		std::vector<std::unique_ptr<MeshRenderCommand>> _opaqueCommands;
 		std::vector<std::unique_ptr<MeshRenderCommand>> _translucentCommands;
 		std::size_t _triangleCount = 0;
+		bool _emitFrameState = true;
 
 	public:
+		explicit MeshRenderLogic(bool p_emitFrameState = true) :
+			_emitFrameState(p_emitFrameState)
+		{
+		}
+
 		[[nodiscard]] static std::size_t lastMeshCount()
 		{
 			return _lastMeshCount.load(std::memory_order_relaxed);
@@ -77,10 +83,9 @@ namespace pg
 
 			_triangleCount += p_renderer.mesh()->layoutBuffer().indexCount() / 3;
 			auto command = std::make_unique<MeshRenderCommand>(
-				*p_renderer.mesh(),
-				*p_renderer.texture(),
-				model,
-				p_renderer.tint(),
+				p_renderer.mesh(),
+				MeshRenderCommand::makeModelUBO(model, p_renderer.tint()),
+				MeshRenderCommand::makeSampler(*p_renderer.texture()),
 				p_renderer.translucent());
 			if (p_renderer.translucent())
 			{
@@ -103,11 +108,14 @@ namespace pg
 				return;
 			}
 
-			p_builder.emplace<spk::CameraUpdateRenderCommand>(CameraBinding, _cameraMatrix);
-			p_builder.emplace<LightUpdateRenderCommand>(
-				spk::Vector3(1.0f, -2.0f, 0.5f).normalized(),
-				spk::Color(1.0f, 0.95f, 0.85f),
-				AmbientLight);
+			if (_emitFrameState)
+			{
+				p_builder.emplace<spk::CameraUpdateRenderCommand>(CameraBinding, _cameraMatrix);
+				p_builder.emplace<LightUpdateRenderCommand>(
+					spk::Vector3(1.0f, -2.0f, 0.5f).normalized(),
+					spk::Color(1.0f, 0.95f, 0.85f),
+					AmbientLight);
+			}
 
 			for (std::unique_ptr<MeshRenderCommand> &command : _opaqueCommands)
 			{

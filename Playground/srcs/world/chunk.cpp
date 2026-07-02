@@ -16,9 +16,12 @@ namespace pg
 
 	void Chunk::_synchronize() const
 	{
-		_renderMesh = VoxelMesher::buildRenderMesh(
-			_grid, *_registry, *_worldLookup, _coordinates.worldOrigin());
-		_maskMesh.clear();
+		// Build brand-new meshes rather than mutating the existing ones: a render command
+		// that captured the previous shared_ptr keeps drawing it safely on the render thread.
+		_renderMesh = std::make_shared<Mesh3D>(VoxelMesher::buildRenderMesh(
+			_grid, *_registry, *_worldLookup, _coordinates.worldOrigin()));
+		_maskMesh = std::make_shared<Mesh3D>();
+		++_meshRevision;
 	}
 
 	const ChunkCoordinates &Chunk::coordinates() const noexcept
@@ -38,12 +41,27 @@ namespace pg
 
 	const Mesh3D &Chunk::renderMesh() const noexcept
 	{
-		return _renderMesh;
+		return *_renderMesh;
 	}
 
 	const Mesh3D &Chunk::maskMesh() const noexcept
 	{
+		return *_maskMesh;
+	}
+
+	std::shared_ptr<const Mesh3D> Chunk::sharedRenderMesh() const noexcept
+	{
+		return _renderMesh;
+	}
+
+	std::shared_ptr<const Mesh3D> Chunk::sharedMaskMesh() const noexcept
+	{
 		return _maskMesh;
+	}
+
+	std::uint64_t Chunk::meshRevision() const noexcept
+	{
+		return _meshRevision;
 	}
 
 	void Chunk::setCell(const spk::Vector3Int &p_localPosition, const VoxelCell &p_cell)

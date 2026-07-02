@@ -1,6 +1,7 @@
 #include "core/game_context.hpp"
 
 #include "world/voxel_world.hpp"
+#include "world/world_navigation.hpp"
 
 namespace pg
 {

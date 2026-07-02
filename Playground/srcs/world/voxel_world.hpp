@@ -30,6 +30,7 @@ namespace pg
 		const VoxelRegistry *_registry = nullptr;
 		spk::GameEngine *_engine = nullptr;
 		std::map<ChunkCoordinates, LoadedChunk> _chunks;
+		std::size_t _revision = 0;
 
 	public:
 		VoxelWorld(const VoxelRegistry &p_registry, spk::GameEngine *p_engine = nullptr);
@@ -51,6 +52,8 @@ namespace pg
 		void clear();
 
 		[[nodiscard]] std::size_t loadedChunkCount() const noexcept;
+		[[nodiscard]] std::size_t revision() const noexcept;
+		[[nodiscard]] const VoxelRegistry &registry() const noexcept;
 		[[nodiscard]] std::vector<ChunkCoordinates> loadedChunkCoordinates() const;
 
 		template <typename TFunction>

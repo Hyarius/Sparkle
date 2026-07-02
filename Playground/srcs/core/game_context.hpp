@@ -9,12 +9,15 @@ namespace pg
 {
 	struct MapDefinition;
 	class VoxelWorld;
+	class WorldNavigation;
 
 	struct WorldContext
 	{
 		int seed = 0;
 		std::unique_ptr<VoxelWorld> world;
+		std::unique_ptr<WorldNavigation> navigation;
 		const MapDefinition *activeMap = nullptr;
+		bool explorationActive = false;
 
 		WorldContext();
 		~WorldContext();

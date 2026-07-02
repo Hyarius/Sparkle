@@ -23,11 +23,11 @@ namespace pg
 
 	void ExplorationMode::activate()
 	{
-		// Step 07 activates exploration input, camera control, and encounter emission.
+		_context.world.explorationActive = true;
 	}
 
 	void ExplorationMode::deactivate()
 	{
-		// Step 07 deactivates exploration input, camera control, and encounter emission.
+		_context.world.explorationActive = false;
 	}
 }
