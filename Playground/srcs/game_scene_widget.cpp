@@ -6,15 +6,11 @@
 #include <filesystem>
 #include <string>
 
-#include "components/player_controller.hpp"
-#include "logics/player_control_logic.hpp"
-#include "structures/game_engine/spk_animation_2d.hpp"
-#include "structures/game_engine/spk_animation_logic.hpp"
-#include "structures/game_engine/spk_camera_2d.hpp"
-#include "structures/game_engine/spk_sprite_render_logic.hpp"
-#include "structures/game_engine/spk_sprite_renderer_2d.hpp"
-#include "structures/game_engine/spk_transform_2d.hpp"
-#include "structures/graphics/geometry/spk_primitive_object.hpp"
+#include "components/mesh_renderer3d.hpp"
+#include "geometry/primitive3d.hpp"
+#include "logics/mesh_render_logic.hpp"
+#include "structures/math/spk_quaternion.hpp"
+#include "structures/math/spk_vector3.hpp"
 
 #ifndef PG_RESOURCE_DIR
 #	define PG_RESOURCE_DIR "."
@@ -24,13 +20,10 @@ namespace
 {
 	enum OverlayRow : std::size_t
 	{
-		Position = 0,
-		Size,
-		Rotation,
-		Animation,
-		SpriteCell,
-		Sprites,
-		Polygons,
+		CameraPosition = 0,
+		CubeYaw,
+		Meshes,
+		Triangles,
 		UpdateTime,
 		RenderTime,
 		DeltaTime,
@@ -44,10 +37,10 @@ namespace
 			.count();
 	}
 
-	[[nodiscard]] std::string formatVector(const spk::Vector2 &p_value)
+	[[nodiscard]] std::string formatVector(const spk::Vector3 &p_value)
 	{
-		char buffer[64];
-		std::snprintf(buffer, sizeof(buffer), "(%.2f, %.2f)", p_value.x, p_value.y);
+		char buffer[80];
+		std::snprintf(buffer, sizeof(buffer), "(%.2f, %.2f, %.2f)", p_value.x, p_value.y, p_value.z);
 		return buffer;
 	}
 
@@ -56,23 +49,6 @@ namespace
 		char buffer[64];
 		std::snprintf(buffer, sizeof(buffer), "%.2f%s", p_value, p_suffix);
 		return buffer;
-	}
-
-	[[nodiscard]] std::string narrow(const std::wstring &p_value)
-	{
-		return std::string(p_value.begin(), p_value.end());
-	}
-
-	[[nodiscard]] spk::Animation2D makeRowAnimation(std::uint32_t p_row, std::uint32_t p_columnCount)
-	{
-		spk::Animation2D animation;
-		animation.loop = true;
-		animation.frameDuration = spk::Duration(120.0L, spk::TimeUnit::Millisecond);
-		for (std::uint32_t column = 0; column < p_columnCount; ++column)
-		{
-			animation.frames.push_back({column, p_row});
-		}
-		return animation;
 	}
 }
 
@@ -89,50 +65,27 @@ namespace pg
 
 	void GameSceneWidget::_buildScene()
 	{
-		const std::filesystem::path spriteSheetPath =
+		const std::filesystem::path texturePath =
 			std::filesystem::path(PG_RESOURCE_DIR) / "textures" / "spriteSheet.png";
+		_texture.loadFromFile(texturePath, {4u, 3u});
 
-		_spriteSheet.loadFromFile(spriteSheetPath, {4u, 3u});
-		_spriteMesh = spk::PrimitiveObject::CreateSquare({-0.75f, -0.75f}, {1.5f, 1.5f}, {0.0f, 0.0f}, {1.0f, 1.0f});
+		_cubeMesh = pg::makeCube(1.0f);
 
 		spk::GameEngine &engine = gameEngine();
+		engine.add<pg::MeshRenderLogic>();
 
-		engine.add<PlayerControlLogic>().setPriority(20);
-		engine.add<spk::AnimationLogic>().setPriority(10);
-		engine.add<spk::SpriteRenderLogic>();
+		_camera = &_cameraEntity.addComponent<pg::Camera3D>();
+		_camera->setPerspective(60.0f, 0.1f, 1000.0f);
+		_camera->setPosition({3.0f, 2.5f, 4.0f});
+		_camera->setTarget({0.0f, 0.0f, 0.0f});
+		_camera->makeMain();
+		engine.addEntity(&_cameraEntity);
 
-		spk::Camera2D &camera = _cameraEntity.addComponent<spk::Camera2D>();
-		camera.setPixelsPerUnit({64.0f, 64.0f});
-		camera.makeMain();
-
-		_player.transform().setPosition({0.0f, 0.0f});
-		spk::SpriteRenderer2D &playerSprite = _player.addComponent<spk::SpriteRenderer2D>();
-		playerSprite.setSpriteSheet(&_spriteSheet);
-		playerSprite.setMesh(&_spriteMesh);
-		spk::AnimationController2D &playerAnimation = _player.addComponent<spk::AnimationController2D>();
-		playerAnimation.addAnimation(L"down", makeRowAnimation(0, 4));
-		playerAnimation.addAnimation(L"side", makeRowAnimation(1, 4));
-		playerAnimation.addAnimation(L"up", makeRowAnimation(2, 4));
-		playerAnimation.play(L"down");
-		playerAnimation.stop();
-		_player.addComponent<PlayerController>(4.0f);
-		engine.addEntity(&_player);
-
-		_objectA.transform().setPosition({-3.0f, 1.0f});
-		spk::SpriteRenderer2D &spriteA = _objectA.addComponent<spk::SpriteRenderer2D>();
-		spriteA.setSpriteSheet(&_spriteSheet);
-		spriteA.setMesh(&_spriteMesh);
-		spriteA.setSprite(_spriteSheet.sprite({0u, 0u}));
-		engine.addEntity(&_objectA);
-
-		_objectB.transform().setPosition({3.0f, -1.0f});
-		spk::SpriteRenderer2D &spriteB = _objectB.addComponent<spk::SpriteRenderer2D>();
-		spriteB.setSpriteSheet(&_spriteSheet);
-		spriteB.setMesh(&_spriteMesh);
-		spk::AnimationController2D &animationB = _objectB.addComponent<spk::AnimationController2D>();
-		animationB.addAnimation(L"idle", makeRowAnimation(2, 4));
-		animationB.play(L"idle");
-		engine.addEntity(&_objectB);
+		pg::MeshRenderer3D &renderer = _cube.addComponent<pg::MeshRenderer3D>();
+		renderer.setMesh(&_cubeMesh);
+		renderer.setTexture(&_texture);
+		_cube.transform().setPosition({0.0f, 0.0f, 0.0f});
+		engine.addEntity(&_cube);
 	}
 
 	void GameSceneWidget::_configureOverlay()
@@ -141,13 +94,10 @@ namespace pg
 		_overlay.setMaxGlyphSize(16);
 		_overlay.setFontOutlineSize(1);
 
-		_overlay.setText(Position, 0, "Player position");
-		_overlay.setText(Size, 0, "Player sprite UV size");
-		_overlay.setText(Rotation, 0, "Player rotation");
-		_overlay.setText(Animation, 0, "Player animation");
-		_overlay.setText(SpriteCell, 0, "Player sprite UV anchor");
-		_overlay.setText(Sprites, 0, "Sprites rendered");
-		_overlay.setText(Polygons, 0, "Polygons rendered");
+		_overlay.setText(CameraPosition, 0, "Camera position");
+		_overlay.setText(CubeYaw, 0, "Cube yaw");
+		_overlay.setText(Meshes, 0, "Meshes rendered");
+		_overlay.setText(Triangles, 0, "Triangles rendered");
 		_overlay.setText(UpdateTime, 0, "Update duration");
 		_overlay.setText(RenderTime, 0, "Render duration");
 		_overlay.setText(DeltaTime, 0, "Frame delta");
@@ -157,9 +107,11 @@ namespace pg
 	{
 		spk::GameEngineWidget::_onGeometryChange();
 
-		if (spk::Camera2D *camera = spk::Camera2D::mainCamera(); camera != nullptr)
+		if (_camera != nullptr)
 		{
-			camera->setViewport(geometry());
+			_camera->setViewportSize(
+				static_cast<float>(geometry().width()),
+				static_cast<float>(geometry().height()));
 		}
 
 		const std::uint32_t overlayWidth = std::min<std::uint32_t>(geometry().size.x, 360u);
@@ -170,10 +122,18 @@ namespace pg
 	{
 		const long long start = nowNs();
 		spk::GameEngineWidget::_onUpdate(p_tick);
+
+		const float deltaSeconds = static_cast<float>(p_tick.deltaTime.milliseconds()) / 1000.0f;
+		_cubeYaw += 60.0f * deltaSeconds;
+		if (_cubeYaw >= 360.0f)
+		{
+			_cubeYaw -= 360.0f;
+		}
+		_cube.transform().setRotation(spk::Quaternion::fromEuler({25.0f, _cubeYaw, 0.0f}));
+
 		_updateDurationNs.store(nowNs() - start, std::memory_order_relaxed);
 
 		invalidateRenderUnit();
-
 		_refreshOverlay(p_tick);
 	}
 
@@ -183,32 +143,20 @@ namespace pg
 		spk::RenderUnit unit = spk::GameEngineWidget::_buildRenderUnit();
 		_renderDurationNs.store(nowNs() - start, std::memory_order_relaxed);
 
-		_spriteCount.store(spk::SpriteRenderLogic::lastSpriteCount(), std::memory_order_relaxed);
-		_polygonCount.store(spk::SpriteRenderLogic::lastPolygonCount(), std::memory_order_relaxed);
+		_meshCount.store(pg::MeshRenderLogic::lastMeshCount(), std::memory_order_relaxed);
+		_triangleCount.store(pg::MeshRenderLogic::lastTriangleCount(), std::memory_order_relaxed);
 		return unit;
 	}
 
 	void GameSceneWidget::_refreshOverlay(const spk::UpdateTick &p_tick)
 	{
-		const spk::Transform2D &transform = _player.transform();
-		_overlay.setText(Position, 1, formatVector(transform.position()));
-		_overlay.setText(Rotation, 1, formatFloat(transform.rotation(), " deg"));
-
-		if (const spk::SpriteRenderer2D *sprite = _player.component<spk::SpriteRenderer2D>(); sprite != nullptr)
+		if (_camera != nullptr)
 		{
-			_overlay.setText(Size, 1, formatVector(sprite->sprite().size));
-			_overlay.setText(SpriteCell, 1, formatVector(sprite->sprite().anchor));
+			_overlay.setText(CameraPosition, 1, formatVector(_camera->position()));
 		}
-
-		if (const spk::AnimationController2D *animation = _player.component<spk::AnimationController2D>(); animation != nullptr)
-		{
-			std::string name = animation->hasCurrent() ? narrow(animation->currentName()) : "none";
-			name += animation->isPlaying() ? " (playing)" : " (idle)";
-			_overlay.setText(Animation, 1, name);
-		}
-
-		_overlay.setText(Sprites, 1, std::to_string(_spriteCount.load(std::memory_order_relaxed)));
-		_overlay.setText(Polygons, 1, std::to_string(_polygonCount.load(std::memory_order_relaxed)));
+		_overlay.setText(CubeYaw, 1, formatFloat(_cubeYaw, " deg"));
+		_overlay.setText(Meshes, 1, std::to_string(_meshCount.load(std::memory_order_relaxed)));
+		_overlay.setText(Triangles, 1, std::to_string(_triangleCount.load(std::memory_order_relaxed)));
 		_overlay.setText(
 			UpdateTime,
 			1,

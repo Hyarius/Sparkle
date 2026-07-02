@@ -4,7 +4,8 @@
 #include <cstddef>
 #include <string>
 
-#include "structures/game_engine/spk_entity_2d.hpp"
+#include "components/camera3d.hpp"
+#include "components/entity3d.hpp"
 #include "structures/graphics/geometry/spk_texture_mesh_2d.hpp"
 #include "structures/graphics/texture/spk_sprite_sheet.hpp"
 #include "structures/widget/spk_debug_overlay.hpp"
@@ -12,23 +13,27 @@
 
 namespace pg
 {
+	// Step 1 scene: a single textured cube rendered in perspective 3D through a Camera3D,
+	// rotating each frame, with a DebugOverlay. Proves the 3D render path (Transform3D /
+	// Camera3D / MeshRenderer3D + MeshRenderLogic + MeshRenderCommand + mesh shader).
 	class GameSceneWidget : public spk::GameEngineWidget
 	{
 	private:
-		spk::SpriteSheet _spriteSheet;
-		spk::TextureMesh2D _spriteMesh;
+		spk::SpriteSheet _texture;
+		spk::TextureMesh2D _cubeMesh;
 
-		spk::Entity2D _player;
-		spk::Entity2D _cameraEntity{&_player};
-		spk::Entity2D _objectA;
-		spk::Entity2D _objectB;
+		pg::Entity3D _cameraEntity;
+		pg::Entity3D _cube;
+		pg::Camera3D *_camera = nullptr;
 
 		spk::DebugOverlay _overlay;
 
+		float _cubeYaw = 0.0f;
+
 		mutable std::atomic<long long> _renderDurationNs{0};
 		std::atomic<long long> _updateDurationNs{0};
-		mutable std::atomic<std::size_t> _spriteCount{0};
-		mutable std::atomic<std::size_t> _polygonCount{0};
+		mutable std::atomic<std::size_t> _meshCount{0};
+		mutable std::atomic<std::size_t> _triangleCount{0};
 
 		void _buildScene();
 		void _configureOverlay();

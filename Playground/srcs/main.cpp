@@ -62,13 +62,13 @@ int main()
 			"main window",
 			spk::Window::Configuration{
 				.rect = spk::Rect2D(100, 100, 800, 600),
-				.title = "2D Engine Playground"});
+				.title = "3D Engine Playground"});
 
 		pg::GameSceneWidget scene("GameScene", &window.centralWidget());
 		scene.setGeometry(window.centralWidget().geometry());
 		scene.activate();
 
-		std::cout << "2D engine playground: move the player with ZQSD. Close the window to exit." << std::endl;
+		std::cout << "3D engine playground: a rotating textured cube seen through a perspective camera. Close the window to exit." << std::endl;
 		return application.run();
 	} catch (const std::exception &exception)
 	{
