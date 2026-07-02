@@ -116,6 +116,11 @@ namespace pg
 			}
 			return result;
 		}
+
+		[[nodiscard]] std::size_t size() const noexcept
+		{
+			return _definitions.size();
+		}
 	};
 
 	template <typename TBase>

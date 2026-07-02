@@ -18,5 +18,7 @@ namespace pg
 		{
 			return id == EmptyId;
 		}
+
+		[[nodiscard]] bool operator==(const VoxelCell &) const noexcept = default;
 	};
 }

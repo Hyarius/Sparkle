@@ -33,10 +33,22 @@ namespace pg
 
 	class VoxelMesher
 	{
+	private:
+		[[nodiscard]] static Mesh3D buildRenderMesh(
+			const VoxelGrid &p_grid,
+			const VoxelRegistry &p_registry,
+			const ICellLookup *p_worldLookup,
+			const spk::Vector3Int &p_worldOrigin);
+
 	public:
 		using MaskAtlasLookup = std::function<AtlasCell(const VoxelCell &)>;
 
 		[[nodiscard]] static Mesh3D buildRenderMesh(const VoxelGrid &p_grid, const VoxelRegistry &p_registry);
+		[[nodiscard]] static Mesh3D buildRenderMesh(
+			const VoxelGrid &p_grid,
+			const VoxelRegistry &p_registry,
+			const ICellLookup &p_worldLookup,
+			const spk::Vector3Int &p_worldOrigin);
 		[[nodiscard]] static Mesh3D buildMaskMesh(
 			std::span<const spk::Vector3Int> p_cells,
 			const MaskAtlasLookup &p_maskOf,

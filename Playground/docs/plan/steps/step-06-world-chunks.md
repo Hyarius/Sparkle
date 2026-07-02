@@ -63,3 +63,20 @@ provider slicing matches direct map reads.
   border).
 - Editing one cell at runtime (temporary debug key that places a stone block at a fixed
   cell) updates the mesh — remove the key after validating or keep behind `#ifdef`.
+
+## Implementation notes (2026-07-02)
+
+- `Chunk` is a 16x16x16 synchronizable component with render/mask mesh products;
+  `VoxelWorld` owns one `Entity3D` and `Chunk` per loaded coordinate.
+- Border edits dirty the touched chunk and each loaded face-neighbour. Chunk meshing uses
+  world lookup at boundaries, so shared faces are culled without visible seams.
+- Prefab and map registries load after voxels. Parsing is strict and supports ordered
+  fills, sparse overrides, orientations/flips, rotated prefab stamps, anchors, markers,
+  unresolved portal targets, and biome ids.
+- The authored 64x16x64 M1 testground loads as 16 chunks and renders plateau, slope ramp,
+  stair approach, wall, slab path, and three stamped bush clusters.
+- The Playground suite passes all 73 tests, including 12 world/parser/chunk tests. A live
+  cell edit and subsequent baker pass are covered headlessly; the temporary runtime edit
+  key was therefore not retained.
+- Runtime visual validation renders 16 chunk meshes and 18,404 triangles with no stderr
+  diagnostics. No engine (`spk`) source files were changed.

@@ -256,6 +256,8 @@ namespace
 	[[nodiscard]] bool isFaceOccludedByNeighbor(
 		const pg::VoxelGrid &p_grid,
 		const pg::VoxelRegistry &p_registry,
+		const pg::ICellLookup *p_worldLookup,
+		const spk::Vector3Int &p_worldOrigin,
 		const spk::Vector3Int &p_position,
 		pg::VoxelAxisPlane p_worldPlane,
 		const pg::VoxelCell &p_cell,
@@ -269,19 +271,23 @@ namespace
 		}
 
 		const spk::Vector3Int neighborPosition = p_position + planeOffset(p_worldPlane);
-		if (!p_grid.isWithinBounds(neighborPosition))
+		const pg::VoxelCell *neighbor = nullptr;
+		if (p_grid.isWithinBounds(neighborPosition))
 		{
-			return false;
+			neighbor = &p_grid.cell(neighborPosition);
 		}
-		const pg::VoxelCell &neighbor = p_grid.cell(neighborPosition);
-		if (neighbor.isEmpty())
+		else if (p_worldLookup != nullptr)
+		{
+			neighbor = p_worldLookup->tryCell(p_worldOrigin + neighborPosition);
+		}
+		if (neighbor == nullptr || neighbor->isEmpty())
 		{
 			return false;
 		}
 
-		const pg::VoxelDefinition &neighborDefinition = p_registry.get(neighbor.id);
+		const pg::VoxelDefinition &neighborDefinition = p_registry.get(neighbor->id);
 		const pg::VoxelAxisPlane neighborLocalPlane = pg::VoxelMesher::mapWorldPlaneToLocal(
-			opposite(p_worldPlane), neighbor.orientation, neighbor.flip);
+			opposite(p_worldPlane), neighbor->orientation, neighbor->flip);
 		const auto &neighborFace = neighborDefinition.shape->renderFaces().outer(neighborLocalPlane);
 		return neighborFace.has_value() && isFullBoundaryQuad(*neighborFace, neighborLocalPlane);
 	}
@@ -381,6 +387,24 @@ namespace pg
 
 	Mesh3D VoxelMesher::buildRenderMesh(const VoxelGrid &p_grid, const VoxelRegistry &p_registry)
 	{
+		return buildRenderMesh(p_grid, p_registry, nullptr, {});
+	}
+
+	Mesh3D VoxelMesher::buildRenderMesh(
+		const VoxelGrid &p_grid,
+		const VoxelRegistry &p_registry,
+		const ICellLookup &p_worldLookup,
+		const spk::Vector3Int &p_worldOrigin)
+	{
+		return buildRenderMesh(p_grid, p_registry, &p_worldLookup, p_worldOrigin);
+	}
+
+	Mesh3D VoxelMesher::buildRenderMesh(
+		const VoxelGrid &p_grid,
+		const VoxelRegistry &p_registry,
+		const ICellLookup *p_worldLookup,
+		const spk::Vector3Int &p_worldOrigin)
+	{
 		Mesh3D mesh;
 		// Typical cube-like cells settle at <=24 vertices / 36 indices before culling.
 		// Reserving once avoids repeated buffer and vertex-lookup growth during chunk builds.
@@ -415,7 +439,7 @@ namespace pg
 						const VoxelAxisPlane localPlane = mapWorldPlaneToLocal(worldPlane, cell.orientation, cell.flip);
 						const auto &face = faces.outer(localPlane);
 						if (!face.has_value() || isFaceOccludedByNeighbor(
-								p_grid, p_registry, position, worldPlane, cell, *face))
+								p_grid, p_registry, p_worldLookup, p_worldOrigin, position, worldPlane, cell, *face))
 						{
 							continue;
 						}

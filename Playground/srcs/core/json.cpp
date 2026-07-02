@@ -73,6 +73,11 @@ namespace pg
 		return _path;
 	}
 
+	const nlohmann::json &JsonReader::value() const noexcept
+	{
+		return _value;
+	}
+
 	std::string JsonReader::pathFor(const std::string &p_key) const
 	{
 		return _path + "." + p_key;

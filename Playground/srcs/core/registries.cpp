@@ -14,10 +14,22 @@ namespace pg
 		GameRules loadedGameRules = parseGameRules(reader);
 		VoxelRegistry loadedVoxels;
 		loadedVoxels.load(p_dataDirectory / "voxels");
+		Registry<PrefabDefinition> loadedPrefabs;
+		loadedPrefabs.load(p_dataDirectory / "prefabs", [&loadedVoxels](JsonReader &p_reader) {
+			return parsePrefabDefinition(p_reader, loadedVoxels);
+		});
+		Registry<MapDefinition> loadedMaps;
+		loadedMaps.load(p_dataDirectory / "maps", [&loadedVoxels, &loadedPrefabs](JsonReader &p_reader) {
+			return parseMapDefinition(p_reader, loadedVoxels, loadedPrefabs);
+		});
 
 		_gameRules = std::move(loadedGameRules);
 		_voxels = std::move(loadedVoxels);
+		_prefabs = std::move(loadedPrefabs);
+		_maps = std::move(loadedMaps);
 		std::cout << "Loaded " << _voxels.size() << " voxel definitions" << std::endl;
+		std::cout << "Loaded " << _prefabs.size() << " prefab definitions and "
+				  << _maps.size() << " map definitions" << std::endl;
 	}
 
 	const GameRules &Registries::gameRules() const noexcept
@@ -28,5 +40,15 @@ namespace pg
 	const VoxelRegistry &Registries::voxels() const noexcept
 	{
 		return _voxels;
+	}
+
+	const Registry<PrefabDefinition> &Registries::prefabs() const noexcept
+	{
+		return _prefabs;
+	}
+
+	const Registry<MapDefinition> &Registries::maps() const noexcept
+	{
+		return _maps;
 	}
 }

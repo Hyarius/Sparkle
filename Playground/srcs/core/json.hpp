@@ -47,6 +47,7 @@ namespace pg
 
 		[[nodiscard]] const std::filesystem::path &file() const noexcept;
 		[[nodiscard]] const std::string &path() const noexcept;
+		[[nodiscard]] const nlohmann::json &value() const noexcept;
 		[[nodiscard]] std::string pathFor(const std::string &p_key) const;
 		[[nodiscard]] bool contains(const std::string &p_key) const;
 

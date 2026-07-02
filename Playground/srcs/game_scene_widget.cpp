@@ -4,14 +4,15 @@
 #include <chrono>
 #include <cstdio>
 #include <filesystem>
+#include <iostream>
 #include <string>
 
 #include "components/mesh_renderer3d.hpp"
 #include "core/registries.hpp"
-#include "logics/mesh_render_logic.hpp"
+#include "logics/chunk_render_logic.hpp"
+#include "logics/chunk_synchronization_logic.hpp"
 #include "structures/math/spk_vector3.hpp"
-#include "voxel/voxel_mesher.hpp"
-#include "world/showcase.hpp"
+#include "world/voxel_world.hpp"
 
 #ifndef PG_RESOURCE_DIR
 #	define PG_RESOURCE_DIR "."
@@ -22,7 +23,7 @@ namespace
 	enum OverlayRow : std::size_t
 	{
 		CameraPosition = 0,
-		MeshingTime,
+		LoadedChunks,
 		Meshes,
 		Triangles,
 		UpdateTime,
@@ -62,49 +63,46 @@ namespace pg
 		const Registries &p_registries) :
 		spk::GameEngineWidget(p_name, p_parent),
 		_modeManager(p_context),
+		_context(p_context),
 		_overlay(p_name + "/DebugOverlay", this)
 	{
-		_buildScene(p_registries.voxels());
+		_buildScene(p_registries);
 		_configureOverlay();
 		_modeManager.enterExploration();
 		activate();
 	}
 
-	void GameSceneWidget::_buildScene(const VoxelRegistry &p_voxels)
+	GameSceneWidget::~GameSceneWidget()
+	{
+		_context.world.world.reset();
+		_context.world.activeMap = nullptr;
+	}
+
+	void GameSceneWidget::_buildScene(const Registries &p_registries)
 	{
 		const std::filesystem::path texturePath =
 			std::filesystem::path(PG_RESOURCE_DIR) / "textures" / "voxels.png";
 		_texture.loadFromFile(texturePath, {8u, 8u});
-
-		_showcaseGrid = buildShowcaseGrid(p_voxels);
-		const auto meshingStart = std::chrono::steady_clock::now();
-		_showcaseMesh = VoxelMesher::buildRenderMesh(_showcaseGrid, p_voxels);
-		_meshingDurationMs = std::chrono::duration<float, std::milli>(
-			std::chrono::steady_clock::now() - meshingStart)
-			.count();
-		std::printf(
-			"Showcase voxel mesh: %zu vertices, %zu triangles in %.3f ms\n",
-			_showcaseMesh.vertices().size(),
-			_showcaseMesh.indexes().size() / 3,
-			_meshingDurationMs);
+		_maskTexture.loadFromFile(
+			std::filesystem::path(PG_RESOURCE_DIR) / "textures" / "mask.png", {4u, 4u});
 
 		spk::GameEngine &engine = gameEngine();
-		engine.add<pg::MeshRenderLogic>();
+		engine.add<pg::ChunkSynchronizationLogic>();
+		engine.add<pg::ChunkRenderLogic>(_texture, &_maskTexture);
 
 		_camera = &_cameraEntity.addComponent<pg::Camera3D>();
 		_camera->setPerspective(60.0f, 0.1f, 1000.0f);
-		_camera->setPosition({15.0f, 10.0f, -10.0f});
+		_camera->setPosition({78.0f, 58.0f, -58.0f});
 		_camera->setUp({0.0f, 1.0f, 0.0f});
-		_camera->setTarget({6.0f, 1.25f, 6.0f});
+		_camera->setTarget({32.0f, 2.0f, 32.0f});
 		_camera->makeMain();
 		engine.addEntity(&_cameraEntity);
 
-		pg::MeshRenderer3D &renderer = _showcaseEntity.addComponent<pg::MeshRenderer3D>();
-		renderer.setMesh(&_showcaseMesh);
-		renderer.setTexture(&_texture);
-		renderer.setTint({1.0f, 1.0f, 1.0f, 1.0f});
-		renderer.setTranslucent(false);
-		engine.addEntity(&_showcaseEntity);
+		_context.world.activeMap = &p_registries.maps().get("m1-testground");
+		_context.world.world = std::make_unique<VoxelWorld>(p_registries.voxels(), &engine);
+		_context.world.world->loadFromMap(*_context.world.activeMap);
+		std::cout << "Loaded map 'm1-testground' as "
+				  << _context.world.world->loadedChunkCount() << " chunks" << std::endl;
 	}
 
 	void GameSceneWidget::_configureOverlay()
@@ -114,7 +112,7 @@ namespace pg
 		_overlay.setFontOutlineSize(1);
 
 		_overlay.setText(CameraPosition, 0, "Camera position");
-		_overlay.setText(MeshingTime, 0, "Voxel meshing");
+		_overlay.setText(LoadedChunks, 0, "Loaded chunks");
 		_overlay.setText(Meshes, 0, "Meshes rendered");
 		_overlay.setText(Triangles, 0, "Triangles rendered");
 		_overlay.setText(UpdateTime, 0, "Update duration");
@@ -155,8 +153,8 @@ namespace pg
 		spk::RenderUnit unit = spk::GameEngineWidget::_buildRenderUnit();
 		_renderDurationNs.store(nowNs() - start, std::memory_order_relaxed);
 
-		_meshCount.store(pg::MeshRenderLogic::lastMeshCount(), std::memory_order_relaxed);
-		_triangleCount.store(pg::MeshRenderLogic::lastTriangleCount(), std::memory_order_relaxed);
+		_meshCount.store(pg::ChunkRenderLogic::lastMeshCount(), std::memory_order_relaxed);
+		_triangleCount.store(pg::ChunkRenderLogic::lastTriangleCount(), std::memory_order_relaxed);
 		return unit;
 	}
 
@@ -166,7 +164,10 @@ namespace pg
 		{
 			_overlay.setText(CameraPosition, 1, formatVector(_camera->position()));
 		}
-		_overlay.setText(MeshingTime, 1, formatFloat(_meshingDurationMs, " ms"));
+		_overlay.setText(
+			LoadedChunks,
+			1,
+			_context.world.world == nullptr ? "0" : std::to_string(_context.world.world->loadedChunkCount()));
 		_overlay.setText(Meshes, 1, std::to_string(_meshCount.load(std::memory_order_relaxed)));
 		_overlay.setText(Triangles, 1, std::to_string(_triangleCount.load(std::memory_order_relaxed)));
 		_overlay.setText(
