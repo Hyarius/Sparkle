@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "traversal": "solid",
+  "tags": ["ground", "grass", "slope"],
+  "shape": {
+    "type": "slope",
+    "textures": {
+      "slope": [0, 0],
+      "back": [1, 0],
+      "bottom": [2, 0],
+      "sideLeft": [0, 1],
+      "sideRight": [1, 1]
+    }
+  }
+}

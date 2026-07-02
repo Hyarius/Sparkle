@@ -57,3 +57,17 @@ differ); makeCube: 24 unique vertices, 36 indices, normals unit-length and axis-
   cube blends and never "punches holes" in geometry behind it.
 - Frame stats in the debug overlay still live (mesh/triangle counts).
 - No `spk::` changes (clear command already handles depth).
+
+## Implementation notes (2026-07-02)
+
+- `PlaygroundCore`, `SparklePlayground`, and `PlaygroundTests` build successfully with the
+  configured Windows Clang toolchain.
+- `ctest --preset playground --output-on-failure` passes all 28 tests (3 mesh tests added
+  here).
+- The existing Sparkle regression binary passes all 1,960 tests.
+- A three-second OpenGL smoke run compiled and linked the shaders, remained active, and
+  produced no stderr diagnostics.
+- A runtime capture showed two rendered meshes / 24 triangles in the live overlay,
+  orientation-dependent shading, and the offset translucent cube through the overlap.
+  Final visual acceptance remains user-validated per the project convention.
+- No `spk::` source was changed.

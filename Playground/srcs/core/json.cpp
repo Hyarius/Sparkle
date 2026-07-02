@@ -78,6 +78,12 @@ namespace pg
 		return _path + "." + p_key;
 	}
 
+	bool JsonReader::contains(const std::string &p_key) const
+	{
+		_requireObject();
+		return _value.contains(p_key);
+	}
+
 	void JsonReader::_requireObject() const
 	{
 		if (!_value.is_object())

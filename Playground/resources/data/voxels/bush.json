@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "traversal": "passable",
+  "tags": ["bush", "flora"],
+  "shape": {
+    "type": "crossPlane",
+    "textures": {
+      "plane": [0, 2]
+    }
+  }
+}

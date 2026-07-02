@@ -62,3 +62,11 @@ stability (sorted by id).
 
 `[build]`/`[test]` green; `[run]` unchanged (nothing rendered yet); all 8 voxel JSON files
 load at boot (log the count). No `spk::` changes.
+
+## Implementation notes (2026-07-02)
+
+- The configured Windows Clang build succeeds.
+- The Playground suite passes all 51 tests, including 23 voxel-core tests added by this step.
+- The runtime smoke test remains active, loads all eight voxel definitions, and reports the count at boot.
+- The placeholder voxel atlas is a deterministic, labelled 8x8 grid.
+- No engine (`spk`) source files were changed.

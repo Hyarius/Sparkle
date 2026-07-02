@@ -7,10 +7,11 @@
 #include <string>
 
 #include "components/mesh_renderer3d.hpp"
-#include "geometry/primitive3d.hpp"
+#include "core/registries.hpp"
 #include "logics/mesh_render_logic.hpp"
-#include "structures/math/spk_quaternion.hpp"
 #include "structures/math/spk_vector3.hpp"
+#include "voxel/voxel_mesher.hpp"
+#include "world/showcase.hpp"
 
 #ifndef PG_RESOURCE_DIR
 #	define PG_RESOURCE_DIR "."
@@ -18,13 +19,10 @@
 
 namespace
 {
-	constexpr std::size_t StressGridColumns = 40;
-	constexpr float StressCubeSpacing = 2.5f;
-
 	enum OverlayRow : std::size_t
 	{
 		CameraPosition = 0,
-		CubeYaw,
+		MeshingTime,
 		Meshes,
 		Triangles,
 		UpdateTime,
@@ -57,78 +55,56 @@ namespace
 
 namespace pg
 {
-	GameSceneWidget::GameSceneWidget(const std::string &p_name, spk::Widget *p_parent, GameContext &p_context) :
+	GameSceneWidget::GameSceneWidget(
+		const std::string &p_name,
+		spk::Widget *p_parent,
+		GameContext &p_context,
+		const Registries &p_registries) :
 		spk::GameEngineWidget(p_name, p_parent),
 		_modeManager(p_context),
 		_overlay(p_name + "/DebugOverlay", this)
 	{
-		_buildScene();
+		_buildScene(p_registries.voxels());
 		_configureOverlay();
 		_modeManager.enterExploration();
 		activate();
 	}
 
-	void GameSceneWidget::_spawnStressCubes(const spk::Vector3 &p_center)
-	{
-		static constexpr size_t StressCubeCount = 1000;
-
-		static_assert(StressCubeCount % StressGridColumns == 0);
-
-		constexpr std::size_t rows = StressCubeCount / StressGridColumns;
-
-		const float halfColumns = (static_cast<float>(StressGridColumns) - 1.0f) * 0.5f;
-		const float halfRows = (static_cast<float>(rows) - 1.0f) * 0.5f;
-
-		spk::GameEngine &engine = gameEngine();
-
-		_cubes.resize(StressCubeCount);
-
-		for (std::size_t i = 0; i < _cubes.size(); ++i)
-		{
-			const std::size_t column = i % StressGridColumns;
-			const std::size_t row = i / StressGridColumns;
-
-			const float x = (static_cast<float>(column) - halfColumns) * StressCubeSpacing;
-			const float z = (static_cast<float>(row) - halfRows) * StressCubeSpacing;
-
-			pg::Entity3D *cube = new pg::Entity3D();
-
-			pg::MeshRenderer3D &renderer = cube->addComponent<pg::MeshRenderer3D>();
-			renderer.setMesh(&_cubeMesh);
-			renderer.setTexture(&_texture);
-
-			cube->transform().setPosition({
-				p_center.x + x,
-				p_center.y,
-				p_center.z + z
-			});
-
-			engine.addEntity(cube);
-
-			_cubes[i] = cube;
-		}
-	}
-
-	void GameSceneWidget::_buildScene()
+	void GameSceneWidget::_buildScene(const VoxelRegistry &p_voxels)
 	{
 		const std::filesystem::path texturePath =
-			std::filesystem::path(PG_RESOURCE_DIR) / "textures" / "spriteSheet.png";
-		_texture.loadFromFile(texturePath, {4u, 3u});
+			std::filesystem::path(PG_RESOURCE_DIR) / "textures" / "voxels.png";
+		_texture.loadFromFile(texturePath, {8u, 8u});
 
-		_cubeMesh = pg::makeCube(1.0f);
+		_showcaseGrid = buildShowcaseGrid(p_voxels);
+		const auto meshingStart = std::chrono::steady_clock::now();
+		_showcaseMesh = VoxelMesher::buildRenderMesh(_showcaseGrid, p_voxels);
+		_meshingDurationMs = std::chrono::duration<float, std::milli>(
+			std::chrono::steady_clock::now() - meshingStart)
+			.count();
+		std::printf(
+			"Showcase voxel mesh: %zu vertices, %zu triangles in %.3f ms\n",
+			_showcaseMesh.vertices().size(),
+			_showcaseMesh.indexes().size() / 3,
+			_meshingDurationMs);
 
 		spk::GameEngine &engine = gameEngine();
 		engine.add<pg::MeshRenderLogic>();
 
 		_camera = &_cameraEntity.addComponent<pg::Camera3D>();
 		_camera->setPerspective(60.0f, 0.1f, 1000.0f);
-		_camera->setPosition({0.0f, 5.0f, -10.0f});
+		_camera->setPosition({15.0f, 10.0f, -10.0f});
 		_camera->setUp({0.0f, 1.0f, 0.0f});
-		_camera->setTarget({0.0f, 0.0f, 0.0f});
+		_camera->setTarget({6.0f, 1.25f, 6.0f});
 		_camera->makeMain();
 		engine.addEntity(&_cameraEntity);
 
-		_spawnStressCubes({0.0f, 0.0f, 0.0f});
+		pg::MeshRenderer3D &renderer = _showcaseEntity.addComponent<pg::MeshRenderer3D>();
+		renderer.setMesh(&_showcaseMesh);
+		renderer.setTexture(&_texture);
+		renderer.setTint({1.0f, 1.0f, 1.0f, 1.0f});
+		renderer.setTranslucent(false);
+		engine.addEntity(&_showcaseEntity);
 	}
 
 	void GameSceneWidget::_configureOverlay()
@@ -138,7 +114,7 @@ namespace pg
 		_overlay.setFontOutlineSize(1);
 
 		_overlay.setText(CameraPosition, 0, "Camera position");
-		_overlay.setText(CubeYaw, 0, "Cube yaw");
+		_overlay.setText(MeshingTime, 0, "Voxel meshing");
 		_overlay.setText(Meshes, 0, "Meshes rendered");
 		_overlay.setText(Triangles, 0, "Triangles rendered");
 		_overlay.setText(UpdateTime, 0, "Update duration");
@@ -167,19 +143,6 @@ namespace pg
 		_modeManager.update(p_tick);
 		spk::GameEngineWidget::_onUpdate(p_tick);
 
-		const float deltaSeconds = static_cast<float>(p_tick.deltaTime.milliseconds()) / 1000.0f;
-		_cubeYaw += 60.0f * deltaSeconds;
-		if (_cubeYaw >= 360.0f)
-		{
-			_cubeYaw -= 360.0f;
-		}
-		const spk::Quaternion rotation = spk::Quaternion::fromEuler({25.0f, _cubeYaw, 0.0f});
-
-		for (pg::Entity3D *cube : _cubes)
-		{
-			cube->transform().setRotation(rotation);
-		}
-
 		_updateDurationNs.store(nowNs() - start, std::memory_order_relaxed);
 
 		invalidateRenderUnit();
@@ -203,7 +166,7 @@ namespace pg
 		{
 			_overlay.setText(CameraPosition, 1, formatVector(_camera->position()));
 		}
-		_overlay.setText(CubeYaw, 1, formatFloat(_cubeYaw, " deg"));
+		_overlay.setText(MeshingTime, 1, formatFloat(_meshingDurationMs, " ms"));
 		_overlay.setText(Meshes, 1, std::to_string(_meshCount.load(std::memory_order_relaxed)));
 		_overlay.setText(Triangles, 1, std::to_string(_triangleCount.load(std::memory_order_relaxed)));
 		_overlay.setText(

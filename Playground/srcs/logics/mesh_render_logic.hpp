@@ -10,6 +10,7 @@
 #include "components/camera3d.hpp"
 #include "components/mesh_renderer3d.hpp"
 #include "components/transform3d.hpp"
+#include "rendering/light_update_render_command.hpp"
 #include "rendering/mesh_render_command.hpp"
 #include "structures/game_engine/spk_component_logic.hpp"
 #include "structures/graphics/rendering/command/spk_camera_update_render_command.hpp"
@@ -17,23 +18,19 @@
 
 namespace pg
 {
-	// Render-phase logic for MeshRenderer3D. Mirror of spk::SpriteRenderLogic: selects the
-	// camera (main camera for now), uploads its view-projection to UBO binding 1 via a
-	// spk::CameraUpdateRenderCommand, then emits one MeshRenderCommand per renderer. Keeping
-	// the camera upload in the render process (rather than caching it globally) is what will
-	// let us render the same meshes through several cameras later — a per-camera pass emits
-	// its own CameraUpdateRenderCommand + viewport before its meshes.
 	class MeshRenderLogic : public spk::ComponentLogic<MeshRenderer3D>
 	{
 	private:
 		static constexpr GLuint CameraBinding = 1;
+		static constexpr float AmbientLight = 0.35f;
 
 		inline static std::atomic<std::size_t> _lastMeshCount{0};
 		inline static std::atomic<std::size_t> _lastTriangleCount{0};
 
 		Camera3D *_camera = nullptr;
 		spk::Matrix4x4 _cameraMatrix;
-		std::vector<std::unique_ptr<MeshRenderCommand>> _commands;
+		std::vector<std::unique_ptr<MeshRenderCommand>> _opaqueCommands;
+		std::vector<std::unique_ptr<MeshRenderCommand>> _translucentCommands;
 		std::size_t _triangleCount = 0;
 
 	public:
@@ -50,8 +47,10 @@ namespace pg
 	protected:
 		void _onRenderStarted(std::size_t p_componentCount) override
 		{
-			(void)p_componentCount;
-			_commands.clear();
+			_opaqueCommands.clear();
+			_translucentCommands.clear();
+			_opaqueCommands.reserve(p_componentCount);
+			_translucentCommands.reserve(p_componentCount);
 			_triangleCount = 0;
 			_camera = Camera3D::mainCamera();
 			if (_camera != nullptr)
@@ -77,25 +76,49 @@ namespace pg
 			}
 
 			_triangleCount += p_renderer.mesh()->layoutBuffer().indexCount() / 3;
-			_commands.push_back(std::make_unique<MeshRenderCommand>(*p_renderer.mesh(), *p_renderer.texture(), model));
+			auto command = std::make_unique<MeshRenderCommand>(
+				*p_renderer.mesh(),
+				*p_renderer.texture(),
+				model,
+				p_renderer.tint(),
+				p_renderer.translucent());
+			if (p_renderer.translucent())
+			{
+				_translucentCommands.push_back(std::move(command));
+			}
+			else
+			{
+				_opaqueCommands.push_back(std::move(command));
+			}
 		}
 
 		void _executeRender(spk::RenderUnitBuilder &p_builder) override
 		{
-			_lastMeshCount.store(_commands.size(), std::memory_order_relaxed);
+			const std::size_t meshCount = _opaqueCommands.size() + _translucentCommands.size();
+			_lastMeshCount.store(meshCount, std::memory_order_relaxed);
 			_lastTriangleCount.store(_triangleCount, std::memory_order_relaxed);
 
-			if (_commands.empty())
+			if (meshCount == 0)
 			{
 				return;
 			}
 
 			p_builder.emplace<spk::CameraUpdateRenderCommand>(CameraBinding, _cameraMatrix);
-			for (std::unique_ptr<MeshRenderCommand> &command : _commands)
+			p_builder.emplace<LightUpdateRenderCommand>(
+				spk::Vector3(1.0f, -2.0f, 0.5f).normalized(),
+				spk::Color(1.0f, 0.95f, 0.85f),
+				AmbientLight);
+
+			for (std::unique_ptr<MeshRenderCommand> &command : _opaqueCommands)
 			{
 				p_builder.add(std::move(command));
 			}
-			_commands.clear();
+			for (std::unique_ptr<MeshRenderCommand> &command : _translucentCommands)
+			{
+				p_builder.add(std::move(command));
+			}
+			_opaqueCommands.clear();
+			_translucentCommands.clear();
 		}
 	};
 }

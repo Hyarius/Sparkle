@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "traversal": "solid",
+  "tags": ["ground", "grass"],
+  "shape": {
+    "type": "cube",
+    "textures": {
+      "top": [0, 0],
+      "side": [1, 0],
+      "bottom": [2, 0]
+    }
+  }
+}

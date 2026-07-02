@@ -58,3 +58,16 @@ especially `MapWorldPlaneToLocal`, `TransformFaceCached`, `IsFaceOccludedByNeigh
   interior faces leaking, slopes/stairs/slabs/bushes correct at every orientation, lighting
   reads correctly. **This screenshot is the flagship checkpoint of Phase B.**
 - Meshing the showcase grid takes < a few ms (log it once via the overlay).
+
+## Implementation notes (2026-07-02)
+
+- `VoxelMesher` builds render and mask meshes with orientation/flip transforms, a per-run
+  transformed-face cache, boundary-safe neighbour occlusion, and flat polygon normals.
+- The 12x4x12 showcase contains every shape in every orientation, an interior-culling
+  block, ramps, stairs, bushes, slabs, and a negative-Y ceiling slope.
+- The pinned showcase output is 513 polygons, 2,025 unique vertices, and 1,034 triangles.
+- The optimized Windows Clang build meshes the showcase in 0.887 ms; the value is also
+  logged at startup and displayed in the debug overlay.
+- The Playground suite passes all 61 tests, including 10 focused mesher tests.
+- Runtime visual capture completed without stderr diagnostics. No engine (`spk`) source
+  files were changed.

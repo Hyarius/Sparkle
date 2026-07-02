@@ -7,39 +7,42 @@
 #include "components/camera3d.hpp"
 #include "components/entity3d.hpp"
 #include "core/mode_manager.hpp"
-#include "structures/graphics/geometry/spk_texture_mesh_2d.hpp"
+#include "geometry/mesh3d.hpp"
+#include "voxel/voxel_grid.hpp"
 #include "structures/graphics/texture/spk_sprite_sheet.hpp"
 #include "structures/widget/spk_debug_overlay.hpp"
 #include "structures/widget/spk_game_engine_widget.hpp"
 
 namespace pg
 {
-	// Step 1 scene: a single textured cube rendered in perspective 3D through a Camera3D,
-	// rotating each frame, with a DebugOverlay. Proves the 3D render path (Transform3D /
-	// Camera3D / MeshRenderer3D + MeshRenderLogic + MeshRenderCommand + mesh shader).
+	class Registries;
+	class VoxelRegistry;
+
+	// Step 5 scene: a hand-stamped voxel showcase proving meshing, neighbour culling,
+	// orientation/flip transforms, atlas UVs, and the existing lit depth-tested renderer.
 	class GameSceneWidget : public spk::GameEngineWidget
 	{
 	private:
 		ModeManager _modeManager;
 
 		spk::SpriteSheet _texture;
-		spk::TextureMesh2D _cubeMesh;
+		VoxelGrid _showcaseGrid;
+		Mesh3D _showcaseMesh;
+		pg::Entity3D _showcaseEntity;
 
 		pg::Entity3D _cameraEntity;
-		std::vector<pg::Entity3D *> _cubes;
 		pg::Camera3D *_camera = nullptr;
 
 		spk::DebugOverlay _overlay;
 
-		float _cubeYaw = 0.0f;
+		float _meshingDurationMs = 0.0f;
 
 		mutable std::atomic<long long> _renderDurationNs{0};
 		std::atomic<long long> _updateDurationNs{0};
 		mutable std::atomic<std::size_t> _meshCount{0};
 		mutable std::atomic<std::size_t> _triangleCount{0};
 
-		void _buildScene();
-		void _spawnStressCubes(const spk::Vector3 &p_center);
+		void _buildScene(const VoxelRegistry &p_voxels);
 		void _configureOverlay();
 		void _refreshOverlay(const spk::UpdateTick &p_tick);
 
@@ -49,6 +52,10 @@ namespace pg
 		[[nodiscard]] spk::RenderUnit _buildRenderUnit() const override;
 
 	public:
-		GameSceneWidget(const std::string &p_name, spk::Widget *p_parent, GameContext &p_context);
+		GameSceneWidget(
+			const std::string &p_name,
+			spk::Widget *p_parent,
+			GameContext &p_context,
+			const Registries &p_registries);
 	};
 }

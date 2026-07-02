@@ -70,11 +70,11 @@ int main()
 				.rect = spk::Rect2D(100, 100, 800, 600),
 				.title = "3D Engine Playground"});
 
-		pg::GameSceneWidget scene("GameScene", &window.centralWidget(), gameContext);
+		pg::GameSceneWidget scene("GameScene", &window.centralWidget(), gameContext, registries);
 		scene.setGeometry(window.centralWidget().geometry());
 		scene.activate();
 
-		std::cout << "3D engine playground: a rotating textured cube seen through a perspective camera. Close the window to exit." << std::endl;
+		std::cout << "Voxel showcase: all five shapes, orientations, flips, and neighbour culling. Close the window to exit." << std::endl;
 		return application.run();
 	} catch (const std::exception &exception)
 	{
