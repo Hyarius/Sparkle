@@ -262,24 +262,45 @@ namespace spk
 
 		template <std::size_t X = SizeX, std::size_t Y = SizeY>
 			requires(X == 4 && Y == 4)
-		[[nodiscard]] static IMatrix lookAt(const spk::Vector3 &p_from, const spk::Vector3 &p_to, const spk::Vector3 &p_up)
+		[[nodiscard]] static IMatrix lookAt(
+			const spk::Vector3 &p_from,
+			const spk::Vector3 &p_to,
+			const spk::Vector3 &p_up)
 		{
 			const spk::Vector3 forward = (p_to - p_from).normalized();
-			const spk::Vector3 right = (forward != p_up && forward != p_up.inverse() ? forward.cross(p_up).normalized() : spk::Vector3(1, 0, 0));
+
+			spk::Vector3 right = forward.cross(p_up);
+			if (right.isZero())
+			{
+				const spk::Vector3 fallbackUp =
+					(std::fabs(forward.y) < 0.999f)
+						? spk::Vector3(0.0f, 1.0f, 0.0f)
+						: spk::Vector3(1.0f, 0.0f, 0.0f);
+
+				right = forward.cross(fallbackUp);
+			}
+
+			right = right.normalized();
 			const spk::Vector3 up = right.cross(forward);
+
 			IMatrix result;
+
 			result[0][0] = right.x;
-			result[0][1] = right.y;
-			result[0][2] = right.z;
-			result[1][0] = up.x;
+			result[1][0] = right.y;
+			result[2][0] = right.z;
+
+			result[0][1] = up.x;
 			result[1][1] = up.y;
-			result[1][2] = up.z;
-			result[2][0] = -forward.x;
-			result[2][1] = -forward.y;
+			result[2][1] = up.z;
+
+			result[0][2] = -forward.x;
+			result[1][2] = -forward.y;
 			result[2][2] = -forward.z;
+
 			result[3][0] = -right.dot(p_from);
 			result[3][1] = -up.dot(p_from);
 			result[3][2] = forward.dot(p_from);
+
 			return result;
 		}
 

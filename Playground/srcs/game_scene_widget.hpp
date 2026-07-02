@@ -19,11 +19,13 @@ namespace pg
 	class GameSceneWidget : public spk::GameEngineWidget
 	{
 	private:
+		static constexpr std::size_t StressCubeCount = 1000;
+
 		spk::SpriteSheet _texture;
 		spk::TextureMesh2D _cubeMesh;
 
 		pg::Entity3D _cameraEntity;
-		pg::Entity3D _cube;
+		std::array<pg::Entity3D, StressCubeCount> _cubes;
 		pg::Camera3D *_camera = nullptr;
 
 		spk::DebugOverlay _overlay;
@@ -36,6 +38,7 @@ namespace pg
 		mutable std::atomic<std::size_t> _triangleCount{0};
 
 		void _buildScene();
+		void _spawnStressCubes(const spk::Vector3 &p_center);
 		void _configureOverlay();
 		void _refreshOverlay(const spk::UpdateTick &p_tick);
 
