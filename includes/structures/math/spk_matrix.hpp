@@ -218,15 +218,16 @@ namespace spk
 		[[nodiscard]] static IMatrix rotation(const spk::Quaternion &p_quaternion)
 		{
 			const spk::Quaternion q = p_quaternion.normalized();
+			
 			IMatrix result;
 			result[0][0] = 1.0f - 2.0f * (q.y * q.y + q.z * q.z);
-			result[0][1] = 2.0f * (q.x * q.y - q.w * q.z);
-			result[0][2] = 2.0f * (q.x * q.z + q.w * q.y);
-			result[1][0] = 2.0f * (q.x * q.y + q.w * q.z);
+			result[0][1] = 2.0f * (q.x * q.y + q.w * q.z);
+			result[0][2] = 2.0f * (q.x * q.z - q.w * q.y);
+			result[1][0] = 2.0f * (q.x * q.y - q.w * q.z);
 			result[1][1] = 1.0f - 2.0f * (q.x * q.x + q.z * q.z);
-			result[1][2] = 2.0f * (q.y * q.z - q.w * q.x);
-			result[2][0] = 2.0f * (q.x * q.z - q.w * q.y);
-			result[2][1] = 2.0f * (q.y * q.z + q.w * q.x);
+			result[1][2] = 2.0f * (q.y * q.z + q.w * q.x);
+			result[2][0] = 2.0f * (q.x * q.z + q.w * q.y);
+			result[2][1] = 2.0f * (q.y * q.z - q.w * q.x);
 			result[2][2] = 1.0f - 2.0f * (q.x * q.x + q.y * q.y);
 			return result;
 		}
@@ -290,15 +291,16 @@ namespace spk
 			const float radians = spk::degreeToRadian(p_rotationAngle);
 			const float c = std::cos(radians);
 			const float s = std::sin(radians);
+
 			IMatrix result;
 			result[0][0] = c + axis.x * axis.x * (1 - c);
-			result[0][1] = axis.x * axis.y * (1 - c) - axis.z * s;
-			result[0][2] = axis.x * axis.z * (1 - c) + axis.y * s;
-			result[1][0] = axis.y * axis.x * (1 - c) + axis.z * s;
+			result[0][1] = axis.x * axis.y * (1 - c) + axis.z * s;
+			result[0][2] = axis.x * axis.z * (1 - c) - axis.y * s;
+			result[1][0] = axis.y * axis.x * (1 - c) - axis.z * s;
 			result[1][1] = c + axis.y * axis.y * (1 - c);
-			result[1][2] = axis.y * axis.z * (1 - c) - axis.x * s;
-			result[2][0] = axis.z * axis.x * (1 - c) - axis.y * s;
-			result[2][1] = axis.z * axis.y * (1 - c) + axis.x * s;
+			result[1][2] = axis.y * axis.z * (1 - c) + axis.x * s;
+			result[2][0] = axis.z * axis.x * (1 - c) + axis.y * s;
+			result[2][1] = axis.z * axis.y * (1 - c) - axis.x * s;
 			result[2][2] = c + axis.z * axis.z * (1 - c);
 			return result;
 		}

@@ -96,7 +96,28 @@ TEST(MatrixTest, AxisRotationWorks)
 {
 	const spk::Matrix4x4 rotation = spk::Matrix4x4::rotateAroundAxis(spk::Vector3(0.0f, 0.0f, 1.0f), 90.0f);
 
-	expectVectorNear(rotation * spk::Vector3(1.0f, 0.0f, 0.0f), spk::Vector3(0.0f, -1.0f, 0.0f));
+	expectVectorNear(rotation * spk::Vector3(1.0f, 0.0f, 0.0f), spk::Vector3(0.0f, 1.0f, 0.0f));
+}
+
+TEST(MatrixTest, QuaternionRotationIsCounterClockwise)
+{
+	const spk::Matrix4x4 rotation =
+		spk::Matrix4x4::rotation(spk::Quaternion::fromAxisAngle(spk::Vector3(0.0f, 0.0f, 1.0f), 90.0f));
+
+	expectVectorNear(rotation * spk::Vector3(1.0f, 0.0f, 0.0f), spk::Vector3(0.0f, 1.0f, 0.0f));
+}
+
+TEST(MatrixTest, RotationBuildersAgreeAcrossRepresentations)
+{
+	const spk::Vector3 point(1.0f, 0.0f, 0.0f);
+
+	const spk::Matrix4x4 fromEuler = spk::Matrix4x4::rotation(0.0f, 0.0f, 90.0f);
+	const spk::Matrix4x4 fromQuaternion =
+		spk::Matrix4x4::rotation(spk::Quaternion::fromAxisAngle(spk::Vector3(0.0f, 0.0f, 1.0f), 90.0f));
+	const spk::Matrix4x4 fromAxis = spk::Matrix4x4::rotateAroundAxis(spk::Vector3(0.0f, 0.0f, 1.0f), 90.0f);
+
+	expectVectorNear(fromQuaternion * point, fromEuler * point);
+	expectVectorNear(fromAxis * point, fromEuler * point);
 }
 
 TEST(MatrixTest, OrthoMapsBoundsToClipSpace)
