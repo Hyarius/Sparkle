@@ -6,7 +6,8 @@
     "glew",
     "opengl",
 	"stb",
-	"gtest"
+	"gtest",
+	"nlohmann-json"
   ],
   "builtin-baseline": "ded9717095600a356b624cab03326e44764afed4"
 }

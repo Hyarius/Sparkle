@@ -64,3 +64,13 @@ id error, dangling-directory error. GameRules: sample parse + unknown-field reje
 - Deliberately corrupting `game-rules.json` (unknown key) makes `[run]` abort with a message
   naming the file and key — demonstrate in the step notes.
 - No `spk::` changes.
+
+## Implementation notes (2026-07-02)
+
+- `cmake --preset playground` configured successfully with nlohmann-json 3.11.3.
+- `PlaygroundCore`, `SparklePlayground`, and `PlaygroundTests` built successfully with MSVC.
+- `ctest --preset playground --output-on-failure` passed all 12 tests.
+- A valid-resource startup smoke test remained running until stopped by the test harness; the
+  existing cube-scene implementation was left unchanged.
+- Adding an `unexpected` key to `game-rules.json` made startup return exit code 1 with:
+  `game-rules.json:$.unexpected: unknown field`. The valid resource was restored afterward.

@@ -18,8 +18,11 @@ include(cmake/SparkleDependencies.cmake)
 include(cmake/SparkleTarget.cmake)
 include(cmake/SparkleClangTidy.cmake)
 
-if(SPARKLE_BUILD_TESTS)
+if(SPARKLE_BUILD_TESTS OR SPARKLE_BUILD_PLAYGROUND)
     enable_testing()
+endif()
+
+if(SPARKLE_BUILD_TESTS)
     add_subdirectory(tests)
 
     if(SPARKLE_ENABLE_COVERAGE)

@@ -50,12 +50,16 @@
 #include <iostream>
 #include <sparkle.hpp>
 
+#include "core/registries.hpp"
 #include "game_scene_widget.hpp"
 
 int main()
 {
 	try
 	{
+		pg::Registries registries;
+		registries.loadAll(std::filesystem::path(PG_RESOURCE_DIR) / "data");
+
 		spk::Application application;
 
 		spk::WindowHandle window = application.createWindow(
