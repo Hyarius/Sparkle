@@ -19,6 +19,7 @@ namespace pg
 	private:
 		EventCenter &_events;
 		std::vector<std::unique_ptr<BattleUnit>> _storage;
+		std::vector<std::unique_ptr<PlacedBattleObject>> _objectStorage;
 		std::vector<BattleUnit *> _playerUnits;
 		std::vector<BattleUnit *> _enemyUnits;
 
@@ -42,6 +43,11 @@ namespace pg
 		[[nodiscard]] bool trySwapUnits(BattleUnit &p_first, BattleUnit &p_second);
 		[[nodiscard]] bool removeUnit(BattleUnit &p_unit);
 		[[nodiscard]] bool defeatUnit(BattleUnit &p_unit);
+		[[nodiscard]] BattleUnit *tryGetUnitAtIncludingDefeated(const spk::Vector3Int &p_cell) const;
+		[[nodiscard]] PlacedBattleObject *placeObject(
+			std::string p_definitionId, const spk::Vector3Int &p_cell, int p_remainingTurns = -1);
+		[[nodiscard]] std::size_t removeObjects(
+			const spk::Vector3Int &p_cell, const std::vector<std::string> &p_tags);
 		void report(BattleEvent p_event);
 		[[nodiscard]] EventCenter &events() noexcept;
 	};

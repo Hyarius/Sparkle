@@ -99,6 +99,16 @@ namespace pg
 			return iterator->second;
 		}
 
+		[[nodiscard]] TDefinition &getMutable(const std::string &p_id)
+		{
+			const auto iterator = _definitions.find(p_id);
+			if (iterator == _definitions.end())
+			{
+				throw std::out_of_range("unknown registry id '" + p_id + "'");
+			}
+			return iterator->second;
+		}
+
 		[[nodiscard]] const TDefinition *tryGet(const std::string &p_id) const noexcept
 		{
 			const auto iterator = _definitions.find(p_id);

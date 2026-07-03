@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "displayName": "Regrowth",
+  "icon": [2, 2],
+  "tags": ["regrowth", "healingOverTime", "beneficial"],
+  "hookPoint": "turnStart",
+  "effects": [
+    {"type": "heal", "baseHealing": 2, "attackRatio": 0.0, "magicRatio": 0.25}
+  ]
+}

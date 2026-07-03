@@ -8,13 +8,19 @@
 #include <algorithm>
 #include <cmath>
 #include <queue>
-#include <set>
 
 namespace pg
 {
 	bool BattleActionValidator::canAfford(const BattleUnit &p_unit, const BattleAction &p_action)
 	{
 		return p_unit.attributes.ap.current() >= p_action.apCost() && p_unit.attributes.mp.current() >= p_action.mpCost();
+	}
+
+	bool BattleActionValidator::canUseAbility(
+		const BattleContext &p_context, const BattleUnit &p_unit, const Ability &p_ability)
+	{
+		return p_unit.isActiveInBattle() && p_unit.attributes.ap.current() >= p_ability.apCost &&
+			   p_unit.attributes.mp.current() >= p_ability.mpCost && !getValidTargets(p_context, p_unit, p_ability).empty();
 	}
 
 	std::map<spk::Vector3Int, float, CellPositionLess> BattleActionValidator::getReachableCells(
@@ -82,7 +88,7 @@ namespace pg
 			{
 				continue;
 			}
-			BattleObject *at = p_context.board.tryGetUnitAt(node.position);
+			BattleObject *at = p_context.tryGetUnitAtIncludingDefeated(node.position);
 			bool profile = false;
 			switch (p_ability.targetProfile)
 			{
@@ -131,7 +137,7 @@ namespace pg
 				continue;
 			}
 			const bool blocked = p_ability.requiresLineOfSight &&
-				!LineOfSight::hasLine(p_context.board.terrain().cells(), *p_unit.boardPosition, node.position);
+								 !LineOfSight::hasLine(p_context.board.terrain().cells(), *p_unit.boardPosition, node.position);
 			(blocked ? result.blocked : result.visible).push_back(node.position);
 		}
 		return result;
@@ -145,20 +151,19 @@ namespace pg
 	{
 		std::vector<spk::Vector3Int> result;
 		const spk::Vector2Int casterToAnchor = p_unit.boardPosition
-			? spk::Vector2Int{p_anchor.x - p_unit.boardPosition->x, p_anchor.z - p_unit.boardPosition->z}
-			: spk::Vector2Int{0, 0};
+												   ? spk::Vector2Int{p_anchor.x - p_unit.boardPosition->x, p_anchor.z - p_unit.boardPosition->z}
+												   : spk::Vector2Int{0, 0};
 		const std::vector<spk::Vector2Int> offsets =
 			BattleGeometry::areaOffsets(p_ability.areaShape, p_ability.areaValue, casterToAnchor);
-		std::set<std::pair<int, int>> wanted;
+		const auto &nodes = p_context.board.navigation().graph().allNodes();
 		for (const spk::Vector2Int &offset : offsets)
 		{
-			wanted.emplace(offset.x, offset.y);
-		}
-		for (const auto &node : p_context.board.navigation().graph().allNodes())
-		{
-			if (wanted.contains({node.position.x - p_anchor.x, node.position.z - p_anchor.z}))
+			const auto node = std::ranges::find_if(nodes, [&](const auto &candidate) {
+				return candidate.position.x == p_anchor.x + offset.x && candidate.position.z == p_anchor.z + offset.y;
+			});
+			if (node != nodes.end())
 			{
-				result.push_back(node.position);
+				result.push_back(node->position);
 			}
 		}
 		return result;
@@ -187,6 +192,8 @@ namespace pg
 			return false;
 		}
 		const auto valid = getValidTargets(p_context, p_action.source, ability.ability);
-		return std::ranges::find(valid, ability.targetCells.front()) != valid.end();
+		return std::ranges::all_of(ability.targetCells, [&](const spk::Vector3Int &cell) {
+			return std::ranges::find(valid, cell) != valid.end();
+		});
 	}
 }

@@ -20,7 +20,10 @@
 		"timeEffectResistance": 0.0
 	},
 	"defaultAbilities": [
-		"spark"
+		"spark",
+		"ember",
+		"gust",
+		"daze"
 	],
 	"featBoard": "ember-fox-board",
 	"defaultFormId": "base",

@@ -14,8 +14,17 @@ namespace pg
 		GameRules loadedGameRules = parseGameRules(reader);
 		VoxelRegistry loadedVoxels;
 		loadedVoxels.load(p_dataDirectory / "voxels");
+		Registry<Status> loadedStatuses;
+		loadedStatuses.load(p_dataDirectory / "statuses", parseStatus);
+		for (const std::string &statusId : loadedStatuses.ids())
+		{
+			resolveStatusReferences(
+				loadedStatuses.getMutable(statusId), loadedStatuses, p_dataDirectory / "statuses" / (statusId + ".json"));
+		}
 		Registry<Ability> loadedAbilities;
-		loadedAbilities.load(p_dataDirectory / "abilities", parseAbility);
+		loadedAbilities.load(p_dataDirectory / "abilities", [&loadedStatuses](JsonReader &abilityReader) {
+			return parseAbility(abilityReader, loadedStatuses);
+		});
 		Registry<ModelDefinition> loadedModels;
 		loadedModels.load(p_dataDirectory / "models", parseModelDefinition);
 		Registry<CreatureSpecies> loadedCreatures;
@@ -66,6 +75,7 @@ namespace pg
 
 		_gameRules = std::move(loadedGameRules);
 		_voxels = std::move(loadedVoxels);
+		_statuses = std::move(loadedStatuses);
 		_abilities = std::move(loadedAbilities);
 		_models = std::move(loadedModels);
 		_creatures = std::move(loadedCreatures);
@@ -75,6 +85,7 @@ namespace pg
 		_maps = std::move(loadedMaps);
 		std::cout << "Loaded " << _voxels.size() << " voxel definitions" << std::endl;
 		std::cout << "Loaded " << _abilities.size() << " ability definitions" << std::endl;
+		std::cout << "Loaded " << _statuses.size() << " status definitions" << std::endl;
 		std::cout << "Loaded " << _creatures.size() << " creature species and "
 				  << _models.size() << " model definitions" << std::endl;
 		std::cout << "Loaded " << _encounterTables.size() << " encounter tables and "
@@ -96,6 +107,11 @@ namespace pg
 	const Registry<Ability> &Registries::abilities() const noexcept
 	{
 		return _abilities;
+	}
+
+	const Registry<Status> &Registries::statuses() const noexcept
+	{
+		return _statuses;
 	}
 
 	const Registry<ModelDefinition> &Registries::models() const noexcept

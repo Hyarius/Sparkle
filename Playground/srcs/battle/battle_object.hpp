@@ -4,6 +4,7 @@
 
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 namespace pg
@@ -15,5 +16,15 @@ namespace pg
 		virtual ~BattleObject() = default;
 
 		[[nodiscard]] bool hasTag(std::string_view p_tag) const;
+	};
+
+	struct PlacedBattleObject final : BattleObject
+	{
+		std::string definitionId;
+		explicit PlacedBattleObject(std::string p_definitionId) :
+			definitionId(std::move(p_definitionId))
+		{
+			tags.push_back(definitionId);
+		}
 	};
 }

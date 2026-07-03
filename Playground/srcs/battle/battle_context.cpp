@@ -1,6 +1,8 @@
 #include "battle/battle_context.hpp"
 
 #include "core/event_center.hpp"
+#include "creatures/creature_unit.hpp"
+#include "statuses/status.hpp"
 
 #include <algorithm>
 
@@ -16,6 +18,17 @@ namespace pg
 	{
 		auto unit = std::make_unique<BattleUnit>(p_source, p_side);
 		BattleUnit &result = *unit;
+		result.statuses.bind(result, *this);
+		if (p_source != nullptr)
+		{
+			for (const Status *passive : p_source->permanentPassives)
+			{
+				if (passive != nullptr)
+				{
+					(void)result.statuses.add(*passive, 1, {}, true);
+				}
+			}
+		}
 		_storage.push_back(std::move(unit));
 		(p_side == BattleSide::Player ? _playerUnits : _enemyUnits).push_back(&result);
 		return result;
@@ -62,6 +75,7 @@ namespace pg
 			return false;
 		}
 		p_unit.boardPosition = p_cell;
+		p_unit.lastBoardPosition = p_cell;
 		_events.battleUnitPlaced.trigger(&p_unit);
 		return true;
 	}
@@ -72,6 +86,7 @@ namespace pg
 			return false;
 		}
 		p_unit.boardPosition = p_cell;
+		p_unit.lastBoardPosition = p_cell;
 		return true;
 	}
 	bool BattleContext::trySwapUnits(BattleUnit &p_first, BattleUnit &p_second)
@@ -83,6 +98,8 @@ namespace pg
 		}
 		p_first.boardPosition = second;
 		p_second.boardPosition = first;
+		p_first.lastBoardPosition = second;
+		p_second.lastBoardPosition = first;
 		return true;
 	}
 	bool BattleContext::removeUnit(BattleUnit &p_unit)
@@ -94,6 +111,54 @@ namespace pg
 	bool BattleContext::defeatUnit(BattleUnit &p_unit)
 	{
 		return removeUnit(p_unit);
+	}
+
+	BattleUnit *BattleContext::tryGetUnitAtIncludingDefeated(const spk::Vector3Int &p_cell) const
+	{
+		if (auto *unit = dynamic_cast<BattleUnit *>(board.tryGetUnitAt(p_cell)))
+		{
+			return unit;
+		}
+		for (const auto &unit : _storage)
+		{
+			if (unit->isDefeated() && unit->lastBoardPosition == p_cell)
+			{
+				return unit.get();
+			}
+		}
+		return nullptr;
+	}
+
+	PlacedBattleObject *BattleContext::placeObject(
+		std::string p_definitionId, const spk::Vector3Int &p_cell, int p_remainingTurns)
+	{
+		auto object = std::make_unique<PlacedBattleObject>(std::move(p_definitionId));
+		if (!board.runtime().tryAdd(*object, p_cell, p_remainingTurns))
+		{
+			return nullptr;
+		}
+		PlacedBattleObject *result = object.get();
+		_objectStorage.push_back(std::move(object));
+		return result;
+	}
+
+	std::size_t BattleContext::removeObjects(
+		const spk::Vector3Int &p_cell, const std::vector<std::string> &p_tags)
+	{
+		const auto before = board.runtime().getAt(p_cell);
+		const std::size_t removed = board.runtime().removeByTags(p_cell, p_tags);
+		if (removed == 0)
+		{
+			return 0;
+		}
+		_objectStorage.erase(std::remove_if(_objectStorage.begin(), _objectStorage.end(), [&](const auto &object) {
+								 return std::ranges::find(before, object.get()) != before.end() &&
+										std::ranges::all_of(p_tags, [&](const std::string &tag) {
+											return object->hasTag(tag);
+										});
+							 }),
+							 _objectStorage.end());
+		return removed;
 	}
 
 	void BattleContext::report(BattleEvent p_event)

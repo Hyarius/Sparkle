@@ -115,6 +115,19 @@ namespace pg::BattleGeometry
 			break;
 		}
 		}
+		std::stable_sort(result.begin(), result.end(), [](const spk::Vector2Int &left, const spk::Vector2Int &right) {
+			const int leftDistance = std::abs(left.x) + std::abs(left.y);
+			const int rightDistance = std::abs(right.x) + std::abs(right.y);
+			if (leftDistance != rightDistance)
+			{
+				return leftDistance < rightDistance;
+			}
+			if (left.y != right.y)
+			{
+				return left.y < right.y;
+			}
+			return left.x < right.x;
+		});
 		return result;
 	}
 }

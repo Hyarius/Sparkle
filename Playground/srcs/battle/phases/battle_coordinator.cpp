@@ -2,6 +2,7 @@
 
 #include "battle/battle_context.hpp"
 #include "battle/rules/battle_outcome_rules.hpp"
+#include "battle/rules/battle_status_rules.hpp"
 #include "battle/rules/battle_turn_rules.hpp"
 #include "core/event_center.hpp"
 
@@ -56,6 +57,7 @@ namespace pg
 	}
 	void BattleCoordinator::tick(float s)
 	{
+		BattleStatusRules::advanceSeconds(_context, s);
 		_orchestrator.tick(s);
 	}
 	void BattleCoordinator::_onAction(std::unique_ptr<BattleAction> a)

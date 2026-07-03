@@ -7,6 +7,7 @@
 #include "creatures/creature_species.hpp"
 #include "encounters/biome.hpp"
 #include "encounters/encounter_table.hpp"
+#include "statuses/status.hpp"
 #include "voxel/voxel_registry.hpp"
 #include "world/map_definition.hpp"
 #include "world/prefab_definition.hpp"
@@ -21,6 +22,7 @@ namespace pg
 		GameRules _gameRules;
 		VoxelRegistry _voxels;
 		Registry<Ability> _abilities;
+		Registry<Status> _statuses;
 		Registry<ModelDefinition> _models;
 		Registry<CreatureSpecies> _creatures;
 		Registry<EncounterTable> _encounterTables;
@@ -34,6 +36,7 @@ namespace pg
 		[[nodiscard]] const GameRules &gameRules() const noexcept;
 		[[nodiscard]] const VoxelRegistry &voxels() const noexcept;
 		[[nodiscard]] const Registry<Ability> &abilities() const noexcept;
+		[[nodiscard]] const Registry<Status> &statuses() const noexcept;
 		[[nodiscard]] const Registry<ModelDefinition> &models() const noexcept;
 		[[nodiscard]] const Registry<CreatureSpecies> &creatures() const noexcept;
 		[[nodiscard]] const Registry<EncounterTable> &encounterTables() const noexcept;

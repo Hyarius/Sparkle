@@ -4,7 +4,11 @@
 #include "abilities/ability.hpp"
 #include "battle/battle_context.hpp"
 #include "battle/rules/battle_action_validator.hpp"
+#include "battle/rules/battle_resource_rules.hpp"
+#include "battle/rules/battle_status_rules.hpp"
+#include "battle/rules/battle_unit_rules.hpp"
 #include "core/event_center.hpp"
+#include "statuses/status.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -54,7 +58,7 @@ namespace pg
 		{
 			for (BattleUnit *unit : p_context.getUnits(side))
 			{
-				if (unit->isActiveInBattle() && unit->isTurnReady())
+				if (unit->isActiveInBattle() && !unit->hasStatusTag("stun") && unit->isTurnReady())
 				{
 					return unit;
 				}
@@ -67,6 +71,8 @@ namespace pg
 		p_context.currentTurn = {.activeUnit = &p_unit, .turnIndex = p_context.currentTurn.turnIndex + 1};
 		p_unit.attributes.turnBar.setCurrent(p_unit.attributes.turnBar.max());
 		p_context.report({.type = BattleEventType::TurnStarted, .turnIndex = p_context.currentTurn.turnIndex, .caster = &p_unit});
+		BattleStatusRules::applyHook(p_unit, StatusHookPoint::TurnStart);
+		BattleUnitRules::resolvePendingDefeats(p_context, &p_unit);
 	}
 	void BattleTurnRules::endTurn(BattleContext &p_context)
 	{
@@ -75,10 +81,26 @@ namespace pg
 		{
 			return;
 		}
+		BattleStatusRules::applyHook(*unit, StatusHookPoint::TurnEnd);
+		BattleUnitRules::resolvePendingDefeats(p_context, unit);
+		auto reportRemovals = [&](BattleUnit &owner, const std::vector<BattleStatusRemoval> &removed) {
+			for (const BattleStatusRemoval &status : removed)
+			{
+				p_context.report({.type = BattleEventType::StatusRemoved, .turnIndex = p_context.currentTurn.turnIndex, .status = status.definition, .caster = &owner, .target = &owner, .amount = status.stacks});
+			}
+		};
+		reportRemovals(*unit, unit->statuses.advanceTurnDurations());
+		for (BattleUnit *other : p_context.allUnits())
+		{
+			if (other != unit)
+			{
+				reportRemovals(*other, other->statuses.advanceTurnDurations(true, true));
+			}
+		}
 		unit->attributes.advanceShieldDurations();
 		(void)p_context.board.runtime().advanceObjectDurations();
-		unit->attributes.ap.reset();
-		unit->attributes.mp.reset();
+		(void)BattleResourceRules::change(*unit, BattleResourceKind::AP, unit->attributes.ap.max() - unit->attributes.ap.current());
+		(void)BattleResourceRules::change(*unit, BattleResourceKind::MP, unit->attributes.mp.max() - unit->attributes.mp.current());
 		unit->attributes.turnBar.setCurrent(0.0f);
 		p_context.report({.type = BattleEventType::TurnEnded, .turnIndex = p_context.currentTurn.turnIndex, .caster = unit});
 		p_context.events().battleTurnEnded.trigger(unit);

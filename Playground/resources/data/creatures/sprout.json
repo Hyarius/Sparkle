@@ -20,7 +20,10 @@
 		"timeEffectResistance": 0.0
 	},
 	"defaultAbilities": [
-		"tackle"
+		"tackle",
+		"mend",
+		"bulwark",
+		"daze"
 	],
 	"featBoard": "sprout-board",
 	"defaultFormId": "base",

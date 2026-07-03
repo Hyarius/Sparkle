@@ -1,8 +1,14 @@
 {
   "version": 1,
   "displayName": "Tackle",
+  "icon": [0, 0],
   "cost": {"ap": 2, "mp": 0},
   "range": {"shape": "circle", "min": 1, "max": 1, "requiresLineOfSight": true},
+  "areaOfEffect": {"shape": "square", "value": 0},
   "targetProfile": "enemy",
-  "damage": {"baseDamage": 4, "damageKind": "physical", "attackRatio": 1.0, "magicRatio": 0.0}
+  "casterAnimation": "AttackMelee",
+  "targetAnimation": "TakeDamage",
+  "effects": [
+    {"type": "damage", "baseDamage": 4, "damageKind": "physical", "attackRatio": 1.0, "magicRatio": 0.0}
+  ]
 }

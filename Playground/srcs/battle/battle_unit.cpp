@@ -48,6 +48,6 @@ namespace pg
 	}
 	bool BattleUnit::hasStatusTag(std::string_view p_tag) const
 	{
-		return std::ranges::find(statusTags, p_tag) != statusTags.end();
+		return statuses.hasTag(p_tag) || std::ranges::find(statusTags, p_tag) != statusTags.end();
 	}
 }

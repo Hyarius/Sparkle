@@ -3,6 +3,7 @@
 #include "battle/ai/simple_enemy_controller.hpp"
 #include "battle/battle_context.hpp"
 #include "battle/rules/battle_action_resolver.hpp"
+#include "battle/rules/battle_outcome_rules.hpp"
 #include "battle/rules/battle_placement_rules.hpp"
 #include "battle/rules/battle_turn_rules.hpp"
 
@@ -18,11 +19,30 @@ namespace pg
 	}
 	void IdlePhase::enter()
 	{
-		BattleTurnRules::advanceToNextReady(_context);
-		BattleUnit *unit = BattleTurnRules::selectReady(_context);
-		if (unit)
+		if (BattleOutcomeRules::winner(_context).has_value())
 		{
+			_ready(nullptr);
+			return;
+		}
+		BattleUnit *unit = nullptr;
+		for (std::size_t guard = 0; guard <= _context.allUnits().size(); ++guard)
+		{
+			BattleTurnRules::advanceToNextReady(_context);
+			unit = BattleTurnRules::selectReady(_context);
+			if (unit == nullptr)
+			{
+				break;
+			}
 			BattleTurnRules::beginTurn(_context, *unit);
+			if (unit->isActiveInBattle())
+			{
+				break;
+			}
+			unit = nullptr;
+			if (BattleOutcomeRules::winner(_context).has_value())
+			{
+				break;
+			}
 		}
 		_ready(unit);
 	}

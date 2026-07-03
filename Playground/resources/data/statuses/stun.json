@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "displayName": "Stun",
+  "icon": [1, 2],
+  "tags": ["stun", "harmful"],
+  "hookPoint": "turnStart",
+  "effects": []
+}

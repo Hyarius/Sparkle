@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "displayName": "Ember",
+  "icon": [0, 1],
+  "cost": {"ap": 3, "mp": 0},
+  "range": {"shape": "circle", "min": 1, "max": 6, "requiresLineOfSight": true},
+  "areaOfEffect": {"shape": "cross", "value": 1},
+  "targetProfile": "enemy",
+  "casterAnimation": "AttackRanged",
+  "targetAnimation": "Scorched",
+  "travelVfx": {"kind": "projectile", "vfx": "fireball", "speed": 12.0},
+  "effects": [
+    {"type": "damage", "baseDamage": 5, "damageKind": "magical", "attackRatio": 0.0, "magicRatio": 1.0},
+    {"type": "applyStatus", "status": "burn", "stackCount": 1, "duration": {"type": "turnBased", "turns": 2}}
+  ]
+}

@@ -7,6 +7,9 @@
 namespace pg
 {
 	struct Ability;
+	struct Status;
+	enum class ShieldKind;
+	enum class DamageKind;
 	class BattleUnit;
 
 	enum class BattleEventType
@@ -40,7 +43,14 @@ namespace pg
 		None,
 		Health,
 		AP,
-		MP
+		MP,
+		Range,
+		TurnBarTime
+	};
+	enum class DisplacementOrientation
+	{
+		TowardCaster,
+		AwayFromCaster
 	};
 
 	struct BattleEvent
@@ -48,12 +58,17 @@ namespace pg
 		BattleEventType type = BattleEventType::Damage;
 		int turnIndex = 0;
 		const Ability *sourceAbility = nullptr;
+		const Status *status = nullptr;
 		BattleUnit *caster = nullptr;
 		BattleUnit *target = nullptr;
 		int amount = 0;
 		int distance = 0;
+		float value = 0.0f;
 		BattleSide side = BattleSide::Neutral;
 		BattleResourceKind resource = BattleResourceKind::None;
+		DisplacementOrientation orientation = DisplacementOrientation::AwayFromCaster;
+		ShieldKind shieldKind{};
+		DamageKind damageKind{};
 	};
 
 	[[nodiscard]] std::string_view battleEventName(BattleEventType p_type) noexcept;

@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "displayName": "Poison",
+  "icon": [3, 0],
+  "tags": ["poison", "damageOverTime", "harmful"],
+  "hookPoint": "turnStart",
+  "effects": [
+    {"type": "damage", "baseDamage": 3, "damageKind": "magical", "attackRatio": 0.0, "magicRatio": 0.25}
+  ]
+}

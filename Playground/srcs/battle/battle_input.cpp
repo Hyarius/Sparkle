@@ -270,6 +270,18 @@ namespace pg
 		{
 			_controller->handleDigit(1);
 		}
+		else if (p_event->key == spk::Keyboard::Key2 || p_event->key == spk::Keyboard::Numpad2)
+		{
+			_controller->handleDigit(2);
+		}
+		else if (p_event->key == spk::Keyboard::Key3 || p_event->key == spk::Keyboard::Numpad3)
+		{
+			_controller->handleDigit(3);
+		}
+		else if (p_event->key == spk::Keyboard::Key4 || p_event->key == spk::Keyboard::Numpad4)
+		{
+			_controller->handleDigit(4);
+		}
 		else if (p_event->key == spk::Keyboard::Space || p_event->key == spk::Keyboard::Return)
 		{
 			_submit(_controller->endTurn());

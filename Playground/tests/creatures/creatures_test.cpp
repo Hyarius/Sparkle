@@ -40,14 +40,16 @@ TEST(CreatureSpeciesParser, ResolvesAbilitiesAndFormsFromAuthoredData)
 	const pg::CreatureSpecies &sprout = registries().creatures().get("sprout");
 	EXPECT_EQ(sprout.displayName, "Sprout");
 	EXPECT_EQ(sprout.attributes.health, 12);
-	ASSERT_EQ(sprout.defaultAbilities.size(), 1);
+	ASSERT_EQ(sprout.defaultAbilities.size(), 4);
 	EXPECT_EQ(sprout.defaultAbilities.front(), &registries().abilities().get("tackle"));
+	EXPECT_EQ(sprout.defaultAbilities[2], &registries().abilities().get("bulwark"));
 	EXPECT_EQ(sprout.form(sprout.defaultFormId).modelId, "placeholder-cube");
 
 	const pg::CreatureSpecies &emberFox = registries().creatures().get("ember-fox");
 	EXPECT_NE(emberFox.attributes.stamina, sprout.attributes.stamina);
-	ASSERT_EQ(emberFox.defaultAbilities.size(), 1);
+	ASSERT_EQ(emberFox.defaultAbilities.size(), 4);
 	EXPECT_EQ(emberFox.defaultAbilities.front(), &registries().abilities().get("spark"));
+	EXPECT_EQ(emberFox.defaultAbilities[1], &registries().abilities().get("ember"));
 }
 
 TEST(CreatureSpeciesParser, RejectsUnknownAbilityAndDefaultForm)

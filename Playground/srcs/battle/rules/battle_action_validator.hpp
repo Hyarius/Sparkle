@@ -24,10 +24,17 @@ namespace pg
 	{
 	public:
 		[[nodiscard]] static bool canAfford(const BattleUnit &p_unit, const BattleAction &p_action);
+		[[nodiscard]] static bool canUseAbility(
+			const BattleContext &p_context, const BattleUnit &p_unit, const Ability &p_ability);
 		[[nodiscard]] static std::map<spk::Vector3Int, float, CellPositionLess> getReachableCells(
 			const BattleContext &p_context, const BattleUnit &p_unit);
 		[[nodiscard]] static std::vector<spk::Vector3Int> getValidTargets(
 			const BattleContext &p_context, const BattleUnit &p_unit, const Ability &p_ability);
+		[[nodiscard]] static std::vector<spk::Vector3Int> getValidTargetCells(
+			const BattleContext &p_context, const BattleUnit &p_unit, const Ability &p_ability)
+		{
+			return getValidTargets(p_context, p_unit, p_ability);
+		}
 		[[nodiscard]] static RangeShading getRangeShading(
 			const BattleContext &p_context, const BattleUnit &p_unit, const Ability &p_ability);
 		[[nodiscard]] static std::vector<spk::Vector3Int> getAreaCells(

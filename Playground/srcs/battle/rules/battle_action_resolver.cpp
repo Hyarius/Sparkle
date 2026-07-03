@@ -1,12 +1,18 @@
 #include "battle/rules/battle_action_resolver.hpp"
 
+#include "abilities/ability.hpp"
+#include "abilities/effect.hpp"
+#include "abilities/effects/effect_types.hpp"
 #include "battle/battle_action.hpp"
 #include "battle/battle_context.hpp"
-#include "battle/math_formulas.hpp"
 #include "battle/rules/battle_action_validator.hpp"
 #include "battle/rules/battle_resource_rules.hpp"
+#include "battle/rules/battle_status_rules.hpp"
+#include "battle/rules/battle_unit_rules.hpp"
+#include "statuses/status.hpp"
 
 #include <cmath>
+#include <memory>
 
 namespace pg
 {
@@ -33,45 +39,63 @@ namespace pg
 		if (p_action.kind() == BattleActionKind::Move)
 		{
 			const auto &move = static_cast<const MoveAction &>(p_action);
+			BattleStatusRules::applyHook(source, StatusHookPoint::BeforeConsumingResources, move.distance);
 			consume(BattleResourceKind::MP, move.distance);
+			BattleStatusRules::applyHook(source, StatusHookPoint::AfterConsumingResources, move.distance);
 			if (!p_context.tryMoveUnit(source, move.destination))
 			{
 				return false;
 			}
 			p_context.currentTurn.moved = true;
 			p_context.report({.type = BattleEventType::DistanceTravelled, .turnIndex = turn, .caster = &source, .distance = move.distance});
+			BattleUnitRules::resolvePendingDefeats(p_context, &source);
 			return true;
 		}
+
 		const auto &action = static_cast<const AbilityAction &>(p_action);
+		const int totalCost = action.apCost() + action.mpCost();
+		if (totalCost > 0)
+		{
+			BattleStatusRules::applyHook(source, StatusHookPoint::BeforeConsumingResources, totalCost);
+		}
 		consume(BattleResourceKind::AP, action.apCost());
 		consume(BattleResourceKind::MP, action.mpCost());
-		const int distance = source.boardPosition ? std::abs(source.boardPosition->x - action.targetCells.front().x) + std::abs(source.boardPosition->z - action.targetCells.front().z) : 0;
-		p_context.report({.type = BattleEventType::AbilityCast, .turnIndex = turn, .sourceAbility = &action.ability, .caster = &source, .distance = distance});
-		for (const auto &cell : action.targetCells)
+		if (totalCost > 0)
 		{
-			auto *target = dynamic_cast<BattleUnit *>(p_context.board.tryGetUnitAt(cell));
-			if (!target)
+			BattleStatusRules::applyHook(source, StatusHookPoint::AfterConsumingResources, totalCost);
+		}
+		const int distance = source.boardPosition ? std::abs(source.boardPosition->x - action.targetCells.front().x) +
+														std::abs(source.boardPosition->z - action.targetCells.front().z)
+												  : 0;
+		p_context.report({.type = BattleEventType::AbilityCast, .turnIndex = turn, .sourceAbility = &action.ability, .caster = &source, .distance = distance});
+
+		std::vector<std::shared_ptr<const Effect>> legacy;
+		const auto *effects = &action.ability.effects;
+		if (effects->empty())
+		{
+			auto damage = std::make_shared<DamageEffect>();
+			damage->baseDamage = action.ability.baseDamage;
+			damage->damageKind = action.ability.damageKind;
+			damage->attackRatio = action.ability.attackRatio;
+			damage->magicRatio = action.ability.magicRatio;
+			legacy.push_back(std::move(damage));
+			effects = &legacy;
+		}
+
+		for (const spk::Vector3Int &anchor : action.targetCells)
+		{
+			for (const spk::Vector3Int &cell : BattleActionValidator::getAreaCells(p_context, source, action.ability, anchor))
 			{
-				continue;
-			}
-			const int computed = MathFormulas::computeDamage(source.attributes, target->attributes, action.ability, p_scaling);
-			auto absorption = target->attributes.absorbDamage(action.ability.damageKind, computed);
-			if (absorption.absorbed > 0)
-			{
-				p_context.report({.type = BattleEventType::DamageAbsorbed, .turnIndex = turn, .sourceAbility = &action.ability, .caster = &source, .target = target, .amount = absorption.absorbed});
-			}
-			const auto change = BattleResourceRules::change(*target, BattleResourceKind::Health, -absorption.remaining);
-			p_context.report({.type = BattleEventType::Damage, .turnIndex = turn, .sourceAbility = &action.ability, .caster = &source, .target = target, .amount = change.lost});
-			if (target->isDefeated())
-			{
-				(void)p_context.defeatUnit(*target);
-				p_context.report({.type = BattleEventType::UnitDefeated, .turnIndex = turn, .sourceAbility = &action.ability, .caster = &source, .target = target});
-			}
-			else
-			{
-				p_context.report({.type = BattleEventType::HitSurvived, .turnIndex = turn, .sourceAbility = &action.ability, .caster = &source, .target = target, .amount = target->attributes.hp.current()});
+				BattleAbilityExecutionContext execution{
+					.context = p_context, .ability = &action.ability, .sourceObject = &source, .targetObject = p_context.tryGetUnitAtIncludingDefeated(cell), .anchorCell = anchor, .affectedCell = cell, .mitigationScaling = p_scaling};
+				for (const auto &effect : *effects)
+				{
+					effect->apply(execution);
+				}
 			}
 		}
+
+		BattleUnitRules::resolvePendingDefeats(p_context, &source, &action.ability);
 		p_context.currentTurn.castAbility = true;
 		return true;
 	}

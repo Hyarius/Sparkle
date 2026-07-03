@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "displayName": "Gust",
+  "icon": [1, 1],
+  "cost": {"ap": 2, "mp": 0},
+  "range": {"shape": "line", "min": 1, "max": 4, "requiresLineOfSight": true},
+  "areaOfEffect": {"shape": "line", "value": 0},
+  "targetProfile": "enemy",
+  "casterAnimation": "AttackRanged",
+  "targetAnimation": "TakeDamage",
+  "effects": [
+    {"type": "damage", "baseDamage": 2, "damageKind": "magical", "attackRatio": 0.0, "magicRatio": 0.5},
+    {"type": "displacement", "orientation": "awayFromCaster", "force": 2}
+  ]
+}

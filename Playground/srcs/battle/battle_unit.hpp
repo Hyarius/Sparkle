@@ -2,6 +2,7 @@
 
 #include "battle/battle_attributes.hpp"
 #include "battle/battle_object.hpp"
+#include "battle/battle_statuses.hpp"
 #include "structures/math/spk_vector3.hpp"
 
 #include <optional>
@@ -18,7 +19,9 @@ namespace pg
 
 	public:
 		BattleAttributes attributes;
+		BattleStatuses statuses;
 		std::optional<spk::Vector3Int> boardPosition;
+		std::optional<spk::Vector3Int> lastBoardPosition;
 		bool hasLeftBattle = false;
 		std::vector<std::string> statusTags;
 

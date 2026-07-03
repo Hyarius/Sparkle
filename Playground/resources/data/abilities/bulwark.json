@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "displayName": "Bulwark",
+  "icon": [3, 1],
+  "cost": {"ap": 2, "mp": 0},
+  "range": {"shape": "self", "min": 0, "max": 0, "requiresLineOfSight": false},
+  "areaOfEffect": {"shape": "square", "value": 0},
+  "targetProfile": "ally",
+  "casterAnimation": "Cast",
+  "targetAnimation": "Shielded",
+  "effects": [
+    {"type": "applyShield", "kind": "physical", "amount": 6, "durationTurns": 2}
+  ]
+}
