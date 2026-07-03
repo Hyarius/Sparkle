@@ -1,5 +1,6 @@
 #pragma once
 
+#include "structures/game_engine/spk_entity_3d.hpp"
 #include "voxel/voxel_mesher.hpp"
 #include "world/chunk.hpp"
 
@@ -14,7 +15,6 @@ namespace spk
 
 namespace pg
 {
-	class Entity3D;
 	class IChunkProvider;
 	struct MapDefinition;
 
@@ -23,7 +23,7 @@ namespace pg
 	private:
 		struct LoadedChunk
 		{
-			std::unique_ptr<Entity3D> entity;
+			std::unique_ptr<spk::Entity3D> entity;
 			Chunk *chunk = nullptr;
 		};
 

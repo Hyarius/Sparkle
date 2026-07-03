@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "tiers": {
+    "noBadge": {
+      "weightedTeams": [
+        {
+          "displayName": "lone sprout",
+          "weight": 3,
+          "team": [
+            {
+              "species": "sprout",
+              "ai": "aggressive-melee",
+              "completedNodes": []
+            },
+            null,
+            null,
+            null,
+            null,
+            null
+          ]
+        }
+      ]
+    },
+    "oneBadge": {"weightedTeams": []},
+    "twoBadges": {"weightedTeams": []},
+    "threeBadges": {"weightedTeams": []},
+    "fourBadges": {"weightedTeams": []},
+    "fiveBadges": {"weightedTeams": []},
+    "sixBadges": {"weightedTeams": []},
+    "sevenBadges": {"weightedTeams": []},
+    "eightBadges": {"weightedTeams": []},
+    "postGame": {"weightedTeams": []}
+  }
+}

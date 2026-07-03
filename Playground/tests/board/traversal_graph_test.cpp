@@ -35,13 +35,35 @@ namespace
 TEST(TraversalGraph, ConnectsFlatStandableCells)
 {
 	pg::VoxelGrid grid({5, 3, 1});
-	for (int x = 0; x < 5; ++x) grid.cell(x, 0, 0) = voxel("stone-block");
+	for (int x = 0; x < 5; ++x)
+	{
+		grid.cell(x, 0, 0) = voxel("stone-block");
+	}
 	const pg::TraversalGraph graph = graphFor(grid);
 
 	EXPECT_EQ(graph.size(), 5);
 	ASSERT_NE(graph.tryGetNode({2, 0, 0}), nullptr);
 	EXPECT_TRUE(graph.tryGetNode({2, 0, 0})->neighbors[0].has_value());
 	EXPECT_TRUE(graph.tryGetNode({2, 0, 0})->neighbors[1].has_value());
+}
+
+TEST(TraversalGraph, ExcludesRequestedBoardColumns)
+{
+	pg::VoxelGrid grid({3, 3, 1});
+	for (int x = 0; x < 3; ++x)
+	{
+		grid.cell(x, 0, 0) = voxel("stone-block");
+	}
+	pg::GridCellSource source(grid, registry());
+	const pg::TraversalGraph graph = pg::TraversalGraphBuilder::build(
+		source,
+		{{0, 0, 0}, grid.size()},
+		0.5f,
+		pg::ExcludedColumns{{1, 0}});
+
+	EXPECT_EQ(graph.size(), 2);
+	EXPECT_EQ(graph.tryGetNode({1, 0, 0}), nullptr);
+	EXPECT_FALSE(pg::Pathfinder::findPath(graph, {0, 0, 0}, {2, 0, 0}).has_value());
 }
 
 TEST(TraversalGraph, ConnectsSlopeChainAcrossVerticalLayers)
@@ -79,8 +101,12 @@ TEST(Pathfinder, FindsShortestDetourAndReportsUnreachable)
 {
 	pg::VoxelGrid grid({5, 4, 3});
 	for (int z = 0; z < 3; ++z)
+	{
 		for (int x = 0; x < 5; ++x)
+		{
 			grid.cell(x, 0, z) = voxel("stone-block");
+		}
+	}
 	grid.cell(2, 1, 1) = voxel("wall-stone");
 	grid.cell(2, 2, 1) = voxel("wall-stone");
 	const pg::TraversalGraph graph = graphFor(grid);
@@ -94,7 +120,10 @@ TEST(Pathfinder, FindsShortestDetourAndReportsUnreachable)
 TEST(Pathfinder, FloodReachableHonorsMaximumCost)
 {
 	pg::VoxelGrid grid({7, 3, 1});
-	for (int x = 0; x < 7; ++x) grid.cell(x, 0, 0) = voxel("stone-block");
+	for (int x = 0; x < 7; ++x)
+	{
+		grid.cell(x, 0, 0) = voxel("stone-block");
+	}
 	const auto reachable = pg::Pathfinder::floodReachable(graphFor(grid), {3, 0, 0}, 2.0f);
 
 	EXPECT_EQ(reachable.size(), 5);

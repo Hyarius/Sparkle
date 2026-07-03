@@ -2,6 +2,8 @@
 
 #include "world/voxel_world.hpp"
 
+#include <algorithm>
+
 namespace
 {
 	const pg::VoxelCell EmptyCell{};
@@ -10,7 +12,8 @@ namespace
 namespace pg
 {
 	GridCellSource::GridCellSource(const VoxelGrid &p_grid, const VoxelRegistry &p_registry) :
-		_grid(p_grid), _registry(p_registry)
+		_grid(p_grid),
+		_registry(p_registry)
 	{
 	}
 
@@ -24,13 +27,15 @@ namespace pg
 		return p_cell.isEmpty() ? nullptr : _registry.tryGet(p_cell.id);
 	}
 
-	WorldCellSource::WorldCellSource(const VoxelWorld &p_world) : _world(p_world)
+	WorldCellSource::WorldCellSource(const VoxelWorld &p_world, spk::Vector3Int p_originOffset) :
+		_world(p_world),
+		_originOffset(p_originOffset)
 	{
 	}
 
 	const VoxelCell &WorldCellSource::cell(const spk::Vector3Int &p_position) const
 	{
-		return _world.cell(p_position);
+		return _world.cell(p_position + _originOffset);
 	}
 
 	const VoxelDefinition *WorldCellSource::tryDefinition(const VoxelCell &p_cell) const
@@ -48,7 +53,10 @@ namespace pg
 	bool isPassableSpace(const ICellSource &p_source, const spk::Vector3Int &p_position)
 	{
 		const VoxelCell &value = p_source.cell(p_position);
-		if (value.isEmpty()) return true;
+		if (value.isEmpty())
+		{
+			return true;
+		}
 		const VoxelDefinition *definition = p_source.tryDefinition(value);
 		return definition != nullptr && definition->data.traversal == VoxelTraversal::Passable;
 	}
@@ -58,5 +66,70 @@ namespace pg
 		return isSolid(p_source, p_position) &&
 			   isPassableSpace(p_source, p_position + spk::Vector3Int{0, 1, 0}) &&
 			   isPassableSpace(p_source, p_position + spk::Vector3Int{0, 2, 0});
+	}
+
+	float walkHeightAtCenter(const ICellSource &p_source, const spk::Vector3Int &p_position)
+	{
+		const VoxelCell &cell = p_source.cell(p_position);
+		const VoxelDefinition *definition = p_source.tryDefinition(cell);
+		if (definition == nullptr)
+		{
+			return static_cast<float>(p_position.y);
+		}
+		return static_cast<float>(p_position.y) +
+			   resolveWorldHeights(definition->shape->heights(cell.flip), cell.orientation).stationary;
+	}
+
+	float walkHeightAtEdge(
+		const ICellSource &p_source,
+		const spk::Vector3Int &p_position,
+		VoxelOrientation p_direction)
+	{
+		const VoxelCell &cell = p_source.cell(p_position);
+		const VoxelDefinition *definition = p_source.tryDefinition(cell);
+		if (definition == nullptr)
+		{
+			return static_cast<float>(p_position.y);
+		}
+		return static_cast<float>(p_position.y) +
+			   resolveWorldHeights(definition->shape->heights(cell.flip), cell.orientation).get(p_direction);
+	}
+
+	spk::Vector3 interpolateWalkSegment(
+		const ICellSource &p_source,
+		const spk::Vector3Int &p_from,
+		const spk::Vector3Int &p_to,
+		float p_progress)
+	{
+		const float progress = std::clamp(p_progress, 0.0f, 1.0f);
+		VoxelOrientation direction = VoxelOrientation::PositiveZ;
+		VoxelOrientation opposite = VoxelOrientation::NegativeZ;
+		if (p_to.x > p_from.x)
+		{
+			direction = VoxelOrientation::PositiveX;
+			opposite = VoxelOrientation::NegativeX;
+		}
+		else if (p_to.x < p_from.x)
+		{
+			direction = VoxelOrientation::NegativeX;
+			opposite = VoxelOrientation::PositiveX;
+		}
+		else if (p_to.z < p_from.z)
+		{
+			direction = VoxelOrientation::NegativeZ;
+			opposite = VoxelOrientation::PositiveZ;
+		}
+
+		const float fromHeight = walkHeightAtCenter(p_source, p_from);
+		const float toHeight = walkHeightAtCenter(p_source, p_to);
+		const float boundary = 0.5f * (walkHeightAtEdge(p_source, p_from, direction) +
+									   walkHeightAtEdge(p_source, p_to, opposite));
+		const float height = progress <= 0.5f
+								 ? fromHeight + (boundary - fromHeight) * (progress * 2.0f)
+								 : boundary + (toHeight - boundary) * ((progress - 0.5f) * 2.0f);
+		return {
+			static_cast<float>(p_from.x) + 0.5f + static_cast<float>(p_to.x - p_from.x) * progress,
+			height,
+			static_cast<float>(p_from.z) + 0.5f + static_cast<float>(p_to.z - p_from.z) * progress};
 	}
 }

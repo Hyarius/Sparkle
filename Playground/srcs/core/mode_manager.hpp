@@ -6,6 +6,8 @@
 
 namespace pg
 {
+	class BattleMode;
+
 	class ModeManager
 	{
 	private:
@@ -13,10 +15,12 @@ namespace pg
 		std::unique_ptr<Mode> _explorationMode;
 		std::unique_ptr<Mode> _battleMode;
 		Mode *_currentMode = nullptr;
+		spk::ContractProvider<BattleContext *>::Contract _battleStartedContract;
+		spk::ContractProvider<BattleContext *, BattleSide>::Contract _battleResolvedContract;
+		spk::ContractProvider<>::Contract _battleEndConfirmedContract;
+		BattleContext *_resolvedContext = nullptr;
 
-		// Step 10 adds battleStarted/battleResolved providers to EventCenter and stores
-		// their RAII contracts here. These transition methods are the testable seam until
-		// the real battle payload types exist.
+		void _completeBattle();
 
 	public:
 		explicit ModeManager(GameContext &p_context);
@@ -36,5 +40,6 @@ namespace pg
 
 		[[nodiscard]] Mode *currentMode() noexcept;
 		[[nodiscard]] const Mode *currentMode() const noexcept;
+		[[nodiscard]] BattleMode *battleMode() noexcept;
 	};
 }

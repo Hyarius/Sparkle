@@ -1,6 +1,6 @@
 # How-to — Add a RenderCommand + shader
 
-Working example to copy: `pg::MeshRenderCommand`
+Working example to copy: `spk::DrawTextureMesh3DRenderCommand`
 (`Playground/srcs/rendering/mesh_render_command.*`) + `resources/shaders/mesh/`.
 
 ## 1. Shader files

@@ -65,3 +65,37 @@ headless (mode transitions on key/click/Esc given a scripted validator). Camera 
   path; pressing 1 shows tackle's range with LoS-blocked cells behind the wall visibly
   different; clicking resolves the action (units teleport cell-to-cell for now — tween in
   step 12); Esc cancels. Battle is fully playable to win/lose via mouse (banner in step 12).
+
+## Implementation notes (done 2026-07-03)
+
+`[build]`/`[test]` green (141 PlaygroundTests, incl. 17 new). App boots and runs the headless
+battle demo. Live battle flow is left for the user's `[run]` visual validation.
+
+Files landed as planned, plus two helpers not in the original file list:
+- `srcs/core/battle_scene.{hpp,cpp}` — presentation wiring bundle (overlay/input/camera bind +
+  category→mask resolution + tactical-blend kickoff). BattleMode holds a `BattleScene*` injected
+  by `GameSceneWidget` after the engine/camera/world exist; `BattleMode::activate/deactivate`
+  call `begin/end`. This keeps engine-coupled wiring next to the widget while BattleMode stays the
+  orchestrator (the step's "battle_mode.* enter/exit" responsibility). `ModeManager::battleMode()`
+  added for the injection.
+- `srcs/battle/rules/battle_geometry.{hpp,cpp}` — the shared range/AoE shapes (as specified);
+  the `RangeShape`/`AreaShape` enums live here and `Ability` gained `rangeShape`/`areaShape`/
+  `areaValue` (parsed from `range.shape` — now all 4 shapes — and an optional `areaOfEffect`
+  block; tackle stays circle + single-cell). Full ability model is still step 15.
+
+Decisions / deviations:
+- **Overlay stacking** uses a per-category model-matrix Y offset (`0.001·category`) in
+  `BoardOverlayLogic` rather than a base-layer arg on `buildMaskMesh` — the mesher is untouched.
+  One translucent mask `Mesh3D` per category, drawn after terrain + units.
+- **Blend-out** is handled by the exploration `CameraControllerLogic` easing its position (new
+  position smoothing + re-init on exploration re-entry) from wherever the camera sits, so the
+  hand-off back from the tactical pose doesn't cut. `TacticalCameraLogic` only owns the blend-in.
+- **Deployment flash**: placement is auto/instant in M1, so `BattleScene::begin` seeds the
+  Deployment category and the first player interaction (BattleInputController refresh) clears it —
+  the strips show during the camera glide, then the move-range preview takes over.
+- **EncounterService** builds M1 stand-in teams (2 placeholder allies vs the spawn's enemies, all
+  with `tackle`); owns the `BattleContext` and only replaces it on the next encounter (never frees
+  it mid-tick — `battleResolved` fires from inside `coordinator->tick`). Real teams = step 14.
+- `battle_input.*` splits into a headless `BattleInputController` (mode FSM + previews, unit
+  tested) and the `BattleInput` engine logic (picking + event plumbing) — "queries through
+  `BattleActionValidator`" via new `getRangeShading` (LoS split) and `getAreaCells` helpers.

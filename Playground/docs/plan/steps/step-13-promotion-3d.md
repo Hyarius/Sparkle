@@ -1,50 +1,62 @@
 # Step 13 — Promotion: the 3D layer → `spk::`
 
-**Phase E · needs Milestone 1 (step 12) · ⚠ requires explicit user sign-off before any
-`spk::` edit (D06/D18)**
+**Phase E · needs Milestone 1 (step 12) · API approved by the user on 2026-07-03**
 
 ## Goal
 
-Lift the proven 3D layer into the Sparkle library, with library-grade tests. First
-promotion; also the template for all later ones.
+Lift the proven 3D layer into the Sparkle library, with library-grade tests. This is the
+first promotion and the template for later promotions.
 
-## Reading
+## Promoted API
 
-[howto/promote-to-spk.md](../../howto/promote-to-spk.md) (the checklist — follow it
-verbatim) · [rendering-cameras.md §6](../../03-systems/rendering-cameras.md) ·
-how existing spk shaders/resources embed (check `srcs/structures/graphics` resource usage +
-the shared resource header noted in the CMake module split before moving shader files).
-
-## What moves (pg:: → spk::)
-
-| pg:: | spk:: target |
+| Playground source | Sparkle API |
 |---|---|
-| `Transform3D` | `includes/structures/game_engine/spk_transform_3d.hpp` |
-| `Entity3D` | `spk_entity_3d.hpp` |
-| `Camera3D` | `spk_camera_3d.hpp/.cpp` (keep the main-camera static slot — mirrors `Camera2D`) |
-| `MeshVertex3D` / `Mesh3D` | `graphics/geometry/spk_texture_mesh_3d.hpp` |
-| `MeshRenderer3D` | `game_engine/spk_mesh_renderer_3d.hpp` |
-| `MeshRenderLogic` (+ light command) | `game_engine/spk_mesh_render_logic.hpp` + `graphics/rendering/command/spk_light_update_render_command.*` |
-| `MeshRenderCommand` | `graphics/rendering/command/spk_draw_mesh_3d_render_command.*` |
-| `makeCube` | `graphics/geometry/spk_primitive_object.hpp` (extend the existing primitives home) |
-| `mesh.vert/.frag` | embedded like existing spk shader resources |
+| `pg::Transform3D` | `spk::Transform3D` |
+| `pg::Entity3D` | `spk::Entity3D` |
+| `pg::Camera3D` | `spk::Camera3D` |
+| `pg::MeshVertex3D` | `spk::TextureVertex3D` |
+| `pg::Mesh3D` | `spk::TextureMesh3D` |
+| `pg::MeshRenderer3D` | `spk::TextureMeshRenderer3D` |
+| `pg::MeshRenderLogic` | `spk::TextureMeshRenderLogic` |
+| `pg::MeshRenderCommand` | `spk::DrawTextureMesh3DRenderCommand` |
+| `pg::makeCube` | `spk::PrimitiveObject::CreateCube` |
+| Playground mesh shaders | embedded Sparkle shaders in `resources/shaders/mesh_3d/` |
 
-Stays in `pg::`: chunk rendering, overlay, mouse picker (uses game world), camera
-controllers (game behavior), voxel meshes' consumers.
+The light upload is promoted as:
 
-## Work items
+```cpp
+spk::DirectionalLightUpdateRenderCommand(
+	std::size_t p_bindingPoint,
+	spk::DirectionalLight p_light);
+```
 
-1. Present the proposal to the user (API diffs made while lifting, e.g. naming to Sparkle
-   conventions); **wait for go-ahead**.
-2. Move + rename per table; namespace/style sweep (`p_` params, `_` privates).
-3. Re-point every Playground include/usage; delete the `pg::` originals.
-4. New library tests `tests/TUs/srcs/structures/game_engine/transform_3d_test.cpp`,
-   `camera_3d_test.cpp`, `graphics/texture_mesh_3d_test.cpp`: transform hierarchy +
-   cache invalidation, view/projection matrices vs hand values, mesh vertex dedup/layout.
-5. clang-tidy check preset clean on the new files (check-only — never bulk `--fix`).
+`spk::DirectionalLight` is an aligned, trivially-copyable 48-byte value matching one
+`std140` UBO block. It stores values, not references, so the command uploads the complete
+block directly. The caller supplies the binding point; the texture-mesh pipeline uses
+binding 3, but the command is reusable with shaders that choose another binding.
+
+Stays in `pg::`: chunk rendering, overlay rendering, mouse picking, camera controllers,
+and voxel-mesh consumers. These are game-specific behavior built on the promoted API.
+
+## Completed work
+
+1. User reviewed and approved the public API names and directional-light contract.
+2. Types, render commands, render logic, cube primitive, and shaders moved into Sparkle.
+3. Every Playground consumer now uses the `spk::` API; the duplicate `pg::` files and
+   Playground mesh shaders were removed.
+4. Transform, camera, mesh, renderer, light layout/binding, render-logic emission, and
+   OpenGL state-restoration tests live in Sparkle's test suite.
+5. Sparkle and Playground build successfully; automated suites pass.
+
+## Verification
+
+- Sparkle: 1,980/1,980 tests pass.
+- Playground: 139/139 tests pass.
+- Remaining manual gate: run the Playground and compare the rendered game with the
+  Step-12 baseline by eye.
 
 ## Definition of Done
 
-`[spk-test]` green · `[test]` green · `[build]`+`[run]`: game renders identically
-(screenshot compare with step 12 by eye). Decision-log entry added. User confirms the
-`spk::` API shape.
+`[spk-test]` green · `[test]` green · `[build]` green · API shape confirmed. The final
+`[run]` visual comparison remains a user/manual validation because it requires judging the
+native game output against the Step-12 baseline.

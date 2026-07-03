@@ -2,6 +2,7 @@
 
 #include "voxel/voxel_grid.hpp"
 #include "voxel/voxel_registry.hpp"
+#include "voxel/voxel_traversal.hpp"
 
 namespace pg
 {
@@ -31,9 +32,10 @@ namespace pg
 	{
 	private:
 		const VoxelWorld &_world;
+		spk::Vector3Int _originOffset{};
 
 	public:
-		explicit WorldCellSource(const VoxelWorld &p_world);
+		explicit WorldCellSource(const VoxelWorld &p_world, spk::Vector3Int p_originOffset = {});
 		[[nodiscard]] const VoxelCell &cell(const spk::Vector3Int &p_position) const override;
 		[[nodiscard]] const VoxelDefinition *tryDefinition(const VoxelCell &p_cell) const override;
 	};
@@ -41,4 +43,14 @@ namespace pg
 	[[nodiscard]] bool isSolid(const ICellSource &p_source, const spk::Vector3Int &p_position);
 	[[nodiscard]] bool isPassableSpace(const ICellSource &p_source, const spk::Vector3Int &p_position);
 	[[nodiscard]] bool isStandable(const ICellSource &p_source, const spk::Vector3Int &p_position);
+	[[nodiscard]] float walkHeightAtCenter(const ICellSource &p_source, const spk::Vector3Int &p_position);
+	[[nodiscard]] float walkHeightAtEdge(
+		const ICellSource &p_source,
+		const spk::Vector3Int &p_position,
+		VoxelOrientation p_direction);
+	[[nodiscard]] spk::Vector3 interpolateWalkSegment(
+		const ICellSource &p_source,
+		const spk::Vector3Int &p_from,
+		const spk::Vector3Int &p_to,
+		float p_progress);
 }

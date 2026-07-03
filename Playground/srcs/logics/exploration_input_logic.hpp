@@ -1,9 +1,10 @@
 #pragma once
 
 #include "components/actor.hpp"
-#include "components/mesh_renderer3d.hpp"
 #include "core/game_context.hpp"
+#include "structures/game_engine/spk_camera_3d.hpp"
 #include "structures/game_engine/spk_component_logic.hpp"
+#include "structures/game_engine/spk_texture_mesh_renderer_3d.hpp"
 #include "voxel/voxel_shape.hpp"
 
 #include <functional>
@@ -11,7 +12,6 @@
 
 namespace pg
 {
-	class Camera3D;
 	class VoxelWorld;
 	class WorldNavigation;
 
@@ -24,8 +24,8 @@ namespace pg
 		GameContext &_context;
 		VoxelWorld &_world;
 		WorldNavigation &_navigation;
-		Camera3D &_camera;
-		MeshRenderer3D &_hoverRenderer;
+		spk::Camera3D &_camera;
+		spk::TextureMeshRenderer3D &_hoverRenderer;
 		ViewportSize _viewportSize;
 		AtlasCell _hoveredMask;
 		AtlasCell _invalidMask;
@@ -41,8 +41,8 @@ namespace pg
 			GameContext &p_context,
 			VoxelWorld &p_world,
 			WorldNavigation &p_navigation,
-			Camera3D &p_camera,
-			MeshRenderer3D &p_hoverRenderer,
+			spk::Camera3D &p_camera,
+			spk::TextureMeshRenderer3D &p_hoverRenderer,
 			ViewportSize p_viewportSize,
 			AtlasCell p_hoveredMask,
 			AtlasCell p_invalidMask);

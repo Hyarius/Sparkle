@@ -1,6 +1,5 @@
 #include "rendering/mouse_picker.hpp"
 
-#include "components/camera3d.hpp"
 #include "world/voxel_world.hpp"
 #include "world/world_navigation.hpp"
 
@@ -11,7 +10,7 @@
 namespace pg
 {
 	WorldRay MousePicker::screenToRay(
-		const Camera3D &p_camera,
+		const spk::Camera3D &p_camera,
 		const spk::Vector2 &p_viewportSize,
 		const spk::Vector2 &p_mousePixels)
 	{
@@ -38,12 +37,18 @@ namespace pg
 		float p_maxDistance)
 	{
 		const auto hit = WorldRaycaster::raycast(p_world, p_ray, p_maxDistance);
-		if (!hit.has_value()) return std::nullopt;
+		if (!hit.has_value())
+		{
+			return std::nullopt;
+		}
 		const TraversalBounds &bounds = p_navigation.bounds();
 		for (int y = std::min(hit->cell.y, bounds.maximum.y - 1); y >= bounds.minimum.y; --y)
 		{
 			const spk::Vector3Int candidate{hit->cell.x, y, hit->cell.z};
-			if (p_navigation.graph().tryGetNode(candidate) != nullptr) return candidate;
+			if (p_navigation.graph().tryGetNode(candidate) != nullptr)
+			{
+				return candidate;
+			}
 		}
 		return std::nullopt;
 	}

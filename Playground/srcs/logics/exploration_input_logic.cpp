@@ -1,8 +1,7 @@
 #include "logics/exploration_input_logic.hpp"
 
-#include "components/camera3d.hpp"
-#include "geometry/mesh3d.hpp"
 #include "rendering/mouse_picker.hpp"
+#include "structures/graphics/geometry/spk_texture_mesh_3d.hpp"
 #include "voxel/voxel_mesher.hpp"
 #include "world/voxel_world.hpp"
 #include "world/world_navigation.hpp"
@@ -17,8 +16,8 @@ namespace pg
 		GameContext &p_context,
 		VoxelWorld &p_world,
 		WorldNavigation &p_navigation,
-		Camera3D &p_camera,
-		MeshRenderer3D &p_hoverRenderer,
+		spk::Camera3D &p_camera,
+		spk::TextureMeshRenderer3D &p_hoverRenderer,
 		ViewportSize p_viewportSize,
 		AtlasCell p_hoveredMask,
 		AtlasCell p_invalidMask) :
@@ -54,29 +53,41 @@ namespace pg
 		// shared_ptr until the frame that referenced it is retired.
 		if (!_hovered.has_value())
 		{
-			_hoverRenderer.setMesh(std::make_shared<Mesh3D>());
+			_hoverRenderer.setMesh(std::make_shared<spk::TextureMesh3D>());
 			return;
 		}
 		const std::array positions = {*_hovered};
 		const AtlasCell mask = _invalidSeconds > 0 ? _invalidMask : _hoveredMask;
-		_hoverRenderer.setMesh(std::make_shared<Mesh3D>(VoxelMesher::buildMaskMesh(
-			positions,
-			[mask](const VoxelCell &) { return mask; },
-			_world)));
+		_hoverRenderer.setMesh(std::make_shared<spk::TextureMesh3D>(VoxelMesher::buildMaskMesh(positions, [mask](const VoxelCell &) {
+			return mask;
+		},
+																							   _world)));
 	}
 
-	const std::optional<spk::Vector3Int> &ExplorationInputLogic::hoveredCell() const noexcept { return _hovered; }
+	const std::optional<spk::Vector3Int> &ExplorationInputLogic::hoveredCell() const noexcept
+	{
+		return _hovered;
+	}
 
 	void ExplorationInputLogic::_parseComponentForUpdate(const spk::UpdateTick &p_tick, Actor &p_actor)
 	{
-		if (!_context.world.explorationActive || !p_actor.player || _invalidSeconds <= 0) return;
+		if (!_context.world.explorationActive || !p_actor.player || _invalidSeconds <= 0)
+		{
+			return;
+		}
 		_invalidSeconds -= static_cast<float>(p_tick.deltaTime.seconds());
-		if (_invalidSeconds <= 0) _rebuildHover();
+		if (_invalidSeconds <= 0)
+		{
+			_rebuildHover();
+		}
 	}
 
 	void ExplorationInputLogic::_parseComponentForMouseMovedEvent(spk::MouseMovedEvent &p_event, Actor &p_actor)
 	{
-		if (!_context.world.explorationActive || !p_actor.player) return;
+		if (!_context.world.explorationActive || !p_actor.player)
+		{
+			return;
+		}
 		_pick(p_event->position);
 	}
 
@@ -84,8 +95,14 @@ namespace pg
 		spk::MouseButtonPressedEvent &p_event,
 		Actor &p_actor)
 	{
-		if (!_context.world.explorationActive || !p_actor.player || p_event->button != spk::Mouse::Left) return;
+		if (!_context.world.explorationActive || !p_actor.player || p_event->button != spk::Mouse::Left)
+		{
+			return;
+		}
 		_pick(p_event.device().position);
-		if (_hovered.has_value()) _context.events.actorMoveRequested.trigger(&p_actor, *_hovered);
+		if (_hovered.has_value())
+		{
+			_context.events.actorMoveRequested.trigger(&p_actor, *_hovered);
+		}
 	}
 }

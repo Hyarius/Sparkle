@@ -1,5 +1,6 @@
 #include "core/game_context.hpp"
 
+#include "encounters/encounter_emitter.hpp"
 #include "world/voxel_world.hpp"
 #include "world/world_navigation.hpp"
 

@@ -21,18 +21,6 @@ namespace
 		Direction{{0, 0, 1}, pg::VoxelOrientation::PositiveZ, pg::VoxelOrientation::NegativeZ},
 		Direction{{0, 0, -1}, pg::VoxelOrientation::NegativeZ, pg::VoxelOrientation::PositiveZ}};
 
-	[[nodiscard]] float edgeHeight(
-		const pg::ICellSource &p_source,
-		const spk::Vector3Int &p_position,
-		pg::VoxelOrientation p_direction)
-	{
-		const pg::VoxelCell &cell = p_source.cell(p_position);
-		const pg::VoxelDefinition *definition = p_source.tryDefinition(cell);
-		if (definition == nullptr) return static_cast<float>(p_position.y);
-		const pg::CardinalHeightSet heights = pg::resolveWorldHeights(
-			definition->shape->heights(cell.flip), cell.orientation);
-		return static_cast<float>(p_position.y) + heights.get(p_direction);
-	}
 }
 
 namespace pg
@@ -40,7 +28,8 @@ namespace pg
 	TraversalGraph TraversalGraphBuilder::build(
 		const ICellSource &p_source,
 		const TraversalBounds &p_bounds,
-		float p_maxVerticalGap)
+		float p_maxVerticalGap,
+		const ExcludedColumns &p_excludedColumns)
 	{
 		TraversalGraph graph;
 		for (int y = p_bounds.minimum.y; y < p_bounds.maximum.y; ++y)
@@ -49,8 +38,15 @@ namespace pg
 			{
 				for (int x = p_bounds.minimum.x; x < p_bounds.maximum.x; ++x)
 				{
+					if (p_excludedColumns.contains({x, z}))
+					{
+						continue;
+					}
 					const spk::Vector3Int position{x, y, z};
-					if (isStandable(p_source, position)) (void)graph.addNode(position);
+					if (isStandable(p_source, position))
+					{
+						(void)graph.addNode(position);
+					}
 				}
 			}
 		}
@@ -63,6 +59,10 @@ namespace pg
 				const Direction &direction = Directions[directionIndex];
 				const int targetX = from.x + direction.offset.x;
 				const int targetZ = from.z + direction.offset.z;
+				if (p_excludedColumns.contains({targetX, targetZ}))
+				{
+					continue;
+				}
 				float bestGap = std::numeric_limits<float>::max();
 				int bestVerticalDistance = std::numeric_limits<int>::max();
 				std::optional<std::size_t> best;
@@ -70,10 +70,13 @@ namespace pg
 				{
 					const spk::Vector3Int candidate{targetX, y, targetZ};
 					const auto candidateIndex = graph.indexOf(candidate);
-					if (!candidateIndex.has_value()) continue;
+					if (!candidateIndex.has_value())
+					{
+						continue;
+					}
 					const float gap = std::abs(
-						edgeHeight(p_source, from, direction.orientation) -
-						edgeHeight(p_source, candidate, direction.opposite));
+						walkHeightAtEdge(p_source, from, direction.orientation) -
+						walkHeightAtEdge(p_source, candidate, direction.opposite));
 					const int verticalDistance = std::abs(y - from.y);
 					if (gap <= p_maxVerticalGap + 0.0001f &&
 						(gap < bestGap - 0.0001f || (std::abs(gap - bestGap) <= 0.0001f && verticalDistance < bestVerticalDistance)))
@@ -83,7 +86,10 @@ namespace pg
 						best = candidateIndex;
 					}
 				}
-				if (best.has_value()) graph.connect(nodeIndex, directionIndex, *best);
+				if (best.has_value())
+				{
+					graph.connect(nodeIndex, directionIndex, *best);
+				}
 			}
 		}
 		return graph;

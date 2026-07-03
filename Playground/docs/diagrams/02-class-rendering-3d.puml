@@ -1,5 +1,5 @@
 @startuml
-title pg:: 3D rendering layer & cameras (rendering-cameras.md)
+title Promoted spk:: 3D rendering layer and Playground consumers
 hide empty members
 
 package "spk::" {
@@ -7,83 +7,51 @@ package "spk::" {
   class "ComponentLogic<T>" as ComponentLogic
   class RenderCommand
   class CameraUpdateRenderCommand
-  class "GenericMesh<V>" as GenericMesh
+  class Transform3D
+  class Entity3D
+  class Camera3D
+  class TextureVertex3D
+  class TextureMesh3D
+  class TextureMeshRenderer3D
+  class TextureMeshRenderLogic
+  class DirectionalLight
+  class DirectionalLightUpdateRenderCommand
+  class DrawTextureMesh3DRenderCommand
+
+  Component <|-- Transform3D
+  Component <|-- Camera3D
+  Component <|-- TextureMeshRenderer3D
+  ComponentLogic <|-- TextureMeshRenderLogic
+  RenderCommand <|-- DirectionalLightUpdateRenderCommand
+  RenderCommand <|-- DrawTextureMesh3DRenderCommand
+  Entity3D *-- Transform3D
+  TextureMesh3D o-- TextureVertex3D
+  TextureMeshRenderer3D --> TextureMesh3D
+  TextureMeshRenderLogic ..> CameraUpdateRenderCommand
+  TextureMeshRenderLogic ..> DirectionalLightUpdateRenderCommand
+  TextureMeshRenderLogic ..> DrawTextureMesh3DRenderCommand
+  DirectionalLightUpdateRenderCommand --> DirectionalLight
 }
 
 package "pg::" {
-  class Transform3D {
-    -position / rotation(quat) / scale
-    -cached model matrix (∘ ancestors)
-    +modelTransform() / inverse
-  }
-  class Entity3D {
-    +transform() : Transform3D&
-  }
-  class Camera3D {
-    -eye / target / up
-    -fov, near, far, aspect
-    +viewMatrix() = lookAt
-    +viewProjectionMatrix()
-    {static} +mainCamera()
-  }
-  class MeshVertex3D {
-    +position : Vector3
-    +normal : Vector3
-    +uv : Vector2
-  }
-  class Mesh3D
-  GenericMesh <|-- Mesh3D
-  Mesh3D o-- MeshVertex3D
-
-  class MeshRenderer3D {
-    +mesh : const Mesh3D*
-    +texture : const Texture*
-    +translucent : bool
-    +tint : Color
-  }
-  class MeshRenderLogic {
-    #_executeRender(builder)
-    .. emits CameraUpdate(UBO1) + Light(UBO3),
-       then opaque draws, then translucent ..
-  }
-  class MeshRenderCommand {
-    -model matrix (UBO2, ctor)
-    -depth test + backface cull, state restored
-  }
-  Component <|-- Transform3D
-  Component <|-- Camera3D
-  Component <|-- MeshRenderer3D
-  ComponentLogic <|-- MeshRenderLogic
-  RenderCommand <|-- MeshRenderCommand
-  MeshRenderLogic ..> CameraUpdateRenderCommand
-  MeshRenderLogic ..> MeshRenderCommand
-  MeshRenderer3D --> Mesh3D
-
   class OrbitFollowCameraLogic
-  class TacticalCameraLogic {
-    +blend(from, to, seconds)
-  }
-  OrbitFollowCameraLogic ..> Camera3D : drives (exploration)
-  TacticalCameraLogic ..> Camera3D : drives (battle)
-
-  class MousePicker {
-    {static} +screenToRay(camera, viewport, px)
-    {static} +pickCell(world, ray)
-    {static} +pickStandable(world, ray)
-  }
-  class BoardOverlayState {
-    +deployment / moveRange / path
-    +abilityRange / aoe / losBlocked : cell sets
-  }
+  class TacticalCameraLogic
+  class MousePicker
+  class ChunkRenderLogic
   class BoardOverlayView
   class BoardOverlayLogic
-  Component <|-- BoardOverlayView
-  ComponentLogic <|-- BoardOverlayLogic
-  BoardOverlayView --> BoardOverlayState : renders
+
+  OrbitFollowCameraLogic ..> Camera3D : drives
+  TacticalCameraLogic ..> Camera3D : drives
+  MousePicker ..> Camera3D : reads
+  ChunkRenderLogic ..> DrawTextureMesh3DRenderCommand : emits
+  BoardOverlayLogic ..> DrawTextureMesh3DRenderCommand : emits
+  BoardOverlayView --> TextureMesh3D
 }
-note bottom of MeshRenderLogic
-  Camera VP uploaded IN-STREAM each pass (D04):
-  a second camera (minimap, tool viewport) is just
-  another CameraUpdate + viewport + draws.
+
+note bottom of TextureMeshRenderLogic
+  Camera/model/light bindings are 1/2/3 for the
+  embedded textured-mesh shader. The directional-light
+  command itself accepts an explicit binding point.
 end note
 @enduml

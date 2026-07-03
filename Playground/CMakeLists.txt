@@ -53,6 +53,11 @@ target_link_libraries(PlaygroundTests
 		GTest::gtest_main
 )
 
+target_include_directories(PlaygroundTests
+	PRIVATE
+		"${CMAKE_CURRENT_SOURCE_DIR}/tests"
+)
+
 include(GoogleTest)
 gtest_discover_tests(PlaygroundTests PROPERTIES LABELS playground)
 

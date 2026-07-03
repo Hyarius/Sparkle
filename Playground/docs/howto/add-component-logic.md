@@ -1,7 +1,7 @@
 # How-to — Add a data Component + its ComponentLogic
 
 The ECS recipe (see [01-architecture.md §3](../01-architecture.md); working example:
-`pg::MeshRenderer3D` + `pg::MeshRenderLogic`).
+`spk::TextureMeshRenderer3D` + `spk::TextureMeshRenderLogic`).
 
 ## 1. The component — data only
 
@@ -27,7 +27,7 @@ namespace pg
 ```
 
 No update methods, no engine references. If every holder needs a `Transform3D`, don't store
-it — resolve it via `entity()->component<pg::Transform3D>()` in the logic (cache if hot).
+it — resolve it via `entity()->component<spk::Transform3D>()` in the logic (cache if hot).
 
 ## 2. The logic — one system for all instances
 

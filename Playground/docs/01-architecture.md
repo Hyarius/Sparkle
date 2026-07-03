@@ -58,16 +58,16 @@ engine update (logics `onUpdate`) → widget `_buildRenderUnit()` → engine ren
 
 Sparkle's model ([spk_component_logic.hpp](../../includes/structures/game_engine/spk_component_logic.hpp)):
 
-- **`spk::Component`** = data only (e.g. `pg::Transform3D`, `pg::MeshRenderer3D`,
+- **`spk::Component`** = data only (e.g. `spk::Transform3D`, `spk::TextureMeshRenderer3D`,
   `pg::CreatureView`). No virtual update methods; plain accessors.
 - **`spk::ComponentLogic<TComponent>`** = the system that processes *all* components of that
-  type. Register once per engine: `engine.add<pg::MeshRenderLogic>()`. Hooks:
+  type. Register once per engine: `engine.add<spk::TextureMeshRenderLogic>()`. Hooks:
   - update: `_onUpdateStarted(tick)` → `_parseComponentForUpdate(tick, comp)` per component →
     `_executeUpdate(tick)`;
   - render: `_onRenderStarted(count)` → `_parseComponentForRender(comp)` →
     `_executeRender(builder)` — emit RenderCommands only in `_executeRender`;
   - input: `_parseComponentForKeyPressedEvent(...)`, mouse variants, etc.
-- **`spk::Entity`** = hierarchy node; `pg::Entity3D` adds an owned `Transform3D`.
+- **`spk::Entity`** = hierarchy node; `spk::Entity3D` adds an owned `Transform3D`.
   Add entities to the engine with `engine.addEntity(&entity)`; entities are owned by the
   scene (the widget), not the engine.
 - Ordering between logics uses `spk::PriorizableTrait` (lower priority runs first). Fixed
@@ -202,11 +202,11 @@ mirror the existing Sparkle idiom file by file.
 | `ObservableValue<T>` / `ObservableResource` / `ObservableList<T>` | `spk::ObservableValue<T>` (exists) / `pg::ObservableResource` / `pg::ObservableList<T>` |
 | static rule classes (`BattleTurnRules`, `BattleActionValidator`, …) | same: stateless functions in `pg::battle` (namespace-level or static-member) |
 | `BattleOrchestrator` + phases + controllers | same 7-phase FSM ([03-systems/battle.md](03-systems/battle.md)) |
-| `VoxelMesher` → `UnityEngine.Mesh` | `pg::VoxelMesher` → `pg::Mesh3D` (a `spk::GenericMesh` with position/normal/uv vertex) |
+| `VoxelMesher` → `UnityEngine.Mesh` | `pg::VoxelMesher` → `spk::TextureMesh3D` (a `spk::GenericMesh` with position/normal/uv vertex) |
 | `Physics.Raycast` (mouse pick, LoS) | `pg::VoxelRaycaster` — grid DDA over voxel data (no physics engine) |
 | Unity editor windows (`VoxelDefinitionEditor`, `FeatBoardEditorWindow`, …) | pages of the `EreliaTools` widget app (D15) |
 | `Newtonsoft.Json` save serialization | nlohmann-json (`saves/<slot>.json`) |
-| Unity `Camera` | `pg::Camera3D` component + camera-controller logics; VP uploaded in-stream (D04) |
+| Unity `Camera` | `spk::Camera3D` component + Playground camera-controller logics; VP uploaded in-stream (D04) |
 | Coroutines/tweens | tick-driven tween helpers updated by logics (no coroutines) |
 
 ## 10. Engine capability gaps → where they are closed

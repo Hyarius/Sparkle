@@ -30,8 +30,11 @@ directly; ComponentLogic/widgets stay thin adapters.
 ## Battle-test workhorse: BoardFixture
 
 `Playground/tests/support/board_fixture.hpp` (built in step 09): builds a `BoardData` from
-ASCII layer strings (`#` cube, `.` empty, `/` slope+Z, `s` stair, `b` bush…), returns named
-cells. Every board/battle test uses it — extend its legend there, not per-test.
+ASCII layers parsed bottom-up (or one layer passed directly as rows) and test-literal voxel
+definitions. Legend: `#` cube, `.` empty column, `/`
+slope +Z (`\`, `<`, `>` are the other orientations), `s` stair +Z, `_` slab, `b`
+bush-on-ground, and `x` a two-high wall on ground. It returns the board plus named cells.
+Every board/battle test uses it — extend its legend there, not per-test.
 
 ```cpp
 TEST(Pathfinder, ClimbsSlopeChain)

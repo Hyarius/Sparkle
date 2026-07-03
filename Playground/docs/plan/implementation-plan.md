@@ -83,9 +83,9 @@ interleave with 19–20; 25–28 (tools) and 29–31 (worldgen) are independent 
 | ☐ | [08](steps/step-08-encounter-trigger.md) | Biome/encounter JSON (minimal), EncounterEmitter/Resolver, bush trigger | C |
 | ☐ | [09](steps/step-09-board-seam.md) | BoardData seam, live world derivation, deployment zones, board fixture | D |
 | ☐ | [10](steps/step-10-battle-backend.md) | Battle backend: units, turn bar, phases FSM, Move/Ability/EndTurn, M1 enemy stand-in | D |
-| ☐ | [11](steps/step-11-battle-overlay.md) | Overlay rendering, tactical camera blend, mouse targeting + previews | D |
+| ☑ | [11](steps/step-11-battle-overlay.md) | Overlay rendering, tactical camera blend, mouse targeting + previews | D |
 | ☐ | [12](steps/step-12-milestone1-wiring.md) | **Milestone 1**: end-to-end wiring, unit views, move tween, result banner | D |
-| ☐ | [13](steps/step-13-promotion-3d.md) | Promotion: 3D layer → `spk::` (sign-off required) | E |
+| ◑ | [13](steps/step-13-promotion-3d.md) | Promotion: 3D layer → `spk::` (automated checks green; visual comparison pending) | E |
 | ☐ | [14](steps/step-14-creatures-team.md) | Attributes, species/forms/units JSON, PlayerData team, creature views | F |
 | ☐ | [15](steps/step-15-abilities-effects.md) | Ability definitions, full effect hierarchy, targeting/AoE/LoS rules | F |
 | ☐ | [16](steps/step-16-statuses.md) | Statuses: hooks, durations, stacks, shields, stun; battle events completed | F |

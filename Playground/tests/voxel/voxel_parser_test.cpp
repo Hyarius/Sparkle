@@ -76,6 +76,7 @@ TEST(VoxelParser, LoadsEveryAuthoredDefinitionAndShapeType)
 	EXPECT_NE(dynamic_cast<const pg::StairShape *>(registry.get("stair-stone").shape.get()), nullptr);
 	EXPECT_EQ(registry.get("bush").data.traversal, pg::VoxelTraversal::Passable);
 	EXPECT_TRUE(registry.get("bush").data.hasTag("BUSH"));
+	EXPECT_TRUE(registry.get("bush").data.hasTag("losTransparent"));
 }
 
 TEST(VoxelParser, RejectsMissingRequiredField)

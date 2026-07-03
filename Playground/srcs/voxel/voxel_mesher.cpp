@@ -18,13 +18,20 @@ namespace
 		using P = pg::VoxelAxisPlane;
 		switch (p_plane)
 		{
-		case P::PositiveX: return P::NegativeX;
-		case P::NegativeX: return P::PositiveX;
-		case P::PositiveY: return P::NegativeY;
-		case P::NegativeY: return P::PositiveY;
-		case P::PositiveZ: return P::NegativeZ;
-		case P::NegativeZ: return P::PositiveZ;
-		case P::Count: break;
+		case P::PositiveX:
+			return P::NegativeX;
+		case P::NegativeX:
+			return P::PositiveX;
+		case P::PositiveY:
+			return P::NegativeY;
+		case P::NegativeY:
+			return P::PositiveY;
+		case P::PositiveZ:
+			return P::NegativeZ;
+		case P::NegativeZ:
+			return P::PositiveZ;
+		case P::Count:
+			break;
 		}
 		throw std::invalid_argument("VoxelAxisPlane::Count is not a geometric plane");
 	}
@@ -34,13 +41,20 @@ namespace
 		using P = pg::VoxelAxisPlane;
 		switch (p_plane)
 		{
-		case P::PositiveX: return {1, 0, 0};
-		case P::NegativeX: return {-1, 0, 0};
-		case P::PositiveY: return {0, 1, 0};
-		case P::NegativeY: return {0, -1, 0};
-		case P::PositiveZ: return {0, 0, 1};
-		case P::NegativeZ: return {0, 0, -1};
-		case P::Count: break;
+		case P::PositiveX:
+			return {1, 0, 0};
+		case P::NegativeX:
+			return {-1, 0, 0};
+		case P::PositiveY:
+			return {0, 1, 0};
+		case P::NegativeY:
+			return {0, -1, 0};
+		case P::PositiveZ:
+			return {0, 0, 1};
+		case P::NegativeZ:
+			return {0, 0, -1};
+		case P::Count:
+			break;
 		}
 		throw std::invalid_argument("VoxelAxisPlane::Count is not a geometric plane");
 	}
@@ -69,31 +83,46 @@ namespace
 		case O::PositiveX:
 			switch (p_localPlane)
 			{
-			case P::PositiveX: return P::NegativeZ;
-			case P::NegativeX: return P::PositiveZ;
-			case P::PositiveZ: return P::PositiveX;
-			case P::NegativeZ: return P::NegativeX;
-			default: break;
+			case P::PositiveX:
+				return P::NegativeZ;
+			case P::NegativeX:
+				return P::PositiveZ;
+			case P::PositiveZ:
+				return P::PositiveX;
+			case P::NegativeZ:
+				return P::NegativeX;
+			default:
+				break;
 			}
 			break;
 		case O::NegativeZ:
 			switch (p_localPlane)
 			{
-			case P::PositiveX: return P::NegativeX;
-			case P::NegativeX: return P::PositiveX;
-			case P::PositiveZ: return P::NegativeZ;
-			case P::NegativeZ: return P::PositiveZ;
-			default: break;
+			case P::PositiveX:
+				return P::NegativeX;
+			case P::NegativeX:
+				return P::PositiveX;
+			case P::PositiveZ:
+				return P::NegativeZ;
+			case P::NegativeZ:
+				return P::PositiveZ;
+			default:
+				break;
 			}
 			break;
 		case O::NegativeX:
 			switch (p_localPlane)
 			{
-			case P::PositiveX: return P::PositiveZ;
-			case P::NegativeX: return P::NegativeZ;
-			case P::PositiveZ: return P::NegativeX;
-			case P::NegativeZ: return P::PositiveX;
-			default: break;
+			case P::PositiveX:
+				return P::PositiveZ;
+			case P::NegativeX:
+				return P::NegativeZ;
+			case P::PositiveZ:
+				return P::NegativeX;
+			case P::NegativeZ:
+				return P::PositiveX;
+			default:
+				break;
 			}
 			break;
 		}
@@ -175,12 +204,16 @@ namespace
 		switch (p_plane)
 		{
 		case pg::VoxelAxisPlane::PositiveX:
-		case pg::VoxelAxisPlane::NegativeX: return p_position.x;
+		case pg::VoxelAxisPlane::NegativeX:
+			return p_position.x;
 		case pg::VoxelAxisPlane::PositiveY:
-		case pg::VoxelAxisPlane::NegativeY: return p_position.y;
+		case pg::VoxelAxisPlane::NegativeY:
+			return p_position.y;
 		case pg::VoxelAxisPlane::PositiveZ:
-		case pg::VoxelAxisPlane::NegativeZ: return p_position.z;
-		case pg::VoxelAxisPlane::Count: break;
+		case pg::VoxelAxisPlane::NegativeZ:
+			return p_position.z;
+		case pg::VoxelAxisPlane::Count:
+			break;
 		}
 		throw std::invalid_argument("VoxelAxisPlane::Count is not a geometric plane");
 	}
@@ -293,7 +326,7 @@ namespace
 	}
 
 	void emitFace(
-		pg::Mesh3D::Builder &p_builder,
+		spk::TextureMesh3D::Builder &p_builder,
 		const pg::VoxelShapeFace &p_face,
 		const spk::Vector3 &p_offset,
 		const pg::AtlasCell *p_maskCell = nullptr)
@@ -327,7 +360,7 @@ namespace
 				}
 			}
 
-			std::vector<pg::MeshVertex3D> vertices;
+			std::vector<spk::TextureVertex3D> vertices;
 			vertices.reserve(polygon.size());
 			for (const pg::VoxelShapeVertex &vertex : polygon)
 			{
@@ -385,12 +418,12 @@ namespace pg
 		throw std::logic_error("Unable to map voxel plane");
 	}
 
-	Mesh3D VoxelMesher::buildRenderMesh(const VoxelGrid &p_grid, const VoxelRegistry &p_registry)
+	spk::TextureMesh3D VoxelMesher::buildRenderMesh(const VoxelGrid &p_grid, const VoxelRegistry &p_registry)
 	{
 		return buildRenderMesh(p_grid, p_registry, nullptr, {});
 	}
 
-	Mesh3D VoxelMesher::buildRenderMesh(
+	spk::TextureMesh3D VoxelMesher::buildRenderMesh(
 		const VoxelGrid &p_grid,
 		const VoxelRegistry &p_registry,
 		const ICellLookup &p_worldLookup,
@@ -399,13 +432,13 @@ namespace pg
 		return buildRenderMesh(p_grid, p_registry, &p_worldLookup, p_worldOrigin);
 	}
 
-	Mesh3D VoxelMesher::buildRenderMesh(
+	spk::TextureMesh3D VoxelMesher::buildRenderMesh(
 		const VoxelGrid &p_grid,
 		const VoxelRegistry &p_registry,
 		const ICellLookup *p_worldLookup,
 		const spk::Vector3Int &p_worldOrigin)
 	{
-		Mesh3D::Builder builder;
+		spk::TextureMesh3D::Builder builder;
 		// Typical cube-like cells settle at <=24 vertices / 36 indices before culling.
 		// Reserving once avoids repeated buffer and vertex-lookup growth during chunk builds.
 		builder.reserve(p_grid.cells().size() * 24, p_grid.cells().size() * 36);
@@ -439,7 +472,7 @@ namespace pg
 						const VoxelAxisPlane localPlane = mapWorldPlaneToLocal(worldPlane, cell.orientation, cell.flip);
 						const auto &face = faces.outer(localPlane);
 						if (!face.has_value() || isFaceOccludedByNeighbor(
-								p_grid, p_registry, p_worldLookup, p_worldOrigin, position, worldPlane, cell, *face))
+													 p_grid, p_registry, p_worldLookup, p_worldOrigin, position, worldPlane, cell, *face))
 						{
 							continue;
 						}
@@ -466,7 +499,7 @@ namespace pg
 		return builder.bake();
 	}
 
-	Mesh3D VoxelMesher::buildMaskMesh(
+	spk::TextureMesh3D VoxelMesher::buildMaskMesh(
 		std::span<const spk::Vector3Int> p_cells,
 		const MaskAtlasLookup &p_maskOf,
 		const ICellLookup &p_lookup)
@@ -476,7 +509,7 @@ namespace pg
 			throw std::invalid_argument("Mask atlas lookup cannot be empty");
 		}
 
-		Mesh3D::Builder builder;
+		spk::TextureMesh3D::Builder builder;
 		builder.reserve(p_cells.size() * 8, p_cells.size() * 12);
 		FaceTransformCache cache;
 		std::map<std::tuple<int, int, int>, std::size_t> layers;

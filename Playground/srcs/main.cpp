@@ -54,14 +54,22 @@
 #include "core/registries.hpp"
 #include "game_scene_widget.hpp"
 
+#ifdef _WIN32
+#	include <windows.h>
+#endif
+
 int main()
 {
+#ifdef _WIN32
+	SetConsoleCP(CP_UTF8);
+	SetConsoleOutputCP(CP_UTF8);
+#endif
+
 	try
 	{
 		pg::Registries registries;
 		registries.loadAll(std::filesystem::path(PG_RESOURCE_DIR) / "data");
 		pg::GameContext gameContext;
-
 		spk::Application application;
 
 		spk::WindowHandle window = application.createWindow(

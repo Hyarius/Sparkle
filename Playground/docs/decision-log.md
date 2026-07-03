@@ -275,3 +275,16 @@ strong teams in a row, not attrition micromanagement, and turn-bar combat lacks 
 consumable economy that makes attrition runs interesting. Losing any battle exits the
 gauntlet (respawn flow); re-entry restarts at battle 1.
 
+## D39 — Promote the textured 3D foundation with a value-based light block **[user+arch, 2026-07-03]**
+The Step-1/3 textured 3D foundation is promoted without Playground aliases as
+`spk::Transform3D`, `Entity3D`, `Camera3D`, `TextureVertex3D`, `TextureMesh3D`,
+`TextureMeshRenderer3D`, `TextureMeshRenderLogic`, and
+`DrawTextureMesh3DRenderCommand`; cube construction becomes
+`spk::PrimitiveObject::CreateCube`, and its shaders are embedded Sparkle resources under
+`resources/shaders/mesh_3d/`. Directional lighting remains a separate reusable render
+command, named `spk::DirectionalLightUpdateRenderCommand`. Its constructor receives an
+explicit binding point and a value-owned `spk::DirectionalLight`. The light is a 48-byte,
+16-byte-aligned, trivially-copyable `std140` block (direction, color, ambient plus padding),
+so it can be uploaded to the UBO in one operation. References are forbidden in this block:
+they would store host pointers rather than shader data. The texture-mesh contract uses
+binding 3, but that binding is not hard-coded into the light command.

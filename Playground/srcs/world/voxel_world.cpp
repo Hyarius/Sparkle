@@ -1,6 +1,6 @@
 #include "world/voxel_world.hpp"
 
-#include "components/entity3d.hpp"
+#include "structures/game_engine/spk_entity_3d.hpp"
 #include "structures/game_engine/spk_game_engine.hpp"
 #include "world/chunk_provider.hpp"
 #include "world/map_definition.hpp"
@@ -98,11 +98,11 @@ namespace pg
 			return *existing;
 		}
 
-		auto entity = std::make_unique<Entity3D>();
+		auto entity = std::make_unique<spk::Entity3D>();
 		entity->transform().setPosition(spk::Vector3(p_coordinates.worldOrigin()));
 		Chunk &loaded = entity->addComponent<Chunk>(p_coordinates, *_registry, *this);
 		p_provider.fill(loaded);
-		Entity3D *entityPointer = entity.get();
+		spk::Entity3D *entityPointer = entity.get();
 		_chunks.emplace(p_coordinates, LoadedChunk{.entity = std::move(entity), .chunk = &loaded});
 		++_revision;
 		if (_engine != nullptr)
@@ -111,9 +111,7 @@ namespace pg
 		}
 
 		const std::array offsets = {
-			spk::Vector3Int{-1, 0, 0}, spk::Vector3Int{1, 0, 0},
-			spk::Vector3Int{0, -1, 0}, spk::Vector3Int{0, 1, 0},
-			spk::Vector3Int{0, 0, -1}, spk::Vector3Int{0, 0, 1}};
+			spk::Vector3Int{-1, 0, 0}, spk::Vector3Int{1, 0, 0}, spk::Vector3Int{0, -1, 0}, spk::Vector3Int{0, 1, 0}, spk::Vector3Int{0, 0, -1}, spk::Vector3Int{0, 0, 1}};
 		for (const spk::Vector3Int &offset : offsets)
 		{
 			if (Chunk *neighbor = chunk({p_coordinates.value + offset}); neighbor != nullptr)
@@ -139,9 +137,7 @@ namespace pg
 		++_revision;
 
 		const std::array offsets = {
-			spk::Vector3Int{-1, 0, 0}, spk::Vector3Int{1, 0, 0},
-			spk::Vector3Int{0, -1, 0}, spk::Vector3Int{0, 1, 0},
-			spk::Vector3Int{0, 0, -1}, spk::Vector3Int{0, 0, 1}};
+			spk::Vector3Int{-1, 0, 0}, spk::Vector3Int{1, 0, 0}, spk::Vector3Int{0, -1, 0}, spk::Vector3Int{0, 1, 0}, spk::Vector3Int{0, 0, -1}, spk::Vector3Int{0, 0, 1}};
 		for (const spk::Vector3Int &offset : offsets)
 		{
 			if (Chunk *neighbor = chunk({p_coordinates.value + offset}); neighbor != nullptr)

@@ -1,8 +1,8 @@
 #pragma once
 
 #include "components/actor.hpp"
-#include "components/camera3d.hpp"
 #include "core/game_context.hpp"
+#include "structures/game_engine/spk_camera_3d.hpp"
 #include "structures/game_engine/spk_component_logic.hpp"
 
 namespace pg
@@ -11,15 +11,17 @@ namespace pg
 	{
 	private:
 		GameContext &_context;
-		Camera3D &_camera;
+		spk::Camera3D &_camera;
 		float _yaw = 225.0f;
 		float _pitch = 42.0f;
 		float _distance = 18.0f;
 		spk::Vector3 _smoothedTarget{};
+		spk::Vector3 _smoothedPosition{};
 		bool _initialized = false;
+		bool _wasActive = false;
 
 	public:
-		CameraControllerLogic(GameContext &p_context, Camera3D &p_camera);
+		CameraControllerLogic(GameContext &p_context, spk::Camera3D &p_camera);
 
 	protected:
 		void _parseComponentForUpdate(const spk::UpdateTick &p_tick, Actor &p_actor) override;

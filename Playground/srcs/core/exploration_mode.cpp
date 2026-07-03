@@ -1,5 +1,7 @@
 #include "core/exploration_mode.hpp"
 
+#include "encounters/encounter_emitter.hpp"
+
 #include <iostream>
 
 namespace pg
@@ -24,10 +26,18 @@ namespace pg
 	void ExplorationMode::activate()
 	{
 		_context.world.explorationActive = true;
+		if (_context.world.encounterEmitter != nullptr)
+		{
+			_context.world.encounterEmitter->setEnabled(true);
+		}
 	}
 
 	void ExplorationMode::deactivate()
 	{
+		if (_context.world.encounterEmitter != nullptr)
+		{
+			_context.world.encounterEmitter->setEnabled(false);
+		}
 		_context.world.explorationActive = false;
 	}
 }

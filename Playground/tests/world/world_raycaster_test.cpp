@@ -1,5 +1,5 @@
-#include "components/camera3d.hpp"
 #include "rendering/mouse_picker.hpp"
+#include "structures/game_engine/spk_camera_3d.hpp"
 #include "world/chunk_provider.hpp"
 #include "world/voxel_world.hpp"
 #include "world/world_navigation.hpp"
@@ -15,7 +15,10 @@ namespace
 	class EmptyProvider final : public pg::IChunkProvider
 	{
 	public:
-		void fill(pg::Chunk &p_chunk) const override { p_chunk.requestSynchronization(); }
+		void fill(pg::Chunk &p_chunk) const override
+		{
+			p_chunk.requestSynchronization();
+		}
 	};
 
 	[[nodiscard]] const pg::VoxelRegistry &registry()
@@ -69,7 +72,7 @@ TEST(WorldRaycaster, ReturnsEmptyForMiss)
 
 TEST(MousePicker, CenterPixelRayPassesThroughCameraTarget)
 {
-	pg::Camera3D camera;
+	spk::Camera3D camera;
 	camera.setPerspective(60, 0.1f, 100);
 	camera.setViewportSize(800, 600);
 	camera.setPosition({0, 0, -5});

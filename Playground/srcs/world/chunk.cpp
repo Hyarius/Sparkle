@@ -18,9 +18,9 @@ namespace pg
 	{
 		// Build brand-new meshes rather than mutating the existing ones: a render command
 		// that captured the previous shared_ptr keeps drawing it safely on the render thread.
-		_renderMesh = std::make_shared<Mesh3D>(VoxelMesher::buildRenderMesh(
+		_renderMesh = std::make_shared<spk::TextureMesh3D>(VoxelMesher::buildRenderMesh(
 			_grid, *_registry, *_worldLookup, _coordinates.worldOrigin()));
-		_maskMesh = std::make_shared<Mesh3D>();
+		_maskMesh = std::make_shared<spk::TextureMesh3D>();
 		++_meshRevision;
 	}
 
@@ -39,22 +39,22 @@ namespace pg
 		return _grid;
 	}
 
-	const Mesh3D &Chunk::renderMesh() const noexcept
+	const spk::TextureMesh3D &Chunk::renderMesh() const noexcept
 	{
 		return *_renderMesh;
 	}
 
-	const Mesh3D &Chunk::maskMesh() const noexcept
+	const spk::TextureMesh3D &Chunk::maskMesh() const noexcept
 	{
 		return *_maskMesh;
 	}
 
-	std::shared_ptr<const Mesh3D> Chunk::sharedRenderMesh() const noexcept
+	std::shared_ptr<const spk::TextureMesh3D> Chunk::sharedRenderMesh() const noexcept
 	{
 		return _renderMesh;
 	}
 
-	std::shared_ptr<const Mesh3D> Chunk::sharedMaskMesh() const noexcept
+	std::shared_ptr<const spk::TextureMesh3D> Chunk::sharedMaskMesh() const noexcept
 	{
 		return _maskMesh;
 	}

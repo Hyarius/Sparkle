@@ -31,10 +31,14 @@ namespace
 	{
 		switch (p_orientation)
 		{
-		case pg::VoxelOrientation::PositiveX: return {1, 0, 0};
-		case pg::VoxelOrientation::PositiveZ: return {0, 0, 1};
-		case pg::VoxelOrientation::NegativeX: return {-1, 0, 0};
-		case pg::VoxelOrientation::NegativeZ: return {0, 0, -1};
+		case pg::VoxelOrientation::PositiveX:
+			return {1, 0, 0};
+		case pg::VoxelOrientation::PositiveZ:
+			return {0, 0, 1};
+		case pg::VoxelOrientation::NegativeX:
+			return {-1, 0, 0};
+		case pg::VoxelOrientation::NegativeZ:
+			return {0, 0, -1};
 		}
 		return {};
 	}
@@ -44,7 +48,7 @@ TEST(VoxelMesher, LoneCubeContributesSixFaces)
 {
 	const pg::VoxelRegistry registry = loadRegistry();
 	pg::VoxelGrid grid({1, 1, 1}, cell(registry, "stone-block"));
-	const pg::Mesh3D mesh = pg::VoxelMesher::buildRenderMesh(grid, registry);
+	const spk::TextureMesh3D mesh = pg::VoxelMesher::buildRenderMesh(grid, registry);
 
 	EXPECT_EQ(mesh.nbShape(), 6);
 	EXPECT_EQ(mesh.indexes().size(), 36);
@@ -54,7 +58,7 @@ TEST(VoxelMesher, AdjacentCubesCullTheirSharedFaces)
 {
 	const pg::VoxelRegistry registry = loadRegistry();
 	pg::VoxelGrid grid({2, 1, 1}, cell(registry, "stone-block"));
-	const pg::Mesh3D mesh = pg::VoxelMesher::buildRenderMesh(grid, registry);
+	const spk::TextureMesh3D mesh = pg::VoxelMesher::buildRenderMesh(grid, registry);
 
 	EXPECT_EQ(mesh.nbShape(), 10);
 }
@@ -64,11 +68,11 @@ TEST(VoxelMesher, FullyBuriedCubeContributesNoGeometry)
 	const pg::VoxelRegistry registry = loadRegistry();
 	pg::VoxelGrid grid({3, 3, 3}, cell(registry, "stone-block"));
 	grid.cell(1, 1, 1) = cell(registry, "grass-block");
-	const pg::Mesh3D mesh = pg::VoxelMesher::buildRenderMesh(grid, registry);
+	const spk::TextureMesh3D mesh = pg::VoxelMesher::buildRenderMesh(grid, registry);
 
 	EXPECT_EQ(mesh.nbShape(), 54);
 	// The buried grass cube uses columns 0-2; every exposed stone face uses column 3.
-	EXPECT_TRUE(std::ranges::all_of(mesh.vertices(), [](const pg::MeshVertex3D &p_vertex) {
+	EXPECT_TRUE(std::ranges::all_of(mesh.vertices(), [](const spk::TextureVertex3D &p_vertex) {
 		return p_vertex.uv.x >= 0.375f;
 	}));
 }
@@ -94,7 +98,7 @@ TEST(VoxelMesher, CrossPlaneNeverOccludesOrGetsOccluded)
 	pg::VoxelGrid grid({2, 1, 1});
 	grid.cell(0, 0, 0) = cell(registry, "bush");
 	grid.cell(1, 0, 0) = cell(registry, "stone-block");
-	const pg::Mesh3D mesh = pg::VoxelMesher::buildRenderMesh(grid, registry);
+	const spk::TextureMesh3D mesh = pg::VoxelMesher::buildRenderMesh(grid, registry);
 
 	EXPECT_EQ(mesh.nbShape(), 10);
 }
@@ -140,25 +144,27 @@ TEST(VoxelMesher, MaskMeshDrapesCubeAndSlopeSurfacesIntoRequestedAtlasCell)
 	grid.cell(1, 0, 0) = cell(registry, "slope-grass");
 	const pg::VoxelGridCellLookup lookup(grid, registry);
 	const std::array positions = {spk::Vector3Int{0, 0, 0}, spk::Vector3Int{1, 0, 0}};
-	const pg::Mesh3D mesh = pg::VoxelMesher::buildMaskMesh(
+	const spk::TextureMesh3D mesh = pg::VoxelMesher::buildMaskMesh(
 		positions,
-		[](const pg::VoxelCell &) { return pg::AtlasCell{2, 1}; },
+		[](const pg::VoxelCell &) {
+			return pg::AtlasCell{2, 1};
+		},
 		lookup);
 
 	ASSERT_EQ(mesh.nbShape(), 2);
-	EXPECT_TRUE(std::ranges::all_of(mesh.vertices(), [](const pg::MeshVertex3D &p_vertex) {
+	EXPECT_TRUE(std::ranges::all_of(mesh.vertices(), [](const spk::TextureVertex3D &p_vertex) {
 		return p_vertex.uv.x >= 0.5f && p_vertex.uv.x <= 0.75f &&
 			   p_vertex.uv.y >= 0.25f && p_vertex.uv.y <= 0.5f;
 	}));
 
 	const auto vertices = mesh.vertices();
-	EXPECT_TRUE(std::ranges::any_of(vertices, [](const pg::MeshVertex3D &p_vertex) {
+	EXPECT_TRUE(std::ranges::any_of(vertices, [](const spk::TextureVertex3D &p_vertex) {
 		return p_vertex.position.x < 1.0f && p_vertex.position.y == 1.0f;
 	}));
-	EXPECT_TRUE(std::ranges::any_of(vertices, [](const pg::MeshVertex3D &p_vertex) {
+	EXPECT_TRUE(std::ranges::any_of(vertices, [](const spk::TextureVertex3D &p_vertex) {
 		return p_vertex.position.x >= 1.0f && p_vertex.position.y == 0.0f;
 	}));
-	EXPECT_TRUE(std::ranges::any_of(vertices, [](const pg::MeshVertex3D &p_vertex) {
+	EXPECT_TRUE(std::ranges::any_of(vertices, [](const spk::TextureVertex3D &p_vertex) {
 		return p_vertex.position.x >= 1.0f && p_vertex.position.y == 1.0f;
 	}));
 }
@@ -169,13 +175,15 @@ TEST(VoxelMesher, RepeatedMaskCellGetsDeterministicLayerOffset)
 	pg::VoxelGrid grid({1, 1, 1}, cell(registry, "stone-block"));
 	const pg::VoxelGridCellLookup lookup(grid, registry);
 	const std::array positions = {spk::Vector3Int{0, 0, 0}, spk::Vector3Int{0, 0, 0}};
-	const pg::Mesh3D mesh = pg::VoxelMesher::buildMaskMesh(
+	const spk::TextureMesh3D mesh = pg::VoxelMesher::buildMaskMesh(
 		positions,
-		[](const pg::VoxelCell &) { return pg::AtlasCell{0, 0}; },
+		[](const pg::VoxelCell &) {
+			return pg::AtlasCell{0, 0};
+		},
 		lookup);
 
 	ASSERT_EQ(mesh.nbShape(), 2);
-	EXPECT_TRUE(std::ranges::any_of(mesh.vertices(), [](const pg::MeshVertex3D &p_vertex) {
+	EXPECT_TRUE(std::ranges::any_of(mesh.vertices(), [](const spk::TextureVertex3D &p_vertex) {
 		return std::abs(p_vertex.position.y - 1.001f) < 0.0001f;
 	}));
 }
@@ -184,7 +192,7 @@ TEST(VoxelMesher, ShowcaseMeshTotalsRemainStable)
 {
 	const pg::VoxelRegistry registry = loadRegistry();
 	const pg::VoxelGrid grid = pg::buildShowcaseGrid(registry);
-	const pg::Mesh3D mesh = pg::VoxelMesher::buildRenderMesh(grid, registry);
+	const spk::TextureMesh3D mesh = pg::VoxelMesher::buildRenderMesh(grid, registry);
 
 	EXPECT_EQ(mesh.nbShape(), 513);
 	EXPECT_EQ(mesh.indexes().size(), 3102);

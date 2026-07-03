@@ -85,7 +85,7 @@ docs, use these exact names. Unity-reference names that differ are noted as *(Un
 | **`spk::GameEngineWidget`** | Widget hosting a GameEngine; forwards widget events into it; renders its RenderUnit. |
 | **RenderCommand / RenderUnit / RenderUnitBuilder** | A frame = an ordered list of `spk::RenderCommand`s built by logics (`builder.emplace<T>(...)`) and executed against the GL context. |
 | **`spk::CameraUpdateRenderCommand`** | Uploads a view-projection matrix to a UBO binding point, in-stream (multi-camera ready, D04). |
-| **`pg::Transform3D` / `Entity3D` / `Camera3D` / `MeshRenderer3D` / `MeshRenderLogic` / `MeshRenderCommand`** | The Playground 3D layer (Step 1, verified). See [03-systems/rendering-cameras.md](03-systems/rendering-cameras.md). |
+| **`spk::Transform3D` / `Entity3D` / `Camera3D` / `TextureMeshRenderer3D` / `TextureMeshRenderLogic` / `DrawTextureMesh3DRenderCommand`** | Sparkle's promoted textured 3D layer (Step 13). See [03-systems/rendering-cameras.md](03-systems/rendering-cameras.md). |
 | **`spk::ContractProvider<Args…>`** | Signal/subscription primitive: `subscribe(cb) -> Contract` (RAII unsubscription), `trigger(args…)`, blocking, deferred trigger. Foundation of the event bus. |
 | **`spk::ObservableValue<T>`** | ContractProvider-backed value that notifies on change. Already in `spk::`. |
 | **`pg::ObservableResource`** | current/max int pair with change notification (to build; mirrors Unity). |

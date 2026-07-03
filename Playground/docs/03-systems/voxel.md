@@ -95,9 +95,9 @@ already debugged). Flip selects the posY/negY authored set.
 
 ## Meshing outputs
 
-- `buildRenderMesh(grid, registry) -> pg::Mesh3D` — vertex = position + **normal** + uv.
+- `buildRenderMesh(grid, registry) -> spk::TextureMesh3D` — vertex = position + **normal** + uv.
   Normals are per-face (flat), computed from the polygon plane at emission.
-- `buildMaskMesh(cells, maskOf, registry) -> pg::Mesh3D` — **M1-critical: this is how the
+- `buildMaskMesh(cells, maskOf, registry) -> spk::TextureMesh3D` — **M1-critical: this is how the
   battle overlay renders (D31).** For each requested cell, emits the cell's shape **mask
   faces** (flat quad on cubes/slabs, slanted on slopes, stepped on stairs — draped over the
   walkable surface) with a small Y offset per stacked layer (`0.001 * layerIndex`), UV'd

@@ -1,8 +1,7 @@
 # System — Rendering, 3D Layer & Cameras
 
-The `pg::` 3D rendering layer (Step-1 base, verified), its hardening (depth + lighting),
-chunk/creature/overlay rendering, camera controllers, and mouse picking. First `spk::`
-promotion candidate (D18).
+The promoted `spk::` 3D rendering layer, its depth/lighting behavior,
+chunk/creature/overlay rendering, Playground camera controllers, and mouse picking.
 
 Diagrams: [02-class-rendering-3d.puml](../diagrams/02-class-rendering-3d.puml).
 Plan: steps [03](../plan/steps/step-03-render3d-hardening.md),
@@ -10,27 +9,27 @@ Plan: steps [03](../plan/steps/step-03-render3d-hardening.md),
 
 ---
 
-## 1. What exists (Step 1, screenshot-verified — keep, do not rewrite)
+## 1. Promoted 3D foundation (Step 13)
 
 | Piece | File | Role |
 |---|---|---|
-| `pg::Transform3D` | `srcs/components/transform3d.hpp` | position/quaternion/scale → cached model matrix, composed with nearest ancestor Transform3D |
-| `pg::Entity3D` | `srcs/components/entity3d.hpp` | `spk::Entity` owning a Transform3D |
-| `pg::Camera3D` | `srcs/components/camera3d.*` | eye/target/up + perspective params; `viewMatrix()` = `Matrix4x4::lookAt`; static main-camera slot |
-| `pg::MeshRenderer3D` | `srcs/components/mesh_renderer3d.hpp` | data: mesh* + texture* |
-| `pg::MeshRenderLogic` | `srcs/logics/mesh_render_logic.hpp` | emits `CameraUpdateRenderCommand`(UBO 1) then one `MeshRenderCommand` per renderer |
-| `pg::MeshRenderCommand` | `srcs/rendering/mesh_render_command.*` | one draw: model matrix (UBO 2, ctor-injected), texture sampler, back-face culling |
-| `pg::makeCube` | `srcs/geometry/primitive3d.hpp` | CCW unit cube as `spk::TextureMesh2D` |
-| shaders | `resources/shaders/mesh/mesh.vert/.frag` | VP·M transform; unlit texture |
+| `spk::Transform3D` | `includes/structures/game_engine/spk_transform_3d.hpp` | position/quaternion/scale → cached model matrix, recursively invalidated through entity hierarchy changes |
+| `spk::Entity3D` | `includes/structures/game_engine/spk_entity_3d.hpp` | `spk::Entity` owning a `Transform3D` |
+| `spk::Camera3D` | `spk_camera_3d.hpp/.cpp` | eye/target/up + perspective params; `viewMatrix()` = `Matrix4x4::lookAt`; static main-camera slot |
+| `spk::TextureMeshRenderer3D` | `spk_texture_mesh_renderer_3d.hpp` | mesh + texture + pass/tint component data |
+| `spk::TextureMeshRenderLogic` | `spk_texture_mesh_render_logic.hpp` | emits camera (UBO 1), directional light (UBO 3), then opaque and translucent draws |
+| `spk::DrawTextureMesh3DRenderCommand` | `spk_draw_texture_mesh_3d_render_command.*` | one textured 3D draw with model UBO 2 and complete GL-state restoration |
+| `spk::PrimitiveObject::CreateCube` | `spk_primitive_object.hpp` | centered CCW cube with per-face normals and UVs |
+| shaders | `resources/shaders/mesh_3d/` | embedded VP·M textured directional-light shaders |
 
 Contracts locked by D04/D22: camera VP uploaded **in-stream per pass**; model matrix is
 write-once per command; `lookAt` for views; CCW right-handed math.
 
 ## 2. Hardening (step 03)
 
-- **`pg::MeshVertex3D`** `{ Vector3 position; Vector3 normal; Vector2 uv; }` +
-  **`pg::Mesh3D`** = `spk::GenericMesh<MeshVertex3D>` with layout attributes (0=vec3,
-  1=vec3, 2=vec2). `MeshRenderer3D`/`MeshRenderCommand` switch to `Mesh3D`; `makeCube` gains
+- **`spk::TextureVertex3D`** `{ Vector3 position; Vector3 normal; Vector2 uv; }` +
+  **`spk::TextureMesh3D`** = `spk::GenericMesh<TextureVertex3D>` with layout attributes
+  (0=vec3, 1=vec3, 2=vec2). The renderer and draw command consume this mesh; the cube gains
   per-face normals.
 - **Depth**: `MeshRenderCommand::execute` enables `GL_DEPTH_TEST` (LESS) for its draw and
   restores previous state — same pattern as its existing cull toggle. The frame already
@@ -65,7 +64,7 @@ write-once per command; `lookAt` for views; CCW right-handed math.
 
 ## 4. Cameras
 
-`pg::Camera3D` stays a component; **controllers** are logics driving it:
+`spk::Camera3D` is the component; Playground **controllers** are logics driving it:
 
 - `pg::OrbitFollowCameraLogic` (exploration): target = player position + eye height;
   yaw/pitch from ZQSD or right-drag, wheel zoom, clamped pitch; smooothed follow.
@@ -89,15 +88,15 @@ pickStandable(world, ray) -> optional<Vector3Int>
 Used by exploration click-to-move (D27) and battle targeting (D14). Hover feedback = a
 highlight quad on the picked cell every frame the mouse moves.
 
-## 6. Promotion shape (step 13, sign-off required)
+## 6. Promotion result (step 13)
 
-Lift into `spk::`: `Transform3D`, `Entity3D`, `Camera3D` (minus the pg-specific main-camera
-static — promote as an explicit `spk::Camera3D` with the same static slot), `MeshVertex3D/
-Mesh3D` (as `spk::TextureMesh3D`), `MeshRenderer3D`, `MeshRenderLogic`,
-`MeshRenderCommand` (as `spk::DrawMesh3DRenderCommand`), `makeCube`, the mesh shaders
-(embedded like existing spk shader resources), + `tests/TUs` coverage (transform hierarchy,
-camera matrices, command state restoration). `pg::` code then aliases/uses the `spk::`
-types; Playground keeps only game-specific rendering (chunks, overlay, creature views).
+The 3D foundation is owned directly by Sparkle under the exact names listed in section 1;
+there are no Playground aliases or duplicate implementations. `spk::DirectionalLight` is
+a 48-byte aligned `std140` value block, and
+`spk::DirectionalLightUpdateRenderCommand(bindingPoint, light)` uploads it in one operation.
+The explicit binding point keeps the command reusable outside the texture-mesh shader,
+whose documented contract uses camera/model/light bindings 1/2/3. Playground retains only
+game-specific rendering and controllers.
 
 ## 7. Testing
 

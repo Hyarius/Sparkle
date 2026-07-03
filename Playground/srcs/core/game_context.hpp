@@ -7,6 +7,8 @@
 
 namespace pg
 {
+	struct BiomeDefinition;
+	class EncounterEmitter;
 	struct MapDefinition;
 	class VoxelWorld;
 	class WorldNavigation;
@@ -16,7 +18,9 @@ namespace pg
 		int seed = 0;
 		std::unique_ptr<VoxelWorld> world;
 		std::unique_ptr<WorldNavigation> navigation;
+		std::unique_ptr<EncounterEmitter> encounterEmitter;
 		const MapDefinition *activeMap = nullptr;
+		const BiomeDefinition *activeBiome = nullptr;
 		bool explorationActive = false;
 
 		WorldContext();
@@ -30,6 +34,7 @@ namespace pg
 	struct PlayerData
 	{
 		spk::Vector3 position = spk::Vector3::Zero;
+		int badgeCount = 0;
 	};
 
 	struct GameContext

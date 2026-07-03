@@ -1,6 +1,7 @@
 #pragma once
 
 #include "structures/graphics/geometry/spk_texture_mesh_2d.hpp"
+#include "structures/graphics/geometry/spk_texture_mesh_3d.hpp"
 #include "structures/math/spk_vector2.hpp"
 
 namespace spk
@@ -33,6 +34,47 @@ namespace spk
 				spk::TextureVertex2D{{left, bottom, 0.0f}, {uvLeft, uvBottom}},
 				spk::TextureVertex2D{{right, bottom, 0.0f}, {uvRight, uvBottom}},
 				spk::TextureVertex2D{{right, top, 0.0f}, {uvRight, uvTop}});
+
+			return builder.bake();
+		}
+
+		[[nodiscard]] static spk::TextureMesh3D CreateCube(float p_size = 1.0f)
+		{
+			using Vertex = spk::TextureVertex3D;
+			const float halfSize = p_size * 0.5f;
+			spk::TextureMesh3D::Builder builder;
+			builder.reserve(24, 36);
+
+			builder.addShape(
+				Vertex{{halfSize, -halfSize, halfSize}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
+				Vertex{{halfSize, -halfSize, -halfSize}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
+				Vertex{{halfSize, halfSize, -halfSize}, {1.0f, 0.0f, 0.0f}, {1.0f, 1.0f}},
+				Vertex{{halfSize, halfSize, halfSize}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f}});
+			builder.addShape(
+				Vertex{{-halfSize, -halfSize, -halfSize}, {-1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
+				Vertex{{-halfSize, -halfSize, halfSize}, {-1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
+				Vertex{{-halfSize, halfSize, halfSize}, {-1.0f, 0.0f, 0.0f}, {1.0f, 1.0f}},
+				Vertex{{-halfSize, halfSize, -halfSize}, {-1.0f, 0.0f, 0.0f}, {0.0f, 1.0f}});
+			builder.addShape(
+				Vertex{{-halfSize, halfSize, halfSize}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
+				Vertex{{halfSize, halfSize, halfSize}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
+				Vertex{{halfSize, halfSize, -halfSize}, {0.0f, 1.0f, 0.0f}, {1.0f, 1.0f}},
+				Vertex{{-halfSize, halfSize, -halfSize}, {0.0f, 1.0f, 0.0f}, {0.0f, 1.0f}});
+			builder.addShape(
+				Vertex{{-halfSize, -halfSize, -halfSize}, {0.0f, -1.0f, 0.0f}, {0.0f, 0.0f}},
+				Vertex{{halfSize, -halfSize, -halfSize}, {0.0f, -1.0f, 0.0f}, {1.0f, 0.0f}},
+				Vertex{{halfSize, -halfSize, halfSize}, {0.0f, -1.0f, 0.0f}, {1.0f, 1.0f}},
+				Vertex{{-halfSize, -halfSize, halfSize}, {0.0f, -1.0f, 0.0f}, {0.0f, 1.0f}});
+			builder.addShape(
+				Vertex{{-halfSize, -halfSize, halfSize}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}},
+				Vertex{{halfSize, -halfSize, halfSize}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f}},
+				Vertex{{halfSize, halfSize, halfSize}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
+				Vertex{{-halfSize, halfSize, halfSize}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}});
+			builder.addShape(
+				Vertex{{halfSize, -halfSize, -halfSize}, {0.0f, 0.0f, -1.0f}, {0.0f, 0.0f}},
+				Vertex{{-halfSize, -halfSize, -halfSize}, {0.0f, 0.0f, -1.0f}, {1.0f, 0.0f}},
+				Vertex{{-halfSize, halfSize, -halfSize}, {0.0f, 0.0f, -1.0f}, {1.0f, 1.0f}},
+				Vertex{{halfSize, halfSize, -halfSize}, {0.0f, 0.0f, -1.0f}, {0.0f, 1.0f}});
 
 			return builder.bake();
 		}

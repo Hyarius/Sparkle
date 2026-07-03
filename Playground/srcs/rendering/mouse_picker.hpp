@@ -2,13 +2,13 @@
 
 #include "world/world_raycaster.hpp"
 
+#include "structures/game_engine/spk_camera_3d.hpp"
 #include "structures/math/spk_vector2.hpp"
 
 #include <optional>
 
 namespace pg
 {
-	class Camera3D;
 	class VoxelWorld;
 	class WorldNavigation;
 
@@ -16,7 +16,7 @@ namespace pg
 	{
 	public:
 		[[nodiscard]] static WorldRay screenToRay(
-			const Camera3D &p_camera,
+			const spk::Camera3D &p_camera,
 			const spk::Vector2 &p_viewportSize,
 			const spk::Vector2 &p_mousePixels);
 		[[nodiscard]] static std::optional<spk::Vector3Int> pickStandable(

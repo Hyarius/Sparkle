@@ -1,11 +1,11 @@
 #pragma once
 
-#include "components/camera3d.hpp"
-#include "components/transform3d.hpp"
-#include "rendering/light_update_render_command.hpp"
-#include "rendering/mesh_render_command.hpp"
+#include "structures/game_engine/spk_camera_3d.hpp"
 #include "structures/game_engine/spk_component_logic.hpp"
+#include "structures/game_engine/spk_transform_3d.hpp"
 #include "structures/graphics/rendering/command/spk_camera_update_render_command.hpp"
+#include "structures/graphics/rendering/command/spk_directional_light_update_render_command.hpp"
+#include "structures/graphics/rendering/command/spk_draw_texture_mesh_3d_render_command.hpp"
 #include "structures/graphics/spk_sampler_object.hpp"
 #include "structures/graphics/spk_uniform_buffer_object.hpp"
 #include "world/chunk.hpp"
@@ -34,6 +34,7 @@ namespace pg
 	{
 	private:
 		static constexpr GLuint CameraBinding = 1;
+		static constexpr GLuint DirectionalLightBinding = 3;
 		static constexpr float AmbientLight = 0.35f;
 
 		inline static std::atomic<std::size_t> _lastMeshCount{0};
@@ -52,7 +53,7 @@ namespace pg
 		std::shared_ptr<spk::SamplerObject> _voxelSampler;
 		std::shared_ptr<spk::SamplerObject> _maskSampler;
 
-		Camera3D *_camera = nullptr;
+		spk::Camera3D *_camera = nullptr;
 		spk::Matrix4x4 _cameraMatrix;
 
 		std::unordered_map<const Chunk *, CachedDraw> _cache;
@@ -63,8 +64,8 @@ namespace pg
 		{
 			p_cached.meshRevision = p_chunk.meshRevision();
 			p_cached.built = true;
-			p_cached.opaqueModelUBO = MeshRenderCommand::makeModelUBO(p_model, spk::Color{1, 1, 1, 1});
-			p_cached.maskModelUBO = MeshRenderCommand::makeModelUBO(p_model, spk::Color{1, 1, 1, 0.65f});
+			p_cached.opaqueModelUBO = spk::DrawTextureMesh3DRenderCommand::makeModelUBO(p_model, spk::Color{1, 1, 1, 1});
+			p_cached.maskModelUBO = spk::DrawTextureMesh3DRenderCommand::makeModelUBO(p_model, spk::Color{1, 1, 1, 0.65f});
 		}
 
 		void _pruneUnloadedChunks()
@@ -103,18 +104,18 @@ namespace pg
 			_visibleChunks.clear();
 			_visibleChunks.reserve(p_componentCount);
 			_triangleCount = 0;
-			_camera = Camera3D::mainCamera();
+			_camera = spk::Camera3D::mainCamera();
 			if (_camera != nullptr)
 			{
 				_cameraMatrix = _camera->viewProjectionMatrix();
 			}
 			if (_voxelSampler == nullptr)
 			{
-				_voxelSampler = MeshRenderCommand::makeSampler(_voxelTexture);
+				_voxelSampler = spk::DrawTextureMesh3DRenderCommand::makeSampler(_voxelTexture);
 			}
 			if (_maskSampler == nullptr && _maskTexture != nullptr)
 			{
-				_maskSampler = MeshRenderCommand::makeSampler(*_maskTexture);
+				_maskSampler = spk::DrawTextureMesh3DRenderCommand::makeSampler(*_maskTexture);
 			}
 		}
 
@@ -128,7 +129,7 @@ namespace pg
 			spk::Matrix4x4 model = spk::Matrix4x4::identity();
 			if (const spk::Entity *owner = p_chunk.entity(); owner != nullptr)
 			{
-				if (const Transform3D *transform = owner->component<Transform3D>(); transform != nullptr)
+				if (const spk::Transform3D *transform = owner->component<spk::Transform3D>(); transform != nullptr)
 				{
 					model = transform->modelTransform();
 				}
@@ -175,10 +176,12 @@ namespace pg
 			}
 
 			p_builder.emplace<spk::CameraUpdateRenderCommand>(CameraBinding, _cameraMatrix);
-			p_builder.emplace<LightUpdateRenderCommand>(
-				spk::Vector3(1.0f, -2.0f, 0.5f).normalized(),
-				spk::Color(1.0f, 0.95f, 0.85f),
-				AmbientLight);
+			p_builder.emplace<spk::DirectionalLightUpdateRenderCommand>(
+				DirectionalLightBinding,
+				spk::DirectionalLight{
+					.direction = spk::Vector3(1.0f, -2.0f, 0.5f).normalized(),
+					.color = spk::Color(1.0f, 0.95f, 0.85f),
+					.ambient = AmbientLight});
 
 			for (const Chunk *chunk : _visibleChunks)
 			{
@@ -186,8 +189,7 @@ namespace pg
 				{
 					continue;
 				}
-				p_builder.add(std::make_unique<MeshRenderCommand>(
-					chunk->sharedRenderMesh(), _cache[chunk].opaqueModelUBO, _voxelSampler, false));
+				p_builder.add(std::make_unique<spk::DrawTextureMesh3DRenderCommand>(chunk->sharedRenderMesh(), _cache[chunk].opaqueModelUBO, _voxelSampler, false));
 			}
 			if (_maskTexture != nullptr && _maskSampler != nullptr)
 			{
@@ -197,8 +199,7 @@ namespace pg
 					{
 						continue;
 					}
-					p_builder.add(std::make_unique<MeshRenderCommand>(
-						chunk->sharedMaskMesh(), _cache[chunk].maskModelUBO, _maskSampler, true));
+					p_builder.add(std::make_unique<spk::DrawTextureMesh3DRenderCommand>(chunk->sharedMaskMesh(), _cache[chunk].maskModelUBO, _maskSampler, true));
 				}
 			}
 

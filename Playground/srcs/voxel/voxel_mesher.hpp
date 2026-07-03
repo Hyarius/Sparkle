@@ -1,6 +1,6 @@
 #pragma once
 
-#include "geometry/mesh3d.hpp"
+#include "structures/graphics/geometry/spk_texture_mesh_3d.hpp"
 #include "voxel/voxel_grid.hpp"
 #include "voxel/voxel_registry.hpp"
 
@@ -34,7 +34,7 @@ namespace pg
 	class VoxelMesher
 	{
 	private:
-		[[nodiscard]] static Mesh3D buildRenderMesh(
+		[[nodiscard]] static spk::TextureMesh3D buildRenderMesh(
 			const VoxelGrid &p_grid,
 			const VoxelRegistry &p_registry,
 			const ICellLookup *p_worldLookup,
@@ -43,13 +43,13 @@ namespace pg
 	public:
 		using MaskAtlasLookup = std::function<AtlasCell(const VoxelCell &)>;
 
-		[[nodiscard]] static Mesh3D buildRenderMesh(const VoxelGrid &p_grid, const VoxelRegistry &p_registry);
-		[[nodiscard]] static Mesh3D buildRenderMesh(
+		[[nodiscard]] static spk::TextureMesh3D buildRenderMesh(const VoxelGrid &p_grid, const VoxelRegistry &p_registry);
+		[[nodiscard]] static spk::TextureMesh3D buildRenderMesh(
 			const VoxelGrid &p_grid,
 			const VoxelRegistry &p_registry,
 			const ICellLookup &p_worldLookup,
 			const spk::Vector3Int &p_worldOrigin);
-		[[nodiscard]] static Mesh3D buildMaskMesh(
+		[[nodiscard]] static spk::TextureMesh3D buildMaskMesh(
 			std::span<const spk::Vector3Int> p_cells,
 			const MaskAtlasLookup &p_maskOf,
 			const ICellLookup &p_lookup);
