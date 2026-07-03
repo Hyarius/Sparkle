@@ -42,13 +42,8 @@ namespace std
 
 namespace spk
 {
-	class TextureMesh2D : public spk::GenericMesh<spk::TextureVertex2D>
-	{
-	public:
-		TextureMesh2D()
-		{
-			_layoutBuffer.addAttribute(0, spk::LayoutBufferObject::Attribute::Type::Vector3);
-			_layoutBuffer.addAttribute(1, spk::LayoutBufferObject::Attribute::Type::Vector2);
-		}
-	};
+	using TextureMesh2DLayout = spk::MeshLayout<
+		spk::LayoutBufferObject::Attribute{0, spk::LayoutBufferObject::Attribute::Type::Vector3},
+		spk::LayoutBufferObject::Attribute{1, spk::LayoutBufferObject::Attribute::Type::Vector2}>;
+	using TextureMesh2D = spk::GenericMesh<spk::TextureVertex2D, spk::TextureMesh2DLayout>;
 }

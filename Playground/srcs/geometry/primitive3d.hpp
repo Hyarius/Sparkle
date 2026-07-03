@@ -11,51 +11,51 @@ namespace pg
 		using V = MeshVertex3D;
 
 		const float h = p_size * 0.5f;
-		Mesh3D mesh;
-		mesh.reserve(24, 36);
+		Mesh3D::Builder builder;
+		builder.reserve(24, 36);
 
 		// +X (right)
-		mesh.addShape(
+		builder.addShape(
 			V{{h, -h, h}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
 			V{{h, -h, -h}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
 			V{{h, h, -h}, {1.0f, 0.0f, 0.0f}, {1.0f, 1.0f}},
 			V{{h, h, h}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f}});
 
 		// -X (left)
-		mesh.addShape(
+		builder.addShape(
 			V{{-h, -h, -h}, {-1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
 			V{{-h, -h, h}, {-1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
 			V{{-h, h, h}, {-1.0f, 0.0f, 0.0f}, {1.0f, 1.0f}},
 			V{{-h, h, -h}, {-1.0f, 0.0f, 0.0f}, {0.0f, 1.0f}});
 
 		// +Y (top)
-		mesh.addShape(
+		builder.addShape(
 			V{{-h, h, h}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
 			V{{h, h, h}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
 			V{{h, h, -h}, {0.0f, 1.0f, 0.0f}, {1.0f, 1.0f}},
 			V{{-h, h, -h}, {0.0f, 1.0f, 0.0f}, {0.0f, 1.0f}});
 
 		// -Y (bottom)
-		mesh.addShape(
+		builder.addShape(
 			V{{-h, -h, -h}, {0.0f, -1.0f, 0.0f}, {0.0f, 0.0f}},
 			V{{h, -h, -h}, {0.0f, -1.0f, 0.0f}, {1.0f, 0.0f}},
 			V{{h, -h, h}, {0.0f, -1.0f, 0.0f}, {1.0f, 1.0f}},
 			V{{-h, -h, h}, {0.0f, -1.0f, 0.0f}, {0.0f, 1.0f}});
 
 		// +Z (front)
-		mesh.addShape(
+		builder.addShape(
 			V{{-h, -h, h}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}},
 			V{{h, -h, h}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f}},
 			V{{h, h, h}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
 			V{{-h, h, h}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}});
 
 		// -Z (back)
-		mesh.addShape(
+		builder.addShape(
 			V{{h, -h, -h}, {0.0f, 0.0f, -1.0f}, {0.0f, 0.0f}},
 			V{{-h, -h, -h}, {0.0f, 0.0f, -1.0f}, {1.0f, 0.0f}},
 			V{{-h, h, -h}, {0.0f, 0.0f, -1.0f}, {1.0f, 1.0f}},
 			V{{h, h, -h}, {0.0f, 0.0f, -1.0f}, {0.0f, 1.0f}});
 
-		return mesh;
+		return builder.bake();
 	}
 }

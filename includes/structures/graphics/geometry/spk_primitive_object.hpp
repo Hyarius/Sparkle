@@ -16,7 +16,7 @@ namespace spk
 			const spk::Vector2 &p_uvAnchor,
 			const spk::Vector2 &p_uvSize)
 		{
-			spk::TextureMesh2D result;
+			spk::TextureMesh2D::Builder builder;
 
 			const float left = p_anchor.x;
 			const float right = p_anchor.x + p_size.x;
@@ -28,13 +28,13 @@ namespace spk
 			const float uvTop = p_uvAnchor.y;
 			const float uvBottom = p_uvAnchor.y + p_uvSize.y;
 
-			result.addShape(
+			builder.addShape(
 				spk::TextureVertex2D{{left, top, 0.0f}, {uvLeft, uvTop}},
 				spk::TextureVertex2D{{left, bottom, 0.0f}, {uvLeft, uvBottom}},
 				spk::TextureVertex2D{{right, bottom, 0.0f}, {uvRight, uvBottom}},
 				spk::TextureVertex2D{{right, top, 0.0f}, {uvRight, uvTop}});
 
-			return result;
+			return builder.bake();
 		}
 	};
 }

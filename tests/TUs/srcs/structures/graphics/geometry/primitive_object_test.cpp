@@ -8,7 +8,7 @@ TEST(PrimitiveObject, CreateSquare_ShouldBuildTexturedQuadFromAnchorAndSize)
 		spk::PrimitiveObject::CreateSquare({-0.5f, -0.25f}, {2.0f, 3.0f}, {0.25f, 0.5f}, {0.125f, 0.25f});
 
 	const std::span<const spk::TextureVertex2D> vertices = mesh.vertices();
-	const std::span<const spk::GenericMesh<spk::TextureVertex2D>::Index> indexes = mesh.indexes();
+	const std::span<const spk::TextureMesh2D::Index> indexes = mesh.indexes();
 
 	ASSERT_EQ(vertices.size(), 4u);
 	ASSERT_EQ(indexes.size(), 6u);

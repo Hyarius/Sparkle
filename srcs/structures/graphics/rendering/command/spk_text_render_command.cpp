@@ -23,7 +23,7 @@ namespace
 	{
 		p_atlas.loadGlyphs(p_text);
 
-		spk::TextureMesh2D mesh;
+		spk::TextureMesh2D::Builder builder;
 		int cursorX = p_baselinePosition.x;
 
 		for (spk::Font::Codepoint character : p_text)
@@ -45,13 +45,13 @@ namespace
 						glyph.uvs[i]};
 				}
 
-				mesh.addShape(vertices[0], vertices[1], vertices[3], vertices[2]);
+				builder.addShape(vertices[0], vertices[1], vertices[3], vertices[2]);
 			}
 
 			cursorX += glyph.step.x;
 		}
 
-		return mesh;
+		return builder.bake();
 	}
 }
 

@@ -26,15 +26,15 @@ namespace spk
 		const spk::Vector2 bottomRightUV = sprite.anchor + sprite.size;
 		const spk::Vector2 topRightUV = {sprite.anchor.x + sprite.size.x, sprite.anchor.y};
 
-		spk::TextureMesh2D mesh;
-		mesh.addShape(
+		spk::TextureMesh2D::Builder builder;
+		builder.addShape(
 			{toPosition(p_screenRect.anchor, p_depth), topLeftUV},
 			{toPosition({p_screenRect.left(), p_screenRect.bottom()}, p_depth), bottomLeftUV},
 			{toPosition({p_screenRect.right(), p_screenRect.bottom()}, p_depth), bottomRightUV},
 			{toPosition({p_screenRect.right(), p_screenRect.top()}, p_depth), topRightUV});
 
 		_textureCommand = std::make_unique<spk::DrawTextureMeshRenderCommand>(
-			p_spriteSheet, mesh);
+			p_spriteSheet, builder.bake());
 	}
 
 	void SpriteRenderCommand::execute(spk::RenderContext &p_renderContext)

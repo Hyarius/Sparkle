@@ -293,7 +293,7 @@ namespace
 	}
 
 	void emitFace(
-		pg::Mesh3D &p_mesh,
+		pg::Mesh3D::Builder &p_builder,
 		const pg::VoxelShapeFace &p_face,
 		const spk::Vector3 &p_offset,
 		const pg::AtlasCell *p_maskCell = nullptr)
@@ -342,7 +342,7 @@ namespace
 				}
 				vertices.push_back({vertex.position + p_offset, normal, uv});
 			}
-			p_mesh.addShape(vertices);
+			p_builder.addShape(vertices);
 		}
 	}
 }
@@ -405,10 +405,10 @@ namespace pg
 		const ICellLookup *p_worldLookup,
 		const spk::Vector3Int &p_worldOrigin)
 	{
-		Mesh3D mesh;
+		Mesh3D::Builder builder;
 		// Typical cube-like cells settle at <=24 vertices / 36 indices before culling.
 		// Reserving once avoids repeated buffer and vertex-lookup growth during chunk builds.
-		mesh.reserve(p_grid.cells().size() * 24, p_grid.cells().size() * 36);
+		builder.reserve(p_grid.cells().size() * 24, p_grid.cells().size() * 36);
 		FaceTransformCache cache;
 		const std::array worldPlanes = {
 			VoxelAxisPlane::PositiveX,
@@ -445,7 +445,7 @@ namespace pg
 						}
 						hasVisibleShell = true;
 						emitFace(
-							mesh,
+							builder,
 							cache.get(*face, cell.orientation, cell.flip),
 							spk::Vector3(position));
 					}
@@ -455,7 +455,7 @@ namespace pg
 						for (const VoxelShapeFace &face : faces.innerFaces)
 						{
 							emitFace(
-								mesh,
+								builder,
 								cache.get(face, cell.orientation, cell.flip),
 								spk::Vector3(position));
 						}
@@ -463,7 +463,7 @@ namespace pg
 				}
 			}
 		}
-		return mesh;
+		return builder.bake();
 	}
 
 	Mesh3D VoxelMesher::buildMaskMesh(
@@ -476,8 +476,8 @@ namespace pg
 			throw std::invalid_argument("Mask atlas lookup cannot be empty");
 		}
 
-		Mesh3D mesh;
-		mesh.reserve(p_cells.size() * 8, p_cells.size() * 12);
+		Mesh3D::Builder builder;
+		builder.reserve(p_cells.size() * 8, p_cells.size() * 12);
 		FaceTransformCache cache;
 		std::map<std::tuple<int, int, int>, std::size_t> layers;
 		for (const spk::Vector3Int &position : p_cells)
@@ -507,9 +507,9 @@ namespace pg
 				static_cast<float>(position.z)};
 			for (const VoxelShapeFace &face : definition->shape->maskFaces().faces(cell->flip))
 			{
-				emitFace(mesh, cache.get(face, cell->orientation, cell->flip), offset, &maskCell);
+				emitFace(builder, cache.get(face, cell->orientation, cell->flip), offset, &maskCell);
 			}
 		}
-		return mesh;
+		return builder.bake();
 	}
 }

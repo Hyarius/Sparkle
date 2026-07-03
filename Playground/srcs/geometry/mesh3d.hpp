@@ -43,14 +43,9 @@ namespace std
 
 namespace pg
 {
-	class Mesh3D : public spk::GenericMesh<MeshVertex3D>
-	{
-	public:
-		Mesh3D()
-		{
-			_layoutBuffer.addAttribute(0, spk::LayoutBufferObject::Attribute::Type::Vector3);
-			_layoutBuffer.addAttribute(1, spk::LayoutBufferObject::Attribute::Type::Vector3);
-			_layoutBuffer.addAttribute(2, spk::LayoutBufferObject::Attribute::Type::Vector2);
-		}
-	};
+	using Mesh3DLayout = spk::MeshLayout<
+		spk::LayoutBufferObject::Attribute{0, spk::LayoutBufferObject::Attribute::Type::Vector3},
+		spk::LayoutBufferObject::Attribute{1, spk::LayoutBufferObject::Attribute::Type::Vector3},
+		spk::LayoutBufferObject::Attribute{2, spk::LayoutBufferObject::Attribute::Type::Vector2}>;
+	using Mesh3D = spk::GenericMesh<pg::MeshVertex3D, pg::Mesh3DLayout>;
 }

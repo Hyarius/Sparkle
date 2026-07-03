@@ -36,13 +36,8 @@ namespace std
 
 namespace spk
 {
-	class Mesh2D : public spk::GenericMesh<spk::Vertex2D>
-	{
-	public:
-		Mesh2D()
-		{
-			_layoutBuffer.addAttribute({0, spk::LayoutBufferObject::Attribute::Type::Vector2});
-			_layoutBuffer.addAttribute({1, spk::LayoutBufferObject::Attribute::Type::Vector2});
-		}
-	};
+	using Mesh2DLayout = spk::MeshLayout<
+		spk::LayoutBufferObject::Attribute{0, spk::LayoutBufferObject::Attribute::Type::Vector2},
+		spk::LayoutBufferObject::Attribute{1, spk::LayoutBufferObject::Attribute::Type::Vector2}>;
+	using Mesh2D = spk::GenericMesh<spk::Vertex2D, spk::Mesh2DLayout>;
 }

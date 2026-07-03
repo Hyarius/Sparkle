@@ -23,16 +23,16 @@ TEST(Mesh3D, DeduplicatesEqualVerticesButSplitsHardEdgeNormals)
 	const pg::MeshVertex3D b{{1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f}};
 	const pg::MeshVertex3D c{{0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}};
 
-	pg::Mesh3D mesh;
-	mesh.addShape(a, b, c);
-	mesh.addShape(a, b, c);
-	EXPECT_EQ(mesh.vertices().size(), 3);
-	EXPECT_EQ(mesh.indexes().size(), 6);
+	pg::Mesh3D::Builder builder;
+	builder.addShape(a, b, c);
+	builder.addShape(a, b, c);
 
-	mesh.addShape(
+	builder.addShape(
 		pg::MeshVertex3D{a.position, {1.0f, 0.0f, 0.0f}, a.uv},
 		pg::MeshVertex3D{b.position, {1.0f, 0.0f, 0.0f}, b.uv},
 		pg::MeshVertex3D{c.position, {1.0f, 0.0f, 0.0f}, c.uv});
+	pg::Mesh3D mesh = builder.bake();
+
 	EXPECT_EQ(mesh.vertices().size(), 6);
 	EXPECT_EQ(mesh.indexes().size(), 9);
 }

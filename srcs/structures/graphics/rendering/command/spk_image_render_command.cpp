@@ -24,14 +24,15 @@ namespace spk
 		const spk::Vector2 bottomRightUV = p_section.anchor + p_section.size;
 		const spk::Vector2 topRightUV = {p_section.anchor.x + p_section.size.x, p_section.anchor.y};
 
-		spk::TextureMesh2D mesh;
-		mesh.addShape(
+		spk::TextureMesh2D::Builder builder;
+		builder.addShape(
 			{toPosition(p_screenRect.anchor, p_depth), topLeftUV},
 			{toPosition({p_screenRect.left(), p_screenRect.bottom()}, p_depth), bottomLeftUV},
 			{toPosition({p_screenRect.right(), p_screenRect.bottom()}, p_depth), bottomRightUV},
 			{toPosition({p_screenRect.right(), p_screenRect.top()}, p_depth), topRightUV});
 
-		_textureCommand = std::make_unique<spk::DrawTextureMeshRenderCommand>(p_texture, mesh);
+		_textureCommand = std::make_unique<spk::DrawTextureMeshRenderCommand>(
+			p_texture, builder.bake());
 	}
 
 	void ImageRenderCommand::execute(spk::RenderContext &p_renderContext)

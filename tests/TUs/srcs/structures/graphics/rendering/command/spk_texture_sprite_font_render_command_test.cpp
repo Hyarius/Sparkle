@@ -37,13 +37,13 @@ namespace
 
 	[[nodiscard]] spk::TextureMesh2D makeFullScreenMesh(const spk::Vector2UInt& p_size)
 	{
-		spk::TextureMesh2D mesh;
-		mesh.addShape(
+		spk::TextureMesh2D::Builder builder;
+		builder.addShape(
 			spk::TextureVertex2D{{0.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
 			spk::TextureVertex2D{{0.0f, static_cast<float>(p_size.y), 0.0f}, {0.0f, 1.0f}},
 			spk::TextureVertex2D{{static_cast<float>(p_size.x), static_cast<float>(p_size.y), 0.0f}, {1.0f, 1.0f}},
 			spk::TextureVertex2D{{static_cast<float>(p_size.x), 0.0f, 0.0f}, {1.0f, 0.0f}});
-		return mesh;
+		return builder.bake();
 	}
 
 	[[nodiscard]] spk::TextureMesh2D makeFontMesh(
@@ -54,7 +54,7 @@ namespace
 	{
 		p_atlas.loadGlyphs(p_text);
 
-		spk::TextureMesh2D mesh;
+		spk::TextureMesh2D::Builder builder;
 		int cursorX = p_baselinePosition.x;
 
 		for (spk::Font::Codepoint character : p_text)
@@ -78,13 +78,13 @@ namespace
 					};
 				}
 
-				mesh.addShape(vertices[0], vertices[1], vertices[3], vertices[2]);
+				builder.addShape(vertices[0], vertices[1], vertices[3], vertices[2]);
 			}
 
 			cursorX += glyph.step.x;
 		}
 
-		return mesh;
+		return builder.bake();
 	}
 
 	[[nodiscard]] spk::TextureMesh2D makeFontMesh(
@@ -99,11 +99,12 @@ namespace
 
 TEST(TextureMesh2DTest, StoresVector3PositionsAndUVs)
 {
-	spk::TextureMesh2D mesh;
-	mesh.addShape(
+	spk::TextureMesh2D::Builder builder;
+	builder.addShape(
 		spk::TextureVertex2D{{0.0f, 0.0f, 0.25f}, {0.0f, 0.0f}},
 		spk::TextureVertex2D{{1.0f, 0.0f, 0.25f}, {1.0f, 0.0f}},
 		spk::TextureVertex2D{{1.0f, 1.0f, 0.25f}, {1.0f, 1.0f}});
+	spk::TextureMesh2D mesh = builder.bake();
 
 	ASSERT_EQ(mesh.vertices().size(), 3u);
 	EXPECT_EQ(mesh.vertices()[0].position, (spk::Vector3{0.0f, 0.0f, 0.25f}));
@@ -130,8 +131,8 @@ TEST(TextureMesh2DTest, QuadShapeStoresFourVerticesAndSixIndexes)
 
 TEST(TextureMesh2DTest, ReserveVectorShapeAndClearUpdateStorage)
 {
-	spk::TextureMesh2D mesh;
-	mesh.reserve(4, 6);
+	spk::TextureMesh2D::Builder builder;
+	builder.reserve(4, 6);
 
 	const std::vector<spk::TextureVertex2D> vertices = {
 		{{0.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
@@ -139,29 +140,34 @@ TEST(TextureMesh2DTest, ReserveVectorShapeAndClearUpdateStorage)
 		{{1.0f, 1.0f, 0.0f}, {1.0f, 1.0f}},
 		{{0.0f, 1.0f, 0.0f}, {0.0f, 1.0f}}
 	};
-	mesh.addShape(vertices);
+	builder.addShape(vertices);
+	spk::TextureMesh2D mesh = builder.bake();
 
 	EXPECT_EQ(mesh.nbShape(), 1u);
 	EXPECT_EQ(mesh.vertices().size(), 4u);
 	EXPECT_EQ(mesh.indexes().size(), 6u);
 
-	mesh.clear();
+	spk::TextureMesh2D::Builder clearedBuilder;
+	clearedBuilder.addShape(vertices);
+	clearedBuilder.clear();
+	spk::TextureMesh2D clearedMesh = clearedBuilder.bake();
 
-	EXPECT_EQ(mesh.nbShape(), 0u);
-	EXPECT_TRUE(mesh.shapes().empty());
-	EXPECT_TRUE(mesh.vertices().empty());
-	EXPECT_TRUE(mesh.indexes().empty());
+	EXPECT_EQ(clearedMesh.nbShape(), 0u);
+	EXPECT_TRUE(clearedMesh.shapes().empty());
+	EXPECT_TRUE(clearedMesh.vertices().empty());
+	EXPECT_TRUE(clearedMesh.indexes().empty());
 }
 
 TEST(TextureMesh2DTest, DegenerateShapeIsIgnored)
 {
-	spk::TextureMesh2D mesh;
+	spk::TextureMesh2D::Builder builder;
 	const std::vector<spk::TextureVertex2D> vertices = {
 		{{0.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
 		{{1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}}
 	};
 
-	EXPECT_THROW(mesh.addShape(vertices), std::runtime_error);
+	EXPECT_THROW(builder.addShape(vertices), std::runtime_error);
+	spk::TextureMesh2D mesh = builder.bake();
 
 	EXPECT_EQ(mesh.nbShape(), 0u);
 	EXPECT_TRUE(mesh.vertices().empty());
@@ -291,4 +297,3 @@ TEST(DrawFontRenderCommandTest, EmptyTextDoesNotDraw)
 		sparkle_test::renderCommandExpectedPath("DrawFontRenderCommand/empty_expected"),
 		sparkle_test::renderCommandResultPath("DrawFontRenderCommand/empty_diff"));
 }
-

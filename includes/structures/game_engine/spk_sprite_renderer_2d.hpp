@@ -1,12 +1,11 @@
 #pragma once
 
 #include "structures/game_engine/spk_component_2d.hpp"
+#include "structures/graphics/geometry/spk_texture_mesh_2d.hpp"
 #include "structures/graphics/texture/spk_sprite_sheet.hpp"
 
 namespace spk
 {
-	class TextureMesh2D;
-
 	class SpriteRenderer2D : public spk::Component2D
 	{
 	private:

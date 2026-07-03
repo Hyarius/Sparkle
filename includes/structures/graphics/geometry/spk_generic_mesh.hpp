@@ -17,14 +17,30 @@
 
 namespace spk
 {
-	template <typename TVertex>
-		requires spk::comparison_compatible<TVertex> && spk::hashable<TVertex>
+	template <spk::LayoutBufferObject::Attribute... TAttributes>
+	struct MeshLayout
+	{
+		inline static constexpr std::array Attributes = {TAttributes...};
+	};
+
+	template <typename TLayout>
+	concept mesh_layout =
+		requires {
+			{ std::span<const spk::LayoutBufferObject::Attribute>(TLayout::Attributes) } ->
+				std::same_as<std::span<const spk::LayoutBufferObject::Attribute>>;
+			requires(std::span<const spk::LayoutBufferObject::Attribute>(TLayout::Attributes).empty() == false);
+		};
+
+	template <typename TVertex, typename TLayout>
+		requires spk::comparison_compatible<TVertex> && spk::hashable<TVertex> && spk::mesh_layout<TLayout>
 	class GenericMesh
 	{
 	public:
 		using Vertex = TVertex;
 		using Index = std::uint32_t;
 		using Shape = std::vector<Index>;
+
+		class Builder;
 
 	private:
 		class HashKey
@@ -185,14 +201,7 @@ namespace spk
 			_layoutBuffer.appendIndexes(indexes);
 		}
 
-	public:
-		GenericMesh() = default;
-		GenericMesh(const GenericMesh &) = default;
-		GenericMesh &operator=(const GenericMesh &) = default;
-		GenericMesh(GenericMesh &&) noexcept = default;
-		GenericMesh &operator=(GenericMesh &&) noexcept = default;
-		~GenericMesh() = default;
-
+	private:
 		void clear()
 		{
 			_shapes.clear();
@@ -258,6 +267,18 @@ namespace spk
 			addShape(std::span<const Vertex>(p_vertices.data(), p_vertices.size()));
 		}
 
+	public:
+		GenericMesh() :
+			_layoutBuffer(TLayout::Attributes)
+		{
+		}
+
+		GenericMesh(const GenericMesh &) = default;
+		GenericMesh &operator=(const GenericMesh &) = default;
+		GenericMesh(GenericMesh &&) noexcept = default;
+		GenericMesh &operator=(GenericMesh &&) noexcept = default;
+		~GenericMesh() = default;
+
 		[[nodiscard]] std::size_t nbShape() const
 		{
 			return _shapes.size();
@@ -290,6 +311,58 @@ namespace spk
 				_hashKey.bind(&_layoutBuffer.vertices(), &_layoutBuffer.indexes());
 			}
 			return _hashKey.value();
+		}
+	};
+
+	template <typename TVertex, typename TLayout>
+		requires spk::comparison_compatible<TVertex> && spk::hashable<TVertex> && spk::mesh_layout<TLayout>
+	class GenericMesh<TVertex, TLayout>::Builder
+	{
+	private:
+		GenericMesh _mesh;
+
+	public:
+		Builder() = default;
+
+		Builder(const Builder &) = delete;
+		Builder &operator=(const Builder &) = delete;
+		Builder(Builder &&) noexcept = default;
+		Builder &operator=(Builder &&) noexcept = default;
+		~Builder() = default;
+
+		void clear()
+		{
+			_mesh.clear();
+		}
+
+		void reserve(std::size_t p_vertexCount, std::size_t p_indexCount)
+		{
+			_mesh.reserve(p_vertexCount, p_indexCount);
+		}
+
+		void addShape(const Vertex &p_a, const Vertex &p_b, const Vertex &p_c)
+		{
+			_mesh.addShape(p_a, p_b, p_c);
+		}
+
+		void addShape(const Vertex &p_a, const Vertex &p_b, const Vertex &p_c, const Vertex &p_d)
+		{
+			_mesh.addShape(p_a, p_b, p_c, p_d);
+		}
+
+		void addShape(std::span<const Vertex> p_vertices)
+		{
+			_mesh.addShape(p_vertices);
+		}
+
+		void addShape(const std::vector<Vertex> &p_vertices)
+		{
+			_mesh.addShape(p_vertices);
+		}
+
+		[[nodiscard]] GenericMesh bake() const
+		{
+			return _mesh;
 		}
 	};
 }

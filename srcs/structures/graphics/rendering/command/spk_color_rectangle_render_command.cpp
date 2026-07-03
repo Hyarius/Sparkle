@@ -14,12 +14,13 @@ namespace spk
 		const spk::Vector2 bottomRight = spk::Vector2(static_cast<float>(p_rect.right()), static_cast<float>(p_rect.bottom()));
 		const spk::Vector2 topRight = spk::Vector2(static_cast<float>(p_rect.right()), static_cast<float>(p_rect.top()));
 
-		_mesh = std::make_shared<spk::ColorMesh2D>();
-		_mesh->addShape(
+		spk::ColorMesh2D::Builder builder;
+		builder.addShape(
 			spk::ColorMesh2D::Vertex{{topLeft, p_depth}, p_color},
 			spk::ColorMesh2D::Vertex{{bottomLeft, p_depth}, p_color},
 			spk::ColorMesh2D::Vertex{{bottomRight, p_depth}, p_color},
 			spk::ColorMesh2D::Vertex{{topRight, p_depth}, p_color});
+		_mesh = std::make_shared<spk::ColorMesh2D>(builder.bake());
 
 		_colorCommand = std::make_unique<spk::DrawColorMeshRenderCommand>(_mesh);
 	}

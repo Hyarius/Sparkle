@@ -47,13 +47,8 @@ namespace std
 
 namespace spk
 {
-	class ColorMesh2D : public spk::GenericMesh<spk::ColorVertex2D>
-	{
-	public:
-		ColorMesh2D()
-		{
-			_layoutBuffer.addAttribute({0, spk::LayoutBufferObject::Attribute::Type::Vector3});
-			_layoutBuffer.addAttribute({1, spk::LayoutBufferObject::Attribute::Type::Vector4});
-		}
-	};
+	using ColorMesh2DLayout = spk::MeshLayout<
+		spk::LayoutBufferObject::Attribute{0, spk::LayoutBufferObject::Attribute::Type::Vector3},
+		spk::LayoutBufferObject::Attribute{1, spk::LayoutBufferObject::Attribute::Type::Vector4}>;
+	using ColorMesh2D = spk::GenericMesh<spk::ColorVertex2D, spk::ColorMesh2DLayout>;
 }

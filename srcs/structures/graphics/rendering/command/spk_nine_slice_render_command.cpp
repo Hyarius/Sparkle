@@ -57,8 +57,8 @@ namespace spk
 			p_screenRect.bottom() - p_cornerSize.y,
 			p_screenRect.bottom()};
 
-		spk::TextureMesh2D mesh;
-		mesh.reserve(9 * 4, 9 * 6);
+		spk::TextureMesh2D::Builder builder;
+		builder.reserve(9 * 4, 9 * 6);
 
 		for (std::uint32_t y = 0; y < 3; ++y)
 		{
@@ -70,7 +70,7 @@ namespace spk
 				const spk::Vector2 bottomRightUV = sprite.anchor + sprite.size;
 				const spk::Vector2 topRightUV = {sprite.anchor.x + sprite.size.x, sprite.anchor.y};
 
-				mesh.addShape(
+				builder.addShape(
 					{toPosition(xPositions[x], yPositions[y], p_depth), topLeftUV},
 					{toPosition(xPositions[x], yPositions[y + 1], p_depth), bottomLeftUV},
 					{toPosition(xPositions[x + 1], yPositions[y + 1], p_depth), bottomRightUV},
@@ -79,7 +79,7 @@ namespace spk
 		}
 
 		_textureCommand = std::make_unique<spk::DrawTextureMeshRenderCommand>(
-			p_spriteSheet, mesh);
+			p_spriteSheet, builder.bake());
 	}
 
 	void NineSliceRenderCommand::execute(spk::RenderContext &p_renderContext)
