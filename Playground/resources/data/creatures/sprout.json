@@ -1,0 +1,42 @@
+{
+	"version": 1,
+	"displayName": "Sprout",
+	"attributes": {
+		"health": 12,
+		"ap": 6,
+		"mp": 3,
+		"attack": 2,
+		"armor": 1,
+		"armorPenetration": 0,
+		"magic": 3,
+		"resistance": 1,
+		"resistancePenetration": 0,
+		"bonusRange": 0,
+		"stamina": 4.0,
+		"staminaRate": 1.0,
+		"bonusHealing": 0.0,
+		"lifeSteal": 0.0,
+		"omnivampirism": 0.0,
+		"timeEffectResistance": 0.0
+	},
+	"defaultAbilities": [
+		"tackle"
+	],
+	"featBoard": "sprout-board",
+	"defaultFormId": "base",
+	"forms": {
+		"base": {
+			"displayName": "Sprout",
+			"tier": 0,
+			"model": "placeholder-cube",
+			"animationSet": "basic-creature",
+			"avatar": [
+				0,
+				2
+			]
+		}
+	},
+	"tamingProfile": {
+		"conditions": []
+	}
+}

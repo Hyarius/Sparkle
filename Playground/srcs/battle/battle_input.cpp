@@ -1,4 +1,5 @@
 #include "battle/battle_input.hpp"
+#include "creatures/creature_unit.hpp"
 
 #include "abilities/ability.hpp"
 #include "battle/battle_context.hpp"
@@ -124,11 +125,11 @@ namespace pg
 	bool BattleInputController::enterAbilityMode(std::size_t p_index)
 	{
 		BattleUnit *active = _activeUnit();
-		if (active == nullptr || p_index >= active->source().abilities.size())
+		if (active == nullptr || p_index >= active->source()->abilities.size())
 		{
 			return false;
 		}
-		_ability = active->source().abilities[p_index];
+		_ability = active->source()->abilities[p_index];
 		if (_ability == nullptr)
 		{
 			return false;

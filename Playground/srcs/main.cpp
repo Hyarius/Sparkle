@@ -70,6 +70,7 @@ int main()
 		pg::Registries registries;
 		registries.loadAll(std::filesystem::path(PG_RESOURCE_DIR) / "data");
 		pg::GameContext gameContext;
+		gameContext.newGame(registries);
 		spk::Application application;
 
 		spk::WindowHandle window = application.createWindow(

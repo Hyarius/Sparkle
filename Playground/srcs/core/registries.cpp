@@ -16,6 +16,26 @@ namespace pg
 		loadedVoxels.load(p_dataDirectory / "voxels");
 		Registry<Ability> loadedAbilities;
 		loadedAbilities.load(p_dataDirectory / "abilities", parseAbility);
+		Registry<ModelDefinition> loadedModels;
+		loadedModels.load(p_dataDirectory / "models", parseModelDefinition);
+		Registry<CreatureSpecies> loadedCreatures;
+		loadedCreatures.load(p_dataDirectory / "creatures", [&loadedAbilities](JsonReader &p_reader) {
+			return parseCreatureSpecies(p_reader, loadedAbilities);
+		});
+		for (const std::string &speciesId : loadedCreatures.ids())
+		{
+			const CreatureSpecies &species = loadedCreatures.get(speciesId);
+			for (const auto &[formId, form] : species.forms)
+			{
+				if (form.modelId != "placeholder-cube" && loadedModels.tryGet(form.modelId) == nullptr)
+				{
+					throw JsonError(
+						p_dataDirectory / "creatures" / (speciesId + ".json"),
+						"$.forms." + formId + ".model",
+						"unknown model id '" + form.modelId + "'");
+				}
+			}
+		}
 		Registry<EncounterTable> loadedEncounterTables;
 		loadedEncounterTables.load(p_dataDirectory / "encounter-tables", parseEncounterTable);
 		Registry<BiomeDefinition> loadedBiomes;
@@ -47,12 +67,16 @@ namespace pg
 		_gameRules = std::move(loadedGameRules);
 		_voxels = std::move(loadedVoxels);
 		_abilities = std::move(loadedAbilities);
+		_models = std::move(loadedModels);
+		_creatures = std::move(loadedCreatures);
 		_encounterTables = std::move(loadedEncounterTables);
 		_biomes = std::move(loadedBiomes);
 		_prefabs = std::move(loadedPrefabs);
 		_maps = std::move(loadedMaps);
 		std::cout << "Loaded " << _voxels.size() << " voxel definitions" << std::endl;
 		std::cout << "Loaded " << _abilities.size() << " ability definitions" << std::endl;
+		std::cout << "Loaded " << _creatures.size() << " creature species and "
+				  << _models.size() << " model definitions" << std::endl;
 		std::cout << "Loaded " << _encounterTables.size() << " encounter tables and "
 				  << _biomes.size() << " biome definitions" << std::endl;
 		std::cout << "Loaded " << _prefabs.size() << " prefab definitions and "
@@ -72,6 +96,16 @@ namespace pg
 	const Registry<Ability> &Registries::abilities() const noexcept
 	{
 		return _abilities;
+	}
+
+	const Registry<ModelDefinition> &Registries::models() const noexcept
+	{
+		return _models;
+	}
+
+	const Registry<CreatureSpecies> &Registries::creatures() const noexcept
+	{
+		return _creatures;
 	}
 
 	const Registry<EncounterTable> &Registries::encounterTables() const noexcept

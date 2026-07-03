@@ -1,4 +1,5 @@
 #include "battle/rules/battle_turn_rules.hpp"
+#include "creatures/creature_unit.hpp"
 
 #include "abilities/ability.hpp"
 #include "battle/battle_context.hpp"
@@ -95,7 +96,7 @@ namespace pg
 		{
 			return true;
 		}
-		for (const Ability *ability : unit->source().abilities)
+		for (const Ability *ability : unit->source()->abilities)
 		{
 			if (ability && unit->attributes.ap.current() >= ability->apCost && unit->attributes.mp.current() >= ability->mpCost && !BattleActionValidator::getValidTargets(p_context, *unit, *ability).empty())
 			{

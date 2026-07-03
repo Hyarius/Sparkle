@@ -1,4 +1,5 @@
 #include "battle/ai/simple_enemy_controller.hpp"
+#include "creatures/creature_unit.hpp"
 
 #include "battle/battle_action.hpp"
 #include "battle/battle_context.hpp"
@@ -16,7 +17,7 @@ namespace pg
 		{
 			return std::make_unique<EndTurnAction>(p_unit);
 		}
-		for (const Ability *ability : p_unit.source().abilities)
+		for (const Ability *ability : p_unit.source()->abilities)
 		{
 			if (!ability)
 			{

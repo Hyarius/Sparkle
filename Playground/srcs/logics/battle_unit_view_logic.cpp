@@ -5,19 +5,25 @@
 #include "board/cell_source.hpp"
 #include "board/pathfinder.hpp"
 #include "core/event_center.hpp"
+#include "core/registry.hpp"
+#include "creatures/creature_species.hpp"
+#include "creatures/creature_unit.hpp"
 #include "structures/game_engine/spk_entity_3d.hpp"
 #include "structures/game_engine/spk_game_engine.hpp"
 #include "structures/game_engine/spk_texture_mesh_renderer_3d.hpp"
-#include "structures/graphics/geometry/spk_primitive_object.hpp"
 
 #include <algorithm>
 
 namespace pg
 {
-	BattleUnitViewLogic::BattleUnitViewLogic(spk::GameEngine &p_engine, const spk::Texture *p_texture) :
+	BattleUnitViewLogic::BattleUnitViewLogic(
+		spk::GameEngine &p_engine,
+		const spk::Texture *p_texture,
+		const Registry<ModelDefinition> *p_models) :
 		_engine(p_engine),
 		_texture(p_texture),
-		_mesh(std::make_shared<spk::TextureMesh3D>(spk::PrimitiveObject::CreateCube(0.8f)))
+		_models(p_models),
+		_fallbackModel(ModelDefinition::placeholderCube())
 	{
 	}
 
@@ -46,16 +52,35 @@ namespace pg
 	{
 		auto entity = std::make_unique<spk::Entity3D>();
 		BattleUnitView &view = entity->addComponent<BattleUnitView>(p_unit, p_cell);
-		spk::TextureMeshRenderer3D &renderer = entity->addComponent<spk::TextureMeshRenderer3D>();
-		renderer.setMesh(_mesh);
-		renderer.setTexture(_texture);
-		renderer.setTint(
-			p_unit.side == BattleSide::Player
-				? spk::Color{0.25f, 0.65f, 1.0f, 1.0f}
-				: spk::Color{1.0f, 0.28f, 0.22f, 1.0f});
+		const CreatureUnit *source = p_unit.source();
+		const CreatureForm &form = source->species->form(source->currentFormId);
+		const ModelDefinition *model = _models != nullptr ? _models->tryGet(form.modelId) : nullptr;
+		if (model == nullptr)
+		{
+			model = &_fallbackModel;
+		}
+		std::vector<std::unique_ptr<spk::Entity3D>> partEntities;
+		partEntities.reserve(model->parts.size());
+		for (const ModelPart &part : model->parts)
+		{
+			auto partEntity = std::make_unique<spk::Entity3D>(entity.get());
+			partEntity->transform().setPosition({-part.origin.x, -part.origin.y, -part.origin.z});
+			spk::TextureMeshRenderer3D &renderer = partEntity->addComponent<spk::TextureMeshRenderer3D>();
+			renderer.setMesh(part.mesh);
+			renderer.setTexture(_texture);
+			renderer.setTint(
+				p_unit.side == BattleSide::Player
+					? spk::Color{0.25f, 0.65f, 1.0f, 1.0f}
+					: spk::Color{1.0f, 0.28f, 0.22f, 1.0f});
+			partEntities.push_back(std::move(partEntity));
+		}
 		_place(view, {static_cast<float>(p_cell.x) + 0.5f, walkHeightAtCenter(_context->board.terrain().cells(), p_cell), static_cast<float>(p_cell.z) + 0.5f});
 		_engine.addEntity(entity.get());
-		_entries.emplace(&p_unit, Entry{std::move(entity), &view});
+		for (const auto &partEntity : partEntities)
+		{
+			_engine.addEntity(partEntity.get());
+		}
+		_entries.emplace(&p_unit, Entry{std::move(entity), std::move(partEntities), &view});
 	}
 
 	void BattleUnitViewLogic::synchronize()
@@ -200,6 +225,10 @@ namespace pg
 		for (auto &[unit, entry] : _entries)
 		{
 			(void)unit;
+			for (const auto &partEntity : entry.partEntities)
+			{
+				_engine.removeEntity(partEntity.get());
+			}
 			_engine.removeEntity(entry.entity.get());
 		}
 		_entries.clear();
@@ -230,6 +259,12 @@ namespace pg
 	{
 		const auto found = _entries.find(const_cast<BattleUnit *>(&p_unit));
 		return found == _entries.end() ? nullptr : found->second.view;
+	}
+
+	std::size_t BattleUnitViewLogic::partCount(const BattleUnit &p_unit) const noexcept
+	{
+		const auto found = _entries.find(const_cast<BattleUnit *>(&p_unit));
+		return found == _entries.end() ? 0 : found->second.partEntities.size();
 	}
 
 	void BattleUnitViewLogic::_executeUpdate(const spk::UpdateTick &p_tick)

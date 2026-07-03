@@ -6,22 +6,15 @@
 
 #include <optional>
 #include <string>
-#include <vector>
 
 namespace pg
 {
-	struct Ability;
-	struct BattleUnitSource
-	{
-		std::string displayName;
-		Attributes attributes;
-		std::vector<const Ability *> abilities;
-	};
+	class CreatureUnit;
 
 	class BattleUnit : public BattleObject
 	{
 	private:
-		BattleUnitSource _source;
+		CreatureUnit *_source = nullptr;
 
 	public:
 		BattleAttributes attributes;
@@ -29,8 +22,10 @@ namespace pg
 		bool hasLeftBattle = false;
 		std::vector<std::string> statusTags;
 
-		BattleUnit(BattleUnitSource p_source, BattleSide p_side);
-		[[nodiscard]] const BattleUnitSource &source() const noexcept;
+		BattleUnit(CreatureUnit *p_source, BattleSide p_side);
+		BattleUnit(CreatureUnit &p_source, BattleSide p_side);
+		~BattleUnit();
+		[[nodiscard]] CreatureUnit *source() const noexcept;
 		[[nodiscard]] const std::string &displayName() const noexcept;
 		[[nodiscard]] bool isDefeated() const noexcept;
 		[[nodiscard]] bool isActiveInBattle() const noexcept;

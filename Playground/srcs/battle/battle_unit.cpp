@@ -1,22 +1,38 @@
 #include "battle/battle_unit.hpp"
 
+#include "creatures/creature_unit.hpp"
+
 #include <algorithm>
+#include <stdexcept>
 
 namespace pg
 {
-	BattleUnit::BattleUnit(BattleUnitSource p_source, BattleSide p_side) :
-		_source(std::move(p_source)),
-		attributes(_source.attributes)
+	BattleUnit::BattleUnit(CreatureUnit *p_source, BattleSide p_side) :
+		_source(p_source),
+		attributes(p_source != nullptr ? p_source->attributes : Attributes{})
 	{
+		if (_source == nullptr)
+		{
+			throw std::invalid_argument("battle unit requires a creature source");
+		}
 		side = p_side;
 	}
-	const BattleUnitSource &BattleUnit::source() const noexcept
+
+	BattleUnit::BattleUnit(CreatureUnit &p_source, BattleSide p_side) :
+		BattleUnit(&p_source, p_side)
+	{
+	}
+
+	BattleUnit::~BattleUnit() = default;
+
+	CreatureUnit *BattleUnit::source() const noexcept
 	{
 		return _source;
 	}
+
 	const std::string &BattleUnit::displayName() const noexcept
 	{
-		return _source.displayName;
+		return _source->displayName();
 	}
 	bool BattleUnit::isDefeated() const noexcept
 	{

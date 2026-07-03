@@ -1,0 +1,42 @@
+{
+	"version": 1,
+	"displayName": "Ember Fox",
+	"attributes": {
+		"health": 10,
+		"ap": 5,
+		"mp": 5,
+		"attack": 1,
+		"armor": 0,
+		"armorPenetration": 0,
+		"magic": 4,
+		"resistance": 2,
+		"resistancePenetration": 1,
+		"bonusRange": 0,
+		"stamina": 3.0,
+		"staminaRate": 1.0,
+		"bonusHealing": 0.0,
+		"lifeSteal": 0.0,
+		"omnivampirism": 0.0,
+		"timeEffectResistance": 0.0
+	},
+	"defaultAbilities": [
+		"spark"
+	],
+	"featBoard": "ember-fox-board",
+	"defaultFormId": "base",
+	"forms": {
+		"base": {
+			"displayName": "Ember Fox",
+			"tier": 0,
+			"model": "placeholder-cube",
+			"animationSet": "basic-creature",
+			"avatar": [
+				1,
+				2
+			]
+		}
+	},
+	"tamingProfile": {
+		"conditions": []
+	}
+}

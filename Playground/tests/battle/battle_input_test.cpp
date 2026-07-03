@@ -6,6 +6,7 @@
 #include "board/board_builder.hpp"
 #include "core/event_center.hpp"
 #include "support/board_fixture.hpp"
+#include "support/creature_fixture.hpp"
 
 #include <gtest/gtest.h>
 
@@ -34,8 +35,8 @@ namespace
 
 		InputScenario()
 		{
-			pg::BattleUnit &player = context.addUnit({"player", attributes(), {&ability}}, pg::BattleSide::Player);
-			pg::BattleUnit &enemy = context.addUnit({"enemy", attributes(), {}}, pg::BattleSide::Enemy);
+			pg::BattleUnit &player = context.addUnit(pg::test::creature("player", attributes(), {&ability}), pg::BattleSide::Player);
+			pg::BattleUnit &enemy = context.addUnit(pg::test::creature("enemy", attributes()), pg::BattleSide::Enemy);
 			EXPECT_TRUE(context.tryPlaceUnit(player, fixture.cell(2, 2)));
 			EXPECT_TRUE(context.tryPlaceUnit(enemy, fixture.cell(3, 2)));
 			context.currentTurn.activeUnit = &player;

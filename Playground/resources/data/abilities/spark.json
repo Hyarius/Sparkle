@@ -1,0 +1,25 @@
+{
+	"version": 1,
+	"displayName": "Spark",
+	"cost": {
+		"ap": 1,
+		"mp": 2
+	},
+	"range": {
+		"shape": "circle",
+		"min": 1,
+		"max": 2,
+		"requiresLineOfSight": true
+	},
+	"areaOfEffect": {
+		"shape": "square",
+		"value": 0
+	},
+	"targetProfile": "enemy",
+	"damage": {
+		"baseDamage": 3,
+		"damageKind": "magical",
+		"attackRatio": 0.0,
+		"magicRatio": 1.0
+	}
+}

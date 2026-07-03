@@ -136,7 +136,7 @@ namespace pg
 		engine.add<pg::ChunkSynchronizationLogic>();
 		engine.add<pg::ChunkRenderLogic>(_texture, &_maskTexture);
 		engine.add<spk::TextureMeshRenderLogic>(false);
-		_battleUnitViews = &engine.add<pg::BattleUnitViewLogic>(engine, &_texture);
+		_battleUnitViews = &engine.add<pg::BattleUnitViewLogic>(engine, &_texture, &p_registries.models());
 		// Overlay draws last so its translucent masks blend over terrain and units.
 		engine.add<pg::BoardOverlayLogic>(_maskTexture);
 

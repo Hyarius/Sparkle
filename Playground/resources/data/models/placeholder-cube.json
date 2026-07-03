@@ -1,0 +1,33 @@
+{
+	"version": 1,
+	"parts": [
+		{
+			"logicalPart": "wholeRig",
+			"origin": [
+				0,
+				0,
+				0
+			],
+			"voxels": [
+				{
+					"min": [
+						0,
+						0,
+						0
+					],
+					"max": [
+						1,
+						1,
+						1
+					],
+					"textures": {
+						"all": [
+							4,
+							0
+						]
+					}
+				}
+			]
+		}
+	]
+}

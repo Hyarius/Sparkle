@@ -12,6 +12,7 @@
 #include "core/json.hpp"
 #include "core/mode_manager.hpp"
 #include "support/board_fixture.hpp"
+#include "support/creature_fixture.hpp"
 
 #include <gtest/gtest.h>
 
@@ -42,8 +43,8 @@ namespace
 
 TEST(MathFormulas, AppliesPenetrationAndMitigation)
 {
-	pg::BattleUnit caster({"caster", attributes()}, pg::BattleSide::Player);
-	pg::BattleUnit target({"target", attributes()}, pg::BattleSide::Enemy);
+	pg::BattleUnit caster(pg::test::creature("caster", attributes()), pg::BattleSide::Player);
+	pg::BattleUnit target(pg::test::creature("target", attributes()), pg::BattleSide::Enemy);
 	pg::Ability ability = tackle(8);
 	caster.attributes.attack = 2;
 	target.attributes.armor = 10;
@@ -58,8 +59,8 @@ TEST(BattleTurnRules, FasterUnitActsTwiceAndTiesPreferPlayer)
 	pg::test::BoardFixture fixture({"###"});
 	pg::EventCenter events;
 	pg::BattleContext context(events, pg::BoardBuilder::fromGrid(fixture.grid(), fixture.registry()));
-	pg::BattleUnit &fast = context.addUnit({"fast", attributes(30, 2)}, pg::BattleSide::Player);
-	pg::BattleUnit &slow = context.addUnit({"slow", attributes(30, 4)}, pg::BattleSide::Enemy);
+	pg::BattleUnit &fast = context.addUnit(pg::test::creature("fast", attributes(30, 2)), pg::BattleSide::Player);
+	pg::BattleUnit &slow = context.addUnit(pg::test::creature("slow", attributes(30, 4)), pg::BattleSide::Enemy);
 	pg::BattleTurnRules::advanceToNextReady(context);
 	EXPECT_EQ(pg::BattleTurnRules::selectReady(context), &fast);
 	pg::BattleTurnRules::beginTurn(context, fast);
@@ -79,7 +80,7 @@ TEST(BattleTurnRules, StunPausesFillAndEndTurnRefillsResources)
 	pg::test::BoardFixture fixture({"#"});
 	pg::EventCenter events;
 	pg::BattleContext context(events, pg::BoardBuilder::fromGrid(fixture.grid(), fixture.registry()));
-	pg::BattleUnit &unit = context.addUnit({"unit", attributes()}, pg::BattleSide::Player);
+	pg::BattleUnit &unit = context.addUnit(pg::test::creature("unit", attributes()), pg::BattleSide::Player);
 	unit.statusTags.push_back("stun");
 	pg::BattleTurnRules::advanceTurnBars(context, 10);
 	EXPECT_EQ(unit.attributes.turnBar.current(), 0);
@@ -99,8 +100,8 @@ TEST(BattleActionValidator, ReachabilityExcludesOccupiedCellsAndCircleRangeHonor
 	pg::EventCenter events;
 	pg::BattleContext context(events, pg::BoardBuilder::fromGrid(fixture.grid(), fixture.registry()));
 	pg::Ability ability = tackle();
-	pg::BattleUnit &player = context.addUnit({"player", attributes(), {&ability}}, pg::BattleSide::Player);
-	pg::BattleUnit &enemy = context.addUnit({"enemy", attributes()}, pg::BattleSide::Enemy);
+	pg::BattleUnit &player = context.addUnit(pg::test::creature("player", attributes(), {&ability}), pg::BattleSide::Player);
+	pg::BattleUnit &enemy = context.addUnit(pg::test::creature("enemy", attributes()), pg::BattleSide::Enemy);
 	ASSERT_TRUE(context.tryPlaceUnit(player, {1, 0, 0}));
 	ASSERT_TRUE(context.tryPlaceUnit(enemy, {2, 0, 0}));
 	const auto reachable = pg::BattleActionValidator::getReachableCells(context, player);
@@ -116,8 +117,8 @@ TEST(BattleTurnRules, CanContinueRequiresMovementOrAffordableAbilityTarget)
 	pg::EventCenter events;
 	pg::BattleContext context(events, pg::BoardBuilder::fromGrid(fixture.grid(), fixture.registry()));
 	pg::Ability ability = tackle();
-	pg::BattleUnit &player = context.addUnit({"player", attributes(), {&ability}}, pg::BattleSide::Player);
-	pg::BattleUnit &enemy = context.addUnit({"enemy", attributes()}, pg::BattleSide::Enemy);
+	pg::BattleUnit &player = context.addUnit(pg::test::creature("player", attributes(), {&ability}), pg::BattleSide::Player);
+	pg::BattleUnit &enemy = context.addUnit(pg::test::creature("enemy", attributes()), pg::BattleSide::Enemy);
 	ASSERT_TRUE(context.tryPlaceUnit(player, {0, 0, 0}));
 	ASSERT_TRUE(context.tryPlaceUnit(enemy, {1, 0, 0}));
 	context.currentTurn.activeUnit = &player;
@@ -139,8 +140,8 @@ TEST(BattleActionResolver, EmitsGoldenDamageSequenceAndDefeatsTarget)
 	pg::EventCenter events;
 	pg::BattleContext context(events, pg::BoardBuilder::fromGrid(fixture.grid(), fixture.registry()));
 	pg::Ability ability = tackle(100);
-	pg::BattleUnit &player = context.addUnit({"player", attributes(), {&ability}}, pg::BattleSide::Player);
-	pg::BattleUnit &enemy = context.addUnit({"enemy", attributes(10)}, pg::BattleSide::Enemy);
+	pg::BattleUnit &player = context.addUnit(pg::test::creature("player", attributes(), {&ability}), pg::BattleSide::Player);
+	pg::BattleUnit &enemy = context.addUnit(pg::test::creature("enemy", attributes(10)), pg::BattleSide::Enemy);
 	ASSERT_TRUE(context.tryPlaceUnit(player, {0, 0, 0}));
 	ASSERT_TRUE(context.tryPlaceUnit(enemy, {1, 0, 0}));
 	context.currentTurn = {.activeUnit = &player, .turnIndex = 1};
@@ -156,8 +157,8 @@ TEST(BattleActionResolver, RejectsMoveWhenOccupancyChangesBeforeResolution)
 	pg::test::BoardFixture fixture({"###"});
 	pg::EventCenter events;
 	pg::BattleContext context(events, pg::BoardBuilder::fromGrid(fixture.grid(), fixture.registry()));
-	pg::BattleUnit &unit = context.addUnit({"unit", attributes()}, pg::BattleSide::Player);
-	pg::BattleUnit &blocker = context.addUnit({"blocker", attributes()}, pg::BattleSide::Enemy);
+	pg::BattleUnit &unit = context.addUnit(pg::test::creature("unit", attributes()), pg::BattleSide::Player);
+	pg::BattleUnit &blocker = context.addUnit(pg::test::creature("blocker", attributes()), pg::BattleSide::Enemy);
 	ASSERT_TRUE(context.tryPlaceUnit(unit, {0, 0, 0}));
 	pg::MoveAction action(unit, {1, 0, 0}, 1);
 	ASSERT_TRUE(context.tryPlaceUnit(blocker, {1, 0, 0}));
@@ -170,8 +171,8 @@ TEST(BattleOutcomeRules, ReportsWinnerAndNeutralForSimultaneousDefeat)
 	pg::test::BoardFixture fixture({"##"});
 	pg::EventCenter events;
 	pg::BattleContext context(events, pg::BoardBuilder::fromGrid(fixture.grid(), fixture.registry()));
-	pg::BattleUnit &player = context.addUnit({"player", attributes()}, pg::BattleSide::Player);
-	pg::BattleUnit &enemy = context.addUnit({"enemy", attributes()}, pg::BattleSide::Enemy);
+	pg::BattleUnit &player = context.addUnit(pg::test::creature("player", attributes()), pg::BattleSide::Player);
+	pg::BattleUnit &enemy = context.addUnit(pg::test::creature("enemy", attributes()), pg::BattleSide::Enemy);
 	enemy.attributes.hp.setCurrent(0);
 	EXPECT_EQ(pg::BattleOutcomeRules::winner(context), pg::BattleSide::Player);
 	player.attributes.hp.setCurrent(0);
@@ -184,8 +185,8 @@ TEST(BattleCoordinator, RunsScriptedOneVersusOneThroughSevenPhaseLoop)
 	pg::EventCenter events;
 	pg::BattleContext context(events, pg::BoardBuilder::fromGrid(fixture.grid(), fixture.registry(), 1));
 	pg::Ability ability = tackle(50);
-	context.addUnit({"hero", attributes(100, 1), {&ability}}, pg::BattleSide::Player);
-	context.addUnit({"enemy", attributes(15, 3), {&ability}}, pg::BattleSide::Enemy);
+	context.addUnit(pg::test::creature("hero", attributes(100, 1), {&ability}), pg::BattleSide::Player);
+	context.addUnit(pg::test::creature("enemy", attributes(15, 3), {&ability}), pg::BattleSide::Enemy);
 	pg::BattleCoordinator coordinator(context, 7);
 	coordinator.start();
 	for (int guard = 0; guard < 30 && !coordinator.finished(); ++guard)
@@ -240,10 +241,10 @@ TEST(BattleLog, ScriptedTwoVersusTwoSequenceIsStable)
 	pg::EventCenter events;
 	pg::BattleContext context(events, pg::BoardBuilder::fromGrid(fixture.grid(), fixture.registry()));
 	pg::Ability ability = tackle(100);
-	auto &p1 = context.addUnit({"p1", attributes(), {&ability}}, pg::BattleSide::Player);
-	auto &p2 = context.addUnit({"p2", attributes(), {&ability}}, pg::BattleSide::Player);
-	auto &e1 = context.addUnit({"e1", attributes(), {}}, pg::BattleSide::Enemy);
-	auto &e2 = context.addUnit({"e2", attributes(), {}}, pg::BattleSide::Enemy);
+	auto &p1 = context.addUnit(pg::test::creature("p1", attributes(), {&ability}), pg::BattleSide::Player);
+	auto &p2 = context.addUnit(pg::test::creature("p2", attributes(), {&ability}), pg::BattleSide::Player);
+	auto &e1 = context.addUnit(pg::test::creature("e1", attributes()), pg::BattleSide::Enemy);
+	auto &e2 = context.addUnit(pg::test::creature("e2", attributes()), pg::BattleSide::Enemy);
 	ASSERT_TRUE(context.tryPlaceUnit(p1, {0, 0, 0}));
 	ASSERT_TRUE(context.tryPlaceUnit(e1, {1, 0, 0}));
 	ASSERT_TRUE(context.tryPlaceUnit(p2, {3, 0, 0}));
@@ -276,8 +277,8 @@ TEST(ModeManager, BattleEventsEnterAndLeaveBattleMode)
 	pg::ModeManager manager(game);
 	manager.enterExploration();
 	pg::BattleContext context(game.events, pg::BoardBuilder::fromGrid(fixture.grid(), fixture.registry(), 1));
-	context.addUnit({"player", attributes(30, 1)}, pg::BattleSide::Player);
-	context.addUnit({"enemy", attributes(30, 3)}, pg::BattleSide::Enemy);
+	context.addUnit(pg::test::creature("player", attributes(30, 1)), pg::BattleSide::Player);
+	context.addUnit(pg::test::creature("enemy", attributes(30, 3)), pg::BattleSide::Enemy);
 	game.events.battleStarted.trigger(&context);
 	EXPECT_NE(dynamic_cast<pg::BattleMode *>(manager.currentMode()), nullptr);
 	game.events.battleResolved.trigger(&context, pg::BattleSide::Player);

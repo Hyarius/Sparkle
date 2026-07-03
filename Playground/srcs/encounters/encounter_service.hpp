@@ -6,12 +6,14 @@
 
 #include <functional>
 #include <memory>
+#include <vector>
 
 namespace pg
 {
 	struct GameContext;
 	class Registries;
 	class BattleContext;
+	class CreatureUnit;
 
 	// First slice of battle entry (battle.md §7): on encounterTriggered it derives a board from the
 	// live world under the player, instantiates the Milestone-1 stand-in teams, and fires
@@ -27,6 +29,7 @@ namespace pg
 		const Registries &_registries;
 		PlayerCellProvider _playerCell;
 		std::unique_ptr<BattleContext> _battle;
+		std::vector<std::unique_ptr<CreatureUnit>> _enemyCreatures;
 		spk::ContractProvider<const EncounterSpawn &>::Contract _encounterContract;
 
 		void _onEncounter(const EncounterSpawn &p_spawn);

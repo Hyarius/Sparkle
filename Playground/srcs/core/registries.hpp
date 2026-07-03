@@ -1,8 +1,10 @@
 #pragma once
 
 #include "abilities/ability.hpp"
+#include "animation/model_definition.hpp"
 #include "core/game_rules.hpp"
 #include "core/registry.hpp"
+#include "creatures/creature_species.hpp"
 #include "encounters/biome.hpp"
 #include "encounters/encounter_table.hpp"
 #include "voxel/voxel_registry.hpp"
@@ -19,6 +21,8 @@ namespace pg
 		GameRules _gameRules;
 		VoxelRegistry _voxels;
 		Registry<Ability> _abilities;
+		Registry<ModelDefinition> _models;
+		Registry<CreatureSpecies> _creatures;
 		Registry<EncounterTable> _encounterTables;
 		Registry<BiomeDefinition> _biomes;
 		Registry<PrefabDefinition> _prefabs;
@@ -30,6 +34,8 @@ namespace pg
 		[[nodiscard]] const GameRules &gameRules() const noexcept;
 		[[nodiscard]] const VoxelRegistry &voxels() const noexcept;
 		[[nodiscard]] const Registry<Ability> &abilities() const noexcept;
+		[[nodiscard]] const Registry<ModelDefinition> &models() const noexcept;
+		[[nodiscard]] const Registry<CreatureSpecies> &creatures() const noexcept;
 		[[nodiscard]] const Registry<EncounterTable> &encounterTables() const noexcept;
 		[[nodiscard]] const Registry<BiomeDefinition> &biomes() const noexcept;
 		[[nodiscard]] const Registry<PrefabDefinition> &prefabs() const noexcept;

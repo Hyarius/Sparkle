@@ -4,14 +4,15 @@
 #include "logics/battle_unit_view_logic.hpp"
 #include "structures/game_engine/spk_game_engine.hpp"
 #include "support/board_fixture.hpp"
+#include "support/creature_fixture.hpp"
 
 #include <gtest/gtest.h>
 
 namespace
 {
-	[[nodiscard]] pg::BattleUnitSource unitSource(const char *p_name)
+	[[nodiscard]] pg::CreatureUnit &unitSource(const char *p_name)
 	{
-		return {p_name, {.health = 10, .ap = 4, .mp = 4, .stamina = 3.0f}, {}};
+		return pg::test::creature(p_name, {.health = 10, .ap = 4, .mp = 4, .stamina = 3.0f});
 	}
 }
 
@@ -31,6 +32,7 @@ TEST(BattleUnitViewLogic, RegistryTracksPlacementDefeatAndBattleEnd)
 	ASSERT_TRUE(context.tryPlaceUnit(enemy, fixture.cell(2, 2)));
 	EXPECT_EQ(views.registeredViewCount(), 2u);
 	EXPECT_EQ(views.activeViewCount(), 2u);
+	EXPECT_EQ(views.partCount(player), 1u);
 
 	ASSERT_TRUE(context.defeatUnit(enemy));
 	context.report({.type = pg::BattleEventType::UnitDefeated, .target = &enemy});

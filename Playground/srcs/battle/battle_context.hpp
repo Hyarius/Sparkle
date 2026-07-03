@@ -31,7 +31,8 @@ namespace pg
 		BattleLog log;
 
 		BattleContext(EventCenter &p_events, BoardData p_board);
-		BattleUnit &addUnit(BattleUnitSource p_source, BattleSide p_side);
+		BattleUnit &addUnit(CreatureUnit *p_source, BattleSide p_side);
+		BattleUnit &addUnit(CreatureUnit &p_source, BattleSide p_side);
 		[[nodiscard]] const std::vector<BattleUnit *> &getUnits(BattleSide p_side) const;
 		[[nodiscard]] std::vector<BattleUnit *> getOpponents(const BattleUnit &p_unit) const;
 		[[nodiscard]] std::vector<BattleUnit *> allUnits() const;

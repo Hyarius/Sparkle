@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/event_center.hpp"
+#include "creatures/player_data.hpp"
 #include "structures/math/spk_vector3.hpp"
 
 #include <memory>
@@ -8,6 +9,7 @@
 namespace pg
 {
 	struct BiomeDefinition;
+	class Registries;
 	class EncounterEmitter;
 	struct MapDefinition;
 	class VoxelWorld;
@@ -31,12 +33,6 @@ namespace pg
 		WorldContext &operator=(const WorldContext &) = delete;
 	};
 
-	struct PlayerData
-	{
-		spk::Vector3 position = spk::Vector3::Zero;
-		int badgeCount = 0;
-	};
-
 	struct GameContext
 	{
 		EventCenter events;
@@ -45,5 +41,6 @@ namespace pg
 
 		GameContext();
 		~GameContext();
+		void newGame(const Registries &p_registries);
 	};
 }

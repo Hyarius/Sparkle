@@ -12,13 +12,18 @@ namespace pg
 	{
 	}
 
-	BattleUnit &BattleContext::addUnit(BattleUnitSource p_source, BattleSide p_side)
+	BattleUnit &BattleContext::addUnit(CreatureUnit *p_source, BattleSide p_side)
 	{
-		auto unit = std::make_unique<BattleUnit>(std::move(p_source), p_side);
+		auto unit = std::make_unique<BattleUnit>(p_source, p_side);
 		BattleUnit &result = *unit;
 		_storage.push_back(std::move(unit));
 		(p_side == BattleSide::Player ? _playerUnits : _enemyUnits).push_back(&result);
 		return result;
+	}
+
+	BattleUnit &BattleContext::addUnit(CreatureUnit &p_source, BattleSide p_side)
+	{
+		return addUnit(&p_source, p_side);
 	}
 
 	const std::vector<BattleUnit *> &BattleContext::getUnits(BattleSide p_side) const
