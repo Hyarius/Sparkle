@@ -55,7 +55,6 @@ namespace spk
 		std::shared_ptr<spk::VertexArrayObject> _vertexArray;
 		std::vector<Attribute> _attributes;
 		std::size_t _vertexSize = 0;
-		std::size_t _vertexCount = 0;
 
 		void _appendAttribute(const Attribute &p_attribute);
 		void _rebuildVertexLayout();

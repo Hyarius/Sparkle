@@ -72,7 +72,6 @@ namespace spk
 		_attributes = p_other._attributes;
 		_vertexSize = p_other._vertexSize;
 		setVertexBytes(p_other._vertexBuffer->data(), p_other._vertexBuffer->size());
-		_indexBuffer->setElementType(p_other._indexBuffer->elementType());
 		appendIndexes(p_other.indexesData());
 		_rebuildVertexLayout();
 	}
@@ -84,7 +83,6 @@ namespace spk
 			_attributes = p_other._attributes;
 			_vertexSize = p_other._vertexSize;
 			setVertexBytes(p_other._vertexBuffer->data(), p_other._vertexBuffer->size());
-			_indexBuffer->setElementType(p_other._indexBuffer->elementType());
 			_indexBuffer->clear();
 			appendIndexes(p_other.indexesData());
 			_rebuildVertexLayout();
@@ -172,7 +170,7 @@ namespace spk
 
 	std::size_t LayoutBufferObject::vertexCount() const noexcept
 	{
-		return _vertexCount;
+		return _vertexSize == 0 ? 0 : _vertexBuffer->size() / _vertexSize;
 	}
 
 	std::size_t LayoutBufferObject::indexCount() const noexcept
@@ -203,7 +201,6 @@ namespace spk
 		{
 			_vertexBuffer->append(p_data, p_size);
 		}
-		_vertexCount = _vertexSize == 0 ? 0 : p_size / _vertexSize;
 	}
 
 	void LayoutBufferObject::appendVertexBytes(const void *p_data, std::size_t p_size)
@@ -223,13 +220,11 @@ namespace spk
 		{
 			_vertexBuffer->append(p_data, p_size);
 		}
-		_vertexCount = _vertexSize == 0 ? 0 : _vertexBuffer->size() / _vertexSize;
 	}
 
 	void LayoutBufferObject::setIndexes(std::span<const std::uint32_t> p_indexes)
 	{
 		_indexBuffer->clear();
-		_indexBuffer->setElementType(GL_UNSIGNED_INT);
 		if (p_indexes.empty() == false)
 		{
 			_indexBuffer->append(p_indexes.data(), p_indexes.size_bytes());
@@ -238,7 +233,6 @@ namespace spk
 
 	void LayoutBufferObject::appendIndexes(std::span<const std::uint32_t> p_indexes)
 	{
-		_indexBuffer->setElementType(GL_UNSIGNED_INT);
 		if (p_indexes.empty() == false)
 		{
 			_indexBuffer->append(p_indexes.data(), p_indexes.size_bytes());

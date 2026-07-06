@@ -108,6 +108,13 @@ namespace spk
 		_cpuBuffer.reserve(p_size);
 	}
 
+	void BufferObject::markContentModified()
+	{
+		std::scoped_lock lock(_mutex);
+		++_contentVersion;
+		requestSynchronization();
+	}
+
 	void BufferObject::clear()
 	{
 		resize(0);

@@ -58,8 +58,7 @@ TEST(GenericMeshTest, AddTriangleStoresVerticesIndexesAndShape)
 
 	EXPECT_EQ(mesh.vertices().size(), 3);
 	EXPECT_EQ(toVector(mesh.indexes()), (std::vector<std::uint32_t>{0, 1, 2}));
-	ASSERT_EQ(mesh.shapes().size(), 1);
-	EXPECT_EQ(mesh.shapes()[0].size(), 3);
+	EXPECT_EQ(mesh.nbShape(), 1u);
 }
 
 TEST(GenericMeshTest, AddQuadStoresTwoTriangles)
@@ -75,8 +74,7 @@ TEST(GenericMeshTest, AddQuadStoresTwoTriangles)
 
 	EXPECT_EQ(mesh.vertices().size(), 4);
 	EXPECT_EQ(toVector(mesh.indexes()), (std::vector<std::uint32_t>{0, 1, 2, 0, 2, 3}));
-	ASSERT_EQ(mesh.shapes().size(), 1);
-	EXPECT_EQ(mesh.shapes()[0].size(), 4);
+	EXPECT_EQ(mesh.nbShape(), 1u);
 }
 
 TEST(GenericMeshTest, AddPolygonTriangulatesAsFan)
@@ -96,7 +94,7 @@ TEST(GenericMeshTest, AddPolygonTriangulatesAsFan)
 	EXPECT_EQ(toVector(mesh.indexes()), (std::vector<std::uint32_t>{0, 1, 2, 0, 2, 3, 0, 3, 4}));
 }
 
-TEST(GenericMeshTest, CopyAndMovePreserveShapeAccess)
+TEST(GenericMeshTest, CopyAndMovePreserveShapeCount)
 {
 	spk::Mesh2D::Builder builder;
 	builder.addShape(
@@ -107,13 +105,11 @@ TEST(GenericMeshTest, CopyAndMovePreserveShapeAccess)
 
 	spk::Mesh2D copy(mesh);
 	EXPECT_EQ(toVector(copy.indexes()), toVector(mesh.indexes()));
-	ASSERT_EQ(copy.shapes().size(), 1);
-	EXPECT_EQ(copy.shapes()[0].size(), 3);
+	EXPECT_EQ(copy.nbShape(), 1u);
 
 	spk::Mesh2D moved(std::move(copy));
 	EXPECT_EQ(toVector(moved.indexes()), toVector(mesh.indexes()));
-	ASSERT_EQ(moved.shapes().size(), 1);
-	EXPECT_EQ(moved.shapes()[0].size(), 3);
+	EXPECT_EQ(moved.nbShape(), 1u);
 }
 
 TEST(GenericMeshTest, ClearRemovesBufferAndShapes)
@@ -128,7 +124,7 @@ TEST(GenericMeshTest, ClearRemovesBufferAndShapes)
 
 	EXPECT_TRUE(mesh.vertices().empty());
 	EXPECT_TRUE(mesh.indexes().empty());
-	EXPECT_TRUE(mesh.shapes().empty());
+	EXPECT_EQ(mesh.nbShape(), 0u);
 }
 
 TEST(GenericMeshTest, ThrowWithShapesWithFewerThanThreeVertices)
@@ -146,7 +142,7 @@ TEST(GenericMeshTest, ThrowWithShapesWithFewerThanThreeVertices)
 	EXPECT_TRUE(mesh.vertices().empty());
 }
 
-TEST(GenericMeshTest, ReusesDuplicateVerticesAcrossShapes)
+TEST(GenericMeshTest, StoresVerticesWithoutGlobalDeduplication)
 {
 	spk::Mesh2D::Builder builder;
 	const spk::Vertex2D a{.position = {0.0f, 0.0f}};
@@ -158,12 +154,12 @@ TEST(GenericMeshTest, ReusesDuplicateVerticesAcrossShapes)
 	builder.addShape(a, c, b);
 	spk::Mesh2D mesh = builder.bake();
 
-	EXPECT_EQ(mesh.vertices().size(), 3u);
-	EXPECT_EQ(toVector(mesh.indexes()), (std::vector<std::uint32_t>{0, 1, 2, 0, 2, 1}));
+	EXPECT_EQ(mesh.vertices().size(), 6u);
+	EXPECT_EQ(toVector(mesh.indexes()), (std::vector<std::uint32_t>{0, 1, 2, 3, 4, 5}));
 	EXPECT_EQ(mesh.nbShape(), 2u);
 }
 
-TEST(GenericMeshTest, ReusesDuplicateVerticesInsideShape)
+TEST(GenericMeshTest, StoresDuplicateVerticesInsideShape)
 {
 	spk::Mesh2D::Builder builder;
 	const spk::Vertex2D a{.position = {0.0f, 0.0f}};
@@ -173,10 +169,9 @@ TEST(GenericMeshTest, ReusesDuplicateVerticesInsideShape)
 	builder.addShape(std::span<const spk::Vertex2D>(vertices.data(), vertices.size()));
 	spk::Mesh2D mesh = builder.bake();
 
-	EXPECT_EQ(mesh.vertices().size(), 2u);
-	EXPECT_EQ(toVector(mesh.indexes()), (std::vector<std::uint32_t>{0, 1, 0}));
-	ASSERT_EQ(mesh.shapes().size(), 1u);
-	EXPECT_EQ(mesh.shapes()[0], (std::vector<std::uint32_t>{0, 1, 0}));
+	EXPECT_EQ(mesh.vertices().size(), 3u);
+	EXPECT_EQ(toVector(mesh.indexes()), (std::vector<std::uint32_t>{0, 1, 2}));
+	EXPECT_EQ(mesh.nbShape(), 1u);
 }
 
 TEST(GenericMeshTest, BuilderCanBakeMultipleIndependentSnapshots)

@@ -93,6 +93,7 @@ namespace spk
 
 		void resize(std::size_t p_size);
 		void reserve(std::size_t p_size);
+		void markContentModified();
 		virtual void clear();
 		void edit(const void *p_data, std::size_t p_size, std::size_t p_offset = 0);
 

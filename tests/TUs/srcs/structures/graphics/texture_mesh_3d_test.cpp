@@ -18,7 +18,7 @@ TEST(TextureVertex3D, EqualityAndHashIncludeNormal)
 	EXPECT_EQ(std::hash<spk::TextureVertex3D>{}(first), std::hash<spk::TextureVertex3D>{}(same));
 }
 
-TEST(TextureMesh3D, DeduplicatesEqualVerticesButSplitsHardEdgeNormals)
+TEST(TextureMesh3D, StoresShapeVerticesWithoutGlobalDeduplication)
 {
 	const spk::TextureVertex3D a{{0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}};
 	const spk::TextureVertex3D b{{1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f}};
@@ -31,7 +31,7 @@ TEST(TextureMesh3D, DeduplicatesEqualVerticesButSplitsHardEdgeNormals)
 		spk::TextureVertex3D{b.position, {1.0f, 0.0f, 0.0f}, b.uv},
 		spk::TextureVertex3D{c.position, {1.0f, 0.0f, 0.0f}, c.uv});
 	const spk::TextureMesh3D mesh = builder.bake();
-	EXPECT_EQ(mesh.vertices().size(), 6u);
+	EXPECT_EQ(mesh.vertices().size(), 9u);
 	EXPECT_EQ(mesh.indexes().size(), 9u);
 }
 

@@ -5,15 +5,13 @@
 #include <limits>
 #include <span>
 #include <stdexcept>
-#include <unordered_map>
-#include <unordered_set>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
 #include "structures/container/spk_cached_data.hpp"
 #include "structures/graphics/spk_buffer_object.hpp"
 #include "structures/graphics/spk_layout_buffer_object.hpp"
-#include "type/spk_concepts.hpp"
 
 namespace spk
 {
@@ -31,7 +29,7 @@ namespace spk
 		};
 
 	template <typename TVertex, typename TLayout>
-		requires spk::comparison_compatible<TVertex> && spk::hashable<TVertex> && spk::mesh_layout<TLayout>
+		requires std::is_trivially_copyable_v<TVertex> && spk::mesh_layout<TLayout>
 	class GenericMesh
 	{
 	public:
@@ -140,9 +138,7 @@ namespace spk
 		spk::LayoutBufferObject _layoutBuffer;
 
 	private:
-		std::unordered_map<Vertex, Index> _vertexLookup;
-		std::vector<Shape> _shapes;
-
+		std::size_t _shapeCount = 0;
 		HashKey _hashKey;
 
 		void _ensureCanAppendVertices(std::size_t p_vertexCount) const
@@ -161,41 +157,6 @@ namespace spk
 			}
 		}
 
-		[[nodiscard]] Index _indexFromVertexIndex(std::size_t p_vertexIndex) const
-		{
-			return static_cast<Index>(p_vertexIndex);
-		}
-
-		[[nodiscard]] std::size_t _countMissingVertices(std::span<const Vertex> p_vertices) const
-		{
-			std::unordered_set<Vertex> seenNew;
-			std::size_t count = 0;
-
-			for (const Vertex &vertex : p_vertices)
-			{
-				if (_vertexLookup.count(vertex) == 0 && seenNew.insert(vertex).second)
-				{
-					++count;
-				}
-			}
-
-			return count;
-		}
-
-		[[nodiscard]] Index _findOrAddVertex(const Vertex &p_vertex)
-		{
-			auto it = _vertexLookup.find(p_vertex);
-			if (it != _vertexLookup.end())
-			{
-				return it->second;
-			}
-
-			const Index index = _indexFromVertexIndex(_layoutBuffer.vertexCount());
-			_layoutBuffer.appendVertex(p_vertex);
-			_vertexLookup.emplace(p_vertex, index);
-			return index;
-		}
-
 		void _addTriangleIndexes(Index p_a, Index p_b, Index p_c)
 		{
 			const std::array<Index, 3> indexes = {p_a, p_b, p_c};
@@ -205,20 +166,40 @@ namespace spk
 	private:
 		void clear()
 		{
-			_shapes.clear();
+			_shapeCount = 0;
 			_layoutBuffer.setVertices(std::span<const Vertex>{});
 			_layoutBuffer.setIndexes(std::span<const Index>{});
-			_vertexLookup.clear();
 			_hashKey.invalidate();
 		}
 
 		void reserve(std::size_t p_vertexCount, std::size_t p_indexCount)
 		{
-			_vertexLookup.reserve(p_vertexCount);
-			_shapes.reserve(p_indexCount / 3);
-
 			_layoutBuffer.vertices().reserve(p_vertexCount * sizeof(TVertex));
 			_layoutBuffer.indexes().reserve(p_indexCount * sizeof(Index));
+		}
+
+		void resize(std::size_t p_vertexCount, std::size_t p_indexCount, std::size_t p_shapeCount)
+		{
+			if (p_vertexCount > std::numeric_limits<std::size_t>::max() / sizeof(Vertex) ||
+				p_indexCount > std::numeric_limits<std::size_t>::max() / sizeof(Index))
+			{
+				throw std::length_error("spk::GenericMesh: requested buffer size is too large");
+			}
+			if (p_vertexCount != 0 && p_vertexCount - 1 > static_cast<std::size_t>(std::numeric_limits<Index>::max()))
+			{
+				throw std::overflow_error("spk::GenericMesh: too many vertices for uint32_t indexes");
+			}
+			_layoutBuffer.vertices().resize(p_vertexCount * sizeof(Vertex));
+			_layoutBuffer.indexes().resize(p_indexCount * sizeof(Index));
+			_shapeCount = p_shapeCount;
+			_hashKey.invalidate();
+		}
+
+		void validate() const
+		{
+			_layoutBuffer.vertices().markContentModified();
+			_layoutBuffer.indexes().markContentModified();
+			_hashKey.invalidate();
 		}
 
 		void addShape(const Vertex &p_a, const Vertex &p_b, const Vertex &p_c)
@@ -242,24 +223,19 @@ namespace spk
 				throw std::runtime_error("Can't add a shape with less than 3 vertices in a mesh");
 			}
 
-			_ensureCanAppendVertices(_countMissingVertices(p_vertices));
+			_ensureCanAppendVertices(p_vertices.size());
+			const Index firstIndex = static_cast<Index>(_layoutBuffer.vertexCount());
+			_layoutBuffer.appendVertices(p_vertices);
 
-			Shape shape;
-			shape.reserve(p_vertices.size());
-
-			for (const Vertex &vertex : p_vertices)
+			for (std::size_t i = 1; i + 1 < p_vertices.size(); ++i)
 			{
-				shape.emplace_back(_findOrAddVertex(vertex));
+				_addTriangleIndexes(
+					firstIndex,
+					firstIndex + static_cast<Index>(i),
+					firstIndex + static_cast<Index>(i + 1));
 			}
 
-			const Index firstIndex = shape[0];
-
-			for (std::size_t i = 1; i + 1 < shape.size(); ++i)
-			{
-				_addTriangleIndexes(firstIndex, shape[i], shape[i + 1]);
-			}
-
-			_shapes.emplace_back(std::move(shape));
+			++_shapeCount;
 			_hashKey.invalidate();
 		}
 
@@ -282,12 +258,7 @@ namespace spk
 
 		[[nodiscard]] std::size_t nbShape() const
 		{
-			return _shapes.size();
-		}
-
-		[[nodiscard]] const std::vector<Shape> &shapes() const
-		{
-			return _shapes;
+			return _shapeCount;
 		}
 
 		[[nodiscard]] std::span<const Vertex> vertices() const
@@ -316,7 +287,7 @@ namespace spk
 	};
 
 	template <typename TVertex, typename TLayout>
-		requires spk::comparison_compatible<TVertex> && spk::hashable<TVertex> && spk::mesh_layout<TLayout>
+		requires std::is_trivially_copyable_v<TVertex> && spk::mesh_layout<TLayout>
 	class GenericMesh<TVertex, TLayout>::Builder
 	{
 	private:
@@ -341,6 +312,21 @@ namespace spk
 			_mesh.reserve(p_vertexCount, p_indexCount);
 		}
 
+		void resize(std::size_t p_vertexCount, std::size_t p_indexCount, std::size_t p_shapeCount = 0)
+		{
+			_mesh.resize(p_vertexCount, p_indexCount, p_shapeCount);
+		}
+
+		[[nodiscard]] spk::VertexBufferObject &vertices() noexcept
+		{
+			return _mesh._layoutBuffer.vertices();
+		}
+
+		[[nodiscard]] spk::IndexBufferObject &indexes() noexcept
+		{
+			return _mesh._layoutBuffer.indexes();
+		}
+
 		void addShape(const Vertex &p_a, const Vertex &p_b, const Vertex &p_c)
 		{
 			_mesh.addShape(p_a, p_b, p_c);
@@ -363,11 +349,13 @@ namespace spk
 
 		[[nodiscard]] GenericMesh bake() const &
 		{
+			_mesh.validate();
 			return _mesh;
 		}
 
-		[[nodiscard]] GenericMesh bake() && noexcept
+		[[nodiscard]] GenericMesh bake() &&
 		{
+			_mesh.validate();
 			return std::move(_mesh);
 		}
 	};

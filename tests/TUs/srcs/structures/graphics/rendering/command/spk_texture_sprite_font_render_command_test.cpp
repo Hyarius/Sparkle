@@ -1,6 +1,5 @@
 #include <gtest/gtest.h>
 
-
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -12,30 +11,29 @@
 
 #include <GL/glew.h>
 
-#include "utils/image_comparison_test_utils.hpp"
+#include "structures/graphics/geometry/spk_texture_mesh_2d.hpp"
 #include "structures/graphics/opengl/opengl_wrapper_test_utils.hpp"
 #include "structures/graphics/rendering/command/render_command_test_utils.hpp"
 #include "structures/graphics/rendering/command/spk_draw_font_render_command.hpp"
 #include "structures/graphics/rendering/command/spk_draw_texture_mesh_render_command.hpp"
-#include "structures/graphics/geometry/spk_texture_mesh_2d.hpp"
-#include "structures/graphics/rendering/state/spk_viewport.hpp"
 #include "structures/graphics/rendering/command/spk_viewport_render_command.hpp"
+#include "structures/graphics/rendering/state/spk_viewport.hpp"
+#include "utils/image_comparison_test_utils.hpp"
 
 using ClearCommand = spk::ClearCommand;
 using Viewport = spk::Viewport;
 
 namespace
 {
-	[[nodiscard]] spk::Vector3 toPosition(const spk::Vector2Int& p_pixel, float p_depth)
+	[[nodiscard]] spk::Vector3 toPosition(const spk::Vector2Int &p_pixel, float p_depth)
 	{
 		return {
 			static_cast<float>(p_pixel.x),
 			static_cast<float>(p_pixel.y),
-			p_depth
-		};
+			p_depth};
 	}
 
-	[[nodiscard]] spk::TextureMesh2D makeFullScreenMesh(const spk::Vector2UInt& p_size)
+	[[nodiscard]] spk::TextureMesh2D makeFullScreenMesh(const spk::Vector2UInt &p_size)
 	{
 		spk::TextureMesh2D::Builder builder;
 		builder.addShape(
@@ -47,9 +45,9 @@ namespace
 	}
 
 	[[nodiscard]] spk::TextureMesh2D makeFontMesh(
-		spk::Font::Atlas& p_atlas,
-		const spk::Font::Text& p_text,
-		const spk::Vector2Int& p_baselinePosition,
+		spk::Font::Atlas &p_atlas,
+		const spk::Font::Text &p_text,
+		const spk::Vector2Int &p_baselinePosition,
 		float p_depth = 0.0f)
 	{
 		p_atlas.loadGlyphs(p_text);
@@ -59,7 +57,7 @@ namespace
 
 		for (spk::Font::Codepoint character : p_text)
 		{
-			const spk::Font::Glyph& glyph = p_atlas.glyph(character);
+			const spk::Font::Glyph &glyph = p_atlas.glyph(character);
 
 			if (glyph.size.x != 0 && glyph.size.y != 0)
 			{
@@ -69,13 +67,11 @@ namespace
 				{
 					const spk::Vector2Int pixelPosition = {
 						cursorX + glyph.positions[i].x,
-						p_baselinePosition.y + glyph.positions[i].y
-					};
+						p_baselinePosition.y + glyph.positions[i].y};
 
 					vertices[i] = {
 						toPosition(pixelPosition, p_depth),
-						glyph.uvs[i]
-					};
+						glyph.uvs[i]};
 				}
 
 				builder.addShape(vertices[0], vertices[1], vertices[3], vertices[2]);
@@ -88,9 +84,9 @@ namespace
 	}
 
 	[[nodiscard]] spk::TextureMesh2D makeFontMesh(
-		spk::Font::Atlas& p_atlas,
+		spk::Font::Atlas &p_atlas,
 		std::string_view p_text,
-		const spk::Vector2Int& p_baselinePosition,
+		const spk::Vector2Int &p_baselinePosition,
 		float p_depth = 0.0f)
 	{
 		return makeFontMesh(p_atlas, spk::Font::textFromUTF8(p_text), p_baselinePosition, p_depth);
@@ -117,8 +113,6 @@ TEST(TextureMesh2DTest, QuadShapeStoresFourVerticesAndSixIndexes)
 	spk::TextureMesh2D mesh = makeFullScreenMesh({24, 24});
 
 	EXPECT_EQ(mesh.nbShape(), 1u);
-	ASSERT_EQ(mesh.shapes().size(), 1u);
-	EXPECT_EQ(mesh.shapes()[0].size(), 4u);
 	EXPECT_EQ(mesh.vertices().size(), 4u);
 	ASSERT_EQ(mesh.indexes().size(), 6u);
 	EXPECT_EQ(mesh.indexes()[0], 0u);
@@ -138,8 +132,7 @@ TEST(TextureMesh2DTest, ReserveVectorShapeAndClearUpdateStorage)
 		{{0.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
 		{{1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
 		{{1.0f, 1.0f, 0.0f}, {1.0f, 1.0f}},
-		{{0.0f, 1.0f, 0.0f}, {0.0f, 1.0f}}
-	};
+		{{0.0f, 1.0f, 0.0f}, {0.0f, 1.0f}}};
 	builder.addShape(vertices);
 	spk::TextureMesh2D mesh = builder.bake();
 
@@ -153,7 +146,6 @@ TEST(TextureMesh2DTest, ReserveVectorShapeAndClearUpdateStorage)
 	spk::TextureMesh2D clearedMesh = clearedBuilder.bake();
 
 	EXPECT_EQ(clearedMesh.nbShape(), 0u);
-	EXPECT_TRUE(clearedMesh.shapes().empty());
 	EXPECT_TRUE(clearedMesh.vertices().empty());
 	EXPECT_TRUE(clearedMesh.indexes().empty());
 }
@@ -163,8 +155,7 @@ TEST(TextureMesh2DTest, DegenerateShapeIsIgnored)
 	spk::TextureMesh2D::Builder builder;
 	const std::vector<spk::TextureVertex2D> vertices = {
 		{{0.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-		{{1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}}
-	};
+		{{1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}}};
 
 	EXPECT_THROW(builder.addShape(vertices), std::runtime_error);
 	spk::TextureMesh2D mesh = builder.bake();
@@ -179,7 +170,7 @@ TEST(DrawTextureMeshRenderCommandTest, DrawsFullScreenTexture)
 	constexpr int width = 24;
 	constexpr int height = 24;
 	sparkle_test::OpenGLTestContext context(spk::Rect2D(0, 0, width, height));
-	spk::RenderContext& renderContext = context.renderContext();
+	spk::RenderContext &renderContext = context.renderContext();
 
 	auto blueTexture = sparkle_test::makeSolidTexture({2, 2}, 0, 0, 255);
 	Viewport viewport(spk::Rect2D(0, 0, width, height));
@@ -205,7 +196,7 @@ TEST(DrawTextureMeshRenderCommandTest, EmptyMeshDoesNotDraw)
 	constexpr int width = 32;
 	constexpr int height = 32;
 	sparkle_test::OpenGLTestContext context(spk::Rect2D(0, 0, width, height));
-	spk::RenderContext& renderContext = context.renderContext();
+	spk::RenderContext &renderContext = context.renderContext();
 
 	auto whiteTexture = sparkle_test::makeSolidTexture({1, 1}, 255, 255, 255);
 	Viewport viewport(spk::Rect2D(0, 0, width, height));
@@ -231,7 +222,7 @@ TEST(DrawFontRenderCommandTest, DrawsGlyphsWithSizeAndOutline)
 	constexpr int width = 80;
 	constexpr int height = 48;
 	sparkle_test::OpenGLTestContext context(spk::Rect2D(0, 0, width, height));
-	spk::RenderContext& renderContext = context.renderContext();
+	spk::RenderContext &renderContext = context.renderContext();
 
 	auto font = std::make_shared<spk::Font>(sparkle_test::testFont());
 
@@ -271,7 +262,7 @@ TEST(DrawFontRenderCommandTest, EmptyTextDoesNotDraw)
 	constexpr int width = 32;
 	constexpr int height = 32;
 	sparkle_test::OpenGLTestContext context(spk::Rect2D(0, 0, width, height));
-	spk::RenderContext& renderContext = context.renderContext();
+	spk::RenderContext &renderContext = context.renderContext();
 
 	auto font = std::make_shared<spk::Font>(sparkle_test::testFont());
 	Viewport viewport(spk::Rect2D(0, 0, width, height));
