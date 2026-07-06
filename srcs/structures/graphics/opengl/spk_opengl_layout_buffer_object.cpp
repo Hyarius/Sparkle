@@ -63,6 +63,7 @@ namespace spk
 		_indexBuffer(std::make_shared<spk::IndexBufferObject>()),
 		_vertexArray(std::make_shared<spk::VertexArrayObject>())
 	{
+		_vertexArray->setIndexBuffer(_indexBuffer);
 	}
 
 	LayoutBufferObject::LayoutBufferObject(const LayoutBufferObject &p_other) :
@@ -73,7 +74,7 @@ namespace spk
 		setVertexBytes(p_other._vertexBuffer->data(), p_other._vertexBuffer->size());
 		_indexBuffer->setElementType(p_other._indexBuffer->elementType());
 		appendIndexes(p_other.indexesData());
-		_rebuildVertexArray();
+		_rebuildVertexLayout();
 	}
 
 	LayoutBufferObject &LayoutBufferObject::operator=(const LayoutBufferObject &p_other)
@@ -86,7 +87,7 @@ namespace spk
 			_indexBuffer->setElementType(p_other._indexBuffer->elementType());
 			_indexBuffer->clear();
 			appendIndexes(p_other.indexesData());
-			_rebuildVertexArray();
+			_rebuildVertexLayout();
 		}
 		return *this;
 	}
@@ -96,8 +97,9 @@ namespace spk
 	{
 		for (const Attribute &attribute : p_attributes)
 		{
-			addAttribute(attribute);
+			_appendAttribute(attribute);
 		}
+		_rebuildVertexLayout();
 	}
 
 	LayoutBufferObject::LayoutBufferObject(std::initializer_list<Attribute> p_attributes) :
@@ -105,7 +107,18 @@ namespace spk
 	{
 	}
 
-	void LayoutBufferObject::_rebuildVertexArray()
+	void LayoutBufferObject::_appendAttribute(const Attribute &p_attribute)
+	{
+		if (hasAttribute(p_attribute.index) == true)
+		{
+			throw std::runtime_error("spk::LayoutBufferObject already contains attribute index " + std::to_string(p_attribute.index));
+		}
+
+		_attributes.push_back(p_attribute);
+		_vertexSize += Attribute::typeSize(p_attribute.type);
+	}
+
+	void LayoutBufferObject::_rebuildVertexLayout()
 	{
 		_vertexArray->clearVertexBuffers();
 
@@ -123,34 +136,19 @@ namespace spk
 					.offset = offset});
 			offset += Attribute::typeSize(attribute.type);
 		}
-
-		if (isIndexed() == true)
-		{
-			_vertexArray->setIndexBuffer(_indexBuffer);
-		}
-		else
-		{
-			_vertexArray->clearIndexBuffer();
-		}
 	}
 
 	void LayoutBufferObject::clearAttributes()
 	{
 		_attributes.clear();
 		_vertexSize = 0;
-		_rebuildVertexArray();
+		_rebuildVertexLayout();
 	}
 
 	void LayoutBufferObject::addAttribute(const Attribute &p_attribute)
 	{
-		if (hasAttribute(p_attribute.index) == true)
-		{
-			throw std::runtime_error("spk::LayoutBufferObject already contains attribute index " + std::to_string(p_attribute.index));
-		}
-
-		_attributes.push_back(p_attribute);
-		_vertexSize += Attribute::typeSize(p_attribute.type);
-		_rebuildVertexArray();
+		_appendAttribute(p_attribute);
+		_rebuildVertexLayout();
 	}
 
 	void LayoutBufferObject::addAttribute(Attribute::Index p_index, Attribute::Type p_type, bool p_normalized)
@@ -236,7 +234,6 @@ namespace spk
 		{
 			_indexBuffer->append(p_indexes.data(), p_indexes.size_bytes());
 		}
-		_rebuildVertexArray();
 	}
 
 	void LayoutBufferObject::appendIndexes(std::span<const std::uint32_t> p_indexes)
@@ -246,7 +243,6 @@ namespace spk
 		{
 			_indexBuffer->append(p_indexes.data(), p_indexes.size_bytes());
 		}
-		_rebuildVertexArray();
 	}
 
 	[[nodiscard]] spk::VertexBufferObject &LayoutBufferObject::vertices() const

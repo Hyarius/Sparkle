@@ -1,9 +1,11 @@
 #include <gtest/gtest.h>
+
+#include <algorithm>
+#include <array>
+#include <cstdint>
 #include <stdexcept>
 
 #include "structures/graphics/opengl/opengl_wrapper_test_utils.hpp"
-
-
 #include "structures/graphics/spk_layout_buffer_object.hpp"
 
 using namespace spk;
@@ -30,8 +32,7 @@ TEST_F(LBOFixture, SpanConstructorAddsAttributes)
 {
 	const std::array<Attr, 2> attrs = {
 		Attr{.index = 0, .type = Attr::Type::Vector2, .normalized = false},
-		Attr{.index = 1, .type = Attr::Type::Vector3, .normalized = false}
-	};
+		Attr{.index = 1, .type = Attr::Type::Vector3, .normalized = false}};
 	LBO lbo((std::span<const Attr>(attrs)));
 
 	EXPECT_TRUE(lbo.hasAttribute(0));
@@ -42,14 +43,20 @@ TEST_F(LBOFixture, SpanConstructorAddsAttributes)
 
 TEST_F(LBOFixture, InitializerListConstructorAddsAttributes)
 {
-	LBO lbo({
-		Attr{.index = 0, .type = Attr::Type::Float, .normalized = false},
-		Attr{.index = 1, .type = Attr::Type::Vector2, .normalized = false}
-	});
+	LBO lbo({Attr{.index = 0, .type = Attr::Type::Float, .normalized = false}, Attr{.index = 1, .type = Attr::Type::Vector2, .normalized = false}});
 
 	EXPECT_TRUE(lbo.hasAttribute(0));
 	EXPECT_TRUE(lbo.hasAttribute(1));
 	EXPECT_EQ(lbo.vertexSize(), sizeof(float) + 2 * sizeof(float));
+}
+
+TEST_F(LBOFixture, SpanConstructorRejectsDuplicateAttributeIndexes)
+{
+	const std::array<Attr, 2> attributes = {
+		Attr{.index = 3, .type = Attr::Type::Vector2},
+		Attr{.index = 3, .type = Attr::Type::Vector3}};
+
+	EXPECT_THROW(LBO(std::span<const Attr>(attributes)), std::runtime_error);
 }
 
 TEST_F(LBOFixture, VertexSizeReflectsAddedAttributes)
@@ -170,8 +177,11 @@ TEST_F(LBOFixture, SetVerticesWithNonEmptySpanUploadsVertexCount)
 	LBO lbo;
 	lbo.addAttribute(0, Attr::Type::Vector2, false);
 
-	struct V2 { float x, y; };
-	const std::array<V2, 4> verts = {V2{0,0}, V2{1,0}, V2{1,1}, V2{0,1}};
+	struct V2
+	{
+		float x, y;
+	};
+	const std::array<V2, 4> verts = {V2{0, 0}, V2{1, 0}, V2{1, 1}, V2{0, 1}};
 
 	lbo.setVertices(std::span<const V2>(verts));
 
@@ -183,7 +193,10 @@ TEST_F(LBOFixture, SetVerticesWithEmptySpanSetsZeroCount)
 	LBO lbo;
 	lbo.addAttribute(0, Attr::Type::Vector2, false);
 
-	struct V2 { float x, y; };
+	struct V2
+	{
+		float x, y;
+	};
 	lbo.setVertices(std::span<const V2>{});
 
 	EXPECT_EQ(lbo.vertexCount(), 0u);
@@ -194,7 +207,10 @@ TEST_F(LBOFixture, AppendVerticesIgnoresEmptySpanAndAppendsNonEmpty)
 	LBO lbo;
 	lbo.addAttribute(0, Attr::Type::Vector2, false);
 
-	struct V2 { float x, y; };
+	struct V2
+	{
+		float x, y;
+	};
 	const std::array<V2, 2> verts = {V2{0, 0}, V2{1, 1}};
 
 	lbo.appendVertices(std::span<const V2>{});
@@ -233,6 +249,35 @@ TEST_F(LBOFixture, SetIndexesWithEmptySpanClearsIndexed)
 	EXPECT_FALSE(lbo.isIndexed());
 }
 
+TEST_F(LBOFixture, AppendIndexesRetainsTheIndexedBindingAcrossAppends)
+{
+	LBO lbo;
+	lbo.addAttribute(0, Attr::Type::Vector2, false);
+
+	const std::array<std::uint32_t, 3> first = {0, 1, 2};
+	const std::array<std::uint32_t, 3> second = {2, 3, 0};
+	lbo.appendIndexes(first);
+	ASSERT_TRUE(lbo.isIndexed());
+	EXPECT_NO_THROW(lbo.activate(context.renderContext()));
+
+	lbo.appendIndexes(second);
+	EXPECT_EQ(lbo.indexCount(), 6u);
+	EXPECT_TRUE(lbo.isIndexed());
+	EXPECT_NO_THROW(lbo.activate(context.renderContext()));
+
+	const std::array<std::uint32_t, 6> expected = {0, 1, 2, 2, 3, 0};
+	EXPECT_TRUE(std::ranges::equal(lbo.indexesData(), expected));
+
+	lbo.setIndexes(std::span<const std::uint32_t>{});
+	EXPECT_FALSE(lbo.isIndexed());
+	EXPECT_NO_THROW(lbo.activate(context.renderContext()));
+
+	lbo.appendIndexes(first);
+	EXPECT_TRUE(lbo.isIndexed());
+	EXPECT_EQ(lbo.indexCount(), first.size());
+	EXPECT_NO_THROW(lbo.activate(context.renderContext()));
+}
+
 TEST_F(LBOFixture, ActivateAndDeactivateDoNotThrow)
 {
 	LBO lbo;
@@ -241,4 +286,3 @@ TEST_F(LBOFixture, ActivateAndDeactivateDoNotThrow)
 	EXPECT_NO_THROW(lbo.activate(context.renderContext()));
 	EXPECT_NO_THROW(lbo.deactivate());
 }
-

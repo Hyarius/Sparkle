@@ -57,7 +57,8 @@ namespace spk
 		std::size_t _vertexSize = 0;
 		std::size_t _vertexCount = 0;
 
-		void _rebuildVertexArray();
+		void _appendAttribute(const Attribute &p_attribute);
+		void _rebuildVertexLayout();
 
 	public:
 		LayoutBufferObject();
