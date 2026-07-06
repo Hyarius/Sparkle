@@ -3,7 +3,9 @@
 #include <algorithm>
 #include <cmath>
 #include <concepts>
+#include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <initializer_list>
 #include <ostream>
 #include <sstream>
@@ -470,4 +472,19 @@ namespace spk
 	using Vector3 = IVector3<float>;
 	using Vector3Int = IVector3<std::int32_t>;
 	using Vector3UInt = IVector3<std::uint32_t>;
+}
+
+namespace std
+{
+	template <typename TType>
+	struct hash<spk::IVector3<TType>>
+	{
+		std::size_t operator()(const spk::IVector3<TType> &p_value) const noexcept
+		{
+			std::size_t h = std::hash<TType>{}(p_value.x);
+			h ^= std::hash<TType>{}(p_value.y) + 0x9e3779b9u + (h << 6) + (h >> 2);
+			h ^= std::hash<TType>{}(p_value.z) + 0x9e3779b9u + (h << 6) + (h >> 2);
+			return h;
+		}
+	};
 }

@@ -26,8 +26,7 @@ namespace spk
 	template <typename TLayout>
 	concept mesh_layout =
 		requires {
-			{ std::span<const spk::LayoutBufferObject::Attribute>(TLayout::Attributes) } ->
-				std::same_as<std::span<const spk::LayoutBufferObject::Attribute>>;
+			{ std::span<const spk::LayoutBufferObject::Attribute>(TLayout::Attributes) } -> std::same_as<std::span<const spk::LayoutBufferObject::Attribute>>;
 			requires(std::span<const spk::LayoutBufferObject::Attribute>(TLayout::Attributes).empty() == false);
 		};
 
@@ -52,7 +51,9 @@ namespace spk
 
 			void _configure()
 			{
-				_cache.configure([this]() { return _compute(); });
+				_cache.configure([this]() {
+					return _compute();
+				});
 			}
 
 			[[nodiscard]] std::uint32_t _compute() const
@@ -360,9 +361,14 @@ namespace spk
 			_mesh.addShape(p_vertices);
 		}
 
-		[[nodiscard]] GenericMesh bake() const
+		[[nodiscard]] GenericMesh bake() const &
 		{
 			return _mesh;
+		}
+
+		[[nodiscard]] GenericMesh bake() && noexcept
+		{
+			return std::move(_mesh);
 		}
 	};
 }

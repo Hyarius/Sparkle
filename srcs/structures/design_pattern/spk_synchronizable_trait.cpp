@@ -12,14 +12,19 @@ namespace spk
 		return _needsSynchronization.load();
 	}
 
+	bool SynchronizableTrait::_beginSynchronization() const noexcept
+	{
+		return _needsSynchronization.exchange(false);
+	}
+
+	void SynchronizableTrait::_failSynchronization() const noexcept
+	{
+		_needsSynchronization.store(true);
+	}
+
 	void SynchronizableTrait::synchronize() const
 	{
-		if (_needsSynchronization.load() == false)
-		{
-			return;
-		}
-
-		if (_needsSynchronization.exchange(false) == false)
+		if (_beginSynchronization() == false)
 		{
 			return;
 		}
@@ -29,14 +34,21 @@ namespace spk
 			_synchronize();
 		} catch (...)
 		{
-			_needsSynchronization.store(true);
+			_failSynchronization();
 			throw;
 		}
 	}
 
 	void SynchronizableTrait::forceSynchronization() const
 	{
-		_synchronize();
-		_needsSynchronization.store(false);
+		(void)_beginSynchronization();
+		try
+		{
+			_synchronize();
+		} catch (...)
+		{
+			_failSynchronization();
+			throw;
+		}
 	}
 }

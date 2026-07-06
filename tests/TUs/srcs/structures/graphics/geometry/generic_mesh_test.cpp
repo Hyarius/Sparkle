@@ -27,6 +27,7 @@ namespace
 	static_assert(!spk::mesh_layout<InvalidMeshLayout>);
 	static_assert(std::same_as<decltype(std::declval<const spk::Mesh2D::Builder &>().bake()), spk::Mesh2D>);
 	static_assert(std::same_as<decltype(std::declval<const spk::ColorMesh2D::Builder &>().bake()), spk::ColorMesh2D>);
+	static_assert(std::same_as<decltype(std::declval<spk::Mesh2D::Builder &&>().bake()), spk::Mesh2D>);
 	static_assert(!std::copy_constructible<spk::Mesh2D::Builder>);
 
 	template <typename T>

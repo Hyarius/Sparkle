@@ -14,6 +14,8 @@ namespace spk
 		~SynchronizableTrait() = default;
 
 		virtual void _synchronize() const = 0;
+		[[nodiscard]] bool _beginSynchronization() const noexcept;
+		void _failSynchronization() const noexcept;
 
 	public:
 		SynchronizableTrait(const SynchronizableTrait &) = delete;
