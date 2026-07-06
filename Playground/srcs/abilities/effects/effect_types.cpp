@@ -19,9 +19,9 @@ namespace
 		return dynamic_cast<BattleUnit *>(p_object);
 	}
 
-	BattleEvent event(const BattleAbilityExecutionContext &p_context, BattleEventType p_type, BattleUnit *p_target = nullptr)
+	BattleEventContext eventContext(const BattleAbilityExecutionContext &p_context, BattleUnit *p_target = nullptr)
 	{
-		return {.type = p_type, .turnIndex = p_context.context.currentTurn.turnIndex, .sourceAbility = p_context.ability, .caster = unit(p_context.sourceObject), .target = p_target};
+		return {.turnIndex = p_context.context.currentTurn.turnIndex, .sourceAbility = p_context.ability, .caster = unit(p_context.sourceObject), .target = p_target};
 	}
 
 	BattleResourceKind eventResource(EffectResource p_resource)
@@ -74,23 +74,14 @@ namespace pg
 		const AbsorptionResult absorption = target->attributes.absorbDamage(damageKind, incoming);
 		if (absorption.absorbed > 0)
 		{
-			auto reported = event(p_context, BattleEventType::DamageAbsorbed, target);
-			reported.amount = absorption.absorbed;
-			reported.damageKind = damageKind;
-			p_context.context.report(reported);
+			p_context.context.report(DamageAbsorbedEvent{.context = eventContext(p_context, target), .amount = absorption.absorbed, .kind = damageKind});
 		}
 		for (ShieldKind broken : absorption.broken)
 		{
-			auto reported = event(p_context, BattleEventType::ShieldBroken, target);
-			reported.amount = static_cast<int>(broken);
-			reported.shieldKind = broken;
-			p_context.context.report(reported);
+			p_context.context.report(ShieldBrokenEvent{.context = eventContext(p_context, target), .kind = broken});
 		}
 		const auto change = BattleResourceRules::change(*target, BattleResourceKind::Health, -absorption.remaining);
-		auto damage = event(p_context, BattleEventType::Damage, target);
-		damage.amount = change.lost;
-		damage.damageKind = damageKind;
-		p_context.context.report(damage);
+		p_context.context.report(DamageEvent{.context = eventContext(p_context, target), .amount = change.lost, .kind = damageKind});
 		const float ratio = damageKind == DamageKind::Physical ? static_cast<float>(caster->attributes.lifeSteal)
 															   : static_cast<float>(caster->attributes.omnivampirism);
 		if (change.lost > 0 && ratio > 0.0f)
@@ -98,16 +89,12 @@ namespace pg
 			const auto healed = BattleResourceRules::change(*caster, BattleResourceKind::Health, static_cast<int>(std::lround(change.lost * ratio)));
 			if (healed.gained > 0)
 			{
-				auto report = event(p_context, BattleEventType::Heal, caster);
-				report.amount = healed.gained;
-				p_context.context.report(report);
+				p_context.context.report(HealEvent{.context = eventContext(p_context, caster), .amount = healed.gained});
 			}
 		}
 		if (!target->isDefeated())
 		{
-			auto survived = event(p_context, BattleEventType::HitSurvived, target);
-			survived.amount = target->attributes.hp.current();
-			p_context.context.report(survived);
+			p_context.context.report(HitSurvivedEvent{.context = eventContext(p_context, target), .remainingHealth = target->attributes.hp.current()});
 		}
 	}
 
@@ -122,9 +109,7 @@ namespace pg
 		const float raw = std::max(0.0f, static_cast<float>(baseHealing) + static_cast<int>(caster->attributes.attack) * attackRatio + static_cast<int>(caster->attributes.magic) * magicRatio);
 		const int amount = std::max(0, static_cast<int>(std::lround(raw * (1.0f + static_cast<float>(caster->attributes.bonusHealing)))));
 		const auto changed = BattleResourceRules::change(*target, BattleResourceKind::Health, amount);
-		auto report = event(p_context, BattleEventType::Heal, target);
-		report.amount = changed.gained;
-		p_context.context.report(report);
+		p_context.context.report(HealEvent{.context = eventContext(p_context, target), .amount = changed.gained});
 	}
 
 	void ApplyStatusEffect::apply(BattleAbilityExecutionContext &p_context) const
@@ -135,10 +120,7 @@ namespace pg
 			const BattleStatusRemoval applied = target->statuses.add(*statusDefinition, stackCount, duration);
 			if (applied.stacks > 0)
 			{
-				auto report = event(p_context, BattleEventType::StatusApplied, target);
-				report.status = statusDefinition;
-				report.amount = applied.stacks;
-				p_context.context.report(report);
+				p_context.context.report(StatusAppliedEvent{.context = eventContext(p_context, target), .status = statusDefinition, .count = applied.stacks});
 			}
 		}
 	}
@@ -149,10 +131,7 @@ namespace pg
 			const BattleStatusRemoval removed = target->statuses.remove(status, stackCount);
 			if (removed.stacks > 0)
 			{
-				auto report = event(p_context, BattleEventType::StatusRemoved, target);
-				report.status = removed.definition;
-				report.amount = removed.stacks;
-				p_context.context.report(report);
+				p_context.context.report(StatusRemovedEvent{.context = eventContext(p_context, target), .status = removed.definition, .count = removed.stacks});
 			}
 		}
 	}
@@ -163,10 +142,7 @@ namespace pg
 			const BattleStatusRemoval removed = target->statuses.consume(status, stackCount);
 			if (removed.stacks > 0)
 			{
-				auto report = event(p_context, BattleEventType::StatusRemoved, target);
-				report.status = removed.definition;
-				report.amount = removed.stacks;
-				p_context.context.report(report);
+				p_context.context.report(StatusRemovedEvent{.context = eventContext(p_context, target), .status = removed.definition, .count = removed.stacks});
 			}
 		}
 	}
@@ -176,10 +152,7 @@ namespace pg
 		{
 			for (const BattleStatusRemoval &removed : target->statuses.removeByTags(tags))
 			{
-				auto report = event(p_context, BattleEventType::StatusRemoved, target);
-				report.status = removed.definition;
-				report.amount = removed.stacks;
-				p_context.context.report(report);
+				p_context.context.report(StatusRemovedEvent{.context = eventContext(p_context, target), .status = removed.definition, .count = removed.stacks});
 			}
 		}
 	}
@@ -200,9 +173,7 @@ namespace pg
 		{
 			(void)p_context.context.tryPlaceUnit(*target, *target->lastBoardPosition);
 		}
-		auto report = event(p_context, BattleEventType::Revive, target);
-		report.amount = changed.gained;
-		p_context.context.report(report);
+		p_context.context.report(ReviveEvent{.context = eventContext(p_context, target), .amount = changed.gained});
 	}
 
 	void ApplyShieldEffect::apply(BattleAbilityExecutionContext &p_context) const
@@ -213,10 +184,7 @@ namespace pg
 			return;
 		}
 		target->attributes.addShield(kind, amount, durationTurns);
-		auto report = event(p_context, BattleEventType::ShieldApplied, target);
-		report.amount = amount;
-		report.shieldKind = kind;
-		p_context.context.report(report);
+		p_context.context.report(ShieldAppliedEvent{.context = eventContext(p_context, target), .amount = amount, .kind = kind});
 	}
 
 	void ResourceChangeEffect::apply(BattleAbilityExecutionContext &p_context) const
@@ -237,11 +205,7 @@ namespace pg
 		{
 			actual = changeIntegerResource(*target, resource, value);
 		}
-		auto report = event(p_context, BattleEventType::ResourceChanged, target);
-		report.amount = std::abs(actual);
-		report.value = static_cast<float>(actual);
-		report.resource = eventResource(resource);
-		p_context.context.report(report);
+		p_context.context.report(ResourceChangedEvent{.context = eventContext(p_context, target), .resource = eventResource(resource), .amount = std::abs(actual), .delta = static_cast<float>(actual)});
 	}
 
 	void StealResourceEffect::apply(BattleAbilityExecutionContext &p_context) const
@@ -267,10 +231,7 @@ namespace pg
 		}
 		if (removed > 0)
 		{
-			auto report = event(p_context, BattleEventType::ResourceStolen, target);
-			report.amount = removed;
-			report.resource = eventResource(resource);
-			p_context.context.report(report);
+			p_context.context.report(ResourceStolenEvent{.context = eventContext(p_context, target), .resource = eventResource(resource), .amount = removed});
 		}
 	}
 
@@ -308,10 +269,7 @@ namespace pg
 		}
 		if (moved > 0)
 		{
-			auto report = event(p_context, BattleEventType::Displacement, target);
-			report.distance = moved;
-			report.orientation = orientation;
-			p_context.context.report(report);
+			p_context.context.report(DisplacementEvent{.context = eventContext(p_context, target), .distance = moved, .orientation = orientation});
 		}
 	}
 
@@ -321,8 +279,7 @@ namespace pg
 		BattleUnit *anchor = dynamic_cast<BattleUnit *>(p_context.context.board.tryGetUnitAt(p_context.anchorCell));
 		if (target != nullptr && anchor != nullptr && target != anchor && p_context.context.trySwapUnits(*target, *anchor))
 		{
-			auto report = event(p_context, BattleEventType::SwapPosition, target);
-			p_context.context.report(report);
+			p_context.context.report(SwapPositionEvent{.context = eventContext(p_context, target)});
 		}
 	}
 
@@ -332,8 +289,7 @@ namespace pg
 		BattleUnit *target = unit(p_context.targetObject);
 		if (caster != nullptr && target != nullptr && caster != target && p_context.context.trySwapUnits(*caster, *target))
 		{
-			auto report = event(p_context, BattleEventType::SwapPosition, target);
-			p_context.context.report(report);
+			p_context.context.report(SwapPositionEvent{.context = eventContext(p_context, target)});
 		}
 	}
 
@@ -351,9 +307,7 @@ namespace pg
 		const int distance = std::abs(caster->boardPosition->x - p_context.anchorCell.x) + std::abs(caster->boardPosition->z - p_context.anchorCell.z);
 		if (distance > 0 && p_context.context.tryMoveUnit(*caster, p_context.anchorCell))
 		{
-			auto report = event(p_context, BattleEventType::Teleported, caster);
-			report.distance = distance;
-			p_context.context.report(report);
+			p_context.context.report(TeleportedEvent{.context = eventContext(p_context, caster), .distance = distance});
 		}
 	}
 
@@ -369,9 +323,7 @@ namespace pg
 		const float actualDelta = delta * (1.0f - resistance / (resistance + scaling));
 		const float before = target->attributes.turnBar.current();
 		target->attributes.turnBar.change(actualDelta);
-		auto report = event(p_context, BattleEventType::TurnBarTimeAdjusted, target);
-		report.value = target->attributes.turnBar.current() - before;
-		p_context.context.report(report);
+		p_context.context.report(TurnBarTimeAdjustedEvent{.context = eventContext(p_context, target), .delta = target->attributes.turnBar.current() - before});
 	}
 
 	void AdjustTurnBarDurationEffect::apply(BattleAbilityExecutionContext &p_context) const
@@ -383,9 +335,7 @@ namespace pg
 		}
 		const float before = target->attributes.turnBar.max();
 		target->attributes.turnBar.setMax(std::max(p_context.minimumTurnBarDuration, before + delta));
-		auto report = event(p_context, BattleEventType::TurnBarDurationAdjusted, target);
-		report.value = target->attributes.turnBar.max() - before;
-		p_context.context.report(report);
+		p_context.context.report(TurnBarDurationAdjustedEvent{.context = eventContext(p_context, target), .delta = target->attributes.turnBar.max() - before});
 	}
 
 	void PlaceObjectEffect::apply(BattleAbilityExecutionContext &p_context) const

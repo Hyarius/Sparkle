@@ -117,7 +117,7 @@ TEST(BattleStatusRules, ResourceHooksAreNonReentrant)
 	(void)pg::BattleResourceRules::change(unit, pg::BattleResourceKind::Health, -1);
 	EXPECT_EQ(unit.attributes.hp.current(), 8);
 	EXPECT_EQ(std::ranges::count_if(context.log.events(), [](const pg::BattleEvent &event) {
-				  return event.type == pg::BattleEventType::Damage;
+				  return event.getIf<pg::DamageEvent>() != nullptr;
 			  }),
 			  1);
 }
@@ -158,7 +158,7 @@ TEST(BattleTurnRules, RealStunPausesThenResumesAndExpirationIsReported)
 	pg::BattleTurnRules::advanceTurnBars(context, 1.0f);
 	EXPECT_FLOAT_EQ(stunned.attributes.turnBar.current(), 1.0f);
 	EXPECT_TRUE(std::ranges::any_of(context.log.events(), [](const pg::BattleEvent &event) {
-		return event.type == pg::BattleEventType::StatusRemoved;
+		return event.getIf<pg::StatusRemovedEvent>() != nullptr;
 	}));
 }
 
@@ -189,9 +189,11 @@ TEST(BattleTurnRules, TurnDurationExpiryEmitsStatusRemoved)
 	pg::BattleTurnRules::endTurn(context);
 	ASSERT_FALSE(unit.statuses.contains("temporary"));
 	const auto removed = std::ranges::find_if(context.log.events(), [](const pg::BattleEvent &event) {
-		return event.type == pg::BattleEventType::StatusRemoved;
+		return event.getIf<pg::StatusRemovedEvent>() != nullptr;
 	});
 	ASSERT_NE(removed, context.log.events().end());
-	EXPECT_EQ(removed->status, &status);
-	EXPECT_EQ(removed->amount, 2);
+	const pg::StatusRemovedEvent *removedEvent = removed->getIf<pg::StatusRemovedEvent>();
+	ASSERT_NE(removedEvent, nullptr);
+	EXPECT_EQ(removedEvent->status, &status);
+	EXPECT_EQ(removedEvent->count, 2);
 }

@@ -12,6 +12,8 @@
 #include "logics/battle_unit_view_logic.hpp"
 #include "logics/tactical_camera_logic.hpp"
 #include "ui/battle_banner.hpp"
+#include "ui/battle_hud.hpp"
+#include "ui/battle_result_screen.hpp"
 
 #include "type/spk_constants.hpp"
 
@@ -31,7 +33,9 @@ namespace pg
 		const ICellLookup &p_worldLookup,
 		const Registries &p_registries,
 		BattleUnitViewLogic &p_unitViews,
-		BattleBanner &p_banner) :
+		BattleHud &p_hud,
+		BattleBanner &p_banner,
+		BattleResultScreen &p_resultScreen) :
 		_overlayView(p_overlayView),
 		_overlayState(p_overlayState),
 		_input(p_input),
@@ -40,7 +44,9 @@ namespace pg
 		_worldLookup(p_worldLookup),
 		_registries(p_registries),
 		_unitViews(p_unitViews),
-		_banner(p_banner)
+		_hud(p_hud),
+		_banner(p_banner),
+		_resultScreen(p_resultScreen)
 	{
 	}
 
@@ -71,16 +77,24 @@ namespace pg
 	void BattleScene::begin(BattleContext &p_context, BattleCoordinator &p_coordinator)
 	{
 		_banner.hideResult();
+		_resultScreen.bind(p_context);
 		_unitViews.begin(p_context);
 		_battleEventContract = p_context.events().battleEventOccurred.subscribe([this](const BattleEvent *p_event) {
-			if (p_event == nullptr || p_event->type != BattleEventType::TurnStarted ||
-				p_event->caster == nullptr || !p_event->caster->boardPosition.has_value())
+			const TurnStartedEvent *turnStarted = p_event != nullptr ? p_event->getIf<TurnStartedEvent>() : nullptr;
+			if (turnStarted == nullptr || turnStarted->context.caster == nullptr ||
+				!turnStarted->context.caster->boardPosition.has_value())
 			{
 				return;
 			}
-			_turnFeedbackCell = *p_event->caster->boardPosition;
+			_turnFeedbackCell = *turnStarted->context.caster->boardPosition;
 			_turnFeedbackSeconds = 1.0f;
 			_overlayState.set(OverlayCategory::Hovered, {*_turnFeedbackCell});
+		});
+		_impressedContract = p_context.events().creatureImpressed.subscribe([this](BattleUnit *p_unit) {
+			if (p_unit != nullptr)
+			{
+				_banner.showMessage(p_unit->displayName() + " was impressed!");
+			}
 		});
 		std::array<AtlasCell, OverlayCategoryCount> masks{};
 		const auto &overlayMasks = _registries.gameRules().overlayMasks;
@@ -99,6 +113,7 @@ namespace pg
 		_input.setBusyPredicate([this] {
 			return _unitViews.viewBusy();
 		});
+		_hud.bind(p_context, _input, p_coordinator);
 
 		// Work-item 1: flash the deployment strips at battle entry (placement is auto/instant in M1).
 		// The first player interaction clears them (BattleInputController manages the category).
@@ -142,19 +157,24 @@ namespace pg
 	void BattleScene::showResult(BattleSide p_winner, std::function<void()> p_confirmation)
 	{
 		_input.unbind();
-		_banner.showResult(p_winner, std::move(p_confirmation));
+		_hud.unbind();
+		_banner.hideResult();
+		_resultScreen.show(p_winner, std::move(p_confirmation));
 	}
 
 	void BattleScene::end()
 	{
 		_battleEventContract.resign();
+		_impressedContract.resign();
 		_turnFeedbackCell.reset();
 		_turnFeedbackSeconds = 0.0f;
 		_banner.hideResult();
+		_resultScreen.unbind();
 		_unitViews.end();
 		_overlayView.clearBinding();
 		_overlayState.clearAll();
 		_input.unbind();
+		_hud.unbind();
 		_camera3dController.end();
 	}
 }

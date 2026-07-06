@@ -32,6 +32,7 @@
     { "at": [39, 3, 32], "voxel": "3" }
   ],
   "stamps": [
+    { "prefab": "small-house", "at": [40, 3, 18], "orientation": "positiveZ" },
     { "prefab": "bush-cluster", "at": [8, 3, 42], "orientation": "positiveZ" },
     { "prefab": "bush-cluster", "at": [45, 3, 12], "orientation": "positiveX" },
     { "prefab": "bush-cluster", "at": [50, 3, 48], "orientation": "negativeZ" }
@@ -40,6 +41,24 @@
     { "name": "playerSpawn", "at": [32, 3, 40] },
     { "name": "healPoint", "at": [30, 5, 30] }
   ],
-  "portals": [],
+  "portals": [
+    {"name": "house-door", "at": [43, 3, 18],
+     "target": {"map": "small-house-interior", "portal": "entrance"}},
+    {"name": "tunnel-west", "at": [12, 2, 30],
+     "target": {"map": "test-tunnel", "portal": "west"}},
+    {"name": "tunnel-east", "at": [52, 2, 30],
+     "target": {"map": "test-tunnel", "portal": "east"}}
+  ],
+  "trainers": [
+    {
+      "id": "timmy",
+      "at": [32, 3, 34],
+      "facing": "positiveZ",
+      "sightRange": 6,
+      "encounterTable": "trainer-timmy",
+      "clearedFlag": "trainer-timmy",
+      "boardSize": [11, 9]
+    }
+  ],
   "biome": "forest"
 }

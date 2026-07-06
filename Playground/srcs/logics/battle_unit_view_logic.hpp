@@ -45,12 +45,15 @@ namespace pg
 		std::map<BattleUnit *, Entry> _entries;
 		spk::ContractProvider<const BattleEvent *>::Contract _eventContract;
 		spk::ContractProvider<BattleUnit *>::Contract _placementContract;
+		spk::ContractProvider<>::Contract _placementChangedContract;
+		spk::ContractProvider<BattleUnit *>::Contract _impressedContract;
 
 		void _onBattleEvent(const BattleEvent *p_event);
 		void _spawn(BattleUnit &p_unit, const spk::Vector3Int &p_cell);
 		void _place(BattleUnitView &p_view, const spk::Vector3 &p_localPosition);
 		void _beginMove(BattleUnit &p_unit, const spk::Vector3Int &p_destination);
 		void _beginDefeat(BattleUnit &p_unit);
+		void _remove(BattleUnit &p_unit);
 
 	public:
 		static constexpr float MoveSpeed = 4.0f;

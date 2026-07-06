@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "activeMode": "default",
+  "rulesByMode": {
+    "default": [
+      {
+        "conditions": [{"type": "allyHpBelow", "percent": 50}],
+        "decision": {"type": "castAbility", "ability": "mend", "target": "lowestHpAlly"}
+      },
+      {
+        "conditions": [{"type": "canCast", "ability": "tackle"}],
+        "decision": {"type": "castAbility", "ability": "tackle", "target": "nearestEnemy"}
+      },
+      {
+        "conditions": [],
+        "decision": {"type": "moveTowardNearestEnemy"}
+      }
+    ]
+  }
+}

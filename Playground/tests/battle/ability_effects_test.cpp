@@ -96,9 +96,9 @@ TEST(BattleEffectResolver, AppliesCrossAreaAnchorFirstInStableOrder)
 	context.currentTurn = {.activeUnit = &caster, .turnIndex = 1};
 	ASSERT_TRUE(pg::BattleActionResolver::resolve(context, pg::AbilityAction(caster, ability, {{2, 0, 0}})));
 	ASSERT_EQ(context.log.events().size(), 8u);
-	EXPECT_EQ(context.log.events()[2].target, &anchor);
-	EXPECT_EQ(context.log.events()[4].target, &left);
-	EXPECT_EQ(context.log.events()[6].target, &right);
+	EXPECT_EQ(pg::battleEventContext(context.log.events()[2]).target, &anchor);
+	EXPECT_EQ(pg::battleEventContext(context.log.events()[4]).target, &left);
+	EXPECT_EQ(pg::battleEventContext(context.log.events()[6]).target, &right);
 }
 
 TEST(BattleEffectResolver, LifestealUsesActualHealthDamage)

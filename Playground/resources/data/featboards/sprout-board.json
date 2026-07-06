@@ -1,0 +1,86 @@
+{
+	"version": 1,
+	"rootNode": "10000000-0000-4000-8000-000000000001",
+	"nodes": [
+		{
+			"uuid": "10000000-0000-4000-8000-000000000001",
+			"displayName": "Awakening",
+			"position": [0, 0],
+			"kind": "statsBonus",
+			"neighbours": ["10000000-0000-4000-8000-000000000002", "10000000-0000-4000-8000-000000000003"],
+			"repeatLimit": 1,
+			"requirements": [],
+			"rewards": []
+		},
+		{
+			"uuid": "10000000-0000-4000-8000-000000000002",
+			"displayName": "Deep Roots",
+			"position": [1, -1],
+			"kind": "statsBonus",
+			"neighbours": ["10000000-0000-4000-8000-000000000001", "10000000-0000-4000-8000-000000000004"],
+			"repeatLimit": 3,
+			"requirements": [{"uuid": "20000000-0000-4000-8000-000000000001", "type": "takeDamage", "scope": "fight", "requiredAmount": 15, "damageKind": "any"}],
+			"rewards": [{"type": "bonusStats", "attribute": "health", "value": 2}]
+		},
+		{
+			"uuid": "10000000-0000-4000-8000-000000000003",
+			"displayName": "First Spark",
+			"position": [1, 1],
+			"kind": "ability",
+			"neighbours": ["10000000-0000-4000-8000-000000000001", "10000000-0000-4000-8000-000000000005"],
+			"repeatLimit": 1,
+			"requirements": [{"uuid": "20000000-0000-4000-8000-000000000002", "type": "dealDamage", "scope": "fight", "requiredRepeatCount": 2, "requiredAmount": 30, "damageKind": "any", "sourceAbilities": []}],
+			"rewards": [{"type": "ability", "ability": "ember"}]
+		},
+		{
+			"uuid": "10000000-0000-4000-8000-000000000004",
+			"displayName": "Thorn Skin",
+			"position": [2, -1],
+			"kind": "passive",
+			"neighbours": ["10000000-0000-4000-8000-000000000002", "10000000-0000-4000-8000-000000000006"],
+			"repeatLimit": 1,
+			"requirements": [{"uuid": "20000000-0000-4000-8000-000000000003", "type": "applyShieldCount", "scope": "turn", "requiredCount": 3, "kind": "any"}],
+			"rewards": [{"type": "passive", "status": "regrowth"}]
+		},
+		{
+			"uuid": "10000000-0000-4000-8000-000000000005",
+			"displayName": "Bright Bloom",
+			"position": [2, 1],
+			"kind": "statsBonus",
+			"neighbours": ["10000000-0000-4000-8000-000000000003", "10000000-0000-4000-8000-000000000006", "10000000-0000-4000-8000-000000000007"],
+			"repeatLimit": 2,
+			"requirements": [{"uuid": "20000000-0000-4000-8000-000000000004", "type": "healHealth", "scope": "game", "requiredAmount": 25}],
+			"rewards": [{"type": "bonusStats", "attribute": "magic", "value": 1}]
+		},
+		{
+			"uuid": "10000000-0000-4000-8000-000000000006",
+			"displayName": "Steady Growth",
+			"position": [3, 0],
+			"kind": "statsBonus",
+			"neighbours": ["10000000-0000-4000-8000-000000000004", "10000000-0000-4000-8000-000000000005", "10000000-0000-4000-8000-000000000008"],
+			"repeatLimit": 1,
+			"requirements": [{"uuid": "20000000-0000-4000-8000-000000000005", "type": "totalDistanceTravelled", "scope": "fight", "requiredDistance": 12}],
+			"rewards": [{"type": "bonusStats", "attribute": "stamina", "value": 0.5}]
+		},
+		{
+			"uuid": "10000000-0000-4000-8000-000000000007",
+			"displayName": "Clean Flame",
+			"position": [3, 2],
+			"kind": "ability",
+			"neighbours": ["10000000-0000-4000-8000-000000000005", "10000000-0000-4000-8000-000000000008"],
+			"repeatLimit": 1,
+			"requirements": [{"uuid": "20000000-0000-4000-8000-000000000006", "type": "castAbilityCount", "scope": "game", "abilities": ["mend"], "requiredCount": 5, "targetRangeCondition": "either", "range": 0}],
+			"rewards": [{"type": "removeAbility", "ability": "daze"}]
+		},
+		{
+			"uuid": "10000000-0000-4000-8000-000000000008",
+			"displayName": "Blaze Bloom",
+			"position": [4, 1],
+			"kind": "form",
+			"neighbours": ["10000000-0000-4000-8000-000000000006", "10000000-0000-4000-8000-000000000007"],
+			"repeatLimit": 1,
+			"requirements": [{"uuid": "20000000-0000-4000-8000-000000000007", "type": "winBattleCount", "requiredRepeatCount": 3, "requireUnitSurvival": true}],
+			"rewards": [{"type": "changeForm", "form": "blaze"}]
+		}
+	]
+}

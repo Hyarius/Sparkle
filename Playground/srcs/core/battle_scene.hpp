@@ -19,6 +19,9 @@ namespace pg
 	class Registries;
 	class BattleUnitViewLogic;
 	class BattleBanner;
+	class BattleResultScreen;
+	class BattleHud;
+	class BattleUnit;
 	struct BattleEvent;
 	enum class BattleSide;
 
@@ -37,8 +40,11 @@ namespace pg
 		const ICellLookup &_worldLookup;
 		const Registries &_registries;
 		BattleUnitViewLogic &_unitViews;
+		BattleHud &_hud;
 		BattleBanner &_banner;
+		BattleResultScreen &_resultScreen;
 		spk::ContractProvider<const BattleEvent *>::Contract _battleEventContract;
+		spk::ContractProvider<BattleUnit *>::Contract _impressedContract;
 		std::optional<spk::Vector3Int> _turnFeedbackCell;
 		float _turnFeedbackSeconds = 0.0f;
 
@@ -54,7 +60,9 @@ namespace pg
 			const ICellLookup &p_worldLookup,
 			const Registries &p_registries,
 			BattleUnitViewLogic &p_unitViews,
-			BattleBanner &p_banner);
+			BattleHud &p_hud,
+			BattleBanner &p_banner,
+			BattleResultScreen &p_resultScreen);
 
 		void begin(BattleContext &p_context, BattleCoordinator &p_coordinator);
 		void synchronizeUnits();

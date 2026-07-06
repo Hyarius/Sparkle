@@ -14,7 +14,7 @@ namespace pg
 				continue;
 			}
 			(void)p_context.defeatUnit(*unit);
-			p_context.report({.type = BattleEventType::UnitDefeated, .turnIndex = p_context.currentTurn.turnIndex, .sourceAbility = p_ability, .caster = p_caster, .target = unit});
+			p_context.report(UnitDefeatedEvent{.context = {.turnIndex = p_context.currentTurn.turnIndex, .sourceAbility = p_ability, .caster = p_caster, .target = unit}});
 		}
 	}
 }

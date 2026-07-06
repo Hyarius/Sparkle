@@ -1,0 +1,5 @@
+{
+  "version":1,"size":[7,4,6],"palette":{"0":null,"1":"stone-block","2":"wall-stone"},
+  "fill":[{"min":[0,0,0],"max":[6,0,5],"voxel":"1"},{"min":[0,1,0],"max":[6,2,0],"voxel":"2"},{"min":[0,1,5],"max":[6,2,5],"voxel":"2"},{"min":[0,1,1],"max":[0,2,4],"voxel":"2"},{"min":[6,1,1],"max":[6,2,4],"voxel":"2"}],
+  "cells":[{"at":[3,1,0],"voxel":"0"},{"at":[3,2,0],"voxel":"0"}],"anchors":[{"name":"door","at":[3,0,0]}]
+}

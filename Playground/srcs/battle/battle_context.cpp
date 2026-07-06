@@ -2,7 +2,9 @@
 
 #include "core/event_center.hpp"
 #include "creatures/creature_unit.hpp"
+#include "creatures/creature_species.hpp"
 #include "statuses/status.hpp"
+#include "taming/wild_battle_unit.hpp"
 
 #include <algorithm>
 
@@ -16,7 +18,16 @@ namespace pg
 
 	BattleUnit &BattleContext::addUnit(CreatureUnit *p_source, BattleSide p_side)
 	{
-		auto unit = std::make_unique<BattleUnit>(p_source, p_side);
+		std::unique_ptr<BattleUnit> unit;
+		if (p_source != nullptr && p_source->species != nullptr && p_side == BattleSide::Enemy &&
+			allowsTaming && !p_source->species->tamingProfile.empty())
+		{
+			unit = std::make_unique<WildBattleUnit>(p_source, p_source->species->tamingProfile);
+		}
+		else
+		{
+			unit = std::make_unique<BattleUnit>(p_source, p_side);
+		}
 		BattleUnit &result = *unit;
 		result.statuses.bind(result, *this);
 		if (p_source != nullptr)
@@ -110,6 +121,10 @@ namespace pg
 	}
 	bool BattleContext::defeatUnit(BattleUnit &p_unit)
 	{
+		if (auto *wild = dynamic_cast<WildBattleUnit *>(&p_unit); wild != nullptr)
+		{
+			wild->tamingProgress.markFailed();
+		}
 		return removeUnit(p_unit);
 	}
 

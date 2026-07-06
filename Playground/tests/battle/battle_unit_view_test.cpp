@@ -35,7 +35,7 @@ TEST(BattleUnitViewLogic, RegistryTracksPlacementDefeatAndBattleEnd)
 	EXPECT_EQ(views.partCount(player), 1u);
 
 	ASSERT_TRUE(context.defeatUnit(enemy));
-	context.report({.type = pg::BattleEventType::UnitDefeated, .target = &enemy});
+	context.report(pg::UnitDefeatedEvent{.context = {.target = &enemy}});
 	EXPECT_EQ(views.registeredViewCount(), 2u);
 	EXPECT_EQ(views.activeViewCount(), 1u);
 	views.advance(pg::BattleUnitViewLogic::SinkDuration + 0.1f);
@@ -60,11 +60,56 @@ TEST(BattleUnitViewLogic, MoveResolutionStartsAndSettlesPresentationTween)
 	pg::BattleUnitViewLogic views(engine);
 	views.begin(context);
 	ASSERT_TRUE(context.tryMoveUnit(unit, to));
-	context.report({.type = pg::BattleEventType::DistanceTravelled, .caster = &unit, .distance = 2});
+	context.report(pg::DistanceTravelledEvent{.context = {.caster = &unit}, .distance = 2});
 	EXPECT_TRUE(views.viewBusy());
 
 	views.advance(1.0f);
 	EXPECT_FALSE(views.viewBusy());
 	ASSERT_NE(views.find(unit), nullptr);
 	EXPECT_EQ(views.find(unit)->displayedCell, to);
+}
+
+TEST(BattleUnitViewLogic, ImpressedUnitLeavesThePresentationRegistryImmediately)
+{
+	pg::test::BoardFixture fixture({"###"});
+	pg::EventCenter events;
+	pg::BattleContext context(events, pg::BoardBuilder::fromGrid(fixture.grid(), fixture.registry(), 1));
+	pg::BattleUnit &enemy = context.addUnit(unitSource("wild"), pg::BattleSide::Enemy);
+	ASSERT_TRUE(context.tryPlaceUnit(enemy, fixture.cell(1, 0)));
+	spk::GameEngine engine;
+	pg::BattleUnitViewLogic views(engine);
+	views.begin(context);
+	ASSERT_EQ(views.registeredViewCount(), 1u);
+
+	events.creatureImpressed.trigger(&enemy);
+
+	EXPECT_EQ(views.registeredViewCount(), 0u);
+	EXPECT_EQ(views.find(enemy), nullptr);
+}
+
+TEST(BattleUnitViewLogic, ManualPlacementChangesSynchronizeMovesAndUnplacedUnits)
+{
+	pg::test::BoardFixture fixture({"###"});
+	pg::EventCenter events;
+	pg::BattleContext context(
+		events, pg::BoardBuilder::fromGrid(fixture.grid(), fixture.registry(), 1));
+	pg::BattleUnit &first = context.addUnit(unitSource("first"), pg::BattleSide::Player);
+	pg::BattleUnit &second = context.addUnit(unitSource("second"), pg::BattleSide::Player);
+	ASSERT_TRUE(context.tryPlaceUnit(first, fixture.cell(0, 0)));
+	ASSERT_TRUE(context.tryPlaceUnit(second, fixture.cell(1, 0)));
+
+	spk::GameEngine engine;
+	pg::BattleUnitViewLogic views(engine);
+	views.begin(context);
+	ASSERT_TRUE(context.trySwapUnits(first, second));
+	events.battlePlacementChanged.trigger();
+	ASSERT_NE(views.find(first), nullptr);
+	ASSERT_NE(views.find(second), nullptr);
+	EXPECT_EQ(views.find(first)->displayedCell, fixture.cell(1, 0));
+	EXPECT_EQ(views.find(second)->displayedCell, fixture.cell(0, 0));
+
+	ASSERT_TRUE(context.removeUnit(second));
+	events.battlePlacementChanged.trigger();
+	EXPECT_EQ(views.find(second), nullptr);
+	EXPECT_EQ(views.registeredViewCount(), 1u);
 }

@@ -77,6 +77,31 @@ TEST(EncounterTableParser, LoadsNullPaddedTeamsAndAuthoredData)
 	const pg::EncounterTable &authored = registries().encounterTables().get("forest-basic");
 	ASSERT_NE(authored.tierForBadges(0), nullptr);
 	EXPECT_EQ(authored.tierForBadges(0)->weightedTeams.front().team.front().speciesId, "sprout");
+	ASSERT_EQ(authored.tierForBadges(0)->weightedTeams.size(), 2);
+	EXPECT_EQ(
+		authored.tierForBadges(0)->weightedTeams[1].team.front().completedNodeUuids,
+		(std::vector<std::string>{"10000000-0000-4000-8000-000000000002"}));
+	ASSERT_TRUE(authored.tierForBadges(0)->weightedTeams[1].boardSize.has_value());
+	EXPECT_EQ(*authored.tierForBadges(0)->weightedTeams[1].boardSize, spk::Vector2Int(13, 9));
+	EXPECT_EQ(authored.tierForBadges(1)->weightedTeams.front().displayName, "forest pair");
+	EXPECT_EQ(authored.tierForBadges(2)->weightedTeams.front().displayName, "blazing grove");
+}
+
+TEST(EncounterTable, SparseTierFallbackCoversAllBadgeCountsAndPostGame)
+{
+	pg::EncounterTable table;
+	table.tiers[0].weightedTeams.push_back({.displayName = "zero", .weight = 1, .team = {{.speciesId = "sprout"}}});
+	table.tiers[2].weightedTeams.push_back({.displayName = "two", .weight = 1, .team = {{.speciesId = "sprout"}}});
+	table.tiers[5].weightedTeams.push_back({.displayName = "five", .weight = 1, .team = {{.speciesId = "sprout"}}});
+	table.tiers[9].weightedTeams.push_back({.displayName = "post", .weight = 1, .team = {{.speciesId = "sprout"}}});
+	const std::vector<std::string> expected = {
+		"zero", "zero", "two", "two", "two", "five", "five", "five", "five", "post", "post"};
+	for (int badges = 0; badges <= 10; ++badges)
+	{
+		const pg::EncounterTier *tier = table.tierForBadges(badges);
+		ASSERT_NE(tier, nullptr);
+		EXPECT_EQ(tier->weightedTeams.front().displayName, expected[static_cast<std::size_t>(badges)]);
+	}
 }
 
 TEST(EncounterTableParser, RejectsInvalidWeightAndSlotCount)

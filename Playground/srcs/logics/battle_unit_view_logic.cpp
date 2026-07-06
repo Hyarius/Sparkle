@@ -45,6 +45,15 @@ namespace pg
 				_spawn(*p_unit, *p_unit->boardPosition);
 			}
 		});
+		_placementChangedContract = p_context.events().battlePlacementChanged.subscribe([this] {
+			synchronize();
+		});
+		_impressedContract = p_context.events().creatureImpressed.subscribe([this](BattleUnit *p_unit) {
+			if (p_unit != nullptr)
+			{
+				_remove(*p_unit);
+			}
+		});
 		synchronize();
 	}
 
@@ -89,12 +98,32 @@ namespace pg
 		{
 			return;
 		}
+		std::vector<BattleUnit *> removed;
+		for (const auto &[unit, entry] : _entries)
+		{
+			(void)entry;
+			if (unit == nullptr || !unit->boardPosition.has_value()) removed.push_back(unit);
+		}
+		for (BattleUnit *unit : removed)
+		{
+			if (unit != nullptr) _remove(*unit);
+		}
 		for (BattleUnit *unit : _context->allUnits())
 		{
-			if (unit != nullptr && unit->boardPosition.has_value() && !unit->isDefeated() && !_entries.contains(unit))
+			if (unit == nullptr || !unit->boardPosition.has_value() || unit->isDefeated()) continue;
+			const auto found = _entries.find(unit);
+			if (found == _entries.end())
 			{
 				_spawn(*unit, *unit->boardPosition);
+				continue;
 			}
+			BattleUnitView &view = *found->second.view;
+			view.displayedCell = *unit->boardPosition;
+			view.path.clear();
+			_place(view, {
+				static_cast<float>(unit->boardPosition->x) + 0.5f,
+				walkHeightAtCenter(_context->board.terrain().cells(), *unit->boardPosition),
+				static_cast<float>(unit->boardPosition->z) + 0.5f});
 		}
 	}
 
@@ -149,20 +178,36 @@ namespace pg
 		view.sinkSeconds = 0.0f;
 	}
 
+	void BattleUnitViewLogic::_remove(BattleUnit &p_unit)
+	{
+		const auto found = _entries.find(&p_unit);
+		if (found == _entries.end())
+		{
+			return;
+		}
+		for (const auto &partEntity : found->second.partEntities)
+		{
+			_engine.removeEntity(partEntity.get());
+		}
+		_engine.removeEntity(found->second.entity.get());
+		_entries.erase(found);
+	}
+
 	void BattleUnitViewLogic::_onBattleEvent(const BattleEvent *p_event)
 	{
 		if (p_event == nullptr)
 		{
 			return;
 		}
-		if (p_event->type == BattleEventType::DistanceTravelled &&
-			p_event->caster != nullptr && p_event->caster->boardPosition.has_value())
+		if (const DistanceTravelledEvent *travelled = p_event->getIf<DistanceTravelledEvent>();
+			travelled != nullptr && travelled->context.caster != nullptr && travelled->context.caster->boardPosition.has_value())
 		{
-			_beginMove(*p_event->caster, *p_event->caster->boardPosition);
+			_beginMove(*travelled->context.caster, *travelled->context.caster->boardPosition);
 		}
-		else if (p_event->type == BattleEventType::UnitDefeated && p_event->target != nullptr)
+		else if (const UnitDefeatedEvent *defeated = p_event->getIf<UnitDefeatedEvent>();
+			defeated != nullptr && defeated->context.target != nullptr)
 		{
-			_beginDefeat(*p_event->target);
+			_beginDefeat(*defeated->context.target);
 		}
 	}
 
@@ -222,6 +267,8 @@ namespace pg
 	{
 		_eventContract.resign();
 		_placementContract.resign();
+		_placementChangedContract.resign();
+		_impressedContract.resign();
 		for (auto &[unit, entry] : _entries)
 		{
 			(void)unit;

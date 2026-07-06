@@ -147,6 +147,10 @@ TEST(GameContext, NewGameStartsWithTwoAuthoredSpecies)
 	ASSERT_EQ(game.player.teamSize(), 2);
 	EXPECT_EQ(game.player.team[0]->species, &registries().creatures().get("sprout"));
 	EXPECT_EQ(game.player.team[1]->species, &registries().creatures().get("ember-fox"));
+	EXPECT_EQ(game.player.team[0]->featBoardProgress.nodes.size(), 1);
+	EXPECT_EQ(
+		std::ranges::find(game.player.team[0]->abilities, &registries().abilities().get("ember")),
+		game.player.team[0]->abilities.end());
 }
 
 TEST(EncounterService, InstantiatesBothSidesFromCreatureSpecies)
@@ -171,10 +175,39 @@ TEST(EncounterService, InstantiatesBothSidesFromCreatureSpecies)
 	EXPECT_EQ(service.activeBattle()->getUnits(pg::BattleSide::Enemy).front()->source()->species, &registries().creatures().get("sprout"));
 }
 
-TEST(FeatBoardProgressStub, RoundTripsUnknownPayloadUntilStep17)
+TEST(EncounterService, AppliesCompletedNodeStatsAndFormBeforeBattleInstantiation)
+{
+	pg::GameContext game;
+	game.newGame(registries());
+	game.world.world = std::make_unique<pg::VoxelWorld>(registries().voxels());
+	game.world.world->loadFromMap(registries().maps().get("m1-testground"));
+	const spk::Vector3Int center{32, 3, 40};
+	pg::EncounterService service(game, registries(), [center] {
+		return center;
+	});
+	pg::EncounterSpawn spawn{
+		.displayName = "advanced wild sprout",
+		.enemyTeam = {{
+			.speciesId = "sprout",
+			.completedNodeUuids = {
+				"10000000-0000-4000-8000-000000000002",
+				"10000000-0000-4000-8000-000000000008"}}},
+		.boardSize = {7, 7}};
+	game.events.encounterTriggered.trigger(spawn);
+
+	ASSERT_NE(service.activeBattle(), nullptr);
+	ASSERT_EQ(service.activeBattle()->getUnits(pg::BattleSide::Enemy).size(), 1);
+	const pg::CreatureUnit *enemy = service.activeBattle()->getUnits(pg::BattleSide::Enemy).front()->source();
+	ASSERT_NE(enemy, nullptr);
+	EXPECT_EQ(enemy->attributes.health, enemy->species->attributes.health + 2);
+	EXPECT_EQ(enemy->currentFormId, "blaze");
+	EXPECT_EQ(service.activeBattle()->getUnits(pg::BattleSide::Enemy).front()->attributes.hp.max(), enemy->attributes.health);
+}
+
+TEST(FeatBoardProgress, DropsUnknownNodesAgainstResolvedBoard)
 {
 	pg::FeatBoardProgress progress;
 	const nlohmann::json payload = {{"futureNode", {{"completionCount", 2}}}};
-	progress.fromJson(payload);
-	EXPECT_EQ(progress.toJson(), payload);
+	EXPECT_EQ(progress.fromJson(payload, registries().featBoards().get("sprout-board")), 1);
+	EXPECT_TRUE(progress.toJson().empty());
 }

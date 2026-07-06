@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "worldSize": [1024, 1024],
+  "landmass": {
+    "falloff": "macroVoronoi",
+    "regionCount": 450,
+    "landmassCount": [1, 3],
+    "landRatio": 0.48,
+    "borderOceanWidth": 8,
+    "compactness": 0.35,
+    "noiseFrequency": 0.004,
+    "noiseAmplitude": 0.35,
+    "seaLevel": 0.0,
+    "detailFrequency": 0.02,
+    "detailAmplitude": 0.1
+  },
+  "height": {
+    "baseFrequency": 0.008,
+    "mountainFrequency": 0.02,
+    "mountainThreshold": 0.65,
+    "maxHeight": 48
+  },
+  "cities": {
+    "majorCount": 8,
+    "minSpacing": 85,
+    "coastalBias": 0.25,
+    "satellitesPerCity": [1, 3],
+    "satelliteRadius": 55
+  },
+  "biomes": ["forest", "desert", "tundra", "swamp", "volcano", "meadow", "coast", "highland"],
+  "transport": {
+    "extraEdges": 3,
+    "slopeCostFactor": 4.0,
+    "riverCrossingCost": 25.0,
+    "tunnelTriggerCost": 400.0
+  }
+}

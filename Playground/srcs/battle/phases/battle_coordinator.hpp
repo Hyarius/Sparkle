@@ -28,9 +28,14 @@ namespace pg
 		void _finish();
 
 	public:
-		BattleCoordinator(BattleContext &p_context, std::uint32_t p_seed = 0);
+		BattleCoordinator(
+			BattleContext &p_context,
+			std::uint32_t p_seed = 0,
+			bool p_interactivePlacement = false);
+		~BattleCoordinator();
 		void start();
 		void tick(float p_seconds);
+		[[nodiscard]] PlacementPhase &placementPhase() noexcept;
 		[[nodiscard]] PlayerTurnPhase &playerTurnPhase() noexcept;
 		[[nodiscard]] bool finished() const noexcept;
 		[[nodiscard]] std::optional<BattleSide> winner() const noexcept;

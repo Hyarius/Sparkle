@@ -9,6 +9,7 @@ namespace pg
 
 	public:
 		~BattleOrchestrator();
+		void reset();
 		void transitionTo(IBattlePhase &p_phase);
 		void tick(float p_seconds);
 		[[nodiscard]] IBattlePhase *current() const noexcept;

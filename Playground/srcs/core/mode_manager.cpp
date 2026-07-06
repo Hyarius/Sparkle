@@ -3,6 +3,7 @@
 #include "battle/battle_context.hpp"
 #include "core/battle_mode.hpp"
 #include "core/exploration_mode.hpp"
+#include "creatures/creature_unit.hpp"
 #include "encounters/encounter_emitter.hpp"
 
 #include <stdexcept>
@@ -40,6 +41,17 @@ namespace pg
 		_battleResolvedContract = _context.events.battleResolved.subscribe([this](BattleContext *p_context, BattleSide p_winner) {
 			if (_currentMode == _battleMode.get())
 			{
+				if (p_context != nullptr)
+				{
+					for (BattleUnit *unit : p_context->getUnits(BattleSide::Player))
+					{
+						if (unit != nullptr && unit->source() != nullptr)
+						{
+							unit->source()->currentHealth = unit->attributes.hp.current();
+						}
+					}
+					_context.events.partyChanged.trigger();
+				}
 				_resolvedContext = p_context;
 				auto *mode = dynamic_cast<BattleMode *>(_battleMode.get());
 				if (mode == nullptr || !mode->presentResult(p_winner))

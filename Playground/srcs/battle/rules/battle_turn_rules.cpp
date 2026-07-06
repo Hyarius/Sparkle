@@ -14,6 +14,30 @@
 #include <cmath>
 #include <limits>
 
+namespace
+{
+	[[nodiscard]] int nearestOpponentDistance(const pg::BattleContext &p_context, const pg::BattleUnit &p_unit)
+	{
+		if (!p_unit.boardPosition.has_value())
+		{
+			return std::numeric_limits<int>::max();
+		}
+		int result = std::numeric_limits<int>::max();
+		for (const pg::BattleUnit *opponent : p_context.getOpponents(p_unit))
+		{
+			if (opponent == nullptr || !opponent->isActiveInBattle() || !opponent->boardPosition.has_value())
+			{
+				continue;
+			}
+			result = std::min(
+				result,
+				std::abs(p_unit.boardPosition->x - opponent->boardPosition->x) +
+					std::abs(p_unit.boardPosition->z - opponent->boardPosition->z));
+		}
+		return result;
+	}
+}
+
 namespace pg
 {
 	void BattleTurnRules::advanceTurnBars(BattleContext &p_context, float p_seconds)
@@ -70,7 +94,9 @@ namespace pg
 	{
 		p_context.currentTurn = {.activeUnit = &p_unit, .turnIndex = p_context.currentTurn.turnIndex + 1};
 		p_unit.attributes.turnBar.setCurrent(p_unit.attributes.turnBar.max());
-		p_context.report({.type = BattleEventType::TurnStarted, .turnIndex = p_context.currentTurn.turnIndex, .caster = &p_unit});
+		p_context.report(TurnStartedEvent{
+			.context = {.turnIndex = p_context.currentTurn.turnIndex, .caster = &p_unit},
+			.nearestUnitDistance = nearestOpponentDistance(p_context, p_unit)});
 		BattleStatusRules::applyHook(p_unit, StatusHookPoint::TurnStart);
 		BattleUnitRules::resolvePendingDefeats(p_context, &p_unit);
 	}
@@ -86,7 +112,7 @@ namespace pg
 		auto reportRemovals = [&](BattleUnit &owner, const std::vector<BattleStatusRemoval> &removed) {
 			for (const BattleStatusRemoval &status : removed)
 			{
-				p_context.report({.type = BattleEventType::StatusRemoved, .turnIndex = p_context.currentTurn.turnIndex, .status = status.definition, .caster = &owner, .target = &owner, .amount = status.stacks});
+				p_context.report(StatusRemovedEvent{.context = {.turnIndex = p_context.currentTurn.turnIndex, .caster = &owner, .target = &owner}, .status = status.definition, .count = status.stacks});
 			}
 		};
 		reportRemovals(*unit, unit->statuses.advanceTurnDurations());
@@ -102,7 +128,9 @@ namespace pg
 		(void)BattleResourceRules::change(*unit, BattleResourceKind::AP, unit->attributes.ap.max() - unit->attributes.ap.current());
 		(void)BattleResourceRules::change(*unit, BattleResourceKind::MP, unit->attributes.mp.max() - unit->attributes.mp.current());
 		unit->attributes.turnBar.setCurrent(0.0f);
-		p_context.report({.type = BattleEventType::TurnEnded, .turnIndex = p_context.currentTurn.turnIndex, .caster = unit});
+		p_context.report(TurnEndedEvent{
+			.context = {.turnIndex = p_context.currentTurn.turnIndex, .caster = unit},
+			.nearestUnitDistance = nearestOpponentDistance(p_context, *unit)});
 		p_context.events().battleTurnEnded.trigger(unit);
 		p_context.currentTurn.activeUnit = nullptr;
 	}

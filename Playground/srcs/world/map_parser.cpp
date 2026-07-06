@@ -93,7 +93,7 @@ namespace pg
 		const VoxelRegistry &p_voxels,
 		const Registry<PrefabDefinition> &p_prefabs)
 	{
-		p_reader.forbidUnknown({"version", "size", "palette", "fill", "cells", "stamps", "markers", "portals", "biome"});
+		p_reader.forbidUnknown({"version", "size", "palette", "fill", "cells", "stamps", "markers", "portals", "trainers", "biome"});
 		if (p_reader.require<int>("version") != 1)
 		{
 			throw JsonError(p_reader.file(), p_reader.pathFor("version"), "unsupported map version");
@@ -171,6 +171,56 @@ namespace pg
 					throw JsonError(portalReader.file(), portalReader.pathFor("name"), "duplicate portal name");
 				}
 				result.portals.push_back(std::move(portal));
+			}
+		}
+
+		std::set<std::string> trainerIds;
+		std::set<std::string> trainerFlags;
+		if (p_reader.contains("trainers"))
+		{
+			for (JsonReader trainerReader : p_reader.childArray("trainers"))
+			{
+				trainerReader.forbidUnknown(
+					{"id", "at", "facing", "sightRange", "encounterTable", "clearedFlag", "boardSize"});
+				const nlohmann::json boardSize = trainerReader.optional<nlohmann::json>(
+					"boardSize", nlohmann::json::array({11, 11}));
+				if (!boardSize.is_array() || boardSize.size() != 2 ||
+					!boardSize[0].is_number_integer() || !boardSize[1].is_number_integer() ||
+					boardSize[0].get<int>() <= 0 || boardSize[1].get<int>() <= 0)
+				{
+					throw JsonError(
+						trainerReader.file(), trainerReader.pathFor("boardSize"),
+						"expected an array of two positive integers");
+				}
+				MapTrainer trainer{
+					.id = trainerReader.require<std::string>("id"),
+					.at = detail::parseVector3(trainerReader, "at"),
+					.facing = detail::parseOrientation(trainerReader, "facing"),
+					.sightRange = trainerReader.require<int>("sightRange"),
+					.encounterTable = trainerReader.require<std::string>("encounterTable"),
+					.clearedFlag = trainerReader.require<std::string>("clearedFlag"),
+					.boardSize = {boardSize[0].get<int>(), boardSize[1].get<int>()}};
+				if (trainer.id.empty() || trainer.encounterTable.empty() || trainer.clearedFlag.empty())
+				{
+					throw JsonError(trainerReader.file(), trainerReader.path(), "trainer string fields must not be empty");
+				}
+				if (trainer.sightRange <= 0)
+				{
+					throw JsonError(trainerReader.file(), trainerReader.pathFor("sightRange"), "value must be positive");
+				}
+				if (!result.grid.isWithinBounds(trainer.at))
+				{
+					throw JsonError(trainerReader.file(), trainerReader.pathFor("at"), "trainer is outside the map");
+				}
+				if (!trainerIds.insert(trainer.id).second)
+				{
+					throw JsonError(trainerReader.file(), trainerReader.pathFor("id"), "duplicate trainer id");
+				}
+				if (!trainerFlags.insert(trainer.clearedFlag).second)
+				{
+					throw JsonError(trainerReader.file(), trainerReader.pathFor("clearedFlag"), "duplicate trainer cleared flag");
+				}
+				result.trainers.push_back(std::move(trainer));
 			}
 		}
 		return result;

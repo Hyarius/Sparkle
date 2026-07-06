@@ -16,6 +16,7 @@ namespace pg
 			throw std::invalid_argument("battle unit requires a creature source");
 		}
 		side = p_side;
+		attributes.hp.setCurrent(_source->currentHealth < 0 ? _source->attributes.health : _source->currentHealth);
 	}
 
 	BattleUnit::BattleUnit(CreatureUnit &p_source, BattleSide p_side) :

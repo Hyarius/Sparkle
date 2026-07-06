@@ -39,6 +39,17 @@ namespace pg
 		MapPortalTarget target;
 	};
 
+	struct MapTrainer
+	{
+		std::string id;
+		spk::Vector3Int at{};
+		VoxelOrientation facing = VoxelOrientation::PositiveZ;
+		int sightRange = 6;
+		std::string encounterTable;
+		std::string clearedFlag;
+		spk::Vector2Int boardSize{11, 11};
+	};
+
 	struct MapDefinition
 	{
 		std::string id;
@@ -46,6 +57,7 @@ namespace pg
 		std::vector<MapStamp> stamps;
 		std::vector<MapMarker> markers;
 		std::vector<MapPortal> portals;
+		std::vector<MapTrainer> trainers;
 		std::string biome;
 
 		[[nodiscard]] const spk::Vector3Int &size() const noexcept { return grid.size(); }

@@ -40,6 +40,22 @@
 		}
 	},
 	"tamingProfile": {
-		"conditions": []
+		"conditions": [
+			{
+				"type": "dealDamage",
+				"scope": "ability",
+				"requiredAmount": 6,
+				"damageKind": "physical",
+				"sourceAbilities": []
+			},
+			{
+				"type": "turnEndPosition",
+				"requiredRepeatCount": 2,
+				"target": "enemy",
+				"condition": "within",
+				"distance": 2,
+				"maximumDistance": 2
+			}
+		]
 	}
 }

@@ -2,6 +2,8 @@
 
 #include "structures/graphics/texture/spk_font.hpp"
 
+#include <algorithm>
+
 namespace pg
 {
 	BattleBanner::BattleBanner(const std::string &p_name, spk::Widget *p_parent) :
@@ -21,8 +23,16 @@ namespace pg
 
 	void BattleBanner::showResult(BattleSide p_winner, std::function<void()> p_confirmation)
 	{
+		if (_notification && isActivated())
+		{
+			_queuedResult = p_winner;
+			_queuedConfirmation = std::move(p_confirmation);
+			return;
+		}
+		_notification = false;
 		_confirmation = std::move(p_confirmation);
 		_elapsedSeconds = 0.0f;
+		_autoHideSeconds = AutoConfirmSeconds;
 		_label.setText(
 			p_winner == BattleSide::Player
 				? "Victory!\nclick to continue"
@@ -30,11 +40,25 @@ namespace pg
 		activate();
 	}
 
+	void BattleBanner::showMessage(std::string p_message, float p_seconds)
+	{
+		_notification = true;
+		_confirmation = nullptr;
+		_elapsedSeconds = 0.0f;
+		_autoHideSeconds = std::max(0.0f, p_seconds);
+		_label.setText(std::move(p_message));
+		activate();
+	}
+
 	void BattleBanner::hideResult()
 	{
 		deactivate();
 		_confirmation = nullptr;
+		_queuedResult.reset();
+		_queuedConfirmation = nullptr;
+		_notification = false;
 		_elapsedSeconds = 0.0f;
+		_autoHideSeconds = AutoConfirmSeconds;
 	}
 
 	bool BattleBanner::showing() const noexcept
@@ -49,7 +73,17 @@ namespace pg
 			return;
 		}
 		auto confirmation = std::move(_confirmation);
+		const bool wasNotification = _notification;
+		_notification = false;
 		deactivate();
+		if (wasNotification && _queuedResult.has_value())
+		{
+			const BattleSide winner = *_queuedResult;
+			_queuedResult.reset();
+			auto queuedConfirmation = std::move(_queuedConfirmation);
+			showResult(winner, std::move(queuedConfirmation));
+			return;
+		}
 		if (confirmation)
 		{
 			confirmation();
@@ -59,7 +93,7 @@ namespace pg
 	void BattleBanner::_onUpdate(const spk::UpdateTick &p_tick)
 	{
 		_elapsedSeconds += static_cast<float>(p_tick.deltaTime.seconds());
-		if (_elapsedSeconds >= AutoConfirmSeconds)
+		if (_elapsedSeconds >= _autoHideSeconds)
 		{
 			_confirm();
 		}

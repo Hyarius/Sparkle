@@ -81,7 +81,7 @@ namespace pg
 		{
 			for (const BattleStatusRemoval &removed : unit->statuses.advanceSeconds(p_seconds))
 			{
-				p_context.report({.type = BattleEventType::StatusRemoved, .turnIndex = p_context.currentTurn.turnIndex, .status = removed.definition, .caster = unit, .target = unit, .amount = removed.stacks});
+				p_context.report(StatusRemovedEvent{.context = {.turnIndex = p_context.currentTurn.turnIndex, .caster = unit, .target = unit}, .status = removed.definition, .count = removed.stacks});
 			}
 		}
 	}

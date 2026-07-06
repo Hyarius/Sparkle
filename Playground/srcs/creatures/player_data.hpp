@@ -13,7 +13,6 @@ namespace pg
 		static constexpr std::size_t TeamCapacity = 6;
 
 		spk::Vector3 position = spk::Vector3::Zero;
-		int badgeCount = 0;
 		std::array<std::unique_ptr<CreatureUnit>, TeamCapacity> team;
 		CreatureStorage storage;
 

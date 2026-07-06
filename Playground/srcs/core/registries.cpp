@@ -3,6 +3,7 @@
 #include "core/json.hpp"
 
 #include <iostream>
+#include <algorithm>
 
 namespace pg
 {
@@ -27,9 +28,15 @@ namespace pg
 		});
 		Registry<ModelDefinition> loadedModels;
 		loadedModels.load(p_dataDirectory / "models", parseModelDefinition);
+		FeatRegistry loadedFeatBoards;
+		loadedFeatBoards.load(p_dataDirectory / "featboards", loadedAbilities, loadedStatuses);
+		Registry<AIBehaviour> loadedAI;
+		loadedAI.load(p_dataDirectory / "ai", [&loadedAbilities, &loadedStatuses](JsonReader &p_reader) {
+			return parseAIBehaviour(p_reader, loadedAbilities, loadedStatuses);
+		});
 		Registry<CreatureSpecies> loadedCreatures;
-		loadedCreatures.load(p_dataDirectory / "creatures", [&loadedAbilities](JsonReader &p_reader) {
-			return parseCreatureSpecies(p_reader, loadedAbilities);
+		loadedCreatures.load(p_dataDirectory / "creatures", [&loadedAbilities, &loadedFeatBoards](JsonReader &p_reader) {
+			return parseCreatureSpecies(p_reader, loadedAbilities, loadedFeatBoards);
 		});
 		for (const std::string &speciesId : loadedCreatures.ids())
 		{
@@ -46,7 +53,24 @@ namespace pg
 			}
 		}
 		Registry<EncounterTable> loadedEncounterTables;
-		loadedEncounterTables.load(p_dataDirectory / "encounter-tables", parseEncounterTable);
+		loadedEncounterTables.load(p_dataDirectory / "encounter-tables", [&loadedAI](JsonReader &p_reader) {
+			EncounterTable table = parseEncounterTable(p_reader);
+			for (const EncounterTier &tier : table.tiers)
+			{
+				for (const WeightedEncounterTeam &team : tier.weightedTeams)
+				{
+					for (const EncounterTeamMember &member : team.team)
+					{
+						if (loadedAI.tryGet(member.aiId) == nullptr)
+						{
+							throw JsonError(
+								p_reader.file(), "$.tiers", "unknown AI behaviour id '" + member.aiId + "'");
+						}
+					}
+				}
+			}
+			return table;
+		});
 		Registry<BiomeDefinition> loadedBiomes;
 		loadedBiomes.load(
 			p_dataDirectory / "biomes",
@@ -71,6 +95,35 @@ namespace pg
 					"$.biome",
 					"unknown biome id '" + map.biome + "'");
 			}
+			for (std::size_t index = 0; index < map.trainers.size(); ++index)
+			{
+				if (loadedEncounterTables.tryGet(map.trainers[index].encounterTable) == nullptr)
+				{
+					throw JsonError(
+						p_dataDirectory / "maps" / (mapId + ".json"),
+						"$.trainers[" + std::to_string(index) + "].encounterTable",
+						"unknown encounter table id '" + map.trainers[index].encounterTable + "'");
+				}
+			}
+			for (std::size_t index = 0; index < map.portals.size(); ++index)
+			{
+				const MapPortal &portal = map.portals[index];
+				const MapDefinition *targetMap = loadedMaps.tryGet(portal.target.map);
+				if (targetMap == nullptr)
+				{
+					throw JsonError(
+						p_dataDirectory / "maps" / (mapId + ".json"),
+						"$.portals[" + std::to_string(index) + "].target.map",
+						"unknown map id '" + portal.target.map + "'");
+				}
+				if (std::ranges::find(targetMap->portals, portal.target.portal, &MapPortal::name) == targetMap->portals.end())
+				{
+					throw JsonError(
+						p_dataDirectory / "maps" / (mapId + ".json"),
+						"$.portals[" + std::to_string(index) + "].target.portal",
+						"unknown portal '" + portal.target.portal + "' in map '" + portal.target.map + "'");
+				}
+			}
 		}
 
 		_gameRules = std::move(loadedGameRules);
@@ -78,6 +131,8 @@ namespace pg
 		_statuses = std::move(loadedStatuses);
 		_abilities = std::move(loadedAbilities);
 		_models = std::move(loadedModels);
+		_featBoards = std::move(loadedFeatBoards);
+		_ai = std::move(loadedAI);
 		_creatures = std::move(loadedCreatures);
 		_encounterTables = std::move(loadedEncounterTables);
 		_biomes = std::move(loadedBiomes);
@@ -88,6 +143,9 @@ namespace pg
 		std::cout << "Loaded " << _statuses.size() << " status definitions" << std::endl;
 		std::cout << "Loaded " << _creatures.size() << " creature species and "
 				  << _models.size() << " model definitions" << std::endl;
+		std::cout << "Loaded " << _featBoards.size() << " feat boards with "
+				  << _featBoards.nodeCount() << " nodes" << std::endl;
+		std::cout << "Loaded " << _ai.size() << " AI behaviours" << std::endl;
 		std::cout << "Loaded " << _encounterTables.size() << " encounter tables and "
 				  << _biomes.size() << " biome definitions" << std::endl;
 		std::cout << "Loaded " << _prefabs.size() << " prefab definitions and "
@@ -117,6 +175,16 @@ namespace pg
 	const Registry<ModelDefinition> &Registries::models() const noexcept
 	{
 		return _models;
+	}
+
+	const FeatRegistry &Registries::featBoards() const noexcept
+	{
+		return _featBoards;
+	}
+
+	const Registry<AIBehaviour> &Registries::ai() const noexcept
+	{
+		return _ai;
 	}
 
 	const Registry<CreatureSpecies> &Registries::creatures() const noexcept

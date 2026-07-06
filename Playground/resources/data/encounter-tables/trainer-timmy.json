@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "tiers": {
+    "noBadge": {
+      "weightedTeams": [
+        {
+          "displayName": "Trainer Timmy",
+          "weight": 1,
+          "team": [
+            {"species": "sprout", "ai": "healer", "completedNodes": ["10000000-0000-4000-8000-000000000002"]},
+            {"species": "ember-fox", "ai": "skirmisher", "completedNodes": []},
+            null, null, null, null
+          ]
+        }
+      ]
+    },
+    "oneBadge": {"weightedTeams": []},
+    "twoBadges": {"weightedTeams": []},
+    "threeBadges": {"weightedTeams": []},
+    "fourBadges": {"weightedTeams": []},
+    "fiveBadges": {"weightedTeams": []},
+    "sixBadges": {"weightedTeams": []},
+    "sevenBadges": {"weightedTeams": []},
+    "eightBadges": {"weightedTeams": []},
+    "postGame": {"weightedTeams": []}
+  }
+}

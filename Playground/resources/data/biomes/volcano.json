@@ -1,0 +1,1 @@
+{"version":1,"displayName":"Volcano","palette":{"surface":"ash-block","subsurface":"stone-block","deep":"stone-block","flora":["bush"]},"encounterRules":[{"trigger":"bush","table":"forest-basic","chancePerStep":0.1}]}

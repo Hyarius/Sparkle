@@ -15,6 +15,12 @@ namespace pg
 		_builtRevision = static_cast<std::size_t>(-1);
 	}
 
+	void WorldNavigation::resetBounds(TraversalBounds p_bounds) noexcept
+	{
+		_bounds = p_bounds;
+		invalidate();
+	}
+
 	void WorldNavigation::refresh()
 	{
 		if (_builtRevision == _world.revision()) return;

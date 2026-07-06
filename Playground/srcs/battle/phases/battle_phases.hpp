@@ -2,6 +2,7 @@
 
 #include "battle/battle_action.hpp"
 #include "battle/phases/i_battle_phase.hpp"
+#include "structures/design_pattern/spk_contract_provider.hpp"
 
 #include <cstdint>
 #include <functional>
@@ -34,14 +35,27 @@ namespace pg
 	};
 	class PlacementPhase final : public IBattlePhase
 	{
+	public:
+		using ChangeContract = spk::ContractProvider<>::Contract;
+
+	private:
 		BattleContext &_context;
 		std::uint32_t _seed;
+		bool _interactivePlayer = false;
+		bool _active = false;
+		BattleUnit *_selected = nullptr;
 		std::function<void(bool)> _done;
+		spk::ContractProvider<> _changed;
 
 	public:
-		PlacementPhase(BattleContext &c, std::uint32_t s, std::function<void(bool)> d) :
+		PlacementPhase(
+			BattleContext &c,
+			std::uint32_t s,
+			bool p_interactivePlayer,
+			std::function<void(bool)> d) :
 			_context(c),
 			_seed(s),
+			_interactivePlayer(p_interactivePlayer),
 			_done(std::move(d))
 		{
 		}
@@ -49,13 +63,20 @@ namespace pg
 		void tick(float) override
 		{
 		}
-		void exit() override
-		{
-		}
+		void exit() override;
 		std::string_view name() const noexcept override
 		{
 			return "Placement";
 		}
+		[[nodiscard]] bool select(BattleUnit *p_unit);
+		[[nodiscard]] bool placeSelected(const spk::Vector3Int &p_cell);
+		[[nodiscard]] bool autoPlacePlayer();
+		[[nodiscard]] bool confirm();
+		[[nodiscard]] bool canConfirm() const noexcept;
+		[[nodiscard]] bool active() const noexcept;
+		[[nodiscard]] bool interactivePlayer() const noexcept;
+		[[nodiscard]] BattleUnit *selected() const noexcept;
+		[[nodiscard]] ChangeContract subscribeToChange(std::function<void()> p_callback);
 	};
 	class IdlePhase final : public IBattlePhase
 	{

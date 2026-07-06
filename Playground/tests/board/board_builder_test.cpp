@@ -109,7 +109,28 @@ TEST(BoardBuilder, ShrinksOnPathologicalTerrain)
 
 	const pg::BoardData board = pg::BoardBuilder::fromWorld(
 		*world, {8, 0, 8}, {11, 11}, 2, 6, pg::VoxelOrientation::PositiveZ);
-	EXPECT_EQ(board.terrain().size().x, 5);
+	// Independent-axis shrinking preserves usable width when only the depth is pathological.
+	EXPECT_EQ(board.terrain().size().x, 11);
 	EXPECT_EQ(board.terrain().size().z, 5);
-	EXPECT_EQ(board.worldAnchor(), spk::Vector3Int(6, 0, 6));
+	EXPECT_EQ(board.worldAnchor(), spk::Vector3Int(3, 0, 6));
+}
+
+TEST(BoardBuilder, PreservesNonSquareEncounterSizeAndDeploymentOnRoughTerrain)
+{
+	pg::VoxelGrid grid = flatGrid(20);
+	for (int z = 2; z <= 4; ++z)
+	{
+		for (int x = 2; x <= 4; ++x)
+		{
+			grid.cell(x, 0, z) = {};
+		}
+	}
+	auto world = worldFrom(std::move(grid));
+	const pg::BoardData board = pg::BoardBuilder::fromWorld(
+		*world, {10, 0, 10}, {13, 9}, 2, 6, pg::VoxelOrientation::PositiveZ);
+
+	EXPECT_EQ(board.terrain().size().x, 13);
+	EXPECT_EQ(board.terrain().size().z, 9);
+	EXPECT_GE(board.deploymentZones().player.size(), 6);
+	EXPECT_GE(board.deploymentZones().enemy.size(), 6);
 }

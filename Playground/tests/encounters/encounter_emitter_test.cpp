@@ -99,3 +99,22 @@ TEST(EncounterEmitter, BiomeWithoutRulesNeverRolls)
 
 	EXPECT_TRUE(fixture.spawns.empty());
 }
+
+TEST(EncounterEmitter, UsesClearedGymTierAndEncounterBoardSizeOverride)
+{
+	EmitterFixture fixture;
+	fixture.table.tiers[1].weightedTeams.push_back({
+		.displayName = "badge encounter",
+		.weight = 1,
+		.team = {{.speciesId = "ember-fox", .aiId = "test"}},
+		.boardSize = spk::Vector2Int{13, 9}});
+	fixture.context.clearedGyms.insert("gym-forest");
+	pg::ExplorationMode mode(fixture.context);
+	mode.enter();
+	fixture.context.events.playerMoved.trigger({0, 0, 0});
+	mode.exit();
+
+	ASSERT_EQ(fixture.spawns.size(), 1);
+	EXPECT_EQ(fixture.spawns.front().displayName, "badge encounter");
+	EXPECT_EQ(fixture.spawns.front().boardSize, spk::Vector2Int(13, 9));
+}

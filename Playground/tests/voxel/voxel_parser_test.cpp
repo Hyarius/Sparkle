@@ -68,7 +68,9 @@ TEST(VoxelParser, LoadsEveryAuthoredDefinitionAndShapeType)
 	pg::VoxelRegistry registry;
 	registry.load(voxelResourceDirectory());
 
-	ASSERT_EQ(registry.size(), 8);
+	ASSERT_EQ(registry.size(), 20);
+	EXPECT_NE(dynamic_cast<const pg::CubeShape *>(registry.get("cave-floor").shape.get()), nullptr);
+	EXPECT_TRUE(registry.get("cave-floor").data.hasTag("caveFloor"));
 	EXPECT_NE(dynamic_cast<const pg::CrossPlaneShape *>(registry.get("bush").shape.get()), nullptr);
 	EXPECT_NE(dynamic_cast<const pg::CubeShape *>(registry.get("grass-block").shape.get()), nullptr);
 	EXPECT_NE(dynamic_cast<const pg::SlabShape *>(registry.get("slab-stone").shape.get()), nullptr);
@@ -151,14 +153,26 @@ TEST(VoxelRegistry, AssignsStableNumericIdsInSortedStringOrder)
 	registry.load(voxelResourceDirectory());
 
 	const std::vector<std::string> expected = {
+		"ash-block",
 		"bush",
+		"cave-floor",
+		"coast-block",
 		"dirt-block",
 		"grass-block",
+		"highland-block",
+		"meadow-block",
+		"road-block",
+		"road-slope",
+		"sand-block",
+		"sealed-door",
 		"slab-stone",
 		"slope-grass",
+		"snow-block",
 		"stair-stone",
 		"stone-block",
-		"wall-stone"};
+		"swamp-block",
+		"wall-stone",
+		"water"};
 	EXPECT_EQ(registry.ids(), expected);
 	for (std::size_t index = 0; index < expected.size(); ++index)
 	{

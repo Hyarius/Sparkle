@@ -30,7 +30,7 @@ namespace pg
 				return;
 			}
 			(void)BattleResourceRules::change(source, kind, -amount);
-			p_context.report({.type = BattleEventType::ResourceConsumed, .turnIndex = turn, .caster = &source, .amount = amount, .resource = kind});
+			p_context.report(ResourceConsumedEvent{.context = {.turnIndex = turn, .caster = &source}, .resource = kind, .amount = amount});
 		};
 		if (p_action.kind() == BattleActionKind::EndTurn)
 		{
@@ -47,7 +47,7 @@ namespace pg
 				return false;
 			}
 			p_context.currentTurn.moved = true;
-			p_context.report({.type = BattleEventType::DistanceTravelled, .turnIndex = turn, .caster = &source, .distance = move.distance});
+			p_context.report(DistanceTravelledEvent{.context = {.turnIndex = turn, .caster = &source}, .distance = move.distance});
 			BattleUnitRules::resolvePendingDefeats(p_context, &source);
 			return true;
 		}
@@ -67,7 +67,7 @@ namespace pg
 		const int distance = source.boardPosition ? std::abs(source.boardPosition->x - action.targetCells.front().x) +
 														std::abs(source.boardPosition->z - action.targetCells.front().z)
 												  : 0;
-		p_context.report({.type = BattleEventType::AbilityCast, .turnIndex = turn, .sourceAbility = &action.ability, .caster = &source, .distance = distance});
+		p_context.report(AbilityCastEvent{.context = {.turnIndex = turn, .sourceAbility = &action.ability, .caster = &source}, .distance = distance});
 
 		std::vector<std::shared_ptr<const Effect>> legacy;
 		const auto *effects = &action.ability.effects;

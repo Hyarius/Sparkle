@@ -35,7 +35,7 @@ namespace
 		std::vector<std::string> result;
 		for (const auto &event : p_context.log.events())
 		{
-			result.emplace_back(pg::battleEventName(event.type));
+			result.emplace_back(pg::battleEventName(event));
 		}
 		return result;
 	}

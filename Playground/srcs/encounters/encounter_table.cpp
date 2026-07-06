@@ -46,7 +46,7 @@ namespace
 
 	[[nodiscard]] pg::WeightedEncounterTeam parseWeightedTeam(pg::JsonReader &p_reader)
 	{
-		p_reader.forbidUnknown({"displayName", "weight", "team"});
+		p_reader.forbidUnknown({"displayName", "weight", "team", "boardSize"});
 		pg::WeightedEncounterTeam result;
 		result.displayName = requireNonEmptyString(p_reader, "displayName");
 		result.weight = p_reader.require<int>("weight");
@@ -85,6 +85,18 @@ namespace
 		if (result.team.empty())
 		{
 			throw pg::JsonError(p_reader.file(), p_reader.pathFor("team"), "team must contain at least one member");
+		}
+		if (p_reader.contains("boardSize"))
+		{
+			const nlohmann::json size = p_reader.require<nlohmann::json>("boardSize");
+			if (!size.is_array() || size.size() != 2 || !size[0].is_number_integer() ||
+				!size[1].is_number_integer() || size[0].get<int>() <= 0 || size[1].get<int>() <= 0)
+			{
+				throw pg::JsonError(
+					p_reader.file(), p_reader.pathFor("boardSize"),
+					"expected an array of two positive integers");
+			}
+			result.boardSize = spk::Vector2Int{size[0].get<int>(), size[1].get<int>()};
 		}
 		return result;
 	}

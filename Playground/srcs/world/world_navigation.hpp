@@ -22,6 +22,7 @@ namespace pg
 	public:
 		WorldNavigation(VoxelWorld &p_world, TraversalBounds p_bounds, float p_maxVerticalGap = 0.5f);
 		void invalidate() noexcept;
+		void resetBounds(TraversalBounds p_bounds) noexcept;
 		void refresh();
 		[[nodiscard]] const TraversalGraph &graph();
 		[[nodiscard]] std::optional<spk::Vector3Int> topStandableInColumn(int p_x, int p_z);

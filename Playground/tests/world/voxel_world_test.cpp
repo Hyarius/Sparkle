@@ -64,8 +64,7 @@ TEST(VoxelWorld, ProvidesContinuousAccessAcrossChunkBorders)
 	const pg::MapDefinition &map = registries().maps().get("m1-testground");
 	world.loadFromMap(map);
 
-	for (const spk::Vector3Int position : {spk::Vector3Int{15, 2, 15}, spk::Vector3Int{16, 2, 15},
-			 spk::Vector3Int{15, 2, 16}, spk::Vector3Int{16, 2, 16}})
+	for (const spk::Vector3Int position : {spk::Vector3Int{15, 2, 15}, spk::Vector3Int{16, 2, 15}, spk::Vector3Int{15, 2, 16}, spk::Vector3Int{16, 2, 16}})
 	{
 		EXPECT_EQ(world.cell(position), map.grid.cell(position));
 	}
@@ -132,8 +131,7 @@ TEST(MapChunkProvider, SliceMatchesDirectMapReads)
 	pg::Chunk &chunk = world.loadChunk({{1, 0, 2}}, provider);
 	const spk::Vector3Int origin = chunk.coordinates().worldOrigin();
 
-	for (const spk::Vector3Int local : {spk::Vector3Int{0, 0, 0}, spk::Vector3Int{15, 2, 15},
-			 spk::Vector3Int{8, 4, 0}, spk::Vector3Int{11, 4, 7}})
+	for (const spk::Vector3Int local : {spk::Vector3Int{0, 0, 0}, spk::Vector3Int{15, 2, 15}, spk::Vector3Int{8, 4, 0}, spk::Vector3Int{11, 4, 7}})
 	{
 		EXPECT_EQ(chunk.grid().cell(local), map.grid.cell(origin + local));
 	}
@@ -152,4 +150,17 @@ TEST(WorldStreamer, ReplacesLoadedSetAroundNewFocus)
 	ASSERT_EQ(world.loadedChunkCount(), 1);
 	EXPECT_EQ(world.chunk({{0, 0, 0}}), nullptr);
 	EXPECT_NE(world.chunk({{2, 0, -1}}), nullptr);
+}
+
+TEST(WorldStreamer, LimitsChunkLoadsPerUpdate)
+{
+	pg::VoxelWorld world(registries().voxels());
+	EmptyProvider provider;
+	pg::WorldStreamer streamer(world, provider, {1, 0, 1}, 2);
+	streamer.update({0, 0, 0});
+	EXPECT_EQ(world.loadedChunkCount(), 2);
+	EXPECT_EQ(streamer.pendingLoadCount(), 7);
+	streamer.update({0, 0, 0});
+	EXPECT_EQ(world.loadedChunkCount(), 4);
+	EXPECT_EQ(streamer.pendingLoadCount(), 5);
 }

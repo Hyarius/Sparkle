@@ -288,3 +288,8 @@ explicit binding point and a value-owned `spk::DirectionalLight`. The light is a
 so it can be uploaded to the UBO in one operation. References are forbidden in this block:
 they would store host pointers rather than shader data. The texture-mesh contract uses
 binding 3, but that binding is not hard-coded into the light command.
+
+## D40 — Trainer sight is a strict cardinal line **[user, 2026-07-03]**
+Trainer encounters trigger only when the player is directly in front of the trainer on the
+same row or column, within `sightRange`. There is no widening peripheral cone. Solid voxel
+obstacles block the line through the shared world DDA raycast; passable flora does not.

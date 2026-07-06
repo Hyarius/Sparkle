@@ -16,6 +16,7 @@ namespace pg
 	{
 		std::string displayName;
 		std::vector<EncounterTeamMember> team;
+		std::optional<spk::Vector2Int> boardSize;
 	};
 
 	class EncounterResolver

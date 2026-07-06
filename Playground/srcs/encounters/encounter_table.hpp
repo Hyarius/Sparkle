@@ -6,6 +6,7 @@
 #include <cstddef>
 #include <string>
 #include <string_view>
+#include <optional>
 #include <vector>
 
 namespace pg
@@ -32,6 +33,7 @@ namespace pg
 		std::string displayName;
 		int weight = 0;
 		std::vector<EncounterTeamMember> team;
+		std::optional<spk::Vector2Int> boardSize;
 	};
 
 	struct EncounterTier

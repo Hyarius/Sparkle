@@ -7,11 +7,11 @@
 #include "world/voxel_world.hpp"
 
 #include <algorithm>
-#include <array>
 #include <iostream>
 #include <limits>
 #include <memory>
 #include <stdexcept>
+#include <vector>
 
 namespace
 {
@@ -106,6 +106,44 @@ namespace
 		return static_cast<double>(deploymentCapacity) * 100000.0 + density * 1000.0 +
 			   static_cast<double>(p_board.navigation().graph().size());
 	}
+
+	[[nodiscard]] std::vector<spk::Vector3Int> candidateNudges(int p_radius)
+	{
+		std::vector<spk::Vector3Int> result;
+		for (int distance = 0; distance <= p_radius; ++distance)
+		{
+			for (int x = -distance; x <= distance; ++x)
+			{
+				const int z = distance - std::abs(x);
+				result.push_back({x, 0, z});
+				if (z != 0)
+				{
+					result.push_back({x, 0, -z});
+				}
+			}
+		}
+		return result;
+	}
+
+	[[nodiscard]] std::vector<spk::Vector2Int> candidateSizes(const spk::Vector2Int &p_initial)
+	{
+		std::vector<spk::Vector2Int> result;
+		const int maximumXShrink = std::min(8, std::max(0, p_initial.x - 1));
+		const int maximumZShrink = std::min(8, std::max(0, p_initial.y - 1));
+		for (int total = 0; total <= maximumXShrink + maximumZShrink; ++total)
+		{
+			for (int xShrink = 0; xShrink <= maximumXShrink; ++xShrink)
+			{
+				const int zShrink = total - xShrink;
+				if (zShrink < 0 || zShrink > maximumZShrink)
+				{
+					continue;
+				}
+				result.push_back({p_initial.x - xShrink, p_initial.y - zShrink});
+			}
+		}
+		return result;
+	}
 }
 
 namespace pg
@@ -136,21 +174,13 @@ namespace pg
 		const spk::Vector2Int initialSize{
 			std::min(p_size.x, loadedSize.x),
 			std::min(p_size.y, loadedSize.y)};
-		const std::array nudges = {
-			spk::Vector3Int{0, 0, 0},
-			spk::Vector3Int{2, 0, 0},
-			spk::Vector3Int{-2, 0, 0},
-			spk::Vector3Int{0, 0, 2},
-			spk::Vector3Int{0, 0, -2}};
+		const std::vector<spk::Vector3Int> nudges = candidateNudges(4);
 
 		spk::Vector2Int finalSize = initialSize;
 		spk::Vector3Int finalAnchor = centeredAnchor(p_center, initialSize, bounds);
 		double bestScore = -1.0;
-		for (int shrinkAttempt = 0; shrinkAttempt < 4; ++shrinkAttempt)
+		for (const spk::Vector2Int &candidateSize : candidateSizes(initialSize))
 		{
-			const spk::Vector2Int candidateSize{
-				std::max(1, initialSize.x - shrinkAttempt * 2),
-				std::max(1, initialSize.y - shrinkAttempt * 2)};
 			const spk::Vector3Int baseAnchor = centeredAnchor(p_center, candidateSize, bounds);
 			for (const spk::Vector3Int &nudge : nudges)
 			{

@@ -218,16 +218,68 @@ namespace pg
 		});
 	}
 
+	bool BattleInput::selectAbility(std::size_t p_index)
+	{
+		return _isPlayerInputActive() && _controller->enterAbilityMode(p_index);
+	}
+
+	bool BattleInput::endTurn()
+	{
+		if (!_isPlayerInputActive())
+		{
+			return false;
+		}
+		std::unique_ptr<BattleAction> action = _controller->endTurn();
+		if (action == nullptr)
+		{
+			return false;
+		}
+		_submit(std::move(action));
+		return true;
+	}
+
+	bool BattleInput::isPlayerInputActive() const
+	{
+		return _isPlayerInputActive();
+	}
+
+	const Ability *BattleInput::selectedAbility() const noexcept
+	{
+		return _controller != nullptr ? _controller->selectedAbility() : nullptr;
+	}
+
 	bool BattleInput::_isPlayerInputActive() const
 	{
 		return _context != nullptr && _coordinator != nullptr && _controller != nullptr &&
 			   _coordinator->currentPhaseName() == "PlayerTurn" && !_busy();
 	}
 
+	bool BattleInput::_isPlacementInputActive() const
+	{
+		return _context != nullptr && _coordinator != nullptr &&
+			_coordinator->placementPhase().active() &&
+			_coordinator->placementPhase().interactivePlayer() && !_busy();
+	}
+
 	std::optional<spk::Vector3Int> BattleInput::_pick(const spk::Vector2Int &p_mouse) const
 	{
 		const WorldRay ray = MousePicker::screenToRay(_camera, _viewportSize(), spk::Vector2(p_mouse));
 		return BoardRaycaster::resolveMouseCell(_context->board, ray);
+	}
+
+	void BattleInput::_previewPlacement(
+		const std::optional<spk::Vector3Int> &p_cell, bool p_invalid)
+	{
+		_overlay.cells(OverlayCategory::Hovered).clear();
+		_overlay.cells(OverlayCategory::Invalid).clear();
+		if (p_cell.has_value())
+		{
+			const bool inZone = std::ranges::find(
+				_context->board.deploymentZones().player, *p_cell) !=
+				_context->board.deploymentZones().player.end();
+			_overlay.cells((inZone && !p_invalid) ? OverlayCategory::Hovered : OverlayCategory::Invalid) = {*p_cell};
+		}
+		_overlay.touch();
 	}
 
 	void BattleInput::_submit(std::unique_ptr<BattleAction> p_action)
@@ -240,19 +292,33 @@ namespace pg
 
 	void BattleInput::_parseComponentForMouseMovedEvent(spk::MouseMovedEvent &p_event, Actor &p_actor)
 	{
-		if (!p_actor.player || !_isPlayerInputActive())
+		if (!p_actor.player)
 		{
 			return;
 		}
+		if (_isPlacementInputActive())
+		{
+			_previewPlacement(_pick(p_event->position));
+			return;
+		}
+		if (!_isPlayerInputActive()) return;
 		_controller->hover(_pick(p_event->position));
 	}
 
 	void BattleInput::_parseComponentForMouseButtonPressedEvent(spk::MouseButtonPressedEvent &p_event, Actor &p_actor)
 	{
-		if (!p_actor.player || !_isPlayerInputActive() || p_event->button != spk::Mouse::Left)
+		if (!p_actor.player || p_event->button != spk::Mouse::Left)
 		{
 			return;
 		}
+		if (_isPlacementInputActive())
+		{
+			const std::optional<spk::Vector3Int> cell = _pick(p_event.device().position);
+			const bool placed = cell.has_value() && _coordinator->placementPhase().placeSelected(*cell);
+			_previewPlacement(cell, !placed);
+			return;
+		}
+		if (!_isPlayerInputActive()) return;
 		_submit(_controller->click(_pick(p_event.device().position)));
 	}
 
@@ -281,6 +347,22 @@ namespace pg
 		else if (p_event->key == spk::Keyboard::Key4 || p_event->key == spk::Keyboard::Numpad4)
 		{
 			_controller->handleDigit(4);
+		}
+		else if (p_event->key == spk::Keyboard::Key5 || p_event->key == spk::Keyboard::Numpad5)
+		{
+			_controller->handleDigit(5);
+		}
+		else if (p_event->key == spk::Keyboard::Key6 || p_event->key == spk::Keyboard::Numpad6)
+		{
+			_controller->handleDigit(6);
+		}
+		else if (p_event->key == spk::Keyboard::Key7 || p_event->key == spk::Keyboard::Numpad7)
+		{
+			_controller->handleDigit(7);
+		}
+		else if (p_event->key == spk::Keyboard::Key8 || p_event->key == spk::Keyboard::Numpad8)
+		{
+			_controller->handleDigit(8);
 		}
 		else if (p_event->key == spk::Keyboard::Space || p_event->key == spk::Keyboard::Return)
 		{

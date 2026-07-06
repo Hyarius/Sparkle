@@ -6,6 +6,8 @@
 #include "world/voxel_world.hpp"
 
 #include <iostream>
+#include <array>
+#include <algorithm>
 
 namespace pg
 {
@@ -32,23 +34,22 @@ namespace pg
 			return;
 		}
 
-		const spk::Vector3Int occupancyCell = p_standableCell + spk::Vector3Int{0, 1, 0};
-		const VoxelCell *voxel = _context.world.world->tryCell(occupancyCell);
-		const VoxelDefinition *definition = voxel == nullptr ? nullptr : _context.world.world->tryDefinition(*voxel);
-		if (definition == nullptr)
-		{
-			_resolver.observeCell(p_standableCell);
-			return;
-		}
-
 		for (const BiomeEncounterRule &rule : _context.world.activeBiome->encounterRules)
 		{
-			if (!definition->data.hasTag(rule.trigger))
+			const std::array cells = {
+				p_standableCell,
+				p_standableCell + spk::Vector3Int{0, 1, 0}};
+			const bool matches = std::ranges::any_of(cells, [&](const spk::Vector3Int &p_cell) {
+				const VoxelCell *voxel = _context.world.world->tryCell(p_cell);
+				const VoxelDefinition *definition = voxel == nullptr ? nullptr : _context.world.world->tryDefinition(*voxel);
+				return definition != nullptr && definition->data.hasTag(rule.trigger);
+			});
+			if (!matches)
 			{
 				continue;
 			}
 			const std::optional<ResolvedEncounter> resolved =
-				_resolver.tryRoll(rule, p_standableCell, _context.player.badgeCount);
+				_resolver.tryRoll(rule, p_standableCell, static_cast<int>(_context.clearedGyms.size()));
 			if (!resolved.has_value())
 			{
 				return;
@@ -58,7 +59,7 @@ namespace pg
 				.displayName = resolved->displayName,
 				.enemyTeam = resolved->team,
 				.allowsTaming = true,
-				.boardSize = _boardSize,
+				.boardSize = resolved->boardSize.value_or(_boardSize),
 				.placementStyle = PlacementStyle::Random};
 			_frozenUntil = std::chrono::steady_clock::now() + std::chrono::seconds(2);
 			std::cout << encounterSummary(spawn) << std::endl;

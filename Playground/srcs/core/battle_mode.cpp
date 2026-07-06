@@ -30,7 +30,10 @@ namespace pg
 	{
 		if (_battleContext != nullptr)
 		{
-			_coordinator = std::make_unique<BattleCoordinator>(*_battleContext, static_cast<std::uint32_t>(_context.world.seed));
+			_coordinator = std::make_unique<BattleCoordinator>(
+				*_battleContext,
+				static_cast<std::uint32_t>(_context.world.seed),
+				_scene != nullptr);
 			// Bind presentation before start() so the overlay/camera exist as the FSM runs Setup ->
 			// Placement -> ... -> PlayerTurn synchronously.
 			if (_scene != nullptr)

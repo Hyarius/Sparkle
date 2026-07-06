@@ -5,7 +5,10 @@
 #include "core/game_context.hpp"
 #include "core/registries.hpp"
 #include "creatures/creature_species.hpp"
+#include "creatures/apply_progress.hpp"
 #include "creatures/creature_unit.hpp"
+#include "feats/feat_progress.hpp"
+#include "feats/uuid.hpp"
 #include "world/voxel_world.hpp"
 
 #include <algorithm>
@@ -83,14 +86,22 @@ namespace pg
 			{
 				const CreatureSpecies &species = _registries.creatures().get(member.speciesId);
 				auto creature = std::make_unique<CreatureUnit>(species);
-				if (!member.completedNodeUuids.empty())
+				for (const std::string &nodeId : member.completedNodeUuids)
 				{
-					std::cerr << "EncounterService: completedNodes for '" << member.speciesId
-							  << "' are ignored until step 18" << std::endl;
+					const std::optional<spk::UUID> nodeUuid = uuidFromString(nodeId);
+					if (!nodeUuid.has_value() || !completeNodeDirect(*creature, *nodeUuid))
+					{
+						throw std::runtime_error(
+							"invalid or exhausted completed node '" + nodeId +
+							"' for species '" + member.speciesId + "'");
+					}
 				}
+				applyProgress(*creature);
 				CreatureUnit *source = creature.get();
 				_enemyCreatures.push_back(std::move(creature));
-				(void)_battle->addUnit(source, BattleSide::Enemy);
+				BattleUnit &battleUnit = _battle->addUnit(source, BattleSide::Enemy);
+				const std::string aiId = member.aiId.empty() ? "aggressive-melee" : member.aiId;
+				battleUnit.aiBehaviour = &_registries.ai().get(aiId);
 			}
 
 			_context.events.battleStarted.trigger(_battle.get());

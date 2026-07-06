@@ -37,9 +37,35 @@
 				0,
 				2
 			]
+		},
+		"blaze": {
+			"displayName": "Blaze Sprout",
+			"tier": 1,
+			"model": "placeholder-cube",
+			"animationSet": "basic-creature",
+			"avatar": [
+				0,
+				3
+			]
 		}
 	},
 	"tamingProfile": {
-		"conditions": []
+		"conditions": [
+			{
+				"type": "dealDamage",
+				"scope": "ability",
+				"requiredAmount": 8,
+				"damageKind": "magical",
+				"sourceAbilities": []
+			},
+			{
+				"type": "turnEndPosition",
+				"requiredRepeatCount": 2,
+				"target": "enemy",
+				"condition": "within",
+				"distance": 1,
+				"maximumDistance": 1
+			}
+		]
 	}
 }

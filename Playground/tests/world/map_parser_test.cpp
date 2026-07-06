@@ -52,10 +52,18 @@ TEST(MapParser, ParsesAuthoredMapStampsMarkersAndOrientation)
 {
 	const pg::MapDefinition &map = registries().maps().get("m1-testground");
 	EXPECT_EQ(map.size(), spk::Vector3Int(64, 16, 64));
-	EXPECT_EQ(map.stamps.size(), 3);
+	EXPECT_EQ(map.stamps.size(), 4);
 	EXPECT_EQ(map.biome, "forest");
 	ASSERT_NE(map.marker("playerSpawn"), nullptr);
 	EXPECT_EQ(map.marker("playerSpawn")->at, spk::Vector3Int(32, 3, 40));
+	ASSERT_EQ(map.trainers.size(), 1);
+	EXPECT_EQ(map.trainers.front().id, "timmy");
+	EXPECT_EQ(map.trainers.front().encounterTable, "trainer-timmy");
+	EXPECT_EQ(map.trainers.front().facing, pg::VoxelOrientation::PositiveZ);
+	EXPECT_EQ(map.trainers.front().sightRange, 6);
+	EXPECT_EQ(map.trainers.front().boardSize, spk::Vector2Int(11, 9));
+	ASSERT_EQ(map.portals.size(), 3);
+	EXPECT_EQ(map.portals.front().target.map, "small-house-interior");
 
 	const pg::VoxelCell &rotatedBush = map.grid.cell(45, 3, 14);
 	EXPECT_EQ(rotatedBush.id, registries().voxels().numericId("bush"));

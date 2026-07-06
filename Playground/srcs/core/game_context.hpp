@@ -5,6 +5,9 @@
 #include "structures/math/spk_vector3.hpp"
 
 #include <memory>
+#include <optional>
+#include <set>
+#include <string>
 
 namespace pg
 {
@@ -14,6 +17,14 @@ namespace pg
 	struct MapDefinition;
 	class VoxelWorld;
 	class WorldNavigation;
+
+	struct WorldPosition
+	{
+		std::string map;
+		spk::Vector3Int cell{};
+
+		[[nodiscard]] bool operator==(const WorldPosition &) const noexcept = default;
+	};
 
 	struct WorldContext
 	{
@@ -38,6 +49,9 @@ namespace pg
 		EventCenter events;
 		WorldContext world;
 		PlayerData player;
+		std::set<std::string> clearedGyms;
+		std::set<std::string> clearedTrainers;
+		std::optional<WorldPosition> respawnPoint;
 
 		GameContext();
 		~GameContext();

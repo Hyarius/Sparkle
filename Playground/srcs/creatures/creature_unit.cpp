@@ -2,27 +2,23 @@
 
 #include "creatures/apply_progress.hpp"
 #include "creatures/creature_species.hpp"
+#include "feats/feat_board.hpp"
 
 #include <stdexcept>
 
 namespace pg
 {
-	nlohmann::json FeatBoardProgress::toJson() const
-	{
-		return serialized;
-	}
-
-	void FeatBoardProgress::fromJson(const nlohmann::json &p_json)
-	{
-		serialized = p_json;
-	}
-
 	CreatureUnit::CreatureUnit(const CreatureSpecies *p_species) :
 		species(p_species)
 	{
 		if (species != nullptr)
 		{
+			if (species->featBoard != nullptr)
+			{
+				featBoardProgress.getOrCreateProgress(species->featBoard->node(species->featBoard->rootNodeUuid)).completionCount = 1;
+			}
 			applyProgress(*this);
+			currentHealth = attributes.health;
 		}
 	}
 

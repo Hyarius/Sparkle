@@ -22,7 +22,7 @@ Badges: `GameContext` gains `clearedGyms` (empty set until step 33) → tier =
 `clearedGyms.size()`.
 Trainers: `srcs/world/trainer.hpp` (component: authored team ref, facing, sightRange,
 clearedFlag id), `trainer_sight_logic.hpp/.cpp` (on `playerMoved`: DDA trainer→player ≤
-range along facing cone (±1 cell lateral per distance); hit → scripted approach (path to
+range on the trainer's strict cardinal facing line; hit → scripted approach (path to
 adjacent) → `encounterTriggered{allowsTaming=false, trainer team}`), map schema gains a
 `trainers` array (extend `maps/*.json` + parser + one trainer on the testground),
 cleared-trainer suppression via `clearedTrainers` (set in `GameContext`; persisted step 32);
@@ -32,7 +32,7 @@ Data: `encounter-tables/trainer-timmy.json` (fixed team, weight 1).
 ## Tests (`[test]`)
 
 Tier fallback matrix (0–9+ badges × sparse tables); non-square board derivation +
-deployment on it; trainer sight cone truth table (range, cone edges, wall blocks via DDA);
+deployment on it; trainer sight-line truth table (facing, lateral misses, range, wall blocks via DDA);
 cleared flag suppresses; taming disabled in trainer battles (no WildBattleUnit built).
 
 ## Definition of Done

@@ -10,12 +10,13 @@
 
 namespace pg
 {
-	BattleCoordinator::BattleCoordinator(BattleContext &c, std::uint32_t seed) :
+	BattleCoordinator::BattleCoordinator(
+		BattleContext &c, std::uint32_t seed, bool p_interactivePlacement) :
 		_context(c),
 		_setup([this] {
 			_orchestrator.transitionTo(_placement);
 		}),
-		_placement(c, seed, [this](bool ok) {
+		_placement(c, seed, p_interactivePlacement, [this](bool ok) {
 			if (!ok)
 			{
 				throw std::runtime_error("Battle placement failed");
@@ -50,6 +51,10 @@ namespace pg
 			_finished = true;
 		})
 	{
+	}
+	BattleCoordinator::~BattleCoordinator()
+	{
+		_orchestrator.reset();
 	}
 	void BattleCoordinator::start()
 	{
@@ -105,7 +110,7 @@ namespace pg
 			{
 				if (u->isActiveInBattle())
 				{
-					_context.report({.type = BattleEventType::BattleWon, .turnIndex = _context.currentTurn.turnIndex, .caster = u, .side = *_winner});
+					_context.report(BattleWonEvent{.context = {.turnIndex = _context.currentTurn.turnIndex, .caster = u}, .side = *_winner, .unitSurvived = true});
 				}
 			}
 			_context.events().battleResolved.trigger(&_context, *_winner);
@@ -115,6 +120,10 @@ namespace pg
 	PlayerTurnPhase &BattleCoordinator::playerTurnPhase() noexcept
 	{
 		return _player;
+	}
+	PlacementPhase &BattleCoordinator::placementPhase() noexcept
+	{
+		return _placement;
 	}
 	bool BattleCoordinator::finished() const noexcept
 	{

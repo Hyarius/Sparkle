@@ -3,6 +3,10 @@
 #include "abilities/ability.hpp"
 #include "core/json.hpp"
 #include "core/registry.hpp"
+#include "feats/feat_board.hpp"
+#include "feats/feat_registry.hpp"
+#include "feats/feat_reward.hpp"
+#include "taming/taming_profile.hpp"
 
 #include <stdexcept>
 
@@ -32,8 +36,8 @@ namespace
 		{
 			throw pg::JsonError(p_file, p_path, "avatar coordinates must be non-negative");
 		}
-		return result;
-	}
+			return result;
+		}
 }
 
 namespace pg
@@ -48,10 +52,11 @@ namespace pg
 		return found->second;
 	}
 
-	CreatureSpecies parseCreatureSpecies(JsonReader &p_reader, const Registry<Ability> &p_abilities)
+	namespace
 	{
-		// tamingProfile is deliberately accepted but not interpreted until step 19.
-		p_reader.forbidUnknown({"version", "displayName", "attributes", "defaultAbilities", "featBoard", "defaultFormId", "forms", "tamingProfile"});
+		CreatureSpecies parseSpeciesCore(JsonReader &p_reader, const Registry<Ability> &p_abilities)
+		{
+			p_reader.forbidUnknown({"version", "displayName", "attributes", "defaultAbilities", "featBoard", "defaultFormId", "forms", "tamingProfile"});
 		if (p_reader.require<int>("version") != 1)
 		{
 			throw JsonError(p_reader.file(), p_reader.pathFor("version"), "unsupported creature species version");
@@ -116,6 +121,49 @@ namespace pg
 		{
 			throw JsonError(p_reader.file(), p_reader.pathFor("defaultFormId"), "unknown default form id '" + result.defaultFormId + "'");
 		}
+		if (p_reader.contains("tamingProfile"))
+		{
+			JsonReader tamingReader = p_reader.child("tamingProfile");
+			result.tamingProfile = parseTamingProfile(tamingReader);
+		}
+		return result;
+		}
+
+		void resolveAndValidateBoard(CreatureSpecies &p_species, JsonReader &p_reader, const FeatRegistry &p_featBoards)
+		{
+			p_species.featBoard = p_featBoards.tryGet(p_species.featBoardId);
+			if (p_species.featBoard == nullptr)
+				throw JsonError(p_reader.file(), p_reader.pathFor("featBoard"), "unknown feat board id '" + p_species.featBoardId + "'");
+			int lastFormTier = p_species.form(p_species.defaultFormId).tier;
+			bool sawFormNode = false;
+			for (const FeatNode &node : p_species.featBoard->nodes)
+			{
+				if (node.kind != FeatNodeKind::Form) continue;
+				const ChangeFormReward *formReward = nullptr;
+				for (const auto &reward : node.rewards)
+					if (const auto *candidate = dynamic_cast<const ChangeFormReward *>(reward.get()); candidate != nullptr) formReward = candidate;
+				if (formReward == nullptr)
+					throw JsonError(p_reader.file(), p_reader.pathFor("featBoard"), "form node '" + node.uuid.toString() + "' has no changeForm reward");
+				const auto form = p_species.forms.find(formReward->form);
+				if (form == p_species.forms.end())
+					throw JsonError(p_reader.file(), p_reader.pathFor("forms"), "feat board references unknown form '" + formReward->form + "'");
+				if ((!sawFormNode && form->second.tier <= lastFormTier) || (sawFormNode && form->second.tier < lastFormTier))
+					throw JsonError(p_reader.file(), p_reader.pathFor("forms"), "form nodes must be in ascending tier order");
+				lastFormTier = form->second.tier;
+				sawFormNode = true;
+			}
+		}
+	}
+
+	CreatureSpecies parseCreatureSpecies(JsonReader &p_reader, const Registry<Ability> &p_abilities)
+	{
+		return parseSpeciesCore(p_reader, p_abilities);
+	}
+
+	CreatureSpecies parseCreatureSpecies(JsonReader &p_reader, const Registry<Ability> &p_abilities, const FeatRegistry &p_featBoards)
+	{
+		CreatureSpecies result = parseSpeciesCore(p_reader, p_abilities);
+		resolveAndValidateBoard(result, p_reader, p_featBoards);
 		return result;
 	}
 }

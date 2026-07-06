@@ -58,7 +58,7 @@ namespace pg
 			value -= candidate.weight;
 			if (value <= 0)
 			{
-				return ResolvedEncounter{candidate.displayName, candidate.team};
+				return ResolvedEncounter{candidate.displayName, candidate.team, candidate.boardSize};
 			}
 		}
 		throw std::logic_error("encounter weighted pick failed");

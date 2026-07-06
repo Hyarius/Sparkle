@@ -19,6 +19,9 @@ namespace pg
 	void GameContext::newGame(const Registries &p_registries)
 	{
 		player = PlayerData{};
+		clearedGyms.clear();
+		clearedTrainers.clear();
+		respawnPoint.reset();
 		player.addCreatureToTeamOrStorage(std::make_unique<CreatureUnit>(p_registries.creatures().get("sprout")));
 		player.addCreatureToTeamOrStorage(std::make_unique<CreatureUnit>(p_registries.creatures().get("ember-fox")));
 	}

@@ -91,7 +91,9 @@ namespace pg
 		};
 
 		[[nodiscard]] bool _isPlayerInputActive() const;
+		[[nodiscard]] bool _isPlacementInputActive() const;
 		[[nodiscard]] std::optional<spk::Vector3Int> _pick(const spk::Vector2Int &p_mouse) const;
+		void _previewPlacement(const std::optional<spk::Vector3Int> &p_cell, bool p_invalid = false);
 		void _submit(std::unique_ptr<BattleAction> p_action);
 
 	public:
@@ -100,6 +102,10 @@ namespace pg
 		void bind(BattleContext &p_context, BattleCoordinator &p_coordinator);
 		void unbind();
 		void setBusyPredicate(std::function<bool()> p_busy);
+		[[nodiscard]] bool selectAbility(std::size_t p_index);
+		[[nodiscard]] bool endTurn();
+		[[nodiscard]] bool isPlayerInputActive() const;
+		[[nodiscard]] const Ability *selectedAbility() const noexcept;
 
 	protected:
 		void _parseComponentForMouseMovedEvent(spk::MouseMovedEvent &p_event, Actor &p_actor) override;

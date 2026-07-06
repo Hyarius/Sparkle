@@ -6,35 +6,48 @@
 
 namespace pg
 {
-	bool BattlePlacementRules::autoPlace(BattleContext &p_context, std::uint32_t p_seed)
+	void BattlePlacementRules::clearSide(BattleContext &p_context, BattleSide p_side)
 	{
-		auto playerCells = p_context.board.deploymentZones().player;
-		auto enemyCells = p_context.board.deploymentZones().enemy;
-		std::mt19937 random(p_seed);
-		if (p_context.placementStyle == PlacementStyle::Random)
+		for (BattleUnit *unit : p_context.getUnits(p_side))
 		{
-			std::shuffle(enemyCells.begin(), enemyCells.end(), random);
+			if (unit != nullptr && unit->boardPosition.has_value())
+			{
+				(void)p_context.removeUnit(*unit);
+			}
 		}
-		const auto &players = p_context.getUnits(BattleSide::Player);
-		const auto &enemies = p_context.getUnits(BattleSide::Enemy);
-		if (playerCells.size() < players.size() || enemyCells.size() < enemies.size())
+	}
+
+	bool BattlePlacementRules::autoPlaceSide(
+		BattleContext &p_context, BattleSide p_side, std::uint32_t p_seed)
+	{
+		auto cells = p_side == BattleSide::Player
+			? p_context.board.deploymentZones().player
+			: p_context.board.deploymentZones().enemy;
+		std::mt19937 random(p_seed);
+		if (p_side == BattleSide::Enemy && p_context.placementStyle == PlacementStyle::Random)
+		{
+			std::shuffle(cells.begin(), cells.end(), random);
+		}
+		const auto &units = p_context.getUnits(p_side);
+		if (cells.size() < units.size())
 		{
 			return false;
 		}
-		for (std::size_t i = 0; i < players.size(); ++i)
+		clearSide(p_context, p_side);
+		for (std::size_t index = 0; index < units.size(); ++index)
 		{
-			if (!p_context.tryPlaceUnit(*players[i], playerCells[i]))
+			if (units[index] == nullptr || !p_context.tryPlaceUnit(*units[index], cells[index]))
 			{
-				return false;
-			}
-		}
-		for (std::size_t i = 0; i < enemies.size(); ++i)
-		{
-			if (!p_context.tryPlaceUnit(*enemies[i], enemyCells[i]))
-			{
+				clearSide(p_context, p_side);
 				return false;
 			}
 		}
 		return true;
+	}
+
+	bool BattlePlacementRules::autoPlace(BattleContext &p_context, std::uint32_t p_seed)
+	{
+		return autoPlaceSide(p_context, BattleSide::Player, p_seed) &&
+			autoPlaceSide(p_context, BattleSide::Enemy, p_seed);
 	}
 }

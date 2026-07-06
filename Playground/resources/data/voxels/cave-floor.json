@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "traversal": "solid",
+  "tags": ["ground", "stone", "caveFloor"],
+  "shape": {
+    "type": "cube",
+    "textures": {"top": [3, 0], "side": [4, 0], "bottom": [3, 0]}
+  }
+}

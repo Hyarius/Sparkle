@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "activeMode": "default",
+  "rulesByMode": {
+    "default": [
+      {
+        "conditions": [{"type": "canCast", "ability": "tackle"}],
+        "decision": {"type": "castAbility", "ability": "tackle", "target": "nearestEnemy"}
+      },
+      {
+        "conditions": [],
+        "decision": {"type": "moveTowardNearestEnemy"}
+      }
+    ]
+  }
+}

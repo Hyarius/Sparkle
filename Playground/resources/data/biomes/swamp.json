@@ -1,0 +1,1 @@
+{"version":1,"displayName":"Swamp","palette":{"surface":"swamp-block","subsurface":"dirt-block","deep":"stone-block","flora":["bush"]},"encounterRules":[{"trigger":"bush","table":"forest-basic","chancePerStep":0.18}]}

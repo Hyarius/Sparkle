@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "size": [9, 5, 9],
+  "palette": {"0": null, "1": "stone-block", "2": "wall-stone"},
+  "fill": [
+    {"min": [0, 0, 0], "max": [8, 0, 8], "voxel": "1"},
+    {"min": [0, 1, 0], "max": [3, 2, 0], "voxel": "2"},
+    {"min": [5, 1, 0], "max": [8, 2, 0], "voxel": "2"},
+    {"min": [0, 1, 8], "max": [8, 2, 8], "voxel": "2"},
+    {"min": [0, 1, 1], "max": [0, 2, 7], "voxel": "2"},
+    {"min": [8, 1, 1], "max": [8, 2, 7], "voxel": "2"}
+  ],
+  "cells": [],
+  "stamps": [],
+  "markers": [],
+  "portals": [
+    {"name": "entrance", "at": [4, 0, 0],
+     "target": {"map": "m1-testground", "portal": "house-door"}}
+  ],
+  "trainers": [],
+  "biome": "forest"
+}

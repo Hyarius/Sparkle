@@ -10,6 +10,7 @@
 
 namespace pg
 {
+	struct AIBehaviour;
 	class CreatureUnit;
 
 	class BattleUnit : public BattleObject
@@ -23,6 +24,7 @@ namespace pg
 		std::optional<spk::Vector3Int> boardPosition;
 		std::optional<spk::Vector3Int> lastBoardPosition;
 		bool hasLeftBattle = false;
+		const AIBehaviour *aiBehaviour = nullptr;
 		std::vector<std::string> statusTags;
 
 		BattleUnit(CreatureUnit *p_source, BattleSide p_side);
