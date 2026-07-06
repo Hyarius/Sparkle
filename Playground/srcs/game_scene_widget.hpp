@@ -17,23 +17,24 @@
 #include "structures/widget/spk_game_engine_widget.hpp"
 #include "world/chunk_coordinates.hpp"
 
+namespace spk
+{
+	class VoxelChunkStreamer;
+}
+
 namespace pg
 {
 	class Registries;
 	class ExplorationInputLogic;
 	class ActorPathLogic;
-	class ProceduralWorld;
-	class ProceduralChunkProvider;
-	class WorldStreamer;
+	class PerlinChunkProvider;
 
 	class GameSceneWidget : public spk::GameEngineWidget
 	{
 	private:
 		GameContext &_context;
 		std::uint64_t _worldSeed = 1;
-		std::unique_ptr<ProceduralWorld> _proceduralWorld;
-		std::unique_ptr<ProceduralChunkProvider> _proceduralProvider;
-		std::unique_ptr<WorldStreamer> _worldStreamer;
+		std::unique_ptr<PerlinChunkProvider> _terrainProvider;
 		std::optional<ChunkCoordinates> _streamingFocus;
 
 		spk::SpriteSheet _texture;
@@ -42,6 +43,7 @@ namespace pg
 		spk::Entity3D _playerEntity;
 		spk::Entity3D _hoverEntity;
 		Actor *_player = nullptr;
+		spk::VoxelChunkStreamer *_streamer = nullptr;
 		ExplorationInputLogic *_inputLogic = nullptr;
 		ActorPathLogic *_pathLogic = nullptr;
 
@@ -51,8 +53,6 @@ namespace pg
 
 		mutable std::atomic<long long> _renderDurationNs{0};
 		std::atomic<long long> _updateDurationNs{0};
-		mutable std::atomic<std::size_t> _meshCount{0};
-		mutable std::atomic<std::size_t> _triangleCount{0};
 
 		void _buildScene(const Registries &p_registries);
 		void _configureOverlay();

@@ -1,38 +1,20 @@
 #pragma once
 
-#include <cstddef>
+#include "structures/voxel/spk_voxel_enums.hpp"
 
 namespace pg
 {
+	// Gameplay-only classification. This one is NOT part of the spk voxel render library
+	// (which promoted render geometry only), so it stays defined app-side.
 	enum class VoxelTraversal
 	{
 		Solid,
 		Passable
 	};
 
-	// The value names identify the world direction reached by the shape's local +Z axis.
-	enum class VoxelOrientation
-	{
-		PositiveX,
-		PositiveZ,
-		NegativeX,
-		NegativeZ
-	};
-
-	enum class VoxelFlip
-	{
-		PositiveY,
-		NegativeY
-	};
-
-	enum class VoxelAxisPlane : std::size_t
-	{
-		PositiveX = 0,
-		NegativeX,
-		PositiveY,
-		NegativeY,
-		PositiveZ,
-		NegativeZ,
-		Count
-	};
+	// Render orientation / flip / axis-plane are shared verbatim with the spk voxel library;
+	// alias them so downstream Playground code keeps using pg:: names while feeding spk types.
+	using VoxelOrientation = spk::VoxelOrientation;
+	using VoxelFlip = spk::VoxelFlip;
+	using VoxelAxisPlane = spk::VoxelAxisPlane;
 }

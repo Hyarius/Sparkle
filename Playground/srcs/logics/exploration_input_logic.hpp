@@ -5,7 +5,7 @@
 #include "structures/game_engine/spk_camera_3d.hpp"
 #include "structures/game_engine/spk_component_logic.hpp"
 #include "structures/game_engine/spk_texture_mesh_renderer_3d.hpp"
-#include "voxel/voxel_shape.hpp"
+#include "voxel/atlas_cell.hpp"
 
 #include <functional>
 #include <optional>

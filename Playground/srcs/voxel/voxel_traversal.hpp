@@ -2,7 +2,7 @@
 
 #include "voxel/voxel_grid.hpp"
 #include "voxel/voxel_registry.hpp"
-#include "voxel/voxel_shape.hpp"
+#include "voxel/voxel_traversal_data.hpp"
 
 #include "structures/math/spk_vector3.hpp"
 

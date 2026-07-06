@@ -77,7 +77,7 @@ namespace pg
 			return static_cast<float>(p_position.y);
 		}
 		return static_cast<float>(p_position.y) +
-			   resolveWorldHeights(definition->shape->heights(cell.flip), cell.orientation).stationary;
+			   resolveWorldHeights(definition->heights.get(cell.flip), cell.orientation).stationary;
 	}
 
 	float walkHeightAtEdge(
@@ -92,7 +92,7 @@ namespace pg
 			return static_cast<float>(p_position.y);
 		}
 		return static_cast<float>(p_position.y) +
-			   resolveWorldHeights(definition->shape->heights(cell.flip), cell.orientation).get(p_direction);
+			   resolveWorldHeights(definition->heights.get(cell.flip), cell.orientation).get(p_direction);
 	}
 
 	spk::Vector3 interpolateWalkSegment(

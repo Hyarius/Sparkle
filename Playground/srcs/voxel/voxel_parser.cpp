@@ -1,40 +1,41 @@
 #include "voxel/voxel_definition.hpp"
 
 #include "core/json.hpp"
-#include "core/registry.hpp"
-#include "voxel/shapes/cross_plane_shape.hpp"
-#include "voxel/shapes/cube_shape.hpp"
-#include "voxel/shapes/slab_shape.hpp"
-#include "voxel/shapes/slope_shape.hpp"
-#include "voxel/shapes/stair_shape.hpp"
+#include "voxel/atlas_cell.hpp"
+
+#include "structures/voxel/spk_cross_plane_voxel_shape.hpp"
+#include "structures/voxel/spk_cube_voxel_shape.hpp"
+#include "structures/voxel/spk_slab_voxel_shape.hpp"
+#include "structures/voxel/spk_slope_voxel_shape.hpp"
+#include "structures/voxel/spk_stair_voxel_shape.hpp"
 
 #include <array>
+#include <initializer_list>
 #include <map>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <utility>
-#include <vector>
 
 namespace
 {
+	constexpr int AtlasColumns = 8;
+	constexpr int AtlasRows = 8;
+
 	pg::AtlasCell readAtlasCell(const pg::JsonReader &p_reader, const std::string &p_slot)
 	{
 		const std::array<int, 2> value = p_reader.require<std::array<int, 2>>(p_slot);
-		if (value[0] < 0 || value[0] >= pg::VoxelShape::AtlasColumns ||
-			value[1] < 0 || value[1] >= pg::VoxelShape::AtlasRows)
+		if (value[0] < 0 || value[0] >= AtlasColumns || value[1] < 0 || value[1] >= AtlasRows)
 		{
-			throw pg::JsonError(
-				p_reader.file(),
-				p_reader.pathFor(p_slot),
-				"atlas cell must be inside the 8x8 voxel atlas");
+			throw pg::JsonError(p_reader.file(), p_reader.pathFor(p_slot), "atlas cell must be inside the 8x8 voxel atlas");
 		}
 		return {value[0], value[1]};
 	}
 
-	pg::VoxelShape::TextureSlots readCubeTextures(pg::JsonReader &p_reader)
+	spk::VoxelShape::TextureSlots readCubeTextures(pg::JsonReader &p_reader)
 	{
 		p_reader.forbidUnknown({"top", "bottom", "side", "posX", "negX", "posZ", "negZ"});
-		pg::VoxelShape::TextureSlots result;
+		spk::VoxelShape::TextureSlots result;
 		result.emplace("top", readAtlasCell(p_reader, "top"));
 		result.emplace("bottom", readAtlasCell(p_reader, "bottom"));
 
@@ -64,10 +65,10 @@ namespace
 		return result;
 	}
 
-	pg::VoxelShape::TextureSlots readSideTextures(pg::JsonReader &p_reader)
+	spk::VoxelShape::TextureSlots readSideTextures(pg::JsonReader &p_reader)
 	{
 		p_reader.forbidUnknown({"top", "bottom", "side"});
-		pg::VoxelShape::TextureSlots result;
+		spk::VoxelShape::TextureSlots result;
 		result.emplace("top", readAtlasCell(p_reader, "top"));
 		result.emplace("bottom", readAtlasCell(p_reader, "bottom"));
 		const pg::AtlasCell side = readAtlasCell(p_reader, "side");
@@ -78,12 +79,12 @@ namespace
 		return result;
 	}
 
-	pg::VoxelShape::TextureSlots readNamedTextures(
+	spk::VoxelShape::TextureSlots readNamedTextures(
 		pg::JsonReader &p_reader,
 		std::initializer_list<std::string_view> p_names)
 	{
 		p_reader.forbidUnknown(p_names);
-		pg::VoxelShape::TextureSlots result;
+		spk::VoxelShape::TextureSlots result;
 		for (const std::string_view name : p_names)
 		{
 			const std::string key(name);
@@ -92,15 +93,32 @@ namespace
 		return result;
 	}
 
-	void registerShapeParsers(pg::PolymorphicFactory<pg::VoxelShape> &p_factory)
+	// Uniform walk heights (a full-height top all around) - the default for solid shapes.
+	pg::CardinalHeightSet flatTop()
 	{
-		p_factory.registerType("cube", [](pg::JsonReader &p_reader) -> std::unique_ptr<pg::VoxelShape> {
+		return {1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
+	}
+
+	// Walk-height formulas ported verbatim from the historical pg::*Shape::_constructHeights so
+	// the navigation graph keeps stepping up and down exactly as before.
+	struct ParsedShape
+	{
+		std::unique_ptr<spk::VoxelShape> shape;
+		pg::CardinalHeightCollection heights;
+	};
+
+	ParsedShape parseShape(pg::JsonReader &p_reader)
+	{
+		const std::string type = p_reader.require<std::string>("type");
+
+		if (type == "cube")
+		{
 			p_reader.forbidUnknown({"type", "textures"});
 			pg::JsonReader textures = p_reader.child("textures");
-			return std::make_unique<pg::CubeShape>(readCubeTextures(textures));
-		});
-
-		p_factory.registerType("slab", [](pg::JsonReader &p_reader) -> std::unique_ptr<pg::VoxelShape> {
+			return {std::make_unique<spk::CubeVoxelShape>(readCubeTextures(textures)), {flatTop(), flatTop()}};
+		}
+		if (type == "slab")
+		{
 			p_reader.forbidUnknown({"type", "textures", "height"});
 			const float height = p_reader.optional<float>("height", 0.5f);
 			if (height < 0.0f || height > 1.0f)
@@ -108,17 +126,20 @@ namespace
 				throw pg::JsonError(p_reader.file(), p_reader.pathFor("height"), "height must be between 0 and 1");
 			}
 			pg::JsonReader textures = p_reader.child("textures");
-			return std::make_unique<pg::SlabShape>(readSideTextures(textures), height);
-		});
-
-		p_factory.registerType("slope", [](pg::JsonReader &p_reader) -> std::unique_ptr<pg::VoxelShape> {
+			const pg::CardinalHeightSet top{height, height, height, height, height};
+			return {std::make_unique<spk::SlabVoxelShape>(readSideTextures(textures), height), {top, flatTop()}};
+		}
+		if (type == "slope")
+		{
 			p_reader.forbidUnknown({"type", "textures"});
 			pg::JsonReader textures = p_reader.child("textures");
-			return std::make_unique<pg::SlopeShape>(readNamedTextures(
-				textures, {"slope", "back", "bottom", "sideLeft", "sideRight"}));
-		});
-
-		p_factory.registerType("stair", [](pg::JsonReader &p_reader) -> std::unique_ptr<pg::VoxelShape> {
+			const pg::CardinalHeightSet top{0.5f, 0.5f, 1.0f, 0.0f, 0.5f};
+			return {
+				std::make_unique<spk::SlopeVoxelShape>(readNamedTextures(textures, {"slope", "back", "bottom", "sideLeft", "sideRight"})),
+				{top, flatTop()}};
+		}
+		if (type == "stair")
+		{
 			p_reader.forbidUnknown({"type", "textures", "stepCount"});
 			const int stepCount = p_reader.optional<int>("stepCount", 2);
 			if (stepCount <= 0 || stepCount > 64)
@@ -126,31 +147,30 @@ namespace
 				throw pg::JsonError(p_reader.file(), p_reader.pathFor("stepCount"), "stepCount must be between 1 and 64");
 			}
 			pg::JsonReader textures = p_reader.child("textures");
-			return std::make_unique<pg::StairShape>(readNamedTextures(textures, {"top", "riser", "back", "bottom", "sideLeft", "sideRight"}), stepCount);
-		});
-
-		p_factory.registerType("crossPlane", [](pg::JsonReader &p_reader) -> std::unique_ptr<pg::VoxelShape> {
+			const float firstStepMidpoint = 1.0f / (2.0f * static_cast<float>(stepCount));
+			const pg::CardinalHeightSet top{0.5f, 0.5f, 1.0f, firstStepMidpoint, 0.5f};
+			return {
+				std::make_unique<spk::StairVoxelShape>(
+					readNamedTextures(textures, {"top", "riser", "back", "bottom", "sideLeft", "sideRight"}), stepCount),
+				{top, flatTop()}};
+		}
+		if (type == "crossPlane")
+		{
 			p_reader.forbidUnknown({"type", "textures"});
 			pg::JsonReader textures = p_reader.child("textures");
-			return std::make_unique<pg::CrossPlaneShape>(readNamedTextures(textures, {"plane"}));
-		});
-	}
+			return {std::make_unique<spk::CrossPlaneVoxelShape>(readNamedTextures(textures, {"plane"})), {}};
+		}
 
-	pg::PolymorphicFactory<pg::VoxelShape> &shapeFactory()
-	{
-		static pg::PolymorphicFactory<pg::VoxelShape> factory;
-		static const bool registered = []() {
-			registerShapeParsers(factory);
-			return true;
-		}();
-		(void)registered;
-		return factory;
+		throw pg::JsonError(
+			p_reader.file(),
+			p_reader.pathFor("type"),
+			"unknown voxel shape type '" + type + "' (known types: cube, slab, slope, stair, crossPlane)");
 	}
 }
 
 namespace pg
 {
-	VoxelDefinition parseVoxelDefinition(JsonReader &p_reader)
+	ParsedVoxel parseVoxelDefinition(JsonReader &p_reader)
 	{
 		p_reader.forbidUnknown({"version", "traversal", "tags", "shape"});
 
@@ -167,12 +187,13 @@ namespace pg
 			{"passable", VoxelTraversal::Passable},
 			{"solid", VoxelTraversal::Solid}};
 
-		VoxelDefinition result;
+		ParsedVoxel result;
 		result.data.traversal = p_reader.requireEnum<VoxelTraversal>("traversal", traversalValues);
 		result.data.tags = p_reader.require<std::vector<std::string>>("tags");
 		JsonReader shapeReader = p_reader.child("shape");
-		result.shape = shapeFactory().parse(shapeReader);
-		result.shape->initialize();
+		ParsedShape parsed = parseShape(shapeReader);
+		result.shape = std::move(parsed.shape);
+		result.heights = parsed.heights;
 		return result;
 	}
 }

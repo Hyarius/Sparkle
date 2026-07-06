@@ -1,32 +1,47 @@
 #include "voxel/voxel_registry.hpp"
 
+#include "core/registry.hpp"
+
 #include <limits>
 #include <stdexcept>
+#include <utility>
 
 namespace pg
 {
 	void VoxelRegistry::load(const std::filesystem::path &p_directory)
 	{
-		_definitions.load(p_directory, parseVoxelDefinition);
-		_numericToString = _definitions.ids();
-		if (_numericToString.size() > static_cast<std::size_t>(std::numeric_limits<std::int32_t>::max()))
+		// Reuse the generic registry for file discovery, sorted-id ordering and duplicate-id
+		// checks, then split each parsed voxel into the render shape and the gameplay catalog.
+		Registry<ParsedVoxel> parsed;
+		parsed.load(p_directory, parseVoxelDefinition);
+
+		std::vector<std::string> ids = parsed.ids();
+		if (ids.size() > static_cast<std::size_t>(std::numeric_limits<std::int32_t>::max()))
 		{
 			throw std::length_error("Voxel registry exceeds int32 numeric id capacity");
 		}
 
-		_stringToNumeric.clear();
-		_numericDefinitions.clear();
-		_numericDefinitions.reserve(_numericToString.size());
-		for (std::size_t index = 0; index < _numericToString.size(); ++index)
+		spk::VoxelRegistry renderRegistry;
+		std::vector<VoxelDefinition> definitions;
+		std::map<std::string, std::int32_t> stringToNumeric;
+		definitions.reserve(ids.size());
+		for (const std::string &id : ids)
 		{
-			_stringToNumeric.emplace(_numericToString[index], static_cast<std::int32_t>(index));
-			_numericDefinitions.push_back(&_definitions.get(_numericToString[index]));
+			ParsedVoxel &voxel = parsed.getMutable(id);
+			const std::int32_t numeric = renderRegistry.registerShape(std::move(voxel.shape));
+			definitions.push_back(VoxelDefinition{.id = id, .data = std::move(voxel.data), .heights = voxel.heights});
+			stringToNumeric.emplace(id, numeric);
 		}
+
+		_renderRegistry = std::move(renderRegistry);
+		_definitions = std::move(definitions);
+		_numericToString = std::move(ids);
+		_stringToNumeric = std::move(stringToNumeric);
 	}
 
 	const VoxelDefinition &VoxelRegistry::get(const std::string &p_id) const
 	{
-		return _definitions.get(p_id);
+		return get(numericId(p_id));
 	}
 
 	const VoxelDefinition &VoxelRegistry::get(std::int32_t p_id) const
@@ -41,16 +56,17 @@ namespace pg
 
 	const VoxelDefinition *VoxelRegistry::tryGet(const std::string &p_id) const noexcept
 	{
-		return _definitions.tryGet(p_id);
+		const auto iterator = _stringToNumeric.find(p_id);
+		return iterator == _stringToNumeric.end() ? nullptr : tryGet(iterator->second);
 	}
 
 	const VoxelDefinition *VoxelRegistry::tryGet(std::int32_t p_id) const noexcept
 	{
-		if (p_id < 0 || static_cast<std::size_t>(p_id) >= _numericDefinitions.size())
+		if (p_id < 0 || static_cast<std::size_t>(p_id) >= _definitions.size())
 		{
 			return nullptr;
 		}
-		return _numericDefinitions[static_cast<std::size_t>(p_id)];
+		return &_definitions[static_cast<std::size_t>(p_id)];
 	}
 
 	std::int32_t VoxelRegistry::numericId(const std::string &p_id) const
@@ -80,5 +96,10 @@ namespace pg
 	std::size_t VoxelRegistry::size() const noexcept
 	{
 		return _numericToString.size();
+	}
+
+	const spk::VoxelRegistry &VoxelRegistry::renderRegistry() const noexcept
+	{
+		return _renderRegistry;
 	}
 }

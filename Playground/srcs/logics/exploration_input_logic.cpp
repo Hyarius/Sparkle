@@ -1,14 +1,46 @@
 #include "logics/exploration_input_logic.hpp"
 
+#include "board/cell_source.hpp"
 #include "rendering/mouse_picker.hpp"
 #include "structures/graphics/geometry/spk_texture_mesh_3d.hpp"
-#include "voxel/voxel_mesher.hpp"
 #include "world/voxel_world.hpp"
 #include "world/world_navigation.hpp"
 
-#include <array>
 #include <memory>
 #include <utility>
+
+namespace
+{
+	// The overlay masks index into the 4x4 mask atlas (resources/textures/mask.png).
+	constexpr float MaskAtlasColumns = 4.0f;
+	constexpr float MaskAtlasRows = 4.0f;
+
+	[[nodiscard]] spk::Vector2 maskUV(const pg::AtlasCell &p_cell, float p_u, float p_v)
+	{
+		return {(static_cast<float>(p_cell.column) + p_u) / MaskAtlasColumns, (static_cast<float>(p_cell.row) + p_v) / MaskAtlasRows};
+	}
+
+	// A flat highlight quad sitting on the walk surface of the hovered cell, textured with a
+	// mask atlas cell. This replaces the old shape-conforming mask mesh (which depended on the
+	// legacy voxel shapes) now that chunk baking lives in the spk voxel library.
+	[[nodiscard]] spk::TextureMesh3D buildHoverQuad(const spk::Vector3Int &p_cell, float p_height, const pg::AtlasCell &p_mask)
+	{
+		const float x0 = static_cast<float>(p_cell.x);
+		const float x1 = x0 + 1.0f;
+		const float z0 = static_cast<float>(p_cell.z);
+		const float z1 = z0 + 1.0f;
+		const float y = p_height + 0.02f;
+		const spk::Vector3 normal{0.0f, 1.0f, 0.0f};
+
+		spk::TextureMesh3D::Builder builder;
+		builder.addShape(
+			spk::TextureVertex3D{{x0, y, z1}, normal, maskUV(p_mask, 0.0f, 0.0f)},
+			spk::TextureVertex3D{{x1, y, z1}, normal, maskUV(p_mask, 1.0f, 0.0f)},
+			spk::TextureVertex3D{{x1, y, z0}, normal, maskUV(p_mask, 1.0f, 1.0f)},
+			spk::TextureVertex3D{{x0, y, z0}, normal, maskUV(p_mask, 0.0f, 1.0f)});
+		return builder.bake();
+	}
+}
 
 namespace pg
 {
@@ -56,12 +88,9 @@ namespace pg
 			_hoverRenderer.setMesh(std::make_shared<spk::TextureMesh3D>());
 			return;
 		}
-		const std::array positions = {*_hovered};
 		const AtlasCell mask = _invalidSeconds > 0 ? _invalidMask : _hoveredMask;
-		_hoverRenderer.setMesh(std::make_shared<spk::TextureMesh3D>(VoxelMesher::buildMaskMesh(positions, [mask](const VoxelCell &) {
-			return mask;
-		},
-																							   _world)));
+		const float height = walkHeightAtCenter(WorldCellSource(_world), *_hovered);
+		_hoverRenderer.setMesh(std::make_shared<spk::TextureMesh3D>(buildHoverQuad(*_hovered, height, mask)));
 	}
 
 	const std::optional<spk::Vector3Int> &ExplorationInputLogic::hoveredCell() const noexcept

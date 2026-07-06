@@ -1,24 +1,11 @@
 #pragma once
 
+#include "structures/voxel/spk_voxel_cell.hpp"
 #include "voxel/voxel_enums.hpp"
-
-#include <cstdint>
 
 namespace pg
 {
-	struct VoxelCell
-	{
-		static constexpr std::int32_t EmptyId = -1;
-
-		std::int32_t id = EmptyId;
-		VoxelOrientation orientation = VoxelOrientation::PositiveZ;
-		VoxelFlip flip = VoxelFlip::PositiveY;
-
-		[[nodiscard]] bool isEmpty() const noexcept
-		{
-			return id == EmptyId;
-		}
-
-		[[nodiscard]] bool operator==(const VoxelCell &) const noexcept = default;
-	};
+	// spk::VoxelCell is identical to the historical pg::VoxelCell (id + orientation + flip);
+	// alias it so the app and the spk voxel map share one cell type.
+	using VoxelCell = spk::VoxelCell;
 }

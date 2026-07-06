@@ -11,19 +11,19 @@
 #include "core/registries.hpp"
 #include "logics/actor_path_logic.hpp"
 #include "logics/camera_controller_logic.hpp"
-#include "logics/chunk_render_logic.hpp"
-#include "logics/chunk_synchronization_logic.hpp"
 #include "logics/exploration_input_logic.hpp"
 #include "structures/game_engine/spk_texture_mesh_render_logic.hpp"
 #include "structures/game_engine/spk_texture_mesh_renderer_3d.hpp"
 #include "structures/graphics/geometry/spk_primitive_object.hpp"
 #include "structures/math/spk_vector3.hpp"
-#include "world/generator/procedural_chunk_provider.hpp"
-#include "world/generator/procedural_world.hpp"
-#include "world/generator/worldgen_params.hpp"
+#include "structures/voxel/spk_voxel_chunk_render_logic.hpp"
+#include "structures/voxel/spk_voxel_chunk_streamer.hpp"
+#include "structures/voxel/spk_voxel_chunk_streamer_logic.hpp"
+#include "structures/voxel/spk_voxel_map.hpp"
+#include "voxel/atlas_cell.hpp"
+#include "world/generator/perlin_chunk_provider.hpp"
 #include "world/voxel_world.hpp"
 #include "world/world_navigation.hpp"
-#include "world/world_streamer.hpp"
 
 #ifndef PG_RESOURCE_DIR
 #	define PG_RESOURCE_DIR "."
@@ -31,14 +31,16 @@
 
 namespace
 {
+	// Chunks kept active around the player, per horizontal axis (inclusive radius). Mirrors
+	// the historical world-streamer radius.
+	constexpr spk::Vector3Int StreamViewRange{2, 1, 2};
+
 	enum OverlayRow : std::size_t
 	{
 		CameraPosition = 0,
 		PlayerCell,
 		HoveredCell,
 		LoadedChunks,
-		Meshes,
-		Triangles,
 		UpdateTime,
 		RenderTime,
 		DeltaTime,
@@ -97,10 +99,10 @@ namespace pg
 	{
 		_context.world.explorationActive = false;
 		_context.world.navigation.reset();
-		_worldStreamer.reset();
+		// Destroys the VoxelWorld (and its spk::VoxelMap), unregistering every chunk entity
+		// from the engine while the engine is still alive.
 		_context.world.world.reset();
-		_proceduralProvider.reset();
-		_proceduralWorld.reset();
+		_terrainProvider.reset();
 	}
 
 	void GameSceneWidget::_buildScene(const Registries &p_registries)
@@ -109,8 +111,12 @@ namespace pg
 		_maskTexture.loadFromFile(std::filesystem::path(PG_RESOURCE_DIR) / "textures" / "mask.png", {4u, 4u});
 
 		spk::GameEngine &engine = gameEngine();
-		engine.add<ChunkSynchronizationLogic>();
-		engine.add<ChunkRenderLogic>(_texture, &_maskTexture);
+		// Streamer logic (priority 100) runs first, then the voxel render logic bakes the
+		// dirtied chunks on the worker pool and emits the camera + directional light; the mesh
+		// render logic (added after, no frame state) then draws the player/hover with that same
+		// camera already set for the frame.
+		engine.add<spk::VoxelChunkStreamerLogic>();
+		engine.add<spk::VoxelChunkRenderLogic>(_texture);
 		engine.add<spk::TextureMeshRenderLogic>(false);
 
 		_camera = &_cameraEntity.addComponent<spk::Camera3D>();
@@ -120,26 +126,29 @@ namespace pg
 		engine.addEntity(&_cameraEntity);
 
 		_context.world.world = std::make_unique<VoxelWorld>(p_registries.voxels(), &engine);
-		const WorldgenParams params = WorldgenParams::load(
-			std::filesystem::path(PG_RESOURCE_DIR) / "data" / "worldgen" / "default.json");
-		_proceduralWorld = std::make_unique<ProceduralWorld>(ProceduralWorld::generate(params, _worldSeed));
-		_proceduralProvider = std::make_unique<ProceduralChunkProvider>(
-			*_proceduralWorld, p_registries.biomes(), p_registries.prefabs(), p_registries.voxels(), _worldSeed);
-		spk::Vector3Int spawnCell = _proceduralProvider->spawnCell();
-		(void)_context.world.world->loadChunk(ChunkCoordinates::fromWorldCell(spawnCell), *_proceduralProvider);
-		(void)_context.world.world->loadChunk(
-			ChunkCoordinates::fromWorldCell(spawnCell + spk::Vector3Int{0, 2, 0}), *_proceduralProvider);
-		_worldStreamer = std::make_unique<WorldStreamer>(
-			*_context.world.world, *_proceduralProvider, spk::Vector3Int{2, 1, 2}, 4);
-		_worldStreamer->update(spawnCell);
-		_streamingFocus = ChunkCoordinates::fromWorldCell(spawnCell);
+		_terrainProvider = std::make_unique<PerlinChunkProvider>(p_registries.voxels(), _worldSeed);
+		_context.world.world->setProvider(_terrainProvider.get());
+
+		spk::Vector3Int spawnCell = _terrainProvider->spawnCell();
+		const ChunkCoordinates spawnChunk = ChunkCoordinates::fromWorldCell(spawnCell);
+
+		// Warm up the spawn neighbourhood so the navigation graph has terrain to build on
+		// before the streamer takes over on the first tick.
+		for (int y = -StreamViewRange.y; y <= StreamViewRange.y; ++y)
+		{
+			for (int z = -StreamViewRange.z; z <= StreamViewRange.z; ++z)
+			{
+				for (int x = -StreamViewRange.x; x <= StreamViewRange.x; ++x)
+				{
+					_context.world.world->loadChunk(ChunkCoordinates{spawnChunk.value + spk::Vector3Int{x, y, z}});
+				}
+			}
+		}
 
 		const int margin = 48;
 		const TraversalBounds navigationBounds{
-			{std::max(0, spawnCell.x - margin), 0, std::max(0, spawnCell.z - margin)},
-			{std::min(_proceduralWorld->width(), spawnCell.x + margin + 1),
-			 params.height.maxHeight + 16,
-			 std::min(_proceduralWorld->height(), spawnCell.z + margin + 1)}};
+			{spawnCell.x - margin, 0, spawnCell.z - margin},
+			{spawnCell.x + margin + 1, _terrainProvider->maxHeight() + 16, spawnCell.z + margin + 1}};
 		_context.world.navigation = std::make_unique<WorldNavigation>(
 			*_context.world.world,
 			navigationBounds,
@@ -163,6 +172,9 @@ namespace pg
 		playerRenderer.setMesh(_playerMesh);
 		playerRenderer.setTexture(&_texture);
 		playerRenderer.setTint({0.95f, 0.95f, 1.0f, 1.0f});
+		_streamer = &_playerEntity.addComponent<spk::VoxelChunkStreamer>(_context.world.world->map());
+		_streamer->setViewRange(StreamViewRange);
+		_streamer->setOriginPosition(spawnChunk.value);
 		engine.addEntity(&_playerEntity);
 
 		auto &hoverRenderer = _hoverEntity.addComponent<spk::TextureMeshRenderer3D>();
@@ -194,6 +206,8 @@ namespace pg
 			AtlasCell{hovered[0], hovered[1]},
 			AtlasCell{invalid[0], invalid[1]});
 
+		_streamingFocus = spawnChunk;
+
 		std::cout << "Streaming generated world from " << _context.world.world->loadedChunkCount()
 				  << " initial chunks" << std::endl;
 	}
@@ -207,8 +221,6 @@ namespace pg
 		_overlay.setText(PlayerCell, 0, "Player cell");
 		_overlay.setText(HoveredCell, 0, "Hovered cell");
 		_overlay.setText(LoadedChunks, 0, "Loaded chunks");
-		_overlay.setText(Meshes, 0, "Meshes rendered");
-		_overlay.setText(Triangles, 0, "Triangles rendered");
 		_overlay.setText(UpdateTime, 0, "Update duration");
 		_overlay.setText(RenderTime, 0, "Render duration");
 		_overlay.setText(DeltaTime, 0, "Frame delta");
@@ -228,19 +240,20 @@ namespace pg
 	void GameSceneWidget::_onUpdate(const spk::UpdateTick &p_tick)
 	{
 		const long long start = nowNs();
-		if (_worldStreamer != nullptr && _player != nullptr && _proceduralWorld != nullptr)
+		if (_player != nullptr)
 		{
-			_worldStreamer->update(_player->cell);
 			const ChunkCoordinates focus = ChunkCoordinates::fromWorldCell(_player->cell);
-			if (!_streamingFocus.has_value() || focus != *_streamingFocus)
+			if (_streamer != nullptr)
+			{
+				_streamer->setOriginPosition(focus.value);
+			}
+			if (_terrainProvider != nullptr && (!_streamingFocus.has_value() || focus != *_streamingFocus))
 			{
 				_streamingFocus = focus;
 				const int margin = 48;
 				_context.world.navigation->resetBounds({
-					{std::max(0, _player->cell.x - margin), 0, std::max(0, _player->cell.z - margin)},
-					{std::min(_proceduralWorld->width(), _player->cell.x + margin + 1),
-					 64,
-					 std::min(_proceduralWorld->height(), _player->cell.z + margin + 1)}});
+					{_player->cell.x - margin, 0, _player->cell.z - margin},
+					{_player->cell.x + margin + 1, 64, _player->cell.z + margin + 1}});
 			}
 		}
 		spk::GameEngineWidget::_onUpdate(p_tick);
@@ -265,17 +278,19 @@ namespace pg
 		const long long start = nowNs();
 		spk::RenderUnit unit = spk::GameEngineWidget::_buildRenderUnit();
 		_renderDurationNs.store(nowNs() - start, std::memory_order_relaxed);
-		_meshCount.store(ChunkRenderLogic::lastMeshCount(), std::memory_order_relaxed);
-		_triangleCount.store(ChunkRenderLogic::lastTriangleCount(), std::memory_order_relaxed);
 		return unit;
 	}
 
 	void GameSceneWidget::_refreshOverlay(const spk::UpdateTick &p_tick)
 	{
 		if (_camera != nullptr)
+		{
 			_overlay.setText(CameraPosition, 1, formatVector(_camera->position()));
+		}
 		if (_player != nullptr)
+		{
 			_overlay.setText(PlayerCell, 1, formatVector(_player->cell));
+		}
 		_overlay.setText(
 			HoveredCell,
 			1,
@@ -286,8 +301,6 @@ namespace pg
 			LoadedChunks,
 			1,
 			_context.world.world == nullptr ? "0" : std::to_string(_context.world.world->loadedChunkCount()));
-		_overlay.setText(Meshes, 1, std::to_string(_meshCount.load(std::memory_order_relaxed)));
-		_overlay.setText(Triangles, 1, std::to_string(_triangleCount.load(std::memory_order_relaxed)));
 		_overlay.setText(UpdateTime, 1, formatFloat(static_cast<float>(_updateDurationNs.load()) / 1.0e6f, " ms"));
 		_overlay.setText(RenderTime, 1, formatFloat(static_cast<float>(_renderDurationNs.load()) / 1.0e6f, " ms"));
 		_overlay.setText(DeltaTime, 1, std::to_string(p_tick.deltaTime.milliseconds()) + " ms");
