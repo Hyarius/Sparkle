@@ -1,17 +1,1 @@
-{
-  "version": 1,
-  "displayName": "Forest",
-  "palette": {
-    "surface": "grass-block",
-    "subsurface": "dirt-block",
-    "deep": "stone-block",
-    "flora": ["bush"]
-  },
-  "encounterRules": [
-    {
-      "trigger": "bush",
-      "table": "forest-basic",
-      "chancePerStep": 0.15
-    }
-  ]
-}
+{"version":1,"displayName":"Forest","palette":{"surface":"grass-block","subsurface":"dirt-block","deep":"stone-block","flora":["bush"]}}

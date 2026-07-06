@@ -32,21 +32,8 @@ namespace
 		return nlohmann::json::parse(R"json(
 			{
 				"version": 1,
-				"teamMemberCount": 6,
-				"abilityBarSlots": 8,
 				"maxVerticalTraversalGap": 0.5,
-				"defaultBoardSize": [11, 11],
-				"deploymentStripDepth": 2,
-				"minimumTurnBarDuration": 0.1,
-				"mitigationScaling": 10.0,
-				"timeEffectResistanceScaling": 10.0,
 				"overlayMasks": {
-					"deployment": [0, 0],
-					"movement": [1, 0],
-					"path": [2, 0],
-					"abilityRange": [3, 0],
-					"areaOfEffect": [0, 1],
-					"losBlocked": [1, 1],
 					"hovered": [2, 1],
 					"invalid": [3, 1]
 				}
@@ -122,9 +109,8 @@ TEST(GameRules, ParsesValidSample)
 	pg::JsonReader reader(json, "sample.json");
 	const pg::GameRules rules = pg::parseGameRules(reader);
 
-	EXPECT_EQ(rules.teamMemberCount, 6);
-	EXPECT_EQ(rules.defaultBoardSize, (std::array<int, 2>{11, 11}));
-	EXPECT_EQ(rules.overlayMasks.at("abilityRange"), (std::array<int, 2>{3, 0}));
+	EXPECT_DOUBLE_EQ(rules.maxVerticalTraversalGap, 0.5);
+	EXPECT_EQ(rules.overlayMasks.at("hovered"), (std::array<int, 2>{2, 1}));
 }
 
 TEST(GameRules, RejectsUnknownField)

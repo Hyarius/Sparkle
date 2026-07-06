@@ -3,7 +3,6 @@
 #include "structures/game_engine/spk_entity_3d.hpp"
 #include "structures/game_engine/spk_game_engine.hpp"
 #include "world/chunk_provider.hpp"
-#include "world/map_definition.hpp"
 
 #include <array>
 
@@ -148,94 +147,18 @@ namespace pg
 		return true;
 	}
 
-	void VoxelWorld::loadFromMap(const MapDefinition &p_map)
-	{
-		clear();
-		_activeMapId = p_map.id;
-		_loadMapChunks(p_map);
-	}
-
-	void VoxelWorld::_loadMapChunks(const MapDefinition &p_map)
-	{
-		MapChunkProvider provider(p_map);
-		const spk::Vector3Int chunkCount{
-			(p_map.size().x + Chunk::Size.x - 1) / Chunk::Size.x,
-			(p_map.size().y + Chunk::Size.y - 1) / Chunk::Size.y,
-			(p_map.size().z + Chunk::Size.z - 1) / Chunk::Size.z};
-		for (int y = 0; y < chunkCount.y; ++y)
-		{
-			for (int z = 0; z < chunkCount.z; ++z)
-			{
-				for (int x = 0; x < chunkCount.x; ++x)
-				{
-					(void)loadChunk({{x, y, z}}, provider);
-				}
-			}
-		}
-	}
-
-	void VoxelWorld::_detachActiveEntities()
-	{
-		if (_engine == nullptr) return;
-		for (auto &[coordinates, loaded] : _chunks)
-		{
-			(void)coordinates;
-			_engine->removeEntity(loaded.entity.get());
-		}
-	}
-
-	void VoxelWorld::_attachActiveEntities()
-	{
-		if (_engine == nullptr) return;
-		for (auto &[coordinates, loaded] : _chunks)
-		{
-			(void)coordinates;
-			_engine->addEntity(loaded.entity.get());
-			loaded.chunk->requestSynchronization();
-		}
-	}
-
-	void VoxelWorld::activateCachedMap(const MapDefinition &p_map)
-	{
-		if (_activeMapId == p_map.id)
-		{
-			return;
-		}
-		if (!_activeMapId.empty())
-		{
-			_detachActiveEntities();
-			_mapCache.insert_or_assign(_activeMapId, std::move(_chunks));
-			_chunks.clear();
-		}
-		_activeMapId = p_map.id;
-		if (auto cached = _mapCache.find(p_map.id); cached != _mapCache.end())
-		{
-			_chunks = std::move(cached->second);
-			_mapCache.erase(cached);
-			_attachActiveEntities();
-			++_revision;
-			return;
-		}
-		_loadMapChunks(p_map);
-	}
-
 	void VoxelWorld::clear()
 	{
-		_detachActiveEntities();
+		if (_engine != nullptr)
+		{
+			for (auto &[coordinates, loaded] : _chunks)
+			{
+				(void)coordinates;
+				_engine->removeEntity(loaded.entity.get());
+			}
+		}
 		_chunks.clear();
-		_mapCache.clear();
-		_activeMapId.clear();
 		++_revision;
-	}
-
-	std::size_t VoxelWorld::loadedMapCount() const noexcept
-	{
-		return _mapCache.size() + (_activeMapId.empty() ? 0u : 1u);
-	}
-
-	const std::string &VoxelWorld::activeMapId() const noexcept
-	{
-		return _activeMapId;
 	}
 
 	std::size_t VoxelWorld::loadedChunkCount() const noexcept

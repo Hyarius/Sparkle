@@ -584,9 +584,8 @@ namespace pg::tools
 	void VoxelModelerPage::save()
 	{
 		_document.save(_services.writer());
-		_services.load();
 		_state.markSaved();
-		_services.report("Saved voxel definitions and reloaded registries");
+		_services.report("Saved voxel definitions");
 	}
 
 	void VoxelModelerPage::reload()

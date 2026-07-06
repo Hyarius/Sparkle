@@ -13,13 +13,7 @@ namespace
 		"version", "id", "name", "description", "type", "kind", "enabled",
 		"traversal", "tags", "shape", "textures", "top", "bottom", "side",
 		"posX", "negX", "posZ", "negZ", "plane", "slope", "back", "riser",
-		"sideLeft", "sideRight", "height", "stepCount", "model", "forms",
-		"attributes", "abilities", "passives", "statuses", "effects", "requirements",
-		"rewards", "cost", "range", "radius", "duration", "power", "chance",
-		"weight", "tiers", "team", "species", "form", "ai", "completedNodes",
-		"size", "cells", "voxels", "origin", "position", "orientation", "flip",
-		"markers", "trainers", "portals", "target", "map", "portal", "biome",
-		"prefabs", "at", "rotation", "repeatLimit", "nodes", "edges"});
+		"sideLeft", "sideRight", "height", "stepCount", "orientation", "flip"});
 
 	[[nodiscard]] std::size_t keyRank(std::string_view p_key)
 	{

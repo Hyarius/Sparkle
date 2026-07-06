@@ -1,39 +1,18 @@
 #pragma once
 
 #include "core/event_center.hpp"
-#include "creatures/player_data.hpp"
-#include "structures/math/spk_vector3.hpp"
 
 #include <memory>
-#include <optional>
-#include <set>
-#include <string>
 
 namespace pg
 {
-	struct BiomeDefinition;
-	class Registries;
-	class EncounterEmitter;
-	struct MapDefinition;
 	class VoxelWorld;
 	class WorldNavigation;
 
-	struct WorldPosition
-	{
-		std::string map;
-		spk::Vector3Int cell{};
-
-		[[nodiscard]] bool operator==(const WorldPosition &) const noexcept = default;
-	};
-
 	struct WorldContext
 	{
-		int seed = 0;
 		std::unique_ptr<VoxelWorld> world;
 		std::unique_ptr<WorldNavigation> navigation;
-		std::unique_ptr<EncounterEmitter> encounterEmitter;
-		const MapDefinition *activeMap = nullptr;
-		const BiomeDefinition *activeBiome = nullptr;
 		bool explorationActive = false;
 
 		WorldContext();
@@ -48,13 +27,8 @@ namespace pg
 	{
 		EventCenter events;
 		WorldContext world;
-		PlayerData player;
-		std::set<std::string> clearedGyms;
-		std::set<std::string> clearedTrainers;
-		std::optional<WorldPosition> respawnPoint;
 
 		GameContext();
 		~GameContext();
-		void newGame(const Registries &p_registries);
 	};
 }

@@ -1,1 +1,1 @@
-{"version":1,"displayName":"Coast","palette":{"surface":"coast-block","subsurface":"sand-block","deep":"stone-block","flora":["bush"]},"encounterRules":[{"trigger":"bush","table":"forest-basic","chancePerStep":0.1}]}
+{"version":1,"displayName":"Coast","palette":{"surface":"coast-block","subsurface":"sand-block","deep":"stone-block","flora":["bush"]}}

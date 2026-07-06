@@ -1,20 +1,7 @@
 {
   "version": 1,
-  "teamMemberCount": 6,
-  "abilityBarSlots": 8,
   "maxVerticalTraversalGap": 0.5,
-  "defaultBoardSize": [11, 11],
-  "deploymentStripDepth": 2,
-  "minimumTurnBarDuration": 0.1,
-  "mitigationScaling": 10.0,
-  "timeEffectResistanceScaling": 10.0,
   "overlayMasks": {
-    "deployment": [0, 0],
-    "movement": [1, 0],
-    "path": [2, 0],
-    "abilityRange": [3, 0],
-    "areaOfEffect": [0, 1],
-    "losBlocked": [1, 1],
     "hovered": [2, 1],
     "invalid": [3, 1]
   }

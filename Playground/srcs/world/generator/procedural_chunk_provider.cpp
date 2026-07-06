@@ -1,7 +1,7 @@
 #include "world/generator/procedural_chunk_provider.hpp"
 
 #include "core/registry.hpp"
-#include "encounters/biome.hpp"
+#include "world/biome_definition.hpp"
 #include "voxel/voxel_registry.hpp"
 #include "world/chunk.hpp"
 #include "world/prefab_definition.hpp"

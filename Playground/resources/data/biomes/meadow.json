@@ -1,1 +1,1 @@
-{"version":1,"displayName":"Meadow","palette":{"surface":"meadow-block","subsurface":"dirt-block","deep":"stone-block","flora":["bush"]},"encounterRules":[{"trigger":"bush","table":"forest-basic","chancePerStep":0.14}]}
+{"version":1,"displayName":"Meadow","palette":{"surface":"meadow-block","subsurface":"dirt-block","deep":"stone-block","flora":["bush"]}}

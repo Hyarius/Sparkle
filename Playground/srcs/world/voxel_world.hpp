@@ -16,7 +16,6 @@ namespace spk
 namespace pg
 {
 	class IChunkProvider;
-	struct MapDefinition;
 
 	class VoxelWorld final : public ICellLookup
 	{
@@ -30,13 +29,7 @@ namespace pg
 		const VoxelRegistry *_registry = nullptr;
 		spk::GameEngine *_engine = nullptr;
 		std::map<ChunkCoordinates, LoadedChunk> _chunks;
-		std::map<std::string, std::map<ChunkCoordinates, LoadedChunk>> _mapCache;
-		std::string _activeMapId;
 		std::size_t _revision = 0;
-
-		void _detachActiveEntities();
-		void _attachActiveEntities();
-		void _loadMapChunks(const MapDefinition &p_map);
 
 	public:
 		VoxelWorld(const VoxelRegistry &p_registry, spk::GameEngine *p_engine = nullptr);
@@ -54,13 +47,9 @@ namespace pg
 		[[nodiscard]] const Chunk *chunk(const ChunkCoordinates &p_coordinates) const noexcept;
 		[[nodiscard]] Chunk &loadChunk(const ChunkCoordinates &p_coordinates, const IChunkProvider &p_provider);
 		[[nodiscard]] bool unloadChunk(const ChunkCoordinates &p_coordinates);
-		void loadFromMap(const MapDefinition &p_map);
-		void activateCachedMap(const MapDefinition &p_map);
 		void clear();
 
 		[[nodiscard]] std::size_t loadedChunkCount() const noexcept;
-		[[nodiscard]] std::size_t loadedMapCount() const noexcept;
-		[[nodiscard]] const std::string &activeMapId() const noexcept;
 		[[nodiscard]] std::size_t revision() const noexcept;
 		[[nodiscard]] const VoxelRegistry &registry() const noexcept;
 		[[nodiscard]] std::vector<ChunkCoordinates> loadedChunkCoordinates() const;

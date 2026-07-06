@@ -1,1 +1,12 @@
-{"version":1,"displayName":"Tundra","palette":{"surface":"snow-block","subsurface":"dirt-block","deep":"stone-block","flora":["bush"]},"encounterRules":[{"trigger":"bush","table":"forest-basic","chancePerStep":0.12}]}
+{
+	"version": 1,
+	"displayName": "Tundra",
+	"palette": {
+		"surface": "snow-block",
+		"subsurface": "dirt-block",
+		"deep": "stone-block",
+		"flora": [
+			"bush"
+		]
+	}
+}

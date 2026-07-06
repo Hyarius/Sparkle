@@ -1,7 +1,6 @@
 #include "core/registries.hpp"
 #include "logics/chunk_synchronization_logic.hpp"
 #include "world/chunk_provider.hpp"
-#include "world/map_definition.hpp"
 #include "world/voxel_world.hpp"
 #include "world/world_streamer.hpp"
 
@@ -58,20 +57,6 @@ TEST(ChunkCoordinates, RoundTripsPositiveAndNegativeWorldCells)
 	}
 }
 
-TEST(VoxelWorld, ProvidesContinuousAccessAcrossChunkBorders)
-{
-	pg::VoxelWorld world(registries().voxels());
-	const pg::MapDefinition &map = registries().maps().get("m1-testground");
-	world.loadFromMap(map);
-
-	for (const spk::Vector3Int position : {spk::Vector3Int{15, 2, 15}, spk::Vector3Int{16, 2, 15}, spk::Vector3Int{15, 2, 16}, spk::Vector3Int{16, 2, 16}})
-	{
-		EXPECT_EQ(world.cell(position), map.grid.cell(position));
-	}
-	EXPECT_TRUE(world.cell({-1, 0, 0}).isEmpty());
-	EXPECT_TRUE(world.cell({64, 0, 0}).isEmpty());
-}
-
 TEST(VoxelWorld, BorderEditRequestsExactlyTouchedAndAdjacentChunks)
 {
 	pg::VoxelWorld world(registries().voxels());
@@ -121,20 +106,6 @@ TEST(VoxelWorld, MeshingCullsFacesAcrossChunkBoundaries)
 	right.synchronize();
 	EXPECT_EQ(left.renderMesh().nbShape(), 5);
 	EXPECT_EQ(right.renderMesh().nbShape(), 5);
-}
-
-TEST(MapChunkProvider, SliceMatchesDirectMapReads)
-{
-	const pg::MapDefinition &map = registries().maps().get("m1-testground");
-	pg::MapChunkProvider provider(map);
-	pg::VoxelWorld world(registries().voxels());
-	pg::Chunk &chunk = world.loadChunk({{1, 0, 2}}, provider);
-	const spk::Vector3Int origin = chunk.coordinates().worldOrigin();
-
-	for (const spk::Vector3Int local : {spk::Vector3Int{0, 0, 0}, spk::Vector3Int{15, 2, 15}, spk::Vector3Int{8, 4, 0}, spk::Vector3Int{11, 4, 7}})
-	{
-		EXPECT_EQ(chunk.grid().cell(local), map.grid.cell(origin + local));
-	}
 }
 
 TEST(WorldStreamer, ReplacesLoadedSetAroundNewFocus)

@@ -23,8 +23,7 @@ namespace pg
 			_wasActive = false;
 			return;
 		}
-		// On (re)entering exploration — including the hand-off back from the tactical battle
-		// camera — ease from wherever the camera currently sits so the blend back never cuts (D03).
+		// Ease from the current camera position when exploration is activated.
 		if (!_wasActive)
 		{
 			_smoothedTarget = _camera.target();

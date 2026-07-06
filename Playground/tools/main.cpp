@@ -1,11 +1,6 @@
 #include "tools/core/tool_services.hpp"
 #include "tools/core/tools_window.hpp"
-#include "tools/pages/ability_editor_page.hpp"
-#include "tools/pages/encounter_editor_page.hpp"
-#include "tools/pages/featboard_editor_page.hpp"
-#include "tools/pages/species_editor_page.hpp"
 #include "tools/pages/voxel_modeler_page.hpp"
-#include "tools/pages/world_editor_page.hpp"
 
 #include <filesystem>
 #include <iostream>
@@ -26,7 +21,6 @@ int main()
 	try
 	{
 		pg::tools::ToolServices services(std::filesystem::path(PG_RESOURCE_DIR) / "data");
-		services.load();
 		spk::Application application;
 		spk::WindowHandle window = application.createWindow(
 			"erelia-tools",
@@ -37,11 +31,6 @@ int main()
 		pg::tools::ToolsWindow tools("EreliaTools", &window.centralWidget(), services);
 		tools.setGeometry(window.centralWidget().geometry());
 		tools.addPage(std::make_unique<pg::tools::VoxelModelerPage>("VoxelModeler", &tools.pageArea(), services));
-		tools.addPage(std::make_unique<pg::tools::WorldEditorPage>("WorldEditor", &tools.pageArea(), services));
-		tools.addPage(std::make_unique<pg::tools::FeatBoardEditorPage>("FeatBoardEditor", &tools.pageArea(), services));
-		tools.addPage(std::make_unique<pg::tools::EncounterEditorPage>("EncounterEditor", &tools.pageArea(), services));
-		tools.addPage(std::make_unique<pg::tools::AbilityEditorPage>("AbilityEditor", &tools.pageArea(), services));
-		tools.addPage(std::make_unique<pg::tools::SpeciesEditorPage>("SpeciesEditor", &tools.pageArea(), services));
 		tools.activate();
 
 		std::cout << "Erelia Tools opened. Close the window to exit." << std::endl;
