@@ -44,7 +44,7 @@ pg::VoxelShape (abstract)
   │    CardinalHeights heights; // per flip: {posX, negX, posZ, negZ, stationary} floats
   ├─ virtuals: _constructRenderFaces(), _constructMask(),
   │            _constructPositiveYHeights(), _constructNegativeYHeights() (=positive)
-  └─ concrete: CubeShape, SlabShape, SlopeShape, StairShape, CrossPlaneShape
+  └─ concrete: CubeShape, SlabShape, SlopeShape, StairShape, CrossPlaneShape, CrossShape
   // NO collision products (D30): raycasts are DDA over cells, movement is walk-height
   // analytic. If a future feature needs sub-voxel surface geometry (physics debris,
   // shadow-casting geometry), add a dedicated product then, with its consumer documented.

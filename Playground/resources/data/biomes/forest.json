@@ -15,6 +15,9 @@
 		"peak": false,
 		"mapColor": "#3FA34D",
 		"prefabs": {
+			"scenery": [
+				{ "prefab": "bush-cluster", "density": 3.0, "spacing": 3 }
+			],
 			"gym": "forest-gym",
 			"city": [
 				"forest-house",

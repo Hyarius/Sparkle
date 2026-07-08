@@ -4,6 +4,7 @@
 #include "voxel/atlas_cell.hpp"
 
 #include "structures/voxel/spk_cross_plane_voxel_shape.hpp"
+#include "structures/voxel/spk_cross_voxel_shape.hpp"
 #include "structures/voxel/spk_cube_voxel_shape.hpp"
 #include "structures/voxel/spk_slab_voxel_shape.hpp"
 #include "structures/voxel/spk_slope_voxel_shape.hpp"
@@ -158,13 +159,19 @@ namespace
 		{
 			p_reader.forbidUnknown({"type", "textures"});
 			pg::JsonReader textures = p_reader.child("textures");
-			return {std::make_unique<spk::CrossPlaneVoxelShape>(readNamedTextures(textures, {"plane"})), {}};
+			return {std::make_unique<spk::DiagonalCrossVoxelShape>(readNamedTextures(textures, {"plane"})), {}};
+		}
+		if (type == "cross")
+		{
+			p_reader.forbidUnknown({"type", "textures"});
+			pg::JsonReader textures = p_reader.child("textures");
+			return {std::make_unique<spk::CrossVoxelShape>(readNamedTextures(textures, {"plane"})), {}};
 		}
 
 		throw pg::JsonError(
 			p_reader.file(),
 			p_reader.pathFor("type"),
-			"unknown voxel shape type '" + type + "' (known types: cube, slab, slope, stair, crossPlane)");
+			"unknown voxel shape type '" + type + "' (known types: cube, slab, slope, stair, crossPlane, cross)");
 	}
 }
 

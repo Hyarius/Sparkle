@@ -21,9 +21,12 @@ namespace pg
 		{
 			throw JsonError(p_reader.file(), p_reader.pathFor("size"), "prefab dimensions must be positive");
 		}
-		PrefabDefinition result{.grid = VoxelGrid(size)};
+		VoxelGrid grid(size);
 		const detail::VoxelPalette palette = detail::parsePalette(p_reader, p_voxels);
-		detail::applyVoxelContent(p_reader, result.grid, palette);
+		detail::applyVoxelContent(p_reader, grid, palette);
+		// The grid constructor lists the whole box, empties included, so stamping the
+		// prefab carves interiors and the air above ramps clear even against a cliff.
+		PrefabDefinition result{.prefab = spk::Prefab(grid)};
 
 		std::set<std::string> names;
 		if (p_reader.contains("anchors"))
@@ -34,7 +37,7 @@ namespace pg
 				PrefabAnchor anchor{
 					.name = anchorReader.require<std::string>("name"),
 					.at = detail::parseVector3(anchorReader, "at")};
-				if (!result.grid.isWithinBounds(anchor.at))
+				if (!grid.isWithinBounds(anchor.at))
 				{
 					throw JsonError(anchorReader.file(), anchorReader.pathFor("at"), "anchor is outside the declared size");
 				}

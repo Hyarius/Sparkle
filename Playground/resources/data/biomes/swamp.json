@@ -15,6 +15,9 @@
 		"peak": false,
 		"mapColor": "#6B8F3F",
 		"prefabs": {
+			"scenery": [
+				{ "prefab": "bush-cluster", "density": 4.0, "spacing": 3 }
+			],
 			"gym": "swamp-gym",
 			"city": [
 				"swamp-house",

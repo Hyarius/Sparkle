@@ -1,5 +1,6 @@
 #pragma once
 
+#include "structures/voxel/spk_prefab.hpp"
 #include "structures/voxel/spk_voxel_chunk.hpp"
 #include "structures/voxel/spk_voxel_mesher.hpp"
 
@@ -54,6 +55,15 @@ namespace spk
 		[[nodiscard]] const spk::VoxelCell *tryRenderableCell(const spk::Vector3Int &p_worldCell) const override;
 		[[nodiscard]] const spk::VoxelCell &cell(const spk::Vector3Int &p_worldCell) const noexcept;
 		bool setCell(const spk::Vector3Int &p_worldCell, const spk::VoxelCell &p_cell);
+
+		// Stamps the prefab into the world, the min corner of its rotated bounding box
+		// landing on p_worldDestination. Every chunk overlapped by that box is generated
+		// on demand first, so the prefab always lands whole; affected meshes (including
+		// boundary neighbors) are re-baked on the next render pass.
+		void applyPrefab(
+			const spk::Prefab &p_prefab,
+			const spk::Vector3Int &p_worldDestination,
+			spk::VoxelOrientation p_orientation = spk::VoxelOrientation::PositiveZ);
 
 		[[nodiscard]] const spk::VoxelRegistry &registry() const noexcept;
 

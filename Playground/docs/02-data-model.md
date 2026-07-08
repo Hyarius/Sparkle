@@ -91,7 +91,7 @@ map/generator, not a global.
   "traversal": "solid",              // "solid" (stand on) | "passable" (walk through) — D20
   "tags": ["ground", "grass"],       // free strings; "bush" marks encounter triggers
   "shape": {
-    "type": "cube",                  // cube | slab | slope | stair | crossPlane
+    "type": "cube",                  // cube | slab | slope | stair | crossPlane | cross
     "textures": {                    // shape-specific slots → atlas cell [col, row]
       "top": [0, 0],
       "side": [1, 0],
@@ -115,6 +115,7 @@ are specified in [03-systems/voxel.md](03-systems/voxel.md)):
 | `slope` | `slope, back, bottom, sideLeft, sideRight` | — (rises toward local +Z) |
 | `stair` | `top, riser, back, bottom, sideLeft, sideRight` | `"stepCount"`: int (default 2) |
 | `crossPlane` | `plane` | — (two crossed quads, no outer shell, never occludes) |
+| `cross` | `plane` | — (two centered axis-aligned quads, no outer shell, never occludes) |
 
 Orientation/flip are **per-cell** (in maps), not per-definition.
 
@@ -511,6 +512,14 @@ abilities, passives *and form* all derive from replaying those nodes' rewards (D
     "deep": "stone-block",
     "flora": ["bush", "tall-grass"]
   },
+  "worldgen": {
+    "prefabs": {
+      "scenery": [
+        { "prefab": "oak-tree", "density": 0.15, "spacing": 5 },
+        { "prefab": "flower-patch", "density": 6.0, "spacing": 1 }
+      ]
+    }
+  },
   "encounterRules": [
     { "trigger": "bush",             // matched against voxel tags at the player cell
       "table": "forest-basic",
@@ -518,6 +527,15 @@ abilities, passives *and form* all derive from replaying those nodes' rewards (D
   ]
 }
 ```
+
+Each `worldgen.prefabs.scenery` density is the expected number of that prefab requested per
+suitable world-plan cell. It is any non-negative number: `6.0` averages six requests per
+cell, while `0.15` averages one request every six or seven cells. Poisson sampling keeps
+the result natural and deterministic for a given seed. `spacing` is the minimum distance
+between scenery centers in voxel columns; when omitted it defaults to the prefab's largest
+horizontal dimension. Actual counts can be lower when spacing is saturated or around
+roads, water, entities, and stairs. Scenery has no gameplay role; use ordinary multi-voxel
+prefabs for trees, plants, rocks, and other biome dressing.
 
 ## 13. `prefabs/<id>.json` — reusable voxel structures
 

@@ -216,6 +216,32 @@ namespace spk
 		return true;
 	}
 
+	void VoxelMap::applyPrefab(const spk::Prefab &p_prefab, const spk::Vector3Int &p_worldDestination, spk::VoxelOrientation p_orientation)
+	{
+		if (p_prefab.voxels().empty())
+		{
+			return;
+		}
+
+		const spk::Vector3Int rotatedSize = p_prefab.rotatedSize(p_orientation);
+		const spk::Vector3Int minChunk = spk::VoxelChunk::coordinatesFromWorldCell(p_worldDestination);
+		const spk::Vector3Int maxChunk =
+			spk::VoxelChunk::coordinatesFromWorldCell(p_worldDestination + rotatedSize - spk::Vector3Int{1, 1, 1});
+		for (int chunkY = minChunk.y; chunkY <= maxChunk.y; ++chunkY)
+		{
+			for (int chunkZ = minChunk.z; chunkZ <= maxChunk.z; ++chunkZ)
+			{
+				for (int chunkX = minChunk.x; chunkX <= maxChunk.x; ++chunkX)
+				{
+					spk::VoxelChunk &target = chunk({chunkX, chunkY, chunkZ});
+					// The non-const grid() access flags the chunk's own mesh for re-baking.
+					p_prefab.applyTo(target.grid(), p_worldDestination - target.worldOrigin(), p_orientation);
+					_requestNeighborSynchronization(target.coordinates());
+				}
+			}
+		}
+	}
+
 	const spk::VoxelRegistry &VoxelMap::registry() const noexcept
 	{
 		return *_registry;

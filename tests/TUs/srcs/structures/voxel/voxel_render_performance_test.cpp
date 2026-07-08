@@ -54,7 +54,7 @@ TEST(VoxelRenderPerformance, BakesAnEightByEightChunkSquareWithinBudget)
 	const std::int32_t slope = registry.registerShape(std::make_unique<spk::SlopeVoxelShape>(spk::AtlasCell{1, 0}));
 	const std::int32_t slab = registry.registerShape(std::make_unique<spk::SlabVoxelShape>(spk::AtlasCell{1, 0}));
 	const std::int32_t stair = registry.registerShape(std::make_unique<spk::StairVoxelShape>(spk::AtlasCell{2, 0}, 4));
-	const std::int32_t crossPlane = registry.registerShape(std::make_unique<spk::CrossPlaneVoxelShape>(spk::AtlasCell{3, 0}));
+	const std::int32_t crossPlane = registry.registerShape(std::make_unique<spk::DiagonalCrossVoxelShape>(spk::AtlasCell{3, 0}));
 
 	const spk::Perlin perlin(spk::Perlin::Parameters{.seed = 12345, .octaves = 4, .persistence = 0.5f, .lacunarity = 2.0f, .frequency = 1.0f / 32.0f});
 

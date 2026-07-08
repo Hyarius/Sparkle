@@ -32,7 +32,7 @@ namespace pg
 	private:
 		struct ResolvedPlacement
 		{
-			const PrefabDefinition *prefab = nullptr;
+			const PrefabDefinition *definition = nullptr;
 			spk::Vector3Int worldMin{};
 			spk::Vector3Int rotatedSize{};
 			spk::VoxelOrientation orientation = spk::VoxelOrientation::PositiveZ;

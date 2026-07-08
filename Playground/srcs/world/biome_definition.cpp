@@ -8,6 +8,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <set>
 #include <utility>
 
 namespace
@@ -85,10 +86,58 @@ namespace pg
 			{
 				JsonReader prefabsReader = worldgenReader.child("prefabs");
 				prefabsReader.forbidUnknown(
-					{"gym", "city", "portCity", "normalPoi", "uncommonPoi", "rarePoi"});
+					{"scenery", "gym", "city", "portCity", "normalPoi", "uncommonPoi", "rarePoi"});
+				if (prefabsReader.contains("scenery"))
+				{
+					const spk::JSON::Value *sceneryValue = prefabsReader.value().find("scenery");
+					if (!sceneryValue->isNull())
+					{
+						std::set<std::string> prefabIds;
+						for (JsonReader sceneryReader : prefabsReader.childArray("scenery"))
+						{
+							sceneryReader.forbidUnknown({"prefab", "density", "spacing"});
+							BiomeScenery scenery{
+								.prefabId = requireNonEmptyString(sceneryReader, "prefab"),
+								.density = sceneryReader.require<double>("density")};
+							const PrefabDefinition *prefab = p_prefabs.tryGet(scenery.prefabId);
+							if (prefab == nullptr)
+							{
+								throw JsonError(
+									p_reader.file(),
+									sceneryReader.pathFor("prefab"),
+									"unknown prefab id '" + scenery.prefabId + "'");
+							}
+							scenery.prefabSize = prefab->size();
+							scenery.spacing = sceneryReader.optional<int>(
+								"spacing", std::max(scenery.prefabSize.x, scenery.prefabSize.z));
+							if (scenery.density < 0.0)
+							{
+								throw JsonError(
+									p_reader.file(),
+									sceneryReader.pathFor("density"),
+									"density must be zero or greater");
+							}
+							if (scenery.spacing < 1)
+							{
+								throw JsonError(
+									p_reader.file(),
+									sceneryReader.pathFor("spacing"),
+									"spacing must be at least 1");
+							}
+							if (!prefabIds.insert(scenery.prefabId).second)
+							{
+								throw JsonError(
+									p_reader.file(),
+									sceneryReader.pathFor("prefab"),
+									"duplicate scenery prefab id '" + scenery.prefabId + "'");
+							}
+							traits.scenery.push_back(std::move(scenery));
+						}
+					}
+				}
 				for (const auto &[slot, value] : prefabsReader.value().asObject())
 				{
-					if (value.isNull())
+					if (slot == "scenery" || value.isNull())
 						continue;
 					std::vector<std::string> pool =
 						parsePrefabPool(value, p_reader.file(), prefabsReader.pathFor(slot), p_prefabs);

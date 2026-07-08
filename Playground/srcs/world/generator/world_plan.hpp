@@ -55,6 +55,14 @@ namespace pg
 		NormalPoi
 	};
 
+	struct PlanScenery
+	{
+		std::string prefabId;
+		double density = 0.0; // expected instances per suitable world-plan cell
+		int spacing = 1;      // minimum center distance in voxel columns
+		spk::Vector3Int prefabSize{};
+	};
+
 	// One world-generation biome, instantiated from a biome definition JSON
 	// (resources/data/biomes/<id>.json) that carries a "worldgen" block. Definitions
 	// without that block (e.g. interior biomes like caves) never enter world generation.
@@ -69,6 +77,9 @@ namespace pg
 		// placement. Stairways are not configured here: they resolve by convention from the
 		// biome id ("<id>-road-stairway" for road climbs, "<id>-stairway" for wild ones).
 		std::map<PlanEntityKind, std::vector<std::string>> entityPrefabs;
+		// Decorative structures scattered on clear land in this biome. Unlike POIs these
+		// have no gameplay role and may be multi-voxel prefabs such as trees or plants.
+		std::vector<PlanScenery> scenery;
 	};
 
 	struct PlanZone
@@ -194,6 +205,7 @@ namespace pg
 		int riverCells = 0;
 		int stairPlacements = 0;
 		int wildStairPlacements = 0;
+		int sceneryPlacements = 0;
 		std::vector<std::string> warnings;
 	};
 

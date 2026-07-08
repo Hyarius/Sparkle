@@ -1,6 +1,6 @@
 #pragma once
 
-#include "voxel/voxel_grid.hpp"
+#include "structures/voxel/spk_prefab.hpp"
 
 #include <string>
 #include <vector>
@@ -19,10 +19,10 @@ namespace pg
 	struct PrefabDefinition
 	{
 		std::string id;
-		VoxelGrid grid;
+		spk::Prefab prefab;
 		std::vector<PrefabAnchor> anchors;
 
-		[[nodiscard]] const spk::Vector3Int &size() const noexcept { return grid.size(); }
+		[[nodiscard]] const spk::Vector3Int &size() const noexcept { return prefab.size(); }
 	};
 
 	[[nodiscard]] PrefabDefinition parsePrefabDefinition(

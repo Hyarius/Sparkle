@@ -12,52 +12,6 @@
 #include <limits>
 #include <stdexcept>
 
-namespace
-{
-	// Quarter-turns around +Y, in the order PositiveZ -> PositiveX -> NegativeZ -> NegativeX
-	// (the enum value names give the world direction of the shape's local +Z axis).
-	[[nodiscard]] int rotationSteps(spk::VoxelOrientation p_orientation)
-	{
-		switch (p_orientation)
-		{
-		case spk::VoxelOrientation::PositiveZ: return 0;
-		case spk::VoxelOrientation::PositiveX: return 1;
-		case spk::VoxelOrientation::NegativeZ: return 2;
-		case spk::VoxelOrientation::NegativeX: return 3;
-		default: return 0;
-		}
-	}
-
-	[[nodiscard]] spk::VoxelOrientation orientationFromSteps(int p_steps)
-	{
-		switch (((p_steps % 4) + 4) % 4)
-		{
-		case 1: return spk::VoxelOrientation::PositiveX;
-		case 2: return spk::VoxelOrientation::NegativeZ;
-		case 3: return spk::VoxelOrientation::NegativeX;
-		default: return spk::VoxelOrientation::PositiveZ;
-		}
-	}
-
-	// Rotates a local prefab coordinate into the rotated box (whose min corner stays at
-	// the origin); p_size is the prefab's unrotated size.
-	[[nodiscard]] spk::Vector3Int rotateLocal(const spk::Vector3Int &p_local, const spk::Vector3Int &p_size, int p_steps)
-	{
-		switch (p_steps)
-		{
-		case 1: return {p_local.z, p_local.y, p_size.x - 1 - p_local.x};
-		case 2: return {p_size.x - 1 - p_local.x, p_local.y, p_size.z - 1 - p_local.z};
-		case 3: return {p_size.z - 1 - p_local.z, p_local.y, p_local.x};
-		default: return p_local;
-		}
-	}
-
-	[[nodiscard]] spk::Vector3Int rotatedSizeOf(const spk::Vector3Int &p_size, int p_steps)
-	{
-		return p_steps % 2 == 0 ? p_size : spk::Vector3Int{p_size.z, p_size.y, p_size.x};
-	}
-}
-
 namespace pg
 {
 	PlanChunkProvider::PlanChunkProvider(const Registries &p_registries, const WorldPlan &p_plan) : _plan(p_plan)
@@ -87,10 +41,9 @@ namespace pg
 						  << std::endl;
 				continue;
 			}
-			const int steps = rotationSteps(placement.orientation);
-			const spk::Vector3Int rotatedSize = rotatedSizeOf(prefab->size(), steps);
+			const spk::Vector3Int rotatedSize = prefab->prefab.rotatedSize(placement.orientation);
 			_placements.push_back(
-				{.prefab = prefab,
+				{.definition = prefab,
 				 .worldMin = {placement.anchor.x - rotatedSize.x / 2, placement.anchor.y, placement.anchor.z - rotatedSize.z / 2},
 				 .rotatedSize = rotatedSize,
 				 .orientation = placement.orientation,
@@ -262,8 +215,6 @@ namespace pg
 	void PlanChunkProvider::_stamp(spk::VoxelChunk &p_chunk, const ResolvedPlacement &p_placement) const
 	{
 		const spk::Vector3Int origin = p_chunk.worldOrigin();
-		const spk::Vector3Int &size = p_placement.prefab->size();
-		const int steps = rotationSteps(p_placement.orientation);
 
 		// Foundation: solid pillar from below the box down to the terrain, so ramps and
 		// buildings never float over a carved channel or a lower neighboring cell.
@@ -290,30 +241,9 @@ namespace pg
 			}
 		}
 
-		// Stamp the rotated box; empty prefab cells intentionally overwrite (carve) so
-		// interiors and the air above ramps stay clear even against a cliff.
-		for (int ly = 0; ly < size.y; ++ly)
-		{
-			for (int lz = 0; lz < size.z; ++lz)
-			{
-				for (int lx = 0; lx < size.x; ++lx)
-				{
-					const spk::Vector3Int rotated = rotateLocal({lx, ly, lz}, size, steps);
-					const spk::Vector3Int world = p_placement.worldMin + rotated;
-					const spk::Vector3Int local = world - origin;
-					if (!p_chunk.grid().isWithinBounds(local))
-					{
-						continue;
-					}
-					VoxelCell cell = p_placement.prefab->grid.cell(lx, ly, lz);
-					if (!cell.isEmpty())
-					{
-						cell.orientation = orientationFromSteps(rotationSteps(cell.orientation) + steps);
-					}
-					p_chunk.grid().cell(local) = cell;
-				}
-			}
-		}
+		// Stamp the rotated box; the prefab lists its empty cells too, so they overwrite
+		// (carve) and interiors and the air above ramps stay clear even against a cliff.
+		p_placement.definition->prefab.applyTo(p_chunk.grid(), p_placement.worldMin - origin, p_placement.orientation);
 	}
 
 	int PlanChunkProvider::surfaceHeight(int p_worldX, int p_worldZ) const

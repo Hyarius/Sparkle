@@ -15,6 +15,9 @@
 		"peak": true,
 		"mapColor": "#B08968",
 		"prefabs": {
+			"scenery": [
+				{ "prefab": "bush-cluster", "density": 0.75, "spacing": 4 }
+			],
 			"gym": "highland-gym",
 			"city": [
 				"highland-house",

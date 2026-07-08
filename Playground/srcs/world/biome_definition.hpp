@@ -1,6 +1,7 @@
 #pragma once
 
 #include "structures/graphics/geometry/spk_color.hpp"
+#include "structures/math/spk_vector3.hpp"
 
 #include <map>
 #include <optional>
@@ -24,6 +25,14 @@ namespace pg
 		std::vector<std::string> flora;
 	};
 
+	struct BiomeScenery
+	{
+		std::string prefabId;
+		double density = 0.0; // expected instances per suitable world-plan cell
+		int spacing = 1;      // minimum center distance in voxel columns
+		spk::Vector3Int prefabSize{};
+	};
+
 	// Optional per-biome knobs for the macro world generator. Biomes without this block
 	// (interiors such as caves) are never picked when zones are assigned.
 	struct BiomeWorldgenTraits
@@ -31,12 +40,15 @@ namespace pg
 		double heightShift = 0.0;            // strata-level bias for zones of this biome
 		bool peak = false;                   // biome hosts summits (mountain/volcano/tundra style)
 		std::optional<spk::Color> mapColor;  // zone fill on the preview map (absent = auto)
-		// Per-biome prefab pools by slot ("gym", "city", "portCity", "normalPoi",
-		// "uncommonPoi", "rarePoi"). Each slot holds one prefab id or a list; the generator
-		// picks one entry at random per placement. Missing slots fall back to the global
-		// placements.json rules. Stairways are not slots here - they resolve by convention
-		// from the biome id ("<id>-road-stairway" / "<id>-stairway").
+		// Per-biome entity prefab pools by slot ("gym", "city", "portCity",
+		// "normalPoi", "uncommonPoi", "rarePoi"). Each slot holds one prefab id or a
+		// list; the generator picks one entry at random per placement. Missing slots
+		// fall back to the global placements.json rules. Stairways are not slots here;
+		// they resolve by convention from the biome id
+		// ("<id>-road-stairway" / "<id>-stairway").
 		std::map<std::string, std::vector<std::string>> prefabs;
+		// Each scenery entry has its own expected count and voxel-level spacing.
+		std::vector<BiomeScenery> scenery;
 	};
 
 	struct BiomeDefinition

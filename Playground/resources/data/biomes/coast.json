@@ -15,6 +15,9 @@
 		"peak": false,
 		"mapColor": "#5FB0B7",
 		"prefabs": {
+			"scenery": [
+				{ "prefab": "bush-cluster", "density": 1.0, "spacing": 3 }
+			],
 			"gym": "coast-gym",
 			"city": [
 				"coast-house",

@@ -15,6 +15,10 @@
 		"peak": false,
 		"mapColor": "#F2C14E",
 		"prefabs": {
+			"scenery": [
+				{ "prefab": "bush-cluster", "density": 2.0, "spacing": 4 },
+				{ "prefab": "desert-poi-normal", "density": 2.0, "spacing": 4 }
+			],
 			"gym": "desert-gym",
 			"city": [
 				"desert-house",

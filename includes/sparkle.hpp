@@ -141,7 +141,9 @@
 #include "structures/game_engine/spk_transform_3d.hpp"
 
 #include "structures/voxel/spk_cross_plane_voxel_shape.hpp"
+#include "structures/voxel/spk_cross_voxel_shape.hpp"
 #include "structures/voxel/spk_cube_voxel_shape.hpp"
+#include "structures/voxel/spk_prefab.hpp"
 #include "structures/voxel/spk_slab_voxel_shape.hpp"
 #include "structures/voxel/spk_slope_voxel_shape.hpp"
 #include "structures/voxel/spk_stair_voxel_shape.hpp"

@@ -36,11 +36,11 @@ namespace pg
 		{
 			if ((*p_tick.keyboard)[spk::Keyboard::A] == spk::InputState::Down)
 			{
-				_yaw -= 75.0f * seconds;
+				_yaw += 75.0f * seconds;
 			}
 			if ((*p_tick.keyboard)[spk::Keyboard::E] == spk::InputState::Down)
 			{
-				_yaw += 75.0f * seconds;
+				_yaw -= 75.0f * seconds;
 			}
 			if ((*p_tick.keyboard)[spk::Keyboard::Z] == spk::InputState::Down)
 			{

@@ -33,7 +33,7 @@ namespace
 			slope = registry.registerShape(std::make_unique<spk::SlopeVoxelShape>(spk::VoxelShape::TextureSlots{{"slope", {0, 0}}, {"back", {1, 0}}, {"bottom", {2, 0}}, {"sideLeft", {0, 1}}, {"sideRight", {1, 1}}}));
 			stair = registry.registerShape(std::make_unique<spk::StairVoxelShape>(spk::VoxelShape::TextureSlots{{"top", {3, 0}}, {"riser", {4, 1}}, {"back", {3, 0}}, {"bottom", {3, 0}}, {"sideLeft", {5, 1}}, {"sideRight", {5, 1}}}, 2));
 			slab = registry.registerShape(std::make_unique<spk::SlabVoxelShape>(spk::VoxelShape::TextureSlots{{"top", {3, 0}}, {"bottom", {3, 0}}, {"posX", {4, 1}}, {"negX", {4, 1}}, {"posZ", {4, 1}}, {"negZ", {4, 1}}}, 0.5f));
-			bush = registry.registerShape(std::make_unique<spk::CrossPlaneVoxelShape>(spk::AtlasCell{0, 2}));
+			bush = registry.registerShape(std::make_unique<spk::DiagonalCrossVoxelShape>(spk::AtlasCell{0, 2}));
 		}
 	};
 

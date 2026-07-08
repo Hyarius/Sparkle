@@ -4,6 +4,7 @@
 #include <stdexcept>
 
 #include "structures/voxel/spk_cross_plane_voxel_shape.hpp"
+#include "structures/voxel/spk_cross_voxel_shape.hpp"
 #include "structures/voxel/spk_cube_voxel_shape.hpp"
 #include "structures/voxel/spk_slab_voxel_shape.hpp"
 #include "structures/voxel/spk_slope_voxel_shape.hpp"
@@ -30,7 +31,7 @@ namespace
 			fullSlab = registry.registerShape(std::make_unique<spk::SlabVoxelShape>(texture, 1.0f));
 			slope = registry.registerShape(std::make_unique<spk::SlopeVoxelShape>(texture));
 			stair = registry.registerShape(std::make_unique<spk::StairVoxelShape>(texture));
-			cross = registry.registerShape(std::make_unique<spk::CrossPlaneVoxelShape>(texture));
+			cross = registry.registerShape(std::make_unique<spk::DiagonalCrossVoxelShape>(texture));
 		}
 	};
 }
@@ -228,4 +229,25 @@ TEST(VoxelShapeLibrary, CrossPlaneNeverOccludesOrGetsOccluded)
 	grid.cell(0, 0, 0) = {library.cross};
 	grid.cell(1, 0, 0) = {library.cube};
 	EXPECT_EQ(spk::VoxelMesher::buildRenderMesh(grid, library.registry).nbShape(), 10u);
+}
+
+TEST(VoxelShapeLibrary, CrossUsesTwoCenteredAxisAlignedPlanes)
+{
+	spk::CrossVoxelShape shape(spk::AtlasCell{0, 0});
+	shape.initialize();
+
+	const spk::VoxelShapeFaceSet &faces = shape.renderFaces();
+	EXPECT_EQ(faces.outerFaceCount(), 0u);
+	ASSERT_EQ(faces.innerFaces.size(), 4u);
+
+	const auto &alongX = faces.innerFaces[0].polygons().front();
+	const auto &alongZ = faces.innerFaces[2].polygons().front();
+	for (const spk::VoxelShapeVertex &vertex : alongX)
+	{
+		EXPECT_FLOAT_EQ(vertex.position.z, 0.5f);
+	}
+	for (const spk::VoxelShapeVertex &vertex : alongZ)
+	{
+		EXPECT_FLOAT_EQ(vertex.position.x, 0.5f);
+	}
 }
