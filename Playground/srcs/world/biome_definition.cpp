@@ -45,15 +45,20 @@ namespace pg
 		BiomeDefinition result;
 		result.displayName = requireNonEmptyString(p_reader, "displayName");
 		JsonReader paletteReader = p_reader.child("palette");
-		paletteReader.forbidUnknown({"surface", "subsurface", "deep", "flora"});
+		paletteReader.forbidUnknown({"surface", "subsurface", "deep", "road", "flora"});
+		// "road" is optional: interior biomes (caves) pave no roads. Every worldgen biome
+		// carries one so its zones get their own road block.
 		result.palette = {
 			.surface = requireNonEmptyString(paletteReader, "surface"),
 			.subsurface = requireNonEmptyString(paletteReader, "subsurface"),
 			.deep = requireNonEmptyString(paletteReader, "deep"),
+			.road = paletteReader.contains("road") ? requireNonEmptyString(paletteReader, "road") : std::string{},
 			.flora = paletteReader.require<std::vector<std::string>>("flora")};
 		requireVoxel(p_voxels, result.palette.surface, paletteReader, paletteReader.pathFor("surface"));
 		requireVoxel(p_voxels, result.palette.subsurface, paletteReader, paletteReader.pathFor("subsurface"));
 		requireVoxel(p_voxels, result.palette.deep, paletteReader, paletteReader.pathFor("deep"));
+		if (!result.palette.road.empty())
+			requireVoxel(p_voxels, result.palette.road, paletteReader, paletteReader.pathFor("road"));
 		for (const std::string &flora : result.palette.flora)
 			requireVoxel(p_voxels, flora, paletteReader, paletteReader.pathFor("flora"));
 
@@ -80,7 +85,7 @@ namespace pg
 			{
 				JsonReader prefabsReader = worldgenReader.child("prefabs");
 				prefabsReader.forbidUnknown(
-					{"stairway", "gym", "city", "portCity", "normalPoi", "uncommonPoi", "rarePoi"});
+					{"gym", "city", "portCity", "normalPoi", "uncommonPoi", "rarePoi"});
 				for (const auto &[slot, value] : prefabsReader.value().asObject())
 				{
 					if (value.isNull())
@@ -89,18 +94,6 @@ namespace pg
 						parsePrefabPool(value, p_reader.file(), prefabsReader.pathFor(slot), p_prefabs);
 					if (pool.empty())
 						continue;
-					if (slot == "stairway")
-					{
-						for (const std::string &prefabId : pool)
-						{
-							const spk::Vector3Int &stairSize = p_prefabs.get(prefabId).size();
-							if (stairSize.x != stairSize.y || stairSize.y != stairSize.z)
-								throw JsonError(
-									p_reader.file(),
-									prefabsReader.pathFor(slot),
-									"stairway prefab '" + prefabId + "' must be a cube");
-						}
-					}
 					traits.prefabs.emplace(slot, std::move(pool));
 				}
 			}

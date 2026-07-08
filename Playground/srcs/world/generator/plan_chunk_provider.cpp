@@ -74,7 +74,8 @@ namespace pg
 			const BiomeDefinition &definition = p_registries.biomes().get(biome.id);
 			_biomeBlocks.push_back({.surface = voxels.numericId(definition.palette.surface),
 									.subsurface = voxels.numericId(definition.palette.subsurface),
-									.deep = voxels.numericId(definition.palette.deep)});
+									.deep = voxels.numericId(definition.palette.deep),
+									.road = voxels.numericId(definition.palette.road)});
 		}
 
 		for (const PrefabPlacement &placement : _plan.placements)
@@ -124,7 +125,7 @@ namespace pg
 		const int surface = _plan.surfaceY(level);
 		const int zone = _plan.zone.at(row, col);
 		const BiomeBlocks &blocksOfBiome =
-			zone >= 0 ? _biomeBlocks[_plan.zones[zone].biomeIndex] : BiomeBlocks{_stone, _stone, _stone};
+			zone >= 0 ? _biomeBlocks[_plan.zones[zone].biomeIndex] : BiomeBlocks{_stone, _stone, _stone, _road};
 		column.groundTop = surface;
 		column.surfaceId = blocksOfBiome.surface;
 		column.subsurfaceId = blocksOfBiome.subsurface;
@@ -187,7 +188,7 @@ namespace pg
 				// On bridges the deck sits at ground level on a solid pier; the water
 				// column underneath is filled, its neighbors keep flowing around it.
 				column.groundTop = surface;
-				column.surfaceId = _road;
+				column.surfaceId = blocksOfBiome.road;
 				column.subsurfaceId = column.deepId;
 				column.waterY = -1;
 			}

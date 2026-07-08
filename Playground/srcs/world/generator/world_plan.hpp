@@ -65,9 +65,9 @@ namespace pg
 		double heightShift = 0.0; // strata-level bias for zones of this biome
 		bool peak = false;        // hosts summits and takes the full peak lift
 		std::optional<spk::Color> mapColor; // zone fill on the preview map (absent = auto)
-		// Per-biome prefab pools; the generator picks one entry at random per placement.
-		// Empty pools fall back to the global rules.
-		std::vector<std::string> stairwayPrefabs;
+		// Per-biome entity prefab pools; the generator picks one entry at random per
+		// placement. Stairways are not configured here: they resolve by convention from the
+		// biome id ("<id>-road-stairway" for road climbs, "<id>-stairway" for wild ones).
 		std::map<PlanEntityKind, std::vector<std::string>> entityPrefabs;
 	};
 
@@ -115,7 +115,6 @@ namespace pg
 	// diversity. Entity kinds without an entry simply get no prefab.
 	struct PlanPlacementRules
 	{
-		std::vector<std::string> stairwayPrefabs{"stairway"};
 		std::map<PlanEntityKind, std::vector<std::string>> entityPrefabs;
 	};
 

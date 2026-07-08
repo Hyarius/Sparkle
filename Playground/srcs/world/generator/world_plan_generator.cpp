@@ -1622,17 +1622,17 @@ namespace pg
 				return p_pool.size() == 1 ? p_pool.front() : p_pool[prefabPickRng.below(static_cast<int>(p_pool.size()))];
 			}
 
-			[[nodiscard]] const std::vector<std::string> &stairwayPrefabsFor(int p_zone) const
+			// Stairway prefabs resolve by convention from the biome id: road climbs use
+			// "<id>-road-stairway" (stairs), off-road/wild climbs "<id>-stairway" (slopes).
+			// Cells outside any zone fall back to the shared "road-stairway".
+			[[nodiscard]] std::string stairwayPrefabFor(int p_zone, bool p_onRoad) const
 			{
-				if (p_zone >= 0)
+				if (p_zone < 0)
 				{
-					const PlanBiome &biome = plan.biomes[plan.zones[p_zone].biomeIndex];
-					if (!biome.stairwayPrefabs.empty())
-					{
-						return biome.stairwayPrefabs;
-					}
+					return "road-stairway";
 				}
-				return placementRules.stairwayPrefabs;
+				const std::string &biomeId = plan.biomes[plan.zones[p_zone].biomeIndex].id;
+				return p_onRoad ? biomeId + "-road-stairway" : biomeId + "-stairway";
 			}
 
 			[[nodiscard]] const std::vector<std::string> *entityPrefabsFor(PlanEntityKind p_kind, int p_zone) const
@@ -1655,7 +1655,7 @@ namespace pg
 
 			// Chains one-level ramp prefabs inside the lower of the two cells so the
 			// player can climb the strata difference; returns the number of segments.
-			int emitStairChain(int p_row, int p_col, int p_dr, int p_dc)
+			int emitStairChain(int p_row, int p_col, int p_dr, int p_dc, bool p_onRoad)
 			{
 				const int blocks = cfg.blocksPerCell;
 				const int run = cfg.blocksPerLevel; // ramp run == ramp rise (cube prefab)
@@ -1675,8 +1675,8 @@ namespace pg
 				const int lowLevel = std::min(levelA, levelB);
 				const int steps = std::min(std::abs(levelA - levelB), blocks / run);
 				const int surface = plan.surfaceY(lowLevel);
-				// One pick per chain so every segment of a climb uses the same variant.
-				const std::string &prefabId = pickPrefab(stairwayPrefabsFor(plan.zone.at(lowRow, lowCol)));
+				// One resolve per chain so every segment of a climb uses the same prefab.
+				const std::string prefabId = stairwayPrefabFor(plan.zone.at(lowRow, lowCol), p_onRoad);
 
 				for (int segment = 1; segment <= steps; ++segment)
 				{
@@ -1728,7 +1728,7 @@ namespace pg
 							{
 								continue;
 							}
-							plan.stats.stairPlacements += emitStairChain(i, j, dr, dc);
+							plan.stats.stairPlacements += emitStairChain(i, j, dr, dc, true);
 						}
 					}
 				}
@@ -1803,7 +1803,7 @@ namespace pg
 						{
 							continue;
 						}
-						const int segments = emitStairChain(candidate.row, candidate.col, candidate.dr, candidate.dc);
+						const int segments = emitStairChain(candidate.row, candidate.col, candidate.dr, candidate.dc, false);
 						if (segments > 0)
 						{
 							plan.wildStairs.push_back({stairCells.back().row, stairCells.back().col});
@@ -1923,11 +1923,6 @@ namespace pg
 			biome.mapColor = definition.worldgen->mapColor;
 			for (const auto &[slot, pool] : definition.worldgen->prefabs)
 			{
-				if (slot == "stairway")
-				{
-					biome.stairwayPrefabs = pool;
-					continue;
-				}
 				for (const auto &[key, kind] : planEntityKeyTable())
 				{
 					if (slot == key)

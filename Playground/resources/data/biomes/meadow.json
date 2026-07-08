@@ -5,6 +5,7 @@
 		"surface": "meadow-block",
 		"subsurface": "dirt-block",
 		"deep": "stone-block",
+		"road": "meadow-road",
 		"flora": [
 			"bush"
 		]
@@ -14,7 +15,6 @@
 		"peak": false,
 		"mapColor": "#9FD070",
 		"prefabs": {
-			"stairway": "meadow-stairway",
 			"gym": "meadow-gym",
 			"city": [
 				"meadow-house",

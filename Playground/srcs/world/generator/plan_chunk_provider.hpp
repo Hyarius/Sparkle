@@ -44,6 +44,7 @@ namespace pg
 			std::int32_t surface = -1;
 			std::int32_t subsurface = -1;
 			std::int32_t deep = -1;
+			std::int32_t road = -1;
 		};
 
 		struct Column

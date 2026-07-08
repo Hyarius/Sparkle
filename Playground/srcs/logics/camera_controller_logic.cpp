@@ -34,11 +34,11 @@ namespace pg
 		const float seconds = static_cast<float>(p_tick.deltaTime.seconds());
 		if (p_tick.keyboard != nullptr)
 		{
-			if ((*p_tick.keyboard)[spk::Keyboard::Q] == spk::InputState::Down)
+			if ((*p_tick.keyboard)[spk::Keyboard::A] == spk::InputState::Down)
 			{
 				_yaw -= 75.0f * seconds;
 			}
-			if ((*p_tick.keyboard)[spk::Keyboard::D] == spk::InputState::Down)
+			if ((*p_tick.keyboard)[spk::Keyboard::E] == spk::InputState::Down)
 			{
 				_yaw += 75.0f * seconds;
 			}

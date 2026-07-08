@@ -34,13 +34,12 @@ namespace pg
 	//
 	//   {
 	//     "version": 1,
-	//     "stairway": "stairway",
 	//     "entities": { "gym": "gym-shell", "city": "town-house", "rarePoi": null, ... }
 	//   }
 	//
 	// Every named prefab must exist in the prefab registry; a null (or missing) entity
-	// entry means that entity kind gets no prefab. The stairway prefab must be a cube
-	// (run == width == rise) since the generator chains it per strata level.
+	// entry means that entity kind gets no prefab. Stairways are not listed here: they
+	// resolve by convention from the biome id in the world plan generator.
 	[[nodiscard]] PlanPlacementRules parsePlanPlacementRules(
 		JsonReader &p_reader,
 		const Registry<PrefabDefinition> &p_prefabs);

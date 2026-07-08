@@ -58,34 +58,15 @@ namespace pg
 
 	PlanPlacementRules parsePlanPlacementRules(JsonReader &p_reader, const Registry<PrefabDefinition> &p_prefabs)
 	{
-		p_reader.forbidUnknown({"version", "stairway", "entities"});
+		p_reader.forbidUnknown({"version", "entities"});
 		if (p_reader.require<int>("version") != 1)
 		{
 			throw JsonError(p_reader.file(), p_reader.pathFor("version"), "unsupported placements version");
 		}
 
+		// Stairways are no longer configured here; they resolve by convention from the biome
+		// id ("<id>-road-stairway" / "<id>-stairway") in the world plan generator.
 		PlanPlacementRules rules;
-		if (!p_reader.contains("stairway"))
-		{
-			throw JsonError(p_reader.file(), p_reader.pathFor("stairway"), "missing required field");
-		}
-		rules.stairwayPrefabs = parsePrefabPool(
-			*p_reader.value().find("stairway"), p_reader.file(), p_reader.pathFor("stairway"), p_prefabs);
-		if (rules.stairwayPrefabs.empty())
-		{
-			throw JsonError(p_reader.file(), p_reader.pathFor("stairway"), "at least one stairway prefab is required");
-		}
-		for (const std::string &prefabId : rules.stairwayPrefabs)
-		{
-			const spk::Vector3Int &stairSize = p_prefabs.get(prefabId).size();
-			if (stairSize.x != stairSize.y || stairSize.y != stairSize.z)
-			{
-				throw JsonError(
-					p_reader.file(),
-					p_reader.pathFor("stairway"),
-					"stairway prefab '" + prefabId + "' must be a cube (run and width must match the strata height)");
-			}
-		}
 
 		const JsonReader entitiesReader = p_reader.child("entities");
 		entitiesReader.forbidUnknown({"gym", "city", "portCity", "rarePoi", "uncommonPoi", "normalPoi"});

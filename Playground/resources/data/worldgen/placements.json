@@ -1,6 +1,5 @@
 {
 	"version": 1,
-	"stairway": "stairway",
 	"entities": {
 		"gym": "gym-shell",
 		"city": ["town-house", "small-house"],

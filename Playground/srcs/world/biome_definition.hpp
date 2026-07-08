@@ -20,6 +20,7 @@ namespace pg
 		std::string surface;
 		std::string subsurface;
 		std::string deep;
+		std::string road; // block paved onto this biome's roads (own road per biome)
 		std::vector<std::string> flora;
 	};
 
@@ -30,10 +31,11 @@ namespace pg
 		double heightShift = 0.0;            // strata-level bias for zones of this biome
 		bool peak = false;                   // biome hosts summits (mountain/volcano/tundra style)
 		std::optional<spk::Color> mapColor;  // zone fill on the preview map (absent = auto)
-		// Per-biome prefab pools by slot ("stairway", "gym", "city", "portCity",
-		// "normalPoi", "uncommonPoi", "rarePoi"). Each slot holds one prefab id or a
-		// list; the generator picks one entry at random per placement. Missing slots
-		// fall back to the global worldgen/placements.json rules.
+		// Per-biome prefab pools by slot ("gym", "city", "portCity", "normalPoi",
+		// "uncommonPoi", "rarePoi"). Each slot holds one prefab id or a list; the generator
+		// picks one entry at random per placement. Missing slots fall back to the global
+		// placements.json rules. Stairways are not slots here - they resolve by convention
+		// from the biome id ("<id>-road-stairway" / "<id>-stairway").
 		std::map<std::string, std::vector<std::string>> prefabs;
 	};
 
