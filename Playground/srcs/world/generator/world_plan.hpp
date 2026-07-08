@@ -108,16 +108,22 @@ namespace pg
 	};
 
 	// A prefab stamped into the realized voxel world at a fixed spot. anchor.x/z is the
-	// center column of the prefab's rotated footprint, anchor.y its bottom layer;
-	// orientation tells where the prefab's local +Z axis points. Foundation placements
-	// grow a solid pillar from below the box down to the terrain so ramps/houses never
-	// float.
+	// center column of the prefab's rotated footprint, anchor.y its ground level (the
+	// first air layer above the terrain surface) — prefab content at negative local y
+	// sinks below it, replacing the terrain there (floor slabs, pedestals); orientation
+	// tells where the prefab's local +Z axis points. Foundation placements grow a solid
+	// pillar from below the box down to the terrain so ramps/houses never float.
 	struct PrefabPlacement
 	{
 		std::string prefabId;
 		spk::Vector3Int anchor{};
 		spk::VoxelOrientation orientation = spk::VoxelOrientation::PositiveZ;
 		bool foundation = false;
+		// Default placements center the rotated footprint on anchor.x/z and place its
+		// lowest authored layer at anchor.y. Pivot-anchored placements instead land the
+		// prefab's authored pivot exactly on anchor; multi-level stairs use this to pin
+		// their top exit to the high plateau regardless of footprint size or rotation.
+		bool anchorToPivot = false;
 	};
 
 	// Which prefabs the generator inserts where, loaded from

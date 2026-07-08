@@ -91,7 +91,7 @@ map/generator, not a global.
   "traversal": "solid",              // "solid" (stand on) | "passable" (walk through) — D20
   "tags": ["ground", "grass"],       // free strings; "bush" marks encounter triggers
   "shape": {
-    "type": "cube",                  // cube | slab | slope | stair | crossPlane | cross
+    "type": "cube",                  // cube | cuboid | slab | slope | stair | crossPlane | cross
     "textures": {                    // shape-specific slots → atlas cell [col, row]
       "top": [0, 0],
       "side": [1, 0],
@@ -111,6 +111,7 @@ are specified in [03-systems/voxel.md](03-systems/voxel.md)):
 | `type` | Texture slots | Extra fields |
 |---|---|---|
 | `cube` | `top, bottom, side` (or `posX,negX,posZ,negZ` instead of `side`) | — |
+| `cuboid` | same as `cube` | `"min"` and `"max"`: float `[x,y,z]` bounds inside `[0,1]³`; every min component must be strictly below max |
 | `slab` | `top, bottom, side` | `"height"`: float 0–1 (default 0.5) |
 | `slope` | `slope, back, bottom, sideLeft, sideRight` | — (rises toward local +Z) |
 | `stair` | `top, riser, back, bottom, sideLeft, sideRight` | `"stepCount"`: int (default 2) |
@@ -542,17 +543,27 @@ prefabs for trees, plants, rocks, and other biome dressing.
 **Pure voxel content** — a house, a tree, a dungeon room — stamped into maps or generated
 chunks at an anchor + orientation. No gameplay context (no biome, no spawn points); the
 only non-voxel data is named **anchors**: local positions a consumer can attach meaning to
-(a door cell to bind a portal to, a roof point for VFX…).
+(a door cell to bind a portal to, a roof point for VFX…). Anchors are not part of the
+content bounds and may be placed outside them.
+
+Coordinates are relative to the prefab's **pivot** (optional `pivot` field, default
+`[0, 0, 0]`): the cell the prefab is held by when stamped, and the fixed point of its
+rotation. Any coordinate may be negative — layers below `y = 0` embed under the stamp
+destination, replacing the terrain there (a house floor slab, a POI pedestal), while
+`y = 0` stays the ground/walk level. There is no declared size: the bounding box is
+deduced from the content, and the whole box is listed when stamping (empties carve).
+Keep embedded layers fully filled or they punch holes in the terrain surface; to stretch
+the carve box past the content (e.g. an extra layer of cleared air above a roof), place
+one explicit empty cell there.
 
 ```jsonc
 // prefabs/small-house.json
 {
   "version": 1,
-  "size": [7, 5, 6],
   "palette": { "0": null, "1": "stone-block", "2": "plank-block" },
-  "fill": [ { "min": [0,0,0], "max": [6,0,5], "voxel": "1" } ],   // box fills, in order
-  "cells": [ { "at": [3, 1, 0], "voxel": "0" } ],                 // sparse overrides
-  "anchors": [ { "name": "door", "at": [3, 1, 0] } ]
+  "fill": [ { "min": [0,-1,0], "max": [6,-1,5], "voxel": "1" } ], // floor slab, embeds below ground
+  "cells": [ { "at": [3, 0, 0], "voxel": "0" } ],                 // sparse overrides (door hole)
+  "anchors": [ { "name": "door", "at": [3, 0, 0] } ]
 }
 ```
 

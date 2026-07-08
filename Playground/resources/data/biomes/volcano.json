@@ -7,7 +7,7 @@
 		"deep": "stone-block",
 		"road": "volcano-road",
 		"flora": [
-			"bush"
+			"volcano-bush"
 		]
 	},
 	"worldgen": {
@@ -16,7 +16,10 @@
 		"mapColor": "#B35442",
 		"prefabs": {
 			"scenery": [
-				{ "prefab": "bush-cluster", "density": 0.2, "spacing": 4 }
+				{ "prefab": "basalt-cluster", "density": 0.35, "spacing": 5 },
+				{ "prefab": "basalt-spire", "density": 0.12, "spacing": 6 },
+				{ "prefab": "dead-tree", "density": 0.05, "spacing": 7 },
+				{ "prefab": "volcano-bush-patch", "density": 0.02, "spacing": 5 }
 			],
 			"gym": "volcano-gym",
 			"city": [
@@ -26,7 +29,7 @@
 			"portCity": "volcano-house",
 			"normalPoi": [
 				"volcano-poi-normal",
-				"bush-cluster"
+				"volcano-bush-patch"
 			],
 			"uncommonPoi": "volcano-poi-uncommon",
 			"rarePoi": "volcano-poi-rare"

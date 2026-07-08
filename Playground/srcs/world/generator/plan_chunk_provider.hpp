@@ -33,8 +33,9 @@ namespace pg
 		struct ResolvedPlacement
 		{
 			const PrefabDefinition *definition = nullptr;
-			spk::Vector3Int worldMin{};
-			spk::Vector3Int rotatedSize{};
+			spk::Vector3Int worldMin{};    // min corner of the rotated bounding box
+			spk::Vector3Int rotatedSize{}; // extents of that box
+			spk::Vector3Int destination{}; // world cell the prefab's pivot lands on
 			spk::VoxelOrientation orientation = spk::VoxelOrientation::PositiveZ;
 			bool foundation = false;
 		};

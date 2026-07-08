@@ -1,0 +1,1 @@
+{"version":1,"traversal":"passable","tags":["scenery","flora","reed","losTransparent"],"shape":{"type":"cuboid","min":[0.42,0.0,0.42],"max":[0.58,0.9,0.58],"textures":{"top":[5,5],"side":[3,6],"bottom":[3,6]}}}

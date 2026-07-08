@@ -5,7 +5,6 @@
 #include "structures/voxel/spk_voxel_map.hpp"
 
 #include <memory>
-#include <stdexcept>
 
 namespace
 {
@@ -21,22 +20,24 @@ namespace
 	};
 }
 
-TEST(Prefab, RejectsVoxelsOutsideItsBox)
+TEST(Prefab, DeducesItsBoundsFromItsVoxels)
 {
-	spk::Prefab prefab({2, 2, 2});
+	spk::Prefab prefab;
+	EXPECT_EQ(prefab.minBounds(), spk::Vector3Int(0, 0, 0));
+	EXPECT_EQ(prefab.maxBounds(), spk::Vector3Int(0, 0, 0));
+	EXPECT_EQ(prefab.size(), spk::Vector3Int(0, 0, 0));
 
-	EXPECT_NO_THROW(prefab.addVoxel({0, 0, 0}, {0}));
-	EXPECT_NO_THROW(prefab.addVoxel({1, 1, 1}, {0}));
-	EXPECT_THROW(prefab.addVoxel({2, 0, 0}, {0}), std::out_of_range);
-	EXPECT_THROW(prefab.addVoxel({0, -1, 0}, {0}), std::out_of_range);
-
-	spk::Prefab empty;
-	EXPECT_THROW(empty.addVoxel({0, 0, 0}, {0}), std::out_of_range);
+	// Positions are trusted as authored, negative coordinates included.
+	prefab.addVoxel({2, -1, 0}, {1});
+	prefab.addVoxelRange({-1, 1, 1}, {0, 2, 3}, {1});
+	EXPECT_EQ(prefab.minBounds(), spk::Vector3Int(-1, -1, 0));
+	EXPECT_EQ(prefab.maxBounds(), spk::Vector3Int(2, 2, 3));
+	EXPECT_EQ(prefab.size(), spk::Vector3Int(4, 4, 4));
 }
 
 TEST(Prefab, AddVoxelRangeFillsAnInclusiveBox)
 {
-	spk::Prefab prefab({4, 3, 5});
+	spk::Prefab prefab;
 	const spk::VoxelCell cell{.id = 7, .orientation = spk::VoxelOrientation::NegativeZ};
 
 	prefab.addVoxelRange({2, 1, 3}, {1, 0, 1}, cell);
@@ -57,7 +58,7 @@ TEST(Prefab, AddVoxelRangeFillsAnInclusiveBox)
 
 TEST(Prefab, AddVoxelRangeWithMatchingCornersAddsOneVoxel)
 {
-	spk::Prefab prefab({2, 2, 2});
+	spk::Prefab prefab;
 	const spk::VoxelCell cell{.id = 3};
 
 	prefab.addVoxelRange({1, 1, 1}, {1, 1, 1}, cell);
@@ -66,20 +67,14 @@ TEST(Prefab, AddVoxelRangeWithMatchingCornersAddsOneVoxel)
 	EXPECT_EQ(prefab.voxels().front(), (spk::Prefab::Voxel{.position = {1, 1, 1}, .cell = cell}));
 }
 
-TEST(Prefab, AddVoxelRangeRejectsTheWholeBoxBeforeAddingVoxels)
-{
-	spk::Prefab prefab({2, 2, 2});
-
-	EXPECT_THROW(prefab.addVoxelRange({0, 0, 0}, {2, 1, 1}, spk::VoxelCell{.id = 3}), std::out_of_range);
-	EXPECT_TRUE(prefab.voxels().empty());
-}
-
 TEST(Prefab, ListsEveryCellOfAGridIncludingEmpties)
 {
 	spk::VoxelGrid grid(spk::Vector3Int{2, 2, 2});
 	grid.cell(1, 0, 1) = {7};
 
 	const spk::Prefab prefab(grid);
+	EXPECT_EQ(prefab.minBounds(), spk::Vector3Int(0, 0, 0));
+	EXPECT_EQ(prefab.maxBounds(), spk::Vector3Int(1, 1, 1));
 	EXPECT_EQ(prefab.size(), grid.size());
 	ASSERT_EQ(prefab.voxels().size(), 8u);
 
@@ -96,21 +91,40 @@ TEST(Prefab, ListsEveryCellOfAGridIncludingEmpties)
 	EXPECT_EQ(nonEmpty, 1);
 }
 
-TEST(Prefab, RotatedSizeSwapsHorizontalAxesOnQuarterTurns)
+TEST(Prefab, GridConstructorPlacesTheBoxAtTheGivenOrigin)
 {
-	spk::Prefab prefab({3, 2, 1});
+	spk::VoxelGrid grid(spk::Vector3Int{1, 2, 1});
+	grid.cell(0, 0, 0) = {7};
 
-	EXPECT_EQ(prefab.rotatedSize(spk::VoxelOrientation::PositiveZ), spk::Vector3Int(3, 2, 1));
-	EXPECT_EQ(prefab.rotatedSize(spk::VoxelOrientation::NegativeZ), spk::Vector3Int(3, 2, 1));
-	EXPECT_EQ(prefab.rotatedSize(spk::VoxelOrientation::PositiveX), spk::Vector3Int(1, 2, 3));
-	EXPECT_EQ(prefab.rotatedSize(spk::VoxelOrientation::NegativeX), spk::Vector3Int(1, 2, 3));
+	const spk::Prefab prefab(grid, {0, -1, 0});
+	EXPECT_EQ(prefab.minBounds(), spk::Vector3Int(0, -1, 0));
+	EXPECT_EQ(prefab.maxBounds(), spk::Vector3Int(0, 0, 0));
+	ASSERT_EQ(prefab.voxels().size(), 2u);
+	EXPECT_EQ(prefab.voxels()[0], (spk::Prefab::Voxel{.position = {0, -1, 0}, .cell = {7}}));
+	EXPECT_EQ(prefab.voxels()[1].position, spk::Vector3Int(0, 0, 0));
+	EXPECT_TRUE(prefab.voxels()[1].cell.isEmpty());
+}
+
+TEST(Prefab, RotatedBoundsFollowTheOrientation)
+{
+	spk::Prefab prefab;
+	prefab.addVoxelRange({0, -1, 0}, {2, 1, 0}, {1});
+
+	const auto [identityMin, identityMax] = prefab.rotatedBounds(spk::VoxelOrientation::PositiveZ);
+	EXPECT_EQ(identityMin, spk::Vector3Int(0, -1, 0));
+	EXPECT_EQ(identityMax, spk::Vector3Int(2, 1, 0));
+
+	// One quarter turn maps (x, z) to (z, -x): the row along +X swings to -Z.
+	const auto [quarterMin, quarterMax] = prefab.rotatedBounds(spk::VoxelOrientation::PositiveX);
+	EXPECT_EQ(quarterMin, spk::Vector3Int(0, -1, -2));
+	EXPECT_EQ(quarterMax, spk::Vector3Int(0, 1, 0));
 }
 
 TEST(Prefab, AppliesWithQuarterTurnRotations)
 {
-	// Two markers in a 2x1x3 box; the second carries its own orientation so the test
-	// also proves cell orientations rotate along with positions.
-	spk::Prefab prefab({2, 1, 3});
+	// Two markers; the second carries its own orientation so the test also proves cell
+	// orientations rotate along with positions (around the default pivot, the origin).
+	spk::Prefab prefab;
 	prefab.addVoxel({0, 0, 0}, {1});
 	prefab.addVoxel({1, 0, 2}, {2, spk::VoxelOrientation::PositiveX});
 
@@ -122,16 +136,16 @@ TEST(Prefab, AppliesWithQuarterTurnRotations)
 		spk::VoxelOrientation rotatedCell;
 	};
 	const Expectation expectations[] = {
-		{spk::VoxelOrientation::PositiveZ, {0, 0, 0}, {1, 0, 2}, spk::VoxelOrientation::PositiveX},
-		{spk::VoxelOrientation::PositiveX, {0, 0, 1}, {2, 0, 0}, spk::VoxelOrientation::NegativeZ},
-		{spk::VoxelOrientation::NegativeZ, {1, 0, 2}, {0, 0, 0}, spk::VoxelOrientation::NegativeX},
-		{spk::VoxelOrientation::NegativeX, {2, 0, 0}, {0, 0, 1}, spk::VoxelOrientation::PositiveZ},
+		{spk::VoxelOrientation::PositiveZ, {2, 0, 2}, {3, 0, 4}, spk::VoxelOrientation::PositiveX},
+		{spk::VoxelOrientation::PositiveX, {2, 0, 2}, {4, 0, 1}, spk::VoxelOrientation::NegativeZ},
+		{spk::VoxelOrientation::NegativeZ, {2, 0, 2}, {1, 0, 0}, spk::VoxelOrientation::NegativeX},
+		{spk::VoxelOrientation::NegativeX, {2, 0, 2}, {0, 0, 3}, spk::VoxelOrientation::PositiveZ},
 	};
 
 	for (const Expectation &expectation : expectations)
 	{
-		spk::VoxelGrid grid(spk::Vector3Int{3, 1, 3});
-		prefab.applyTo(grid, {0, 0, 0}, expectation.applied);
+		spk::VoxelGrid grid(spk::Vector3Int{5, 1, 5});
+		prefab.applyTo(grid, {2, 0, 2}, expectation.applied);
 
 		EXPECT_EQ(grid.cell(expectation.first).id, 1);
 		EXPECT_EQ(grid.cell(expectation.second).id, 2);
@@ -139,12 +153,49 @@ TEST(Prefab, AppliesWithQuarterTurnRotations)
 	}
 }
 
+TEST(Prefab, RotatesAroundItsPivot)
+{
+	// The pivot cell lands on the destination for every orientation; its +X neighbor
+	// swings around it.
+	spk::Prefab prefab;
+	prefab.addVoxel({1, 0, 1}, {1});
+	prefab.addVoxel({2, 0, 1}, {2});
+	prefab.setPivot({1, 0, 1});
+
+	const std::pair<spk::VoxelOrientation, spk::Vector3Int> expectations[] = {
+		{spk::VoxelOrientation::PositiveZ, {2, 0, 1}},
+		{spk::VoxelOrientation::PositiveX, {1, 0, 0}},
+		{spk::VoxelOrientation::NegativeZ, {0, 0, 1}},
+		{spk::VoxelOrientation::NegativeX, {1, 0, 2}},
+	};
+	for (const auto &[applied, second] : expectations)
+	{
+		spk::VoxelGrid grid(spk::Vector3Int{3, 1, 3});
+		prefab.applyTo(grid, {1, 0, 1}, applied);
+
+		EXPECT_EQ(grid.cell(1, 0, 1).id, 1);
+		EXPECT_EQ(grid.cell(second).id, 2);
+	}
+}
+
+TEST(Prefab, NegativeYLayersLandBelowTheDestination)
+{
+	spk::VoxelGrid grid(spk::Vector3Int{3, 3, 3});
+	spk::Prefab prefab;
+	prefab.addVoxel({0, -1, 0}, {1});
+	prefab.addVoxel({0, 0, 0}, {2});
+
+	prefab.applyTo(grid, {1, 1, 1}, spk::VoxelOrientation::PositiveX);
+	EXPECT_EQ(grid.cell(1, 0, 1).id, 1);
+	EXPECT_EQ(grid.cell(1, 1, 1).id, 2);
+}
+
 TEST(Prefab, CarvesListedEmptyCellsAndLeavesUnlistedOnesUntouched)
 {
 	spk::VoxelGrid grid(spk::Vector3Int{3, 3, 3}, {5});
 
-	// The box covers two cells but only one is listed (as an explicit empty).
-	spk::Prefab prefab({2, 1, 1});
+	// Only one cell is listed (as an explicit empty): its neighbors stay untouched.
+	spk::Prefab prefab;
 	prefab.addVoxel({0, 0, 0}, {});
 
 	prefab.applyTo(grid, {1, 1, 1});
@@ -156,7 +207,7 @@ TEST(Prefab, SkipsVoxelsLandingOutsideTheGrid)
 {
 	spk::VoxelGrid grid(spk::Vector3Int{2, 2, 2});
 
-	spk::Prefab prefab({2, 1, 1});
+	spk::Prefab prefab;
 	prefab.addVoxel({0, 0, 0}, {1});
 	prefab.addVoxel({1, 0, 0}, {2});
 
@@ -171,7 +222,7 @@ TEST(VoxelMap, AppliesAPrefabAcrossChunksGeneratingThemOnDemand)
 	int generationCount = 0;
 	spk::VoxelMap map(test.registry, [&](spk::VoxelChunk &) { ++generationCount; });
 
-	spk::Prefab prefab({4, 1, 1});
+	spk::Prefab prefab;
 	prefab.addVoxelRange({0, 0, 0}, {3, 0, 0}, {test.cube});
 
 	map.applyPrefab(prefab, {14, 0, 0});
@@ -190,16 +241,33 @@ TEST(VoxelMap, AppliesAPrefabRotated)
 	const TestRegistry test;
 	spk::VoxelMap map(test.registry, [](spk::VoxelChunk &) {});
 
-	spk::Prefab prefab({2, 1, 1});
+	spk::Prefab prefab;
 	prefab.addVoxel({0, 0, 0}, {test.cube});
 	prefab.addVoxel({1, 0, 0}, {test.cube});
 
-	// A quarter turn: the 2x1x1 row lays along +Z and the cells' own orientation follows.
+	// A quarter turn around the pivot (the origin): the 2x1x1 row swings toward -Z and
+	// the cells' own orientation follows.
 	map.applyPrefab(prefab, {4, 0, 4}, spk::VoxelOrientation::PositiveX);
 	EXPECT_EQ(map.cell({4, 0, 4}).id, test.cube);
-	EXPECT_EQ(map.cell({4, 0, 5}).id, test.cube);
+	EXPECT_EQ(map.cell({4, 0, 3}).id, test.cube);
 	EXPECT_EQ(map.cell({4, 0, 4}).orientation, spk::VoxelOrientation::PositiveX);
 	EXPECT_TRUE(map.cell({5, 0, 4}).isEmpty());
+}
+
+TEST(VoxelMap, AppliesEmbeddedLayersInTheChunkBelow)
+{
+	const TestRegistry test;
+	spk::VoxelMap map(test.registry, [](spk::VoxelChunk &) {});
+
+	spk::Prefab prefab;
+	prefab.addVoxel({0, -1, 0}, {test.cube});
+	prefab.addVoxel({0, 0, 0}, {test.cube});
+
+	// The embedded layer crosses into the chunk below the destination; coverage must
+	// generate it so the prefab lands whole.
+	map.applyPrefab(prefab, {4, 0, 4});
+	EXPECT_EQ(map.cell({4, -1, 4}).id, test.cube);
+	EXPECT_EQ(map.cell({4, 0, 4}).id, test.cube);
 }
 
 TEST(VoxelMap, PrefabEmptyCellsCarveGeneratedContent)
@@ -210,7 +278,7 @@ TEST(VoxelMap, PrefabEmptyCellsCarveGeneratedContent)
 		p_chunk.setCell({1, 0, 0}, {test.cube});
 	});
 
-	spk::Prefab prefab({2, 1, 1});
+	spk::Prefab prefab;
 	prefab.addVoxel({0, 0, 0}, {});
 
 	map.applyPrefab(prefab, {0, 0, 0});
@@ -223,7 +291,7 @@ TEST(VoxelMap, ApplyingAnEmptyPrefabLoadsNothing)
 	const TestRegistry test;
 	spk::VoxelMap map(test.registry, [](spk::VoxelChunk &) {});
 
-	const spk::Prefab prefab({2, 2, 2});
+	const spk::Prefab prefab;
 	map.applyPrefab(prefab, {0, 0, 0});
 	EXPECT_EQ(map.loadedChunkCount(), 0u);
 }
@@ -237,7 +305,7 @@ TEST(VoxelMap, ApplyingAPrefabFlagsNeighborChunksForRebake)
 	neighbor.renderer().synchronize();
 	ASSERT_FALSE(neighbor.renderer().needsSynchronization());
 
-	spk::Prefab prefab({1, 1, 1});
+	spk::Prefab prefab;
 	prefab.addVoxel({0, 0, 0}, {test.cube});
 	map.applyPrefab(prefab, {15, 0, 0});
 

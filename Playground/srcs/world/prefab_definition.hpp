@@ -22,7 +22,7 @@ namespace pg
 		spk::Prefab prefab;
 		std::vector<PrefabAnchor> anchors;
 
-		[[nodiscard]] const spk::Vector3Int &size() const noexcept { return prefab.size(); }
+		[[nodiscard]] spk::Vector3Int size() const noexcept { return prefab.size(); }
 	};
 
 	[[nodiscard]] PrefabDefinition parsePrefabDefinition(

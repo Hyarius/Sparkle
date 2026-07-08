@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "palette": {"r":"sandstone-rock"},
+  "cells": [
+    {"at":[0,0,1],"voxel":"r"},{"at":[1,0,0],"voxel":"r","orientation":"positiveX"},
+    {"at":[1,1,0],"voxel":"r","orientation":"positiveX"},{"at":[2,0,1],"voxel":"r"}
+  ],
+  "anchors": [{"name":"center","at":[1,0,1]}]
+}

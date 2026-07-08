@@ -1,0 +1,6 @@
+{
+  "version": 1,
+  "traversal": "passable",
+  "tags": ["Bush", "flora", "coast", "losTransparent"],
+  "shape": {"type": "crossPlane", "textures": {"plane": [7, 2]}}
+}

@@ -24,9 +24,12 @@ namespace pg
 			const std::string &p_key,
 			VoxelFlip p_default = VoxelFlip::PositiveY);
 		[[nodiscard]] VoxelPalette parsePalette(const JsonReader &p_reader, const VoxelRegistry &p_voxels);
+		// p_offset translates authored coordinates into grid indices — prefabs use it to
+		// let content live at negative y (layers embedded below the stamp destination).
 		void applyVoxelContent(
 			const JsonReader &p_reader,
 			VoxelGrid &p_grid,
-			const VoxelPalette &p_palette);
+			const VoxelPalette &p_palette,
+			const spk::Vector3Int &p_offset = {0, 0, 0});
 	}
 }

@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "palette": {"b": "meadow-bush", "g": "bush"},
+  "cells": [
+    {"at":[0,0,0],"voxel":"b"},{"at":[1,0,0],"voxel":"g"},{"at":[3,0,0],"voxel":"b"},{"at":[4,0,0],"voxel":"b"},
+    {"at":[0,0,1],"voxel":"g"},{"at":[1,0,1],"voxel":"b"},{"at":[2,0,1],"voxel":"b"},{"at":[3,0,1],"voxel":"g"},{"at":[4,0,1],"voxel":"b"},
+    {"at":[1,0,2],"voxel":"b"},{"at":[2,0,2],"voxel":"g"},{"at":[3,0,2],"voxel":"b"}
+  ],
+  "anchors": [{"name":"center","at":[2,0,1]}]
+}

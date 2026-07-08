@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "palette": {"s":"rock-small","m":"rock-medium"},
+  "cells": [
+    {"at":[0,0,0],"voxel":"s","orientation":"positiveX"},{"at":[1,0,1],"voxel":"m"},{"at":[3,0,0],"voxel":"s"}
+  ],
+  "anchors": [{"name":"center","at":[1,0,0]}]
+}

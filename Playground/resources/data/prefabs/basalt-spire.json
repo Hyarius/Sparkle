@@ -1,0 +1,6 @@
+{
+  "version": 1,
+  "palette": {"p":"basalt-pillar"},
+  "fill": [{"min":[0,0,0],"max":[0,3,0],"voxel":"p"}],
+  "anchors": [{"name":"base","at":[0,0,0]}]
+}

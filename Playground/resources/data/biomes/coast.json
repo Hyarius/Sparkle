@@ -7,7 +7,7 @@
 		"deep": "stone-block",
 		"road": "coast-road",
 		"flora": [
-			"bush"
+			"coast-bush"
 		]
 	},
 	"worldgen": {
@@ -16,7 +16,10 @@
 		"mapColor": "#5FB0B7",
 		"prefabs": {
 			"scenery": [
-				{ "prefab": "bush-cluster", "density": 1.0, "spacing": 3 }
+				{ "prefab": "palm-tree", "density": 0.16, "spacing": 7 },
+				{ "prefab": "coast-rock-cluster", "density": 0.25, "spacing": 4 },
+				{ "prefab": "fallen-log-cluster", "density": 0.12, "spacing": 5 },
+				{ "prefab": "coast-bush-patch", "density": 0.5, "spacing": 5 }
 			],
 			"gym": "coast-gym",
 			"city": [
@@ -26,7 +29,7 @@
 			"portCity": "coast-house",
 			"normalPoi": [
 				"coast-poi-normal",
-				"bush-cluster"
+				"coast-bush-patch"
 			],
 			"uncommonPoi": "coast-poi-uncommon",
 			"rarePoi": "coast-poi-rare"

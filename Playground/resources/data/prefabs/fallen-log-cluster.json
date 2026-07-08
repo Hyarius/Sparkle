@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "palette": {"l":"fallen-log","b":"bush"},
+  "cells": [
+    {"at":[0,0,1],"voxel":"l"},{"at":[1,0,1],"voxel":"l"},{"at":[2,0,1],"voxel":"l"},
+    {"at":[0,0,0],"voxel":"b"},{"at":[2,0,2],"voxel":"b"}
+  ],
+  "anchors": [{"name":"center","at":[1,0,1]}]
+}

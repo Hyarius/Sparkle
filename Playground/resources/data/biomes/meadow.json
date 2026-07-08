@@ -7,6 +7,7 @@
 		"deep": "stone-block",
 		"road": "meadow-road",
 		"flora": [
+			"meadow-bush",
 			"bush"
 		]
 	},
@@ -16,7 +17,10 @@
 		"mapColor": "#9FD070",
 		"prefabs": {
 			"scenery": [
-				{ "prefab": "bush-cluster", "density": 3.0, "spacing": 3 }
+				{ "prefab": "oak-tree", "density": 0.08, "spacing": 7 },
+				{ "prefab": "birch-tree", "density": 0.06, "spacing": 7 },
+				{ "prefab": "rock-cluster", "density": 0.1, "spacing": 5 },
+				{ "prefab": "meadow-bush-patch", "density": 1.0, "spacing": 6 }
 			],
 			"gym": "meadow-gym",
 			"city": [
@@ -26,7 +30,7 @@
 			"portCity": "meadow-house",
 			"normalPoi": [
 				"meadow-poi-normal",
-				"bush-cluster"
+				"meadow-bush-patch"
 			],
 			"uncommonPoi": "meadow-poi-uncommon",
 			"rarePoi": "meadow-poi-rare"

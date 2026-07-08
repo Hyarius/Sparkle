@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "palette": {"r":"basalt-rock","p":"basalt-pillar"},
+  "cells": [
+    {"at":[0,0,1],"voxel":"r"},{"at":[1,0,0],"voxel":"p"},{"at":[1,1,0],"voxel":"p"},
+    {"at":[2,0,1],"voxel":"r","orientation":"positiveX"},{"at":[3,0,0],"voxel":"p"}
+  ],
+  "anchors": [{"name":"center","at":[1,0,1]}]
+}

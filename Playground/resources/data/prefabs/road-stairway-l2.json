@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "pivot": [6, 6, 4],
+  "palette": {"f": "road-block", "s": "road-stair"},
+  "fill": [
+    {"min":[0,0,1],"max":[2,0,1],"voxel":"f"},
+    {"min":[0,0,2],"max":[2,1,2],"voxel":"f"},
+    {"min":[0,0,3],"max":[2,2,5],"voxel":"f"},
+    {"min":[3,0,3],"max":[3,2,5],"voxel":"f"},
+    {"min":[4,0,3],"max":[4,3,5],"voxel":"f"},
+    {"min":[5,0,3],"max":[5,4,5],"voxel":"f"}
+  ],
+  "cells": [
+    {"at":[0,0,0],"voxel":"s"},{"at":[1,0,0],"voxel":"s"},{"at":[2,0,0],"voxel":"s"},
+    {"at":[0,1,1],"voxel":"s"},{"at":[1,1,1],"voxel":"s"},{"at":[2,1,1],"voxel":"s"},
+    {"at":[0,2,2],"voxel":"s"},{"at":[1,2,2],"voxel":"s"},{"at":[2,2,2],"voxel":"s"},
+    {"at":[3,3,3],"voxel":"s","orientation":"positiveX"},{"at":[3,3,4],"voxel":"s","orientation":"positiveX"},{"at":[3,3,5],"voxel":"s","orientation":"positiveX"},
+    {"at":[4,4,3],"voxel":"s","orientation":"positiveX"},{"at":[4,4,4],"voxel":"s","orientation":"positiveX"},{"at":[4,4,5],"voxel":"s","orientation":"positiveX"},
+    {"at":[5,5,3],"voxel":"s","orientation":"positiveX"},{"at":[5,5,4],"voxel":"s","orientation":"positiveX"},{"at":[5,5,5],"voxel":"s","orientation":"positiveX"}
+  ],
+  "anchors": [{"name":"bottom","at":[1,0,0]},{"name":"top","at":[6,6,4]}]
+}

@@ -41,11 +41,23 @@ namespace pg
 						  << std::endl;
 				continue;
 			}
-			const spk::Vector3Int rotatedSize = prefab->prefab.rotatedSize(placement.orientation);
+			// anchor.x/z is the footprint center and anchor.y the ground level. The
+			// rotated bounding box is re-anchored on those regardless of where the
+			// prefab's pivot sits, and content below the ground level (floor slabs,
+			// POI pedestals) sinks into the terrain.
+			const auto [rotatedMin, rotatedMax] = prefab->prefab.rotatedBounds(placement.orientation);
+			const spk::Vector3Int extents = rotatedMax - rotatedMin + spk::Vector3Int{1, 1, 1};
+			const spk::Vector3Int worldMin = placement.anchorToPivot
+				? placement.anchor + rotatedMin
+				: spk::Vector3Int{
+					  placement.anchor.x - extents.x / 2,
+					  placement.anchor.y + rotatedMin.y,
+					  placement.anchor.z - extents.z / 2};
 			_placements.push_back(
 				{.definition = prefab,
-				 .worldMin = {placement.anchor.x - rotatedSize.x / 2, placement.anchor.y, placement.anchor.z - rotatedSize.z / 2},
-				 .rotatedSize = rotatedSize,
+				 .worldMin = worldMin,
+				 .rotatedSize = extents,
+				 .destination = placement.anchorToPivot ? placement.anchor : worldMin - rotatedMin,
 				 .orientation = placement.orientation,
 				 .foundation = placement.foundation});
 		}
@@ -243,7 +255,7 @@ namespace pg
 
 		// Stamp the rotated box; the prefab lists its empty cells too, so they overwrite
 		// (carve) and interiors and the air above ramps stay clear even against a cliff.
-		p_placement.definition->prefab.applyTo(p_chunk.grid(), p_placement.worldMin - origin, p_placement.orientation);
+		p_placement.definition->prefab.applyTo(p_chunk.grid(), p_placement.destination - origin, p_placement.orientation);
 	}
 
 	int PlanChunkProvider::surfaceHeight(int p_worldX, int p_worldZ) const

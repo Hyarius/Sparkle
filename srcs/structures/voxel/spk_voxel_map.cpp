@@ -223,10 +223,12 @@ namespace spk
 			return;
 		}
 
-		const spk::Vector3Int rotatedSize = p_prefab.rotatedSize(p_orientation);
-		const spk::Vector3Int minChunk = spk::VoxelChunk::coordinatesFromWorldCell(p_worldDestination);
-		const spk::Vector3Int maxChunk =
-			spk::VoxelChunk::coordinatesFromWorldCell(p_worldDestination + rotatedSize - spk::Vector3Int{1, 1, 1});
+		// The rotated bounds are relative to the destination (the pivot lands there and
+		// layers may extend below or before it), so the covered box is destination +
+		// bounds on every axis.
+		const auto [rotatedMin, rotatedMax] = p_prefab.rotatedBounds(p_orientation);
+		const spk::Vector3Int minChunk = spk::VoxelChunk::coordinatesFromWorldCell(p_worldDestination + rotatedMin);
+		const spk::Vector3Int maxChunk = spk::VoxelChunk::coordinatesFromWorldCell(p_worldDestination + rotatedMax);
 		for (int chunkY = minChunk.y; chunkY <= maxChunk.y; ++chunkY)
 		{
 			for (int chunkZ = minChunk.z; chunkZ <= maxChunk.z; ++chunkZ)

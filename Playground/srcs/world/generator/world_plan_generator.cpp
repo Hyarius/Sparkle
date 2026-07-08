@@ -1650,6 +1650,26 @@ namespace pg
 				return p_onRoad ? biomeId + "-road-stairway" : biomeId + "-stairway";
 			}
 
+			[[nodiscard]] static std::string multiLevelStairwayPrefabFor(int p_levelDifference, bool p_onRoad)
+			{
+				return std::string(p_onRoad ? "road-stairway-l" : "stairway-l") +
+					   std::to_string(p_levelDifference);
+			}
+
+			// The authored L stair climbs local +Z first and exits toward local +X.
+			// Choose the prefab rotation that maps that final +X exit toward the high cell.
+			[[nodiscard]] static spk::VoxelOrientation lStairOrientation(
+				int p_dr,
+				int p_dc,
+				bool p_firstLower)
+			{
+				if (p_dc == 1)
+				{
+					return p_firstLower ? spk::VoxelOrientation::PositiveZ : spk::VoxelOrientation::NegativeZ;
+				}
+				return p_firstLower ? spk::VoxelOrientation::NegativeX : spk::VoxelOrientation::PositiveX;
+			}
+
 			[[nodiscard]] const std::vector<std::string> *entityPrefabsFor(PlanEntityKind p_kind, int p_zone) const
 			{
 				if (p_zone >= 0)
@@ -1668,8 +1688,8 @@ namespace pg
 			// Lower cells of every stairway placed so far (road + wild), for spacing.
 			std::vector<Cell> stairCells;
 
-			// Chains one-level ramp prefabs inside the lower of the two cells so the
-			// player can climb the strata difference; returns the number of segments.
+			// Places a compact multi-level stair when one is available, otherwise chains
+			// one-level ramps. Returns the number of emitted prefab placements.
 			int emitStairChain(int p_row, int p_col, int p_dr, int p_dc, bool p_onRoad)
 			{
 				const int blocks = cfg.blocksPerCell;
@@ -1688,8 +1708,35 @@ namespace pg
 				const int lowRow = firstLower ? p_row : nr;
 				const int lowCol = firstLower ? p_col : nc;
 				const int lowLevel = std::min(levelA, levelB);
-				const int steps = std::min(std::abs(levelA - levelB), blocks / run);
+				const int steps = std::abs(levelA - levelB);
 				const int surface = plan.surfaceY(lowLevel);
+				// Two-level wild climbs deliberately bend to vary exploration paths. Three
+				// levels always use the compact L because a straight 9-voxel run no longer
+				// fits inside one 8-voxel plan cell. Larger, rare deltas fall back to an
+				// uncapped straight chain so the connection is complete rather than ending
+				// below the high plateau.
+				if (steps == 3 || (steps == 2 && !p_onRoad))
+				{
+					const int boundaryX = offset + (p_col + 1) * blocks;
+					const int boundaryZ = offset + (p_row + 1) * blocks;
+					PrefabPlacement placement;
+					placement.prefabId = multiLevelStairwayPrefabFor(steps, p_onRoad);
+					placement.orientation = lStairOrientation(p_dr, p_dc, firstLower);
+					placement.foundation = true;
+					placement.anchorToPivot = true;
+					placement.anchor = p_dc == 1
+						? spk::Vector3Int{
+							  boundaryX,
+							  plan.surfaceY(std::max(levelA, levelB)) + 1,
+							  offset + p_row * blocks + strip + 1}
+						: spk::Vector3Int{
+							  offset + p_col * blocks + strip + 1,
+							  plan.surfaceY(std::max(levelA, levelB)) + 1,
+							  boundaryZ};
+					plan.placements.push_back(std::move(placement));
+					stairCells.push_back({lowRow, lowCol});
+					return 1;
+				}
 				// One resolve per chain so every segment of a climb uses the same prefab.
 				const std::string prefabId = stairwayPrefabFor(plan.zone.at(lowRow, lowCol), p_onRoad);
 

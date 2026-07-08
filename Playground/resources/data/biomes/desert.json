@@ -7,7 +7,7 @@
 		"deep": "stone-block",
 		"road": "desert-road",
 		"flora": [
-			"bush"
+			"desert-bush"
 		]
 	},
 	"worldgen": {
@@ -16,8 +16,10 @@
 		"mapColor": "#F2C14E",
 		"prefabs": {
 			"scenery": [
-				{ "prefab": "bush-cluster", "density": 2.0, "spacing": 4 },
-				{ "prefab": "desert-poi-normal", "density": 2.0, "spacing": 4 }
+				{ "prefab": "cactus-tall", "density": 0.35, "spacing": 3 },
+				{ "prefab": "cactus-grove", "density": 0.08, "spacing": 6 },
+				{ "prefab": "sandstone-rock-cluster", "density": 0.22, "spacing": 5 },
+				{ "prefab": "desert-bush-patch", "density": 0.1, "spacing": 5 }
 			],
 			"gym": "desert-gym",
 			"city": [
@@ -27,7 +29,7 @@
 			"portCity": "desert-house",
 			"normalPoi": [
 				"desert-poi-normal",
-				"bush-cluster"
+				"desert-bush-patch"
 			],
 			"uncommonPoi": "desert-poi-uncommon",
 			"rarePoi": "desert-poi-rare"

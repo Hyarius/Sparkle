@@ -44,7 +44,7 @@ pg::VoxelShape (abstract)
   │    CardinalHeights heights; // per flip: {posX, negX, posZ, negZ, stationary} floats
   ├─ virtuals: _constructRenderFaces(), _constructMask(),
   │            _constructPositiveYHeights(), _constructNegativeYHeights() (=positive)
-  └─ concrete: CubeShape, SlabShape, SlopeShape, StairShape, CrossPlaneShape, CrossShape
+  └─ concrete: CubeShape, CuboidShape, SlabShape, SlopeShape, StairShape, CrossPlaneShape, CrossShape
   // NO collision products (D30): raycasts are DDA over cells, movement is walk-height
   // analytic. If a future feature needs sub-voxel surface geometry (physics debris,
   // shadow-casting geometry), add a dedicated product then, with its consumer documented.
@@ -69,6 +69,7 @@ applied. Heights are surface heights in `[0,1]` at each edge midpoint + center.
 | Shape | Render faces | Heights (posY flip) | Notes |
 |---|---|---|---|
 | **Cube** | outer shell only: 6 unit quads | all 1.0 | the baseline |
+| **Cuboid** | 6 axis-aligned quads inside authored `min`/`max` bounds | all = `max.y` | inset box for trunks, posts, rocks and other sub-voxel scenery; only faces that reach a cell boundary participate in neighbour occlusion |
 | **Slab** | shell: 4 side quads at `height`, bottom; top as shell face at y=`height` | all = `height` (default 0.5) | side faces occlude only the covered portion — v1 keeps it simple: side shell faces are *not* occludable (inner), bottom is shell |
 | **Slope** | inner: slope quad (0 at −Z → 1 at +Z); shell: back (PosZ), bottom (NegY), 2 side triangles | posZ 1.0, negZ 0.0, sides+stationary 0.5; **negY flip: all 1.0** (ceiling wedge) | mirror of Unity `VoxelSlopeShape` |
 | **Stair** | inner: `stepCount` treads + risers; shell: back, bottom, side profiles | posZ 1.0, negZ = 1/(2·steps)… stationary 0.5 (compute midpoints per stepCount) | Unity `VoxelStairShape` is the reference for exact faces |

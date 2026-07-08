@@ -120,15 +120,16 @@ namespace pg::detail
 	void applyVoxelContent(
 		const JsonReader &p_reader,
 		VoxelGrid &p_grid,
-		const VoxelPalette &p_palette)
+		const VoxelPalette &p_palette,
+		const spk::Vector3Int &p_offset)
 	{
 		if (p_reader.contains("fill"))
 		{
 			for (JsonReader fill : p_reader.childArray("fill"))
 			{
 				fill.forbidUnknown({"min", "max", "voxel"});
-				const spk::Vector3Int minimum = parseVector3(fill, "min");
-				const spk::Vector3Int maximum = parseVector3(fill, "max");
+				const spk::Vector3Int minimum = parseVector3(fill, "min") + p_offset;
+				const spk::Vector3Int maximum = parseVector3(fill, "max") + p_offset;
 				requireWithin(p_grid, minimum, fill, "min");
 				requireWithin(p_grid, maximum, fill, "max");
 				if (minimum.x > maximum.x || minimum.y > maximum.y || minimum.z > maximum.z)
@@ -154,7 +155,7 @@ namespace pg::detail
 			for (JsonReader cellReader : p_reader.childArray("cells"))
 			{
 				cellReader.forbidUnknown({"at", "voxel", "orientation", "flip"});
-				const spk::Vector3Int at = parseVector3(cellReader, "at");
+				const spk::Vector3Int at = parseVector3(cellReader, "at") + p_offset;
 				requireWithin(p_grid, at, cellReader, "at");
 				VoxelCell value = paletteCell(p_palette, cellReader, "voxel");
 				value.orientation = parseOrientation(cellReader, "orientation");

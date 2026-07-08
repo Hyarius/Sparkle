@@ -56,9 +56,10 @@ namespace spk
 		[[nodiscard]] const spk::VoxelCell &cell(const spk::Vector3Int &p_worldCell) const noexcept;
 		bool setCell(const spk::Vector3Int &p_worldCell, const spk::VoxelCell &p_cell);
 
-		// Stamps the prefab into the world, the min corner of its rotated bounding box
-		// landing on p_worldDestination. Every chunk overlapped by that box is generated
-		// on demand first, so the prefab always lands whole; affected meshes (including
+		// Stamps the prefab into the world: its pivot lands on p_worldDestination and
+		// every voxel lands at its position rotated around that pivot (negative-y
+		// layers land underneath). Every chunk overlapped by the stamp is generated on
+		// demand first, so the prefab always lands whole; affected meshes (including
 		// boundary neighbors) are re-baked on the next render pass.
 		void applyPrefab(
 			const spk::Prefab &p_prefab,

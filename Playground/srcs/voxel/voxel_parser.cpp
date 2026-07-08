@@ -6,6 +6,7 @@
 #include "structures/voxel/spk_cross_plane_voxel_shape.hpp"
 #include "structures/voxel/spk_cross_voxel_shape.hpp"
 #include "structures/voxel/spk_cube_voxel_shape.hpp"
+#include "structures/voxel/spk_cuboid_voxel_shape.hpp"
 #include "structures/voxel/spk_slab_voxel_shape.hpp"
 #include "structures/voxel/spk_slope_voxel_shape.hpp"
 #include "structures/voxel/spk_stair_voxel_shape.hpp"
@@ -100,6 +101,17 @@ namespace
 		return {1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
 	}
 
+	pg::CardinalHeightSet flatTop(float p_height)
+	{
+		return {p_height, p_height, p_height, p_height, p_height};
+	}
+
+	spk::Vector3 readUnitVector(pg::JsonReader &p_reader, const std::string &p_slot)
+	{
+		const std::array<float, 3> value = p_reader.require<std::array<float, 3>>(p_slot);
+		return {value[0], value[1], value[2]};
+	}
+
 	// Walk-height formulas ported verbatim from the historical pg::*Shape::_constructHeights so
 	// the navigation graph keeps stepping up and down exactly as before.
 	struct ParsedShape
@@ -117,6 +129,25 @@ namespace
 			p_reader.forbidUnknown({"type", "textures"});
 			pg::JsonReader textures = p_reader.child("textures");
 			return {std::make_unique<spk::CubeVoxelShape>(readCubeTextures(textures)), {flatTop(), flatTop()}};
+		}
+		if (type == "cuboid")
+		{
+			p_reader.forbidUnknown({"type", "textures", "min", "max"});
+			const spk::Vector3 minimum = readUnitVector(p_reader, "min");
+			const spk::Vector3 maximum = readUnitVector(p_reader, "max");
+			if (minimum.x < 0.0f || minimum.y < 0.0f || minimum.z < 0.0f ||
+				maximum.x > 1.0f || maximum.y > 1.0f || maximum.z > 1.0f ||
+				minimum.x >= maximum.x || minimum.y >= maximum.y || minimum.z >= maximum.z)
+			{
+				throw pg::JsonError(
+					p_reader.file(),
+					p_reader.pathFor("max"),
+					"cuboid min/max must define a positive box inside the unit voxel cell");
+			}
+			pg::JsonReader textures = p_reader.child("textures");
+			return {
+				std::make_unique<spk::CuboidVoxelShape>(readCubeTextures(textures), minimum, maximum),
+				{flatTop(maximum.y), flatTop(1.0f - minimum.y)}};
 		}
 		if (type == "slab")
 		{
@@ -171,7 +202,7 @@ namespace
 		throw pg::JsonError(
 			p_reader.file(),
 			p_reader.pathFor("type"),
-			"unknown voxel shape type '" + type + "' (known types: cube, slab, slope, stair, crossPlane, cross)");
+			"unknown voxel shape type '" + type + "' (known types: cube, cuboid, slab, slope, stair, crossPlane, cross)");
 	}
 }
 

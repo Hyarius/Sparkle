@@ -1,0 +1,1 @@
+{"version":1,"traversal":"solid","tags":["scenery","wood","trunk","willow"],"shape":{"type":"cuboid","min":[0.3,0.0,0.3],"max":[0.7,1.0,0.7],"textures":{"top":[5,3],"side":[6,3],"bottom":[5,3]}}}

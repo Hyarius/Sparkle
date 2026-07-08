@@ -7,7 +7,8 @@
 		"deep": "stone-block",
 		"road": "swamp-road",
 		"flora": [
-			"bush"
+			"swamp-bush",
+			"forest-bush"
 		]
 	},
 	"worldgen": {
@@ -16,7 +17,11 @@
 		"mapColor": "#6B8F3F",
 		"prefabs": {
 			"scenery": [
-				{ "prefab": "bush-cluster", "density": 4.0, "spacing": 3 }
+				{ "prefab": "willow-tree", "density": 0.15, "spacing": 7 },
+				{ "prefab": "dead-tree", "density": 0.08, "spacing": 6 },
+				{ "prefab": "reed-clump", "density": 0.8, "spacing": 3 },
+				{ "prefab": "fallen-log-cluster", "density": 0.12, "spacing": 5 },
+				{ "prefab": "swamp-bush-patch", "density": 0.7, "spacing": 6 }
 			],
 			"gym": "swamp-gym",
 			"city": [
@@ -26,7 +31,7 @@
 			"portCity": "swamp-house",
 			"normalPoi": [
 				"swamp-poi-normal",
-				"bush-cluster"
+				"swamp-bush-patch"
 			],
 			"uncommonPoi": "swamp-poi-uncommon",
 			"rarePoi": "swamp-poi-rare"

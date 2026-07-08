@@ -1,0 +1,1 @@
+{"version":1,"traversal":"solid","tags":["scenery","rock","sandstone"],"shape":{"type":"cuboid","min":[0.1,0.0,0.16],"max":[0.9,0.7,0.84],"textures":{"top":[5,5],"side":[0,5],"bottom":[5,5]}}}

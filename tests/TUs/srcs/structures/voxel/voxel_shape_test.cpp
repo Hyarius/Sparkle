@@ -4,6 +4,7 @@
 #include <stdexcept>
 
 #include "structures/voxel/spk_cube_voxel_shape.hpp"
+#include "structures/voxel/spk_cuboid_voxel_shape.hpp"
 #include "structures/voxel/spk_voxel_cell.hpp"
 #include "structures/voxel/spk_voxel_registry.hpp"
 #include "structures/voxel/spk_voxel_shape.hpp"
@@ -56,6 +57,32 @@ TEST(VoxelShape, CubeShapeFillsTheOuterShellOnly)
 		ASSERT_EQ(face->size(), 1u);
 		EXPECT_EQ(face->polygons().front().size(), 4u);
 	}
+}
+
+TEST(VoxelShape, CuboidShapeUsesAuthoredBounds)
+{
+	spk::CuboidVoxelShape shape(spk::AtlasCell{0, 0}, {0.25f, 0.0f, 0.35f}, {0.75f, 0.8f, 0.65f});
+	shape.initialize();
+
+	EXPECT_EQ(shape.minimum(), spk::Vector3(0.25f, 0.0f, 0.35f));
+	EXPECT_EQ(shape.maximum(), spk::Vector3(0.75f, 0.8f, 0.65f));
+	EXPECT_EQ(shape.renderFaces().outerFaceCount(), 6u);
+	EXPECT_TRUE(shape.outerFaceLiesOnCellBoundary(spk::VoxelAxisPlane::NegativeY));
+	EXPECT_FALSE(shape.outerFaceCoversCellBoundary(spk::VoxelAxisPlane::NegativeY));
+	EXPECT_FALSE(shape.outerFaceLiesOnCellBoundary(spk::VoxelAxisPlane::PositiveX));
+}
+
+TEST(VoxelShape, CuboidShapeRejectsInvalidBounds)
+{
+	EXPECT_THROW(
+		(void)spk::CuboidVoxelShape(spk::AtlasCell{0, 0}, {0.5f, 0.0f, 0.0f}, {0.5f, 1.0f, 1.0f}),
+		std::invalid_argument);
+	EXPECT_THROW(
+		(void)spk::CuboidVoxelShape(spk::AtlasCell{0, 0}, {-0.1f, 0.0f, 0.0f}, {0.5f, 1.0f, 1.0f}),
+		std::invalid_argument);
+	EXPECT_THROW(
+		(void)spk::CuboidVoxelShape(spk::AtlasCell{0, 0}, {0.0f, 0.0f, 0.0f}, {1.1f, 1.0f, 1.0f}),
+		std::invalid_argument);
 }
 
 TEST(VoxelShapeFace, RequiresAllPolygonsToShareTheirNormal)

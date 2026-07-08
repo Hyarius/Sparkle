@@ -7,7 +7,7 @@
 		"deep": "stone-block",
 		"road": "tundra-road",
 		"flora": [
-			"bush"
+			"tundra-bush"
 		]
 	},
 	"worldgen": {
@@ -16,7 +16,10 @@
 		"mapColor": "#CFE0E8",
 		"prefabs": {
 			"scenery": [
-				{ "prefab": "bush-cluster", "density": 0.5, "spacing": 4 }
+				{ "prefab": "snow-pine", "density": 0.14, "spacing": 7 },
+				{ "prefab": "snow-rock-cluster", "density": 0.3, "spacing": 4 },
+				{ "prefab": "dead-tree", "density": 0.03, "spacing": 7 },
+				{ "prefab": "tundra-bush-patch", "density": 0.1, "spacing": 5 }
 			],
 			"gym": "tundra-gym",
 			"city": [
@@ -26,7 +29,7 @@
 			"portCity": "tundra-house",
 			"normalPoi": [
 				"tundra-poi-normal",
-				"bush-cluster"
+				"tundra-bush-patch"
 			],
 			"uncommonPoi": "tundra-poi-uncommon",
 			"rarePoi": "tundra-poi-rare"

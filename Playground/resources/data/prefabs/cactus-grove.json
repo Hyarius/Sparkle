@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "palette": {"c": "cactus-pillar"},
+  "fill": [
+    {"min":[0,0,1],"max":[0,2,1],"voxel":"c"},
+    {"min":[2,0,0],"max":[2,3,0],"voxel":"c"},
+    {"min":[3,0,3],"max":[3,1,3],"voxel":"c"}
+  ],
+  "anchors": [{"name":"center","at":[2,0,2]}]
+}

@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "palette": {"r":"reed-stem"},
+  "cells": [
+    {"at":[0,0,0],"voxel":"r"},{"at":[1,0,0],"voxel":"r"},{"at":[0,0,1],"voxel":"r"},
+    {"at":[2,0,1],"voxel":"r"},{"at":[1,0,2],"voxel":"r"},{"at":[2,0,2],"voxel":"r"}
+  ],
+  "anchors": [{"name":"center","at":[1,0,1]}]
+}

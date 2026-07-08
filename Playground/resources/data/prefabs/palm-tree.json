@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "palette": {"t": "palm-trunk", "f": "palm-fronds"},
+  "fill": [{"min":[2,0,2],"max":[2,4,2],"voxel":"t"}],
+  "cells": [
+    {"at":[2,5,2],"voxel":"f"},{"at":[1,5,2],"voxel":"f"},{"at":[3,5,2],"voxel":"f"},
+    {"at":[2,5,1],"voxel":"f"},{"at":[2,5,3],"voxel":"f"}
+  ],
+  "anchors": [{"name":"base","at":[2,0,2]}]
+}

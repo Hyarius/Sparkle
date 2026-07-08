@@ -7,7 +7,7 @@
 		"deep": "stone-block",
 		"road": "highland-road",
 		"flora": [
-			"bush"
+			"highland-bush"
 		]
 	},
 	"worldgen": {
@@ -16,7 +16,10 @@
 		"mapColor": "#B08968",
 		"prefabs": {
 			"scenery": [
-				{ "prefab": "bush-cluster", "density": 0.75, "spacing": 4 }
+				{ "prefab": "pine-tree", "density": 0.12, "spacing": 6 },
+				{ "prefab": "highland-rock-spire", "density": 0.1, "spacing": 7 },
+				{ "prefab": "rock-cluster", "density": 0.35, "spacing": 4 },
+				{ "prefab": "highland-bush-patch", "density": 0.2, "spacing": 5 }
 			],
 			"gym": "highland-gym",
 			"city": [
@@ -26,7 +29,7 @@
 			"portCity": "highland-house",
 			"normalPoi": [
 				"highland-poi-normal",
-				"bush-cluster"
+				"highland-bush-patch"
 			],
 			"uncommonPoi": "highland-poi-uncommon",
 			"rarePoi": "highland-poi-rare"
