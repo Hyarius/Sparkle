@@ -75,17 +75,17 @@ TEST(VoxelShapeLibrary, CubeKeepsTopUVsAndFlipsVerticalFaceV)
 	spk::CubeVoxelShape shape(spk::AtlasCell{0, 0}, spk::Vector2Int{1, 1});
 	shape.initialize();
 
-	const auto &top = shape.renderFaces().outer(spk::VoxelAxisPlane::PositiveY)->polygons.front();
-	EXPECT_EQ(top[0].uv, spk::Vector2(0, 0));
-	EXPECT_EQ(top[1].uv, spk::Vector2(1, 0));
-	EXPECT_EQ(top[2].uv, spk::Vector2(1, 1));
-	EXPECT_EQ(top[3].uv, spk::Vector2(0, 1));
+	const auto &top = shape.renderFaces().outer(spk::VoxelAxisPlane::PositiveY)->polygons().front();
+	EXPECT_EQ(top[0].data, spk::Vector2(0, 0));
+	EXPECT_EQ(top[1].data, spk::Vector2(1, 0));
+	EXPECT_EQ(top[2].data, spk::Vector2(1, 1));
+	EXPECT_EQ(top[3].data, spk::Vector2(0, 1));
 
-	const auto &side = shape.renderFaces().outer(spk::VoxelAxisPlane::PositiveZ)->polygons.front();
-	EXPECT_EQ(side[0].uv, spk::Vector2(0, 1));
-	EXPECT_EQ(side[1].uv, spk::Vector2(1, 1));
-	EXPECT_EQ(side[2].uv, spk::Vector2(1, 0));
-	EXPECT_EQ(side[3].uv, spk::Vector2(0, 0));
+	const auto &side = shape.renderFaces().outer(spk::VoxelAxisPlane::PositiveZ)->polygons().front();
+	EXPECT_EQ(side[0].data, spk::Vector2(0, 1));
+	EXPECT_EQ(side[1].data, spk::Vector2(1, 1));
+	EXPECT_EQ(side[2].data, spk::Vector2(1, 0));
+	EXPECT_EQ(side[3].data, spk::Vector2(0, 0));
 }
 
 TEST(VoxelShapeLibrary, SlopeTextureRunsAcrossXAndUpTheSlope)
@@ -93,11 +93,11 @@ TEST(VoxelShapeLibrary, SlopeTextureRunsAcrossXAndUpTheSlope)
 	spk::SlopeVoxelShape shape(spk::AtlasCell{0, 0}, spk::Vector2Int{1, 1});
 	shape.initialize();
 
-	const auto &slope = shape.renderFaces().innerFaces.front().polygons.front();
-	EXPECT_EQ(slope[0].uv, spk::Vector2(0, 1));
-	EXPECT_EQ(slope[1].uv, spk::Vector2(0, 0));
-	EXPECT_EQ(slope[2].uv, spk::Vector2(1, 0));
-	EXPECT_EQ(slope[3].uv, spk::Vector2(1, 1));
+	const auto &slope = shape.renderFaces().innerFaces.front().polygons().front();
+	EXPECT_EQ(slope[0].data, spk::Vector2(0, 1));
+	EXPECT_EQ(slope[1].data, spk::Vector2(0, 0));
+	EXPECT_EQ(slope[2].data, spk::Vector2(1, 0));
+	EXPECT_EQ(slope[3].data, spk::Vector2(1, 1));
 }
 
 TEST(VoxelShapeLibrary, HalfSlabSidesUseTheLowerHalfOfTheirTexture)
@@ -107,11 +107,11 @@ TEST(VoxelShapeLibrary, HalfSlabSidesUseTheLowerHalfOfTheirTexture)
 
 	for (const auto &face : shape.renderFaces().innerFaces)
 	{
-		const auto &side = face.polygons.front();
-		EXPECT_EQ(side[0].uv.y, 1.0f);
-		EXPECT_EQ(side[1].uv.y, 1.0f);
-		EXPECT_EQ(side[2].uv.y, 0.5f);
-		EXPECT_EQ(side[3].uv.y, 0.5f);
+		const auto &side = face.polygons().front();
+		EXPECT_EQ(side[0].data.y, 1.0f);
+		EXPECT_EQ(side[1].data.y, 1.0f);
+		EXPECT_EQ(side[2].data.y, 0.5f);
+		EXPECT_EQ(side[3].data.y, 0.5f);
 	}
 }
 
@@ -123,19 +123,19 @@ TEST(VoxelShapeLibrary, StairTreadsAndRisersUseTheirTextureBands)
 	const auto &faces = shape.renderFaces().innerFaces;
 	ASSERT_EQ(faces.size(), 4u);
 
-	const auto &lowerTop = faces[0].polygons.front();
-	EXPECT_EQ(lowerTop[0].uv.y, 0.5f);
-	EXPECT_EQ(lowerTop[2].uv.y, 1.0f);
-	const auto &lowerRiser = faces[1].polygons.front();
-	EXPECT_EQ(lowerRiser[0].uv.y, 1.0f);
-	EXPECT_EQ(lowerRiser[2].uv.y, 0.5f);
+	const auto &lowerTop = faces[0].polygons().front();
+	EXPECT_EQ(lowerTop[0].data.y, 0.5f);
+	EXPECT_EQ(lowerTop[2].data.y, 1.0f);
+	const auto &lowerRiser = faces[1].polygons().front();
+	EXPECT_EQ(lowerRiser[0].data.y, 1.0f);
+	EXPECT_EQ(lowerRiser[2].data.y, 0.5f);
 
-	const auto &upperTop = faces[2].polygons.front();
-	EXPECT_EQ(upperTop[0].uv.y, 0.0f);
-	EXPECT_EQ(upperTop[2].uv.y, 0.5f);
-	const auto &upperRiser = faces[3].polygons.front();
-	EXPECT_EQ(upperRiser[0].uv.y, 0.5f);
-	EXPECT_EQ(upperRiser[2].uv.y, 0.0f);
+	const auto &upperTop = faces[2].polygons().front();
+	EXPECT_EQ(upperTop[0].data.y, 0.0f);
+	EXPECT_EQ(upperTop[2].data.y, 0.5f);
+	const auto &upperRiser = faces[3].polygons().front();
+	EXPECT_EQ(upperRiser[0].data.y, 0.5f);
+	EXPECT_EQ(upperRiser[2].data.y, 0.0f);
 }
 
 TEST(VoxelShapeLibrary, StairSidesAreSplitIntoConvexStepQuads)
@@ -147,8 +147,8 @@ TEST(VoxelShapeLibrary, StairSidesAreSplitIntoConvexStepQuads)
 	{
 		const auto &side = shape.renderFaces().outer(plane);
 		ASSERT_TRUE(side.has_value());
-		ASSERT_EQ(side->polygons.size(), 3u);
-		for (const auto &step : side->polygons)
+		ASSERT_EQ(side->size(), 3u);
+		for (const auto &step : side->polygons())
 		{
 			EXPECT_EQ(step.size(), 4u);
 		}

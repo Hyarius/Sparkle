@@ -37,19 +37,17 @@ namespace spk
 	void SlabVoxelShape::_constructRenderFaces()
 	{
 		auto &faces = mutableRenderFaces();
-		faces.outer(spk::VoxelAxisPlane::PositiveY) = createFace(createRectangle(
-			"top", {0, _height, 1}, {1, _height, 1}, {1, _height, 0}, {0, _height, 0}));
-		faces.outer(spk::VoxelAxisPlane::NegativeY) = createFace(createRectangle(
-			"bottom", {0, 0, 0}, {1, 0, 0}, {1, 0, 1}, {0, 0, 1}));
+		faces.outer(spk::VoxelAxisPlane::PositiveY).emplace(createRectangle("top", {0, _height, 1}, {1, _height, 1}, {1, _height, 0}, {0, _height, 0}));
+		faces.outer(spk::VoxelAxisPlane::NegativeY).emplace(createRectangle("bottom", {0, 0, 0}, {1, 0, 0}, {1, 0, 1}, {0, 0, 1}));
 
-		faces.innerFaces.push_back(createFace(createVerticalRectangle(
-			"posX", {1, 0, 1}, {1, 0, 0}, {1, _height, 0}, {1, _height, 1}, 1.0f, 1.0f - _height)));
-		faces.innerFaces.push_back(createFace(createVerticalRectangle(
-			"negX", {0, 0, 0}, {0, 0, 1}, {0, _height, 1}, {0, _height, 0}, 1.0f, 1.0f - _height)));
-		faces.innerFaces.push_back(createFace(createVerticalRectangle(
-			"posZ", {0, 0, 1}, {1, 0, 1}, {1, _height, 1}, {0, _height, 1}, 1.0f, 1.0f - _height)));
-		faces.innerFaces.push_back(createFace(createVerticalRectangle(
-			"negZ", {1, 0, 0}, {0, 0, 0}, {0, _height, 0}, {1, _height, 0}, 1.0f, 1.0f - _height)));
+		faces.innerFaces.push_back(createVerticalRectangle(
+			"posX", {1, 0, 1}, {1, 0, 0}, {1, _height, 0}, {1, _height, 1}, 1.0f, 1.0f - _height));
+		faces.innerFaces.push_back(createVerticalRectangle(
+			"negX", {0, 0, 0}, {0, 0, 1}, {0, _height, 1}, {0, _height, 0}, 1.0f, 1.0f - _height));
+		faces.innerFaces.push_back(createVerticalRectangle(
+			"posZ", {0, 0, 1}, {1, 0, 1}, {1, _height, 1}, {0, _height, 1}, 1.0f, 1.0f - _height));
+		faces.innerFaces.push_back(createVerticalRectangle(
+			"negZ", {1, 0, 0}, {0, 0, 0}, {0, _height, 0}, {1, _height, 0}, 1.0f, 1.0f - _height));
 	}
 
 	float SlabVoxelShape::height() const noexcept

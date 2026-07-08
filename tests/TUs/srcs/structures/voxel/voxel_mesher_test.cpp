@@ -1,6 +1,8 @@
 #include <gtest/gtest.h>
 
+#include <array>
 #include <memory>
+#include <stdexcept>
 
 #include "structures/voxel/spk_cube_voxel_shape.hpp"
 #include "structures/voxel/spk_voxel_mesher.hpp"
@@ -22,18 +24,12 @@ namespace
 		void _constructRenderFaces() override
 		{
 			auto &faces = mutableRenderFaces();
-			faces.outer(spk::VoxelAxisPlane::NegativeY) = createFace(createRectangle(
-				"bottom", {0, 0, 0}, {1, 0, 0}, {1, 0, 1}, {0, 0, 1}));
-			faces.outer(spk::VoxelAxisPlane::PositiveY) = createFace(createRectangle(
-				"top", {0, 0.5f, 1}, {1, 0.5f, 1}, {1, 0.5f, 0}, {0, 0.5f, 0}));
-			faces.outer(spk::VoxelAxisPlane::PositiveX) = createFace(createRectangle(
-				"side", {1, 0, 1}, {1, 0, 0}, {1, 0.5f, 0}, {1, 0.5f, 1}));
-			faces.outer(spk::VoxelAxisPlane::NegativeX) = createFace(createRectangle(
-				"side", {0, 0, 0}, {0, 0, 1}, {0, 0.5f, 1}, {0, 0.5f, 0}));
-			faces.outer(spk::VoxelAxisPlane::PositiveZ) = createFace(createRectangle(
-				"side", {0, 0, 1}, {1, 0, 1}, {1, 0.5f, 1}, {0, 0.5f, 1}));
-			faces.outer(spk::VoxelAxisPlane::NegativeZ) = createFace(createRectangle(
-				"side", {1, 0, 0}, {0, 0, 0}, {0, 0.5f, 0}, {1, 0.5f, 0}));
+			faces.outer(spk::VoxelAxisPlane::NegativeY).emplace(createRectangle("bottom", {0, 0, 0}, {1, 0, 0}, {1, 0, 1}, {0, 0, 1}));
+			faces.outer(spk::VoxelAxisPlane::PositiveY).emplace(createRectangle("top", {0, 0.5f, 1}, {1, 0.5f, 1}, {1, 0.5f, 0}, {0, 0.5f, 0}));
+			faces.outer(spk::VoxelAxisPlane::PositiveX).emplace(createRectangle("side", {1, 0, 1}, {1, 0, 0}, {1, 0.5f, 0}, {1, 0.5f, 1}));
+			faces.outer(spk::VoxelAxisPlane::NegativeX).emplace(createRectangle("side", {0, 0, 0}, {0, 0, 1}, {0, 0.5f, 1}, {0, 0.5f, 0}));
+			faces.outer(spk::VoxelAxisPlane::PositiveZ).emplace(createRectangle("side", {0, 0, 1}, {1, 0, 1}, {1, 0.5f, 1}, {0, 0.5f, 1}));
+			faces.outer(spk::VoxelAxisPlane::NegativeZ).emplace(createRectangle("side", {1, 0, 0}, {0, 0, 0}, {0, 0.5f, 0}, {1, 0.5f, 0}));
 		}
 	};
 
@@ -51,10 +47,10 @@ namespace
 		void _constructRenderFaces() override
 		{
 			auto &faces = mutableRenderFaces();
-			faces.innerFaces.push_back(createFace(createRectangle(
-				"quad", {0, 0, 0}, {1, 0, 1}, {1, 1, 1}, {0, 1, 0})));
-			faces.innerFaces.push_back(createFace(createRectangle(
-				"quad", {0, 0, 1}, {1, 0, 0}, {1, 1, 0}, {0, 1, 1})));
+			faces.innerFaces.push_back(createRectangle(
+				"quad", {0, 0, 0}, {1, 0, 1}, {1, 1, 1}, {0, 1, 0}));
+			faces.innerFaces.push_back(createRectangle(
+				"quad", {0, 0, 1}, {1, 0, 0}, {1, 1, 0}, {0, 1, 1}));
 		}
 	};
 
@@ -171,12 +167,38 @@ TEST(VoxelMesher, MapsWorldPlanesToLocalForEveryOrientationAndFlip)
 	using P = spk::VoxelAxisPlane;
 	using F = spk::VoxelFlip;
 
-	EXPECT_EQ(spk::VoxelMesher::mapWorldPlaneToLocal(P::PositiveZ, O::PositiveZ, F::PositiveY), P::PositiveZ);
-	EXPECT_EQ(spk::VoxelMesher::mapWorldPlaneToLocal(P::PositiveX, O::PositiveX, F::PositiveY), P::PositiveZ);
-	EXPECT_EQ(spk::VoxelMesher::mapWorldPlaneToLocal(P::NegativeZ, O::NegativeZ, F::PositiveY), P::PositiveZ);
-	EXPECT_EQ(spk::VoxelMesher::mapWorldPlaneToLocal(P::NegativeX, O::NegativeX, F::PositiveY), P::PositiveZ);
-	EXPECT_EQ(spk::VoxelMesher::mapWorldPlaneToLocal(P::PositiveY, O::PositiveZ, F::NegativeY), P::NegativeY);
-	EXPECT_EQ(spk::VoxelMesher::mapWorldPlaneToLocal(P::NegativeY, O::PositiveZ, F::NegativeY), P::PositiveY);
+	constexpr std::array worldPlanes = {P::PositiveX, P::NegativeX, P::PositiveY, P::NegativeY, P::PositiveZ, P::NegativeZ};
+	constexpr std::array orientations = {O::PositiveZ, O::PositiveX, O::NegativeZ, O::NegativeX};
+	constexpr std::array positiveYMappings = {
+		std::array{P::PositiveX, P::NegativeX, P::PositiveY, P::NegativeY, P::PositiveZ, P::NegativeZ},
+		std::array{P::PositiveZ, P::NegativeZ, P::PositiveY, P::NegativeY, P::NegativeX, P::PositiveX},
+		std::array{P::NegativeX, P::PositiveX, P::PositiveY, P::NegativeY, P::NegativeZ, P::PositiveZ},
+		std::array{P::NegativeZ, P::PositiveZ, P::PositiveY, P::NegativeY, P::PositiveX, P::NegativeX}};
+
+	for (std::size_t orientationIndex = 0; orientationIndex < orientations.size(); ++orientationIndex)
+	{
+		for (std::size_t planeIndex = 0; planeIndex < worldPlanes.size(); ++planeIndex)
+		{
+			EXPECT_EQ(
+				spk::VoxelMesher::mapWorldPlaneToLocal(worldPlanes[planeIndex], orientations[orientationIndex], F::PositiveY),
+				positiveYMappings[orientationIndex][planeIndex]);
+
+			P flippedMapping = positiveYMappings[orientationIndex][planeIndex];
+			if (flippedMapping == P::PositiveY)
+			{
+				flippedMapping = P::NegativeY;
+			}
+			else if (flippedMapping == P::NegativeY)
+			{
+				flippedMapping = P::PositiveY;
+			}
+			EXPECT_EQ(
+				spk::VoxelMesher::mapWorldPlaneToLocal(worldPlanes[planeIndex], orientations[orientationIndex], F::NegativeY),
+				flippedMapping);
+		}
+	}
+
+	EXPECT_THROW((void)spk::VoxelMesher::mapWorldPlaneToLocal(P::Count, O::PositiveZ, F::PositiveY), std::invalid_argument);
 }
 
 TEST(VoxelMesher, OrientedCellsRemainWatertight)

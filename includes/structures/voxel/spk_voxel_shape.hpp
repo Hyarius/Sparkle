@@ -1,5 +1,6 @@
 #pragma once
 
+#include "structures/graphics/geometry/spk_polygon_3d.hpp"
 #include "structures/math/spk_vector2.hpp"
 #include "structures/math/spk_vector3.hpp"
 #include "structures/voxel/spk_voxel_enums.hpp"
@@ -8,7 +9,9 @@
 #include <map>
 #include <optional>
 #include <span>
+#include <stdexcept>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace spk
@@ -21,17 +24,50 @@ namespace spk
 		[[nodiscard]] bool operator==(const AtlasCell &) const noexcept = default;
 	};
 
-	struct VoxelShapeVertex
-	{
-		spk::Vector3 position{};
-		spk::Vector2 uv{};
-	};
+	using VoxelShapePolygonData = spk::Vector2;
+	using VoxelShapePolygon = spk::Polygon3D<VoxelShapePolygonData>;
+	using VoxelShapeVertex = spk::VoxelShapePolygon::Vertex;
 
-	using VoxelShapePolygon = std::vector<spk::VoxelShapeVertex>;
-
-	struct VoxelShapeFace
+	class VoxelShapeFace
 	{
-		std::vector<spk::VoxelShapePolygon> polygons;
+	private:
+		std::vector<spk::VoxelShapePolygon> _polygons;
+
+	public:
+		VoxelShapeFace() = default;
+		VoxelShapeFace(spk::VoxelShapePolygon p_polygon)
+		{
+			addPolygon(std::move(p_polygon));
+		}
+
+		void reserve(std::size_t p_capacity)
+		{
+			_polygons.reserve(p_capacity);
+		}
+
+		void addPolygon(spk::VoxelShapePolygon p_polygon)
+		{
+			if (!_polygons.empty() && _polygons.front().normal() != p_polygon.normal())
+			{
+				throw std::logic_error("VoxelShapeFace polygons must share the same normal");
+			}
+			_polygons.push_back(std::move(p_polygon));
+		}
+
+		[[nodiscard]] std::span<const spk::VoxelShapePolygon> polygons() const noexcept
+		{
+			return _polygons;
+		}
+
+		[[nodiscard]] bool empty() const noexcept
+		{
+			return _polygons.empty();
+		}
+
+		[[nodiscard]] std::size_t size() const noexcept
+		{
+			return _polygons.size();
+		}
 	};
 
 	// A voxel's render geometry is split in two shells: the outer shell holds at most one
@@ -55,9 +91,17 @@ namespace spk
 		static constexpr spk::Vector2Int DefaultAtlasSize{8, 8};
 
 	private:
+		static constexpr std::size_t TransformVariantCount = 8;
+		using FaceTransformVariants = std::array<spk::VoxelShapeFace, TransformVariantCount>;
+
 		TextureSlots _textures;
 		spk::Vector2Int _atlasSize = DefaultAtlasSize;
 		spk::VoxelShapeFaceSet _renderFaces;
+		std::array<std::optional<FaceTransformVariants>, static_cast<std::size_t>(spk::VoxelAxisPlane::Count)> _transformedOuterFaces;
+		std::vector<FaceTransformVariants> _transformedInnerFaces;
+		std::array<bool, static_cast<std::size_t>(spk::VoxelAxisPlane::Count)> _outerFacesOnCellBoundary{};
+		std::array<bool, static_cast<std::size_t>(spk::VoxelAxisPlane::Count)> _outerFacesCoverCellBoundary{};
+		bool _hasOuterFaces = false;
 		bool _initialized = false;
 
 	protected:
@@ -96,8 +140,6 @@ namespace spk
 			const spk::Vector3 &p_a,
 			const spk::Vector3 &p_b,
 			const spk::Vector3 &p_c) const;
-		[[nodiscard]] static spk::VoxelShapeFace createFace(spk::VoxelShapePolygon p_polygon);
-
 		virtual void _constructRenderFaces() = 0;
 
 	public:
@@ -112,6 +154,17 @@ namespace spk
 
 		[[nodiscard]] bool initialized() const noexcept;
 		[[nodiscard]] const spk::VoxelShapeFaceSet &renderFaces() const noexcept;
+		[[nodiscard]] const spk::VoxelShapeFace &transformedOuterFace(
+			spk::VoxelAxisPlane p_plane,
+			spk::VoxelOrientation p_orientation,
+			spk::VoxelFlip p_flip) const;
+		[[nodiscard]] const spk::VoxelShapeFace &transformedInnerFace(
+			std::size_t p_faceIndex,
+			spk::VoxelOrientation p_orientation,
+			spk::VoxelFlip p_flip) const;
+		[[nodiscard]] bool outerFaceLiesOnCellBoundary(spk::VoxelAxisPlane p_plane) const;
+		[[nodiscard]] bool outerFaceCoversCellBoundary(spk::VoxelAxisPlane p_plane) const;
+		[[nodiscard]] bool hasOuterFaces() const noexcept;
 		[[nodiscard]] const spk::Vector2Int &atlasSize() const noexcept;
 
 		[[nodiscard]] spk::Vector2 atlasUV(const spk::AtlasCell &p_cell, const spk::Vector2 &p_localUV) const;

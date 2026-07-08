@@ -38,7 +38,7 @@ namespace spk
 	{
 		const float x = p_positiveX ? 1.0f : 0.0f;
 		spk::VoxelShapeFace face;
-		face.polygons.reserve(static_cast<std::size_t>(_stepCount));
+		face.reserve(static_cast<std::size_t>(_stepCount));
 		for (int step = 0; step < _stepCount; ++step)
 		{
 			const float z0 = static_cast<float>(step) / static_cast<float>(_stepCount);
@@ -52,7 +52,7 @@ namespace spk
 			{
 				uvs[index] = {positions[index].z, 1.0f - positions[index].y};
 			}
-			face.polygons.push_back(createPolygon(
+			face.addPolygon(createPolygon(
 				p_positiveX ? "sideRight" : "sideLeft",
 				positions,
 				uvs));
@@ -77,15 +77,13 @@ namespace spk
 				spk::Vector2{1, 1.0f - z1},
 				spk::Vector2{1, 1.0f - z0},
 				spk::Vector2{0, 1.0f - z0}};
-			faces.innerFaces.push_back(createFace(createPolygon("top", topPositions, topUVs)));
-			faces.innerFaces.push_back(createFace(createVerticalRectangle(
-				"riser", {1, y0, z0}, {0, y0, z0}, {0, y1, z0}, {1, y1, z0}, 1.0f - y0, 1.0f - y1)));
+			faces.innerFaces.push_back(createPolygon("top", topPositions, topUVs));
+			faces.innerFaces.push_back(createVerticalRectangle(
+				"riser", {1, y0, z0}, {0, y0, z0}, {0, y1, z0}, {1, y1, z0}, 1.0f - y0, 1.0f - y1));
 		}
 
-		faces.outer(spk::VoxelAxisPlane::PositiveZ) = createFace(createVerticalRectangle(
-			"back", {0, 0, 1}, {1, 0, 1}, {1, 1, 1}, {0, 1, 1}));
-		faces.outer(spk::VoxelAxisPlane::NegativeY) = createFace(createRectangle(
-			"bottom", {0, 0, 0}, {1, 0, 0}, {1, 0, 1}, {0, 0, 1}));
+		faces.outer(spk::VoxelAxisPlane::PositiveZ).emplace(createVerticalRectangle("back", {0, 0, 1}, {1, 0, 1}, {1, 1, 1}, {0, 1, 1}));
+		faces.outer(spk::VoxelAxisPlane::NegativeY).emplace(createRectangle("bottom", {0, 0, 0}, {1, 0, 0}, {1, 0, 1}, {0, 0, 1}));
 		faces.outer(spk::VoxelAxisPlane::PositiveX) = _constructSideFace(true);
 		faces.outer(spk::VoxelAxisPlane::NegativeX) = _constructSideFace(false);
 	}

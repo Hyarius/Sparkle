@@ -31,17 +31,11 @@ namespace spk
 	void CubeVoxelShape::_constructRenderFaces()
 	{
 		auto &faces = mutableRenderFaces();
-		faces.outer(spk::VoxelAxisPlane::PositiveX) = createFace(createVerticalRectangle(
-			"posX", {1, 0, 1}, {1, 0, 0}, {1, 1, 0}, {1, 1, 1}));
-		faces.outer(spk::VoxelAxisPlane::NegativeX) = createFace(createVerticalRectangle(
-			"negX", {0, 0, 0}, {0, 0, 1}, {0, 1, 1}, {0, 1, 0}));
-		faces.outer(spk::VoxelAxisPlane::PositiveY) = createFace(createRectangle(
-			"top", {0, 1, 1}, {1, 1, 1}, {1, 1, 0}, {0, 1, 0}));
-		faces.outer(spk::VoxelAxisPlane::NegativeY) = createFace(createRectangle(
-			"bottom", {0, 0, 0}, {1, 0, 0}, {1, 0, 1}, {0, 0, 1}));
-		faces.outer(spk::VoxelAxisPlane::PositiveZ) = createFace(createVerticalRectangle(
-			"posZ", {0, 0, 1}, {1, 0, 1}, {1, 1, 1}, {0, 1, 1}));
-		faces.outer(spk::VoxelAxisPlane::NegativeZ) = createFace(createVerticalRectangle(
-			"negZ", {1, 0, 0}, {0, 0, 0}, {0, 1, 0}, {1, 1, 0}));
+		faces.outer(spk::VoxelAxisPlane::PositiveX).emplace(createVerticalRectangle("posX", {1, 0, 1}, {1, 0, 0}, {1, 1, 0}, {1, 1, 1}));
+		faces.outer(spk::VoxelAxisPlane::NegativeX).emplace(createVerticalRectangle("negX", {0, 0, 0}, {0, 0, 1}, {0, 1, 1}, {0, 1, 0}));
+		faces.outer(spk::VoxelAxisPlane::PositiveY).emplace(createRectangle("top", {0, 1, 1}, {1, 1, 1}, {1, 1, 0}, {0, 1, 0}));
+		faces.outer(spk::VoxelAxisPlane::NegativeY).emplace(createRectangle("bottom", {0, 0, 0}, {1, 0, 0}, {1, 0, 1}, {0, 0, 1}));
+		faces.outer(spk::VoxelAxisPlane::PositiveZ).emplace(createVerticalRectangle("posZ", {0, 0, 1}, {1, 0, 1}, {1, 1, 1}, {0, 1, 1}));
+		faces.outer(spk::VoxelAxisPlane::NegativeZ).emplace(createVerticalRectangle("negZ", {1, 0, 0}, {0, 0, 0}, {0, 1, 0}, {1, 1, 0}));
 	}
 }

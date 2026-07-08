@@ -4,6 +4,20 @@
 
 namespace spk
 {
+	namespace
+	{
+		[[nodiscard]] spk::VoxelShapePolygon reversed(const spk::VoxelShapePolygon &p_polygon)
+		{
+			spk::VoxelShapePolygon::Builder builder;
+			builder.reserve(p_polygon.size());
+			for (std::size_t index = p_polygon.size(); index > 0; --index)
+			{
+				builder.addVertex(p_polygon[index - 1]);
+			}
+			return std::move(builder).bake();
+		}
+	}
+
 	CrossPlaneVoxelShape::CrossPlaneVoxelShape(TextureSlots p_textures, const spk::Vector2Int &p_atlasSize) :
 		spk::VoxelShape(std::move(p_textures), p_atlasSize)
 	{
@@ -21,9 +35,9 @@ namespace spk
 		const spk::VoxelShapePolygon second = createVerticalRectangle(
 			"plane", {1, 0, 0}, {0, 0, 1}, {0, 1, 1}, {1, 1, 0});
 
-		mutableRenderFaces().innerFaces.push_back(createFace(first));
-		mutableRenderFaces().innerFaces.push_back(createFace(spk::VoxelShapePolygon(first.rbegin(), first.rend())));
-		mutableRenderFaces().innerFaces.push_back(createFace(second));
-		mutableRenderFaces().innerFaces.push_back(createFace(spk::VoxelShapePolygon(second.rbegin(), second.rend())));
+		mutableRenderFaces().innerFaces.push_back(first);
+		mutableRenderFaces().innerFaces.push_back(reversed(first));
+		mutableRenderFaces().innerFaces.push_back(second);
+		mutableRenderFaces().innerFaces.push_back(reversed(second));
 	}
 }

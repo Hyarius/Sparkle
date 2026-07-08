@@ -67,6 +67,7 @@
 #include "structures/graphics/geometry/spk_color_mesh_2d.hpp"
 #include "structures/graphics/geometry/spk_generic_mesh.hpp"
 #include "structures/graphics/geometry/spk_mesh_2d.hpp"
+#include "structures/graphics/geometry/spk_polygon_3d.hpp"
 #include "structures/graphics/geometry/spk_primitive_object.hpp"
 #include "structures/graphics/geometry/spk_texture_mesh_2d.hpp"
 #include "structures/graphics/geometry/spk_texture_mesh_3d.hpp"

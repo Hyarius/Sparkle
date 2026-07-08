@@ -21,8 +21,7 @@ namespace
 	protected:
 		void _constructRenderFaces() override
 		{
-			mutableRenderFaces().outer(spk::VoxelAxisPlane::PositiveY) = createFace(createRectangle(
-				"unknown", {0, 1, 1}, {1, 1, 1}, {1, 1, 0}, {0, 1, 0}));
+			mutableRenderFaces().outer(spk::VoxelAxisPlane::PositiveY).emplace(createRectangle("unknown", {0, 1, 1}, {1, 1, 1}, {1, 1, 0}, {0, 1, 0}));
 		}
 	};
 
@@ -37,8 +36,8 @@ namespace
 	protected:
 		void _constructRenderFaces() override
 		{
-			mutableRenderFaces().innerFaces.push_back(createFace(createRectangle(
-				"quad", {0, 0, 0}, {1, 0, 1}, {1, 1, 1}, {0, 1, 0})));
+			mutableRenderFaces().innerFaces.push_back(createRectangle(
+				"quad", {0, 0, 0}, {1, 0, 1}, {1, 1, 1}, {0, 1, 0}));
 		}
 	};
 }
@@ -54,9 +53,24 @@ TEST(VoxelShape, CubeShapeFillsTheOuterShellOnly)
 	for (const auto &face : shape.renderFaces().outerShell)
 	{
 		ASSERT_TRUE(face.has_value());
-		ASSERT_EQ(face->polygons.size(), 1u);
-		EXPECT_EQ(face->polygons.front().size(), 4u);
+		ASSERT_EQ(face->size(), 1u);
+		EXPECT_EQ(face->polygons().front().size(), 4u);
 	}
+}
+
+TEST(VoxelShapeFace, RequiresAllPolygonsToShareTheirNormal)
+{
+	spk::VoxelShapePolygon::Builder firstBuilder;
+	firstBuilder.addVertex({{0, 0, 0}, {}}).addVertex({{1, 0, 0}, {}}).addVertex({{0, 1, 0}, {}});
+	spk::VoxelShapeFace face(firstBuilder.bake());
+
+	spk::VoxelShapePolygon::Builder matchingBuilder;
+	matchingBuilder.addVertex({{1, 0, 0}, {}}).addVertex({{1, 1, 0}, {}}).addVertex({{0, 1, 0}, {}});
+	EXPECT_NO_THROW(face.addPolygon(matchingBuilder.bake()));
+
+	spk::VoxelShapePolygon::Builder oppositeBuilder;
+	oppositeBuilder.addVertex({{0, 1, 0}, {}}).addVertex({{1, 0, 0}, {}}).addVertex({{0, 0, 0}, {}});
+	EXPECT_THROW(face.addPolygon(oppositeBuilder.bake()), std::logic_error);
 }
 
 TEST(VoxelShape, InitializeIsIdempotent)
@@ -90,12 +104,12 @@ TEST(VoxelShape, UniformCubeUsesItsCellOnEveryFace)
 
 	for (const auto &face : shape.renderFaces().outerShell)
 	{
-		for (const spk::VoxelShapeVertex &vertex : face->polygons.front())
+		for (const spk::VoxelShapeVertex &vertex : face->polygons().front())
 		{
-			EXPECT_GE(vertex.uv.x, 3.0f / 8.0f);
-			EXPECT_LE(vertex.uv.x, 4.0f / 8.0f);
-			EXPECT_GE(vertex.uv.y, 2.0f / 8.0f);
-			EXPECT_LE(vertex.uv.y, 3.0f / 8.0f);
+			EXPECT_GE(vertex.data.x, 3.0f / 8.0f);
+			EXPECT_LE(vertex.data.x, 4.0f / 8.0f);
+			EXPECT_GE(vertex.data.y, 2.0f / 8.0f);
+			EXPECT_LE(vertex.data.y, 3.0f / 8.0f);
 		}
 	}
 }

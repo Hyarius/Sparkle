@@ -83,10 +83,10 @@
 		{
 			"name": "playground-release",
 			"inherits": "release",
-			"description": "Configure for Debug build with Playground executable",
+			"description": "Configure for Release build with Playground executable",
 			"cacheVariables": {
 				"SPARKLE_BUILD_PLAYGROUND": "ON",
-				"CMAKE_BUILD_TYPE": "Debug"
+				"CMAKE_BUILD_TYPE": "Release"
 			}
 		}
 	],
