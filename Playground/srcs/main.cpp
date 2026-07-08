@@ -15,6 +15,7 @@
 
 #include <map>
 #include <memory>
+#include <set>
 
 namespace
 {
@@ -64,6 +65,11 @@ namespace
 		const auto isLength = [](const std::string &p_id) {
 			return p_id.find("stair-length") != std::string::npos;
 		};
+		std::set<std::int32_t> roadIds{p_registries.voxels().numericId("road-block")};
+		for (const std::string &biomeId : p_registries.biomes().ids())
+		{
+			roadIds.insert(p_registries.voxels().numericId(p_registries.biomes().get(biomeId).palette.road));
+		}
 
 		int groups = 0;
 		int failures = 0;
@@ -151,16 +157,27 @@ namespace
 				continue;
 			}
 
-			// 3. The walkway lane beside the structure is flat low ground end to end.
-			const int laneAcross = acrossCenter - 2 * plateauSide;
-			bool laneClear = true;
-			for (int along = topAlong - tangent; along != bottomAlong + tangent * 2 && laneClear; along += tangent)
+			// 3. The three-column approach band beside the structure is flat low
+			//    ground end to end, and its surface is paved with a road block.
+			bool bandClear = true;
+			for (int outward = 2; outward <= 4 && bandClear; ++outward)
 			{
-				laneClear = standAt(laneAcross, along) == lowStand;
+				const int across = acrossCenter - outward * plateauSide;
+				for (int along = topAlong - tangent; along != bottomAlong + tangent * 2 && bandClear; along += tangent)
+				{
+					bandClear = standAt(across, along) == lowStand;
+					if (bandClear)
+					{
+						const spk::Vector3Int surfacePosition = alongX
+																	? spk::Vector3Int{along, lowStand - 1, across}
+																	: spk::Vector3Int{across, lowStand - 1, along};
+						bandClear = roadIds.contains(sampler.at(surfacePosition).id);
+					}
+				}
 			}
-			if (!laneClear)
+			if (!bandClear)
 			{
-				std::cerr << "FAIL group " << groups << ": walkway lane obstructed" << std::endl;
+				std::cerr << "FAIL group " << groups << ": approach band obstructed or unpaved" << std::endl;
 				++failures;
 				continue;
 			}

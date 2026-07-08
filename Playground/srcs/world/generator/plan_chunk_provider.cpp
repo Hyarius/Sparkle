@@ -162,6 +162,18 @@ namespace pg
 				column.waterY = -1;
 			}
 		}
+
+		// Stairway approach bands: the road-width path beside a composed staircase,
+		// paved so the road visibly turns at the cliff and reaches the bottom platform.
+		// The generator validated these columns as flat, dry land.
+		for (const PlanStairRect &rect : _plan.pavedRects)
+		{
+			if (p_worldX >= rect.minX && p_worldX <= rect.maxX && p_worldZ >= rect.minZ && p_worldZ <= rect.maxZ)
+			{
+				column.surfaceId = blocksOfBiome.road;
+				break;
+			}
+		}
 		return column;
 	}
 

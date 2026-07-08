@@ -2075,7 +2075,10 @@ namespace pg
 					const int wallSide = firstLower ? -1 : 1; // away from the wall, low side
 					const int wallColumn = firstLower ? boundary - 1 : boundary;
 					const int acrossCenter = wallColumn + wallSide;
-					const int laneColumn = wallColumn + 3 * wallSide;
+					// The three columns beyond the structure form the paved approach band:
+					// the road-width path from the crossing dead-end to the bottom platform.
+					const int bandNearColumn = wallColumn + 3 * wallSide;
+					const int bandFarColumn = wallColumn + 5 * wallSide;
 					const int alongCenterBase =
 						(p_dc == 1 ? offset + p_row * blocks : offset + p_col * blocks) + strip + 1;
 					// The stair-length prefab climbs its local +Z; pick the rotation whose
@@ -2132,9 +2135,11 @@ namespace pg
 							const int farEdge = alongCenter + tangent * (run * (steps + 1) + 1);
 							const int alongMin = std::min(nearEdge, farEdge);
 							const int alongMax = std::max(nearEdge, farEdge);
-							const StairFootprint lane =
-								p_dc == 1 ? StairFootprint{laneColumn, laneColumn, alongMin, alongMax}
-										  : StairFootprint{alongMin, alongMax, laneColumn, laneColumn};
+							const int bandMin = std::min(bandNearColumn, bandFarColumn);
+							const int bandMax = std::max(bandNearColumn, bandFarColumn);
+							const StairFootprint band =
+								p_dc == 1 ? StairFootprint{bandMin, bandMax, alongMin, alongMax}
+										  : StairFootprint{alongMin, alongMax, bandMin, bandMax};
 
 							// The three high-plateau cells the top platform opens onto must be
 							// dry, level land, and are reserved so no other flight or building
@@ -2163,11 +2168,11 @@ namespace pg
 											{exitColumn, highSurface + 4, alongCenter + 1}}
 									: Claim{{alongCenter - 1, highSurface + 1, exitColumn},
 											{alongCenter + 1, highSurface + 4, exitColumn}};
-							// One claim over the whole structure, lane included, from the low
-							// ground to above the top platform: keeps scenery and buildings
-							// out from under the flight and off the approach lane.
-							const int acrossMin = std::min(wallColumn, laneColumn);
-							const int acrossMax = std::max(wallColumn, laneColumn);
+							// One claim over the whole structure, approach band included, from
+							// the low ground to above the top platform: keeps scenery and
+							// buildings out from under the flight and off the approach.
+							const int acrossMin = std::min(wallColumn, bandFarColumn);
+							const int acrossMax = std::max(wallColumn, bandFarColumn);
 							const Claim stripClaim =
 								p_dc == 1
 									? Claim{{acrossMin, surface, alongMin}, {acrossMax, highSurface + 4, alongMax}}
@@ -2178,10 +2183,12 @@ namespace pg
 									lowLevel,
 									lowZone,
 									p_onRoad ? RoadRule::Allow : RoadRule::Forbid,
-									{lane},
+									{band},
 									{exit},
 									{stripClaim, exitClaim}))
 							{
+								plan.pavedRects.push_back(
+									{.minX = band.minX, .maxX = band.maxX, .minZ = band.minZ, .maxZ = band.maxZ});
 								++plan.stats.composedStairPlacements;
 								stairCells.push_back({lowRow, lowCol});
 								return steps + 2;

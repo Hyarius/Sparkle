@@ -277,6 +277,10 @@ namespace pg
 		std::vector<PrefabPlacement> placements;
 		std::vector<std::pair<int, int>> wildStairs; // (row, col) of each wild stairway's lower cell
 		std::vector<PlanStairRect> stairRects;		 // world-column footprints of every stairway
+		// Approach bands of composed staircases: realization paves these columns with
+		// the zone's road block, so the road visibly turns at the crossing dead-end and
+		// runs beside the flight to the bottom platform instead of stopping at the wall.
+		std::vector<PlanStairRect> pavedRects;
 		std::vector<PlanPortal> portals;
 
 		WorldPlanStats stats;
