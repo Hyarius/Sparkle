@@ -158,8 +158,25 @@ namespace pg
 		WorldGenConfig worldConfig;
 		worldConfig.masterSeed = _worldSeed;
 		_worldPlan = std::make_shared<const WorldPlan>(generateWorldPlan(
-			worldConfig, planBiomesFrom(p_registries.biomes()), p_registries.placementRules()));
+			worldConfig,
+			planBiomesFrom(p_registries.biomes()),
+			p_registries.placementRules(),
+			p_registries.prefabs(),
+			p_registries.interiors()));
 		std::cout << _worldPlan->report();
+
+		// Door cells teleport into the composed interiors, exit pads teleport back out.
+		for (const PlanPortal &portal : _worldPlan->portals)
+		{
+			_portalTargets.emplace(portal.from, portal.to);
+		}
+		_playerMovedContract = _context.events.playerMoved.subscribe([this](spk::Vector3Int p_cell) {
+			const auto found = _portalTargets.find(p_cell);
+			if (found != _portalTargets.end())
+			{
+				_pendingTeleport = found->second;
+			}
+		});
 		const std::filesystem::path mapPath =
 			std::filesystem::path(PG_RESOURCE_DIR).parent_path() / "world_map.png";
 		if (writeWorldMapPng(*_worldPlan, mapPath))
@@ -233,9 +250,11 @@ namespace pg
 			_context.events,
 			*_context.world.navigation,
 			*_context.world.world,
-			[this] { return _context.world.explorationActive; });
+			[this] {
+				return _context.world.explorationActive;
+			});
 		_pathLogic->placeAtCell(*_player);
-		engine.add<CameraControllerLogic>(_context, *_camera);
+		_cameraLogic = &engine.add<CameraControllerLogic>(_context, *_camera);
 		const auto viewportSize = [this] {
 			return spk::Vector2(static_cast<float>(geometry().width()), static_cast<float>(geometry().height()));
 		};
@@ -339,15 +358,61 @@ namespace pg
 			{
 				_streamingFocus = focus;
 				const int margin = 48;
-				_context.world.navigation->resetBounds({
-					{_player->cell.x - margin, 0, _player->cell.z - margin},
-					{_player->cell.x + margin + 1, 64, _player->cell.z + margin + 1}});
+				_context.world.navigation->resetBounds({{_player->cell.x - margin, 0, _player->cell.z - margin}, {_player->cell.x + margin + 1, 64, _player->cell.z + margin + 1}});
 			}
 		}
 		spk::GameEngineWidget::_onUpdate(p_tick);
+		if (_pendingTeleport.has_value())
+		{
+			const spk::Vector3Int target = *_pendingTeleport;
+			_pendingTeleport.reset();
+			_executeTeleport(target);
+		}
 		_updateDurationNs.store(nowNs() - start, std::memory_order_relaxed);
 		invalidateRenderUnit();
 		_refreshOverlay(p_tick);
+	}
+
+	void GameSceneWidget::_executeTeleport(const spk::Vector3Int &p_target)
+	{
+		if (_player == nullptr || _context.world.world == nullptr)
+		{
+			return;
+		}
+		// Warm the destination neighbourhood so walk heights and the navigation graph
+		// have terrain the instant the player lands (mirrors the spawn warm-up).
+		const ChunkCoordinates targetChunk = ChunkCoordinates::fromWorldCell(p_target);
+		for (int y = -StreamViewRange.y; y <= StreamViewRange.y; ++y)
+		{
+			for (int z = -StreamViewRange.z; z <= StreamViewRange.z; ++z)
+			{
+				for (int x = -StreamViewRange.x; x <= StreamViewRange.x; ++x)
+				{
+					_context.world.world->loadChunk(ChunkCoordinates{targetChunk.value + spk::Vector3Int{x, y, z}});
+				}
+			}
+		}
+
+		const spk::Vector3 cameraDelta = spk::Vector3(p_target - _player->cell);
+		_player->cell = p_target;
+		_player->path.clear();
+		_player->segment = 0;
+		_player->segmentProgress = 0.0f;
+		if (_pathLogic != nullptr)
+		{
+			_pathLogic->placeAtCell(*_player);
+		}
+		if (_streamer != nullptr)
+		{
+			_streamer->setOriginPosition(targetChunk.value);
+		}
+		// Forces the streaming-focus branch of the next update to re-center the
+		// navigation bounds around the arrival cell.
+		_streamingFocus.reset();
+		if (_cameraLogic != nullptr)
+		{
+			_cameraLogic->teleportBy(cameraDelta);
+		}
 	}
 
 	void GameSceneWidget::_onKeyPressedEvent(spk::KeyPressedEvent &p_event)

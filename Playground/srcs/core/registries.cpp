@@ -4,6 +4,7 @@
 #include "world/generator/placement_rules.hpp"
 
 #include <iostream>
+#include <stdexcept>
 
 namespace pg
 {
@@ -25,6 +26,25 @@ namespace pg
 		loadedBiomes.load(p_dataDirectory / "biomes", [&loadedVoxels, &loadedPrefabs](JsonReader &p_reader) {
 			return parseBiomeDefinition(p_reader, loadedVoxels, loadedPrefabs);
 		});
+		// Interiors reference room prefabs, so they load after prefabs; each prefab's
+		// own "interior" link is validated once both registries exist.
+		Registry<InteriorDefinition> loadedInteriors;
+		loadedInteriors.load(p_dataDirectory / "interiors", [&loadedPrefabs](JsonReader &p_reader) {
+			return parseInteriorDefinition(p_reader, loadedPrefabs);
+		});
+		for (const std::string &prefabId : loadedPrefabs.ids())
+		{
+			const PrefabDefinition &prefab = loadedPrefabs.get(prefabId);
+			if (!prefab.interiorId.empty() && loadedInteriors.tryGet(prefab.interiorId) == nullptr)
+			{
+				throw std::runtime_error(
+					"prefab '" + prefabId + "' links unknown interior '" + prefab.interiorId + "'");
+			}
+			if (!prefab.interiorId.empty() && prefab.tryAnchor("door") == nullptr)
+			{
+				throw std::runtime_error("prefab '" + prefabId + "' has an interior but no 'door' anchor");
+			}
+		}
 
 		const std::filesystem::path placementsFile = p_dataDirectory / "worldgen" / "placements.json";
 		const spk::JSON::Value placementsJson = JsonLoader::parseFile(placementsFile);
@@ -35,14 +55,17 @@ namespace pg
 		_voxels = std::move(loadedVoxels);
 		_biomes = std::move(loadedBiomes);
 		_prefabs = std::move(loadedPrefabs);
+		_interiors = std::move(loadedInteriors);
 		_placementRules = std::move(loadedPlacementRules);
 		std::cout << "Loaded " << _voxels.size() << " voxel definitions, " << _biomes.size()
-				  << " biome definitions, and " << _prefabs.size() << " prefabs" << std::endl;
+				  << " biome definitions, " << _prefabs.size() << " prefabs, and " << _interiors.size()
+				  << " interiors" << std::endl;
 	}
 
 	const GameRules &Registries::gameRules() const noexcept { return _gameRules; }
 	const VoxelRegistry &Registries::voxels() const noexcept { return _voxels; }
 	const Registry<BiomeDefinition> &Registries::biomes() const noexcept { return _biomes; }
 	const Registry<PrefabDefinition> &Registries::prefabs() const noexcept { return _prefabs; }
+	const Registry<InteriorDefinition> &Registries::interiors() const noexcept { return _interiors; }
 	const PlanPlacementRules &Registries::placementRules() const noexcept { return _placementRules; }
 }

@@ -6,12 +6,14 @@
 
 #include <algorithm>
 #include <set>
+#include <string>
+#include <vector>
 
 namespace pg
 {
 	PrefabDefinition parsePrefabDefinition(JsonReader &p_reader, const VoxelRegistry &p_voxels)
 	{
-		p_reader.forbidUnknown({"version", "pivot", "palette", "fill", "cells", "anchors"});
+		p_reader.forbidUnknown({"version", "pivot", "palette", "fill", "cells", "stairRuns", "anchors", "carve", "clearance", "interior"});
 		if (p_reader.require<int>("version") != 1)
 		{
 			throw JsonError(p_reader.file(), p_reader.pathFor("version"), "unsupported prefab version");
@@ -24,6 +26,16 @@ namespace pg
 		bool hasContent = false;
 		spk::Vector3Int lowest{};
 		spk::Vector3Int highest{};
+		struct StairRun
+		{
+			spk::Vector3Int from{};
+			int steps = 0;
+			int width = 0;
+			VoxelOrientation direction = VoxelOrientation::PositiveZ;
+			std::string voxel;
+			std::string voxelPath;
+		};
+		std::vector<StairRun> stairRuns;
 		const auto grow = [&](const spk::Vector3Int &p_position) {
 			if (!hasContent)
 			{
@@ -50,22 +62,135 @@ namespace pg
 				grow(detail::parseVector3(cellReader, "at"));
 			}
 		}
+		if (p_reader.contains("stairRuns"))
+		{
+			for (JsonReader runReader : p_reader.childArray("stairRuns"))
+			{
+				runReader.forbidUnknown({"from", "steps", "width", "direction", "voxel"});
+				StairRun run{
+					.from = detail::parseVector3(runReader, "from"),
+					.steps = runReader.require<int>("steps"),
+					.width = runReader.require<int>("width"),
+					.direction = detail::parseOrientation(runReader, "direction"),
+					.voxel = runReader.require<std::string>("voxel"),
+					.voxelPath = runReader.pathFor("voxel")};
+				if (run.steps < 1)
+				{
+					throw JsonError(runReader.file(), runReader.pathFor("steps"), "steps must be at least 1");
+				}
+				if (run.width < 1)
+				{
+					throw JsonError(runReader.file(), runReader.pathFor("width"), "width must be at least 1");
+				}
+
+				spk::Vector3Int advance{};
+				spk::Vector3Int lateral{};
+				switch (run.direction)
+				{
+				case VoxelOrientation::PositiveX: advance = {1, 1, 0}; lateral = {0, 0, 1}; break;
+				case VoxelOrientation::NegativeX: advance = {-1, 1, 0}; lateral = {0, 0, 1}; break;
+				case VoxelOrientation::PositiveZ: advance = {0, 1, 1}; lateral = {1, 0, 0}; break;
+				case VoxelOrientation::NegativeZ: advance = {0, 1, -1}; lateral = {1, 0, 0}; break;
+				}
+				for (int step = 0; step < run.steps; ++step)
+				{
+					for (int width = 0; width < run.width; ++width)
+					{
+						grow(run.from + advance * step + lateral * width);
+					}
+				}
+				stairRuns.push_back(std::move(run));
+			}
+		}
 		if (!hasContent)
 		{
-			throw JsonError(p_reader.file(), p_reader.pathFor("version"), "prefab needs at least one fill or cell");
+			throw JsonError(
+				p_reader.file(),
+				p_reader.pathFor("version"),
+				"prefab needs at least one fill, cell, or stair run");
 		}
 		const spk::Vector3Int contentOffset{-lowest.x, -lowest.y, -lowest.z};
 
 		VoxelGrid grid(highest - lowest + spk::Vector3Int{1, 1, 1});
 		const detail::VoxelPalette palette = detail::parsePalette(p_reader, p_voxels);
 		detail::applyVoxelContent(p_reader, grid, palette, contentOffset);
+		for (const StairRun &run : stairRuns)
+		{
+			const auto found = palette.find(run.voxel);
+			if (found == palette.end())
+			{
+				throw JsonError(p_reader.file(), run.voxelPath, "unknown palette key '" + run.voxel + "'");
+			}
+			spk::Vector3Int advance{};
+			spk::Vector3Int lateral{};
+			switch (run.direction)
+			{
+			case VoxelOrientation::PositiveX: advance = {1, 1, 0}; lateral = {0, 0, 1}; break;
+			case VoxelOrientation::NegativeX: advance = {-1, 1, 0}; lateral = {0, 0, 1}; break;
+			case VoxelOrientation::PositiveZ: advance = {0, 1, 1}; lateral = {1, 0, 0}; break;
+			case VoxelOrientation::NegativeZ: advance = {0, 1, -1}; lateral = {1, 0, 0}; break;
+			}
+			for (int step = 0; step < run.steps; ++step)
+			{
+				for (int width = 0; width < run.width; ++width)
+				{
+					VoxelCell cell = found->second;
+					cell.orientation = run.direction;
+					grid.cell(run.from + advance * step + lateral * width + contentOffset) = cell;
+				}
+			}
+		}
 		// The grid constructor lists the whole box, empties included, so stamping the
 		// prefab carves interiors and the air above ramps clear even against a cliff.
-		PrefabDefinition result{.prefab = spk::Prefab(grid, lowest)};
+		const bool carve = p_reader.optional<bool>("carve", true);
+		spk::Prefab prefab;
+		if (carve)
+		{
+			prefab = spk::Prefab(grid, lowest);
+		}
+		else
+		{
+			for (int y = 0; y < grid.size().y; ++y)
+			{
+				for (int z = 0; z < grid.size().z; ++z)
+				{
+					for (int x = 0; x < grid.size().x; ++x)
+					{
+						const VoxelCell &cell = grid.cell(x, y, z);
+						if (!cell.isEmpty())
+						{
+							prefab.addVoxel(lowest + spk::Vector3Int{x, y, z}, cell);
+						}
+					}
+				}
+			}
+			if (prefab.voxels().empty())
+			{
+				throw JsonError(
+					p_reader.file(),
+					p_reader.pathFor("carve"),
+					"a non-carving prefab needs at least one non-empty voxel");
+			}
+		}
+		PrefabDefinition result{.prefab = std::move(prefab)};
 		if (p_reader.contains("pivot"))
 		{
 			result.prefab.setPivot(detail::parseVector3(p_reader, "pivot"));
 		}
+
+		if (p_reader.contains("clearance"))
+		{
+			JsonReader clearanceReader = p_reader.child("clearance");
+			clearanceReader.forbidUnknown({"min", "max"});
+			const spk::Vector3Int low = detail::parseVector3(clearanceReader, "min");
+			const spk::Vector3Int high = detail::parseVector3(clearanceReader, "max");
+			if (low.x > high.x || low.y > high.y || low.z > high.z)
+			{
+				throw JsonError(clearanceReader.file(), clearanceReader.pathFor("min"), "clearance min exceeds max");
+			}
+			result.clearance = PrefabClearance{.min = low, .max = high};
+		}
+		result.interiorId = p_reader.optional<std::string>("interior", "");
 
 		std::set<std::string> names;
 		if (p_reader.contains("anchors"))

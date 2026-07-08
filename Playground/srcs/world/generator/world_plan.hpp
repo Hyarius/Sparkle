@@ -30,7 +30,10 @@ namespace pg
 		{
 		}
 
-		[[nodiscard]] int size() const noexcept { return _size; }
+		[[nodiscard]] int size() const noexcept
+		{
+			return _size;
+		}
 		[[nodiscard]] bool contains(int p_row, int p_col) const noexcept
 		{
 			return p_row >= 0 && p_col >= 0 && p_row < _size && p_col < _size;
@@ -59,7 +62,7 @@ namespace pg
 	{
 		std::string prefabId;
 		double density = 0.0; // expected instances per suitable world-plan cell
-		int spacing = 1;      // minimum center distance in voxel columns
+		int spacing = 1;	  // minimum center distance in voxel columns
 		spk::Vector3Int prefabSize{};
 	};
 
@@ -68,14 +71,14 @@ namespace pg
 	// without that block (e.g. interior biomes like caves) never enter world generation.
 	struct PlanBiome
 	{
-		std::string id;           // biome definition id, resolves palettes at realization
+		std::string id; // biome definition id, resolves palettes at realization
 		std::string displayName;
-		double heightShift = 0.0; // strata-level bias for zones of this biome
-		bool peak = false;        // hosts summits and takes the full peak lift
+		double heightShift = 0.0;			// strata-level bias for zones of this biome
+		bool peak = false;					// hosts summits and takes the full peak lift
 		std::optional<spk::Color> mapColor; // zone fill on the preview map (absent = auto)
 		// Per-biome entity prefab pools; the generator picks one entry at random per
 		// placement. Stairways are not configured here: they resolve by convention from the
-		// biome id ("<id>-road-stairway" for road climbs, "<id>-stairway" for wild ones).
+		// biome id ("<id>-stair-length" for the flights, "<id>-stair-platform" for the pads).
 		std::map<PlanEntityKind, std::vector<std::string>> entityPrefabs;
 		// Decorative structures scattered on clear land in this biome. Unlike POIs these
 		// have no gameplay role and may be multi-voxel prefabs such as trees or plants.
@@ -135,9 +138,31 @@ namespace pg
 		std::map<PlanEntityKind, std::vector<std::string>> entityPrefabs;
 	};
 
+	// Axis-aligned world-column rectangle claimed by one committed stairway piece (a
+	// flight, a platform, or the walkway lane beside a composed climb). The preview
+	// map paints these in road color so the drawn road network shows where a climb
+	// actually detours the path.
+	struct PlanStairRect
+	{
+		int minX = 0;
+		int maxX = 0;
+		int minZ = 0;
+		int maxZ = 0;
+	};
+
+	// A one-way teleport: an actor whose cell reaches `from` (the block it stands on)
+	// is moved to stand on `to`. Door cells of buildings pair with the entry pad of
+	// their composed interior; the interior's exit pad pairs back with the cell just
+	// outside the door.
+	struct PlanPortal
+	{
+		spk::Vector3Int from{};
+		spk::Vector3Int to{};
+	};
+
 	struct WorldGenConfig
 	{
-		int size = 124;              // plan cells per side
+		int size = 124; // plan cells per side
 		int zoneCount = 8;
 		std::uint64_t masterSeed = 1234;
 
@@ -189,11 +214,20 @@ namespace pg
 		// can climb levels away from the road network.
 		int wildStairsPerZone = 4;
 		double wildStairSpacingCells = 4.0; // min distance between stairways
+		int maxRoadStairLevels = 2;		// straight perpendicular runs that fit inside one plan cell
+		int maxWildStairLevels = 3;		// tallest composed off-road staircase
+		int maxComposedStairLevels = 6; // tallest composed road staircase (platform + N flights + platform)
 
 		// Realization (voxel) parameters
-		int blocksPerCell = 8;   // horizontal blocks per plan cell
-		int blocksPerLevel = 3;  // the requested 3-block strata
-		int groundLevelTop = 3;  // world y of the level-0 surface block
+		int blocksPerCell = 8;	// horizontal blocks per plan cell
+		int blocksPerLevel = 3; // the requested 3-block strata
+		int groundLevelTop = 3; // world y of the level-0 surface block
+
+		// Interiors: composed room layouts live in a reserved band of columns past the
+		// east edge of the world (terrain realization leaves the band void), one square
+		// slot per interior, entered through door portals.
+		int interiorRegionGap = 128; // void blocks between the world edge and the band
+		int interiorSlotBlocks = 64; // square slot side per composed interior
 	};
 
 	struct WorldPlanStats
@@ -211,7 +245,13 @@ namespace pg
 		int riverCells = 0;
 		int stairPlacements = 0;
 		int wildStairPlacements = 0;
+		int composedStairPlacements = 0;
+		int rejectedStairways = 0;
 		int sceneryPlacements = 0;
+		int interiorCount = 0;			 // buildings that received a composed interior
+		int interiorRoomPlacements = 0;	 // room prefabs stamped in the interior band
+		int placementConflicts = 0;		 // claimed-zone collisions resolved by nudging or overriding
+		int skippedPoiPlacements = 0;	 // POI prefabs dropped because no clear zone was found
 		std::vector<std::string> warnings;
 	};
 
@@ -222,11 +262,11 @@ namespace pg
 		WorldGenConfig config;
 		std::vector<PlanBiome> biomes;
 
-		PlanGrid<std::uint8_t> land;   // 1 = land
-		PlanGrid<std::int16_t> zone;   // -1 = ocean
-		PlanGrid<std::int8_t> height;  // strata level, -1 = ocean
-		PlanGrid<std::uint8_t> water;  // river or lake
-		PlanGrid<std::uint8_t> lake;   // kept lake cells
+		PlanGrid<std::uint8_t> land;  // 1 = land
+		PlanGrid<std::int16_t> zone;  // -1 = ocean
+		PlanGrid<std::int8_t> height; // strata level, -1 = ocean
+		PlanGrid<std::uint8_t> water; // river or lake
+		PlanGrid<std::uint8_t> lake;  // kept lake cells
 		PlanGrid<std::uint8_t> road;
 		PlanGrid<std::uint8_t> bridge; // road over water
 
@@ -236,6 +276,8 @@ namespace pg
 		std::vector<std::pair<PlanEntity, PlanEntity>> boatLinks;
 		std::vector<PrefabPlacement> placements;
 		std::vector<std::pair<int, int>> wildStairs; // (row, col) of each wild stairway's lower cell
+		std::vector<PlanStairRect> stairRects;		 // world-column footprints of every stairway
+		std::vector<PlanPortal> portals;
 
 		WorldPlanStats stats;
 
@@ -257,6 +299,15 @@ namespace pg
 		{
 			return config.groundLevelTop + p_level * config.blocksPerLevel;
 		}
+		// First column of the interior band; columns at or past it get no terrain.
+		[[nodiscard]] int interiorRegionMinX() const noexcept
+		{
+			return -worldOffset() + config.interiorRegionGap;
+		}
+		[[nodiscard]] bool isInteriorColumn(int p_worldX) const noexcept
+		{
+			return p_worldX >= interiorRegionMinX();
+		}
 
 		[[nodiscard]] std::string report() const;
 	};
@@ -264,6 +315,8 @@ namespace pg
 	template <typename TDefinition>
 	class Registry;
 	struct BiomeDefinition;
+	struct PrefabDefinition;
+	struct InteriorDefinition;
 
 	// Collects the worldgen-enabled biomes out of the loaded biome registry (sorted by
 	// id, so generation stays deterministic for a given data set).
@@ -272,5 +325,7 @@ namespace pg
 	[[nodiscard]] WorldPlan generateWorldPlan(
 		const WorldGenConfig &p_config,
 		const std::vector<PlanBiome> &p_biomes,
-		const PlanPlacementRules &p_placementRules);
+		const PlanPlacementRules &p_placementRules,
+		const Registry<PrefabDefinition> &p_prefabs,
+		const Registry<InteriorDefinition> &p_interiors);
 }

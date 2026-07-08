@@ -1,5 +1,6 @@
 {
 	"version": 1,
+	"interior": "house-interior",
 	"palette": {
 		"0": null,
 		"f": "stone-block",

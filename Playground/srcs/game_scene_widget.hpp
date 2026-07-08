@@ -6,6 +6,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include "components/actor.hpp"
@@ -28,6 +29,7 @@ namespace pg
 	class Registries;
 	class ExplorationInputLogic;
 	class ActorPathLogic;
+	class CameraControllerLogic;
 	class PlanChunkProvider;
 	struct WorldPlan;
 
@@ -49,6 +51,14 @@ namespace pg
 		spk::VoxelChunkStreamer *_streamer = nullptr;
 		ExplorationInputLogic *_inputLogic = nullptr;
 		ActorPathLogic *_pathLogic = nullptr;
+		CameraControllerLogic *_cameraLogic = nullptr;
+
+		// Door/exit-pad cells mapped to their teleport destination (from the world
+		// plan's portals). Stepping on a key cell queues the teleport; it executes
+		// after the engine update so it never mutates the actor mid-advance.
+		std::unordered_map<spk::Vector3Int, spk::Vector3Int> _portalTargets;
+		std::optional<spk::Vector3Int> _pendingTeleport;
+		spk::ContractProvider<spk::Vector3Int>::Contract _playerMovedContract;
 
 		spk::Entity3D _cameraEntity;
 		spk::Camera3D *_camera = nullptr;
@@ -62,6 +72,7 @@ namespace pg
 		std::vector<std::string> _profilerRowNames;
 
 		void _buildScene(const Registries &p_registries);
+		void _executeTeleport(const spk::Vector3Int &p_target);
 		void _configureOverlay();
 		[[nodiscard]] std::size_t _profilerSectionRowCount() const;
 		void _applyOverlayGeometry();

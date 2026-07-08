@@ -45,7 +45,7 @@ namespace pg
 		// list; the generator picks one entry at random per placement. Missing slots
 		// fall back to the global placements.json rules. Stairways are not slots here;
 		// they resolve by convention from the biome id
-		// ("<id>-road-stairway" / "<id>-stairway").
+		// ("<id>-stair-length" / "<id>-stair-platform").
 		std::map<std::string, std::vector<std::string>> prefabs;
 		// Each scenery entry has its own expected count and voxel-level spacing.
 		std::vector<BiomeScenery> scenery;

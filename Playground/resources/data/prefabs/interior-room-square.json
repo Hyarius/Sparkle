@@ -1,0 +1,53 @@
+{
+	"version": 1,
+	"palette": {
+		"0": null,
+		"f": "stone-block",
+		"w": "wall-stone"
+	},
+	"fill": [
+		{
+			"min": [0, -1, 0],
+			"max": [6, -1, 6],
+			"voxel": "f"
+		},
+		{
+			"min": [0, 0, 0],
+			"max": [6, 2, 0],
+			"voxel": "w"
+		},
+		{
+			"min": [0, 0, 6],
+			"max": [6, 2, 6],
+			"voxel": "w"
+		},
+		{
+			"min": [0, 0, 1],
+			"max": [0, 2, 5],
+			"voxel": "w"
+		},
+		{
+			"min": [6, 0, 1],
+			"max": [6, 2, 5],
+			"voxel": "w"
+		}
+	],
+	"anchors": [
+		{
+			"name": "connector:-x",
+			"at": [0, 0, 3]
+		},
+		{
+			"name": "connector:+x",
+			"at": [6, 0, 3]
+		},
+		{
+			"name": "connector:-z",
+			"at": [3, 0, 0]
+		},
+		{
+			"name": "connector:+z",
+			"at": [3, 0, 6]
+		}
+	]
+}

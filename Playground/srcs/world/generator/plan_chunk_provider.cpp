@@ -14,7 +14,8 @@
 
 namespace pg
 {
-	PlanChunkProvider::PlanChunkProvider(const Registries &p_registries, const WorldPlan &p_plan) : _plan(p_plan)
+	PlanChunkProvider::PlanChunkProvider(const Registries &p_registries, const WorldPlan &p_plan) :
+		_plan(p_plan)
 	{
 		const VoxelRegistry &voxels = p_registries.voxels();
 		_road = voxels.numericId("road-block");
@@ -26,10 +27,7 @@ namespace pg
 		for (const PlanBiome &biome : _plan.biomes)
 		{
 			const BiomeDefinition &definition = p_registries.biomes().get(biome.id);
-			_biomeBlocks.push_back({.surface = voxels.numericId(definition.palette.surface),
-									.subsurface = voxels.numericId(definition.palette.subsurface),
-									.deep = voxels.numericId(definition.palette.deep),
-									.road = voxels.numericId(definition.palette.road)});
+			_biomeBlocks.push_back({.surface = voxels.numericId(definition.palette.surface), .subsurface = voxels.numericId(definition.palette.subsurface), .deep = voxels.numericId(definition.palette.deep), .road = voxels.numericId(definition.palette.road)});
 		}
 
 		for (const PrefabPlacement &placement : _plan.placements)
@@ -48,11 +46,11 @@ namespace pg
 			const auto [rotatedMin, rotatedMax] = prefab->prefab.rotatedBounds(placement.orientation);
 			const spk::Vector3Int extents = rotatedMax - rotatedMin + spk::Vector3Int{1, 1, 1};
 			const spk::Vector3Int worldMin = placement.anchorToPivot
-				? placement.anchor + rotatedMin
-				: spk::Vector3Int{
-					  placement.anchor.x - extents.x / 2,
-					  placement.anchor.y + rotatedMin.y,
-					  placement.anchor.z - extents.z / 2};
+												 ? placement.anchor + rotatedMin
+												 : spk::Vector3Int{
+													   placement.anchor.x - extents.x / 2,
+													   placement.anchor.y + rotatedMin.y,
+													   placement.anchor.z - extents.z / 2};
 			_placements.push_back(
 				{.definition = prefab,
 				 .worldMin = worldMin,
@@ -76,6 +74,12 @@ namespace pg
 		};
 
 		Column column;
+		// The interior band east of the world stays void: composed rooms bring their
+		// own floors and the emptiness reads as "elsewhere" from inside a house.
+		if (_plan.isInteriorColumn(p_worldX))
+		{
+			return column;
+		}
 		if (isOceanCell(row, col))
 		{
 			column.groundTop = 1;

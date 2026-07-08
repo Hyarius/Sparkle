@@ -16,6 +16,18 @@ namespace pg
 	{
 	}
 
+	void CameraControllerLogic::teleportBy(const spk::Vector3 &p_delta)
+	{
+		if (!_initialized)
+		{
+			return; // first update seeds from the actor anyway
+		}
+		_smoothedTarget += p_delta;
+		_smoothedPosition += p_delta;
+		_camera.setTarget(_smoothedTarget);
+		_camera.setPosition(_smoothedPosition);
+	}
+
 	void CameraControllerLogic::_parseComponentForUpdate(const spk::UpdateContext &p_tick, Actor &p_actor)
 	{
 		if (!_context.world.explorationActive || !p_actor.player)

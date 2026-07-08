@@ -23,6 +23,11 @@ namespace pg
 	public:
 		CameraControllerLogic(GameContext &p_context, spk::Camera3D &p_camera);
 
+		// Shifts the whole rig (smoothed target, position and the camera itself) by the
+		// given world delta in one step, keeping yaw/pitch/distance: used when the actor
+		// teleports so the camera does not swoop across the world to catch up.
+		void teleportBy(const spk::Vector3 &p_delta);
+
 	protected:
 		void _parseComponentForUpdate(const spk::UpdateContext &p_tick, Actor &p_actor) override;
 		void _parseComponentForMouseMovedEvent(spk::MouseMovedEvent &p_event, Actor &p_actor) override;

@@ -1,0 +1,16 @@
+{
+	"version": 1,
+	"entry": "interior-entry-room",
+	"rooms": [
+		{
+			"prefab": "interior-room-square",
+			"weight": 1.0
+		},
+		{
+			"prefab": "interior-room-wide",
+			"weight": 1.0
+		}
+	],
+	"minRooms": 1,
+	"maxRooms": 3
+}

@@ -65,7 +65,7 @@ namespace pg
 		}
 
 		// Stairways are no longer configured here; they resolve by convention from the biome
-		// id ("<id>-road-stairway" / "<id>-stairway") in the world plan generator.
+		// id ("<id>-stair-length" / "<id>-stair-platform") in the world plan generator.
 		PlanPlacementRules rules;
 
 		const JsonReader entitiesReader = p_reader.child("entities");

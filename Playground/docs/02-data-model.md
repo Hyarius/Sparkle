@@ -551,20 +551,38 @@ Coordinates are relative to the prefab's **pivot** (optional `pivot` field, defa
 rotation. Any coordinate may be negative — layers below `y = 0` embed under the stamp
 destination, replacing the terrain there (a house floor slab, a POI pedestal), while
 `y = 0` stays the ground/walk level. There is no declared size: the bounding box is
-deduced from the content, and the whole box is listed when stamping (empties carve).
+deduced from the content. By default the whole box is listed when stamping (empties carve).
 Keep embedded layers fully filled or they punch holes in the terrain surface; to stretch
 the carve box past the content (e.g. an extra layer of cleared air above a roof), place
 one explicit empty cell there.
+
+Set `"carve": false` for sparse overlay prefabs. Only non-empty authored cells are then
+stamped; unused cells inside the bounds leave existing terrain untouched. This is useful
+for cliff-mounted stairs, vegetation, and other structures that must conform to their
+placement surface instead of clearing a rectangular volume.
 
 ```jsonc
 // prefabs/small-house.json
 {
   "version": 1,
+  "carve": true,                                                  // optional; default true
   "palette": { "0": null, "1": "stone-block", "2": "plank-block" },
   "fill": [ { "min": [0,-1,0], "max": [6,-1,5], "voxel": "1" } ], // floor slab, embeds below ground
   "cells": [ { "at": [3, 0, 0], "voxel": "0" } ],                 // sparse overrides (door hole)
   "anchors": [ { "name": "door", "at": [3, 0, 0] } ]
 }
+```
+
+Each `stairRuns` entry emits `steps` cells that advance one voxel horizontally and one
+voxel upward, repeated across `width`. `direction` accepts the four horizontal voxel
+orientations and also sets the orientation of every emitted stair voxel. The run is
+included when deducing prefab bounds and can be combined with `fill` and `cells`.
+
+```jsonc
+"stairRuns": [
+  { "from": [3,1,1], "steps": 6, "width": 3,
+    "direction": "positiveX", "voxel": "stair" }
+]
 ```
 
 ## 13b. `maps/<id>.json` — full playable spaces

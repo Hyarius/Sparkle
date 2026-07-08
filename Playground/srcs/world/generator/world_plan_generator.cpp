@@ -3,11 +3,15 @@
 #include "core/registry.hpp"
 #include "world/biome_definition.hpp"
 #include "world/generator/placement_rules.hpp"
+#include "world/interior_definition.hpp"
+#include "world/prefab_definition.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstdint>
 #include <deque>
+#include <iterator>
 #include <limits>
 #include <map>
 #include <optional>
@@ -54,7 +58,10 @@ namespace pg
 		{
 			std::mt19937_64 engine;
 
-			explicit Rng(std::uint64_t p_seed) : engine(p_seed) {}
+			explicit Rng(std::uint64_t p_seed) :
+				engine(p_seed)
+			{
+			}
 
 			[[nodiscard]] double uniform()
 			{
@@ -113,7 +120,9 @@ namespace pg
 			{
 				value = p_rng.uniform();
 			}
-			const auto latticeAt = [&](int p_row, int p_col) { return lattice[static_cast<std::size_t>(p_row) * (n + 2) + p_col]; };
+			const auto latticeAt = [&](int p_row, int p_col) {
+				return lattice[static_cast<std::size_t>(p_row) * (n + 2) + p_col];
+			};
 
 			Field result(p_size);
 			for (int i = 0; i < p_size; ++i)
@@ -253,7 +262,9 @@ namespace pg
 						continue;
 					}
 					bool orthogonal = false;
-					forNeighbors4(i, j, size, [&](int p_row, int p_col) { orthogonal |= p_mask.at(p_row, p_col) != 0; });
+					forNeighbors4(i, j, size, [&](int p_row, int p_col) {
+						orthogonal |= p_mask.at(p_row, p_col) != 0;
+					});
 					bool diagonal = false;
 					for (const auto &[dr, dc] : {std::pair{-1, -1}, {-1, 1}, {1, -1}, {1, 1}})
 					{
@@ -277,10 +288,46 @@ namespace pg
 		{
 			switch (p_turns % 4)
 			{
-			case 1: return spk::VoxelOrientation::PositiveX;
-			case 2: return spk::VoxelOrientation::NegativeZ;
-			case 3: return spk::VoxelOrientation::NegativeX;
-			default: return spk::VoxelOrientation::PositiveZ;
+			case 1:
+				return spk::VoxelOrientation::PositiveX;
+			case 2:
+				return spk::VoxelOrientation::NegativeZ;
+			case 3:
+				return spk::VoxelOrientation::NegativeX;
+			default:
+				return spk::VoxelOrientation::PositiveZ;
+			}
+		}
+
+		[[nodiscard]] int quarterTurnsOf(spk::VoxelOrientation p_orientation)
+		{
+			switch (p_orientation)
+			{
+			case spk::VoxelOrientation::PositiveX:
+				return 1;
+			case spk::VoxelOrientation::NegativeZ:
+				return 2;
+			case spk::VoxelOrientation::NegativeX:
+				return 3;
+			default:
+				return 0;
+			}
+		}
+
+		// Same quarter-turn convention as spk::Prefab (rotations around +Y through the
+		// pivot; PositiveZ identity), so claimed zones rotate exactly like the content.
+		[[nodiscard]] spk::Vector3Int rotateQuarterTurns(const spk::Vector3Int &p_local, int p_turns)
+		{
+			switch (((p_turns % 4) + 4) % 4)
+			{
+			case 1:
+				return {p_local.z, p_local.y, -p_local.x};
+			case 2:
+				return {-p_local.x, p_local.y, -p_local.z};
+			case 3:
+				return {-p_local.z, p_local.y, p_local.x};
+			default:
+				return p_local;
 			}
 		}
 
@@ -292,6 +339,8 @@ namespace pg
 		{
 			const WorldGenConfig &cfg;
 			const PlanPlacementRules &placementRules;
+			const Registry<PrefabDefinition> &prefabs;
+			const Registry<InteriorDefinition> &interiors;
 			WorldPlan plan;
 			int size;
 
@@ -304,8 +353,14 @@ namespace pg
 			Generator(
 				const WorldGenConfig &p_config,
 				const std::vector<PlanBiome> &p_biomes,
-				const PlanPlacementRules &p_placementRules) :
-				cfg(p_config), placementRules(p_placementRules), size(p_config.size)
+				const PlanPlacementRules &p_placementRules,
+				const Registry<PrefabDefinition> &p_prefabs,
+				const Registry<InteriorDefinition> &p_interiors) :
+				cfg(p_config),
+				placementRules(p_placementRules),
+				prefabs(p_prefabs),
+				interiors(p_interiors),
+				size(p_config.size)
 			{
 				if (p_biomes.empty())
 				{
@@ -328,7 +383,10 @@ namespace pg
 				return Rng(deriveSeed(cfg.masterSeed, p_path));
 			}
 
-			[[nodiscard]] bool isLand(int p_row, int p_col) const { return plan.land.at(p_row, p_col) != 0; }
+			[[nodiscard]] bool isLand(int p_row, int p_col) const
+			{
+				return plan.land.at(p_row, p_col) != 0;
+			}
 
 			// ---------------- Stage A: world graph ----------------
 			void buildWorldGraph()
@@ -348,9 +406,7 @@ namespace pg
 				rng.shuffle(order);
 				for (int index = 0; index < cfg.zoneCount; ++index)
 				{
-					plan.zones.push_back({.id = index,
-										  .biomeIndex = biomeIndices[index % biomeIndices.size()],
-										  .progression = order[index]});
+					plan.zones.push_back({.id = index, .biomeIndex = biomeIndices[index % biomeIndices.size()], .progression = order[index]});
 				}
 			}
 
@@ -871,7 +927,9 @@ namespace pg
 					{
 						continue;
 					}
-					const auto depthOf = [&](const Cell &p_cell) { return filled.at(p_cell.row, p_cell.col) - effective.at(p_cell.row, p_cell.col); };
+					const auto depthOf = [&](const Cell &p_cell) {
+						return filled.at(p_cell.row, p_cell.col) - effective.at(p_cell.row, p_cell.col);
+					};
 					if (static_cast<int>(cells.size()) > cfg.lakeMaxSize)
 					{
 						std::set<std::pair<int, int>> members;
@@ -897,7 +955,9 @@ namespace pg
 									next.push_back({p_row, p_col});
 								}
 							});
-							std::sort(next.begin(), next.end(), [&](const Cell &p_a, const Cell &p_b) { return depthOf(p_a) > depthOf(p_b); });
+							std::sort(next.begin(), next.end(), [&](const Cell &p_a, const Cell &p_b) {
+								return depthOf(p_a) > depthOf(p_b);
+							});
 							for (const Cell &candidate : next)
 							{
 								seen.insert({candidate.row, candidate.col});
@@ -1100,7 +1160,12 @@ namespace pg
 						return true;
 					};
 
-					enum class CoastRule { Any, Coastal, Inland };
+					enum class CoastRule
+					{
+						Any,
+						Coastal,
+						Inland
+					};
 					const auto sample = [&](PlanEntityKind p_kind, int p_count, double p_block, double p_distRatio, CoastRule p_rule) {
 						int got = 0;
 						std::vector<Cell> order = cells;
@@ -1123,11 +1188,7 @@ namespace pg
 							{
 								continue;
 							}
-							plan.entities.push_back({.kind = p_kind,
-													 .row = candidate.row,
-													 .col = candidate.col,
-													 .zone = zone.id,
-													 .continent = zoneContinent.contains(zone.id) ? zoneContinent[zone.id] : 1});
+							plan.entities.push_back({.kind = p_kind, .row = candidate.row, .col = candidate.col, .zone = zone.id, .continent = zoneContinent.contains(zone.id) ? zoneContinent[zone.id] : 1});
 							++got;
 						}
 						return got;
@@ -1222,6 +1283,10 @@ namespace pg
 				if (fromHeight >= 0 && toHeight >= 0)
 				{
 					const int dh = std::abs(toHeight - fromHeight);
+					if (dh > cfg.maxComposedStairLevels)
+					{
+						return -1.0; // no composed staircase can bridge this edge
+					}
 					if (dh >= 1)
 					{
 						step += 7.0 * dh; // stair penalty: roads contour around tall steps
@@ -1245,7 +1310,9 @@ namespace pg
 					return (dy + dx) + (SQRT2 - 2.0) * std::min(dy, dx);
 				};
 				const int cellCount = size * size;
-				const auto indexOf = [&](int p_row, int p_col) { return p_row * size + p_col; };
+				const auto indexOf = [&](int p_row, int p_col) {
+					return p_row * size + p_col;
+				};
 				std::vector<double> best(cellCount, INF);
 				std::vector<int> previous(cellCount, -1);
 				std::vector<int> elbow(cellCount, -1);
@@ -1320,7 +1387,9 @@ namespace pg
 						{
 							continue;
 						}
-						std::sort(legal.begin(), legal.end(), [](const Option &p_a, const Option &p_b) { return p_a.cost < p_b.cost; });
+						std::sort(legal.begin(), legal.end(), [](const Option &p_a, const Option &p_b) {
+							return p_a.cost < p_b.cost;
+						});
 						std::vector<int> tied;
 						for (const Option &option : legal)
 						{
@@ -1637,37 +1706,20 @@ namespace pg
 				return p_pool.size() == 1 ? p_pool.front() : p_pool[prefabPickRng.below(static_cast<int>(p_pool.size()))];
 			}
 
-			// Stairway prefabs resolve by convention from the biome id: road climbs use
-			// "<id>-road-stairway" (stairs), off-road/wild climbs "<id>-stairway" (slopes).
-			// Cells outside any zone fall back to the shared "road-stairway".
-			[[nodiscard]] std::string stairwayPrefabFor(int p_zone, bool p_onRoad) const
+			// Stair prefabs resolve by convention from the biome id: "<id>-stair-length"
+			// is one three-wide, one-level flight of stairs, "<id>-stair-platform" the
+			// 3x3 pad at both ends of a composed staircase. Cells outside any zone fall
+			// back to the shared "stair-length" / "stair-platform" pair.
+			[[nodiscard]] std::string stairLengthPrefabFor(int p_zone) const
 			{
-				if (p_zone < 0)
-				{
-					return "road-stairway";
-				}
-				const std::string &biomeId = plan.biomes[plan.zones[p_zone].biomeIndex].id;
-				return p_onRoad ? biomeId + "-road-stairway" : biomeId + "-stairway";
+				return p_zone < 0 ? "stair-length"
+								  : plan.biomes[plan.zones[p_zone].biomeIndex].id + "-stair-length";
 			}
 
-			[[nodiscard]] static std::string multiLevelStairwayPrefabFor(int p_levelDifference, bool p_onRoad)
+			[[nodiscard]] std::string stairPlatformPrefabFor(int p_zone) const
 			{
-				return std::string(p_onRoad ? "road-stairway-l" : "stairway-l") +
-					   std::to_string(p_levelDifference);
-			}
-
-			// The authored L stair climbs local +Z first and exits toward local +X.
-			// Choose the prefab rotation that maps that final +X exit toward the high cell.
-			[[nodiscard]] static spk::VoxelOrientation lStairOrientation(
-				int p_dr,
-				int p_dc,
-				bool p_firstLower)
-			{
-				if (p_dc == 1)
-				{
-					return p_firstLower ? spk::VoxelOrientation::PositiveZ : spk::VoxelOrientation::NegativeZ;
-				}
-				return p_firstLower ? spk::VoxelOrientation::NegativeX : spk::VoxelOrientation::PositiveX;
+				return p_zone < 0 ? "stair-platform"
+								  : plan.biomes[plan.zones[p_zone].biomeIndex].id + "-stair-platform";
 			}
 
 			[[nodiscard]] const std::vector<std::string> *entityPrefabsFor(PlanEntityKind p_kind, int p_zone) const
@@ -1685,11 +1737,299 @@ namespace pg
 				return found != placementRules.entityPrefabs.end() ? &found->second : nullptr;
 			}
 
+			// ---------------- Claimed zones ----------------
+			// Every structural placement (stairways first — they have priority — then
+			// buildings, then interior rooms) claims a world-space box: its authored
+			// "clearance" zone when the prefab declares one, its content bounds otherwise.
+			// Later placements only commit if their own claimed zone is entirely free, so
+			// stairs can no longer merge into POIs and vice versa.
+			struct Claim
+			{
+				spk::Vector3Int min{};
+				spk::Vector3Int max{};
+			};
+			std::vector<Claim> hardClaims;
+
+			struct ResolvedBox
+			{
+				spk::Vector3Int worldMin{};	   // min corner of the rotated content box
+				spk::Vector3Int extents{};	   // its size per axis
+				spk::Vector3Int destination{}; // world cell the prefab's pivot lands on
+			};
+
+			// Mirrors PlanChunkProvider's placement resolution so the plan reasons about
+			// the exact voxels the realization will stamp.
+			[[nodiscard]] std::optional<ResolvedBox> resolveBox(const PrefabPlacement &p_placement) const
+			{
+				const PrefabDefinition *definition = prefabs.tryGet(p_placement.prefabId);
+				if (definition == nullptr)
+				{
+					return std::nullopt;
+				}
+				const auto [rotatedMin, rotatedMax] = definition->prefab.rotatedBounds(p_placement.orientation);
+				const spk::Vector3Int extents = rotatedMax - rotatedMin + spk::Vector3Int{1, 1, 1};
+				const spk::Vector3Int worldMin = p_placement.anchorToPivot
+													 ? p_placement.anchor + rotatedMin
+													 : spk::Vector3Int{
+														   p_placement.anchor.x - extents.x / 2,
+														   p_placement.anchor.y + rotatedMin.y,
+														   p_placement.anchor.z - extents.z / 2};
+				return ResolvedBox{
+					.worldMin = worldMin,
+					.extents = extents,
+					.destination = p_placement.anchorToPivot ? p_placement.anchor : worldMin - rotatedMin};
+			}
+
+			[[nodiscard]] std::optional<Claim> claimBoxFor(const PrefabPlacement &p_placement) const
+			{
+				const PrefabDefinition *definition = prefabs.tryGet(p_placement.prefabId);
+				const std::optional<ResolvedBox> resolved = resolveBox(p_placement);
+				if (definition == nullptr || !resolved.has_value())
+				{
+					return std::nullopt;
+				}
+				const spk::Vector3Int pivot = definition->prefab.pivot();
+				const spk::Vector3Int localMin =
+					definition->clearance.has_value() ? definition->clearance->min : definition->prefab.minBounds();
+				const spk::Vector3Int localMax =
+					definition->clearance.has_value() ? definition->clearance->max : definition->prefab.maxBounds();
+				const int turns = quarterTurnsOf(p_placement.orientation);
+				const spk::Vector3Int a = rotateQuarterTurns(localMin - pivot, turns);
+				const spk::Vector3Int b = rotateQuarterTurns(localMax - pivot, turns);
+				return Claim{
+					.min = resolved->destination + spk::Vector3Int{std::min(a.x, b.x), std::min(a.y, b.y), std::min(a.z, b.z)},
+					.max = resolved->destination + spk::Vector3Int{std::max(a.x, b.x), std::max(a.y, b.y), std::max(a.z, b.z)}};
+			}
+
+			[[nodiscard]] static bool claimsOverlap(const Claim &p_first, const Claim &p_second)
+			{
+				return p_first.min.x <= p_second.max.x && p_first.max.x >= p_second.min.x &&
+					   p_first.min.y <= p_second.max.y && p_first.max.y >= p_second.min.y &&
+					   p_first.min.z <= p_second.max.z && p_first.max.z >= p_second.min.z;
+			}
+
+			[[nodiscard]] bool zoneIsFree(const Claim &p_claim) const
+			{
+				return std::ranges::none_of(hardClaims, [&](const Claim &p_placed) {
+					return claimsOverlap(p_claim, p_placed);
+				});
+			}
+
 			// Lower cells of every stairway placed so far (road + wild), for spacing.
 			std::vector<Cell> stairCells;
+			struct StairFootprint
+			{
+				int minX = 0;
+				int maxX = 0;
+				int minZ = 0;
+				int maxZ = 0;
+			};
+			std::vector<StairFootprint> stairFootprints;
 
-			// Places a compact multi-level stair when one is available, otherwise chains
-			// one-level ramps. Returns the number of emitted prefab placements.
+			[[nodiscard]] std::optional<StairFootprint> stairFootprintOf(const PrefabPlacement &p_placement) const
+			{
+				const PrefabDefinition *definition = prefabs.tryGet(p_placement.prefabId);
+				if (definition == nullptr)
+				{
+					return std::nullopt;
+				}
+				const auto [rotatedMin, rotatedMax] = definition->prefab.rotatedBounds(p_placement.orientation);
+				const spk::Vector3Int extents = rotatedMax - rotatedMin + spk::Vector3Int{1, 1, 1};
+				const spk::Vector3Int worldMin = p_placement.anchorToPivot
+													 ? p_placement.anchor + rotatedMin
+													 : spk::Vector3Int{
+														   p_placement.anchor.x - extents.x / 2,
+														   p_placement.anchor.y + rotatedMin.y,
+														   p_placement.anchor.z - extents.z / 2};
+				return StairFootprint{
+					.minX = worldMin.x,
+					.maxX = worldMin.x + extents.x - 1,
+					.minZ = worldMin.z,
+					.maxZ = worldMin.z + extents.z - 1};
+			}
+
+			[[nodiscard]] static bool footprintsOverlap(
+				const StairFootprint &p_first,
+				const StairFootprint &p_second)
+			{
+				return p_first.minX <= p_second.maxX && p_first.maxX >= p_second.minX &&
+					   p_first.minZ <= p_second.maxZ && p_first.maxZ >= p_second.minZ;
+			}
+
+			[[nodiscard]] bool planCellHasEntity(int p_row, int p_col) const
+			{
+				return std::ranges::any_of(plan.entities, [&](const PlanEntity &p_entity) {
+					return p_entity.row == p_row && p_entity.col == p_col;
+				});
+			}
+
+			// Road interaction of a stair footprint: straight ramps crossing on the road
+			// network must stay on road cells, composed climbs may also use clear
+			// terrain beside the road, and wild stairways must not touch roads at all.
+			enum class RoadRule
+			{
+				Require,
+				Allow,
+				Forbid
+			};
+
+			[[nodiscard]] bool stairFootprintFits(
+				const StairFootprint &p_footprint,
+				int p_lowLevel,
+				int p_lowZone,
+				RoadRule p_roadRule,
+				const std::vector<StairFootprint> &p_group) const
+			{
+				for (const StairFootprint &placed : stairFootprints)
+				{
+					if (footprintsOverlap(p_footprint, placed))
+					{
+						return false;
+					}
+				}
+				for (const StairFootprint &placed : p_group)
+				{
+					if (footprintsOverlap(p_footprint, placed))
+					{
+						return false;
+					}
+				}
+
+				for (int worldZ = p_footprint.minZ; worldZ <= p_footprint.maxZ; ++worldZ)
+				{
+					for (int worldX = p_footprint.minX; worldX <= p_footprint.maxX; ++worldX)
+					{
+						const int row = plan.cellIndexFromWorld(worldZ);
+						const int col = plan.cellIndexFromWorld(worldX);
+						if (!plan.land.contains(row, col) || !isLand(row, col) ||
+							plan.height.at(row, col) != p_lowLevel || plan.water.at(row, col) != 0 ||
+							plan.bridge.at(row, col) != 0 || planCellHasEntity(row, col))
+						{
+							return false;
+						}
+						switch (p_roadRule)
+						{
+						case RoadRule::Require:
+							if (plan.road.at(row, col) == 0)
+							{
+								return false;
+							}
+							break;
+						case RoadRule::Allow:
+							if (plan.zone.at(row, col) != p_lowZone)
+							{
+								return false;
+							}
+							break;
+						case RoadRule::Forbid:
+							if (plan.road.at(row, col) != 0 || plan.zone.at(row, col) != p_lowZone)
+							{
+								return false;
+							}
+							break;
+						}
+					}
+				}
+				return true;
+			}
+
+			bool commitStairGroup(
+				std::vector<PrefabPlacement> p_placements,
+				int p_lowLevel,
+				int p_lowZone,
+				RoadRule p_roadRule,
+				const std::vector<StairFootprint> &p_extraFootprints = {},
+				const std::vector<StairFootprint> &p_reservedFootprints = {},
+				const std::vector<Claim> &p_extraClaims = {})
+			{
+				std::vector<StairFootprint> footprints;
+				footprints.reserve(p_placements.size() + p_extraFootprints.size() + p_reservedFootprints.size());
+				for (const PrefabPlacement &placement : p_placements)
+				{
+					const std::optional<StairFootprint> footprint = stairFootprintOf(placement);
+					if (!footprint.has_value() ||
+						!stairFootprintFits(*footprint, p_lowLevel, p_lowZone, p_roadRule, footprints))
+					{
+						return false;
+					}
+					footprints.push_back(*footprint);
+				}
+				// Extra check-only rectangles (the approach lane beside a composed climb):
+				// validated and reserved exactly like stamped footprints, never realized.
+				for (const StairFootprint &extra : p_extraFootprints)
+				{
+					if (!stairFootprintFits(extra, p_lowLevel, p_lowZone, p_roadRule, footprints))
+					{
+						return false;
+					}
+					footprints.push_back(extra);
+				}
+				// Reserved rectangles (the exit cells on the high plateau): only tested
+				// against other stairways, then recorded, so two flights can never meet
+				// face to face across a boundary. Their terrain is validated by the caller.
+				for (const StairFootprint &reserved : p_reservedFootprints)
+				{
+					const bool blocked =
+						std::ranges::any_of(
+							stairFootprints,
+							[&](const StairFootprint &p_placed) { return footprintsOverlap(reserved, p_placed); }) ||
+						std::ranges::any_of(footprints, [&](const StairFootprint &p_placed) {
+							return footprintsOverlap(reserved, p_placed);
+						});
+					if (blocked)
+					{
+						return false;
+					}
+					footprints.push_back(reserved);
+				}
+				// Stairways are placed first and have priority: they claim their zones
+				// unconditionally, and everything placed later must keep clear of them.
+				for (const PrefabPlacement &placement : p_placements)
+				{
+					if (const std::optional<Claim> claim = claimBoxFor(placement); claim.has_value())
+					{
+						hardClaims.push_back(*claim);
+					}
+				}
+				hardClaims.insert(hardClaims.end(), p_extraClaims.begin(), p_extraClaims.end());
+				plan.placements.insert(
+					plan.placements.end(),
+					std::make_move_iterator(p_placements.begin()),
+					std::make_move_iterator(p_placements.end()));
+				stairFootprints.insert(stairFootprints.end(), footprints.begin(), footprints.end());
+				// The preview map repaints these rectangles in road color: where a climb
+				// detours the walked path, the drawn road follows the actual structure.
+				for (const StairFootprint &footprint : footprints)
+				{
+					plan.stairRects.push_back(
+						{.minX = footprint.minX, .maxX = footprint.maxX, .minZ = footprint.minZ, .maxZ = footprint.maxZ});
+				}
+				for (const StairFootprint &footprint : footprints)
+				{
+					const int minRow = plan.cellIndexFromWorld(footprint.minZ);
+					const int maxRow = plan.cellIndexFromWorld(footprint.maxZ);
+					const int minCol = plan.cellIndexFromWorld(footprint.minX);
+					const int maxCol = plan.cellIndexFromWorld(footprint.maxX);
+					for (int row = minRow; row <= maxRow; ++row)
+					{
+						for (int col = minCol; col <= maxCol; ++col)
+						{
+							if (std::ranges::find(stairCells, Cell{row, col}) == stairCells.end())
+							{
+								stairCells.push_back({row, col});
+							}
+						}
+					}
+				}
+				return true;
+			}
+
+			// Places an adaptive staircase across a cliff. One-level climbs keep the
+			// straight centered ramp crossing the boundary. Taller climbs compose a
+			// 3x3 stair-platform, one stair-length per height level, and a second
+			// 3x3 stair-platform, the whole run hugging the cliff wall on the low
+			// side so the top platform's surface meets the high plateau flush across
+			// the boundary. Returns the number of emitted prefab placements.
 			int emitStairChain(int p_row, int p_col, int p_dr, int p_dc, bool p_onRoad)
 			{
 				const int blocks = cfg.blocksPerCell;
@@ -1708,37 +2048,158 @@ namespace pg
 				const int lowRow = firstLower ? p_row : nr;
 				const int lowCol = firstLower ? p_col : nc;
 				const int lowLevel = std::min(levelA, levelB);
-				const int steps = std::abs(levelA - levelB);
+				const int highLevel = std::max(levelA, levelB);
+				const int lowZone = plan.zone.at(lowRow, lowCol);
+				const int steps = highLevel - lowLevel;
 				const int surface = plan.surfaceY(lowLevel);
-				// Two-level wild climbs deliberately bend to vary exploration paths. Three
-				// levels always use the compact L because a straight 9-voxel run no longer
-				// fits inside one 8-voxel plan cell. Larger, rare deltas fall back to an
-				// uncapped straight chain so the connection is complete rather than ending
-				// below the high plateau.
-				if (steps == 3 || (steps == 2 && !p_onRoad))
+				const int highSurface = plan.surfaceY(highLevel);
+
+				const int maximumLevels = p_onRoad ? cfg.maxComposedStairLevels : cfg.maxWildStairLevels;
+				if (steps > maximumLevels)
 				{
-					const int boundaryX = offset + (p_col + 1) * blocks;
-					const int boundaryZ = offset + (p_row + 1) * blocks;
-					PrefabPlacement placement;
-					placement.prefabId = multiLevelStairwayPrefabFor(steps, p_onRoad);
-					placement.orientation = lStairOrientation(p_dr, p_dc, firstLower);
-					placement.foundation = true;
-					placement.anchorToPivot = true;
-					placement.anchor = p_dc == 1
-						? spk::Vector3Int{
-							  boundaryX,
-							  plan.surfaceY(std::max(levelA, levelB)) + 1,
-							  offset + p_row * blocks + strip + 1}
-						: spk::Vector3Int{
-							  offset + p_col * blocks + strip + 1,
-							  plan.surfaceY(std::max(levelA, levelB)) + 1,
-							  boundaryZ};
-					plan.placements.push_back(std::move(placement));
-					stairCells.push_back({lowRow, lowCol});
-					return 1;
+					++plan.stats.rejectedStairways;
+					return 0;
+				}
+
+				if (steps >= 2)
+				{
+					// Composed staircase. Local frame: "across" is the horizontal axis
+					// perpendicular to the cliff, "along" the axis running beside it. The
+					// three across-columns nearest the wall carry the platforms and the
+					// flight; the fourth is a checked, unstamped walkway lane connecting
+					// the road dead-end below the top platform to the bottom platform.
+					const std::string lengthId = stairLengthPrefabFor(lowZone);
+					const std::string platformId = stairPlatformPrefabFor(lowZone);
+					const int boundary =
+						p_dc == 1 ? offset + (p_col + 1) * blocks : offset + (p_row + 1) * blocks;
+					const int wallSide = firstLower ? -1 : 1; // away from the wall, low side
+					const int wallColumn = firstLower ? boundary - 1 : boundary;
+					const int acrossCenter = wallColumn + wallSide;
+					const int laneColumn = wallColumn + 3 * wallSide;
+					const int alongCenterBase =
+						(p_dc == 1 ? offset + p_row * blocks : offset + p_col * blocks) + strip + 1;
+					// The stair-length prefab climbs its local +Z; pick the rotation whose
+					// climb runs along the cliff, against the flight's descent direction.
+					const spk::VoxelOrientation ascendPositive =
+						p_dc == 1 ? spk::VoxelOrientation::PositiveZ : spk::VoxelOrientation::PositiveX;
+					const spk::VoxelOrientation ascendNegative =
+						p_dc == 1 ? spk::VoxelOrientation::NegativeZ : spk::VoxelOrientation::NegativeX;
+					const auto anchorAt = [&](int p_across, int p_y, int p_along) {
+						return p_dc == 1 ? spk::Vector3Int{p_across, p_y, p_along}
+										 : spk::Vector3Int{p_along, p_y, p_across};
+					};
+
+					constexpr std::array tangents = {1, -1};
+					constexpr std::array crossOffsets = {0, -1, 1};
+					for (const int tangent : tangents)
+					{
+						for (const int crossOffset : crossOffsets)
+						{
+							// The top platform pads the 3-wide road strip of the crossing, so
+							// stepping over the boundary lands on it flush; the flight then
+							// descends beside the cliff toward the bottom platform.
+							const int alongCenter = alongCenterBase + crossOffset;
+							std::vector<PrefabPlacement> placements;
+							placements.reserve(static_cast<std::size_t>(steps) + 2);
+
+							PrefabPlacement top;
+							top.prefabId = platformId;
+							top.foundation = true;
+							top.anchor = anchorAt(acrossCenter, highSurface + 1, alongCenter);
+							placements.push_back(std::move(top));
+
+							for (int segment = 1; segment <= steps; ++segment)
+							{
+								PrefabPlacement piece;
+								piece.prefabId = lengthId;
+								piece.orientation = tangent == 1 ? ascendNegative : ascendPositive;
+								piece.foundation = true;
+								piece.anchor = anchorAt(
+									acrossCenter,
+									surface + 1 + run * (steps - segment),
+									alongCenter + tangent * run * segment);
+								placements.push_back(std::move(piece));
+							}
+
+							PrefabPlacement bottom;
+							bottom.prefabId = platformId;
+							bottom.foundation = true;
+							bottom.anchor =
+								anchorAt(acrossCenter, surface + 1, alongCenter + tangent * run * (steps + 1));
+							placements.push_back(std::move(bottom));
+
+							const int nearEdge = alongCenter - tangent;
+							const int farEdge = alongCenter + tangent * (run * (steps + 1) + 1);
+							const int alongMin = std::min(nearEdge, farEdge);
+							const int alongMax = std::max(nearEdge, farEdge);
+							const StairFootprint lane =
+								p_dc == 1 ? StairFootprint{laneColumn, laneColumn, alongMin, alongMax}
+										  : StairFootprint{alongMin, alongMax, laneColumn, laneColumn};
+
+							// The three high-plateau cells the top platform opens onto must be
+							// dry, level land, and are reserved so no other flight or building
+							// ever blocks the exit face to face.
+							const int exitColumn = wallColumn - wallSide;
+							bool exitClear = true;
+							for (int along = alongCenter - 1; along <= alongCenter + 1 && exitClear; ++along)
+							{
+								const int row = plan.cellIndexFromWorld(p_dc == 1 ? along : exitColumn);
+								const int col = plan.cellIndexFromWorld(p_dc == 1 ? exitColumn : along);
+								exitClear = plan.land.contains(row, col) && isLand(row, col) &&
+											plan.height.at(row, col) == highLevel &&
+											plan.water.at(row, col) == 0 && plan.bridge.at(row, col) == 0;
+							}
+							if (!exitClear)
+							{
+								continue;
+							}
+							const StairFootprint exit =
+								p_dc == 1
+									? StairFootprint{exitColumn, exitColumn, alongCenter - 1, alongCenter + 1}
+									: StairFootprint{alongCenter - 1, alongCenter + 1, exitColumn, exitColumn};
+							const Claim exitClaim =
+								p_dc == 1
+									? Claim{{exitColumn, highSurface + 1, alongCenter - 1},
+											{exitColumn, highSurface + 4, alongCenter + 1}}
+									: Claim{{alongCenter - 1, highSurface + 1, exitColumn},
+											{alongCenter + 1, highSurface + 4, exitColumn}};
+							// One claim over the whole structure, lane included, from the low
+							// ground to above the top platform: keeps scenery and buildings
+							// out from under the flight and off the approach lane.
+							const int acrossMin = std::min(wallColumn, laneColumn);
+							const int acrossMax = std::max(wallColumn, laneColumn);
+							const Claim stripClaim =
+								p_dc == 1
+									? Claim{{acrossMin, surface, alongMin}, {acrossMax, highSurface + 4, alongMax}}
+									: Claim{{alongMin, surface, acrossMin}, {alongMax, highSurface + 4, acrossMax}};
+
+							if (commitStairGroup(
+									std::move(placements),
+									lowLevel,
+									lowZone,
+									p_onRoad ? RoadRule::Allow : RoadRule::Forbid,
+									{lane},
+									{exit},
+									{stripClaim, exitClaim}))
+							{
+								++plan.stats.composedStairPlacements;
+								stairCells.push_back({lowRow, lowCol});
+								return steps + 2;
+							}
+						}
+					}
+					// A two-level transition still has a valid centered straight layout;
+					// keep that fallback when the composed footprint is obstructed.
+					if (p_onRoad && steps > cfg.maxRoadStairLevels)
+					{
+						++plan.stats.rejectedStairways;
+						return 0;
+					}
 				}
 				// One resolve per chain so every segment of a climb uses the same prefab.
-				const std::string prefabId = stairwayPrefabFor(plan.zone.at(lowRow, lowCol), p_onRoad);
+				const std::string prefabId = stairLengthPrefabFor(lowZone);
+				std::vector<PrefabPlacement> placements;
+				placements.reserve(static_cast<std::size_t>(steps));
 
 				for (int segment = 1; segment <= steps; ++segment)
 				{
@@ -1763,14 +2224,23 @@ namespace pg
 						const int minZ = firstLower ? boundary - distanceFromBoundary - run : boundary + distanceFromBoundary;
 						placement.anchor = {offset + p_col * blocks + strip + 1, rise, minZ + run / 2};
 					}
-					plan.placements.push_back(std::move(placement));
+					placements.push_back(std::move(placement));
+				}
+				if (!commitStairGroup(
+						std::move(placements),
+						lowLevel,
+						lowZone,
+						p_onRoad ? RoadRule::Require : RoadRule::Forbid))
+				{
+					++plan.stats.rejectedStairways;
+					return 0;
 				}
 				stairCells.push_back({lowRow, lowCol});
 				return steps;
 			}
 
-			// Stairways: wherever the road steps between two strata levels, chain enough
-			// one-level ramp prefabs inside the lower cell to climb the difference.
+			// Stairways: wherever the road steps between two strata levels, place an
+			// adaptive staircase sized to the complete height difference.
 			void placeStairways()
 			{
 				for (int i = 0; i < size; ++i)
@@ -1805,7 +2275,9 @@ namespace pg
 				{
 					return;
 				}
-				const int maxSteps = cfg.blocksPerCell / cfg.blocksPerLevel;
+				// Composed staircases climb any wild cliff up to the configured cap; the
+				// candidate scan only proposes edges the composer can actually serve.
+				const int maxSteps = std::min(cfg.maxWildStairLevels, cfg.maxHeightLevel);
 				std::set<std::pair<int, int>> entityCells;
 				for (const PlanEntity &entity : plan.entities)
 				{
@@ -1876,6 +2348,209 @@ namespace pg
 				}
 			}
 
+			// ---------------- Stage G bis: interiors ----------------
+			int interiorSlotsUsed = 0;
+
+			// Room prefabs connect through anchors named "connector:<axis>", placed on
+			// the wall block they can open through, one cell above the room floor.
+			[[nodiscard]] static std::optional<spk::Vector3Int> connectorDirection(const std::string &p_name)
+			{
+				if (!p_name.starts_with("connector:"))
+				{
+					return std::nullopt;
+				}
+				const std::string_view axis = std::string_view(p_name).substr(10);
+				if (axis == "+x")
+				{
+					return spk::Vector3Int{1, 0, 0};
+				}
+				if (axis == "-x")
+				{
+					return spk::Vector3Int{-1, 0, 0};
+				}
+				if (axis == "+z")
+				{
+					return spk::Vector3Int{0, 0, 1};
+				}
+				if (axis == "-z")
+				{
+					return spk::Vector3Int{0, 0, -1};
+				}
+				return std::nullopt;
+			}
+
+			[[nodiscard]] static const InteriorRoomOption &pickWeightedRoom(
+				Rng &p_rng,
+				const std::vector<InteriorRoomOption> &p_options)
+			{
+				double total = 0.0;
+				for (const InteriorRoomOption &option : p_options)
+				{
+					total += option.weight;
+				}
+				double roll = p_rng.uniform() * total;
+				for (const InteriorRoomOption &option : p_options)
+				{
+					roll -= option.weight;
+					if (roll <= 0.0)
+					{
+						return option;
+					}
+				}
+				return p_options.back();
+			}
+
+			// Composes the interior linked by a just-placed building: grows a seeded set
+			// of rooms from the entry room inside a reserved void slot east of the world,
+			// carves the doorways between connected rooms, and pairs the building's door
+			// with the entry/exit pads through two one-way portals.
+			void composeInterior(const PrefabPlacement &p_buildingPlacement)
+			{
+				const PrefabDefinition *building = prefabs.tryGet(p_buildingPlacement.prefabId);
+				if (building == nullptr || building->interiorId.empty())
+				{
+					return;
+				}
+				const InteriorDefinition *interior = interiors.tryGet(building->interiorId);
+				const PrefabAnchor *door = building->tryAnchor("door");
+				const PrefabDefinition *entryRoom =
+					interior == nullptr ? nullptr : prefabs.tryGet(interior->entryPrefabId);
+				const PrefabAnchor *entryPad = entryRoom == nullptr ? nullptr : entryRoom->tryAnchor("entry");
+				const PrefabAnchor *exitPad = entryRoom == nullptr ? nullptr : entryRoom->tryAnchor("exit");
+				const std::optional<ResolvedBox> buildingBox = resolveBox(p_buildingPlacement);
+				if (interior == nullptr || door == nullptr || entryPad == nullptr || exitPad == nullptr ||
+					!buildingBox.has_value())
+				{
+					plan.stats.warnings.push_back(
+						"interior '" + building->interiorId + "' of prefab '" + building->id + "' could not be composed");
+					return;
+				}
+
+				// The door cell is the floor block inside the doorway (anchored at local
+				// y = -1); the return portal drops the player one cell outside it, on the
+				// same flattened plateau. Buildings stamp with the identity orientation,
+				// so anchors resolve untransformed.
+				const spk::Vector3Int buildingPivot = building->prefab.pivot();
+				const spk::Vector3Int doorWorld = buildingBox->destination + door->at - buildingPivot;
+				const spk::Vector3Int minBoundsB = building->prefab.minBounds();
+				const spk::Vector3Int maxBoundsB = building->prefab.maxBounds();
+				const double doorOffsetX = door->at.x - (minBoundsB.x + maxBoundsB.x) / 2.0;
+				const double doorOffsetZ = door->at.z - (minBoundsB.z + maxBoundsB.z) / 2.0;
+				const spk::Vector3Int outward = std::abs(doorOffsetX) > std::abs(doorOffsetZ)
+													? spk::Vector3Int{doorOffsetX >= 0 ? 1 : -1, 0, 0}
+													: spk::Vector3Int{0, 0, doorOffsetZ >= 0 ? 1 : -1};
+
+				// One square void slot per interior, along the +Z edge of the band. Rooms
+				// share the level-0 ground height so walk heights match the overworld.
+				const int slotIndex = interiorSlotsUsed++;
+				const int slotSide = cfg.interiorSlotBlocks;
+				const int groundY = plan.surfaceY(0) + 1;
+				const Claim slotBounds{
+					.min = {plan.interiorRegionMinX(), 0, plan.worldOffset() + slotIndex * slotSide},
+					.max = {plan.interiorRegionMinX() + slotSide - 1, 63, plan.worldOffset() + (slotIndex + 1) * slotSide - 1}};
+				Rng rng = rngFor("interior:" + std::to_string(slotIndex));
+
+				struct OpenConnector
+				{
+					spk::Vector3Int at{}; // world wall cell the connector opens through
+					spk::Vector3Int direction{};
+				};
+				std::vector<Claim> roomBoxes;
+				std::vector<OpenConnector> open;
+
+				const auto placeRoom = [&](const PrefabDefinition &p_room, const spk::Vector3Int &p_destination) {
+					plan.placements.push_back(
+						{.prefabId = p_room.id,
+						 .anchor = p_destination,
+						 .orientation = spk::VoxelOrientation::PositiveZ,
+						 .foundation = false,
+						 .anchorToPivot = true});
+					const spk::Vector3Int pivot = p_room.prefab.pivot();
+					roomBoxes.push_back(
+						{.min = p_destination + p_room.prefab.minBounds() - pivot,
+						 .max = p_destination + p_room.prefab.maxBounds() - pivot});
+					hardClaims.push_back(roomBoxes.back());
+					for (const PrefabAnchor &anchor : p_room.anchors)
+					{
+						if (const std::optional<spk::Vector3Int> direction = connectorDirection(anchor.name))
+						{
+							open.push_back({.at = p_destination + anchor.at - pivot, .direction = *direction});
+						}
+					}
+					++plan.stats.interiorRoomPlacements;
+				};
+
+				const spk::Vector3Int entryDestination{
+					slotBounds.min.x + slotSide / 2, groundY, slotBounds.min.z + slotSide / 2};
+				placeRoom(*entryRoom, entryDestination);
+
+				const int extraRange = interior->maxRooms - interior->minRooms;
+				const int extraTarget = interior->minRooms + (extraRange > 0 ? rng.below(extraRange + 1) : 0);
+				int extraPlaced = 0;
+				for (int attempt = 0; attempt < 64 && extraPlaced < extraTarget && !open.empty(); ++attempt)
+				{
+					const OpenConnector connector = open[rng.below(static_cast<int>(open.size()))];
+					const InteriorRoomOption &option = pickWeightedRoom(rng, interior->rooms);
+					const PrefabDefinition *candidate = prefabs.tryGet(option.prefabId);
+					if (candidate == nullptr)
+					{
+						continue;
+					}
+					const spk::Vector3Int inwardDirection{
+						-connector.direction.x, -connector.direction.y, -connector.direction.z};
+					std::vector<const PrefabAnchor *> mates;
+					for (const PrefabAnchor &anchor : candidate->anchors)
+					{
+						const std::optional<spk::Vector3Int> direction = connectorDirection(anchor.name);
+						if (direction.has_value() && *direction == inwardDirection)
+						{
+							mates.push_back(&anchor);
+						}
+					}
+					if (mates.empty())
+					{
+						continue;
+					}
+					const PrefabAnchor *mate = mates[rng.below(static_cast<int>(mates.size()))];
+					const spk::Vector3Int mateWall = connector.at + connector.direction;
+					const spk::Vector3Int candidatePivot = candidate->prefab.pivot();
+					const spk::Vector3Int destination = mateWall - (mate->at - candidatePivot);
+					const Claim box{
+						.min = destination + candidate->prefab.minBounds() - candidatePivot,
+						.max = destination + candidate->prefab.maxBounds() - candidatePivot};
+					const bool insideSlot = box.min.x >= slotBounds.min.x && box.max.x <= slotBounds.max.x &&
+											box.min.z >= slotBounds.min.z && box.max.z <= slotBounds.max.z;
+					const bool collides = std::ranges::any_of(roomBoxes, [&](const Claim &p_placed) {
+						return claimsOverlap(box, p_placed);
+					});
+					if (!insideSlot || collides)
+					{
+						continue;
+					}
+
+					placeRoom(*candidate, destination);
+					// The rooms abut wall against wall: carve the two facing wall blocks
+					// (body height, two blocks tall) so the shared doorway opens up.
+					plan.placements.push_back(
+						{.prefabId = connector.direction.x != 0 ? "interior-doorway-x" : "interior-doorway-z",
+						 .anchor = {std::min(connector.at.x, mateWall.x), connector.at.y, std::min(connector.at.z, mateWall.z)},
+						 .orientation = spk::VoxelOrientation::PositiveZ,
+						 .foundation = false,
+						 .anchorToPivot = true});
+					// Both halves of the joint are connected now; neither may host another room.
+					std::erase_if(open, [&](const OpenConnector &p_open) {
+						return (p_open.at == connector.at && p_open.direction == connector.direction) ||
+							   (p_open.at == mateWall && p_open.direction == inwardDirection);
+					});
+					++extraPlaced;
+				}
+
+				const spk::Vector3Int entryPivot = entryRoom->prefab.pivot();
+				plan.portals.push_back({.from = doorWorld, .to = entryDestination + entryPad->at - entryPivot});
+				plan.portals.push_back({.from = entryDestination + exitPad->at - entryPivot, .to = doorWorld + outward});
+				++plan.stats.interiorCount;
+			}
+
 			void placeBuildings()
 			{
 				const int blocks = cfg.blocksPerCell;
@@ -1892,12 +2567,76 @@ namespace pg
 					{
 						continue;
 					}
-					plan.placements.push_back({.prefabId = pickPrefab(*pool),
-											   .anchor = {offset + entity.col * blocks + blocks / 2,
-														  plan.surfaceY(level) + 1,
-														  offset + entity.row * blocks + blocks / 2},
-											   .orientation = spk::VoxelOrientation::PositiveZ,
-											   .foundation = true});
+					const std::string prefabId = pickPrefab(*pool);
+					const spk::Vector3Int baseAnchor{
+						offset + entity.col * blocks + blocks / 2,
+						plan.surfaceY(level) + 1,
+						offset + entity.row * blocks + blocks / 2};
+
+					// The stairways claimed their zones first: the building only commits
+					// where its own claimed zone is empty, nudging around the cell center
+					// when the exact center is blocked.
+					const std::array<spk::Vector3Int, 9> nudges = {
+						spk::Vector3Int{0, 0, 0},
+						{1, 0, 0},
+						{-1, 0, 0},
+						{0, 0, 1},
+						{0, 0, -1},
+						{2, 0, 0},
+						{-2, 0, 0},
+						{0, 0, 2},
+						{0, 0, -2}};
+					std::optional<PrefabPlacement> chosen;
+					std::optional<Claim> chosenClaim;
+					for (const spk::Vector3Int &nudge : nudges)
+					{
+						PrefabPlacement candidate{
+							.prefabId = prefabId,
+							.anchor = baseAnchor + nudge,
+							.orientation = spk::VoxelOrientation::PositiveZ,
+							.foundation = true};
+						const std::optional<Claim> box = claimBoxFor(candidate);
+						if (!box.has_value())
+						{
+							break; // unknown prefab: the provider will warn when stamping
+						}
+						if (zoneIsFree(*box))
+						{
+							chosen = std::move(candidate);
+							chosenClaim = box;
+							break;
+						}
+					}
+					if (!chosen.has_value())
+					{
+						++plan.stats.placementConflicts;
+						const bool vital = entity.kind == PlanEntityKind::Gym ||
+										   entity.kind == PlanEntityKind::City ||
+										   entity.kind == PlanEntityKind::PortCity;
+						if (!vital)
+						{
+							// Plain POIs yield to whatever claimed the zone before them.
+							++plan.stats.skippedPoiPlacements;
+							continue;
+						}
+						// Progression buildings must exist: keep the center spot and let
+						// the report call the overlap out.
+						chosen = PrefabPlacement{
+							.prefabId = prefabId,
+							.anchor = baseAnchor,
+							.orientation = spk::VoxelOrientation::PositiveZ,
+							.foundation = true};
+						chosenClaim = claimBoxFor(*chosen);
+						plan.stats.warnings.push_back(
+							"'" + prefabId + "' at cell (" + std::to_string(entity.row) + ", " +
+							std::to_string(entity.col) + ") overlaps a prior claim (kept: progression building)");
+					}
+					plan.placements.push_back(*chosen);
+					if (chosenClaim.has_value())
+					{
+						hardClaims.push_back(*chosenClaim);
+					}
+					composeInterior(plan.placements.back());
 				}
 			}
 
@@ -2008,10 +2747,15 @@ namespace pg
 									continue;
 								}
 
-								plan.placements.push_back({.prefabId = entry->prefabId,
-									.anchor = {worldX, plan.surfaceY(plan.height.at(candidate.row, candidate.col)) + 1, worldZ},
-									.orientation = orientationFromQuarterTurns(turns),
-									.foundation = false});
+								PrefabPlacement placement{.prefabId = entry->prefabId, .anchor = {worldX, plan.surfaceY(plan.height.at(candidate.row, candidate.col)) + 1, worldZ}, .orientation = orientationFromQuarterTurns(turns), .foundation = false};
+								// Scenery yields to every structural claim (stairways,
+								// buildings) but keeps its own lighter spacing rules.
+								const std::optional<Claim> claim = claimBoxFor(placement);
+								if (claim.has_value() && !zoneIsFree(*claim))
+								{
+									continue;
+								}
+								plan.placements.push_back(std::move(placement));
 								placedScenery.emplace(std::pair{worldX, worldZ}, entry->spacing);
 								maximumSpacing = std::max(maximumSpacing, entry->spacing);
 								++plan.stats.sceneryPlacements;
@@ -2107,10 +2851,7 @@ namespace pg
 			biome.mapColor = definition.worldgen->mapColor;
 			for (const BiomeScenery &scenery : definition.worldgen->scenery)
 			{
-				biome.scenery.push_back({.prefabId = scenery.prefabId,
-					.density = scenery.density,
-					.spacing = scenery.spacing,
-					.prefabSize = scenery.prefabSize});
+				biome.scenery.push_back({.prefabId = scenery.prefabId, .density = scenery.density, .spacing = scenery.spacing, .prefabSize = scenery.prefabSize});
 			}
 			for (const auto &[slot, pool] : definition.worldgen->prefabs)
 			{
@@ -2168,7 +2909,13 @@ namespace pg
 		out << "gateways (secondary). " << stats.secondaryGateways << "\n";
 		out << "stair prefabs........ " << stats.stairPlacements << "\n";
 		out << "wild stair prefabs... " << stats.wildStairPlacements << " (" << wildStairs.size() << " stairways)\n";
+		out << "composed stairways... " << stats.composedStairPlacements << "\n";
+		out << "rejected stairways... " << stats.rejectedStairways << "\n";
 		out << "scenery prefabs...... " << stats.sceneryPlacements << "\n";
+		out << "interiors composed... " << stats.interiorCount << " (" << stats.interiorRoomPlacements
+			<< " rooms, " << portals.size() << " portals)\n";
+		out << "placement conflicts.. " << stats.placementConflicts << " (" << stats.skippedPoiPlacements
+			<< " POIs skipped)\n";
 		out << "prefab placements.... " << placements.size() << "\n";
 		out << "----------------------------------------------------------------\n";
 		out << "gym on coast......... " << stats.gymOnCoast << "  (MUST be 0)\n";
@@ -2189,8 +2936,10 @@ namespace pg
 	WorldPlan generateWorldPlan(
 		const WorldGenConfig &p_config,
 		const std::vector<PlanBiome> &p_biomes,
-		const PlanPlacementRules &p_placementRules)
+		const PlanPlacementRules &p_placementRules,
+		const Registry<PrefabDefinition> &p_prefabs,
+		const Registry<InteriorDefinition> &p_interiors)
 	{
-		return Generator(p_config, p_biomes, p_placementRules).run();
+		return Generator(p_config, p_biomes, p_placementRules, p_prefabs, p_interiors).run();
 	}
 }

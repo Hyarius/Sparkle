@@ -1,0 +1,8 @@
+{
+	"version": 1,
+	"palette": {"r": "coast-road"},
+	"fill": [
+		{"min": [0, -1, 0], "max": [2, -1, 2], "voxel": "r"}
+	],
+	"clearance": {"min": [0, -1, 0], "max": [2, 3, 2]}
+}

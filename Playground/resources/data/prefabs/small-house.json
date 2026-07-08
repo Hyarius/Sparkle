@@ -1,5 +1,6 @@
 {
   "version": 1,
+	"interior": "house-interior",
   "palette": {"0": null, "1": "stone-block", "2": "wall-stone"},
   "fill": [
     {"min": [0, -1, 0], "max": [6, -1, 5], "voxel": "1"},
