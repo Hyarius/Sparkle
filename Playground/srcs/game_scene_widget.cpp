@@ -22,7 +22,9 @@
 #include "structures/voxel/spk_voxel_chunk_streamer_logic.hpp"
 #include "structures/voxel/spk_voxel_map.hpp"
 #include "voxel/atlas_cell.hpp"
-#include "world/generator/perlin_chunk_provider.hpp"
+#include "world/generator/plan_chunk_provider.hpp"
+#include "world/generator/world_map_image.hpp"
+#include "world/generator/world_plan.hpp"
 #include "world/voxel_world.hpp"
 #include "world/world_navigation.hpp"
 
@@ -150,7 +152,26 @@ namespace pg
 		engine.addEntity(&_cameraEntity);
 
 		_context.world.world = std::make_unique<VoxelWorld>(p_registries.voxels(), &engine);
-		_terrainProvider = std::make_unique<PerlinChunkProvider>(p_registries.voxels(), _worldSeed);
+
+		// Once-per-seed world skeleton: generate, report, and dump the preview map at the
+		// Playground root so the produced world can be inspected outside the game.
+		WorldGenConfig worldConfig;
+		worldConfig.masterSeed = _worldSeed;
+		_worldPlan = std::make_shared<const WorldPlan>(generateWorldPlan(
+			worldConfig, planBiomesFrom(p_registries.biomes()), p_registries.placementRules()));
+		std::cout << _worldPlan->report();
+		const std::filesystem::path mapPath =
+			std::filesystem::path(PG_RESOURCE_DIR).parent_path() / "world_map.png";
+		if (writeWorldMapPng(*_worldPlan, mapPath))
+		{
+			std::cout << "world map written to " << mapPath.generic_string() << std::endl;
+		}
+		else
+		{
+			std::cerr << "failed to write world map to " << mapPath.generic_string() << std::endl;
+		}
+
+		_terrainProvider = std::make_unique<PlanChunkProvider>(p_registries, *_worldPlan);
 		_context.world.world->setProvider(_terrainProvider.get());
 
 		spk::Vector3Int spawnCell = _terrainProvider->spawnCell();

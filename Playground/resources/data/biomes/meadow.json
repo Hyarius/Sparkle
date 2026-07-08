@@ -1,1 +1,32 @@
-{"version":1,"displayName":"Meadow","palette":{"surface":"meadow-block","subsurface":"dirt-block","deep":"stone-block","flora":["bush"]}}
+{
+	"version": 1,
+	"displayName": "Meadow",
+	"palette": {
+		"surface": "meadow-block",
+		"subsurface": "dirt-block",
+		"deep": "stone-block",
+		"flora": [
+			"bush"
+		]
+	},
+	"worldgen": {
+		"heightShift": -0.3,
+		"peak": false,
+		"mapColor": "#9FD070",
+		"prefabs": {
+			"stairway": "meadow-stairway",
+			"gym": "meadow-gym",
+			"city": [
+				"meadow-house",
+				"meadow-hut"
+			],
+			"portCity": "meadow-house",
+			"normalPoi": [
+				"meadow-poi-normal",
+				"bush-cluster"
+			],
+			"uncommonPoi": "meadow-poi-uncommon",
+			"rarePoi": "meadow-poi-rare"
+		}
+	}
+}

@@ -1,6 +1,5 @@
 #include "core/json.hpp"
 
-#include <fstream>
 #include <unordered_set>
 
 namespace
@@ -39,24 +38,18 @@ namespace pg
 		return _message;
 	}
 
-	nlohmann::json JsonLoader::parseFile(const std::filesystem::path &p_file)
+	spk::JSON::Value JsonLoader::parseFile(const std::filesystem::path &p_file)
 	{
-		std::ifstream stream(p_file);
-		if (!stream.is_open())
-		{
-			throw JsonError(p_file, "$", "unable to open file");
-		}
-
 		try
 		{
-			return nlohmann::json::parse(stream);
-		} catch (const nlohmann::json::parse_error &exception)
+			return spk::JSON::Value::loadFromFile(p_file);
+		} catch (const std::exception &exception)
 		{
 			throw JsonError(p_file, "$", std::string("invalid JSON: ") + exception.what());
 		}
 	}
 
-	JsonReader::JsonReader(const nlohmann::json &p_value, std::filesystem::path p_file, std::string p_path) :
+	JsonReader::JsonReader(const spk::JSON::Value &p_value, std::filesystem::path p_file, std::string p_path) :
 		_value(p_value),
 		_file(std::move(p_file)),
 		_path(std::move(p_path))
@@ -73,7 +66,7 @@ namespace pg
 		return _path;
 	}
 
-	const nlohmann::json &JsonReader::value() const noexcept
+	const spk::JSON::Value &JsonReader::value() const noexcept
 	{
 		return _value;
 	}
@@ -91,27 +84,27 @@ namespace pg
 
 	void JsonReader::_requireObject() const
 	{
-		if (!_value.is_object())
+		if (!_value.isObject())
 		{
 			throw JsonError(_file, _path, "expected an object");
 		}
 	}
 
-	const nlohmann::json &JsonReader::_requireMember(const std::string &p_key) const
+	const spk::JSON::Value &JsonReader::_requireMember(const std::string &p_key) const
 	{
 		_requireObject();
-		const auto iterator = _value.find(p_key);
-		if (iterator == _value.end())
+		const spk::JSON::Value *member = _value.find(p_key);
+		if (member == nullptr)
 		{
 			throw JsonError(_file, pathFor(p_key), "missing required field");
 		}
-		return *iterator;
+		return *member;
 	}
 
 	JsonReader JsonReader::child(const std::string &p_key) const
 	{
-		const nlohmann::json &member = _requireMember(p_key);
-		if (!member.is_object())
+		const spk::JSON::Value &member = _requireMember(p_key);
+		if (!member.isObject())
 		{
 			throw JsonError(_file, pathFor(p_key), "expected an object");
 		}
@@ -120,22 +113,23 @@ namespace pg
 
 	std::vector<JsonReader> JsonReader::childArray(const std::string &p_key) const
 	{
-		const nlohmann::json &member = _requireMember(p_key);
-		if (!member.is_array())
+		const spk::JSON::Value &member = _requireMember(p_key);
+		if (!member.isArray())
 		{
 			throw JsonError(_file, pathFor(p_key), "expected an array");
 		}
 
+		const spk::JSON::Value::Array &array = member.asArray();
 		std::vector<JsonReader> result;
-		result.reserve(member.size());
-		for (std::size_t index = 0; index < member.size(); ++index)
+		result.reserve(array.size());
+		for (std::size_t index = 0; index < array.size(); ++index)
 		{
 			const std::string elementPath = pathFor(p_key) + "[" + std::to_string(index) + "]";
-			if (!member[index].is_object())
+			if (!array[index].isObject())
 			{
 				throw JsonError(_file, elementPath, "expected an object");
 			}
-			result.emplace_back(member[index], _file, elementPath);
+			result.emplace_back(array[index], _file, elementPath);
 		}
 		return result;
 	}
@@ -144,7 +138,7 @@ namespace pg
 	{
 		_requireObject();
 		const std::unordered_set<std::string_view> allowedKeys(p_allowedKeys);
-		for (const auto &[key, unused] : _value.items())
+		for (const auto &[key, unused] : _value.asObject())
 		{
 			(void)unused;
 			if (!allowedKeys.contains(key))

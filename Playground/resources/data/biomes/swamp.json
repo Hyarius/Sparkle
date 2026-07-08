@@ -8,5 +8,25 @@
 		"flora": [
 			"bush"
 		]
+	},
+	"worldgen": {
+		"heightShift": -1.0,
+		"peak": false,
+		"mapColor": "#6B8F3F",
+		"prefabs": {
+			"stairway": "swamp-stairway",
+			"gym": "swamp-gym",
+			"city": [
+				"swamp-house",
+				"swamp-hut"
+			],
+			"portCity": "swamp-house",
+			"normalPoi": [
+				"swamp-poi-normal",
+				"bush-cluster"
+			],
+			"uncommonPoi": "swamp-poi-uncommon",
+			"rarePoi": "swamp-poi-rare"
+		}
 	}
 }

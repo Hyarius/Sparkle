@@ -1,1 +1,32 @@
-{"version":1,"displayName":"Desert","palette":{"surface":"sand-block","subsurface":"sand-block","deep":"stone-block","flora":["bush"]}}
+{
+	"version": 1,
+	"displayName": "Desert",
+	"palette": {
+		"surface": "sand-block",
+		"subsurface": "sand-block",
+		"deep": "stone-block",
+		"flora": [
+			"bush"
+		]
+	},
+	"worldgen": {
+		"heightShift": -0.2,
+		"peak": false,
+		"mapColor": "#F2C14E",
+		"prefabs": {
+			"stairway": "desert-stairway",
+			"gym": "desert-gym",
+			"city": [
+				"desert-house",
+				"desert-hut"
+			],
+			"portCity": "desert-house",
+			"normalPoi": [
+				"desert-poi-normal",
+				"bush-cluster"
+			],
+			"uncommonPoi": "desert-poi-uncommon",
+			"rarePoi": "desert-poi-rare"
+		}
+	}
+}

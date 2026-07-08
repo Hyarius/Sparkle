@@ -28,14 +28,16 @@ namespace pg
 	class Registries;
 	class ExplorationInputLogic;
 	class ActorPathLogic;
-	class PerlinChunkProvider;
+	class PlanChunkProvider;
+	struct WorldPlan;
 
 	class GameSceneWidget : public spk::GameEngineWidget
 	{
 	private:
 		GameContext &_context;
 		std::uint64_t _worldSeed = 1;
-		std::unique_ptr<PerlinChunkProvider> _terrainProvider;
+		std::shared_ptr<const WorldPlan> _worldPlan;
+		std::unique_ptr<PlanChunkProvider> _terrainProvider;
 		std::optional<ChunkCoordinates> _streamingFocus;
 
 		spk::SpriteSheet _texture;

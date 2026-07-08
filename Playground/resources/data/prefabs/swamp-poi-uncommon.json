@@ -1,0 +1,57 @@
+{
+	"version": 1,
+	"size": [
+		3,
+		3,
+		3
+	],
+	"palette": {
+		"0": null,
+		"s": "swamp-block",
+		"p": "stone-block",
+		"r": "slab-stone"
+	},
+	"fill": [
+		{
+			"min": [
+				0,
+				0,
+				0
+			],
+			"max": [
+				2,
+				0,
+				2
+			],
+			"voxel": "s"
+		}
+	],
+	"cells": [
+		{
+			"at": [
+				1,
+				1,
+				1
+			],
+			"voxel": "p"
+		},
+		{
+			"at": [
+				1,
+				2,
+				1
+			],
+			"voxel": "r"
+		}
+	],
+	"anchors": [
+		{
+			"name": "center",
+			"at": [
+				1,
+				0,
+				1
+			]
+		}
+	]
+}

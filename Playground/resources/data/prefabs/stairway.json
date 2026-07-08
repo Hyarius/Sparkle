@@ -1,0 +1,24 @@
+{
+	"version": 1,
+	"size": [3, 3, 3],
+	"palette": {"0": null, "r": "road-block", "s": "road-slope"},
+	"fill": [
+		{"min": [0, 0, 1], "max": [2, 0, 2], "voxel": "r"},
+		{"min": [0, 1, 2], "max": [2, 1, 2], "voxel": "r"}
+	],
+	"cells": [
+		{"at": [0, 0, 0], "voxel": "s"},
+		{"at": [1, 0, 0], "voxel": "s"},
+		{"at": [2, 0, 0], "voxel": "s"},
+		{"at": [0, 1, 1], "voxel": "s"},
+		{"at": [1, 1, 1], "voxel": "s"},
+		{"at": [2, 1, 1], "voxel": "s"},
+		{"at": [0, 2, 2], "voxel": "s"},
+		{"at": [1, 2, 2], "voxel": "s"},
+		{"at": [2, 2, 2], "voxel": "s"}
+	],
+	"anchors": [
+		{"name": "bottom", "at": [1, 0, 0]},
+		{"name": "top", "at": [1, 2, 2]}
+	]
+}

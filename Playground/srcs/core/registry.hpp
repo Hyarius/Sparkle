@@ -76,7 +76,7 @@ namespace pg
 					throw JsonError(file, "$", "duplicate registry id '" + id + "'");
 				}
 
-				nlohmann::json json = JsonLoader::parseFile(file);
+				const spk::JSON::Value json = JsonLoader::parseFile(file);
 				JsonReader reader(json, file);
 				TDefinition definition = std::invoke(p_parse, reader);
 				if constexpr (requires { definition.id = id; })

@@ -1,0 +1,12 @@
+{
+	"version": 1,
+	"stairway": "stairway",
+	"entities": {
+		"gym": "gym-shell",
+		"city": ["town-house", "small-house"],
+		"portCity": "small-house",
+		"rarePoi": null,
+		"uncommonPoi": null,
+		"normalPoi": "bush-cluster"
+	}
+}

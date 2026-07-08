@@ -1,1 +1,32 @@
-{"version":1,"displayName":"Coast","palette":{"surface":"coast-block","subsurface":"sand-block","deep":"stone-block","flora":["bush"]}}
+{
+	"version": 1,
+	"displayName": "Coast",
+	"palette": {
+		"surface": "coast-block",
+		"subsurface": "sand-block",
+		"deep": "stone-block",
+		"flora": [
+			"bush"
+		]
+	},
+	"worldgen": {
+		"heightShift": -1.2,
+		"peak": false,
+		"mapColor": "#5FB0B7",
+		"prefabs": {
+			"stairway": "coast-stairway",
+			"gym": "coast-gym",
+			"city": [
+				"coast-house",
+				"coast-hut"
+			],
+			"portCity": "coast-house",
+			"normalPoi": [
+				"coast-poi-normal",
+				"bush-cluster"
+			],
+			"uncommonPoi": "coast-poi-uncommon",
+			"rarePoi": "coast-poi-rare"
+		}
+	}
+}

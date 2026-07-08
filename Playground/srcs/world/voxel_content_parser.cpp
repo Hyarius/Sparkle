@@ -85,22 +85,22 @@ namespace pg::detail
 	VoxelPalette parsePalette(const JsonReader &p_reader, const VoxelRegistry &p_voxels)
 	{
 		const JsonReader paletteReader = p_reader.child("palette");
-		if (!paletteReader.value().is_object())
+		if (!paletteReader.value().isObject())
 		{
 			throw JsonError(p_reader.file(), p_reader.pathFor("palette"), "expected an object");
 		}
 
 		VoxelPalette palette;
-		for (const auto &[token, value] : paletteReader.value().items())
+		for (const auto &[token, value] : paletteReader.value().asObject())
 		{
 			VoxelCell cell;
-			if (!value.is_null())
+			if (!value.isNull())
 			{
-				if (!value.is_string())
+				if (!value.isString())
 				{
 					throw JsonError(p_reader.file(), paletteReader.pathFor(token), "expected voxel id string or null");
 				}
-				const std::string voxelId = value.get<std::string>();
+				const std::string voxelId = value.as<std::string>();
 				const VoxelDefinition *definition = p_voxels.tryGet(voxelId);
 				if (definition == nullptr)
 				{

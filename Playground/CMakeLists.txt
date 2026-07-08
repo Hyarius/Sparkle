@@ -2,8 +2,6 @@ cmake_minimum_required(VERSION 3.16)
 
 project(SparklePlayground LANGUAGES CXX)
 
-find_package(nlohmann_json CONFIG REQUIRED)
-
 file(GLOB_RECURSE PLAYGROUND_CORE_SOURCES
 	CONFIGURE_DEPENDS
 	"${CMAKE_CURRENT_SOURCE_DIR}/srcs/*.cpp"
@@ -15,7 +13,6 @@ add_library(PlaygroundCore STATIC ${PLAYGROUND_CORE_SOURCES})
 target_link_libraries(PlaygroundCore
 	PUBLIC
 		Sparkle::Sparkle
-		nlohmann_json::nlohmann_json
 )
 
 target_include_directories(PlaygroundCore

@@ -1,1 +1,32 @@
-{"version":1,"displayName":"Forest","palette":{"surface":"grass-block","subsurface":"dirt-block","deep":"stone-block","flora":["bush"]}}
+{
+	"version": 1,
+	"displayName": "Forest",
+	"palette": {
+		"surface": "grass-block",
+		"subsurface": "dirt-block",
+		"deep": "stone-block",
+		"flora": [
+			"bush"
+		]
+	},
+	"worldgen": {
+		"heightShift": 0.0,
+		"peak": false,
+		"mapColor": "#3FA34D",
+		"prefabs": {
+			"stairway": "forest-stairway",
+			"gym": "forest-gym",
+			"city": [
+				"forest-house",
+				"forest-hut"
+			],
+			"portCity": "forest-house",
+			"normalPoi": [
+				"forest-poi-normal",
+				"bush-cluster"
+			],
+			"uncommonPoi": "forest-poi-uncommon",
+			"rarePoi": "forest-poi-rare"
+		}
+	}
+}

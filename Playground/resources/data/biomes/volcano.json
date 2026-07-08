@@ -1,1 +1,32 @@
-{"version":1,"displayName":"Volcano","palette":{"surface":"ash-block","subsurface":"stone-block","deep":"stone-block","flora":["bush"]}}
+{
+	"version": 1,
+	"displayName": "Volcano",
+	"palette": {
+		"surface": "ash-block",
+		"subsurface": "stone-block",
+		"deep": "stone-block",
+		"flora": [
+			"bush"
+		]
+	},
+	"worldgen": {
+		"heightShift": 1.0,
+		"peak": true,
+		"mapColor": "#B35442",
+		"prefabs": {
+			"stairway": "volcano-stairway",
+			"gym": "volcano-gym",
+			"city": [
+				"volcano-house",
+				"volcano-hut"
+			],
+			"portCity": "volcano-house",
+			"normalPoi": [
+				"volcano-poi-normal",
+				"bush-cluster"
+			],
+			"uncommonPoi": "volcano-poi-uncommon",
+			"rarePoi": "volcano-poi-rare"
+		}
+	}
+}

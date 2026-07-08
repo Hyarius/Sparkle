@@ -1,1 +1,32 @@
-{"version":1,"displayName":"Highland","palette":{"surface":"highland-block","subsurface":"stone-block","deep":"stone-block","flora":["bush"]}}
+{
+	"version": 1,
+	"displayName": "Highland",
+	"palette": {
+		"surface": "highland-block",
+		"subsurface": "stone-block",
+		"deep": "stone-block",
+		"flora": [
+			"bush"
+		]
+	},
+	"worldgen": {
+		"heightShift": 1.2,
+		"peak": true,
+		"mapColor": "#B08968",
+		"prefabs": {
+			"stairway": "highland-stairway",
+			"gym": "highland-gym",
+			"city": [
+				"highland-house",
+				"highland-hut"
+			],
+			"portCity": "highland-house",
+			"normalPoi": [
+				"highland-poi-normal",
+				"bush-cluster"
+			],
+			"uncommonPoi": "highland-poi-uncommon",
+			"rarePoi": "highland-poi-rare"
+		}
+	}
+}

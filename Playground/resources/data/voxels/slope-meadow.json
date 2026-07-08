@@ -1,0 +1,34 @@
+{
+	"version": 1,
+	"traversal": "solid",
+	"tags": [
+		"ground",
+		"meadow",
+		"slope"
+	],
+	"shape": {
+		"type": "slope",
+		"textures": {
+			"slope": [
+				2,
+				0
+			],
+			"back": [
+				2,
+				0
+			],
+			"bottom": [
+				2,
+				0
+			],
+			"sideLeft": [
+				2,
+				0
+			],
+			"sideRight": [
+				2,
+				0
+			]
+		}
+	}
+}

@@ -8,5 +8,25 @@
 		"flora": [
 			"bush"
 		]
+	},
+	"worldgen": {
+		"heightShift": 0.6,
+		"peak": true,
+		"mapColor": "#CFE0E8",
+		"prefabs": {
+			"stairway": "tundra-stairway",
+			"gym": "tundra-gym",
+			"city": [
+				"tundra-house",
+				"tundra-hut"
+			],
+			"portCity": "tundra-house",
+			"normalPoi": [
+				"tundra-poi-normal",
+				"bush-cluster"
+			],
+			"uncommonPoi": "tundra-poi-uncommon",
+			"rarePoi": "tundra-poi-rare"
+		}
 	}
 }

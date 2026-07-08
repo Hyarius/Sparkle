@@ -1,0 +1,34 @@
+{
+	"version": 1,
+	"traversal": "solid",
+	"tags": [
+		"ground",
+		"volcano",
+		"slope"
+	],
+	"shape": {
+		"type": "slope",
+		"textures": {
+			"slope": [
+				4,
+				4
+			],
+			"back": [
+				4,
+				4
+			],
+			"bottom": [
+				3,
+				0
+			],
+			"sideLeft": [
+				4,
+				4
+			],
+			"sideRight": [
+				4,
+				4
+			]
+		}
+	}
+}
