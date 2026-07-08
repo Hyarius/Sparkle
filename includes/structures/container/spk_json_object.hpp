@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cmath>
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
@@ -29,11 +30,18 @@ namespace spk::JSON
 		std::size_t indentationSize = 4;
 	};
 
-	class Object
+	struct ParseOptions
+	{
+		bool rejectDuplicateKeys = true;
+		bool allowUtf8Bom = true;
+		std::size_t maxDepth = 512;
+	};
+
+	class Value
 	{
 	public:
-		using Members = std::map<std::string, Object, std::less<>>;
-		using Array = std::vector<Object>;
+		using Members = std::map<std::string, Value, std::less<>>;
+		using Array = std::vector<Value>;
 
 		enum class Type
 		{
@@ -59,37 +67,37 @@ namespace spk::JSON
 		Storage _storage = nullptr;
 
 	public:
-		Object() = default;
-		Object(std::nullptr_t);
-		Object(bool p_value);
-		Object(const char *p_value);
-		Object(std::string p_value);
-		Object(std::string_view p_value);
+		Value() = default;
+		Value(std::nullptr_t);
+		Value(bool p_value);
+		Value(const char *p_value);
+		Value(std::string p_value);
+		Value(std::string_view p_value);
 
 		template <native_integer T>
-		Object(T p_value)
+		Value(T p_value)
 		{
 			set(p_value);
 		}
 
 		template <native_floating T>
-		Object(T p_value)
+		Value(T p_value)
 		{
 			set(p_value);
 		}
 
 		template <json_writable T>
-		Object(const T &p_value)
+		Value(const T &p_value)
 		{
 			set(p_value);
 		}
 
-		static Object null();
-		static Object object();
-		static Object array();
+		static Value null();
+		static Value object();
+		static Value array();
 
-		static Object fromString(std::string_view p_content);
-		static Object loadFromFile(const std::filesystem::path &p_path);
+		static Value fromString(std::string_view p_content, const ParseOptions &p_options = {});
+		static Value loadFromFile(const std::filesystem::path &p_path, const ParseOptions &p_options = {});
 
 		void saveToFile(const std::filesystem::path &p_path, const FormatOptions &p_options = {}) const;
 		std::string toString(const FormatOptions &p_options = {}) const;
@@ -106,9 +114,9 @@ namespace spk::JSON
 		bool isObject() const;
 		bool isArray() const;
 
-		void setAsNull();
-		void setAsObject();
-		void setAsArray();
+		void resetToNull();
+		void resetToObject();
+		void resetToArray();
 
 		Members &asObject();
 		const Members &asObject() const;
@@ -119,50 +127,50 @@ namespace spk::JSON
 		bool contains(std::string_view p_key) const;
 		std::size_t count(std::string_view p_key) const;
 
-		Object *find(std::string_view p_key);
-		const Object *find(std::string_view p_key) const;
+		Value *find(std::string_view p_key);
+		const Value *find(std::string_view p_key) const;
 
-		Object &at(std::string_view p_key);
-		const Object &at(std::string_view p_key) const;
+		Value &at(std::string_view p_key);
+		const Value &at(std::string_view p_key) const;
 
-		Object &at(std::size_t p_index);
-		const Object &at(std::size_t p_index) const;
+		Value &at(std::size_t p_index);
+		const Value &at(std::size_t p_index) const;
 
-		Object &operator[](std::string_view p_key);
-		const Object &operator[](std::string_view p_key) const;
+		// On a null value, non-const object access creates an object and its missing member.
+		Value &operator[](std::string_view p_key);
+		const Value &operator[](std::string_view p_key) const;
 
-		Object &operator[](std::size_t p_index);
-		const Object &operator[](std::size_t p_index) const;
+		Value &operator[](std::size_t p_index);
+		const Value &operator[](std::size_t p_index) const;
 
-		Object &append();
-		void pushBack(const Object &p_value);
-		void pushBack(Object &&p_value);
+		Value &append();
+		Value &pushBack(Value p_value);
 		void resize(std::size_t p_size);
 		std::size_t size() const;
 		bool empty() const;
 
-		Object &operator=(std::nullptr_t);
-		Object &operator=(bool p_value);
-		Object &operator=(const char *p_value);
-		Object &operator=(std::string p_value);
-		Object &operator=(std::string_view p_value);
+		Value &operator=(std::nullptr_t);
+		Value &operator=(bool p_value);
+		Value &operator=(const char *p_value);
+		Value &operator=(std::string p_value);
+		Value &operator=(std::string_view p_value);
 
 		template <native_integer T>
-		Object &operator=(T p_value)
+		Value &operator=(T p_value)
 		{
 			set(p_value);
 			return *this;
 		}
 
 		template <native_floating T>
-		Object &operator=(T p_value)
+		Value &operator=(T p_value)
 		{
 			set(p_value);
 			return *this;
 		}
 
 		template <json_writable T>
-		Object &operator=(const T &p_value)
+		Value &operator=(const T &p_value)
 		{
 			set(p_value);
 			return *this;
@@ -194,18 +202,23 @@ namespace spk::JSON
 		template <native_floating T>
 		void set(T p_value)
 		{
-			_storage = static_cast<double>(p_value);
+			const double value = static_cast<double>(p_value);
+			if (!std::isfinite(value))
+			{
+				detail::raise("JSON floating value must be finite");
+			}
+			_storage = value;
 		}
 
 		template <json_writable T>
 		void set(const T &p_value)
 		{
-			Object serialized = toJSON(p_value);
+			Value serialized = toJSON(p_value);
 			_storage = std::move(serialized._storage);
 		}
 
 		template <typename T>
-		bool holds() const
+		bool canAs() const
 		{
 			using CleanType = std::remove_cvref_t<T>;
 
@@ -219,11 +232,30 @@ namespace spk::JSON
 			}
 			else if constexpr (native_integer<CleanType>)
 			{
-				return isInteger();
+				const std::int64_t *value = std::get_if<std::int64_t>(&_storage);
+				if (value == nullptr)
+				{
+					return false;
+				}
+				if constexpr (std::signed_integral<CleanType>)
+				{
+					return *value >= static_cast<std::int64_t>(std::numeric_limits<CleanType>::min()) &&
+						   *value <= static_cast<std::int64_t>(std::numeric_limits<CleanType>::max());
+				}
+				else
+				{
+					return *value >= 0 &&
+						   static_cast<std::uint64_t>(*value) <= static_cast<std::uint64_t>(std::numeric_limits<CleanType>::max());
+				}
 			}
 			else if constexpr (native_floating<CleanType>)
 			{
-				return isFloating() || isInteger();
+				if (const double *value = std::get_if<double>(&_storage))
+				{
+					return *value >= static_cast<double>(std::numeric_limits<CleanType>::lowest()) &&
+						   *value <= static_cast<double>(std::numeric_limits<CleanType>::max());
+				}
+				return isInteger();
 			}
 			else if constexpr (std::same_as<CleanType, std::string>)
 			{
@@ -235,8 +267,15 @@ namespace spk::JSON
 			}
 		}
 
+		// Compatibility spelling. It now has the same safe-conversion semantics as canAs().
 		template <typename T>
-		T as() const
+		bool holds() const
+		{
+			return canAs<T>();
+		}
+
+		template <typename T>
+		std::remove_cvref_t<T> as() const
 		{
 			using CleanType = std::remove_cvref_t<T>;
 
@@ -263,21 +302,9 @@ namespace spk::JSON
 				{
 					detail::raise("Wrong JSON type requested: expected integer");
 				}
-
-				if constexpr (std::signed_integral<CleanType>)
+				if (!canAs<CleanType>())
 				{
-					if (*value < static_cast<std::int64_t>(std::numeric_limits<CleanType>::min()) ||
-						*value > static_cast<std::int64_t>(std::numeric_limits<CleanType>::max()))
-					{
-						detail::raise("JSON integer value is outside of requested integer type range");
-					}
-				}
-				else
-				{
-					if (*value < 0 || static_cast<std::uint64_t>(*value) > static_cast<std::uint64_t>(std::numeric_limits<CleanType>::max()))
-					{
-						detail::raise("JSON integer value is outside of requested unsigned integer type range");
-					}
+					detail::raise("JSON integer value is outside of requested integer type range");
 				}
 				return static_cast<CleanType>(*value);
 			}
@@ -285,6 +312,10 @@ namespace spk::JSON
 			{
 				if (const double *value = std::get_if<double>(&_storage))
 				{
+					if (!canAs<CleanType>())
+					{
+						detail::raise("JSON floating value is outside of requested floating type range");
+					}
 					return static_cast<CleanType>(*value);
 				}
 				if (const std::int64_t *value = std::get_if<std::int64_t>(&_storage))
@@ -309,12 +340,14 @@ namespace spk::JSON
 			}
 			else
 			{
-				static_assert(sizeof(CleanType) == 0, "Type is not readable from spk::JSON::Object");
+				static_assert(sizeof(CleanType) == 0, "Type is not readable from spk::JSON::Value");
 			}
 		}
 
 		void write(std::ostream &p_stream, const FormatOptions &p_options = {}) const;
 
-		friend std::ostream &operator<<(std::ostream &p_stream, const Object &p_object);
+		bool operator==(const Value &) const = default;
+
+		friend std::ostream &operator<<(std::ostream &p_stream, const Value &p_value);
 	};
 }

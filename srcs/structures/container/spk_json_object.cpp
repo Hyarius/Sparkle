@@ -1,5 +1,6 @@
 #include "structures/container/spk_json_object.hpp"
 
+#include <array>
 #include <charconv>
 #include <cmath>
 #include <fstream>
@@ -18,56 +19,56 @@ namespace spk::JSON
 		}
 	}
 
-	Object::Object(std::nullptr_t)
+	Value::Value(std::nullptr_t)
 	{
 		set(nullptr);
 	}
 
-	Object::Object(bool p_value)
+	Value::Value(bool p_value)
 	{
 		set(p_value);
 	}
 
-	Object::Object(const char *p_value)
+	Value::Value(const char *p_value)
 	{
 		set(p_value);
 	}
 
-	Object::Object(std::string p_value)
+	Value::Value(std::string p_value)
 	{
 		set(std::move(p_value));
 	}
 
-	Object::Object(std::string_view p_value)
+	Value::Value(std::string_view p_value)
 	{
 		set(p_value);
 	}
 
-	Object Object::null()
+	Value Value::null()
 	{
-		return Object(nullptr);
+		return Value(nullptr);
 	}
 
-	Object Object::object()
+	Value Value::object()
 	{
-		Object result;
-		result.setAsObject();
+		Value result;
+		result.resetToObject();
 		return result;
 	}
 
-	Object Object::array()
+	Value Value::array()
 	{
-		Object result;
-		result.setAsArray();
+		Value result;
+		result.resetToArray();
 		return result;
 	}
 
-	void Object::reset()
+	void Value::reset()
 	{
 		_storage = nullptr;
 	}
 
-	Object::Type Object::type() const
+	Value::Type Value::type() const
 	{
 		switch (_storage.index())
 		{
@@ -90,62 +91,62 @@ namespace spk::JSON
 		}
 	}
 
-	bool Object::isNull() const
+	bool Value::isNull() const
 	{
 		return std::holds_alternative<std::nullptr_t>(_storage);
 	}
 
-	bool Object::isBoolean() const
+	bool Value::isBoolean() const
 	{
 		return std::holds_alternative<bool>(_storage);
 	}
 
-	bool Object::isInteger() const
+	bool Value::isInteger() const
 	{
 		return std::holds_alternative<std::int64_t>(_storage);
 	}
 
-	bool Object::isFloating() const
+	bool Value::isFloating() const
 	{
 		return std::holds_alternative<double>(_storage);
 	}
 
-	bool Object::isNumber() const
+	bool Value::isNumber() const
 	{
 		return isInteger() || isFloating();
 	}
 
-	bool Object::isString() const
+	bool Value::isString() const
 	{
 		return std::holds_alternative<std::string>(_storage);
 	}
 
-	bool Object::isObject() const
+	bool Value::isObject() const
 	{
 		return std::holds_alternative<Members>(_storage);
 	}
 
-	bool Object::isArray() const
+	bool Value::isArray() const
 	{
 		return std::holds_alternative<Array>(_storage);
 	}
 
-	void Object::setAsNull()
+	void Value::resetToNull()
 	{
 		_storage = nullptr;
 	}
 
-	void Object::setAsObject()
+	void Value::resetToObject()
 	{
 		_storage = Members{};
 	}
 
-	void Object::setAsArray()
+	void Value::resetToArray()
 	{
 		_storage = Array{};
 	}
 
-	Object::Members &Object::asObject()
+	Value::Members &Value::asObject()
 	{
 		if (Members *members = std::get_if<Members>(&_storage))
 		{
@@ -154,7 +155,7 @@ namespace spk::JSON
 		detail::raise("JSON value is not an object");
 	}
 
-	const Object::Members &Object::asObject() const
+	const Value::Members &Value::asObject() const
 	{
 		if (const Members *members = std::get_if<Members>(&_storage))
 		{
@@ -163,7 +164,7 @@ namespace spk::JSON
 		detail::raise("JSON value is not an object");
 	}
 
-	Object::Array &Object::asArray()
+	Value::Array &Value::asArray()
 	{
 		if (Array *array = std::get_if<Array>(&_storage))
 		{
@@ -172,7 +173,7 @@ namespace spk::JSON
 		detail::raise("JSON value is not an array");
 	}
 
-	const Object::Array &Object::asArray() const
+	const Value::Array &Value::asArray() const
 	{
 		if (const Array *array = std::get_if<Array>(&_storage))
 		{
@@ -181,50 +182,50 @@ namespace spk::JSON
 		detail::raise("JSON value is not an array");
 	}
 
-	bool Object::contains(std::string_view p_key) const
+	bool Value::contains(std::string_view p_key) const
 	{
 		const Members &members = asObject();
 		return members.find(p_key) != members.end();
 	}
 
-	std::size_t Object::count(std::string_view p_key) const
+	std::size_t Value::count(std::string_view p_key) const
 	{
 		return contains(p_key) ? 1u : 0u;
 	}
 
-	Object *Object::find(std::string_view p_key)
+	Value *Value::find(std::string_view p_key)
 	{
 		Members &members = asObject();
 		auto it = members.find(p_key);
 		return it == members.end() ? nullptr : &it->second;
 	}
 
-	const Object *Object::find(std::string_view p_key) const
+	const Value *Value::find(std::string_view p_key) const
 	{
 		const Members &members = asObject();
 		auto it = members.find(p_key);
 		return it == members.end() ? nullptr : &it->second;
 	}
 
-	Object &Object::at(std::string_view p_key)
+	Value &Value::at(std::string_view p_key)
 	{
-		if (Object *value = find(p_key))
+		if (Value *value = find(p_key))
 		{
 			return *value;
 		}
 		detail::raise("Missing JSON object member: " + std::string(p_key));
 	}
 
-	const Object &Object::at(std::string_view p_key) const
+	const Value &Value::at(std::string_view p_key) const
 	{
-		if (const Object *value = find(p_key))
+		if (const Value *value = find(p_key))
 		{
 			return *value;
 		}
 		detail::raise("Missing JSON object member: " + std::string(p_key));
 	}
 
-	Object &Object::at(std::size_t p_index)
+	Value &Value::at(std::size_t p_index)
 	{
 		Array &array = asArray();
 		if (p_index >= array.size())
@@ -234,7 +235,7 @@ namespace spk::JSON
 		return array[p_index];
 	}
 
-	const Object &Object::at(std::size_t p_index) const
+	const Value &Value::at(std::size_t p_index) const
 	{
 		const Array &array = asArray();
 		if (p_index >= array.size())
@@ -244,65 +245,62 @@ namespace spk::JSON
 		return array[p_index];
 	}
 
-	Object &Object::operator[](std::string_view p_key)
+	Value &Value::operator[](std::string_view p_key)
 	{
 		if (isNull())
 		{
-			setAsObject();
+			resetToObject();
 		}
 		return asObject()[std::string(p_key)];
 	}
 
-	const Object &Object::operator[](std::string_view p_key) const
+	const Value &Value::operator[](std::string_view p_key) const
 	{
 		return at(p_key);
 	}
 
-	Object &Object::operator[](std::size_t p_index)
+	Value &Value::operator[](std::size_t p_index)
 	{
 		return at(p_index);
 	}
 
-	const Object &Object::operator[](std::size_t p_index) const
+	const Value &Value::operator[](std::size_t p_index) const
 	{
 		return at(p_index);
 	}
 
-	Object &Object::append()
+	Value &Value::append()
 	{
 		if (isNull())
 		{
-			setAsArray();
+			resetToArray();
 		}
 		Array &array = asArray();
 		array.emplace_back();
 		return array.back();
 	}
 
-	void Object::pushBack(const Object &p_value)
-	{
-		append() = p_value;
-	}
-
-	void Object::pushBack(Object &&p_value)
+	Value &Value::pushBack(Value p_value)
 	{
 		if (isNull())
 		{
-			setAsArray();
+			resetToArray();
 		}
-		asArray().push_back(std::move(p_value));
+		Array &array = asArray();
+		array.push_back(std::move(p_value));
+		return array.back();
 	}
 
-	void Object::resize(std::size_t p_size)
+	void Value::resize(std::size_t p_size)
 	{
 		if (isNull())
 		{
-			setAsArray();
+			resetToArray();
 		}
 		asArray().resize(p_size);
 	}
 
-	std::size_t Object::size() const
+	std::size_t Value::size() const
 	{
 		if (const Members *members = std::get_if<Members>(&_storage))
 		{
@@ -315,52 +313,52 @@ namespace spk::JSON
 		detail::raise("Only JSON object and array values have a size");
 	}
 
-	bool Object::empty() const
+	bool Value::empty() const
 	{
 		return size() == 0;
 	}
 
-	Object &Object::operator=(std::nullptr_t)
+	Value &Value::operator=(std::nullptr_t)
 	{
 		set(nullptr);
 		return *this;
 	}
 
-	Object &Object::operator=(bool p_value)
+	Value &Value::operator=(bool p_value)
 	{
 		set(p_value);
 		return *this;
 	}
 
-	Object &Object::operator=(const char *p_value)
+	Value &Value::operator=(const char *p_value)
 	{
 		set(p_value);
 		return *this;
 	}
 
-	Object &Object::operator=(std::string p_value)
+	Value &Value::operator=(std::string p_value)
 	{
 		set(std::move(p_value));
 		return *this;
 	}
 
-	Object &Object::operator=(std::string_view p_value)
+	Value &Value::operator=(std::string_view p_value)
 	{
 		set(p_value);
 		return *this;
 	}
 
-	void Object::set(std::nullptr_t)
+	void Value::set(std::nullptr_t)
 	{
 		_storage = nullptr;
 	}
 
-	void Object::set(bool p_value)
+	void Value::set(bool p_value)
 	{
 		_storage = p_value;
 	}
 
-	void Object::set(const char *p_value)
+	void Value::set(const char *p_value)
 	{
 		if (p_value == nullptr)
 		{
@@ -370,12 +368,12 @@ namespace spk::JSON
 		_storage = std::string(p_value);
 	}
 
-	void Object::set(std::string p_value)
+	void Value::set(std::string p_value)
 	{
 		_storage = std::move(p_value);
 	}
 
-	void Object::set(std::string_view p_value)
+	void Value::set(std::string_view p_value)
 	{
 		_storage = std::string(p_value);
 	}
@@ -386,18 +384,29 @@ namespace spk::JSON
 		{
 		private:
 			std::string_view _source;
+			ParseOptions _options;
 			std::size_t _index = 0;
 
 		public:
-			explicit Parser(std::string_view p_source) :
-				_source(p_source)
+			explicit Parser(std::string_view p_source, const ParseOptions &p_options) :
+				_source(p_source),
+				_options(p_options)
 			{
+				constexpr std::string_view utf8Bom = "\xEF\xBB\xBF";
+				if (_source.starts_with(utf8Bom))
+				{
+					if (!_options.allowUtf8Bom)
+					{
+						error("UTF-8 BOM is not allowed");
+					}
+					_source.remove_prefix(utf8Bom.size());
+				}
 			}
 
-			Object parse()
+			Value parse()
 			{
 				skipWhitespaces();
-				Object result = parseValue();
+				Value result = parseValue(0);
 				skipWhitespaces();
 				if (!isAtEnd())
 				{
@@ -498,8 +507,12 @@ namespace spk::JSON
 				return result;
 			}
 
-			Object parseValue()
+			Value parseValue(std::size_t p_depth)
 			{
+				if (p_depth > _options.maxDepth)
+				{
+					error("Maximum JSON nesting depth exceeded");
+				}
 				skipWhitespaces();
 				if (isAtEnd())
 				{
@@ -510,19 +523,19 @@ namespace spk::JSON
 				{
 				case 'n':
 					parseLiteral("null");
-					return Object(nullptr);
+					return Value(nullptr);
 				case 't':
 					parseLiteral("true");
-					return Object(true);
+					return Value(true);
 				case 'f':
 					parseLiteral("false");
-					return Object(false);
+					return Value(false);
 				case '"':
-					return Object(parseString());
+					return Value(parseString());
 				case '{':
-					return parseObject();
+					return parseObject(p_depth);
 				case '[':
-					return parseArray();
+					return parseArray(p_depth);
 				case '-':
 				case '0':
 				case '1':
@@ -551,9 +564,9 @@ namespace spk::JSON
 				}
 			}
 
-			Object parseObject()
+			Value parseObject(std::size_t p_depth)
 			{
-				Object result = Object::object();
+				Value result = Value::object();
 				expect('{', "Expected '{'");
 				skipWhitespaces();
 				if (consumeIf('}'))
@@ -572,12 +585,21 @@ namespace spk::JSON
 					std::string key = parseString();
 					skipWhitespaces();
 					expect(':', "Expected ':' after object key");
-					Object value = parseValue();
+					Value value = parseValue(p_depth + 1);
 
-					auto [it, inserted] = result.asObject().emplace(std::move(key), std::move(value));
-					if (!inserted)
+					auto &members = result.asObject();
+					auto existing = members.find(key);
+					if (existing != members.end())
 					{
-						error("Duplicate JSON object key");
+						if (_options.rejectDuplicateKeys)
+						{
+							error("Duplicate JSON object key");
+						}
+						existing->second = std::move(value);
+					}
+					else
+					{
+						members.emplace(std::move(key), std::move(value));
 					}
 
 					skipWhitespaces();
@@ -589,9 +611,9 @@ namespace spk::JSON
 				}
 			}
 
-			Object parseArray()
+			Value parseArray(std::size_t p_depth)
 			{
-				Object result = Object::array();
+				Value result = Value::array();
 				expect('[', "Expected '['");
 				skipWhitespaces();
 				if (consumeIf(']'))
@@ -601,7 +623,7 @@ namespace spk::JSON
 
 				while (true)
 				{
-					result.pushBack(parseValue());
+					result.pushBack(parseValue(p_depth + 1));
 					skipWhitespaces();
 					if (consumeIf(']'))
 					{
@@ -759,7 +781,7 @@ namespace spk::JSON
 				return result;
 			}
 
-			Object parseNumber()
+			Value parseNumber()
 			{
 				const std::size_t start = _index;
 
@@ -807,7 +829,7 @@ namespace spk::JSON
 					{
 						error("Invalid floating JSON number");
 					}
-					return Object(value);
+					return Value(value);
 				}
 
 				std::int64_t value = 0;
@@ -816,7 +838,7 @@ namespace spk::JSON
 				{
 					error("Invalid integer JSON number");
 				}
-				return Object(value);
+				return Value(value);
 			}
 
 			void consumeDigits(std::string_view p_errorMessage)
@@ -893,12 +915,29 @@ namespace spk::JSON
 			{
 			}
 
-			void write(const Object &p_value)
+			void write(const Value &p_value)
 			{
 				writeValue(p_value, 0);
 			}
 
 		private:
+			void writeDouble(double p_value)
+			{
+				if (!std::isfinite(p_value))
+				{
+					detail::raise("JSON floating value must be finite");
+				}
+
+				std::array<char, 128> buffer{};
+				const auto [end, error] = std::to_chars(
+					buffer.data(), buffer.data() + buffer.size(), p_value, std::chars_format::general);
+				if (error != std::errc{})
+				{
+					detail::raise("Unable to serialize JSON floating value");
+				}
+				_stream.write(buffer.data(), static_cast<std::streamsize>(end - buffer.data()));
+			}
+
 			void writeIndent(std::size_t p_depth)
 			{
 				if (!_options.pretty)
@@ -919,35 +958,35 @@ namespace spk::JSON
 				}
 			}
 
-			void writeValue(const Object &p_value, std::size_t p_depth)
+			void writeValue(const Value &p_value, std::size_t p_depth)
 			{
 				switch (p_value.type())
 				{
-				case Object::Type::Null:
+				case Value::Type::Null:
 					_stream << "null";
 					break;
-				case Object::Type::Boolean:
+				case Value::Type::Boolean:
 					_stream << (p_value.as<bool>() ? "true" : "false");
 					break;
-				case Object::Type::Integer:
+				case Value::Type::Integer:
 					_stream << p_value.as<std::int64_t>();
 					break;
-				case Object::Type::Floating:
-					_stream << std::setprecision(std::numeric_limits<double>::max_digits10) << p_value.as<double>();
+				case Value::Type::Floating:
+					writeDouble(p_value.as<double>());
 					break;
-				case Object::Type::String:
+				case Value::Type::String:
 					_stream << escapeString(p_value.as<std::string>());
 					break;
-				case Object::Type::Object:
+				case Value::Type::Object:
 					writeObject(p_value.asObject(), p_depth);
 					break;
-				case Object::Type::Array:
+				case Value::Type::Array:
 					writeArray(p_value.asArray(), p_depth);
 					break;
 				}
 			}
 
-			void writeObject(const Object::Members &p_members, std::size_t p_depth)
+			void writeObject(const Value::Members &p_members, std::size_t p_depth)
 			{
 				_stream << '{';
 				if (p_members.empty())
@@ -975,7 +1014,7 @@ namespace spk::JSON
 				_stream << '}';
 			}
 
-			void writeArray(const Object::Array &p_array, std::size_t p_depth)
+			void writeArray(const Value::Array &p_array, std::size_t p_depth)
 			{
 				_stream << '[';
 				if (p_array.empty())
@@ -1003,49 +1042,57 @@ namespace spk::JSON
 		};
 	}
 
-	Object Object::fromString(std::string_view p_content)
+	Value Value::fromString(std::string_view p_content, const ParseOptions &p_options)
 	{
-		return Parser(p_content).parse();
+		return Parser(p_content, p_options).parse();
 	}
 
-	Object Object::loadFromFile(const std::filesystem::path &p_path)
+	Value Value::loadFromFile(const std::filesystem::path &p_path, const ParseOptions &p_options)
 	{
-		std::ifstream file(p_path);
-		if (!file.is_open())
+		std::ifstream file(p_path, std::ios::binary);
+		if (!file)
 		{
-			detail::raise("Unable to open JSON file");
+			detail::raise("Unable to open JSON file: " + p_path.string());
 		}
 
-		std::stringstream stream;
+		std::ostringstream stream;
 		stream << file.rdbuf();
-		return fromString(stream.str());
+		if (!file.good() && !file.eof())
+		{
+			detail::raise("Unable to read JSON file: " + p_path.string());
+		}
+		return fromString(stream.str(), p_options);
 	}
 
-	void Object::saveToFile(const std::filesystem::path &p_path, const FormatOptions &p_options) const
+	void Value::saveToFile(const std::filesystem::path &p_path, const FormatOptions &p_options) const
 	{
-		std::ofstream file(p_path);
-		if (!file.is_open())
+		std::ofstream file(p_path, std::ios::binary);
+		if (!file)
 		{
-			detail::raise("Unable to open JSON file for writing");
+			detail::raise("Unable to open JSON file for writing: " + p_path.string());
 		}
 		write(file, p_options);
+		if (!file)
+		{
+			detail::raise("Unable to write JSON file: " + p_path.string());
+		}
 	}
 
-	std::string Object::toString(const FormatOptions &p_options) const
+	std::string Value::toString(const FormatOptions &p_options) const
 	{
 		std::ostringstream stream;
 		write(stream, p_options);
 		return stream.str();
 	}
 
-	void Object::write(std::ostream &p_stream, const FormatOptions &p_options) const
+	void Value::write(std::ostream &p_stream, const FormatOptions &p_options) const
 	{
 		Writer(p_stream, p_options).write(*this);
 	}
 
-	std::ostream &operator<<(std::ostream &p_stream, const Object &p_object)
+	std::ostream &operator<<(std::ostream &p_stream, const Value &p_value)
 	{
-		p_object.write(p_stream);
+		p_value.write(p_stream);
 		return p_stream;
 	}
 }

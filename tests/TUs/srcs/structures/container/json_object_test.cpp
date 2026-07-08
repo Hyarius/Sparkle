@@ -1,9 +1,13 @@
 #include "structures/container/spk_json_object.hpp"
 
+#include <chrono>
 #include <cstdint>
 #include <filesystem>
 #include <limits>
+#include <locale>
+#include <sstream>
 #include <string>
+#include <type_traits>
 
 #include <gtest/gtest.h>
 
@@ -11,6 +15,8 @@ namespace application_model
 {
 	using spk::JSON::FormatOptions;
 	using spk::JSON::Object;
+	using spk::JSON::ParseOptions;
+	using spk::JSON::Value;
 
 	struct StaticConfig
 	{
@@ -59,6 +65,114 @@ namespace application_model
 	}
 }
 
+using spk::JSON::FormatOptions;
+using spk::JSON::ParseOptions;
+using spk::JSON::Value;
+
+TEST(SPKJsonValueCompatibility, ObjectAliasWorks)
+{
+	static_assert(std::same_as<spk::JSON::Object, spk::JSON::Value>);
+
+	spk::JSON::Object value = spk::JSON::Object::object();
+	value["name"] = "Sparkle";
+
+	EXPECT_EQ(value.at("name").as<std::string>(), "Sparkle");
+}
+
+TEST(SPKJsonValue, RejectsUnsignedIntegerTooLargeForInt64Storage)
+{
+	const auto tooLarge = static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max()) + 1u;
+
+	EXPECT_ANY_THROW((void)Value(tooLarge));
+
+	Value value = 42;
+	EXPECT_ANY_THROW(value = tooLarge);
+	EXPECT_EQ(value.as<int>(), 42);
+}
+
+TEST(SPKJsonValue, RejectsNonFiniteFloatingValues)
+{
+	EXPECT_ANY_THROW((void)Value(std::numeric_limits<double>::quiet_NaN()));
+	EXPECT_ANY_THROW((void)Value(std::numeric_limits<double>::infinity()));
+	EXPECT_ANY_THROW((void)Value(-std::numeric_limits<double>::infinity()));
+
+	Value value;
+	EXPECT_ANY_THROW(value = std::numeric_limits<double>::quiet_NaN());
+	EXPECT_TRUE(value.isNull());
+}
+
+TEST(SPKJsonValue, SerializesFloatingValuesIndependentlyOfStreamLocale)
+{
+	class CommaDecimalPoint : public std::numpunct<char>
+	{
+	protected:
+		char do_decimal_point() const override
+		{
+			return ',';
+		}
+	};
+
+	std::ostringstream stream;
+	stream.imbue(std::locale(std::locale::classic(), new CommaDecimalPoint));
+	Value(3.25).write(stream, FormatOptions{.pretty = false});
+
+	EXPECT_EQ(stream.str(), "3.25");
+	EXPECT_DOUBLE_EQ(Value::fromString(stream.str()).as<double>(), 3.25);
+}
+
+TEST(SPKJsonValue, CanAsChecksIntegerRange)
+{
+	Value large = 1000000;
+	Value negative = -1;
+
+	EXPECT_FALSE(large.canAs<std::uint8_t>());
+	EXPECT_FALSE(large.holds<std::uint8_t>());
+	EXPECT_FALSE(negative.canAs<std::uint32_t>());
+	EXPECT_TRUE(large.canAs<std::int32_t>());
+}
+
+TEST(SPKJsonValue, AsReturnsTheRequestedCleanType)
+{
+	Value value = "Sparkle";
+
+	static_assert(std::same_as<decltype(value.as<const std::string &>()), std::string>);
+	EXPECT_EQ(value.as<const std::string &>(), "Sparkle");
+}
+
+TEST(SPKJsonValue, Equality)
+{
+	EXPECT_EQ(Value::fromString(R"({"a":[1,true]})"), Value::fromString(R"({"a":[1,true]})"));
+	EXPECT_NE(Value(1), Value(2));
+}
+
+TEST(SPKJsonValue, PushBackReturnsInsertedValue)
+{
+	Value values;
+	Value &inserted = values.pushBack(Value::object());
+	inserted["name"] = "Sword";
+
+	ASSERT_EQ(values.size(), 1u);
+	EXPECT_EQ(values.at(0).at("name").as<std::string>(), "Sword");
+}
+
+TEST(SPKJsonValue, ParseOptionsControlDuplicatesBomAndDepth)
+{
+	const ParseOptions keepLast{.rejectDuplicateKeys = false};
+	EXPECT_EQ(Value::fromString(R"({"value":1,"value":2})", keepLast).at("value").as<std::int64_t>(), 2);
+
+	const std::string bomJson = "\xEF\xBB\xBF{\"value\":1}";
+	EXPECT_EQ(Value::fromString(bomJson).at("value").as<std::int64_t>(), 1);
+	EXPECT_ANY_THROW((void)Value::fromString(
+		bomJson, ParseOptions{.rejectDuplicateKeys = true, .allowUtf8Bom = false}));
+
+	EXPECT_ANY_THROW((void)Value::fromString(
+		R"({"level":{"tooDeep":true}})",
+		ParseOptions{.rejectDuplicateKeys = true, .allowUtf8Bom = true, .maxDepth = 1}));
+	EXPECT_NO_THROW((void)Value::fromString(
+		R"({"level":true})",
+		ParseOptions{.rejectDuplicateKeys = true, .allowUtf8Bom = true, .maxDepth = 1}));
+}
+
 namespace
 {
 	using application_model::MemberConfig;
@@ -73,7 +187,7 @@ namespace
 	static_assert(spk::JSON::json_readable<MemberConfig>);
 }
 
-TEST(SPKJsonObject, DefaultConstructsAsNull)
+TEST(SPKJsonValue, DefaultConstructsAsNull)
 {
 	Object value;
 
@@ -83,7 +197,7 @@ TEST(SPKJsonObject, DefaultConstructsAsNull)
 	EXPECT_EQ(value.as<std::nullptr_t>(), nullptr);
 }
 
-TEST(SPKJsonObject, StoresNativeScalarValues)
+TEST(SPKJsonValue, StoresNativeScalarValues)
 {
 	Object boolean = true;
 	Object integer = std::int32_t{42};
@@ -102,7 +216,7 @@ TEST(SPKJsonObject, StoresNativeScalarValues)
 	EXPECT_EQ(string.as<std::string>(), "Sparkle");
 }
 
-TEST(SPKJsonObject, AcceptsStringViewAndStringLiteral)
+TEST(SPKJsonValue, AcceptsStringViewAndStringLiteral)
 {
 	Object first = "literal";
 	Object second = std::string_view("view");
@@ -111,7 +225,7 @@ TEST(SPKJsonObject, AcceptsStringViewAndStringLiteral)
 	EXPECT_EQ(second.as<std::string>(), "view");
 }
 
-TEST(SPKJsonObject, ConvertsIntegerToFloatingOnRead)
+TEST(SPKJsonValue, ConvertsIntegerToFloatingOnRead)
 {
 	Object value = 42;
 
@@ -119,7 +233,7 @@ TEST(SPKJsonObject, ConvertsIntegerToFloatingOnRead)
 	EXPECT_DOUBLE_EQ(value.as<double>(), 42.0);
 }
 
-TEST(SPKJsonObject, RejectsWrongNativeTypeOnRead)
+TEST(SPKJsonValue, RejectsWrongNativeTypeOnRead)
 {
 	Object value = "not an integer";
 
@@ -127,21 +241,21 @@ TEST(SPKJsonObject, RejectsWrongNativeTypeOnRead)
 	EXPECT_ANY_THROW((void)value.as<std::int32_t>());
 }
 
-TEST(SPKJsonObject, RejectsIntegerReadOutsideRequestedRange)
+TEST(SPKJsonValue, RejectsIntegerReadOutsideRequestedRange)
 {
 	Object value = std::numeric_limits<std::int64_t>::max();
 
 	EXPECT_ANY_THROW((void)value.as<std::int32_t>());
 }
 
-TEST(SPKJsonObject, RejectsUnsignedReadOfNegativeValue)
+TEST(SPKJsonValue, RejectsUnsignedReadOfNegativeValue)
 {
 	Object value = -1;
 
 	EXPECT_ANY_THROW((void)value.as<std::uint32_t>());
 }
 
-TEST(SPKJsonObject, NullSubscriptCreatesObject)
+TEST(SPKJsonValue, NullSubscriptCreatesObject)
 {
 	Object root;
 
@@ -156,7 +270,7 @@ TEST(SPKJsonObject, NullSubscriptCreatesObject)
 	EXPECT_EQ(root.at("version").as<int>(), 1);
 }
 
-TEST(SPKJsonObject, ConstSubscriptDoesNotCreateMissingMember)
+TEST(SPKJsonValue, ConstSubscriptDoesNotCreateMissingMember)
 {
 	Object root = Object::object();
 	root["existing"] = true;
@@ -167,7 +281,7 @@ TEST(SPKJsonObject, ConstSubscriptDoesNotCreateMissingMember)
 	EXPECT_ANY_THROW((void)constRoot["missing"]);
 }
 
-TEST(SPKJsonObject, FindReturnsNullWhenMemberIsMissing)
+TEST(SPKJsonValue, FindReturnsNullWhenMemberIsMissing)
 {
 	Object root = Object::object();
 	root["existing"] = 123;
@@ -176,14 +290,14 @@ TEST(SPKJsonObject, FindReturnsNullWhenMemberIsMissing)
 	EXPECT_EQ(root.find("missing"), nullptr);
 }
 
-TEST(SPKJsonObject, AtThrowsWhenMemberIsMissing)
+TEST(SPKJsonValue, AtThrowsWhenMemberIsMissing)
 {
 	Object root = Object::object();
 
 	EXPECT_ANY_THROW((void)root.at("missing"));
 }
 
-TEST(SPKJsonObject, ArrayAppendPushBackResizeAndIndexAccess)
+TEST(SPKJsonValue, ArrayAppendPushBackResizeAndIndexAccess)
 {
 	Object array = Object::array();
 
@@ -203,7 +317,7 @@ TEST(SPKJsonObject, ArrayAppendPushBackResizeAndIndexAccess)
 	EXPECT_TRUE(array[4].isNull());
 }
 
-TEST(SPKJsonObject, NullAppendCreatesArray)
+TEST(SPKJsonValue, NullAppendCreatesArray)
 {
 	Object value;
 
@@ -216,7 +330,7 @@ TEST(SPKJsonObject, NullAppendCreatesArray)
 	EXPECT_EQ(value.at(1).as<int>(), 20);
 }
 
-TEST(SPKJsonObject, ArrayIndexOutOfRangeThrows)
+TEST(SPKJsonValue, ArrayIndexOutOfRangeThrows)
 {
 	Object array = Object::array();
 	array.append() = 1;
@@ -225,7 +339,7 @@ TEST(SPKJsonObject, ArrayIndexOutOfRangeThrows)
 	EXPECT_ANY_THROW((void)array[1]);
 }
 
-TEST(SPKJsonObject, ObjectOperationsThrowOnNonObject)
+TEST(SPKJsonValue, ObjectOperationsThrowOnNonObject)
 {
 	Object value = 12;
 
@@ -234,7 +348,7 @@ TEST(SPKJsonObject, ObjectOperationsThrowOnNonObject)
 	EXPECT_ANY_THROW((void)value.at("key"));
 }
 
-TEST(SPKJsonObject, ArrayOperationsThrowOnNonArray)
+TEST(SPKJsonValue, ArrayOperationsThrowOnNonArray)
 {
 	Object value = Object::object();
 
@@ -242,7 +356,7 @@ TEST(SPKJsonObject, ArrayOperationsThrowOnNonArray)
 	EXPECT_ANY_THROW((void)value[0]);
 }
 
-TEST(SPKJsonObject, SerializesCompactJSON)
+TEST(SPKJsonValue, SerializesCompactJSON)
 {
 	Object root = Object::object();
 	root["active"] = true;
@@ -255,7 +369,7 @@ TEST(SPKJsonObject, SerializesCompactJSON)
 	EXPECT_EQ(content, R"({"active":true,"name":"Sparkle","version":1})");
 }
 
-TEST(SPKJsonObject, SerializesPrettyJSON)
+TEST(SPKJsonValue, SerializesPrettyJSON)
 {
 	Object root = Object::object();
 	root["name"] = "Sparkle";
@@ -268,14 +382,20 @@ TEST(SPKJsonObject, SerializesPrettyJSON)
 	EXPECT_NE(content.find("  \"version\": 1"), std::string::npos);
 }
 
-TEST(SPKJsonObject, EscapesSerializedStrings)
+TEST(SPKJsonValue, SerializesEmptyObjectAndArray)
+{
+	EXPECT_EQ(Value::object().toString(FormatOptions{.pretty = false}), "{}");
+	EXPECT_EQ(Value::array().toString(FormatOptions{.pretty = false}), "[]");
+}
+
+TEST(SPKJsonValue, EscapesSerializedStrings)
 {
 	Object value = std::string("line\nquote\"slash\\tab\t");
 
 	EXPECT_EQ(value.toString(FormatOptions{.pretty = false}), R"("line\nquote\"slash\\tab\t")");
 }
 
-TEST(SPKJsonObject, ParsesScalars)
+TEST(SPKJsonValue, ParsesScalars)
 {
 	EXPECT_TRUE(Object::fromString("null").isNull());
 	EXPECT_TRUE(Object::fromString("true").as<bool>());
@@ -286,7 +406,7 @@ TEST(SPKJsonObject, ParsesScalars)
 	EXPECT_EQ(Object::fromString(R"("Sparkle")").as<std::string>(), "Sparkle");
 }
 
-TEST(SPKJsonObject, ParsesObjectsAndArrays)
+TEST(SPKJsonValue, ParsesObjectsAndArrays)
 {
 	Object root = Object::fromString(R"({"name":"Sparkle","values":[1,2,3],"nested":{"enabled":true}})");
 
@@ -303,14 +423,14 @@ TEST(SPKJsonObject, ParsesObjectsAndArrays)
 	EXPECT_TRUE(root.at("nested").at("enabled").as<bool>());
 }
 
-TEST(SPKJsonObject, ParsesEscapedStrings)
+TEST(SPKJsonValue, ParsesEscapedStrings)
 {
 	Object value = Object::fromString(R"("line\nquote\"slash\\tab\t")");
 
 	EXPECT_EQ(value.as<std::string>(), "line\nquote\"slash\\tab\t");
 }
 
-TEST(SPKJsonObject, ParsesUnicodeEscapes)
+TEST(SPKJsonValue, ParsesUnicodeEscapes)
 {
 	Object ascii = Object::fromString(R"("A\u0042C")");
 	Object utf8 = Object::fromString(R"("\u00E9 \uD83D\uDE03")");
@@ -319,7 +439,15 @@ TEST(SPKJsonObject, ParsesUnicodeEscapes)
 	EXPECT_EQ(utf8.as<std::string>(), "\xC3\xA9 \xF0\x9F\x98\x83");
 }
 
-TEST(SPKJsonObject, PreservesUTF8StringsDuringRoundTrip)
+TEST(SPKJsonValue, RejectsMalformedUnicodeEscapes)
+{
+	EXPECT_ANY_THROW((void)Value::fromString(R"("\u12G4")"));
+	EXPECT_ANY_THROW((void)Value::fromString(R"("\uD83D")"));
+	EXPECT_ANY_THROW((void)Value::fromString(R"("\uD83D\u0041")"));
+	EXPECT_ANY_THROW((void)Value::fromString(R"("\uDE03")"));
+}
+
+TEST(SPKJsonValue, PreservesUTF8StringsDuringRoundTrip)
 {
 	const std::string text = "caf\xC3\xA9 \xF0\x9F\x98\x83";
 	Object parsed = Object::fromString(Object(text).toString(FormatOptions{.pretty = false}));
@@ -327,7 +455,7 @@ TEST(SPKJsonObject, PreservesUTF8StringsDuringRoundTrip)
 	EXPECT_EQ(parsed.as<std::string>(), text);
 }
 
-TEST(SPKJsonObject, RejectsMalformedJSON)
+TEST(SPKJsonValue, RejectsMalformedJSON)
 {
 	EXPECT_ANY_THROW((void)Object::fromString(""));
 	EXPECT_ANY_THROW((void)Object::fromString(R"({"a":})"));
@@ -338,7 +466,13 @@ TEST(SPKJsonObject, RejectsMalformedJSON)
 	EXPECT_ANY_THROW((void)Object::fromString(R"("\x")"));
 }
 
-TEST(SPKJsonObject, RoundTripsThroughString)
+TEST(SPKJsonValue, RejectsTrailingCommas)
+{
+	EXPECT_ANY_THROW((void)Value::fromString(R"([1,2,])"));
+	EXPECT_ANY_THROW((void)Value::fromString(R"({"a":1,})"));
+}
+
+TEST(SPKJsonValue, RoundTripsThroughString)
 {
 	Object root = Object::object();
 	root["name"] = "Sparkle";
@@ -358,9 +492,11 @@ TEST(SPKJsonObject, RoundTripsThroughString)
 	EXPECT_EQ(parsed.at("numbers").at(2).as<int>(), 3);
 }
 
-TEST(SPKJsonObject, LoadsAndSavesFile)
+TEST(SPKJsonValue, LoadsAndSavesFile)
 {
-	const std::filesystem::path path = std::filesystem::temp_directory_path() / "spk_json_object_tests.json";
+	const std::filesystem::path path = std::filesystem::temp_directory_path() /
+		("spk_json_value_tests_" +
+		 std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()) + ".json");
 
 	Object root = Object::object();
 	root["name"] = "Sparkle";
@@ -375,7 +511,7 @@ TEST(SPKJsonObject, LoadsAndSavesFile)
 	std::filesystem::remove(path);
 }
 
-TEST(SPKJsonObject, FreeFunctionSerializableTypeCanBeAssignedAndReadBack)
+TEST(SPKJsonValue, FreeFunctionSerializableTypeCanBeAssignedAndReadBack)
 {
 	StaticConfig config{
 		.name = "Game",
@@ -394,7 +530,7 @@ TEST(SPKJsonObject, FreeFunctionSerializableTypeCanBeAssignedAndReadBack)
 	EXPECT_TRUE(loaded.fullscreen);
 }
 
-TEST(SPKJsonObject, ExternalTypeCanOptInThroughADLFunctions)
+TEST(SPKJsonValue, ExternalTypeCanOptInThroughADLFunctions)
 {
 	MemberConfig config{
 		.label = "Health",
@@ -409,7 +545,7 @@ TEST(SPKJsonObject, ExternalTypeCanOptInThroughADLFunctions)
 	EXPECT_EQ(loaded.value, 100);
 }
 
-TEST(SPKJsonObject, ResetReturnsToNull)
+TEST(SPKJsonValue, ResetReturnsToNull)
 {
 	Object value = Object::object();
 	value["name"] = "Sparkle";

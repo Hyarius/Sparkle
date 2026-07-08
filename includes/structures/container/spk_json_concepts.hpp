@@ -7,18 +7,19 @@
 
 namespace spk::JSON
 {
-	class Object;
+	class Value;
+	using Object = Value;
 
 	template <typename T>
 	concept json_writable =
 		requires(const std::remove_cvref_t<T> &p_value) {
-			{ toJSON(p_value) } -> std::convertible_to<Object>;
+			{ toJSON(p_value) } -> std::convertible_to<Value>;
 		};
 
 	template <typename T>
 	concept json_readable =
 		std::default_initializable<std::remove_cvref_t<T>> &&
-		requires(std::remove_cvref_t<T> &p_value, const Object &p_object) {
+		requires(std::remove_cvref_t<T> &p_value, const Value &p_object) {
 			{ fromJSON(p_object, p_value) } -> std::same_as<void>;
 		};
 }
