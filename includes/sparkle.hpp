@@ -4,6 +4,7 @@
 #include "structures/container/spk_cached_data.hpp"
 #include "structures/container/spk_flags.hpp"
 #include "structures/container/spk_grid_2d.hpp"
+#include "structures/container/spk_json_object.hpp"
 #include "structures/container/spk_object_pool.hpp"
 #include "structures/container/spk_observable_value.hpp"
 #include "structures/container/spk_uuid.hpp"

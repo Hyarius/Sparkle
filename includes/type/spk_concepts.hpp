@@ -1,7 +1,10 @@
 #pragma once
 
 #include <concepts>
+#include <cstddef>
 #include <functional>
+#include <string>
+#include <string_view>
 #include <type_traits>
 
 namespace spk
@@ -148,4 +151,31 @@ namespace spk
 		multiply_assignable_with<TType> &&
 		dividable_with<TType> &&
 		divide_assignable_with<TType>;
+
+	template <typename T>
+	concept native_boolean = std::same_as<std::remove_cvref_t<T>, bool>;
+
+	template <typename T>
+	concept native_integer =
+		std::integral<std::remove_cvref_t<T>> &&
+		!std::same_as<std::remove_cvref_t<T>, bool> &&
+		!std::same_as<std::remove_cvref_t<T>, wchar_t> &&
+		!std::same_as<std::remove_cvref_t<T>, char> &&
+		!std::same_as<std::remove_cvref_t<T>, char8_t> &&
+		!std::same_as<std::remove_cvref_t<T>, char16_t> &&
+		!std::same_as<std::remove_cvref_t<T>, char32_t>;
+
+	template <typename T>
+	concept native_floating = std::floating_point<std::remove_cvref_t<T>>;
+
+	template <typename T>
+	concept native_string =
+		std::same_as<std::remove_cvref_t<T>, std::string> ||
+		std::same_as<std::remove_cvref_t<T>, std::string_view>;
+
+	template <typename T>
+	concept native_null = std::same_as<std::remove_cvref_t<T>, std::nullptr_t>;
+
+	template <typename T>
+	concept native_value = native_null<T> || native_boolean<T> || native_integer<T> || native_floating<T> || native_string<T>;
 }
