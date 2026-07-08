@@ -49,7 +49,7 @@ namespace spk
 		_updateAbsoluteGeometryAndScissor();
 	}
 
-	void Widget::_onUpdate(const spk::UpdateTick &p_tick)
+	void Widget::_onUpdate(const spk::UpdateContext &p_tick)
 	{
 		(void)p_tick;
 	}
@@ -189,6 +189,14 @@ namespace spk
 		}
 
 		_geometry = p_geometry;
+		_computeRatio();
+		_updateAbsoluteGeometryAndScissor();
+		_onGeometryChange();
+		invalidateRenderUnit();
+	}
+
+	void Widget::refreshGeometry()
+	{
 		_computeRatio();
 		_updateAbsoluteGeometryAndScissor();
 		_onGeometryChange();
@@ -375,7 +383,7 @@ namespace spk
 		}
 	}
 
-	void Widget::update(const spk::UpdateTick &p_tick)
+	void Widget::update(const spk::UpdateContext &p_tick)
 	{
 		spk::HierarchyTrait<Widget>::HierarchyMutationGuard guard(this);
 

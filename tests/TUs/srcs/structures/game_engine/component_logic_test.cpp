@@ -36,19 +36,19 @@ namespace
 		bool consumeResizeOnStart = false;
 
 	protected:
-		void _onUpdateStarted(const spk::UpdateTick &) override
+		void _onUpdateStarted(const spk::UpdateContext &) override
 		{
 			trace += "S";
 			sum = 0;
 		}
 
-		void _parseComponentForUpdate(const spk::UpdateTick &, ValueComponent &p_component) override
+		void _parseComponentForUpdate(const spk::UpdateContext &, ValueComponent &p_component) override
 		{
 			trace += "P";
 			sum += p_component.value;
 		}
 
-		void _executeUpdate(const spk::UpdateTick &) override
+		void _executeUpdate(const spk::UpdateContext &) override
 		{
 			trace += "E";
 		}
@@ -102,7 +102,7 @@ TEST(ComponentLogicTest, UpdateRunsBeginParseEndInOrderOverProcessableComponents
 	spk::ComponentLogicRegistry logics;
 	ValueLogic &logic = logics.add<ValueLogic>();
 
-	spk::UpdateTick tick{};
+	spk::UpdateContext tick{};
 	logics.update(tick, engine.componentRegistry());
 
 	EXPECT_EQ(logic.trace, "SPPE");
@@ -161,7 +161,7 @@ TEST(ComponentLogicTest, DeactivatedLogicDoesNotRun)
 	ValueLogic &logic = logics.add<ValueLogic>();
 	logic.deactivate();
 
-	spk::UpdateTick tick{};
+	spk::UpdateContext tick{};
 	logics.update(tick, engine.componentRegistry());
 
 	EXPECT_TRUE(logic.trace.empty());
@@ -179,7 +179,7 @@ TEST(ComponentLogicTest, UpdateSkipsNonProcessableComponents)
 	spk::ComponentLogicRegistry logics;
 	ValueLogic &logic = logics.add<ValueLogic>();
 
-	spk::UpdateTick tick{};
+	spk::UpdateContext tick{};
 	logics.update(tick, engine.componentRegistry());
 
 	EXPECT_EQ(logic.trace, "SE");

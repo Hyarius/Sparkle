@@ -21,7 +21,7 @@ namespace spk
 		}
 
 	protected:
-		void _onUpdate(const spk::UpdateTick &p_tick) override;
+		void _onUpdate(const spk::UpdateContext &p_tick) override;
 		[[nodiscard]] spk::RenderUnit _buildRenderUnit() const override;
 		void _onGeometryChange() override;
 

@@ -8,12 +8,20 @@
 
 namespace spk
 {
-	struct UpdateTick
+	class Profiler;
+
+	// Per-tick context handed down the widget tree (and into every ComponentLogic)
+	// during the update pass. Carries the frame timing plus the shared input devices
+	// and a non-owning handle to the application-wide profiler, so any update-side
+	// code can record timings without reaching for a global.
+	struct UpdateContext
 	{
 		spk::Timestamp timestamp;
 		spk::Duration deltaTime;
 
 		spk::Mouse *mouse = nullptr;
 		spk::Keyboard *keyboard = nullptr;
+
+		spk::Profiler *profiler = nullptr;
 	};
 }

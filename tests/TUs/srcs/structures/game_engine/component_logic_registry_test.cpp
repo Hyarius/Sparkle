@@ -24,7 +24,7 @@ namespace
 		bool consumeOnEvent = false;
 
 	protected:
-		void _onUpdateStarted(const spk::UpdateTick &) override
+		void _onUpdateStarted(const spk::UpdateContext &) override
 		{
 			g_order.push_back(Id);
 		}
@@ -77,7 +77,7 @@ TEST(ComponentLogicRegistryTest, HigherPriorityRunsFirst)
 	logics.add<OrderLogic<3>>().setPriority(20);
 
 	spk::ComponentRegistry components;
-	spk::UpdateTick tick{};
+	spk::UpdateContext tick{};
 	logics.update(tick, components);
 
 	EXPECT_EQ(g_order, (std::vector<int>{2, 3, 1}));
@@ -93,7 +93,7 @@ TEST(ComponentLogicRegistryTest, EqualPriorityKeepsInsertionOrder)
 	logics.add<OrderLogic<3>>();
 
 	spk::ComponentRegistry components;
-	spk::UpdateTick tick{};
+	spk::UpdateContext tick{};
 	logics.update(tick, components);
 
 	EXPECT_EQ(g_order, (std::vector<int>{1, 2, 3}));
@@ -110,7 +110,7 @@ TEST(ComponentLogicRegistryTest, PriorityChangeReordersBeforeNextRun)
 	second.setPriority(100);
 
 	spk::ComponentRegistry components;
-	spk::UpdateTick tick{};
+	spk::UpdateContext tick{};
 	logics.update(tick, components);
 
 	EXPECT_EQ(g_order, (std::vector<int>{2, 1}));
@@ -125,7 +125,7 @@ TEST(ComponentLogicRegistryTest, DeactivatedLogicIsSkipped)
 	logics.add<OrderLogic<2>>().deactivate();
 
 	spk::ComponentRegistry components;
-	spk::UpdateTick tick{};
+	spk::UpdateContext tick{};
 	logics.update(tick, components);
 
 	EXPECT_EQ(g_order, (std::vector<int>{1}));

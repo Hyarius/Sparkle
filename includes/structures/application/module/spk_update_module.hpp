@@ -9,17 +9,21 @@
 
 namespace spk
 {
+	class Profiler;
+
 	class UpdateModule : public IModule
 	{
 	private:
 		std::optional<spk::Timestamp> _lastTimestamp;
 		spk::Mouse *_mouse = nullptr;
 		spk::Keyboard *_keyboard = nullptr;
+		spk::Profiler *_profiler = nullptr;
 
 	public:
 		UpdateModule();
 
 		void bindInputs(spk::Mouse *p_mouse, spk::Keyboard *p_keyboard);
+		void bindProfiler(spk::Profiler *p_profiler);
 		void update();
 	};
 }

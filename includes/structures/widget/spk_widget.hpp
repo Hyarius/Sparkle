@@ -12,7 +12,7 @@
 #include "structures/graphics/rendering/unit/spk_render_unit_builder.hpp"
 #include "structures/math/spk_rect_2d.hpp"
 #include "structures/system/event/spk_events.hpp"
-#include "structures/system/event/spk_update_tick.hpp"
+#include "structures/system/event/spk_update_context.hpp"
 #include "structures/widget/spk_resizable_element.hpp"
 
 namespace spk
@@ -91,7 +91,7 @@ namespace spk
 		[[nodiscard]] virtual spk::RenderUnit _buildRenderUnit() const;
 		virtual void _onGeometryChange();
 
-		virtual void _onUpdate(const spk::UpdateTick &p_tick);
+		virtual void _onUpdate(const spk::UpdateContext &p_tick);
 		virtual void _onWindowCloseRequestedEvent(spk::WindowCloseRequestedEvent &p_event);
 		virtual void _onWindowDestroyedEvent(spk::WindowDestroyedEvent &p_event);
 		virtual void _onWindowMovedEvent(spk::WindowMovedEvent &p_event);
@@ -129,6 +129,11 @@ namespace spk
 		void releaseAllFocus();
 
 		void setGeometry(const spk::Rect2D &p_geometry) override;
+		// Re-applies the current geometry, forcing an _onGeometryChange() pass even though the
+		// rectangle is unchanged (setGeometry() short-circuits in that case). Use it when a
+		// widget's internal content changed and it must re-lay-out itself in place -- e.g. a
+		// container whose child labels gained text and need re-composing/re-fitting.
+		void refreshGeometry();
 		void place(const spk::Vector2Int &p_anchor);
 		void move(const spk::Vector2Int &p_delta);
 
@@ -144,6 +149,6 @@ namespace spk
 
 		[[nodiscard]] std::shared_ptr<spk::RenderUnit> renderUnit() const;
 		void appendRenderUnits(spk::RenderSnapshotBuilder &p_builder) const;
-		void update(const spk::UpdateTick &p_tick);
+		void update(const spk::UpdateContext &p_tick);
 	};
 }

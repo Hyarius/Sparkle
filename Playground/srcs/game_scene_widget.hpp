@@ -6,6 +6,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <vector>
 
 #include "components/actor.hpp"
 #include "core/game_context.hpp"
@@ -54,13 +55,20 @@ namespace pg
 		mutable std::atomic<long long> _renderDurationNs{0};
 		std::atomic<long long> _updateDurationNs{0};
 
+		// Profiler probe names currently mirrored as overlay rows (after the fixed rows),
+		// in snapshot order. Grows the first time the voxel logic registers its probes.
+		std::vector<std::string> _profilerRowNames;
+
 		void _buildScene(const Registries &p_registries);
 		void _configureOverlay();
-		void _refreshOverlay(const spk::UpdateTick &p_tick);
+		[[nodiscard]] std::size_t _profilerSectionRowCount() const;
+		void _applyOverlayGeometry();
+		void _syncProfilerRows(const std::vector<std::string> &p_names);
+		void _refreshOverlay(const spk::UpdateContext &p_tick);
 
 	protected:
 		void _onGeometryChange() override;
-		void _onUpdate(const spk::UpdateTick &p_tick) override;
+		void _onUpdate(const spk::UpdateContext &p_tick) override;
 		void _onKeyPressedEvent(spk::KeyPressedEvent &p_event) override;
 		[[nodiscard]] spk::RenderUnit _buildRenderUnit() const override;
 

@@ -34,8 +34,8 @@ namespace spk
 		[[nodiscard]] bool retainsInactiveChunks() const noexcept;
 
 	protected:
-		void _onUpdateStarted(const spk::UpdateTick &p_tick) override;
-		void _parseComponentForUpdate(const spk::UpdateTick &p_tick, spk::VoxelChunkStreamer &p_streamer) override;
-		void _executeUpdate(const spk::UpdateTick &p_tick) override;
+		void _onUpdateStarted(const spk::UpdateContext &p_tick) override;
+		void _parseComponentForUpdate(const spk::UpdateContext &p_tick, spk::VoxelChunkStreamer &p_streamer) override;
+		void _executeUpdate(const spk::UpdateContext &p_tick) override;
 	};
 }

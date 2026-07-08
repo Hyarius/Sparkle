@@ -131,7 +131,7 @@ namespace pg
 		}
 	}
 
-	void ActorPathLogic::_parseComponentForUpdate(const spk::UpdateTick &p_tick, Actor &p_actor)
+	void ActorPathLogic::_parseComponentForUpdate(const spk::UpdateContext &p_tick, Actor &p_actor)
 	{
 		if (_enabled())
 		{

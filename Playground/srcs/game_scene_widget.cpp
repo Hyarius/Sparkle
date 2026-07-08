@@ -16,6 +16,7 @@
 #include "structures/game_engine/spk_texture_mesh_renderer_3d.hpp"
 #include "structures/graphics/geometry/spk_primitive_object.hpp"
 #include "structures/math/spk_vector3.hpp"
+#include "structures/system/spk_profiler.hpp"
 #include "structures/voxel/spk_voxel_chunk_render_logic.hpp"
 #include "structures/voxel/spk_voxel_chunk_streamer.hpp"
 #include "structures/voxel/spk_voxel_chunk_streamer_logic.hpp"
@@ -47,6 +48,16 @@ namespace
 		RowCount
 	};
 
+	// Profiler rows use four columns so each statistic is its own label.
+	enum ProfilerColumn : std::size_t
+	{
+		ProbeName = 0,
+		ProbeMax,
+		ProbeAvg,
+		ProbeMin,
+		ProfilerColumnCount
+	};
+
 	[[nodiscard]] long long nowNs()
 	{
 		return std::chrono::duration_cast<std::chrono::nanoseconds>(
@@ -71,6 +82,19 @@ namespace
 	{
 		char buffer[64];
 		std::snprintf(buffer, sizeof(buffer), "%.2f%s", p_value, p_suffix);
+		return buffer;
+	}
+
+	[[nodiscard]] double toMilliseconds(const spk::Duration &p_duration)
+	{
+		return static_cast<double>(p_duration.nanoseconds()) / 1.0e6;
+	}
+
+	// Bare value; the profiler table's header row names each column (Max / Average / Min).
+	[[nodiscard]] std::string formatProbeValue(const spk::Duration &p_duration)
+	{
+		char buffer[32];
+		std::snprintf(buffer, sizeof(buffer), "%.2f ms", toMilliseconds(p_duration));
 		return buffer;
 	}
 }
@@ -214,7 +238,7 @@ namespace pg
 
 	void GameSceneWidget::_configureOverlay()
 	{
-		_overlay.configureRows(RowCount, 2);
+		_overlay.configureRows(RowCount + _profilerSectionRowCount(), 2);
 		_overlay.setMaxGlyphSize(16);
 		_overlay.setFontOutlineSize(1);
 		_overlay.setText(CameraPosition, 0, "Camera position");
@@ -224,6 +248,50 @@ namespace pg
 		_overlay.setText(UpdateTime, 0, "Update duration");
 		_overlay.setText(RenderTime, 0, "Render duration");
 		_overlay.setText(DeltaTime, 0, "Frame delta");
+
+		if (_profilerRowNames.empty() == true)
+		{
+			return;
+		}
+
+		// Header row: column 0 stays blank, the value columns are titled.
+		_overlay.setRowColumns(RowCount, ProfilerColumnCount);
+		_overlay.setText(RowCount, ProbeMax, "Max");
+		_overlay.setText(RowCount, ProbeAvg, "Average");
+		_overlay.setText(RowCount, ProbeMin, "Min");
+		for (std::size_t index = 0; index < _profilerRowNames.size(); ++index)
+		{
+			const std::size_t row = RowCount + 1 + index;
+			_overlay.setRowColumns(row, ProfilerColumnCount);
+			_overlay.setText(row, ProbeName, _profilerRowNames[index]);
+		}
+	}
+
+	std::size_t GameSceneWidget::_profilerSectionRowCount() const
+	{
+		// One header row plus one row per probe, or nothing while no probe exists yet.
+		return _profilerRowNames.empty() ? 0 : (1 + _profilerRowNames.size());
+	}
+
+	void GameSceneWidget::_applyOverlayGeometry()
+	{
+		const std::size_t totalRows = RowCount + _profilerSectionRowCount();
+		// Wider when the profiler table is present, since it carries three extra value columns.
+		const std::uint32_t targetWidth = _profilerRowNames.empty() ? 360u : 560u;
+		const std::uint32_t overlayWidth = std::min<std::uint32_t>(geometry().size.x, targetWidth);
+		_overlay.setGeometry(spk::Rect2D({8, 8}, {overlayWidth, 26u * static_cast<std::uint32_t>(totalRows)}));
+	}
+
+	void GameSceneWidget::_syncProfilerRows(const std::vector<std::string> &p_names)
+	{
+		if (p_names == _profilerRowNames)
+		{
+			return;
+		}
+		_profilerRowNames = p_names;
+		// configureRows() rebuilds every label, so the fixed rows are re-applied too.
+		_configureOverlay();
+		_applyOverlayGeometry();
 	}
 
 	void GameSceneWidget::_onGeometryChange()
@@ -233,11 +301,10 @@ namespace pg
 		{
 			_camera->setViewportSize(static_cast<float>(geometry().width()), static_cast<float>(geometry().height()));
 		}
-		const std::uint32_t overlayWidth = std::min<std::uint32_t>(geometry().size.x, 360u);
-		_overlay.setGeometry(spk::Rect2D({8, 8}, {overlayWidth, 26u * RowCount}));
+		_applyOverlayGeometry();
 	}
 
-	void GameSceneWidget::_onUpdate(const spk::UpdateTick &p_tick)
+	void GameSceneWidget::_onUpdate(const spk::UpdateContext &p_tick)
 	{
 		const long long start = nowNs();
 		if (_player != nullptr)
@@ -281,7 +348,7 @@ namespace pg
 		return unit;
 	}
 
-	void GameSceneWidget::_refreshOverlay(const spk::UpdateTick &p_tick)
+	void GameSceneWidget::_refreshOverlay(const spk::UpdateContext &p_tick)
 	{
 		if (_camera != nullptr)
 		{
@@ -304,5 +371,25 @@ namespace pg
 		_overlay.setText(UpdateTime, 1, formatFloat(static_cast<float>(_updateDurationNs.load()) / 1.0e6f, " ms"));
 		_overlay.setText(RenderTime, 1, formatFloat(static_cast<float>(_renderDurationNs.load()) / 1.0e6f, " ms"));
 		_overlay.setText(DeltaTime, 1, std::to_string(p_tick.deltaTime.milliseconds()) + " ms");
+
+		if (p_tick.profiler != nullptr)
+		{
+			const std::vector<spk::Profiler::Snapshot> snapshots = p_tick.profiler->snapshot();
+			std::vector<std::string> names;
+			names.reserve(snapshots.size());
+			for (const spk::Profiler::Snapshot &snapshot : snapshots)
+			{
+				names.push_back(snapshot.name);
+			}
+			_syncProfilerRows(names);
+			for (std::size_t index = 0; index < snapshots.size(); ++index)
+			{
+				const spk::Profiler::Snapshot &snapshot = snapshots[index];
+				const std::size_t row = RowCount + 1 + index;
+				_overlay.setText(row, ProbeMax, formatProbeValue(snapshot.maximum));
+				_overlay.setText(row, ProbeAvg, formatProbeValue(snapshot.average));
+				_overlay.setText(row, ProbeMin, formatProbeValue(snapshot.minimum));
+			}
+		}
 	}
 }

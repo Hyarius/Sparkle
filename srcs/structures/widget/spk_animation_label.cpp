@@ -45,7 +45,7 @@ namespace spk
 		return builder.build();
 	}
 
-	void AnimationLabel::_onUpdate(const spk::UpdateTick &p_tick)
+	void AnimationLabel::_onUpdate(const spk::UpdateContext &p_tick)
 	{
 		(void)p_tick;
 

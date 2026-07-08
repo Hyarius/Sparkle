@@ -12,6 +12,11 @@ namespace spk
 		_keyboard = p_keyboard;
 	}
 
+	void UpdateModule::bindProfiler(spk::Profiler *p_profiler)
+	{
+		_profiler = p_profiler;
+	}
+
 	void UpdateModule::update()
 	{
 		if (widget() == nullptr)
@@ -21,11 +26,12 @@ namespace spk
 
 		const spk::Timestamp currentTimestamp = spk::TimeUtils::getTime();
 
-		spk::UpdateTick tick;
+		spk::UpdateContext tick;
 		tick.timestamp = currentTimestamp;
 		tick.deltaTime = _lastTimestamp.has_value() == true ? currentTimestamp - _lastTimestamp.value() : 0_ms;
 		tick.mouse = _mouse;
 		tick.keyboard = _keyboard;
+		tick.profiler = _profiler;
 
 		_lastTimestamp = currentTimestamp;
 

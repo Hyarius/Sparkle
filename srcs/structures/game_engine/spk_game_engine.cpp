@@ -59,7 +59,7 @@ namespace spk
 		p_entity->_setEngineId(spk::UUID::null());
 	}
 
-	void GameEngine::update(const spk::UpdateTick &p_tick)
+	void GameEngine::update(const spk::UpdateContext &p_tick)
 	{
 		if (isActivated() == false)
 		{

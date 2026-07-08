@@ -23,6 +23,7 @@
 namespace spk
 {
 	class WindowHandle;
+	class Profiler;
 
 	class Window
 	{
@@ -71,6 +72,7 @@ namespace spk
 	private:
 		spk::Widget _rootWidget;
 		spk::WindowHost _host;
+		spk::Profiler *_profiler = nullptr;
 
 		FrameModule _frameModule;
 		MouseModule _mouseModule;
@@ -131,7 +133,7 @@ namespace spk
 		friend class spk::WindowHandle;
 
 	public:
-		Window(std::shared_ptr<PlatformRuntime> p_platformRuntime, std::shared_ptr<GPUPlatformRuntime> p_gpuPlatformRuntime, Configuration p_configuration);
+		Window(std::shared_ptr<PlatformRuntime> p_platformRuntime, std::shared_ptr<GPUPlatformRuntime> p_gpuPlatformRuntime, Configuration p_configuration, spk::Profiler *p_profiler = nullptr);
 		~Window();
 
 		[[nodiscard]] spk::WindowHost &host();

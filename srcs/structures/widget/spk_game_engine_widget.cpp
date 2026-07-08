@@ -17,7 +17,7 @@ namespace spk
 
 	GameEngineWidget::~GameEngineWidget() = default;
 
-	void GameEngineWidget::_onUpdate(const spk::UpdateTick &p_tick)
+	void GameEngineWidget::_onUpdate(const spk::UpdateContext &p_tick)
 	{
 		_gameEngine.update(p_tick);
 	}

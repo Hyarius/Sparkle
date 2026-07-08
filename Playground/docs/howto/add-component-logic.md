@@ -42,7 +42,7 @@ namespace pg
     class BlinkLogic : public spk::ComponentLogic<Blinker>
     {
     protected:
-        void _parseComponentForUpdate(const spk::UpdateTick &p_tick, Blinker &p_component) override
+        void _parseComponentForUpdate(const spk::UpdateContext &p_tick, Blinker &p_component) override
         {
             p_component.setElapsed(p_component.elapsed() +
                 static_cast<float>(p_tick.deltaDuration().nbSeconds));

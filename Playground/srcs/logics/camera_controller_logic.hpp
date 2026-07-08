@@ -24,7 +24,7 @@ namespace pg
 		CameraControllerLogic(GameContext &p_context, spk::Camera3D &p_camera);
 
 	protected:
-		void _parseComponentForUpdate(const spk::UpdateTick &p_tick, Actor &p_actor) override;
+		void _parseComponentForUpdate(const spk::UpdateContext &p_tick, Actor &p_actor) override;
 		void _parseComponentForMouseMovedEvent(spk::MouseMovedEvent &p_event, Actor &p_actor) override;
 		void _parseComponentForMouseWheelScrolledEvent(spk::MouseWheelScrolledEvent &p_event, Actor &p_actor) override;
 	};

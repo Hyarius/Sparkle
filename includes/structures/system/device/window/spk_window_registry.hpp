@@ -14,6 +14,7 @@
 namespace spk
 {
 	class Application;
+	class Profiler;
 
 	class WindowRegistry
 	{
@@ -35,7 +36,7 @@ namespace spk
 		friend class spk::Application;
 
 	public:
-		spk::WindowHandle createWindow(const WindowID &p_id, std::shared_ptr<PlatformRuntime> p_platformRuntime, std::shared_ptr<GPUPlatformRuntime> p_gpuPlatformRuntime, spk::Window::Configuration p_configuration);
+		spk::WindowHandle createWindow(const WindowID &p_id, std::shared_ptr<PlatformRuntime> p_platformRuntime, std::shared_ptr<GPUPlatformRuntime> p_gpuPlatformRuntime, spk::Window::Configuration p_configuration, spk::Profiler *p_profiler = nullptr);
 		[[nodiscard]] spk::WindowHandle window(const WindowID &p_id) const;
 		[[nodiscard]] bool contains(const WindowID &p_id) const;
 		[[nodiscard]] size_t size() const;

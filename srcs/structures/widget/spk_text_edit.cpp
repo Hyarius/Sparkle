@@ -235,7 +235,7 @@ namespace spk
 		_needHigherCursorUpdate = true;
 	}
 
-	void TextEdit::_onUpdate(const spk::UpdateTick &p_tick)
+	void TextEdit::_onUpdate(const spk::UpdateContext &p_tick)
 	{
 		const bool newRenderCursor = (p_tick.timestamp.milliseconds() / 250) % 2 == 0;
 

@@ -36,13 +36,15 @@
 #include "structures/math/spk_vector4.hpp"
 #include "utils/spk_math.hpp"
 
-#include "structures/system/event/spk_update_tick.hpp"
+#include "structures/system/event/spk_update_context.hpp"
 #include "structures/system/time/spk_chronometer.hpp"
 #include "structures/system/time/spk_duration.hpp"
 #include "structures/system/time/spk_timer.hpp"
 #include "structures/system/time/spk_timestamp.hpp"
 #include "type/spk_time_unit.hpp"
 #include "utils/spk_time_utils.hpp"
+
+#include "structures/system/spk_profiler.hpp"
 
 #include "structures/system/device/input/spk_keyboard.hpp"
 #include "structures/system/device/input/spk_mouse.hpp"

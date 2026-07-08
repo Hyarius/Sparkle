@@ -228,7 +228,17 @@ namespace spk
 			_gpuPlatformRuntime = _createDefaultGPUPlatformRuntime();
 		}
 
-		return _windowRegistry.createWindow(p_id, _platformRuntime, _gpuPlatformRuntime, std::move(p_configuration));
+		return _windowRegistry.createWindow(p_id, _platformRuntime, _gpuPlatformRuntime, std::move(p_configuration), &_profiler);
+	}
+
+	spk::Profiler &Application::profiler() noexcept
+	{
+		return _profiler;
+	}
+
+	const spk::Profiler &Application::profiler() const noexcept
+	{
+		return _profiler;
 	}
 
 	spk::WindowHandle Application::window(const WindowID &p_id)

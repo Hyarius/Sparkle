@@ -19,7 +19,7 @@
 #include "structures/system/device/runtime/spk_platform_runtime.hpp"
 #include "structures/graphics/rendering/command/spk_render_command.hpp"
 #include "structures/graphics/rendering/context/spk_render_context.hpp"
-#include "structures/system/event/spk_update_tick.hpp"
+#include "structures/system/event/spk_update_context.hpp"
 #include "structures/widget/spk_widget.hpp"
 #include "structures/system/device/window/spk_window.hpp"
 #include "structures/system/device/window/spk_window_host.hpp"
@@ -659,7 +659,7 @@ namespace sparkle_test
 			return builder.build();
 		}
 
-		void _onUpdate(const spk::UpdateTick& p_tick) override
+		void _onUpdate(const spk::UpdateContext& p_tick) override
 		{
 			++updateCount;
 			lastTickMouse = p_tick.mouse;
@@ -749,13 +749,13 @@ namespace sparkle_test
 	public:
 		using spk::Widget::Widget;
 
-		std::function<void(const spk::UpdateTick&)> onUpdate = nullptr;
+		std::function<void(const spk::UpdateContext&)> onUpdate = nullptr;
 		std::function<void()> onRender = nullptr;
 		std::function<void()> onAppendRenderCommands = nullptr;
 		std::function<void()> onExecuteRenderCommand = nullptr;
 
 	protected:
-		void _onUpdate(const spk::UpdateTick& p_tick) override
+		void _onUpdate(const spk::UpdateContext& p_tick) override
 		{
 			if (onUpdate != nullptr)
 			{

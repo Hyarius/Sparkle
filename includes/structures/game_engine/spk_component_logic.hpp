@@ -11,7 +11,7 @@
 #include "structures/game_engine/spk_component_registry.hpp"
 #include "structures/graphics/rendering/unit/spk_render_unit_builder.hpp"
 #include "structures/system/event/spk_events.hpp"
-#include "structures/system/event/spk_update_tick.hpp"
+#include "structures/system/event/spk_update_context.hpp"
 
 namespace spk
 {
@@ -22,7 +22,7 @@ namespace spk
 		friend class spk::ComponentLogicRegistry;
 
 	private:
-		virtual void onUpdate(const spk::UpdateTick &p_tick, spk::ComponentRegistry &p_registry) = 0;
+		virtual void onUpdate(const spk::UpdateContext &p_tick, spk::ComponentRegistry &p_registry) = 0;
 		virtual void onRender(
 			spk::RenderUnitBuilder &p_builder,
 			spk::ComponentRegistry &p_registry) = 0;
@@ -97,7 +97,7 @@ namespace spk
 			(this->*p_execute)(p_event);
 		}
 
-		void onUpdate(const spk::UpdateTick &p_tick, spk::ComponentRegistry &p_registry) final
+		void onUpdate(const spk::UpdateContext &p_tick, spk::ComponentRegistry &p_registry) final
 		{
 			if (isActivated() == false)
 			{
@@ -294,9 +294,9 @@ namespace spk
 		}
 
 	protected:
-		virtual void _onUpdateStarted(const spk::UpdateTick &p_tick) { (void)p_tick; }
-		virtual void _parseComponentForUpdate(const spk::UpdateTick &p_tick, TComponent &p_component) { (void)p_tick; (void)p_component; }
-		virtual void _executeUpdate(const spk::UpdateTick &p_tick) { (void)p_tick; }
+		virtual void _onUpdateStarted(const spk::UpdateContext &p_tick) { (void)p_tick; }
+		virtual void _parseComponentForUpdate(const spk::UpdateContext &p_tick, TComponent &p_component) { (void)p_tick; (void)p_component; }
+		virtual void _executeUpdate(const spk::UpdateContext &p_tick) { (void)p_tick; }
 
 		virtual void _onRenderStarted(std::size_t p_componentCount) { (void)p_componentCount; }
 		virtual void _parseComponentForRender(TComponent &p_component) { (void)p_component; }

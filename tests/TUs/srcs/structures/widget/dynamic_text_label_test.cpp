@@ -8,9 +8,9 @@
 
 namespace
 {
-	[[nodiscard]] spk::UpdateTick makeTick()
+	[[nodiscard]] spk::UpdateContext makeTick()
 	{
-		return spk::UpdateTick{};
+		return spk::UpdateContext{};
 	}
 }
 
@@ -33,7 +33,7 @@ TEST(DynamicTextLabelTest, ProducerConstructorRefreshesImmediately)
 TEST(DynamicTextLabelTest, UpdateWithoutProducerKeepsText)
 {
 	spk::DynamicTextLabel label("Dynamic");
-	spk::UpdateTick tick = makeTick();
+	spk::UpdateContext tick = makeTick();
 
 	label.update(tick);
 
@@ -51,7 +51,7 @@ TEST(DynamicTextLabelTest, UpdateRefreshesAfterTimeout)
 	});
 	label.setRefreshDuration(spk::Duration(0.0L, spk::TimeUnit::Millisecond));
 
-	spk::UpdateTick tick = makeTick();
+	spk::UpdateContext tick = makeTick();
 	label.update(tick);
 	label.update(tick);
 
@@ -87,7 +87,7 @@ TEST(DynamicTextLabelTest, UpdateDoesNotRefreshBeforeTimeout)
 		return std::to_string(callCount);
 	});
 
-	spk::UpdateTick tick = makeTick();
+	spk::UpdateContext tick = makeTick();
 	label.update(tick);
 	label.update(tick);
 

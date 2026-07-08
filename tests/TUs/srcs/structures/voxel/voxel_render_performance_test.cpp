@@ -150,7 +150,7 @@ TEST(VoxelRenderPerformance, BakesAnEightByEightChunkSquareWithinBudget)
 	spk::Chronometer chronometer;
 	chronometer.start();
 
-	const spk::UpdateTick tick{};
+	const spk::UpdateContext tick{};
 	logic._onUpdateStarted(tick);
 	for (spk::Component *component : renderers)
 	{

@@ -98,7 +98,7 @@ namespace pg
 		return _hovered;
 	}
 
-	void ExplorationInputLogic::_parseComponentForUpdate(const spk::UpdateTick &p_tick, Actor &p_actor)
+	void ExplorationInputLogic::_parseComponentForUpdate(const spk::UpdateContext &p_tick, Actor &p_actor)
 	{
 		if (!_context.world.explorationActive || !p_actor.player || _invalidSeconds <= 0)
 		{

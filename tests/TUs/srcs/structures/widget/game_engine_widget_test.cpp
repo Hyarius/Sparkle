@@ -160,7 +160,7 @@ TEST(GameEngineWidgetTest, BuildsNoRenderUnitUntilSized)
 TEST(GameEngineWidgetTest, UpdateRunsOwnedEngine)
 {
 	ExposedGameEngineWidget widget("Game");
-	spk::UpdateTick tick{};
+	spk::UpdateContext tick{};
 
 	EXPECT_NO_THROW(widget._onUpdate(tick));
 }

@@ -10,6 +10,7 @@
 #include "structures/system/device/runtime/spk_platform_runtime.hpp"
 #include "structures/system/device/window/spk_window_handle.hpp"
 #include "structures/system/device/window/spk_window_registry.hpp"
+#include "structures/system/spk_profiler.hpp"
 #include "structures/system/time/spk_duration.hpp"
 
 namespace spk
@@ -33,6 +34,10 @@ namespace spk
 		Configuration _configuration;
 		std::shared_ptr<PlatformRuntime> _platformRuntime;
 		std::shared_ptr<GPUPlatformRuntime> _gpuPlatformRuntime;
+		// Application-wide profiler shared with every window it creates (handed to the
+		// update tick and the render context). Additional profilers can be built
+		// independently elsewhere; this one is the general-purpose default.
+		spk::Profiler _profiler;
 		spk::WindowRegistry _windowRegistry;
 		std::thread::id _ownerThreadID;
 		std::atomic<bool> _isRunning = false;
@@ -63,6 +68,9 @@ namespace spk
 		[[nodiscard]] spk::WindowHandle window(const WindowID &p_id) const;
 		[[nodiscard]] bool containsWindow(const WindowID &p_id) const;
 		[[nodiscard]] bool isRunning() const;
+
+		[[nodiscard]] spk::Profiler &profiler() noexcept;
+		[[nodiscard]] const spk::Profiler &profiler() const noexcept;
 
 		void requestWindowClosing(const WindowID &p_id);
 		void quit(int p_exitCode);

@@ -316,7 +316,7 @@ TEST(WidgetTest, UpdateVisitsChildrenBeforeSelf)
 	parent.activate();
 	child.activate();
 
-	spk::UpdateTick tick;
+	spk::UpdateContext tick;
 	parent.update(tick);
 
 	std::vector<std::string> expected = {
@@ -492,7 +492,7 @@ TEST(WidgetTest, DeactivatedWidgetSkipsRenderCommandAppendUpdateAndEventDispatch
 	sparkle_test::RecordingWidget widget("Widget");
 	spk::RenderSnapshotBuilder builder;
 	spk::RenderModule renderModule;
-	spk::UpdateTick tick;
+	spk::UpdateContext tick;
 
 	widget.setGeometry(spk::Rect2D(1, 1, 10, 10));
 
@@ -532,9 +532,9 @@ TEST(WidgetTest, ReparentingDuringUpdateIsDeferredUntilTraversalEndsAndDoesNotSk
 	firstChild.activate();
 	secondChild.activate();
 
-	parent.onUpdate = [&callLog](const spk::UpdateTick&) { callLog.push_back("parent"); };
+	parent.onUpdate = [&callLog](const spk::UpdateContext&) { callLog.push_back("parent"); };
 	firstChild.onUpdate =
-		[&](const spk::UpdateTick&)
+		[&](const spk::UpdateContext&)
 		{
 			callLog.push_back("first_child");
 			firstChild.setParent(&secondParent);
@@ -543,9 +543,9 @@ TEST(WidgetTest, ReparentingDuringUpdateIsDeferredUntilTraversalEndsAndDoesNotSk
 			EXPECT_TRUE(parent.hasChild(&firstChild));
 			EXPECT_FALSE(secondParent.hasChild(&firstChild));
 		};
-	secondChild.onUpdate = [&callLog](const spk::UpdateTick&) { callLog.push_back("second_child"); };
+	secondChild.onUpdate = [&callLog](const spk::UpdateContext&) { callLog.push_back("second_child"); };
 
-	spk::UpdateTick tick;
+	spk::UpdateContext tick;
 	parent.update(tick);
 
 	EXPECT_EQ(callLog, std::vector<std::string>({"first_child", "second_child", "parent"}));

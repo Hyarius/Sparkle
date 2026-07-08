@@ -33,7 +33,7 @@ namespace spk
 		_refreshTimer.start();
 	}
 
-	void DynamicTextLabel::_onUpdate(const spk::UpdateTick &p_tick)
+	void DynamicTextLabel::_onUpdate(const spk::UpdateContext &p_tick)
 	{
 		spk::TextLabel::_onUpdate(p_tick);
 

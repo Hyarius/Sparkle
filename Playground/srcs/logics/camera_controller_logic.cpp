@@ -16,7 +16,7 @@ namespace pg
 	{
 	}
 
-	void CameraControllerLogic::_parseComponentForUpdate(const spk::UpdateTick &p_tick, Actor &p_actor)
+	void CameraControllerLogic::_parseComponentForUpdate(const spk::UpdateContext &p_tick, Actor &p_actor)
 	{
 		if (!_context.world.explorationActive || !p_actor.player)
 		{

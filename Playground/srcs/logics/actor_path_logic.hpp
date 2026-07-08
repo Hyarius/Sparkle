@@ -41,6 +41,6 @@ namespace pg
 		void advance(Actor &p_actor, float p_seconds);
 
 	protected:
-		void _parseComponentForUpdate(const spk::UpdateTick &p_tick, Actor &p_actor) override;
+		void _parseComponentForUpdate(const spk::UpdateContext &p_tick, Actor &p_actor) override;
 	};
 }

@@ -15,7 +15,7 @@ namespace spk
 {
 	struct GameEngineTester
 	{
-		static void update(spk::GameEngine &p_engine, const spk::UpdateTick &p_tick) { p_engine.update(p_tick); }
+		static void update(spk::GameEngine &p_engine, const spk::UpdateContext &p_tick) { p_engine.update(p_tick); }
 		[[nodiscard]] static spk::RenderUnit buildRenderUnit(spk::GameEngine &p_engine) { return p_engine.buildRenderUnit(); }
 
 		template <typename TEvent>
@@ -46,17 +46,17 @@ namespace
 		int resizedCount = 0;
 
 	protected:
-		void _onUpdateStarted(const spk::UpdateTick &) override
+		void _onUpdateStarted(const spk::UpdateContext &) override
 		{
 			sum = 0;
 		}
 
-		void _parseComponentForUpdate(const spk::UpdateTick &, ValueComponent &p_component) override
+		void _parseComponentForUpdate(const spk::UpdateContext &, ValueComponent &p_component) override
 		{
 			sum += p_component.value;
 		}
 
-		void _executeUpdate(const spk::UpdateTick &) override
+		void _executeUpdate(const spk::UpdateContext &) override
 		{
 			++updateRuns;
 		}
@@ -86,8 +86,8 @@ namespace
 		int eventParses = 0;
 
 	protected:
-		void _parseComponentForUpdate(const spk::UpdateTick &, ValueComponent &) override { ++updateParses; }
-		void _executeUpdate(const spk::UpdateTick &) override { ++updateRuns; }
+		void _parseComponentForUpdate(const spk::UpdateContext &, ValueComponent &) override { ++updateParses; }
+		void _executeUpdate(const spk::UpdateContext &) override { ++updateRuns; }
 
 		void _parseComponentForRender(ValueComponent &) override { ++renderParses; }
 		void _executeRender(spk::RenderUnitBuilder &) override { ++renderRuns; }
@@ -225,7 +225,7 @@ TEST(GameEngineTest, UpdateDrivesLogicOverRegisteredComponents)
 	engine.addEntity(&entity);
 	entity.addComponent<ValueComponent>(7);
 
-	spk::UpdateTick tick{};
+	spk::UpdateContext tick{};
 	spk::GameEngineTester::update(engine, tick);
 
 	EXPECT_EQ(logic.sum, 7);
@@ -291,7 +291,7 @@ TEST(GameEngineTest, RemoveEntityRemovesItsComponentsFromProcessing)
 	engine.addEntity(&entity);
 	entity.addComponent<ValueComponent>(5);
 
-	spk::UpdateTick tick{};
+	spk::UpdateContext tick{};
 	spk::GameEngineTester::update(engine, tick);
 	ASSERT_EQ(logic.sum, 5);
 
@@ -315,7 +315,7 @@ TEST(GameEngineTest, RemoveEntityIgnoresEntityNotRegisteredHere)
 
 	engine.removeEntity(&stray);
 
-	spk::UpdateTick tick{};
+	spk::UpdateContext tick{};
 	spk::GameEngineTester::update(engine, tick);
 
 	EXPECT_EQ(logic.sum, 4);
@@ -386,7 +386,7 @@ TEST(GameEngineTest, DeactivatedEngineSkipsUpdateRenderAndDispatch)
 
 	engine.deactivate();
 
-	spk::UpdateTick tick{};
+	spk::UpdateContext tick{};
 	spk::GameEngineTester::update(engine, tick);
 	(void)spk::GameEngineTester::buildRenderUnit(engine);
 
@@ -407,7 +407,7 @@ TEST(GameEngineTest, ComponentAddedAfterEntityIsPickedUpOnNextUpdate)
 	spk::Entity entity;
 	engine.addEntity(&entity);
 
-	spk::UpdateTick tick{};
+	spk::UpdateContext tick{};
 	spk::GameEngineTester::update(engine, tick);
 	ASSERT_EQ(logic.sum, 0);
 
@@ -426,7 +426,7 @@ TEST(GameEngineTest, EveryPhaseAndEventTypeDrivesLogicHooks)
 	engine.addEntity(&entity);
 	entity.addComponent<ValueComponent>(1);
 
-	spk::UpdateTick tick{};
+	spk::UpdateContext tick{};
 	spk::GameEngineTester::update(engine, tick);
 	(void)spk::GameEngineTester::buildRenderUnit(engine);
 
@@ -469,7 +469,7 @@ TEST(GameEngineTest, DeactivatedLogicIsSkippedInEveryPhase)
 
 	tracker.deactivate();
 
-	spk::UpdateTick tick{};
+	spk::UpdateContext tick{};
 	spk::GameEngineTester::update(engine, tick);
 	(void)spk::GameEngineTester::buildRenderUnit(engine);
 
@@ -522,7 +522,7 @@ TEST(GameEngineTest, AddingEntityWithChildrenCascadesRegistration)
 	ChildOwningEntity root;
 	engine.addEntity(&root);
 
-	spk::UpdateTick tick{};
+	spk::UpdateContext tick{};
 	spk::GameEngineTester::update(engine, tick);
 
 	EXPECT_EQ(tracker.updateParses, 1);
@@ -538,7 +538,7 @@ TEST(GameEngineTest, EntityOutlivingEngineIsSafelyDetached)
 		engine.add<SumLogic>();
 		engine.addEntity(&entity);
 
-		spk::UpdateTick tick{};
+		spk::UpdateContext tick{};
 		spk::GameEngineTester::update(engine, tick);
 	}
 
@@ -561,7 +561,7 @@ TEST(GameEngineTest, EnginesProcessOnlyTheirOwnEntities)
 	engineB.addEntity(&entityB);
 	entityB.addComponent<ValueComponent>(20);
 
-	spk::UpdateTick tick{};
+	spk::UpdateContext tick{};
 	spk::GameEngineTester::update(engineA, tick);
 	spk::GameEngineTester::update(engineB, tick);
 
@@ -583,7 +583,7 @@ TEST(GameEngineTest, ReparentingMigratesComponentsBetweenEngines)
 	engineA.addEntity(&child);
 	child.addComponent<ValueComponent>(5);
 
-	spk::UpdateTick tick{};
+	spk::UpdateContext tick{};
 	spk::GameEngineTester::update(engineA, tick);
 	spk::GameEngineTester::update(engineB, tick);
 	ASSERT_EQ(logicA.sum, 5);
@@ -608,7 +608,7 @@ TEST(GameEngineTest, DeactivatingParentStopsChildComponentsFromBeingProcessed)
 	spk::Entity child(&parent);
 	child.addComponent<ValueComponent>(8);
 
-	spk::UpdateTick tick{};
+	spk::UpdateContext tick{};
 	spk::GameEngineTester::update(engine, tick);
 	ASSERT_EQ(logic.sum, 8);
 
@@ -633,7 +633,7 @@ TEST(AnimationLogicTest, ControllerWithoutRendererIsIgnored)
 	controller.addAnimation(L"idle", animation);
 	controller.play(L"idle");
 
-	spk::UpdateTick tick{};
+	spk::UpdateContext tick{};
 	tick.deltaTime = spk::Duration(0.5L, spk::TimeUnit::Second);
 	spk::GameEngineTester::update(engine, tick);
 
@@ -653,7 +653,7 @@ TEST(AnimationLogicTest, RendererWithoutSpriteSheetIsIgnored)
 	controller.addAnimation(L"idle", animation);
 	controller.play(L"idle");
 
-	spk::UpdateTick tick{};
+	spk::UpdateContext tick{};
 	tick.deltaTime = spk::Duration(0.5L, spk::TimeUnit::Second);
 	spk::GameEngineTester::update(engine, tick);
 
@@ -673,7 +673,7 @@ TEST(AnimationLogicTest, EmptyAnimationIsIgnored)
 	controller.addAnimation(L"empty", spk::Animation2D{});
 	controller.play(L"empty");
 
-	spk::UpdateTick tick{};
+	spk::UpdateContext tick{};
 	tick.deltaTime = spk::Duration(0.5L, spk::TimeUnit::Second);
 	spk::GameEngineTester::update(engine, tick);
 
@@ -697,7 +697,7 @@ TEST(AnimationLogicTest, LoopingAnimationAdvancesBeforeInvalidSheetLookup)
 	controller.addAnimation(L"walk", animation);
 	controller.play(L"walk");
 
-	spk::UpdateTick tick{};
+	spk::UpdateContext tick{};
 	tick.deltaTime = spk::Duration(0.75L, spk::TimeUnit::Second);
 	EXPECT_THROW(spk::GameEngineTester::update(engine, tick), std::out_of_range);
 
@@ -721,7 +721,7 @@ TEST(AnimationLogicTest, NonLoopingAnimationClampsBeforeInvalidSheetLookup)
 	controller.addAnimation(L"once", animation);
 	controller.play(L"once");
 
-	spk::UpdateTick tick{};
+	spk::UpdateContext tick{};
 	tick.deltaTime = spk::Duration(1.0L, spk::TimeUnit::Second);
 	EXPECT_THROW(spk::GameEngineTester::update(engine, tick), std::out_of_range);
 

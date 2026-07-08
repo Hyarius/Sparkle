@@ -364,12 +364,12 @@ TEST(TextEditTest, CursorBlinkUpdateRunsWithAndWithoutKeyboardFocus)
 {
 	TextEditTester textEdit("TextEdit");
 	textEdit.setGeometry(spk::Rect2D(0, 0, 200, 40));
-	spk::UpdateTick hiddenTick{};
+	spk::UpdateContext hiddenTick{};
 	hiddenTick.timestamp = spk::Timestamp(250.0L, spk::TimeUnit::Millisecond);
 	EXPECT_NO_THROW(textEdit._onUpdate(hiddenTick));
 
 	clickInside(textEdit);
-	spk::UpdateTick shownTick{};
+	spk::UpdateContext shownTick{};
 	shownTick.timestamp = spk::Timestamp(500.0L, spk::TimeUnit::Millisecond);
 	EXPECT_NO_THROW(textEdit._onUpdate(shownTick));
 	textEdit.releaseFocus(spk::Widget::FocusType::Keyboard);

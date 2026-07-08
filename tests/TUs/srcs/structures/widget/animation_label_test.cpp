@@ -13,9 +13,9 @@ namespace
 		return spk::WidgetStyle::makeDefault().nineSliceSpriteSheet();
 	}
 
-	[[nodiscard]] spk::UpdateTick makeTick()
+	[[nodiscard]] spk::UpdateContext makeTick()
 	{
-		return spk::UpdateTick{};
+		return spk::UpdateContext{};
 	}
 }
 
@@ -68,7 +68,7 @@ TEST(AnimationLabelTest, SetAnimationRangeRejectsInvertedRange)
 TEST(AnimationLabelTest, UpdateAdvancesFrameOnceUntilTimerExpires)
 {
 	spk::AnimationLabel label("Animation", makeSpriteSheet());
-	spk::UpdateTick tick = makeTick();
+	spk::UpdateContext tick = makeTick();
 
 	label.update(tick);
 	EXPECT_EQ(label.currentFrame(), 1u);
@@ -82,7 +82,7 @@ TEST(AnimationLabelTest, UpdateWrapsAroundAnimationRange)
 	spk::AnimationLabel label("Animation", makeSpriteSheet());
 	label.setAnimationRange(2, 3);
 	label.setLoopSpeed(spk::Duration(0.0L, spk::TimeUnit::Millisecond));
-	spk::UpdateTick tick = makeTick();
+	spk::UpdateContext tick = makeTick();
 
 	EXPECT_EQ(label.currentFrame(), 2u);
 
@@ -96,7 +96,7 @@ TEST(AnimationLabelTest, UpdateWrapsAroundAnimationRange)
 TEST(AnimationLabelTest, UpdateWithoutSpriteSheetIsNoOp)
 {
 	spk::AnimationLabel label("Animation");
-	spk::UpdateTick tick = makeTick();
+	spk::UpdateContext tick = makeTick();
 
 	label.update(tick);
 
@@ -126,7 +126,7 @@ TEST(AnimationLabelTest, UpdateWrapsAroundFullRange)
 {
 	spk::AnimationLabel label("Animation", makeSpriteSheet());
 	label.setLoopSpeed(spk::Duration(0.0L, spk::TimeUnit::Millisecond));
-	spk::UpdateTick tick = makeTick();
+	spk::UpdateContext tick = makeTick();
 
 	const size_t totalSprites = label.rangeEnd() + 1;
 	for (size_t i = 0; i < totalSprites; ++i)
@@ -177,7 +177,7 @@ TEST(AnimationLabelVisualTest, RendersSecondFrame)
 
 	spk::AnimationLabel label("Anim", makeSpriteSheet());
 	label.setLoopSpeed(spk::Duration(0.0L, spk::TimeUnit::Millisecond));
-	spk::UpdateTick tick{};
+	spk::UpdateContext tick{};
 	label.update(tick);
 
 	const sparkle_test::ImageComparisonResult result =

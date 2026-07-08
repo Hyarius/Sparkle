@@ -200,7 +200,7 @@ TEST(ApplicationTest, RunExecutesEventUpdateAndRenderLoops)
 	ASSERT_NE(window, nullptr);
 	sparkle_test::CallbackWidget probe("Probe", &sparkle_test::WindowAccess::rootWidget(*window));
 	probe.activate();
-	probe.onUpdate = [&](const spk::UpdateTick& p_tick)
+	probe.onUpdate = [&](const spk::UpdateContext& p_tick)
 	{
 		++updateCount;
 		EXPECT_NE(p_tick.mouse, nullptr);
@@ -313,7 +313,7 @@ TEST(ApplicationTest, RunRethrowsWorkerThreadFailuresOnTheCallerThread)
 
 	sparkle_test::CallbackWidget probe("Probe", &sparkle_test::WindowAccess::rootWidget(*window));
 	probe.activate();
-	probe.onUpdate = [](const spk::UpdateTick&)
+	probe.onUpdate = [](const spk::UpdateContext&)
 	{
 		throw std::runtime_error("update failure");
 	};
@@ -355,7 +355,7 @@ TEST(ApplicationTest, RunRethrowsOneWorkerFailureWhenRenderAndUpdateFailConcurre
 
 	sparkle_test::CallbackWidget probe("Probe", &sparkle_test::WindowAccess::rootWidget(*window));
 	probe.activate();
-	probe.onUpdate = [&](const spk::UpdateTick&)
+	probe.onUpdate = [&](const spk::UpdateContext&)
 	{
 		updateFailureReached.store(true);
 		failureBarrier.arrive_and_wait();

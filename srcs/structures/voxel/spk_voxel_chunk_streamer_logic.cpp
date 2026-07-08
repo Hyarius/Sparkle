@@ -29,14 +29,14 @@ namespace spk
 		return _retainInactiveChunks;
 	}
 
-	void VoxelChunkStreamerLogic::_onUpdateStarted(const spk::UpdateTick &p_tick)
+	void VoxelChunkStreamerLogic::_onUpdateStarted(const spk::UpdateContext &p_tick)
 	{
 		(void)p_tick;
 		_mapStreamings.clear();
 	}
 
 	void VoxelChunkStreamerLogic::_parseComponentForUpdate(
-		const spk::UpdateTick &p_tick,
+		const spk::UpdateContext &p_tick,
 		spk::VoxelChunkStreamer &p_streamer)
 	{
 		(void)p_tick;
@@ -58,7 +58,7 @@ namespace spk
 		}
 	}
 
-	void VoxelChunkStreamerLogic::_executeUpdate(const spk::UpdateTick &p_tick)
+	void VoxelChunkStreamerLogic::_executeUpdate(const spk::UpdateContext &p_tick)
 	{
 		(void)p_tick;
 		for (auto &[map, streaming] : _mapStreamings)

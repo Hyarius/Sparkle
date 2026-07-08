@@ -26,7 +26,7 @@ namespace spk
 		spk::ComponentRegistry _components{_id};
 		spk::ComponentLogicRegistry _logicRegistry;
 
-		void update(const spk::UpdateTick &p_tick);
+		void update(const spk::UpdateContext &p_tick);
 		[[nodiscard]] spk::RenderUnit buildRenderUnit();
 
 		template <typename TEvent>

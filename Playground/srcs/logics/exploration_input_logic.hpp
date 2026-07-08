@@ -49,7 +49,7 @@ namespace pg
 		[[nodiscard]] const std::optional<spk::Vector3Int> &hoveredCell() const noexcept;
 
 	protected:
-		void _parseComponentForUpdate(const spk::UpdateTick &p_tick, Actor &p_actor) override;
+		void _parseComponentForUpdate(const spk::UpdateContext &p_tick, Actor &p_actor) override;
 		void _parseComponentForMouseMovedEvent(spk::MouseMovedEvent &p_event, Actor &p_actor) override;
 		void _parseComponentForMouseButtonPressedEvent(spk::MouseButtonPressedEvent &p_event, Actor &p_actor) override;
 	};

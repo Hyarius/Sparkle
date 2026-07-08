@@ -97,7 +97,7 @@ namespace spk
 			return (iterator == _lookup.end() ? nullptr : static_cast<const TLogic *>(iterator->second));
 		}
 
-		void update(const spk::UpdateTick &p_tick, spk::ComponentRegistry &p_registry)
+		void update(const spk::UpdateContext &p_tick, spk::ComponentRegistry &p_registry)
 		{
 			_ensureSorted();
 

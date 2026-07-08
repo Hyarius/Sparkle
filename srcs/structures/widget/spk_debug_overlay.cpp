@@ -158,7 +158,10 @@ namespace spk
 	{
 		_ensureColumn(p_row, p_column);
 		_rows[p_row].labels[p_column]->setText(p_text);
-		_applyFontsToFit();
+		// Editing a label changes the overlay's content: a newly-created column has no geometry
+		// yet, and existing labels may need re-fitting. Re-run the layout in place so every
+		// label (including new ones) is re-composed and re-fit to the current geometry.
+		refreshGeometry();
 	}
 
 	void DebugOverlay::setFont(std::shared_ptr<spk::Font> p_font)

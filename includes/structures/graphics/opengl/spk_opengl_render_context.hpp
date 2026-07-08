@@ -18,6 +18,8 @@
 
 namespace spk
 {
+	class Profiler;
+
 	namespace OpenGL
 	{
 		class Buffer;
@@ -40,6 +42,10 @@ namespace spk
 		HWND _windowHandle = nullptr;
 		HDC _deviceContext = nullptr;
 		HGLRC _renderContext = nullptr;
+
+		// Non-owning handle to the application-wide profiler; set by the Window each
+		// frame so render-side code can time itself via RenderContext::current().
+		spk::Profiler *_profiler = nullptr;
 
 		std::mutex _releaseQueueMutex;
 		std::vector<std::unique_ptr<spk::OpenGL::Object>> _releaseQueue;
@@ -69,6 +75,9 @@ namespace spk
 		[[nodiscard]] static std::uint64_t deathGeneration() noexcept;
 
 		[[nodiscard]] std::uint64_t id() const noexcept;
+
+		void setProfiler(spk::Profiler *p_profiler) noexcept;
+		[[nodiscard]] spk::Profiler *profiler() const noexcept;
 
 		void scheduleRelease(std::unique_ptr<spk::OpenGL::Object> p_object);
 		void flushReleaseQueue();

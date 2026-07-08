@@ -2,6 +2,7 @@
 
 #include "structures/game_engine/spk_component_logic.hpp"
 #include "structures/math/spk_matrix.hpp"
+#include "structures/system/spk_profiler.hpp"
 #include "structures/system/thread/spk_worker_pool.hpp"
 #include "structures/voxel/spk_voxel_chunk_renderer.hpp"
 
@@ -36,6 +37,18 @@ namespace spk
 		bool _emitFrameState = true;
 		spk::WorkerPool *_workerPool = nullptr;
 
+		// Timing probes, resolved from the profiler carried by the UpdateContext (owned by
+		// the application). "batch" spans the whole worker dispatch + join for the chunks
+		// dirtied this frame; "chunk" is the per-chunk mesh build, recorded from the worker
+		// threads; "assembly" is the render-command building (which also runs on the update
+		// thread, so it reuses the same cached profiler). Null until a profiler is bound.
+		spk::Profiler *_profiler = nullptr;
+		spk::Profiler::Probe *_bakeBatchProbe = nullptr;
+		spk::Profiler::Probe *_bakeChunkProbe = nullptr;
+		spk::Profiler::Probe *_renderAssemblyProbe = nullptr;
+
+		void _bindProfiler(spk::Profiler *p_profiler);
+
 		spk::Camera3D *_camera = nullptr;
 		spk::Matrix4x4 _cameraMatrix;
 
@@ -58,9 +71,9 @@ namespace spk
 		[[nodiscard]] const spk::WorkerPool &workerPool() const noexcept;
 
 	protected:
-		void _onUpdateStarted(const spk::UpdateTick &p_tick) override;
-		void _parseComponentForUpdate(const spk::UpdateTick &p_tick, spk::VoxelChunkRenderer &p_renderer) override;
-		void _executeUpdate(const spk::UpdateTick &p_tick) override;
+		void _onUpdateStarted(const spk::UpdateContext &p_tick) override;
+		void _parseComponentForUpdate(const spk::UpdateContext &p_tick, spk::VoxelChunkRenderer &p_renderer) override;
+		void _executeUpdate(const spk::UpdateContext &p_tick) override;
 
 		void _onRenderStarted(std::size_t p_componentCount) override;
 		void _parseComponentForRender(spk::VoxelChunkRenderer &p_renderer) override;

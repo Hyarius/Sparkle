@@ -14,7 +14,7 @@ namespace spk
 	class AnimationLogic : public spk::ComponentLogic<AnimationController2D>
 	{
 	protected:
-		void _parseComponentForUpdate(const spk::UpdateTick &p_tick, AnimationController2D &p_controller) override
+		void _parseComponentForUpdate(const spk::UpdateContext &p_tick, AnimationController2D &p_controller) override
 		{
 			spk::Entity *entity = p_controller.entity();
 			if (entity == nullptr)

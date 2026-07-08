@@ -54,7 +54,7 @@ namespace
 
 		void tick()
 		{
-			engine.logicRegistry().update(spk::UpdateTick{}, engine.componentRegistry());
+			engine.logicRegistry().update(spk::UpdateContext{}, engine.componentRegistry());
 		}
 
 		[[nodiscard]] spk::RenderUnitBuilder render()

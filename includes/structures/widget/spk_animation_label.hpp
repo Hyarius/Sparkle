@@ -23,7 +23,7 @@ namespace spk
 
 	protected:
 		[[nodiscard]] spk::RenderUnit _buildRenderUnit() const override;
-		void _onUpdate(const spk::UpdateTick &p_tick) override;
+		void _onUpdate(const spk::UpdateContext &p_tick) override;
 
 	public:
 		explicit AnimationLabel(const std::string &p_name, spk::Widget *p_parent = nullptr);

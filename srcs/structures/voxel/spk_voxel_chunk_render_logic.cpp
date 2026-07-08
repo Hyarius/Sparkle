@@ -14,6 +14,7 @@
 #include <cstring>
 #include <exception>
 #include <iterator>
+#include <optional>
 #include <unordered_set>
 #include <utility>
 
@@ -37,6 +38,27 @@ namespace spk
 	const spk::WorkerPool &VoxelChunkRenderLogic::workerPool() const noexcept
 	{
 		return *_workerPool;
+	}
+
+	void VoxelChunkRenderLogic::_bindProfiler(spk::Profiler *p_profiler)
+	{
+		if (p_profiler == _profiler)
+		{
+			return;
+		}
+
+		_profiler = p_profiler;
+		if (_profiler == nullptr)
+		{
+			_bakeBatchProbe = nullptr;
+			_bakeChunkProbe = nullptr;
+			_renderAssemblyProbe = nullptr;
+			return;
+		}
+
+		_bakeBatchProbe = &_profiler->probe("Voxel/Bake (batch)");
+		_bakeChunkProbe = &_profiler->probe("Voxel/Bake (chunk)");
+		_renderAssemblyProbe = &_profiler->probe("Voxel/Render assembly");
 	}
 
 	void VoxelChunkRenderLogic::_syncCache(CachedDraw &p_cached, const spk::Matrix4x4 &p_model)
@@ -75,6 +97,13 @@ namespace spk
 			return;
 		}
 
+		// Only timed when there is real work, so the min/avg stay meaningful.
+		std::optional<spk::Profiler::Probe::Sample> batchSample;
+		if (_bakeBatchProbe != nullptr)
+		{
+			batchSample.emplace(*_bakeBatchProbe);
+		}
+
 		struct PendingMesh
 		{
 			spk::VoxelChunkRenderer *renderer = nullptr;
@@ -92,7 +121,12 @@ namespace spk
 			}
 			try
 			{
-				pendingMeshes.push_back(PendingMesh{.renderer = renderer, .task = _workerPool->push([renderer]() {
+				pendingMeshes.push_back(PendingMesh{.renderer = renderer, .task = _workerPool->push([renderer, probe = _bakeChunkProbe]() {
+														std::optional<spk::Profiler::Probe::Sample> chunkSample;
+														if (probe != nullptr)
+														{
+															chunkSample.emplace(*probe);
+														}
 														return renderer->buildMesh();
 													})});
 			} catch (...)
@@ -125,14 +159,16 @@ namespace spk
 		}
 	}
 
-	void VoxelChunkRenderLogic::_onUpdateStarted(const spk::UpdateTick &p_tick)
+	void VoxelChunkRenderLogic::_onUpdateStarted(const spk::UpdateContext &p_tick)
 	{
-		(void)p_tick;
+		// The render-command assembly step also runs on the update thread (right after this
+		// pass), so caching the profiler here covers both the bake and the assembly probes.
+		_bindProfiler(p_tick.profiler);
 		_dirtyChunks.clear();
 	}
 
 	void VoxelChunkRenderLogic::_parseComponentForUpdate(
-		const spk::UpdateTick &p_tick,
+		const spk::UpdateContext &p_tick,
 		spk::VoxelChunkRenderer &p_renderer)
 	{
 		(void)p_tick;
@@ -142,7 +178,7 @@ namespace spk
 		}
 	}
 
-	void VoxelChunkRenderLogic::_executeUpdate(const spk::UpdateTick &p_tick)
+	void VoxelChunkRenderLogic::_executeUpdate(const spk::UpdateContext &p_tick)
 	{
 		(void)p_tick;
 		_synchronizeDirtyChunks();
@@ -193,6 +229,12 @@ namespace spk
 		{
 			_pruneUnloadedChunks();
 			return;
+		}
+
+		std::optional<spk::Profiler::Probe::Sample> assemblySample;
+		if (_renderAssemblyProbe != nullptr)
+		{
+			assemblySample.emplace(*_renderAssemblyProbe);
 		}
 
 		if (_emitFrameState)

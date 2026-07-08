@@ -75,7 +75,7 @@ namespace spk
 	protected:
 		[[nodiscard]] spk::RenderUnit _buildRenderUnit() const override;
 		void _onGeometryChange() override;
-		void _onUpdate(const spk::UpdateTick &p_tick) override;
+		void _onUpdate(const spk::UpdateContext &p_tick) override;
 		void _onMouseMovedEvent(spk::MouseMovedEvent &p_event) override;
 		void _onMouseButtonPressedEvent(spk::MouseButtonPressedEvent &p_event) override;
 		void _onKeyPressedEvent(spk::KeyPressedEvent &p_event) override;

@@ -136,7 +136,7 @@ TEST_P(VoxelSceneVisualTest, SceneMatchesTheExpectedImage)
 	camera.setAspectRatio(1.0f);
 
 	// Update pass: bakes the chunk mesh through the render logic.
-	engine.logicRegistry().update(spk::UpdateTick{}, engine.componentRegistry());
+	engine.logicRegistry().update(spk::UpdateContext{}, engine.componentRegistry());
 
 	const std::string group = "VoxelSceneVisual";
 	const std::string &variant = view.name;
