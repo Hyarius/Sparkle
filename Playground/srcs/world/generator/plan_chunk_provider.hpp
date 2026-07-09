@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <map>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace pg
@@ -33,7 +34,7 @@ namespace pg
 		struct ResolvedPlacement
 		{
 			const PrefabDefinition *definition = nullptr;
-			spk::Vector3Int worldMin{};    // min corner of the rotated bounding box
+			spk::Vector3Int worldMin{};	   // min corner of the rotated bounding box
 			spk::Vector3Int rotatedSize{}; // extents of that box
 			spk::Vector3Int destination{}; // world cell the prefab's pivot lands on
 			spk::VoxelOrientation orientation = spk::VoxelOrientation::PositiveZ;
@@ -42,25 +43,27 @@ namespace pg
 
 		struct BiomeBlocks
 		{
-			std::int32_t surface = -1;
-			std::int32_t subsurface = -1;
-			std::int32_t deep = -1;
-			std::vector<std::int32_t> road; // paved per column from this pool (see _roadBlock)
+			using VoxelPool = std::vector<std::pair<std::int32_t, double>>;
+
+			VoxelPool surface;
+			VoxelPool subsurface;
+			VoxelPool deep;
+			VoxelPool road; // paved per column from this pool
 		};
 
 		struct Column
 		{
-			int groundTop = -1;      // highest solid block (-1: no ground in this column)
+			int groundTop = -1; // highest solid block (-1: no ground in this column)
 			std::int32_t surfaceId = -1;
 			std::int32_t subsurfaceId = -1;
 			std::int32_t deepId = -1;
-			int waterY = -1;         // water block at this height (-1: none)
+			int waterY = -1;		 // water block at this height (-1: none)
 			int subsurfaceDepth = 3; // blocks of subsurface under the surface block
 		};
 
 		const WorldPlan &_plan;
 		std::vector<BiomeBlocks> _biomeBlocks; // indexed like _plan.biomes
-		BiomeBlocks _fallbackBlocks;           // for land cells outside any zone
+		BiomeBlocks _fallbackBlocks;		   // for land cells outside any zone
 		std::int32_t _road = -1;
 		std::int32_t _water = -1;
 		std::int32_t _sand = -1;

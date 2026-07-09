@@ -87,10 +87,22 @@ namespace pg
 				spk::Vector3Int lateral{};
 				switch (run.direction)
 				{
-				case VoxelOrientation::PositiveX: advance = {1, 1, 0}; lateral = {0, 0, 1}; break;
-				case VoxelOrientation::NegativeX: advance = {-1, 1, 0}; lateral = {0, 0, 1}; break;
-				case VoxelOrientation::PositiveZ: advance = {0, 1, 1}; lateral = {1, 0, 0}; break;
-				case VoxelOrientation::NegativeZ: advance = {0, 1, -1}; lateral = {1, 0, 0}; break;
+				case VoxelOrientation::PositiveX:
+					advance = {1, 1, 0};
+					lateral = {0, 0, 1};
+					break;
+				case VoxelOrientation::NegativeX:
+					advance = {-1, 1, 0};
+					lateral = {0, 0, 1};
+					break;
+				case VoxelOrientation::PositiveZ:
+					advance = {0, 1, 1};
+					lateral = {1, 0, 0};
+					break;
+				case VoxelOrientation::NegativeZ:
+					advance = {0, 1, -1};
+					lateral = {1, 0, 0};
+					break;
 				}
 				for (int step = 0; step < run.steps; ++step)
 				{
@@ -116,27 +128,35 @@ namespace pg
 		detail::applyVoxelContent(p_reader, grid, palette, contentOffset);
 		for (const StairRun &run : stairRuns)
 		{
-			const auto found = palette.find(run.voxel);
-			if (found == palette.end())
-			{
-				throw JsonError(p_reader.file(), run.voxelPath, "unknown palette key '" + run.voxel + "'");
-			}
 			spk::Vector3Int advance{};
 			spk::Vector3Int lateral{};
 			switch (run.direction)
 			{
-			case VoxelOrientation::PositiveX: advance = {1, 1, 0}; lateral = {0, 0, 1}; break;
-			case VoxelOrientation::NegativeX: advance = {-1, 1, 0}; lateral = {0, 0, 1}; break;
-			case VoxelOrientation::PositiveZ: advance = {0, 1, 1}; lateral = {1, 0, 0}; break;
-			case VoxelOrientation::NegativeZ: advance = {0, 1, -1}; lateral = {1, 0, 0}; break;
+			case VoxelOrientation::PositiveX:
+				advance = {1, 1, 0};
+				lateral = {0, 0, 1};
+				break;
+			case VoxelOrientation::NegativeX:
+				advance = {-1, 1, 0};
+				lateral = {0, 0, 1};
+				break;
+			case VoxelOrientation::PositiveZ:
+				advance = {0, 1, 1};
+				lateral = {1, 0, 0};
+				break;
+			case VoxelOrientation::NegativeZ:
+				advance = {0, 1, -1};
+				lateral = {1, 0, 0};
+				break;
 			}
 			for (int step = 0; step < run.steps; ++step)
 			{
 				for (int width = 0; width < run.width; ++width)
 				{
-					VoxelCell cell = found->second;
+					const spk::Vector3Int position = run.from + advance * step + lateral * width + contentOffset;
+					VoxelCell cell = detail::pickPaletteToken(palette, run.voxel, p_reader, run.voxelPath, position);
 					cell.orientation = run.direction;
-					grid.cell(run.from + advance * step + lateral * width + contentOffset) = cell;
+					grid.cell(position) = cell;
 				}
 			}
 		}

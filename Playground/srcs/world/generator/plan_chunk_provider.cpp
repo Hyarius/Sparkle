@@ -12,12 +12,20 @@
 #include <iostream>
 #include <limits>
 #include <stdexcept>
+#include <utility>
 #include <vector>
 
 namespace pg
 {
 	namespace
 	{
+		using VoxelPool = std::vector<std::pair<std::int32_t, double>>;
+
+		constexpr std::uint64_t kSurfaceSalt = 0x6eed0e9da4d94a4fULL;
+		constexpr std::uint64_t kSubsurfaceSalt = 0x58f0f1a32db7c2bdULL;
+		constexpr std::uint64_t kDeepSalt = 0xf4d3b9a05f19e8b7ULL;
+		constexpr std::uint64_t kRoadSalt = 0x314adbe6734a92d1ULL;
+
 		[[nodiscard]] std::uint64_t avalanche(std::uint64_t p_value) noexcept
 		{
 			p_value ^= p_value >> 30U;
@@ -28,23 +36,44 @@ namespace pg
 			return p_value;
 		}
 
-		// Deterministic per-column pick from a road pool. The final avalanche matters:
-		// for two variants, the old multiply/xor hash collapsed to a checkerboard.
-		[[nodiscard]] std::int32_t pickRoad(
-			const std::vector<std::int32_t> &p_pool,
+		[[nodiscard]] double unitInterval(std::uint64_t p_hash) noexcept
+		{
+			return static_cast<double>(p_hash >> 11U) * (1.0 / 9007199254740992.0);
+		}
+
+		// Deterministic per-column pick from a weighted pool. The final avalanche matters:
+		// without it, two variants can collapse into visible parity/checker patterns.
+		[[nodiscard]] std::int32_t pickVoxel(
+			const VoxelPool &p_pool,
 			int p_worldX,
 			int p_worldZ,
-			std::uint64_t p_seed)
+			std::uint64_t p_seed,
+			std::uint64_t p_salt)
 		{
 			if (p_pool.size() <= 1)
 			{
-				return p_pool.front();
+				return p_pool.front().first;
 			}
 			std::uint64_t hash = static_cast<std::uint64_t>(static_cast<std::uint32_t>(p_worldX)) << 32U;
 			hash |= static_cast<std::uint32_t>(p_worldZ);
-			hash ^= p_seed + 0x9e3779b97f4a7c15ULL;
+			hash ^= p_seed + p_salt + 0x9e3779b97f4a7c15ULL;
 			hash = avalanche(hash);
-			return p_pool[hash % p_pool.size()];
+
+			double totalWeight = 0.0;
+			for (const auto &entry : p_pool)
+			{
+				totalWeight += entry.second;
+			}
+			double target = unitInterval(hash) * totalWeight;
+			for (const auto &entry : p_pool)
+			{
+				if (target < entry.second)
+				{
+					return entry.first;
+				}
+				target -= entry.second;
+			}
+			return p_pool.back().first;
 		}
 	}
 
@@ -56,23 +85,35 @@ namespace pg
 		_water = voxels.numericId("water");
 		_sand = voxels.numericId("sand-block");
 		_stone = voxels.numericId("stone-block");
-		_fallbackBlocks = {.surface = _stone, .subsurface = _stone, .deep = _stone, .road = {_road}};
+		_fallbackBlocks = {
+			.surface = {{_stone, 1.0}},
+			.subsurface = {{_stone, 1.0}},
+			.deep = {{_stone, 1.0}},
+			.road = {{_road, 1.0}}};
 
 		_biomeBlocks.reserve(_plan.biomes.size());
 		for (const PlanBiome &biome : _plan.biomes)
 		{
 			const BiomeDefinition &definition = p_registries.biomes().get(biome.id);
-			std::vector<std::int32_t> road;
-			road.reserve(definition.palette.road.size());
-			for (const std::string &roadId : definition.palette.road)
-			{
-				road.push_back(voxels.numericId(roadId));
-			}
+			const auto numericPool = [&voxels](const BiomePalette::VoxelPool &p_pool) {
+				VoxelPool result;
+				result.reserve(p_pool.size());
+				for (const BiomePalette::WeightedVoxel &entry : p_pool)
+				{
+					result.emplace_back(voxels.numericId(entry.id), entry.weight);
+				}
+				return result;
+			};
+			VoxelPool road = numericPool(definition.palette.road);
 			if (road.empty())
 			{
-				road.push_back(_road); // biomes that declare no road fall back to the shared block
+				road.emplace_back(_road, 1.0); // biomes that declare no road fall back to the shared block
 			}
-			_biomeBlocks.push_back({.surface = voxels.numericId(definition.palette.surface), .subsurface = voxels.numericId(definition.palette.subsurface), .deep = voxels.numericId(definition.palette.deep), .road = std::move(road)});
+			_biomeBlocks.push_back(
+				{.surface = numericPool(definition.palette.surface),
+				 .subsurface = numericPool(definition.palette.subsurface),
+				 .deep = numericPool(definition.palette.deep),
+				 .road = std::move(road)});
 		}
 
 		for (const PrefabPlacement &placement : _plan.placements)
@@ -141,9 +182,9 @@ namespace pg
 		const BiomeBlocks &blocksOfBiome =
 			zone >= 0 ? _biomeBlocks[_plan.zones[zone].biomeIndex] : _fallbackBlocks;
 		column.groundTop = surface;
-		column.surfaceId = blocksOfBiome.surface;
-		column.subsurfaceId = blocksOfBiome.subsurface;
-		column.deepId = blocksOfBiome.deep;
+		column.surfaceId = pickVoxel(blocksOfBiome.surface, p_worldX, p_worldZ, cfg.masterSeed, kSurfaceSalt);
+		column.subsurfaceId = pickVoxel(blocksOfBiome.subsurface, p_worldX, p_worldZ, cfg.masterSeed, kSubsurfaceSalt);
+		column.deepId = pickVoxel(blocksOfBiome.deep, p_worldX, p_worldZ, cfg.masterSeed, kDeepSalt);
 
 		// Local position inside the plan cell + membership in the 3-wide central strip.
 		const int localX = p_worldX - (offset + col * blocks);
@@ -202,7 +243,7 @@ namespace pg
 				// On bridges the deck sits at ground level on a solid pier; the water
 				// column underneath is filled, its neighbors keep flowing around it.
 				column.groundTop = surface;
-				column.surfaceId = pickRoad(blocksOfBiome.road, p_worldX, p_worldZ, cfg.masterSeed);
+				column.surfaceId = pickVoxel(blocksOfBiome.road, p_worldX, p_worldZ, cfg.masterSeed, kRoadSalt);
 				column.subsurfaceId = column.deepId;
 				column.waterY = -1;
 			}
@@ -215,7 +256,7 @@ namespace pg
 		{
 			if (p_worldX >= rect.minX && p_worldX <= rect.maxX && p_worldZ >= rect.minZ && p_worldZ <= rect.maxZ)
 			{
-				column.surfaceId = pickRoad(blocksOfBiome.road, p_worldX, p_worldZ, cfg.masterSeed);
+				column.surfaceId = pickVoxel(blocksOfBiome.road, p_worldX, p_worldZ, cfg.masterSeed, kRoadSalt);
 				break;
 			}
 		}

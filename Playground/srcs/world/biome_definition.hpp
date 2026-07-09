@@ -18,27 +18,36 @@ namespace pg
 
 	struct BiomePalette
 	{
-		std::string surface;
-		std::string subsurface;
-		std::string deep;
-		// Blocks paved onto this biome's roads (own road per biome). A pool: realization
-		// picks one per column so the paving reads as a mix rather than one repeated block.
-		// Empty for biomes that pave no roads (interiors).
-		std::vector<std::string> road;
-		std::vector<std::string> flora;
+		struct WeightedVoxel
+		{
+			std::string id;
+			double weight = 1.0;
+		};
+
+		using VoxelPool = std::vector<WeightedVoxel>;
+
+		// Terrain and climb entries are weighted voxel pools. JSON may still use the
+		// old shorthand string for a single block, or an array of strings for equal odds.
+		VoxelPool surface;
+		VoxelPool subsurface;
+		VoxelPool deep;
+		// Blocks paved onto this biome's roads. Empty for biomes that pave no roads
+		// (interiors).
+		VoxelPool road;
+		VoxelPool flora;
 		// Climb step voxels the generator builds staircases/slopes from. Each is a pool:
 		// a flight picks one voxel per block for visual variety. "stair" drives road
 		// climbs (paired with a road block), "slope" wild climbs (paired with surface).
 		// Empty pools fall back to the shared road-block staircase.
-		std::vector<std::string> stair;
-		std::vector<std::string> slope;
+		VoxelPool stair;
+		VoxelPool slope;
 	};
 
 	struct BiomeScenery
 	{
 		std::string prefabId;
 		double density = 0.0; // expected instances per suitable world-plan cell
-		int spacing = 1;      // minimum center distance in voxel columns
+		int spacing = 1;	  // minimum center distance in voxel columns
 		spk::Vector3Int prefabSize{};
 	};
 
@@ -46,9 +55,9 @@ namespace pg
 	// (interiors such as caves) are never picked when zones are assigned.
 	struct BiomeWorldgenTraits
 	{
-		double heightShift = 0.0;            // strata-level bias for zones of this biome
-		bool peak = false;                   // biome hosts summits (mountain/volcano/tundra style)
-		std::optional<spk::Color> mapColor;  // zone fill on the preview map (absent = auto)
+		double heightShift = 0.0;			// strata-level bias for zones of this biome
+		bool peak = false;					// biome hosts summits (mountain/volcano/tundra style)
+		std::optional<spk::Color> mapColor; // zone fill on the preview map (absent = auto)
 		// Per-biome entity prefab pools by slot ("gym", "city", "portCity",
 		// "normalPoi", "uncommonPoi", "rarePoi"). Each slot holds one prefab id or a
 		// list; the generator picks one entry at random per placement. Missing slots

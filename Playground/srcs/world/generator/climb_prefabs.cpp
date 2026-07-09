@@ -12,12 +12,15 @@
 #include <cstdint>
 #include <random>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace pg
 {
 	namespace
 	{
+		using VoxelPool = std::vector<std::pair<std::int32_t, double>>;
+
 		// Pre-mixed variants per biome flight pool: enough that neighboring staircases read
 		// as distinct without flooding the registry. A single-voxel pool collapses to one.
 		constexpr int kFlightVariants = 8;
@@ -43,18 +46,37 @@ namespace pg
 			return cell;
 		}
 
-		[[nodiscard]] VoxelCell pickCell(const std::vector<std::int32_t> &p_pool, std::mt19937_64 &p_rng)
+		[[nodiscard]] VoxelCell pickCell(const VoxelPool &p_pool, std::mt19937_64 &p_rng)
 		{
-			std::uniform_int_distribution<std::size_t> pick(0, p_pool.size() - 1);
-			return cellOf(p_pool[pick(p_rng)]);
+			if (p_pool.size() == 1)
+			{
+				return cellOf(p_pool.front().first);
+			}
+
+			double totalWeight = 0.0;
+			for (const auto &entry : p_pool)
+			{
+				totalWeight += entry.second;
+			}
+			std::uniform_real_distribution<double> pick(0.0, totalWeight);
+			double target = pick(p_rng);
+			for (const auto &entry : p_pool)
+			{
+				if (target < entry.second)
+				{
+					return cellOf(entry.first);
+				}
+				target -= entry.second;
+			}
+			return cellOf(p_pool.back().first);
 		}
 
 		// The staircase flight: a 3x3x3 box, three ascending rows of step blocks over a base
 		// fill, its empty cells listed (via the grid) so stamping carves the air above the
 		// ramp even against a cliff. Every block is drawn per cell from its pool for variety.
 		[[nodiscard]] PrefabDefinition makeFlight(
-			const std::vector<std::int32_t> &p_base,
-			const std::vector<std::int32_t> &p_steps,
+			const VoxelPool &p_base,
+			const VoxelPool &p_steps,
 			std::mt19937_64 &p_rng)
 		{
 			VoxelGrid grid(spk::Vector3Int{3, 3, 3});
@@ -75,7 +97,7 @@ namespace pg
 
 		// The platform pad: one solid 3x3 layer under the stamp, its cells drawn per block
 		// from the base pool, with the authored clearance the world planner keeps free above.
-		[[nodiscard]] PrefabDefinition makePlatform(const std::vector<std::int32_t> &p_base, std::mt19937_64 &p_rng)
+		[[nodiscard]] PrefabDefinition makePlatform(const VoxelPool &p_base, std::mt19937_64 &p_rng)
 		{
 			spk::Prefab prefab;
 			for (int z = 0; z <= 2; ++z)
@@ -97,8 +119,8 @@ namespace pg
 			Registry<PrefabDefinition> &p_prefabs,
 			const std::string &p_lengthPrefix,
 			const std::string &p_platformId,
-			const std::vector<std::int32_t> &p_base,
-			const std::vector<std::int32_t> &p_steps,
+			const VoxelPool &p_base,
+			const VoxelPool &p_steps,
 			std::vector<std::string> &p_outLengths,
 			std::string &p_outPlatform)
 		{
@@ -122,12 +144,12 @@ namespace pg
 		Registry<BiomeDefinition> &p_biomes,
 		const VoxelRegistry &p_voxels)
 	{
-		const auto numericIds = [&](const std::vector<std::string> &p_voxelIds) {
-			std::vector<std::int32_t> ids;
-			ids.reserve(p_voxelIds.size());
-			for (const std::string &voxelId : p_voxelIds)
+		const auto numericIds = [&](const BiomePalette::VoxelPool &p_voxelsIds) {
+			VoxelPool ids;
+			ids.reserve(p_voxelsIds.size());
+			for (const BiomePalette::WeightedVoxel &voxel : p_voxelsIds)
 			{
-				ids.push_back(p_voxels.numericId(voxelId));
+				ids.emplace_back(p_voxels.numericId(voxel.id), voxel.weight);
 			}
 			return ids;
 		};
@@ -159,7 +181,7 @@ namespace pg
 					p_prefabs,
 					biomeId + "-slope-length",
 					biomeId + "-slope-platform",
-					std::vector<std::int32_t>{p_voxels.numericId(palette.surface)},
+					numericIds(palette.surface),
 					numericIds(palette.slope),
 					traits.wildSlopeLengths,
 					traits.wildSlopePlatform);

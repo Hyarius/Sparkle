@@ -8,6 +8,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <cmath>
 #include <set>
 #include <utility>
 
@@ -17,7 +18,9 @@ namespace
 	{
 		std::string result = p_reader.require<std::string>(p_key);
 		if (result.empty())
+		{
 			throw pg::JsonError(p_reader.file(), p_reader.pathFor(p_key), "value must not be empty");
+		}
 		return result;
 	}
 
@@ -28,7 +31,23 @@ namespace
 		const std::string &p_path)
 	{
 		if (p_id.empty() || p_voxels.tryGet(p_id) == nullptr)
+		{
 			throw pg::JsonError(p_reader.file(), p_path, "unknown voxel id '" + p_id + "'");
+		}
+	}
+
+	double parseWeight(const spk::JSON::Value &p_value, const pg::JsonReader &p_reader, const std::string &p_path)
+	{
+		if (!p_value.isNumber())
+		{
+			throw pg::JsonError(p_reader.file(), p_path, "expected a numeric weight");
+		}
+		const double weight = p_value.as<double>();
+		if (!std::isfinite(weight) || weight <= 0.0)
+		{
+			throw pg::JsonError(p_reader.file(), p_path, "weight must be greater than 0");
+		}
+		return weight;
 	}
 }
 
@@ -41,32 +60,97 @@ namespace pg
 	{
 		p_reader.forbidUnknown({"version", "displayName", "palette", "worldgen"});
 		if (p_reader.require<int>("version") != 1)
+		{
 			throw JsonError(p_reader.file(), p_reader.pathFor("version"), "unsupported biome version");
+		}
 
 		BiomeDefinition result;
 		result.displayName = requireNonEmptyString(p_reader, "displayName");
 		JsonReader paletteReader = p_reader.child("palette");
 		paletteReader.forbidUnknown({"surface", "subsurface", "deep", "road", "flora", "stair", "slope"});
-		// "road"/"stair"/"slope" are voxel pools, each a single id or an array; realization
-		// and the climb synthesizer pick from them (see synthesizeClimbPrefabs). requireVoxel
-		// validates each entry. "road" is optional: interior biomes (caves) pave no roads.
+		// Palette entries are weighted voxel pools. Accepted shapes:
+		//   "grass-block"
+		//   ["grass-block", "flowered-grass"]
+		//   [{"voxel": "grass-block", "weight": 80}, {"voxel": "flowered-grass", "weight": 20}]
+		// A single object map is also accepted: {"grass-block": 80, "flowered-grass": 20}.
 		const auto parseVoxelPool = [&](const std::string &p_key) {
-			std::vector<std::string> pool;
+			BiomePalette::VoxelPool pool;
 			if (!paletteReader.contains(p_key))
+			{
 				return pool;
+			}
 			const spk::JSON::Value &value = *paletteReader.value().find(p_key);
 			const auto appendOne = [&](const spk::JSON::Value &p_entry, const std::string &p_path) {
 				if (!p_entry.isString())
-					throw JsonError(paletteReader.file(), p_path, "expected a voxel id string");
+				{
+					throw JsonError(paletteReader.file(), p_path, "expected a voxel id string or weighted voxel object");
+				}
 				std::string voxelId = p_entry.as<std::string>();
 				requireVoxel(p_voxels, voxelId, paletteReader, p_path);
-				pool.push_back(std::move(voxelId));
+				pool.push_back({.id = std::move(voxelId), .weight = 1.0});
+			};
+			const auto appendWeighted = [&](const spk::JSON::Value &p_entry, const std::string &p_path) {
+				if (!p_entry.isObject())
+				{
+					appendOne(p_entry, p_path);
+					return;
+				}
+
+				const spk::JSON::Value *voxelValue = p_entry.find("voxel");
+				const spk::JSON::Value *idValue = p_entry.find("id");
+				if (voxelValue == nullptr && idValue == nullptr)
+				{
+					for (const auto &[voxelId, weightValue] : p_entry.asObject())
+					{
+						requireVoxel(p_voxels, voxelId, paletteReader, p_path + "." + voxelId);
+						pool.push_back(
+							{.id = voxelId, .weight = parseWeight(weightValue, paletteReader, p_path + "." + voxelId)});
+					}
+					return;
+				}
+				if (voxelValue != nullptr && idValue != nullptr)
+				{
+					throw JsonError(paletteReader.file(), p_path, "use either 'voxel' or 'id', not both");
+				}
+				for (const auto &[key, unused] : p_entry.asObject())
+				{
+					(void)unused;
+					if (key != "voxel" && key != "id" && key != "weight" && key != "chance")
+					{
+						throw JsonError(paletteReader.file(), p_path + "." + key, "unknown field");
+					}
+				}
+
+				const spk::JSON::Value &selectedVoxel = voxelValue != nullptr ? *voxelValue : *idValue;
+				if (!selectedVoxel.isString())
+				{
+					throw JsonError(paletteReader.file(), p_path, "expected a voxel id string");
+				}
+				std::string voxelId = selectedVoxel.as<std::string>();
+				requireVoxel(p_voxels, voxelId, paletteReader, p_path);
+
+				const spk::JSON::Value *weightValue = p_entry.find("weight");
+				const spk::JSON::Value *chanceValue = p_entry.find("chance");
+				if (weightValue != nullptr && chanceValue != nullptr)
+				{
+					throw JsonError(paletteReader.file(), p_path, "use either 'weight' or 'chance', not both");
+				}
+				const double weight = weightValue != nullptr   ? parseWeight(*weightValue, paletteReader, p_path + ".weight")
+									  : chanceValue != nullptr ? parseWeight(*chanceValue, paletteReader, p_path + ".chance")
+															   : 1.0;
+				pool.push_back({.id = std::move(voxelId), .weight = weight});
 			};
 			if (value.isArray())
 			{
 				const spk::JSON::Value::Array &entries = value.asArray();
 				for (std::size_t index = 0; index < entries.size(); ++index)
-					appendOne(entries[index], paletteReader.pathFor(p_key) + "[" + std::to_string(index) + "]");
+				{
+					appendWeighted(entries[index], paletteReader.pathFor(p_key) + "[" + std::to_string(index) + "]");
+				}
+			}
+			else if (value.isObject())
+			{
+				appendWeighted(value, paletteReader.pathFor(p_key));
 			}
 			else if (!value.isNull())
 			{
@@ -74,17 +158,24 @@ namespace pg
 			}
 			return pool;
 		};
+		const auto parseRequiredVoxelPool = [&](const std::string &p_key) {
+			BiomePalette::VoxelPool pool = parseVoxelPool(p_key);
+			if (!paletteReader.contains(p_key))
+			{
+				throw JsonError(paletteReader.file(), paletteReader.pathFor(p_key), "missing required field");
+			}
+			if (pool.empty())
+			{
+				throw JsonError(paletteReader.file(), paletteReader.pathFor(p_key), "pool must contain at least one voxel");
+			}
+			return pool;
+		};
 
 		result.palette = {
-			.surface = requireNonEmptyString(paletteReader, "surface"),
-			.subsurface = requireNonEmptyString(paletteReader, "subsurface"),
-			.deep = requireNonEmptyString(paletteReader, "deep"),
-			.flora = paletteReader.require<std::vector<std::string>>("flora")};
-		requireVoxel(p_voxels, result.palette.surface, paletteReader, paletteReader.pathFor("surface"));
-		requireVoxel(p_voxels, result.palette.subsurface, paletteReader, paletteReader.pathFor("subsurface"));
-		requireVoxel(p_voxels, result.palette.deep, paletteReader, paletteReader.pathFor("deep"));
-		for (const std::string &flora : result.palette.flora)
-			requireVoxel(p_voxels, flora, paletteReader, paletteReader.pathFor("flora"));
+			.surface = parseRequiredVoxelPool("surface"),
+			.subsurface = parseRequiredVoxelPool("subsurface"),
+			.deep = parseRequiredVoxelPool("deep"),
+			.flora = parseRequiredVoxelPool("flora")};
 		result.palette.road = parseVoxelPool("road");
 		result.palette.stair = parseVoxelPool("stair");
 		result.palette.slope = parseVoxelPool("slope");
@@ -95,9 +186,13 @@ namespace pg
 			worldgenReader.forbidUnknown({"heightShift", "peak", "mapColor", "prefabs"});
 			BiomeWorldgenTraits traits;
 			if (worldgenReader.contains("heightShift"))
+			{
 				traits.heightShift = worldgenReader.require<double>("heightShift");
+			}
 			if (worldgenReader.contains("peak"))
+			{
 				traits.peak = worldgenReader.require<bool>("peak");
+			}
 			if (worldgenReader.contains("mapColor"))
 			{
 				try
@@ -164,11 +259,15 @@ namespace pg
 				for (const auto &[slot, value] : prefabsReader.value().asObject())
 				{
 					if (slot == "scenery" || value.isNull())
+					{
 						continue;
+					}
 					std::vector<std::string> pool =
 						parsePrefabPool(value, p_reader.file(), prefabsReader.pathFor(slot), p_prefabs);
 					if (pool.empty())
+					{
 						continue;
+					}
 					traits.prefabs.emplace(slot, std::move(pool));
 				}
 			}

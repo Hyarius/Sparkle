@@ -68,9 +68,9 @@ namespace
 		std::set<std::int32_t> roadIds{p_registries.voxels().numericId("road-block")};
 		for (const std::string &biomeId : p_registries.biomes().ids())
 		{
-			for (const std::string &roadBlock : p_registries.biomes().get(biomeId).palette.road)
+			for (const pg::BiomePalette::WeightedVoxel &roadBlock : p_registries.biomes().get(biomeId).palette.road)
 			{
-				roadIds.insert(p_registries.voxels().numericId(roadBlock));
+				roadIds.insert(p_registries.voxels().numericId(roadBlock.id));
 			}
 		}
 
