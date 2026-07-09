@@ -5,7 +5,9 @@
 		"surface": "grass-block",
 		"subsurface": "dirt-block",
 		"deep": "stone-block",
-		"road": "forest-road",
+		"road": ["forest-road", "sand-block"],
+		"stair": ["forest-road-stair"],
+		"slope": ["slope-forest"],
 		"flora": [
 			"forest-bush",
 			"bush"

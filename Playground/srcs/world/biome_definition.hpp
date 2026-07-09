@@ -21,8 +21,17 @@ namespace pg
 		std::string surface;
 		std::string subsurface;
 		std::string deep;
-		std::string road; // block paved onto this biome's roads (own road per biome)
+		// Blocks paved onto this biome's roads (own road per biome). A pool: realization
+		// picks one per column so the paving reads as a mix rather than one repeated block.
+		// Empty for biomes that pave no roads (interiors).
+		std::vector<std::string> road;
 		std::vector<std::string> flora;
+		// Climb step voxels the generator builds staircases/slopes from. Each is a pool:
+		// a flight picks one voxel per block for visual variety. "stair" drives road
+		// climbs (paired with a road block), "slope" wild climbs (paired with surface).
+		// Empty pools fall back to the shared road-block staircase.
+		std::vector<std::string> stair;
+		std::vector<std::string> slope;
 	};
 
 	struct BiomeScenery
@@ -43,12 +52,18 @@ namespace pg
 		// Per-biome entity prefab pools by slot ("gym", "city", "portCity",
 		// "normalPoi", "uncommonPoi", "rarePoi"). Each slot holds one prefab id or a
 		// list; the generator picks one entry at random per placement. Missing slots
-		// fall back to the global placements.json rules. Stairways are not slots here;
-		// they resolve by convention from the biome id
-		// ("<id>-stair-length" / "<id>-stair-platform").
+		// fall back to the global placements.json rules.
 		std::map<std::string, std::vector<std::string>> prefabs;
 		// Each scenery entry has its own expected count and voxel-level spacing.
 		std::vector<BiomeScenery> scenery;
+		// Climb prefab ids synthesized at load from the palette's stair/slope voxels
+		// (see synthesizeClimbPrefabs). The flight pools carry several pre-mixed variants
+		// per biome; the generator picks one per staircase segment. Empty when the biome
+		// declares no stair/slope voxels, so the generator uses the shared fallback.
+		std::vector<std::string> roadStairLengths;
+		std::string roadStairPlatform;
+		std::vector<std::string> wildSlopeLengths;
+		std::string wildSlopePlatform;
 	};
 
 	struct BiomeDefinition

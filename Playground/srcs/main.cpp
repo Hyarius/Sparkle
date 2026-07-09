@@ -60,15 +60,18 @@ namespace
 		const pg::PlanChunkProvider provider(p_registries, p_plan);
 		VoxelSampler sampler{provider, p_registries.voxels().renderRegistry(), {}};
 		const auto isPlatform = [](const std::string &p_id) {
-			return p_id.find("stair-platform") != std::string::npos;
+			return p_id.find("stair-platform") != std::string::npos || p_id.find("slope-platform") != std::string::npos;
 		};
 		const auto isLength = [](const std::string &p_id) {
-			return p_id.find("stair-length") != std::string::npos;
+			return p_id.find("stair-length") != std::string::npos || p_id.find("slope-length") != std::string::npos;
 		};
 		std::set<std::int32_t> roadIds{p_registries.voxels().numericId("road-block")};
 		for (const std::string &biomeId : p_registries.biomes().ids())
 		{
-			roadIds.insert(p_registries.voxels().numericId(p_registries.biomes().get(biomeId).palette.road));
+			for (const std::string &roadBlock : p_registries.biomes().get(biomeId).palette.road)
+			{
+				roadIds.insert(p_registries.voxels().numericId(roadBlock));
+			}
 		}
 
 		int groups = 0;
@@ -158,7 +161,9 @@ namespace
 			}
 
 			// 3. The three-column approach band beside the structure is flat low
-			//    ground end to end, and its surface is paved with a road block.
+			//    ground end to end; road climbs must also have it paved with a road
+			//    block, wild slope climbs keep natural ground.
+			const bool roadGroup = placements[index].prefabId.find("stair-platform") != std::string::npos;
 			bool bandClear = true;
 			for (int outward = 2; outward <= 4 && bandClear; ++outward)
 			{
@@ -166,7 +171,7 @@ namespace
 				for (int along = topAlong - tangent; along != bottomAlong + tangent * 2 && bandClear; along += tangent)
 				{
 					bandClear = standAt(across, along) == lowStand;
-					if (bandClear)
+					if (bandClear && roadGroup)
 					{
 						const spk::Vector3Int surfacePosition = alongX
 																	? spk::Vector3Int{along, lowStand - 1, across}
@@ -181,8 +186,8 @@ namespace
 				++failures;
 				continue;
 			}
-			std::cout << "ok: composed stairway " << groups << " (" << steps << " levels, "
-					  << (alongX ? "along x" : "along z") << ")" << std::endl;
+			std::cout << "ok: composed " << (roadGroup ? "road" : "wild") << " stairway " << groups << " ("
+					  << steps << " levels, " << (alongX ? "along x" : "along z") << ")" << std::endl;
 		}
 		std::cout << groups << " composed stairways checked, " << failures << " failures" << std::endl;
 		return failures == 0 && groups > 0 ? 0 : 1;

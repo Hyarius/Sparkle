@@ -46,22 +46,48 @@ namespace pg
 		BiomeDefinition result;
 		result.displayName = requireNonEmptyString(p_reader, "displayName");
 		JsonReader paletteReader = p_reader.child("palette");
-		paletteReader.forbidUnknown({"surface", "subsurface", "deep", "road", "flora"});
-		// "road" is optional: interior biomes (caves) pave no roads. Every worldgen biome
-		// carries one so its zones get their own road block.
+		paletteReader.forbidUnknown({"surface", "subsurface", "deep", "road", "flora", "stair", "slope"});
+		// "road"/"stair"/"slope" are voxel pools, each a single id or an array; realization
+		// and the climb synthesizer pick from them (see synthesizeClimbPrefabs). requireVoxel
+		// validates each entry. "road" is optional: interior biomes (caves) pave no roads.
+		const auto parseVoxelPool = [&](const std::string &p_key) {
+			std::vector<std::string> pool;
+			if (!paletteReader.contains(p_key))
+				return pool;
+			const spk::JSON::Value &value = *paletteReader.value().find(p_key);
+			const auto appendOne = [&](const spk::JSON::Value &p_entry, const std::string &p_path) {
+				if (!p_entry.isString())
+					throw JsonError(paletteReader.file(), p_path, "expected a voxel id string");
+				std::string voxelId = p_entry.as<std::string>();
+				requireVoxel(p_voxels, voxelId, paletteReader, p_path);
+				pool.push_back(std::move(voxelId));
+			};
+			if (value.isArray())
+			{
+				const spk::JSON::Value::Array &entries = value.asArray();
+				for (std::size_t index = 0; index < entries.size(); ++index)
+					appendOne(entries[index], paletteReader.pathFor(p_key) + "[" + std::to_string(index) + "]");
+			}
+			else if (!value.isNull())
+			{
+				appendOne(value, paletteReader.pathFor(p_key));
+			}
+			return pool;
+		};
+
 		result.palette = {
 			.surface = requireNonEmptyString(paletteReader, "surface"),
 			.subsurface = requireNonEmptyString(paletteReader, "subsurface"),
 			.deep = requireNonEmptyString(paletteReader, "deep"),
-			.road = paletteReader.contains("road") ? requireNonEmptyString(paletteReader, "road") : std::string{},
 			.flora = paletteReader.require<std::vector<std::string>>("flora")};
 		requireVoxel(p_voxels, result.palette.surface, paletteReader, paletteReader.pathFor("surface"));
 		requireVoxel(p_voxels, result.palette.subsurface, paletteReader, paletteReader.pathFor("subsurface"));
 		requireVoxel(p_voxels, result.palette.deep, paletteReader, paletteReader.pathFor("deep"));
-		if (!result.palette.road.empty())
-			requireVoxel(p_voxels, result.palette.road, paletteReader, paletteReader.pathFor("road"));
 		for (const std::string &flora : result.palette.flora)
 			requireVoxel(p_voxels, flora, paletteReader, paletteReader.pathFor("flora"));
+		result.palette.road = parseVoxelPool("road");
+		result.palette.stair = parseVoxelPool("stair");
+		result.palette.slope = parseVoxelPool("slope");
 
 		if (p_reader.contains("worldgen"))
 		{

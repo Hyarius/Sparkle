@@ -64,8 +64,9 @@ namespace pg
 			throw JsonError(p_reader.file(), p_reader.pathFor("version"), "unsupported placements version");
 		}
 
-		// Stairways are no longer configured here; they resolve by convention from the biome
-		// id ("<id>-stair-length" / "<id>-stair-platform") in the world plan generator.
+		// Stairways are not configured here; each biome builds them from its palette
+		// stair/slope voxels (see synthesizeClimbPrefabs), and the world plan generator
+		// picks among the resulting per-biome flight pools.
 		PlanPlacementRules rules;
 
 		const JsonReader entitiesReader = p_reader.child("entities");

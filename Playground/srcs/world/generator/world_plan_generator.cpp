@@ -1264,6 +1264,35 @@ namespace pg
 			// ---------------- Stage F: roads ----------------
 			Rng roadRng{0};
 
+			// Roads stay one cell wide: a cell may not be laid if it would fill a 2x2 block
+			// of road (four road units meeting in a square). Because riding on top of an
+			// existing road is cheaper than running beside it, blocking the square just makes
+			// parallel paths merge onto the same trunk instead of thickening it. Checks the
+			// four 2x2 squares that contain (p_row, p_col) against the roads stamped so far.
+			[[nodiscard]] bool wouldFormRoadSquare(int p_row, int p_col) const
+			{
+				const auto isRoad = [&](int p_r, int p_c) {
+					return p_r >= 0 && p_c >= 0 && p_r < size && p_c < size && plan.road.at(p_r, p_c) != 0;
+				};
+				for (const auto &[dr, dc] : {std::pair{-1, -1}, {-1, 0}, {0, -1}, {0, 0}})
+				{
+					int roadCorners = 0;
+					for (const auto &[cr, cc] : {std::pair{0, 0}, {0, 1}, {1, 0}, {1, 1}})
+					{
+						if (dr + cr == 0 && dc + cc == 0)
+						{
+							continue; // the cell we are about to lay
+						}
+						roadCorners += isRoad(p_row + dr + cr, p_col + dc + cc) ? 1 : 0;
+					}
+					if (roadCorners == 3)
+					{
+						return true; // the three other corners are road: laying here fills the square
+					}
+				}
+				return false;
+			}
+
 			[[nodiscard]] double stepCost(int p_fromRow, int p_fromCol, int p_row, int p_col, const Cell &p_goal) const
 			{
 				if (!isLand(p_row, p_col) && !(Cell{p_row, p_col} == p_goal))
@@ -1272,6 +1301,10 @@ namespace pg
 					{
 						return -1.0; // open ocean: blocked for land roads
 					}
+				}
+				if (plan.road.at(p_row, p_col) == 0 && !(Cell{p_row, p_col} == p_goal) && wouldFormRoadSquare(p_row, p_col))
+				{
+					return -1.0; // laying here would fill a 2x2 road square: route around it
 				}
 				double step = isLand(p_row, p_col) ? 1.0 : 1.0;
 				if (plan.water.at(p_row, p_col) != 0)
@@ -1575,6 +1608,53 @@ namespace pg
 						connectRoad({gateway.row, gateway.col}, hubB->second);
 					}
 				}
+				removeRoadSquares();
+			}
+
+			// Guarantees roads stay one cell wide. The A* guard keeps parallel paths from
+			// thickening, but the diagonal-elbow reconstruction and forced junctions can still
+			// leave a stray 2x2 block; this erases the redundant corner of each one. A cell is
+			// removed only when both of its neighbours outside the square are non-road, so its
+			// sole links are the two square siblings, which stay connected through the diagonal
+			// sibling (an L) -- nothing external can be cut off. True 4-way crossings, where
+			// every corner has an outside road neighbour, are left untouched.
+			void removeRoadSquares()
+			{
+				const auto isRoad = [&](int p_r, int p_c) {
+					return p_r >= 0 && p_c >= 0 && p_r < size && p_c < size && plan.road.at(p_r, p_c) != 0;
+				};
+				bool changed = true;
+				while (changed)
+				{
+					changed = false;
+					for (int i = 0; i + 1 < size && !changed; ++i)
+					{
+						for (int j = 0; j + 1 < size && !changed; ++j)
+						{
+							if (!(isRoad(i, j) && isRoad(i, j + 1) && isRoad(i + 1, j) && isRoad(i + 1, j + 1)))
+							{
+								continue;
+							}
+							// Each square corner paired with its two orthogonal neighbours that
+							// lie outside the 2x2 block.
+							const std::array<std::array<int, 6>, 4> corners = {{
+								{i, j, i - 1, j, i, j - 1},
+								{i, j + 1, i - 1, j + 1, i, j + 2},
+								{i + 1, j, i + 2, j, i + 1, j - 1},
+								{i + 1, j + 1, i + 2, j + 1, i + 1, j + 2},
+							}};
+							for (const auto &corner : corners)
+							{
+								if (!isRoad(corner[2], corner[3]) && !isRoad(corner[4], corner[5]))
+								{
+									plan.road.at(corner[0], corner[1]) = 0;
+									changed = true;
+									break;
+								}
+							}
+						}
+					}
+				}
 			}
 
 			void addBoatLinks()
@@ -1706,20 +1786,43 @@ namespace pg
 				return p_pool.size() == 1 ? p_pool.front() : p_pool[prefabPickRng.below(static_cast<int>(p_pool.size()))];
 			}
 
-			// Stair prefabs resolve by convention from the biome id: "<id>-stair-length"
-			// is one three-wide, one-level flight of stairs, "<id>-stair-platform" the
-			// 3x3 pad at both ends of a composed staircase. Cells outside any zone fall
-			// back to the shared "stair-length" / "stair-platform" pair.
-			[[nodiscard]] std::string stairLengthPrefabFor(int p_zone) const
+			// Stair prefabs are synthesized from each biome's palette voxels (see
+			// synthesizeClimbPrefabs) and carried on PlanBiome as id pools: road climbs draw
+			// from the biome's stair pool, wild climbs from its slope pool. Flight pools hold
+			// several pre-mixed variants; pickStairLength draws one per segment for variety. A
+			// biome without stair/slope voxels, or a cell outside any zone, falls back to the
+			// shared "stair-length"/"stair-platform" pair.
+			[[nodiscard]] std::vector<std::string> stairLengthPoolFor(int p_zone, bool p_onRoad) const
 			{
-				return p_zone < 0 ? "stair-length"
-								  : plan.biomes[plan.zones[p_zone].biomeIndex].id + "-stair-length";
+				if (p_zone >= 0)
+				{
+					const PlanBiome &biome = plan.biomes[plan.zones[p_zone].biomeIndex];
+					const std::vector<std::string> &pool = p_onRoad ? biome.roadStairLengths : biome.wildSlopeLengths;
+					if (!pool.empty())
+					{
+						return pool;
+					}
+				}
+				return {"stair-length"};
 			}
 
-			[[nodiscard]] std::string stairPlatformPrefabFor(int p_zone) const
+			std::string pickStairLength(int p_zone, bool p_onRoad)
 			{
-				return p_zone < 0 ? "stair-platform"
-								  : plan.biomes[plan.zones[p_zone].biomeIndex].id + "-stair-platform";
+				return pickPrefab(stairLengthPoolFor(p_zone, p_onRoad));
+			}
+
+			[[nodiscard]] std::string stairPlatformPrefabFor(int p_zone, bool p_onRoad) const
+			{
+				if (p_zone >= 0)
+				{
+					const PlanBiome &biome = plan.biomes[plan.zones[p_zone].biomeIndex];
+					const std::string &id = p_onRoad ? biome.roadStairPlatform : biome.wildSlopePlatform;
+					if (!id.empty())
+					{
+						return id;
+					}
+				}
+				return "stair-platform";
 			}
 
 			[[nodiscard]] const std::vector<std::string> *entityPrefabsFor(PlanEntityKind p_kind, int p_zone) const
@@ -2068,8 +2171,7 @@ namespace pg
 					// three across-columns nearest the wall carry the platforms and the
 					// flight; the fourth is a checked, unstamped walkway lane connecting
 					// the road dead-end below the top platform to the bottom platform.
-					const std::string lengthId = stairLengthPrefabFor(lowZone);
-					const std::string platformId = stairPlatformPrefabFor(lowZone);
+					const std::string platformId = stairPlatformPrefabFor(lowZone, p_onRoad);
 					const int boundary =
 						p_dc == 1 ? offset + (p_col + 1) * blocks : offset + (p_row + 1) * blocks;
 					const int wallSide = firstLower ? -1 : 1; // away from the wall, low side
@@ -2114,7 +2216,7 @@ namespace pg
 							for (int segment = 1; segment <= steps; ++segment)
 							{
 								PrefabPlacement piece;
-								piece.prefabId = lengthId;
+								piece.prefabId = pickStairLength(lowZone, p_onRoad);
 								piece.orientation = tangent == 1 ? ascendNegative : ascendPositive;
 								piece.foundation = true;
 								piece.anchor = anchorAt(
@@ -2187,8 +2289,13 @@ namespace pg
 									{exit},
 									{stripClaim, exitClaim}))
 							{
-								plan.pavedRects.push_back(
-									{.minX = band.minX, .maxX = band.maxX, .minZ = band.minZ, .maxZ = band.maxZ});
+								// Only road climbs pave their approach; wild ones keep the
+								// validated band as untouched natural ground.
+								if (p_onRoad)
+								{
+									plan.pavedRects.push_back(
+										{.minX = band.minX, .maxX = band.maxX, .minZ = band.minZ, .maxZ = band.maxZ});
+								}
 								++plan.stats.composedStairPlacements;
 								stairCells.push_back({lowRow, lowCol});
 								return steps + 2;
@@ -2203,15 +2310,14 @@ namespace pg
 						return 0;
 					}
 				}
-				// One resolve per chain so every segment of a climb uses the same prefab.
-				const std::string prefabId = stairLengthPrefabFor(lowZone);
 				std::vector<PrefabPlacement> placements;
 				placements.reserve(static_cast<std::size_t>(steps));
 
 				for (int segment = 1; segment <= steps; ++segment)
 				{
 					PrefabPlacement placement;
-					placement.prefabId = prefabId;
+					// Each segment draws its own flight variant so a climb reads as a mix.
+					placement.prefabId = pickStairLength(lowZone, p_onRoad);
 					placement.foundation = true;
 					const int rise = surface + 1 + run * (segment - 1);
 					const int distanceFromBoundary = run * (steps - segment); // 0 = against the boundary
@@ -2795,6 +2901,17 @@ namespace pg
 					}
 				}
 				stats.roadDiagonalSteps = countDiagonalOnly(plan.road);
+				for (int i = 0; i + 1 < size; ++i)
+				{
+					for (int j = 0; j + 1 < size; ++j)
+					{
+						if (plan.road.at(i, j) != 0 && plan.road.at(i, j + 1) != 0 &&
+							plan.road.at(i + 1, j) != 0 && plan.road.at(i + 1, j + 1) != 0)
+						{
+							++stats.roadSquares;
+						}
+					}
+				}
 				Mask landWater(size, 0);
 				for (int i = 0; i < size; ++i)
 				{
@@ -2856,6 +2973,10 @@ namespace pg
 			biome.heightShift = definition.worldgen->heightShift;
 			biome.peak = definition.worldgen->peak;
 			biome.mapColor = definition.worldgen->mapColor;
+			biome.roadStairLengths = definition.worldgen->roadStairLengths;
+			biome.roadStairPlatform = definition.worldgen->roadStairPlatform;
+			biome.wildSlopeLengths = definition.worldgen->wildSlopeLengths;
+			biome.wildSlopePlatform = definition.worldgen->wildSlopePlatform;
 			for (const BiomeScenery &scenery : definition.worldgen->scenery)
 			{
 				biome.scenery.push_back({.prefabId = scenery.prefabId, .density = scenery.density, .spacing = scenery.spacing, .prefabSize = scenery.prefabSize});
@@ -2910,6 +3031,7 @@ namespace pg
 		out << "----------------------------------------------------------------\n";
 		out << "road cells........... " << stats.roadCells << "\n";
 		out << "road components...... " << stats.roadComponents << "\n";
+		out << "road 2x2 squares..... " << stats.roadSquares << "  (MUST be 0)\n";
 		out << "boat links........... " << stats.boatLinks << "\n";
 		out << "logically connected.. " << ((stats.roadComponents - stats.boatLinks) <= 1 ? "true" : "FALSE") << "  (want true)\n";
 		out << "gateways (primary)... " << stats.primaryGateways << "\n";

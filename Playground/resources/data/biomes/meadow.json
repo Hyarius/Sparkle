@@ -5,7 +5,9 @@
 		"surface": "meadow-block",
 		"subsurface": "dirt-block",
 		"deep": "stone-block",
-		"road": "meadow-road",
+		"road": ["meadow-road", "stone-block"],
+		"stair": ["meadow-road-stair"],
+		"slope": ["slope-meadow"],
 		"flora": [
 			"meadow-bush",
 			"bush"

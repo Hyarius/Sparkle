@@ -5,7 +5,9 @@
 		"surface": "ash-block",
 		"subsurface": "stone-block",
 		"deep": "stone-block",
-		"road": "volcano-road",
+		"road": ["volcano-road", "stone-block"],
+		"stair": ["volcano-road-stair"],
+		"slope": ["slope-volcano"],
 		"flora": [
 			"volcano-bush"
 		]

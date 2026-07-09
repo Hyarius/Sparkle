@@ -89,6 +89,22 @@ namespace pg
 			_definitions.merge(loadedDefinitions);
 		}
 
+		// Inserts a definition built outside the JSON directory sweep (synthesized at load
+		// time, e.g. climb prefabs generated from a biome's palette voxels). Throws on a
+		// duplicate id and stamps the definition's own id field when it has one.
+		void add(const std::string &p_id, TDefinition p_definition)
+		{
+			if (_definitions.contains(p_id))
+			{
+				throw std::runtime_error("duplicate registry id '" + p_id + "'");
+			}
+			if constexpr (requires { p_definition.id = p_id; })
+			{
+				p_definition.id = p_id;
+			}
+			_definitions.emplace(p_id, std::move(p_definition));
+		}
+
 		[[nodiscard]] const TDefinition &get(const std::string &p_id) const
 		{
 			const auto iterator = _definitions.find(p_id);

@@ -1,6 +1,7 @@
 #include "core/registries.hpp"
 
 #include "core/json.hpp"
+#include "world/generator/climb_prefabs.hpp"
 #include "world/generator/placement_rules.hpp"
 
 #include <iostream>
@@ -45,6 +46,11 @@ namespace pg
 				throw std::runtime_error("prefab '" + prefabId + "' has an interior but no 'door' anchor");
 			}
 		}
+
+		// Staircases/slopes are generated from each biome's palette voxels rather than
+		// authored as prefab files: this adds the flight/platform prefabs to the registry
+		// and records their ids on the biomes for the world generator to place.
+		synthesizeClimbPrefabs(loadedPrefabs, loadedBiomes, loadedVoxels);
 
 		const std::filesystem::path placementsFile = p_dataDirectory / "worldgen" / "placements.json";
 		const spk::JSON::Value placementsJson = JsonLoader::parseFile(placementsFile);

@@ -8,12 +8,46 @@
 #include "structures/voxel/spk_voxel_chunk.hpp"
 
 #include <algorithm>
+#include <cstdint>
 #include <iostream>
 #include <limits>
 #include <stdexcept>
+#include <vector>
 
 namespace pg
 {
+	namespace
+	{
+		[[nodiscard]] std::uint64_t avalanche(std::uint64_t p_value) noexcept
+		{
+			p_value ^= p_value >> 30U;
+			p_value *= 0xbf58476d1ce4e5b9ULL;
+			p_value ^= p_value >> 27U;
+			p_value *= 0x94d049bb133111ebULL;
+			p_value ^= p_value >> 31U;
+			return p_value;
+		}
+
+		// Deterministic per-column pick from a road pool. The final avalanche matters:
+		// for two variants, the old multiply/xor hash collapsed to a checkerboard.
+		[[nodiscard]] std::int32_t pickRoad(
+			const std::vector<std::int32_t> &p_pool,
+			int p_worldX,
+			int p_worldZ,
+			std::uint64_t p_seed)
+		{
+			if (p_pool.size() <= 1)
+			{
+				return p_pool.front();
+			}
+			std::uint64_t hash = static_cast<std::uint64_t>(static_cast<std::uint32_t>(p_worldX)) << 32U;
+			hash |= static_cast<std::uint32_t>(p_worldZ);
+			hash ^= p_seed + 0x9e3779b97f4a7c15ULL;
+			hash = avalanche(hash);
+			return p_pool[hash % p_pool.size()];
+		}
+	}
+
 	PlanChunkProvider::PlanChunkProvider(const Registries &p_registries, const WorldPlan &p_plan) :
 		_plan(p_plan)
 	{
@@ -22,12 +56,23 @@ namespace pg
 		_water = voxels.numericId("water");
 		_sand = voxels.numericId("sand-block");
 		_stone = voxels.numericId("stone-block");
+		_fallbackBlocks = {.surface = _stone, .subsurface = _stone, .deep = _stone, .road = {_road}};
 
 		_biomeBlocks.reserve(_plan.biomes.size());
 		for (const PlanBiome &biome : _plan.biomes)
 		{
 			const BiomeDefinition &definition = p_registries.biomes().get(biome.id);
-			_biomeBlocks.push_back({.surface = voxels.numericId(definition.palette.surface), .subsurface = voxels.numericId(definition.palette.subsurface), .deep = voxels.numericId(definition.palette.deep), .road = voxels.numericId(definition.palette.road)});
+			std::vector<std::int32_t> road;
+			road.reserve(definition.palette.road.size());
+			for (const std::string &roadId : definition.palette.road)
+			{
+				road.push_back(voxels.numericId(roadId));
+			}
+			if (road.empty())
+			{
+				road.push_back(_road); // biomes that declare no road fall back to the shared block
+			}
+			_biomeBlocks.push_back({.surface = voxels.numericId(definition.palette.surface), .subsurface = voxels.numericId(definition.palette.subsurface), .deep = voxels.numericId(definition.palette.deep), .road = std::move(road)});
 		}
 
 		for (const PrefabPlacement &placement : _plan.placements)
@@ -94,7 +139,7 @@ namespace pg
 		const int surface = _plan.surfaceY(level);
 		const int zone = _plan.zone.at(row, col);
 		const BiomeBlocks &blocksOfBiome =
-			zone >= 0 ? _biomeBlocks[_plan.zones[zone].biomeIndex] : BiomeBlocks{_stone, _stone, _stone, _road};
+			zone >= 0 ? _biomeBlocks[_plan.zones[zone].biomeIndex] : _fallbackBlocks;
 		column.groundTop = surface;
 		column.surfaceId = blocksOfBiome.surface;
 		column.subsurfaceId = blocksOfBiome.subsurface;
@@ -157,7 +202,7 @@ namespace pg
 				// On bridges the deck sits at ground level on a solid pier; the water
 				// column underneath is filled, its neighbors keep flowing around it.
 				column.groundTop = surface;
-				column.surfaceId = blocksOfBiome.road;
+				column.surfaceId = pickRoad(blocksOfBiome.road, p_worldX, p_worldZ, cfg.masterSeed);
 				column.subsurfaceId = column.deepId;
 				column.waterY = -1;
 			}
@@ -170,7 +215,7 @@ namespace pg
 		{
 			if (p_worldX >= rect.minX && p_worldX <= rect.maxX && p_worldZ >= rect.minZ && p_worldZ <= rect.maxZ)
 			{
-				column.surfaceId = blocksOfBiome.road;
+				column.surfaceId = pickRoad(blocksOfBiome.road, p_worldX, p_worldZ, cfg.masterSeed);
 				break;
 			}
 		}

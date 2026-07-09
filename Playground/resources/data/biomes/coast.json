@@ -6,6 +6,8 @@
 		"subsurface": "sand-block",
 		"deep": "stone-block",
 		"road": "coast-road",
+		"stair": ["coast-road-stair"],
+		"slope": ["slope-coast"],
 		"flora": [
 			"coast-bush"
 		]

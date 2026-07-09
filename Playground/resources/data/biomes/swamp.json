@@ -5,7 +5,9 @@
 		"surface": "swamp-block",
 		"subsurface": "dirt-block",
 		"deep": "stone-block",
-		"road": "swamp-road",
+		"road": ["swamp-road", "stone-block"],
+		"stair": ["swamp-road-stair"],
+		"slope": ["slope-swamp"],
 		"flora": [
 			"swamp-bush",
 			"forest-bush"

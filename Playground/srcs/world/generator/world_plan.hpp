@@ -77,12 +77,18 @@ namespace pg
 		bool peak = false;					// hosts summits and takes the full peak lift
 		std::optional<spk::Color> mapColor; // zone fill on the preview map (absent = auto)
 		// Per-biome entity prefab pools; the generator picks one entry at random per
-		// placement. Stairways are not configured here: they resolve by convention from the
-		// biome id ("<id>-stair-length" for the flights, "<id>-stair-platform" for the pads).
+		// placement.
 		std::map<PlanEntityKind, std::vector<std::string>> entityPrefabs;
 		// Decorative structures scattered on clear land in this biome. Unlike POIs these
 		// have no gameplay role and may be multi-voxel prefabs such as trees or plants.
 		std::vector<PlanScenery> scenery;
+		// Climb prefabs synthesized from the biome's stair/slope voxels: the flight pools
+		// hold pre-mixed variants (one picked per staircase segment); the platform ids are
+		// the single road/surface pads. Empty pools fall back to the shared staircase.
+		std::vector<std::string> roadStairLengths;
+		std::string roadStairPlatform;
+		std::vector<std::string> wildSlopeLengths;
+		std::string wildSlopePlatform;
 	};
 
 	struct PlanZone
@@ -236,6 +242,7 @@ namespace pg
 		int landCells = 0;
 		int roadCells = 0;
 		int roadComponents = 0;
+		int roadSquares = 0; // 2x2 blocks of road cells (MUST be 0: roads stay one cell wide)
 		int boatLinks = 0;
 		int gymOnCoast = 0;
 		int roadDiagonalSteps = 0;

@@ -5,7 +5,9 @@
 		"surface": "highland-block",
 		"subsurface": "stone-block",
 		"deep": "stone-block",
-		"road": "highland-road",
+		"road": ["highland-road", "stone-block"],
+		"stair": ["highland-road-stair"],
+		"slope": ["slope-highland"],
 		"flora": [
 			"highland-bush"
 		]

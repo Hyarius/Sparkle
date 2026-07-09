@@ -45,7 +45,7 @@ namespace pg
 			std::int32_t surface = -1;
 			std::int32_t subsurface = -1;
 			std::int32_t deep = -1;
-			std::int32_t road = -1;
+			std::vector<std::int32_t> road; // paved per column from this pool (see _roadBlock)
 		};
 
 		struct Column
@@ -60,6 +60,7 @@ namespace pg
 
 		const WorldPlan &_plan;
 		std::vector<BiomeBlocks> _biomeBlocks; // indexed like _plan.biomes
+		BiomeBlocks _fallbackBlocks;           // for land cells outside any zone
 		std::int32_t _road = -1;
 		std::int32_t _water = -1;
 		std::int32_t _sand = -1;

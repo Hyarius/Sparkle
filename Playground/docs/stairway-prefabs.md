@@ -1,24 +1,27 @@
 # Adaptive stairways
 
 One world-plan height level is `blocksPerLevel` voxels (currently 3). Stairways are
-composed at generation time from exactly two prefabs per biome, so a single layout
-adapts to any height difference:
+composed at generation time from two prefab families, so a single layout adapts to any
+height difference. Each family has exactly two prefabs per biome:
 
-- `<biome>-stair-length`: a three-wide flight of stairs climbing one level along its
-  local +Z (stairs plus support fill, carving box clears the headroom above);
-- `<biome>-stair-platform`: a 3x3 pad whose slab sits at local y = -1, so it paves the
-  ground at the bottom and floats flush with the plateau surface at the top. Its
-  authored `clearance` claims four voxels of headroom.
+- **Road climbs** (built look): `<biome>-stair-length`, a three-wide flight of stairs
+  climbing one level along its local +Z, and `<biome>-stair-platform`, a 3x3 pad of the
+  biome's road block.
+- **Wild climbs** (natural look): `<biome>-slope-length`, the same one-level run made of
+  `slope-<biome>` ramps with the biome's surface block as fill, and
+  `<biome>-slope-platform`, a 3x3 pad of the biome's surface block.
 
-Cells outside any zone fall back to the shared `stair-length` / `stair-platform` pair.
-There are no per-height or mirrored prefab variants; the generator rotates and repeats
-the two pieces instead.
+Platform slabs sit at local y = -1, so they pave the ground at the bottom of a climb
+and float flush with the plateau surface at the top; their authored `clearance` claims
+four voxels of headroom. Cells outside any zone fall back to the shared
+`stair-length` / `stair-platform` pair. There are no per-height or mirrored prefab
+variants; the generator rotates and repeats the pieces instead.
 
 ## Layouts
 
 | Height difference | Layout |
 |---|---|
-| 1 level | one straight stair-length centered on the crossing, perpendicular to the cliff |
+| 1 level | one straight length centered on the crossing, perpendicular to the cliff |
 | 2+ levels | composed staircase parallel to the cliff (see below); a 2-level road climb falls back to two chained straight flights when the composed footprint is obstructed |
 | above `maxComposedStairLevels` (roads) / `maxWildStairLevels` (wild) | edge rejected |
 
@@ -29,23 +32,25 @@ the wall (no gap column):
 
 - a 3x3 **top platform** centered on the crossing's road strip, its slab flush with
   the high plateau surface, so stepping across the boundary is seamless;
-- one **stair-length per level**, descending parallel to the cliff away from the
-  platform (both tangent directions and three sideways nudges are tried);
+- one **length per level**, descending parallel to the cliff away from the platform
+  (both tangent directions and three sideways nudges are tried);
 - a 3x3 **bottom platform** paving the low ground at the end of the flight.
 
 Every piece is placed with `foundation`, so the flight and the top platform stand on
 solid pillars down to the terrain instead of floating.
 
-Two rectangles are validated without being stamped:
+Two regions are validated without stamping prefabs:
 
-- the **walkway lane**, the fourth column out from the wall along the full structure:
-  guaranteed flat, clear low ground so the road dead-end under the top platform stays
-  connected to the bottom platform;
+- the **approach band**, the three columns beyond the structure along its full length:
+  guaranteed flat, clear low ground. For road climbs the realization paves it with the
+  zone's road block (`WorldPlan::pavedRects`), so the road visibly turns at the
+  crossing dead-end and runs beside the flight to the bottom platform instead of
+  stopping at the wall. Wild climbs keep the band as untouched natural ground;
 - the **exit cells**, the three high-plateau cells the top platform opens onto: must be
   dry, level land, and are reserved as a stair footprint and hard claim so no other
   flight, building, or scenery ever blocks the exit face to face.
 
-One hard claim covers the whole strip (lane included) from the low ground to above the
+One hard claim covers the whole strip (band included) from the low ground to above the
 top platform, keeping later placements out from under and over the staircase.
 
 ## Placement feasibility
@@ -73,4 +78,5 @@ a climb actually detours the path.
 `SparklePlayground --check-stairs [--seed N]` realizes chunks around every composed
 staircase and verifies, on the actual stamped voxels, that the top platform is flush
 against exactly one cliff side, the strip descends at most one voxel per cell from the
-high stand height to the low one, and the walkway lane is flat clear ground end to end.
+high stand height to the low one, and the approach band is flat clear ground end to
+end — paved with a road block for road climbs.

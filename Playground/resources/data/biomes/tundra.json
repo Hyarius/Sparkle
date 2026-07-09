@@ -5,7 +5,9 @@
 		"surface": "snow-block",
 		"subsurface": "dirt-block",
 		"deep": "stone-block",
-		"road": "tundra-road",
+		"road": ["tundra-road", "stone-block"],
+		"stair": ["tundra-road-stair"],
+		"slope": ["slope-tundra"],
 		"flora": [
 			"tundra-bush"
 		]

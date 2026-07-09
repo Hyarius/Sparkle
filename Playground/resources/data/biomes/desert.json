@@ -5,7 +5,9 @@
 		"surface": "sand-block",
 		"subsurface": "sand-block",
 		"deep": "stone-block",
-		"road": "desert-road",
+		"road": ["desert-road", "sand-block"],
+		"stair": ["desert-road-stair"],
+		"slope": ["slope-desert"],
 		"flora": [
 			"desert-bush"
 		]
