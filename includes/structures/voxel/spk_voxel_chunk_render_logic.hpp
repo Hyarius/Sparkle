@@ -18,6 +18,9 @@ namespace spk
 	class Texture;
 	class UniformBufferObject;
 
+	// Synchronizes dirty chunk meshes and submits their opaque geometry. Transparent
+	// geometry is intentionally handled by VoxelChunkTransparentRenderLogic so every
+	// opaque scene object can populate the depth buffer first.
 	class VoxelChunkRenderLogic : public spk::ComponentLogic<spk::VoxelChunkRenderer>
 	{
 	private:

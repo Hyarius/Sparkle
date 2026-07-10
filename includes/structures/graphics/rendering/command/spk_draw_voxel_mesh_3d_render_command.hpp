@@ -43,6 +43,7 @@ namespace spk
 			const spk::Matrix4x4 &p_model,
 			const spk::Color &p_tint);
 		[[nodiscard]] static std::shared_ptr<spk::SamplerObject> makeSampler(const spk::Texture &p_texture);
+		[[nodiscard]] bool translucent() const noexcept;
 
 	private:
 		static constexpr GLuint ModelBinding = 2;

@@ -1,10 +1,13 @@
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <array>
 #include <memory>
 #include <stdexcept>
+#include <vector>
 
 #include "structures/voxel/spk_cube_voxel_shape.hpp"
+#include "structures/voxel/spk_slab_voxel_shape.hpp"
 #include "structures/voxel/spk_voxel_mesher.hpp"
 
 namespace
@@ -54,9 +57,34 @@ namespace
 		}
 	};
 
+	// Declared as the -X outer face, but inset from the cell boundary. It must not hide
+	// geometry in the neighboring cell because the two surfaces never touch.
+	class InsetTransparentSideShape : public spk::VoxelShape
+	{
+	public:
+		InsetTransparentSideShape() :
+			spk::VoxelShape({{"side", {0, 0}}})
+		{
+			setTransparency(0.5f);
+		}
+
+	protected:
+		void _constructRenderFaces() override
+		{
+			mutableRenderFaces().outer(spk::VoxelAxisPlane::NegativeX).emplace(createRectangle("side", {0.25f, 0, 0}, {0.25f, 0, 1}, {0.25f, 0.75f, 1}, {0.25f, 0.75f, 0}));
+		}
+	};
+
 	[[nodiscard]] std::unique_ptr<spk::VoxelShape> makeTransparentCube(float p_transparency)
 	{
 		auto shape = std::make_unique<spk::CubeVoxelShape>(spk::AtlasCell{0, 0});
+		shape->setTransparency(p_transparency);
+		return shape;
+	}
+
+	[[nodiscard]] std::unique_ptr<spk::VoxelShape> makeTransparentSlab(float p_height, float p_transparency)
+	{
+		auto shape = std::make_unique<spk::SlabVoxelShape>(spk::AtlasCell{0, 0}, p_height);
 		shape->setTransparency(p_transparency);
 		return shape;
 	}
@@ -67,10 +95,13 @@ namespace
 		std::int32_t cube = 0;
 		std::int32_t slab = 0;
 		std::int32_t cross = 0;
-		std::int32_t water = 0;	   // half-transparent cube
+		std::int32_t water = 0;		// half-transparent cube
 		std::int32_t deepWater = 0; // same transparency level as water
-		std::int32_t glass = 0;	   // another transparency level
-		std::int32_t ghost = 0;	   // fully transparent, never rendered
+		std::int32_t shallowWater = 0;
+		std::int32_t tallWater = 0;
+		std::int32_t insetTransparentSide = 0;
+		std::int32_t glass = 0; // another transparency level
+		std::int32_t ghost = 0; // fully transparent, never rendered
 
 		TestRegistry()
 		{
@@ -79,6 +110,9 @@ namespace
 			cross = registry.registerShape(std::make_unique<CrossShape>());
 			water = registry.registerShape(makeTransparentCube(0.5f));
 			deepWater = registry.registerShape(makeTransparentCube(0.5f));
+			shallowWater = registry.registerShape(makeTransparentSlab(0.25f, 0.5f));
+			tallWater = registry.registerShape(makeTransparentSlab(0.75f, 0.5f));
+			insetTransparentSide = registry.registerShape(std::make_unique<InsetTransparentSideShape>());
 			glass = registry.registerShape(makeTransparentCube(0.25f));
 			ghost = registry.registerShape(makeTransparentCube(1.0f));
 		}
@@ -215,6 +249,45 @@ TEST(VoxelMesher, SameTransparencyLevelsCullTheirSharedFaces)
 	// Two ids of the same transparency level behave like one continuous body: the
 	// internal faces are culled just like between two opaque cubes.
 	EXPECT_EQ(spk::VoxelMesher::buildRenderMesh(grid, test.registry).transparent.nbShape(), 10u);
+}
+
+TEST(VoxelMesher, SameTransparencySlabsCullTheirSharedFacesDespiteDifferentFillHeights)
+{
+	const TestRegistry test;
+	spk::VoxelGrid grid({2, 1, 1});
+	grid.cell(0, 0, 0) = {test.tallWater};
+	grid.cell(1, 0, 0) = {test.shallowWater};
+
+	const spk::VoxelRenderMeshes meshes = spk::VoxelMesher::buildRenderMesh(grid, test.registry);
+
+	EXPECT_EQ(meshes.transparent.nbShape(), 11u);
+
+	std::vector<float> sharedSideY;
+	for (const spk::VoxelVertex3D &vertex : meshes.transparent.vertices())
+	{
+		if (vertex.normal == spk::Vector3(1.0f, 0.0f, 0.0f) && vertex.position.x == 1.0f)
+		{
+			sharedSideY.push_back(vertex.position.y);
+		}
+	}
+	std::ranges::sort(sharedSideY);
+
+	ASSERT_EQ(sharedSideY.size(), 4u);
+	EXPECT_FLOAT_EQ(sharedSideY[0], 0.25f);
+	EXPECT_FLOAT_EQ(sharedSideY[1], 0.25f);
+	EXPECT_FLOAT_EQ(sharedSideY[2], 0.75f);
+	EXPECT_FLOAT_EQ(sharedSideY[3], 0.75f);
+}
+
+TEST(VoxelMesher, InsetTransparentFaceDoesNotOccludeNeighborBoundary)
+{
+	const TestRegistry test;
+	spk::VoxelGrid grid({2, 1, 1});
+	grid.cell(0, 0, 0) = {test.tallWater};
+	grid.cell(1, 0, 0) = {test.insetTransparentSide};
+
+	// Six slab faces plus the inset face: neither surface is on the other's boundary.
+	EXPECT_EQ(spk::VoxelMesher::buildRenderMesh(grid, test.registry).transparent.nbShape(), 7u);
 }
 
 TEST(VoxelMesher, DifferentTransparencyLevelsKeepTheirSharedFaces)

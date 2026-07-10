@@ -191,14 +191,16 @@ namespace pg
 				continue;
 			}
 
-			// Only sources and fluid resting on solid ground spread sideways. A mid-fall cell -
-			// one whose support is empty or is more of the same fluid - must not bleed the
-			// waterfall outwards at every level; it just sustains the column.
+			// Only fluid resting on solid ground spreads sideways. A mid-fall cell - one whose
+			// support is empty or is more of the same fluid - must not bleed the waterfall
+			// outwards at every level; it just sustains the column. Sources follow the same
+			// rule once their fall has started, so elevated source probes do not bloom into a
+			// blocky tower at the top.
 			const bool restsOnSolid = below != nullptr && below->isEmpty() == false &&
 									  _registry.tryFluidRef(below->id) == nullptr;
-			if (reference->source == false && restsOnSolid == false)
+			if (restsOnSolid == false)
 			{
-				if (below == nullptr)
+				if (reference->source == false && below == nullptr)
 				{
 					next.insert(position); // support not loaded yet; retry once it is
 				}

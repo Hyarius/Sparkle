@@ -120,6 +120,7 @@ TEST_P(VoxelSceneVisualTest, SceneMatchesTheExpectedImage)
 	SceneRegistry scene;
 	spk::GameEngine engine;
 	engine.add<spk::VoxelChunkRenderLogic>(voxelTexture);
+	engine.add<spk::VoxelChunkTransparentRenderLogic>(voxelTexture);
 	spk::VoxelMap map(
 		scene.registry,
 		[&scene](spk::VoxelChunk &p_chunk) {

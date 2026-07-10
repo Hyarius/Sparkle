@@ -150,6 +150,7 @@
 #include "structures/voxel/spk_voxel_cell.hpp"
 #include "structures/voxel/spk_voxel_chunk.hpp"
 #include "structures/voxel/spk_voxel_chunk_render_logic.hpp"
+#include "structures/voxel/spk_voxel_chunk_transparent_render_logic.hpp"
 #include "structures/voxel/spk_voxel_chunk_renderer.hpp"
 #include "structures/voxel/spk_voxel_chunk_streamer.hpp"
 #include "structures/voxel/spk_voxel_chunk_streamer_logic.hpp"

@@ -92,4 +92,9 @@ namespace spk
 		_mesh->layoutBuffer().activate(p_renderContext);
 		program.render(p_renderContext, spk::Primitive::Triangles, 0, _mesh->layoutBuffer().indexCount());
 	}
+
+	bool DrawVoxelMesh3DRenderCommand::translucent() const noexcept
+	{
+		return _translucent;
+	}
 }

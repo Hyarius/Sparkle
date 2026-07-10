@@ -249,34 +249,13 @@ namespace spk
 					.ambient = AmbientLight});
 		}
 
-		std::vector<const spk::VoxelChunkRenderer *> translucentChunks;
 		for (const spk::VoxelChunkRenderer *renderer : _visibleChunks)
 		{
-			if (renderer->meshes().transparent.indexes().empty() == false)
-			{
-				translucentChunks.push_back(renderer);
-			}
 			if (renderer->meshes().opaque.indexes().empty())
 			{
 				continue;
 			}
 			p_builder.add(std::make_unique<spk::DrawVoxelMesh3DRenderCommand>(renderer->sharedOpaqueMesh(), _cache.at(renderer).modelUBO, _sampler, false));
-		}
-
-		// Translucent meshes draw after every opaque one, back to front, so blending
-		// composites overlapping water bodies in the right order (depth writes are off
-		// during the translucent pass).
-		const spk::Vector3 cameraPosition = _camera->position();
-		std::ranges::sort(translucentChunks, [&](const auto *p_left, const auto *p_right) {
-			const auto squaredDistance = [&](const auto *p_renderer) {
-				const spk::Vector3 center = _cache.at(p_renderer).model * (spk::Vector3(p_renderer->grid().size()) * 0.5f);
-				return (center - cameraPosition).squaredLength();
-			};
-			return squaredDistance(p_left) > squaredDistance(p_right);
-		});
-		for (const spk::VoxelChunkRenderer *renderer : translucentChunks)
-		{
-			p_builder.add(std::make_unique<spk::DrawVoxelMesh3DRenderCommand>(renderer->sharedTransparentMesh(), _cache.at(renderer).modelUBO, _sampler, true));
 		}
 
 		_pruneUnloadedChunks();

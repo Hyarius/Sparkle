@@ -21,6 +21,7 @@
 #include "structures/voxel/spk_voxel_chunk_render_logic.hpp"
 #include "structures/voxel/spk_voxel_chunk_streamer.hpp"
 #include "structures/voxel/spk_voxel_chunk_streamer_logic.hpp"
+#include "structures/voxel/spk_voxel_chunk_transparent_render_logic.hpp"
 #include "structures/voxel/spk_voxel_map.hpp"
 #include "voxel/atlas_cell.hpp"
 #include "world/generator/plan_chunk_provider.hpp"
@@ -138,13 +139,13 @@ namespace pg
 		_maskTexture.loadFromFile(std::filesystem::path(PG_RESOURCE_DIR) / "textures" / "mask.png", {4u, 4u});
 
 		spk::GameEngine &engine = gameEngine();
-		// Streamer logic (priority 100) runs first, then the voxel render logic bakes the
-		// dirtied chunks on the worker pool and emits the camera + directional light; the mesh
-		// render logic (added after, no frame state) then draws the player/hover with that same
-		// camera already set for the frame.
+		// Stream and bake first, then submit all opaque chunk and actor geometry. The
+		// lower-priority transparent chunk pass runs last so water blends over the player
+		// without preventing the player from writing its depth first.
 		engine.add<spk::VoxelChunkStreamerLogic>();
 		engine.add<spk::VoxelChunkRenderLogic>(_texture);
 		engine.add<spk::TextureMeshRenderLogic>(false);
+		engine.add<spk::VoxelChunkTransparentRenderLogic>(_texture);
 
 		_camera = &_cameraEntity.addComponent<spk::Camera3D>();
 		_camera->setPerspective(60.0f, 0.1f, 1000.0f);
