@@ -168,6 +168,49 @@ namespace
 		return std::abs(firstMinimum) < 0.0001f && std::abs(secondMinimum) < 0.0001f &&
 			   std::abs(firstMaximum - 1.0f) < 0.0001f && std::abs(secondMaximum - 1.0f) < 0.0001f;
 	}
+
+	[[nodiscard]] std::pair<float, float> boundaryPlaneCoordinates(const spk::Vector3 &p_position, spk::VoxelAxisPlane p_plane)
+	{
+		switch (p_plane)
+		{
+		case spk::VoxelAxisPlane::PositiveX:
+		case spk::VoxelAxisPlane::NegativeX:
+			return {p_position.y, p_position.z};
+		case spk::VoxelAxisPlane::PositiveY:
+		case spk::VoxelAxisPlane::NegativeY:
+			return {p_position.x, p_position.z};
+		case spk::VoxelAxisPlane::PositiveZ:
+		case spk::VoxelAxisPlane::NegativeZ:
+			return {p_position.x, p_position.y};
+		case spk::VoxelAxisPlane::Count:
+			break;
+		}
+		throw std::invalid_argument("VoxelAxisPlane::Count is not a geometric plane");
+	}
+
+	// Area of the face projected on its boundary plane, as a fraction of the unit cell side
+	// (shoelace formula per polygon). Faces not on the boundary cover nothing by definition.
+	[[nodiscard]] float boundaryCoverage(const spk::VoxelShapeFace &p_face, spk::VoxelAxisPlane p_plane)
+	{
+		if (!liesOnCellBoundary(p_face, p_plane))
+		{
+			return 0.0f;
+		}
+
+		float area = 0.0f;
+		for (const spk::VoxelShapePolygon &polygon : p_face.polygons())
+		{
+			float doubledArea = 0.0f;
+			for (std::size_t index = 0; index < polygon.size(); ++index)
+			{
+				const auto [firstA, secondA] = boundaryPlaneCoordinates(polygon[index].position, p_plane);
+				const auto [firstB, secondB] = boundaryPlaneCoordinates(polygon[(index + 1) % polygon.size()].position, p_plane);
+				doubledArea += firstA * secondB - firstB * secondA;
+			}
+			area += std::abs(doubledArea) * 0.5f;
+		}
+		return std::min(area, 1.0f);
+	}
 }
 
 namespace spk
@@ -315,6 +358,7 @@ namespace spk
 			const auto plane = static_cast<spk::VoxelAxisPlane>(planeIndex);
 			_outerFacesOnCellBoundary[planeIndex] = liesOnCellBoundary(*face, plane);
 			_outerFacesCoverCellBoundary[planeIndex] = coversCellBoundary(*face, plane);
+			_outerFaceBoundaryCoverage[planeIndex] = boundaryCoverage(*face, plane);
 			auto &variants = _transformedOuterFaces[planeIndex].emplace();
 			for (const auto orientation : {spk::VoxelOrientation::PositiveX, spk::VoxelOrientation::PositiveZ, spk::VoxelOrientation::NegativeX, spk::VoxelOrientation::NegativeZ})
 			{
@@ -338,6 +382,25 @@ namespace spk
 			}
 		}
 		_initialized = true;
+	}
+
+	void VoxelShape::setTransparency(float p_transparency)
+	{
+		if (p_transparency < 0.0f || p_transparency > 1.0f)
+		{
+			throw std::invalid_argument("Voxel shape transparency must be between 0 (opaque) and 1 (invisible)");
+		}
+		_transparency = p_transparency;
+	}
+
+	float VoxelShape::transparency() const noexcept
+	{
+		return _transparency;
+	}
+
+	bool VoxelShape::isTransparent() const noexcept
+	{
+		return _transparency > 0.0f;
 	}
 
 	bool VoxelShape::initialized() const noexcept
@@ -379,6 +442,11 @@ namespace spk
 	bool VoxelShape::outerFaceCoversCellBoundary(spk::VoxelAxisPlane p_plane) const
 	{
 		return _outerFacesCoverCellBoundary.at(static_cast<std::size_t>(p_plane));
+	}
+
+	float VoxelShape::outerFaceBoundaryCoverage(spk::VoxelAxisPlane p_plane) const
+	{
+		return _outerFaceBoundaryCoverage.at(static_cast<std::size_t>(p_plane));
 	}
 
 	bool VoxelShape::hasOuterFaces() const noexcept

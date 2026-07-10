@@ -12,6 +12,7 @@
 #include "logics/actor_path_logic.hpp"
 #include "logics/camera_controller_logic.hpp"
 #include "logics/exploration_input_logic.hpp"
+#include "logics/fluid_simulation_logic.hpp"
 #include "structures/game_engine/spk_texture_mesh_render_logic.hpp"
 #include "structures/game_engine/spk_texture_mesh_renderer_3d.hpp"
 #include "structures/graphics/geometry/spk_primitive_object.hpp"
@@ -269,6 +270,15 @@ namespace pg
 			viewportSize,
 			AtlasCell{hovered[0], hovered[1]},
 			AtlasCell{invalid[0], invalid[1]});
+
+		// Fluid automaton: makes worldgen-placed water sources spread and fall. Operates on the
+		// map through setCell, so its edits re-bake chunks like any other cell change.
+		engine.add<FluidSimulationLogic>(*_context.world.world);
+
+		// Visual probe for checking the side view of falling water voxels.
+		_context.world.world->setCell(
+			spawnCell + spk::Vector3Int{0, 6, 0},
+			VoxelCell{.id = p_registries.voxels().numericId("water")});
 
 		_streamingFocus = spawnChunk;
 

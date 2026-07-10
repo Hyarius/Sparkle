@@ -1,4 +1,4 @@
-#include "structures/graphics/rendering/command/spk_draw_texture_mesh_3d_render_command.hpp"
+#include "structures/graphics/rendering/command/spk_draw_voxel_mesh_3d_render_command.hpp"
 
 #include <utility>
 
@@ -10,15 +10,15 @@
 
 namespace spk
 {
-	spk::Program &DrawTextureMesh3DRenderCommand::_program()
+	spk::Program &DrawVoxelMesh3DRenderCommand::_program()
 	{
 		static spk::Program program(
-			SPARKLE_GET_RESOURCE_AS_STRING("resources/shaders/mesh_3d/draw_texture_mesh_3d.vert"),
-			SPARKLE_GET_RESOURCE_AS_STRING("resources/shaders/mesh_3d/draw_texture_mesh_3d.frag"));
+			SPARKLE_GET_RESOURCE_AS_STRING("resources/shaders/mesh_3d/draw_voxel_mesh_3d.vert"),
+			SPARKLE_GET_RESOURCE_AS_STRING("resources/shaders/mesh_3d/draw_voxel_mesh_3d.frag"));
 		return program;
 	}
 
-	std::shared_ptr<spk::UniformBufferObject> DrawTextureMesh3DRenderCommand::makeModelUBO(
+	std::shared_ptr<spk::UniformBufferObject> DrawVoxelMesh3DRenderCommand::makeModelUBO(
 		const spk::Matrix4x4 &p_model,
 		const spk::Color &p_tint)
 	{
@@ -28,7 +28,7 @@ namespace spk
 		return modelUBO;
 	}
 
-	void DrawTextureMesh3DRenderCommand::updateModelUBO(
+	void DrawVoxelMesh3DRenderCommand::updateModelUBO(
 		spk::UniformBufferObject &p_modelUBO,
 		const spk::Matrix4x4 &p_model,
 		const spk::Color &p_tint)
@@ -37,7 +37,7 @@ namespace spk
 		p_modelUBO.edit(&data, sizeof(data));
 	}
 
-	std::shared_ptr<spk::SamplerObject> DrawTextureMesh3DRenderCommand::makeSampler(const spk::Texture &p_texture)
+	std::shared_ptr<spk::SamplerObject> DrawVoxelMesh3DRenderCommand::makeSampler(const spk::Texture &p_texture)
 	{
 		auto sampler = std::make_shared<spk::SamplerObject>(
 			"uTexture", spk::SamplerObject::Type::Texture2D, 0, _program());
@@ -45,8 +45,8 @@ namespace spk
 		return sampler;
 	}
 
-	DrawTextureMesh3DRenderCommand::DrawTextureMesh3DRenderCommand(
-		std::shared_ptr<const spk::TextureMesh3D> p_mesh,
+	DrawVoxelMesh3DRenderCommand::DrawVoxelMesh3DRenderCommand(
+		std::shared_ptr<const spk::VoxelMesh3D> p_mesh,
 		std::shared_ptr<spk::UniformBufferObject> p_modelUBO,
 		std::shared_ptr<spk::SamplerObject> p_sampler,
 		bool p_translucent) :
@@ -57,7 +57,7 @@ namespace spk
 	{
 	}
 
-	void DrawTextureMesh3DRenderCommand::execute(spk::RenderContext &p_renderContext)
+	void DrawVoxelMesh3DRenderCommand::execute(spk::RenderContext &p_renderContext)
 	{
 		if (_mesh == nullptr || _modelUBO == nullptr || _sampler == nullptr ||
 			_mesh->layoutBuffer().indexCount() == 0)

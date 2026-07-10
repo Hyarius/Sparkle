@@ -165,7 +165,8 @@ TEST(VoxelRenderPerformance, BakesAnEightByEightChunkSquareWithinBudget)
 	{
 		if (component != nullptr)
 		{
-			triangleCount += static_cast<spk::VoxelChunkRenderer *>(component)->mesh().indexes().size() / 3;
+			const spk::VoxelRenderMeshes &meshes = static_cast<spk::VoxelChunkRenderer *>(component)->meshes();
+			triangleCount += (meshes.opaque.indexes().size() + meshes.transparent.indexes().size()) / 3;
 		}
 	}
 
@@ -192,5 +193,7 @@ TEST(VoxelRenderPerformance, BakesAnEightByEightChunkSquareWithinBudget)
 	EXPECT_LT(generationElapsed.milliseconds(), MaximumGenerationMilliseconds);
 	EXPECT_LT(elapsed.milliseconds(), MaximumRenderPassMilliseconds);
 	EXPECT_EQ(generatedVoxelCount, 141704u);
-	EXPECT_EQ(triangleCount, 766661u);
+	// Slab sides are outer-shell faces: the ones buried against covering neighbors are
+	// culled, so the terrain bakes fewer triangles than when they were unconditional.
+	EXPECT_EQ(triangleCount, 757519u);
 }

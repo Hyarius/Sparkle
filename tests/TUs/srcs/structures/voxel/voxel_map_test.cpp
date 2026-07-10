@@ -192,7 +192,7 @@ TEST(VoxelMap, CullsFacesAcrossChunkBoundaries)
 	spk::VoxelChunk &origin = map.chunk({0, 0, 0});
 	EXPECT_TRUE(origin.renderer().needsSynchronization());
 	origin.renderer().synchronize();
-	EXPECT_EQ(origin.renderer().mesh().nbShape(), 1536u);
+	EXPECT_EQ(origin.renderer().meshes().opaque.nbShape(), 1536u);
 	const std::uint64_t firstRevision = origin.renderer().meshRevision();
 
 	// Loading the +X neighbor dirties the origin chunk; re-baking culls the shared wall
@@ -200,8 +200,8 @@ TEST(VoxelMap, CullsFacesAcrossChunkBoundaries)
 	spk::VoxelChunk &neighbor = map.chunk({1, 0, 0});
 	EXPECT_TRUE(origin.renderer().needsSynchronization());
 	synchronizeAll(map);
-	EXPECT_EQ(origin.renderer().mesh().nbShape(), 1536u - 256u);
-	EXPECT_EQ(neighbor.renderer().mesh().nbShape(), 1536u - 256u);
+	EXPECT_EQ(origin.renderer().meshes().opaque.nbShape(), 1536u - 256u);
+	EXPECT_EQ(neighbor.renderer().meshes().opaque.nbShape(), 1536u - 256u);
 	EXPECT_GT(origin.renderer().meshRevision(), firstRevision);
 
 	// Unloading the neighbor restores the origin's full hull.
@@ -210,7 +210,7 @@ TEST(VoxelMap, CullsFacesAcrossChunkBoundaries)
 	EXPECT_EQ(map.loadedChunkCount(), 1u);
 	EXPECT_TRUE(origin.renderer().needsSynchronization());
 	origin.renderer().synchronize();
-	EXPECT_EQ(origin.renderer().mesh().nbShape(), 1536u);
+	EXPECT_EQ(origin.renderer().meshes().opaque.nbShape(), 1536u);
 }
 
 TEST(VoxelMap, InactiveChunksDoNotOccludeActiveNeighbors)
@@ -232,16 +232,16 @@ TEST(VoxelMap, InactiveChunksDoNotOccludeActiveNeighbors)
 	spk::VoxelChunk &origin = map.chunk({0, 0, 0});
 	(void)map.chunk({1, 0, 0});
 	synchronizeAll(map);
-	ASSERT_EQ(origin.renderer().mesh().nbShape(), 1536u - 256u);
+	ASSERT_EQ(origin.renderer().meshes().opaque.nbShape(), 1536u - 256u);
 
 	EXPECT_TRUE(map.setChunkActive({1, 0, 0}, false));
 	ASSERT_TRUE(origin.renderer().needsSynchronization());
 	origin.renderer().synchronize();
-	EXPECT_EQ(origin.renderer().mesh().nbShape(), 1536u);
+	EXPECT_EQ(origin.renderer().meshes().opaque.nbShape(), 1536u);
 
 	EXPECT_TRUE(map.setChunkActive({1, 0, 0}, true));
 	synchronizeAll(map);
-	EXPECT_EQ(origin.renderer().mesh().nbShape(), 1536u - 256u);
+	EXPECT_EQ(origin.renderer().meshes().opaque.nbShape(), 1536u - 256u);
 }
 
 TEST(VoxelMap, RegistersChunkEntitiesInTheGameEngine)

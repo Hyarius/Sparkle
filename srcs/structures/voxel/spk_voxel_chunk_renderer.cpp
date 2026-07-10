@@ -29,7 +29,7 @@ namespace spk
 
 	VoxelChunkRenderer::MeshHandle VoxelChunkRenderer::buildMesh() const
 	{
-		return std::make_shared<spk::TextureMesh3D>(
+		return std::make_shared<spk::VoxelRenderMeshes>(
 			_worldLookup != nullptr
 				? spk::VoxelMesher::buildRenderMesh(*_grid, *_registry, *_worldLookup, _worldOrigin)
 				: spk::VoxelMesher::buildRenderMesh(*_grid, *_registry));
@@ -41,7 +41,7 @@ namespace spk
 		{
 			throw std::invalid_argument("VoxelChunkRenderer cannot publish a null mesh");
 		}
-		_mesh = std::move(p_mesh);
+		_meshes = std::move(p_mesh);
 		++_meshRevision;
 	}
 
@@ -50,14 +50,29 @@ namespace spk
 		_failSynchronization();
 	}
 
-	const spk::TextureMesh3D &VoxelChunkRenderer::mesh() const noexcept
+	const spk::VoxelGrid &VoxelChunkRenderer::grid() const noexcept
 	{
-		return *_mesh;
+		return *_grid;
 	}
 
-	std::shared_ptr<const spk::TextureMesh3D> VoxelChunkRenderer::sharedMesh() const noexcept
+	const spk::VoxelRenderMeshes &VoxelChunkRenderer::meshes() const noexcept
 	{
-		return _mesh;
+		return *_meshes;
+	}
+
+	std::shared_ptr<const spk::VoxelRenderMeshes> VoxelChunkRenderer::sharedMeshes() const noexcept
+	{
+		return _meshes;
+	}
+
+	std::shared_ptr<const spk::VoxelMesh3D> VoxelChunkRenderer::sharedOpaqueMesh() const noexcept
+	{
+		return {_meshes, &_meshes->opaque};
+	}
+
+	std::shared_ptr<const spk::VoxelMesh3D> VoxelChunkRenderer::sharedTransparentMesh() const noexcept
+	{
+		return {_meshes, &_meshes->transparent};
 	}
 
 	std::uint64_t VoxelChunkRenderer::meshRevision() const noexcept

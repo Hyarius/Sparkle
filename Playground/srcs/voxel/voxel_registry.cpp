@@ -2,8 +2,14 @@
 
 #include "core/registry.hpp"
 
+#include "structures/voxel/spk_cube_voxel_shape.hpp"
+#include "structures/voxel/spk_slab_voxel_shape.hpp"
+
 #include <limits>
+#include <memory>
+#include <optional>
 #include <stdexcept>
+#include <string>
 #include <utility>
 
 namespace pg
@@ -23,20 +29,89 @@ namespace pg
 
 		spk::VoxelRegistry renderRegistry;
 		std::vector<VoxelDefinition> definitions;
+		std::vector<std::string> numericToString;
 		std::map<std::string, std::int32_t> stringToNumeric;
+		std::vector<FluidFamily> fluids;
+		std::unordered_map<std::int32_t, FluidRef> fluidRefs;
 		definitions.reserve(ids.size());
+		numericToString.reserve(ids.size());
+
+		// Registers one shape + its parallel gameplay definition, keeping the render registry id,
+		// the definition table and the id<->name maps in lockstep. Generated fluid stages go
+		// through here too, so they get their own ids without disturbing the authored voxels.
+		const auto registerVoxel = [&](const std::string &p_id,
+									   std::unique_ptr<spk::VoxelShape> p_shape,
+									   VoxelData p_data,
+									   const CardinalHeightCollection &p_heights) -> std::int32_t {
+			const std::int32_t numeric = renderRegistry.registerShape(std::move(p_shape));
+			definitions.push_back(VoxelDefinition{.id = p_id, .data = std::move(p_data), .heights = p_heights});
+			numericToString.push_back(p_id);
+			stringToNumeric.emplace(p_id, numeric);
+			return numeric;
+		};
+
 		for (const std::string &id : ids)
 		{
 			ParsedVoxel &voxel = parsed.getMutable(id);
-			const std::int32_t numeric = renderRegistry.registerShape(std::move(voxel.shape));
-			definitions.push_back(VoxelDefinition{.id = id, .data = std::move(voxel.data), .heights = voxel.heights});
-			stringToNumeric.emplace(id, numeric);
+			const std::optional<FluidData> fluid = voxel.fluid;
+			const VoxelData tagsSource = voxel.data; // copied before the move, reused for stage tags
+			const float transparency = voxel.shape->transparency(); // reused for the generated stage slabs
+			const std::int32_t sourceNumeric = registerVoxel(id, std::move(voxel.shape), std::move(voxel.data), voxel.heights);
+
+			if (fluid.has_value() == false)
+			{
+				continue;
+			}
+
+			// One slab per fill stage: stage k renders at height k / maxSpread, so the fluid is
+			// a near-full cube next to the source and a thin film at the edge of its reach. The
+			// stages are passable and carry the source's tags (water, ...) for gameplay queries.
+			const std::size_t familyIndex = fluids.size();
+			FluidFamily family;
+			family.sourceId = sourceNumeric;
+			family.maxSpread = fluid->maxSpread;
+			family.falls = fluid->falls;
+			family.stageIds.reserve(static_cast<std::size_t>(fluid->maxSpread));
+			for (int stage = 1; stage <= fluid->maxSpread; ++stage)
+			{
+				const float fill = static_cast<float>(stage) / static_cast<float>(fluid->maxSpread);
+				VoxelData stageData;
+				stageData.traversal = VoxelTraversal::Passable;
+				stageData.tags = tagsSource.tags;
+				// The full stage must be a cube, not a height-1.0 slab: a slab's four sides are
+				// inner faces the mesher only emits while an outer face is visible, so a column
+				// cell covered above and below (a waterfall interior) would vanish entirely even
+				// with air on its sides. A cube exposes its sides as occlusion-aware outer faces.
+				std::unique_ptr<spk::VoxelShape> stageShape;
+				if (stage == fluid->maxSpread)
+				{
+					stageShape = std::make_unique<spk::CubeVoxelShape>(fluid->texture);
+				}
+				else
+				{
+					stageShape = std::make_unique<spk::SlabVoxelShape>(fluid->texture, fill);
+				}
+				// Stages share the source's transparency so a water body culls its internal
+				// faces and renders as one continuous translucent volume.
+				stageShape->setTransparency(transparency);
+				const std::int32_t stageNumeric = registerVoxel(
+					id + "#" + std::to_string(stage),
+					std::move(stageShape),
+					std::move(stageData),
+					CardinalHeightCollection{});
+				family.stageIds.push_back(stageNumeric);
+				fluidRefs.emplace(stageNumeric, FluidRef{.family = familyIndex, .stage = stage, .source = false});
+			}
+			fluidRefs.emplace(sourceNumeric, FluidRef{.family = familyIndex, .stage = fluid->maxSpread, .source = true});
+			fluids.push_back(std::move(family));
 		}
 
 		_renderRegistry = std::move(renderRegistry);
 		_definitions = std::move(definitions);
-		_numericToString = std::move(ids);
+		_numericToString = std::move(numericToString);
 		_stringToNumeric = std::move(stringToNumeric);
+		_fluids = std::move(fluids);
+		_fluidRefs = std::move(fluidRefs);
 	}
 
 	const VoxelDefinition &VoxelRegistry::get(const std::string &p_id) const
@@ -101,5 +176,16 @@ namespace pg
 	const spk::VoxelRegistry &VoxelRegistry::renderRegistry() const noexcept
 	{
 		return _renderRegistry;
+	}
+
+	const std::vector<FluidFamily> &VoxelRegistry::fluids() const noexcept
+	{
+		return _fluids;
+	}
+
+	const FluidRef *VoxelRegistry::tryFluidRef(std::int32_t p_id) const noexcept
+	{
+		const auto iterator = _fluidRefs.find(p_id);
+		return iterator == _fluidRefs.end() ? nullptr : &iterator->second;
 	}
 }

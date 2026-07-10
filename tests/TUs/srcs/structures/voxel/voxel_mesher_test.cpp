@@ -54,18 +54,33 @@ namespace
 		}
 	};
 
+	[[nodiscard]] std::unique_ptr<spk::VoxelShape> makeTransparentCube(float p_transparency)
+	{
+		auto shape = std::make_unique<spk::CubeVoxelShape>(spk::AtlasCell{0, 0});
+		shape->setTransparency(p_transparency);
+		return shape;
+	}
+
 	struct TestRegistry
 	{
 		spk::VoxelRegistry registry;
 		std::int32_t cube = 0;
 		std::int32_t slab = 0;
 		std::int32_t cross = 0;
+		std::int32_t water = 0;	   // half-transparent cube
+		std::int32_t deepWater = 0; // same transparency level as water
+		std::int32_t glass = 0;	   // another transparency level
+		std::int32_t ghost = 0;	   // fully transparent, never rendered
 
 		TestRegistry()
 		{
 			cube = registry.registerShape(std::make_unique<spk::CubeVoxelShape>(spk::AtlasCell{0, 0}));
 			slab = registry.registerShape(std::make_unique<SlabShape>());
 			cross = registry.registerShape(std::make_unique<CrossShape>());
+			water = registry.registerShape(makeTransparentCube(0.5f));
+			deepWater = registry.registerShape(makeTransparentCube(0.5f));
+			glass = registry.registerShape(makeTransparentCube(0.25f));
+			ghost = registry.registerShape(makeTransparentCube(1.0f));
 		}
 	};
 
@@ -92,31 +107,32 @@ TEST(VoxelMesher, LoneCubeContributesSixFaces)
 {
 	const TestRegistry test;
 	const spk::VoxelGrid grid({1, 1, 1}, {test.cube});
-	const spk::TextureMesh3D mesh = spk::VoxelMesher::buildRenderMesh(grid, test.registry);
+	const spk::VoxelRenderMeshes meshes = spk::VoxelMesher::buildRenderMesh(grid, test.registry);
 
-	EXPECT_EQ(mesh.nbShape(), 6u);
-	EXPECT_EQ(mesh.indexes().size(), 36u);
+	EXPECT_EQ(meshes.opaque.nbShape(), 6u);
+	EXPECT_EQ(meshes.opaque.indexes().size(), 36u);
+	EXPECT_EQ(meshes.transparent.nbShape(), 0u);
 }
 
 TEST(VoxelMesher, AdjacentCubesCullTheirSharedFaces)
 {
 	const TestRegistry test;
 	const spk::VoxelGrid grid({2, 1, 1}, {test.cube});
-	const spk::TextureMesh3D mesh = spk::VoxelMesher::buildRenderMesh(grid, test.registry);
+	const spk::VoxelRenderMeshes meshes = spk::VoxelMesher::buildRenderMesh(grid, test.registry);
 
-	EXPECT_EQ(mesh.nbShape(), 10u);
+	EXPECT_EQ(meshes.opaque.nbShape(), 10u);
 }
 
 TEST(VoxelMesher, FullyBuriedCubeContributesNoGeometry)
 {
 	const TestRegistry test;
 	const spk::VoxelGrid filled({3, 3, 3}, {test.cube});
-	EXPECT_EQ(spk::VoxelMesher::buildRenderMesh(filled, test.registry).nbShape(), 54u);
+	EXPECT_EQ(spk::VoxelMesher::buildRenderMesh(filled, test.registry).opaque.nbShape(), 54u);
 
 	// Emptying the center exposes the six faces of the cavity instead.
 	spk::VoxelGrid hollow({3, 3, 3}, {test.cube});
 	hollow.cell(1, 1, 1) = {};
-	EXPECT_EQ(spk::VoxelMesher::buildRenderMesh(hollow, test.registry).nbShape(), 60u);
+	EXPECT_EQ(spk::VoxelMesher::buildRenderMesh(hollow, test.registry).opaque.nbShape(), 60u);
 }
 
 TEST(VoxelMesher, PartialOuterFacesAreCulledButNeverCull)
@@ -125,25 +141,25 @@ TEST(VoxelMesher, PartialOuterFacesAreCulledButNeverCull)
 	spk::VoxelGrid grid({2, 1, 1});
 	grid.cell(0, 0, 0) = {test.slab};
 	grid.cell(1, 0, 0) = {test.cube};
-	const spk::TextureMesh3D mesh = spk::VoxelMesher::buildRenderMesh(grid, test.registry);
+	const spk::VoxelRenderMeshes meshes = spk::VoxelMesher::buildRenderMesh(grid, test.registry);
 
 	// The slab keeps bottom, -X, +Z, -Z and its mid-height top (its +X half quad is
 	// occluded by the cube); the cube keeps all six faces because the slab's half quad
 	// does not cover its -X face.
-	EXPECT_EQ(mesh.nbShape(), 11u);
+	EXPECT_EQ(meshes.opaque.nbShape(), 11u);
 }
 
 TEST(VoxelMesher, InnerFacesIgnoreOcclusionEntirely)
 {
 	const TestRegistry test;
 	spk::VoxelGrid lone({1, 1, 1}, {test.cross});
-	EXPECT_EQ(spk::VoxelMesher::buildRenderMesh(lone, test.registry).nbShape(), 2u);
+	EXPECT_EQ(spk::VoxelMesher::buildRenderMesh(lone, test.registry).opaque.nbShape(), 2u);
 
 	spk::VoxelGrid grid({2, 1, 1});
 	grid.cell(0, 0, 0) = {test.cross};
 	grid.cell(1, 0, 0) = {test.cube};
 	// Both cross quads stay, and the cube keeps all six faces.
-	EXPECT_EQ(spk::VoxelMesher::buildRenderMesh(grid, test.registry).nbShape(), 8u);
+	EXPECT_EQ(spk::VoxelMesher::buildRenderMesh(grid, test.registry).opaque.nbShape(), 8u);
 }
 
 TEST(VoxelMesher, WorldLookupCullsFacesAcrossTheGridBoundary)
@@ -153,12 +169,78 @@ TEST(VoxelMesher, WorldLookupCullsFacesAcrossTheGridBoundary)
 	const spk::VoxelGrid grid({1, 1, 1}, {test.cube});
 
 	// The chunk sits directly on the solid floor: its bottom face is culled.
-	const spk::TextureMesh3D onFloor = spk::VoxelMesher::buildRenderMesh(grid, test.registry, lookup, {0, 0, 0});
-	EXPECT_EQ(onFloor.nbShape(), 5u);
+	const spk::VoxelRenderMeshes onFloor = spk::VoxelMesher::buildRenderMesh(grid, test.registry, lookup, {0, 0, 0});
+	EXPECT_EQ(onFloor.opaque.nbShape(), 5u);
 
 	// One cell higher, nothing touches the floor anymore.
-	const spk::TextureMesh3D above = spk::VoxelMesher::buildRenderMesh(grid, test.registry, lookup, {0, 1, 0});
-	EXPECT_EQ(above.nbShape(), 6u);
+	const spk::VoxelRenderMeshes above = spk::VoxelMesher::buildRenderMesh(grid, test.registry, lookup, {0, 1, 0});
+	EXPECT_EQ(above.opaque.nbShape(), 6u);
+}
+
+TEST(VoxelMesher, TransparentVoxelsLandInTheTransparentMesh)
+{
+	const TestRegistry test;
+	const spk::VoxelGrid grid({1, 1, 1}, {test.water});
+	const spk::VoxelRenderMeshes meshes = spk::VoxelMesher::buildRenderMesh(grid, test.registry);
+
+	EXPECT_EQ(meshes.opaque.nbShape(), 0u);
+	EXPECT_EQ(meshes.transparent.nbShape(), 6u);
+	// Each vertex carries the voxel's opacity (1 - transparency) for the blending pass.
+	for (const spk::VoxelVertex3D &vertex : meshes.transparent.vertices())
+	{
+		EXPECT_FLOAT_EQ(vertex.alpha, 0.5f);
+	}
+}
+
+TEST(VoxelMesher, TransparentNeighborsNeverHideOpaqueFaces)
+{
+	const TestRegistry test;
+	spk::VoxelGrid grid({2, 1, 1});
+	grid.cell(0, 0, 0) = {test.cube};
+	grid.cell(1, 0, 0) = {test.water};
+	const spk::VoxelRenderMeshes meshes = spk::VoxelMesher::buildRenderMesh(grid, test.registry);
+
+	// The cube keeps all six faces (the water behind it must not carve a hole), while
+	// the water's face against the cube is hidden by the opaque neighbor.
+	EXPECT_EQ(meshes.opaque.nbShape(), 6u);
+	EXPECT_EQ(meshes.transparent.nbShape(), 5u);
+}
+
+TEST(VoxelMesher, SameTransparencyLevelsCullTheirSharedFaces)
+{
+	const TestRegistry test;
+	spk::VoxelGrid grid({2, 1, 1});
+	grid.cell(0, 0, 0) = {test.water};
+	grid.cell(1, 0, 0) = {test.deepWater};
+	// Two ids of the same transparency level behave like one continuous body: the
+	// internal faces are culled just like between two opaque cubes.
+	EXPECT_EQ(spk::VoxelMesher::buildRenderMesh(grid, test.registry).transparent.nbShape(), 10u);
+}
+
+TEST(VoxelMesher, DifferentTransparencyLevelsKeepTheirSharedFaces)
+{
+	const TestRegistry test;
+	spk::VoxelGrid grid({2, 1, 1});
+	grid.cell(0, 0, 0) = {test.water};
+	grid.cell(1, 0, 0) = {test.glass};
+	// Both interface faces stay visible: looking through one level must still show the
+	// other one behind it.
+	EXPECT_EQ(spk::VoxelMesher::buildRenderMesh(grid, test.registry).transparent.nbShape(), 12u);
+}
+
+TEST(VoxelMesher, FullyTransparentVoxelsEmitNothingAndHideNothing)
+{
+	const TestRegistry test;
+	spk::VoxelGrid lone({1, 1, 1}, {test.ghost});
+	const spk::VoxelRenderMeshes loneMeshes = spk::VoxelMesher::buildRenderMesh(lone, test.registry);
+	EXPECT_EQ(loneMeshes.opaque.nbShape(), 0u);
+	EXPECT_EQ(loneMeshes.transparent.nbShape(), 0u);
+
+	spk::VoxelGrid grid({2, 1, 1});
+	grid.cell(0, 0, 0) = {test.ghost};
+	grid.cell(1, 0, 0) = {test.cube};
+	// The invisible voxel neither renders nor occludes: the cube keeps all six faces.
+	EXPECT_EQ(spk::VoxelMesher::buildRenderMesh(grid, test.registry).opaque.nbShape(), 6u);
 }
 
 TEST(VoxelMesher, MapsWorldPlanesToLocalForEveryOrientationAndFlip)
@@ -213,7 +295,7 @@ TEST(VoxelMesher, OrientedCellsRemainWatertight)
 		spk::VoxelGrid grid({2, 1, 1});
 		grid.cell(0, 0, 0) = {test.cube, orientation};
 		grid.cell(1, 0, 0) = {test.cube};
-		EXPECT_EQ(spk::VoxelMesher::buildRenderMesh(grid, test.registry).nbShape(), 10u)
+		EXPECT_EQ(spk::VoxelMesher::buildRenderMesh(grid, test.registry).opaque.nbShape(), 10u)
 			<< "orientation " << static_cast<int>(orientation);
 	}
 }

@@ -105,16 +105,37 @@ namespace
 		}
 
 		const spk::VoxelShape &neighborShape = p_registry.shape(neighbor->id);
+		// A see-through neighbor only hides faces of its own transparency level (water
+		// culls against water); it never hides an opaque face nor another transparency
+		// level, otherwise the geometry behind it would be missing when looking through.
+		if (neighborShape.isTransparent() && neighborShape.transparency() != p_shape.transparency())
+		{
+			return false;
+		}
 		const spk::VoxelAxisPlane neighborLocalPlane =
 			planeMapping(neighbor->orientation, neighbor->flip)[static_cast<std::size_t>(OppositePlanes[worldPlaneIndex])];
 		const auto &neighborFace = neighborShape.renderFaces().outer(neighborLocalPlane);
-		return neighborFace.has_value() && neighborShape.outerFaceCoversCellBoundary(neighborLocalPlane);
+		if (!neighborFace.has_value())
+		{
+			return false;
+		}
+		// Between same-level see-through voxels (both are, since an opaque pair compares 0==0
+		// only on the branch below), partial contact already hides: the neighbor's face culls
+		// ours as soon as it covers at least as much of the shared boundary, so a fluid body
+		// shows no internal faces while a tall face next to a shallow one still renders.
+		if (neighborShape.isTransparent())
+		{
+			return neighborShape.outerFaceBoundaryCoverage(neighborLocalPlane) + 0.0001f >=
+				   p_shape.outerFaceBoundaryCoverage(p_localPlane);
+		}
+		return neighborShape.outerFaceCoversCellBoundary(neighborLocalPlane);
 	}
 
 	template <typename TFunction>
 	void forEachPolygon(
 		const spk::VoxelShapeFace &p_face,
 		const spk::Vector3 &p_offset,
+		float p_alpha,
 		TFunction &&p_function)
 	{
 		for (const spk::VoxelShapePolygon &polygon : p_face.polygons())
@@ -124,8 +145,15 @@ namespace
 				continue;
 			}
 
-			p_function(polygon, polygon.normal(), p_offset);
+			p_function(polygon, polygon.normal(), p_offset, p_alpha);
 		}
+	}
+
+	// A shape's opacity, used both to route its polygons to the opaque or transparent
+	// mesh (alpha < 1) and as the per-vertex alpha baked into the transparent mesh.
+	[[nodiscard]] float shapeAlpha(const spk::VoxelShape &p_shape)
+	{
+		return 1.0f - p_shape.transparency();
 	}
 
 	template <typename TFunction>
@@ -154,6 +182,14 @@ namespace
 					}
 
 					const spk::VoxelShape &shape = p_registry.shape(cell.id);
+					// A fully transparent voxel emits no geometry at all (and, being
+					// transparent, never occludes anything but its own kind).
+					if (shape.transparency() >= 1.0f)
+					{
+						continue;
+					}
+
+					const float alpha = shapeAlpha(shape);
 					const spk::VoxelShapeFaceSet &faces = shape.renderFaces();
 					const auto &localPlanes = planeMapping(cell.orientation, cell.flip);
 					VisibilityMask visibility = 0;
@@ -170,7 +206,7 @@ namespace
 						}
 						visibility |= outerFaceMask(planeIndex);
 						hasVisibleShell = true;
-						forEachPolygon(*face, spk::Vector3(position), p_function);
+						forEachPolygon(*face, spk::Vector3(position), alpha, p_function);
 					}
 
 					if (hasVisibleShell || !shape.hasOuterFaces())
@@ -178,7 +214,7 @@ namespace
 						visibility |= InnerFacesMask;
 						for (const spk::VoxelShapeFace &face : faces.innerFaces)
 						{
-							forEachPolygon(face, spk::Vector3(position), p_function);
+							forEachPolygon(face, spk::Vector3(position), alpha, p_function);
 						}
 					}
 					result[currentCellIndex] = visibility;
@@ -217,6 +253,7 @@ namespace
 					const spk::Vector3Int position{x, y, z};
 					const spk::VoxelCell &cell = p_grid.cells()[currentCellIndex];
 					const spk::VoxelShape &shape = p_registry.shape(cell.id);
+					const float alpha = shapeAlpha(shape);
 					const spk::VoxelShapeFaceSet &faces = shape.renderFaces();
 					const auto &localPlanes = planeMapping(cell.orientation, cell.flip);
 					for (std::size_t planeIndex = 0; planeIndex < WorldPlanes.size(); ++planeIndex)
@@ -235,6 +272,7 @@ namespace
 						forEachPolygon(
 							shape.transformedOuterFace(localPlane, cell.orientation, cell.flip),
 							spk::Vector3(position),
+							alpha,
 							p_function);
 					}
 
@@ -245,6 +283,7 @@ namespace
 							forEachPolygon(
 								shape.transformedInnerFace(faceIndex, cell.orientation, cell.flip),
 								spk::Vector3(position),
+								alpha,
 								p_function);
 						}
 					}
@@ -278,12 +317,12 @@ namespace spk
 		return planeMapping(p_orientation, p_flip)[plane];
 	}
 
-	spk::TextureMesh3D VoxelMesher::buildRenderMesh(const spk::VoxelGrid &p_grid, const spk::VoxelRegistry &p_registry)
+	spk::VoxelRenderMeshes VoxelMesher::buildRenderMesh(const spk::VoxelGrid &p_grid, const spk::VoxelRegistry &p_registry)
 	{
 		return _buildRenderMesh(p_grid, p_registry, nullptr, {});
 	}
 
-	spk::TextureMesh3D VoxelMesher::buildRenderMesh(
+	spk::VoxelRenderMeshes VoxelMesher::buildRenderMesh(
 		const spk::VoxelGrid &p_grid,
 		const spk::VoxelRegistry &p_registry,
 		const spk::IVoxelCellLookup &p_worldLookup,
@@ -292,7 +331,7 @@ namespace spk
 		return _buildRenderMesh(p_grid, p_registry, &p_worldLookup, p_worldOrigin);
 	}
 
-	spk::TextureMesh3D VoxelMesher::_buildRenderMesh(
+	spk::VoxelRenderMeshes VoxelMesher::_buildRenderMesh(
 		const spk::VoxelGrid &p_grid,
 		const spk::VoxelRegistry &p_registry,
 		const spk::IVoxelCellLookup *p_worldLookup,
@@ -303,57 +342,76 @@ namespace spk
 			std::size_t vertices = 0;
 			std::size_t indexes = 0;
 			std::size_t shapes = 0;
-		} counts;
+		};
+		std::array<MeshCounts, 2> counts; // [0] opaque, [1] transparent
 
 		const std::vector<VisibilityMask> visibilityMasks = computeVisibilityMasks(
 			p_grid,
 			p_registry,
 			p_worldLookup,
 			p_worldOrigin,
-			[&counts](const spk::VoxelShapePolygon &p_polygon, const spk::Vector3 &, const spk::Vector3 &) {
-				checkedAdd(counts.vertices, p_polygon.size(), "vertex");
+			[&counts](const spk::VoxelShapePolygon &p_polygon, const spk::Vector3 &, const spk::Vector3 &, float p_alpha) {
+				MeshCounts &target = counts[p_alpha < 1.0f ? 1 : 0];
+				checkedAdd(target.vertices, p_polygon.size(), "vertex");
 				const std::size_t triangleCount = p_polygon.size() - 2;
 				if (triangleCount > std::numeric_limits<std::size_t>::max() / 3)
 				{
 					throw std::overflow_error("Voxel mesh index count overflow");
 				}
-				checkedAdd(counts.indexes, triangleCount * 3, "index");
-				checkedAdd(counts.shapes, 1, "shape");
+				checkedAdd(target.indexes, triangleCount * 3, "index");
+				checkedAdd(target.shapes, 1, "shape");
 			});
-		if (counts.vertices > std::numeric_limits<std::uint32_t>::max())
-		{
-			throw std::overflow_error("Voxel mesh exceeds the 32-bit index range");
-		}
 
-		spk::TextureMesh3D::Builder builder;
-		builder.resize(counts.vertices, counts.indexes, counts.shapes);
-		std::span<spk::TextureVertex3D> vertices = builder.vertices().cast<spk::TextureVertex3D>();
-		std::span<std::uint32_t> indexes = builder.indexes().cast<std::uint32_t>();
-		std::size_t vertexCursor = 0;
-		std::size_t indexCursor = 0;
+		struct MeshEmitter
+		{
+			spk::VoxelMesh3D::Builder builder;
+			std::span<spk::VoxelVertex3D> vertices;
+			std::span<std::uint32_t> indexes;
+			std::size_t vertexCursor = 0;
+			std::size_t indexCursor = 0;
+
+			explicit MeshEmitter(const MeshCounts &p_counts)
+			{
+				if (p_counts.vertices > std::numeric_limits<std::uint32_t>::max())
+				{
+					throw std::overflow_error("Voxel mesh exceeds the 32-bit index range");
+				}
+				builder.resize(p_counts.vertices, p_counts.indexes, p_counts.shapes);
+				vertices = builder.vertices().cast<spk::VoxelVertex3D>();
+				indexes = builder.indexes().cast<std::uint32_t>();
+			}
+		};
+		std::array<MeshEmitter, 2> emitters{MeshEmitter(counts[0]), MeshEmitter(counts[1])};
 
 		forEachMaskedPolygon(
 			p_grid,
 			p_registry,
 			visibilityMasks,
-			[&](const spk::VoxelShapePolygon &p_polygon, const spk::Vector3 &p_normal, const spk::Vector3 &p_offset) {
-				const std::uint32_t first = static_cast<std::uint32_t>(vertexCursor);
+			[&](const spk::VoxelShapePolygon &p_polygon, const spk::Vector3 &p_normal, const spk::Vector3 &p_offset, float p_alpha) {
+				MeshEmitter &target = emitters[p_alpha < 1.0f ? 1 : 0];
+				const std::uint32_t first = static_cast<std::uint32_t>(target.vertexCursor);
 				for (const spk::VoxelShapeVertex &vertex : p_polygon)
 				{
-					vertices[vertexCursor++] = {vertex.position + p_offset, p_normal, vertex.data};
+					target.vertices[target.vertexCursor++] = {vertex.position + p_offset, p_normal, vertex.data, p_alpha};
 				}
 				for (std::size_t index = 1; index + 1 < p_polygon.size(); ++index)
 				{
-					indexes[indexCursor++] = first;
-					indexes[indexCursor++] = first + static_cast<std::uint32_t>(index);
-					indexes[indexCursor++] = first + static_cast<std::uint32_t>(index + 1);
+					target.indexes[target.indexCursor++] = first;
+					target.indexes[target.indexCursor++] = first + static_cast<std::uint32_t>(index);
+					target.indexes[target.indexCursor++] = first + static_cast<std::uint32_t>(index + 1);
 				}
 			});
 
-		if (vertexCursor != counts.vertices || indexCursor != counts.indexes)
+		for (std::size_t meshIndex = 0; meshIndex < emitters.size(); ++meshIndex)
 		{
-			throw std::logic_error("Voxel mesh count and emission passes disagree");
+			if (emitters[meshIndex].vertexCursor != counts[meshIndex].vertices ||
+				emitters[meshIndex].indexCursor != counts[meshIndex].indexes)
+			{
+				throw std::logic_error("Voxel mesh count and emission passes disagree");
+			}
 		}
-		return std::move(builder).bake();
+		return {
+			.opaque = std::move(emitters[0].builder).bake(),
+			.transparent = std::move(emitters[1].builder).bake()};
 	}
 }

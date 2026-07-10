@@ -40,9 +40,11 @@ TEST(VoxelShapeLibrary, ShapesSplitTheirFacesBetweenTheTwoShells)
 {
 	const ShapeLibrary library;
 
+	// A slab's sides lie on the cell boundary, so all six faces are outer-shell faces:
+	// neighbors can occlude the sides (partial coverage) even though they never occlude.
 	const spk::VoxelShapeFaceSet &slabFaces = library.registry.shape(library.halfSlab).renderFaces();
-	EXPECT_EQ(slabFaces.outerFaceCount(), 2u);
-	EXPECT_EQ(slabFaces.innerFaces.size(), 4u);
+	EXPECT_EQ(slabFaces.outerFaceCount(), 6u);
+	EXPECT_EQ(slabFaces.innerFaces.size(), 0u);
 
 	const spk::VoxelShapeFaceSet &slopeFaces = library.registry.shape(library.slope).renderFaces();
 	EXPECT_EQ(slopeFaces.outerFaceCount(), 4u);
@@ -106,9 +108,9 @@ TEST(VoxelShapeLibrary, HalfSlabSidesUseTheLowerHalfOfTheirTexture)
 	spk::SlabVoxelShape shape(spk::AtlasCell{0, 0}, 0.5f, spk::Vector2Int{1, 1});
 	shape.initialize();
 
-	for (const auto &face : shape.renderFaces().innerFaces)
+	for (const auto plane : {spk::VoxelAxisPlane::PositiveX, spk::VoxelAxisPlane::NegativeX, spk::VoxelAxisPlane::PositiveZ, spk::VoxelAxisPlane::NegativeZ})
 	{
-		const auto &side = face.polygons().front();
+		const auto &side = shape.renderFaces().outer(plane)->polygons().front();
 		EXPECT_EQ(side[0].data.y, 1.0f);
 		EXPECT_EQ(side[1].data.y, 1.0f);
 		EXPECT_EQ(side[2].data.y, 0.5f);
@@ -164,13 +166,13 @@ TEST(VoxelShapeLibrary, FullHeightSlabOccludesLikeACubeButHalfSlabDoesNot)
 	full.cell(0, 0, 0) = {library.fullSlab};
 	full.cell(0, 1, 0) = {library.cube};
 	// Both faces of the shared horizontal boundary are culled.
-	EXPECT_EQ(spk::VoxelMesher::buildRenderMesh(full, library.registry).nbShape(), 10u);
+	EXPECT_EQ(spk::VoxelMesher::buildRenderMesh(full, library.registry).opaque.nbShape(), 10u);
 
 	spk::VoxelGrid half({1, 2, 1});
 	half.cell(0, 0, 0) = {library.halfSlab};
 	half.cell(0, 1, 0) = {library.cube};
 	// The half slab's top sits at mid-height: nothing is culled on either side.
-	EXPECT_EQ(spk::VoxelMesher::buildRenderMesh(half, library.registry).nbShape(), 12u);
+	EXPECT_EQ(spk::VoxelMesher::buildRenderMesh(half, library.registry).opaque.nbShape(), 12u);
 }
 
 TEST(VoxelShapeLibrary, SlopeBackOccludesButTriangleSideDoesNot)
@@ -180,12 +182,12 @@ TEST(VoxelShapeLibrary, SlopeBackOccludesButTriangleSideDoesNot)
 	spk::VoxelGrid behind({1, 1, 2});
 	behind.cell(0, 0, 0) = {library.slope};
 	behind.cell(0, 0, 1) = {library.cube};
-	EXPECT_EQ(spk::VoxelMesher::buildRenderMesh(behind, library.registry).nbShape(), 9u);
+	EXPECT_EQ(spk::VoxelMesher::buildRenderMesh(behind, library.registry).opaque.nbShape(), 9u);
 
 	spk::VoxelGrid beside({2, 1, 1});
 	beside.cell(0, 0, 0) = {library.slope};
 	beside.cell(1, 0, 0) = {library.cube};
-	EXPECT_EQ(spk::VoxelMesher::buildRenderMesh(beside, library.registry).nbShape(), 10u);
+	EXPECT_EQ(spk::VoxelMesher::buildRenderMesh(beside, library.registry).opaque.nbShape(), 10u);
 }
 
 TEST(VoxelShapeLibrary, RotatedSlopeOccludesTheCorrectCubeFace)
@@ -197,7 +199,7 @@ TEST(VoxelShapeLibrary, RotatedSlopeOccludesTheCorrectCubeFace)
 	spk::VoxelGrid grid({1, 1, 2});
 	grid.cell(0, 0, 0) = {library.cube};
 	grid.cell(0, 0, 1) = {library.slope, spk::VoxelOrientation::NegativeZ};
-	EXPECT_EQ(spk::VoxelMesher::buildRenderMesh(grid, library.registry).nbShape(), 9u);
+	EXPECT_EQ(spk::VoxelMesher::buildRenderMesh(grid, library.registry).opaque.nbShape(), 9u);
 }
 
 TEST(VoxelShapeLibrary, StairBackOccludesButSteppedSideDoesNot)
@@ -208,14 +210,14 @@ TEST(VoxelShapeLibrary, StairBackOccludesButSteppedSideDoesNot)
 	behind.cell(0, 0, 0) = {library.stair};
 	behind.cell(0, 0, 1) = {library.cube};
 	// Stair keeps bottom + four convex side quads + 4 inner step faces; cube keeps 5 faces.
-	EXPECT_EQ(spk::VoxelMesher::buildRenderMesh(behind, library.registry).nbShape(), 14u);
+	EXPECT_EQ(spk::VoxelMesher::buildRenderMesh(behind, library.registry).opaque.nbShape(), 14u);
 
 	spk::VoxelGrid beside({2, 1, 1});
 	beside.cell(0, 0, 0) = {library.stair};
 	beside.cell(1, 0, 0) = {library.cube};
 	// The stair's +X stepped polygon is culled by the cube, but its own silhouette is not
 	// a full quad so the cube keeps all six faces.
-	EXPECT_EQ(spk::VoxelMesher::buildRenderMesh(beside, library.registry).nbShape(), 14u);
+	EXPECT_EQ(spk::VoxelMesher::buildRenderMesh(beside, library.registry).opaque.nbShape(), 14u);
 }
 
 TEST(VoxelShapeLibrary, CrossPlaneNeverOccludesOrGetsOccluded)
@@ -223,12 +225,12 @@ TEST(VoxelShapeLibrary, CrossPlaneNeverOccludesOrGetsOccluded)
 	const ShapeLibrary library;
 
 	spk::VoxelGrid lone({1, 1, 1}, {library.cross});
-	EXPECT_EQ(spk::VoxelMesher::buildRenderMesh(lone, library.registry).nbShape(), 4u);
+	EXPECT_EQ(spk::VoxelMesher::buildRenderMesh(lone, library.registry).opaque.nbShape(), 4u);
 
 	spk::VoxelGrid grid({2, 1, 1});
 	grid.cell(0, 0, 0) = {library.cross};
 	grid.cell(1, 0, 0) = {library.cube};
-	EXPECT_EQ(spk::VoxelMesher::buildRenderMesh(grid, library.registry).nbShape(), 10u);
+	EXPECT_EQ(spk::VoxelMesher::buildRenderMesh(grid, library.registry).opaque.nbShape(), 10u);
 }
 
 TEST(VoxelShapeLibrary, CrossUsesTwoCenteredAxisAlignedPlanes)

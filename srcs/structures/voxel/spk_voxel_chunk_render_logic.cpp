@@ -5,7 +5,7 @@
 #include "structures/game_engine/spk_transform_3d.hpp"
 #include "structures/graphics/rendering/command/spk_camera_update_render_command.hpp"
 #include "structures/graphics/rendering/command/spk_directional_light_update_render_command.hpp"
-#include "structures/graphics/rendering/command/spk_draw_texture_mesh_3d_render_command.hpp"
+#include "structures/graphics/rendering/command/spk_draw_voxel_mesh_3d_render_command.hpp"
 #include "structures/graphics/spk_sampler_object.hpp"
 #include "structures/graphics/spk_texture.hpp"
 #include "structures/graphics/spk_uniform_buffer_object.hpp"
@@ -65,13 +65,13 @@ namespace spk
 	{
 		if (p_cached.modelUBO == nullptr)
 		{
-			p_cached.modelUBO = spk::DrawTextureMesh3DRenderCommand::makeModelUBO(p_model, spk::Color{1, 1, 1, 1});
+			p_cached.modelUBO = spk::DrawVoxelMesh3DRenderCommand::makeModelUBO(p_model, spk::Color{1, 1, 1, 1});
 			p_cached.model = p_model;
 			p_cached.hasModel = true;
 		}
 		else if (!p_cached.hasModel || std::memcmp(&p_cached.model, &p_model, sizeof(p_model)) != 0)
 		{
-			spk::DrawTextureMesh3DRenderCommand::updateModelUBO(*p_cached.modelUBO, p_model, spk::Color{1, 1, 1, 1});
+			spk::DrawVoxelMesh3DRenderCommand::updateModelUBO(*p_cached.modelUBO, p_model, spk::Color{1, 1, 1, 1});
 			p_cached.model = p_model;
 			p_cached.hasModel = true;
 		}
@@ -195,7 +195,7 @@ namespace spk
 		}
 		if (_sampler == nullptr)
 		{
-			_sampler = spk::DrawTextureMesh3DRenderCommand::makeSampler(_texture);
+			_sampler = spk::DrawVoxelMesh3DRenderCommand::makeSampler(_texture);
 		}
 	}
 
@@ -222,7 +222,8 @@ namespace spk
 	void VoxelChunkRenderLogic::_executeRender(spk::RenderUnitBuilder &p_builder)
 	{
 		const bool hasRenderableMesh = std::ranges::any_of(_visibleChunks, [](const auto *p_renderer) {
-			return p_renderer->mesh().indexes().empty() == false;
+			const spk::VoxelRenderMeshes &meshes = p_renderer->meshes();
+			return meshes.opaque.indexes().empty() == false || meshes.transparent.indexes().empty() == false;
 		});
 
 		if (_camera == nullptr || !hasRenderableMesh)
@@ -248,13 +249,34 @@ namespace spk
 					.ambient = AmbientLight});
 		}
 
+		std::vector<const spk::VoxelChunkRenderer *> translucentChunks;
 		for (const spk::VoxelChunkRenderer *renderer : _visibleChunks)
 		{
-			if (renderer->mesh().indexes().empty())
+			if (renderer->meshes().transparent.indexes().empty() == false)
+			{
+				translucentChunks.push_back(renderer);
+			}
+			if (renderer->meshes().opaque.indexes().empty())
 			{
 				continue;
 			}
-			p_builder.add(std::make_unique<spk::DrawTextureMesh3DRenderCommand>(renderer->sharedMesh(), _cache.at(renderer).modelUBO, _sampler, false));
+			p_builder.add(std::make_unique<spk::DrawVoxelMesh3DRenderCommand>(renderer->sharedOpaqueMesh(), _cache.at(renderer).modelUBO, _sampler, false));
+		}
+
+		// Translucent meshes draw after every opaque one, back to front, so blending
+		// composites overlapping water bodies in the right order (depth writes are off
+		// during the translucent pass).
+		const spk::Vector3 cameraPosition = _camera->position();
+		std::ranges::sort(translucentChunks, [&](const auto *p_left, const auto *p_right) {
+			const auto squaredDistance = [&](const auto *p_renderer) {
+				const spk::Vector3 center = _cache.at(p_renderer).model * (spk::Vector3(p_renderer->grid().size()) * 0.5f);
+				return (center - cameraPosition).squaredLength();
+			};
+			return squaredDistance(p_left) > squaredDistance(p_right);
+		});
+		for (const spk::VoxelChunkRenderer *renderer : translucentChunks)
+		{
+			p_builder.add(std::make_unique<spk::DrawVoxelMesh3DRenderCommand>(renderer->sharedTransparentMesh(), _cache.at(renderer).modelUBO, _sampler, true));
 		}
 
 		_pruneUnloadedChunks();

@@ -15,6 +15,7 @@
 #include <initializer_list>
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -118,6 +119,7 @@ namespace
 	{
 		std::unique_ptr<spk::VoxelShape> shape;
 		pg::CardinalHeightCollection heights;
+		std::optional<pg::FluidData> fluid;
 	};
 
 	ParsedShape parseShape(pg::JsonReader &p_reader)
@@ -129,6 +131,26 @@ namespace
 			p_reader.forbidUnknown({"type", "textures"});
 			pg::JsonReader textures = p_reader.child("textures");
 			return {std::make_unique<spk::CubeVoxelShape>(readCubeTextures(textures)), {flatTop(), flatTop()}};
+		}
+		if (type == "fluid")
+		{
+			// A fluid is its own model: the authored voxel is the full source block, and the
+			// registry generates its thinner fill stages (slabs) from the metadata below. The
+			// stage count == maxSpread, the material's viscosity (how far it flows).
+			p_reader.forbidUnknown({"type", "textures", "maxSpread"});
+			const int maxSpread = p_reader.optional<int>("maxSpread", 8);
+			if (maxSpread < 1 || maxSpread > 16)
+			{
+				throw pg::JsonError(p_reader.file(), p_reader.pathFor("maxSpread"), "maxSpread must be between 1 and 16");
+			}
+			pg::JsonReader textures = p_reader.child("textures");
+			spk::VoxelShape::TextureSlots slots = readCubeTextures(textures);
+			const pg::AtlasCell topCell = slots.at("top"); // reused for the generated stage slabs
+			ParsedShape result;
+			result.shape = std::make_unique<spk::CubeVoxelShape>(std::move(slots));
+			result.heights = {flatTop(), flatTop()};
+			result.fluid = pg::FluidData{.maxSpread = maxSpread, .falls = true, .texture = topCell};
+			return result;
 		}
 		if (type == "cuboid")
 		{
@@ -202,7 +224,7 @@ namespace
 		throw pg::JsonError(
 			p_reader.file(),
 			p_reader.pathFor("type"),
-			"unknown voxel shape type '" + type + "' (known types: cube, cuboid, slab, slope, stair, crossPlane, cross)");
+			"unknown voxel shape type '" + type + "' (known types: cube, cuboid, slab, slope, stair, fluid, crossPlane, cross)");
 	}
 }
 
@@ -210,7 +232,7 @@ namespace pg
 {
 	ParsedVoxel parseVoxelDefinition(JsonReader &p_reader)
 	{
-		p_reader.forbidUnknown({"version", "traversal", "tags", "shape"});
+		p_reader.forbidUnknown({"version", "traversal", "tags", "transparency", "shape"});
 
 		const int version = p_reader.require<int>("version");
 		if (version != 1)
@@ -228,10 +250,20 @@ namespace pg
 		ParsedVoxel result;
 		result.data.traversal = p_reader.requireEnum<VoxelTraversal>("traversal", traversalValues);
 		result.data.tags = p_reader.require<std::vector<std::string>>("tags");
+		const float transparency = p_reader.optional<float>("transparency", 0.0f);
+		if (transparency < 0.0f || transparency > 1.0f)
+		{
+			throw JsonError(
+				p_reader.file(),
+				p_reader.pathFor("transparency"),
+				"transparency must be between 0 (opaque) and 1 (invisible)");
+		}
 		JsonReader shapeReader = p_reader.child("shape");
 		ParsedShape parsed = parseShape(shapeReader);
 		result.shape = std::move(parsed.shape);
+		result.shape->setTransparency(transparency);
 		result.heights = parsed.heights;
+		result.fluid = parsed.fluid;
 		return result;
 	}
 }

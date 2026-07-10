@@ -96,11 +96,13 @@ namespace spk
 
 		TextureSlots _textures;
 		spk::Vector2Int _atlasSize = DefaultAtlasSize;
+		float _transparency = 0.0f;
 		spk::VoxelShapeFaceSet _renderFaces;
 		std::array<std::optional<FaceTransformVariants>, static_cast<std::size_t>(spk::VoxelAxisPlane::Count)> _transformedOuterFaces;
 		std::vector<FaceTransformVariants> _transformedInnerFaces;
 		std::array<bool, static_cast<std::size_t>(spk::VoxelAxisPlane::Count)> _outerFacesOnCellBoundary{};
 		std::array<bool, static_cast<std::size_t>(spk::VoxelAxisPlane::Count)> _outerFacesCoverCellBoundary{};
+		std::array<float, static_cast<std::size_t>(spk::VoxelAxisPlane::Count)> _outerFaceBoundaryCoverage{};
 		bool _hasOuterFaces = false;
 		bool _initialized = false;
 
@@ -152,6 +154,12 @@ namespace spk
 
 		void initialize();
 
+		// How see-through the voxel renders: 0 is fully opaque, 1 fully invisible. Any value
+		// above 0 routes the voxel's faces to the transparent render mesh.
+		void setTransparency(float p_transparency);
+		[[nodiscard]] float transparency() const noexcept;
+		[[nodiscard]] bool isTransparent() const noexcept;
+
 		[[nodiscard]] bool initialized() const noexcept;
 		[[nodiscard]] const spk::VoxelShapeFaceSet &renderFaces() const noexcept;
 		[[nodiscard]] const spk::VoxelShapeFace &transformedOuterFace(
@@ -164,6 +172,9 @@ namespace spk
 			spk::VoxelFlip p_flip) const;
 		[[nodiscard]] bool outerFaceLiesOnCellBoundary(spk::VoxelAxisPlane p_plane) const;
 		[[nodiscard]] bool outerFaceCoversCellBoundary(spk::VoxelAxisPlane p_plane) const;
+		// Fraction of the unit cell boundary the outer face covers: 0 when there is no face
+		// on that plane or it does not lie on the boundary, 1 when it covers it completely.
+		[[nodiscard]] float outerFaceBoundaryCoverage(spk::VoxelAxisPlane p_plane) const;
 		[[nodiscard]] bool hasOuterFaces() const noexcept;
 		[[nodiscard]] const spk::Vector2Int &atlasSize() const noexcept;
 

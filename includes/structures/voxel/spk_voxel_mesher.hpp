@@ -1,6 +1,6 @@
 #pragma once
 
-#include "structures/graphics/geometry/spk_texture_mesh_3d.hpp"
+#include "structures/graphics/geometry/spk_voxel_mesh_3d.hpp"
 #include "structures/voxel/spk_voxel_grid.hpp"
 #include "structures/voxel/spk_voxel_registry.hpp"
 
@@ -24,17 +24,17 @@ namespace spk
 	class VoxelMesher
 	{
 	private:
-		[[nodiscard]] static spk::TextureMesh3D _buildRenderMesh(
+		[[nodiscard]] static spk::VoxelRenderMeshes _buildRenderMesh(
 			const spk::VoxelGrid &p_grid,
 			const spk::VoxelRegistry &p_registry,
 			const spk::IVoxelCellLookup *p_worldLookup,
 			const spk::Vector3Int &p_worldOrigin);
 
 	public:
-		[[nodiscard]] static spk::TextureMesh3D buildRenderMesh(
+		[[nodiscard]] static spk::VoxelRenderMeshes buildRenderMesh(
 			const spk::VoxelGrid &p_grid,
 			const spk::VoxelRegistry &p_registry);
-		[[nodiscard]] static spk::TextureMesh3D buildRenderMesh(
+		[[nodiscard]] static spk::VoxelRenderMeshes buildRenderMesh(
 			const spk::VoxelGrid &p_grid,
 			const spk::VoxelRegistry &p_registry,
 			const spk::IVoxelCellLookup &p_worldLookup,
