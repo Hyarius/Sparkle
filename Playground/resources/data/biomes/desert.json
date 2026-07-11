@@ -16,6 +16,12 @@
 		"heightShift": -0.2,
 		"peak": false,
 		"mapColor": "#F2C14E",
+		"wildStairs": {
+			"allowCrossZone": true,
+			"maxLevels": 6,
+			"spacingCells": 3,
+			"candidateRatio": 1.0
+		},
 		"prefabs": {
 			"scenery": [
 				{ "prefab": "cactus-tall", "density": 0.35, "spacing": 3 },

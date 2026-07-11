@@ -287,3 +287,56 @@ TEST(WorldPlanValidation, RepresentativeMinimumConfigurationGenerates)
 		EXPECT_EQ(plan.land.size(), Config::MinimumPlanSize);
 	});
 }
+
+TEST(WorldPlanValidation, CoastalLandKeepsItsBiomeHeight)
+{
+	const pg::Registries &registries = loadedRegistries();
+	Config config;
+	config.size = Config::MinimumPlanSize;
+	config.zoneCount = 1;
+	config.coastTrendWeight = 0.0;
+	config.undulationLevels = 0.0;
+	config.enableRivers = false;
+	config.gymsPerZone = 0;
+	config.citiesPerZone = 0;
+	config.normalPoiPerZone = 0;
+	config.uncommonPoiPerZone = 0;
+	config.rarePoiPerZone = 0;
+	config.portsPerContinent = 0;
+	config.wildStairsPerZone = 0;
+
+	pg::PlanBiome biome;
+	biome.id = "elevated_coast";
+	biome.displayName = "Elevated coast";
+	biome.heightShift = 3.0;
+	const pg::WorldPlan plan = pg::generateWorldPlan(
+		config,
+		{biome},
+		registries.placementRules(),
+		registries.prefabs(),
+		registries.interiors());
+
+	bool foundCoastalLand = false;
+	for (int row = 0; row < config.size; ++row)
+	{
+		for (int col = 0; col < config.size; ++col)
+		{
+			if (plan.land.at(row, col) == 0)
+			{
+				continue;
+			}
+			const bool touchesOcean =
+				(row > 0 && plan.land.at(row - 1, col) == 0) ||
+				(row + 1 < config.size && plan.land.at(row + 1, col) == 0) ||
+				(col > 0 && plan.land.at(row, col - 1) == 0) ||
+				(col + 1 < config.size && plan.land.at(row, col + 1) == 0);
+			if (touchesOcean)
+			{
+				foundCoastalLand = true;
+				EXPECT_GE(plan.height.at(row, col), 3)
+					<< "Coastal biome height was flattened at (" << row << ", " << col << ')';
+			}
+		}
+	}
+	EXPECT_TRUE(foundCoastalLand);
+}

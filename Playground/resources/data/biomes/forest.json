@@ -17,6 +17,12 @@
 		"heightShift": 0.0,
 		"peak": false,
 		"mapColor": "#3FA34D",
+		"wildStairs": {
+			"allowCrossZone": true,
+			"maxLevels": 6,
+			"spacingCells": 3,
+			"candidateRatio": 1.0
+		},
 		"prefabs": {
 			"scenery": [
 				{ "prefab": "oak-tree", "density": 0.18, "spacing": 6 },

@@ -51,6 +51,16 @@ namespace pg
 		spk::Vector3Int prefabSize{};
 	};
 
+	struct BiomeWildStairs
+	{
+		bool configured = false;				   // missing block falls back to WorldGenConfig wild stair settings
+		std::optional<bool> allowCrossZone;		   // permits wild climbs between adjacent zones
+		std::optional<int> maxPerZone;			   // empty means no biome cap
+		std::optional<int> maxLevels;			   // falls back to WorldGenConfig::maxWildStairLevels
+		std::optional<double> spacingCells;		   // falls back to WorldGenConfig::wildStairSpacingCells
+		std::optional<double> candidateRatio;	   // 0..1 chance to keep each suitable cliff candidate
+	};
+
 	// Optional per-biome knobs for the macro world generator. Biomes without this block
 	// (interiors such as caves) are never picked when zones are assigned.
 	struct BiomeWorldgenTraits
@@ -65,6 +75,7 @@ namespace pg
 		std::map<std::string, std::vector<std::string>> prefabs;
 		// Each scenery entry has its own expected count and voxel-level spacing.
 		std::vector<BiomeScenery> scenery;
+		BiomeWildStairs wildStairs;
 		// Climb prefab ids synthesized at load from the palette's stair/slope voxels
 		// (see synthesizeClimbPrefabs). The flight pools carry several pre-mixed variants
 		// per biome; the generator picks one per staircase segment. Empty when the biome

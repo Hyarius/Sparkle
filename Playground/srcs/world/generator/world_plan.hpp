@@ -120,6 +120,12 @@ namespace pg
 		// Decorative structures scattered on clear land in this biome. Unlike POIs these
 		// have no gameplay role and may be multi-voxel prefabs such as trees or plants.
 		std::vector<PlanScenery> scenery;
+		bool wildStairsConfigured = false;
+		std::optional<bool> wildStairAllowCrossZone;
+		std::optional<int> wildStairsMaxPerZone;
+		std::optional<int> wildStairMaxLevels;
+		std::optional<double> wildStairSpacingCells;
+		std::optional<double> wildStairCandidateRatio;
 		// Climb prefabs synthesized from the biome's stair/slope voxels: the flight pools
 		// hold pre-mixed variants (one picked per staircase segment); the platform ids are
 		// the single road/surface pads. Empty pools fall back to the shared staircase.
@@ -317,6 +323,10 @@ namespace pg
 		int secondaryGateways = 0;
 		int riverCells = 0;
 		int stairPlacements = 0;
+		int wildStairCandidates = 0;
+		int wildStairRatioSkips = 0;
+		int wildStairSpacingSkips = 0;
+		int wildStairPlacementRejects = 0;
 		int wildStairPlacements = 0;
 		int composedStairPlacements = 0;
 		int rejectedStairways = 0;

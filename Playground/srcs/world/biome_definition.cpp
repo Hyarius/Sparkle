@@ -49,6 +49,16 @@ namespace
 		}
 		return weight;
 	}
+
+	double requireFiniteDouble(pg::JsonReader &p_reader, const std::string &p_key)
+	{
+		const double result = p_reader.require<double>(p_key);
+		if (!std::isfinite(result))
+		{
+			throw pg::JsonError(p_reader.file(), p_reader.pathFor(p_key), "value must be finite");
+		}
+		return result;
+	}
 }
 
 namespace pg
@@ -183,11 +193,11 @@ namespace pg
 		if (p_reader.contains("worldgen"))
 		{
 			JsonReader worldgenReader = p_reader.child("worldgen");
-			worldgenReader.forbidUnknown({"heightShift", "peak", "mapColor", "prefabs"});
+			worldgenReader.forbidUnknown({"heightShift", "peak", "mapColor", "prefabs", "wildStairs"});
 			BiomeWorldgenTraits traits;
 			if (worldgenReader.contains("heightShift"))
 			{
-				traits.heightShift = worldgenReader.require<double>("heightShift");
+				traits.heightShift = requireFiniteDouble(worldgenReader, "heightShift");
 			}
 			if (worldgenReader.contains("peak"))
 			{
@@ -269,6 +279,68 @@ namespace pg
 						continue;
 					}
 					traits.prefabs.emplace(slot, std::move(pool));
+				}
+			}
+			if (worldgenReader.contains("wildStairs"))
+			{
+				JsonReader wildReader = worldgenReader.child("wildStairs");
+				wildReader.forbidUnknown({"allowCrossZone", "maxPerZone", "maxLevels", "spacingCells", "candidateRatio"});
+				traits.wildStairs.configured = true;
+				if (wildReader.contains("allowCrossZone"))
+				{
+					traits.wildStairs.allowCrossZone = wildReader.require<bool>("allowCrossZone");
+				}
+				if (wildReader.contains("maxPerZone"))
+				{
+					const spk::JSON::Value *maxValue = wildReader.value().find("maxPerZone");
+					if (maxValue != nullptr && !maxValue->isNull())
+					{
+						const int maxPerZone = wildReader.require<int>("maxPerZone");
+						if (maxPerZone < 0)
+						{
+							throw JsonError(
+								p_reader.file(),
+								wildReader.pathFor("maxPerZone"),
+								"maxPerZone must be zero or greater");
+						}
+						traits.wildStairs.maxPerZone = maxPerZone;
+					}
+				}
+				if (wildReader.contains("maxLevels"))
+				{
+					const int maxLevels = wildReader.require<int>("maxLevels");
+					if (maxLevels < 1)
+					{
+						throw JsonError(
+							p_reader.file(),
+							wildReader.pathFor("maxLevels"),
+							"maxLevels must be at least 1");
+					}
+					traits.wildStairs.maxLevels = maxLevels;
+				}
+				if (wildReader.contains("spacingCells"))
+				{
+					const double spacing = requireFiniteDouble(wildReader, "spacingCells");
+					if (spacing < 0.0)
+					{
+						throw JsonError(
+							p_reader.file(),
+							wildReader.pathFor("spacingCells"),
+							"spacingCells must be zero or greater");
+					}
+					traits.wildStairs.spacingCells = spacing;
+				}
+				if (wildReader.contains("candidateRatio"))
+				{
+					const double ratio = requireFiniteDouble(wildReader, "candidateRatio");
+					if (ratio < 0.0 || ratio > 1.0)
+					{
+						throw JsonError(
+							p_reader.file(),
+							wildReader.pathFor("candidateRatio"),
+							"candidateRatio must be between 0 and 1");
+					}
+					traits.wildStairs.candidateRatio = ratio;
 				}
 			}
 			result.worldgen = std::move(traits);

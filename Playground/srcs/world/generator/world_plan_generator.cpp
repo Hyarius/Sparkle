@@ -767,10 +767,6 @@ namespace pg
 						const double field = coastTrend + undulation + lift * weight + shift;
 						int level = static_cast<int>(std::floor(field));
 						level = std::clamp(level, 0, cfg.maxHeightLevel);
-						if (dCoast <= 1.0)
-						{
-							level = 0; // shores read as sea level
-						}
 						plan.height.at(i, j) = static_cast<std::int8_t>(level);
 					}
 				}
@@ -2123,7 +2119,13 @@ namespace pg
 			// 3x3 stair-platform, the whole run hugging the cliff wall on the low
 			// side so the top platform's surface meets the high plateau flush across
 			// the boundary. Returns the number of emitted prefab placements.
-			int emitStairChain(int p_row, int p_col, int p_dr, int p_dc, bool p_onRoad)
+			int emitStairChain(
+				int p_row,
+				int p_col,
+				int p_dr,
+				int p_dc,
+				bool p_onRoad,
+				std::optional<int> p_wildMaximumLevels = std::nullopt)
 			{
 				const int blocks = cfg.blocksPerCell;
 				const int run = cfg.blocksPerLevel; // ramp run == ramp rise (cube prefab)
@@ -2148,7 +2150,7 @@ namespace pg
 				const int surface = plan.surfaceY(lowLevel);
 				const int highSurface = plan.surfaceY(highLevel);
 
-				const int maximumLevels = p_onRoad ? cfg.maxComposedStairLevels : cfg.maxWildStairLevels;
+				const int maximumLevels = p_onRoad ? cfg.maxComposedStairLevels : p_wildMaximumLevels.value_or(cfg.maxWildStairLevels);
 				if (steps > maximumLevels)
 				{
 					++plan.stats.rejectedStairways;
@@ -2254,14 +2256,22 @@ namespace pg
 							const Claim stripClaim =
 								frame.claim(acrossMin, acrossMax, surface, highSurface + 4, alongMin, alongMax);
 
+							std::vector<StairFootprint> extraFootprints;
+							std::vector<Claim> extraClaims;
+							if (p_onRoad)
+							{
+								extraFootprints.push_back(band);
+								extraClaims.push_back(stripClaim);
+							}
+							extraClaims.push_back(exitClaim);
 							if (commitStairGroup(
 									std::move(placements),
 									lowLevel,
 									lowZone,
 									p_onRoad ? RoadRule::Allow : RoadRule::Forbid,
-									{band},
+									extraFootprints,
 									{exit},
-									{stripClaim, exitClaim}))
+									extraClaims))
 							{
 								// Only road climbs pave their approach; wild ones keep the
 								// validated band as untouched natural ground.
@@ -2359,13 +2369,9 @@ namespace pg
 			// keep their distance from every other stairway.
 			void placeWildStairways()
 			{
-				if (cfg.wildStairsPerZone <= 0)
-				{
-					return;
-				}
-				// Composed staircases climb any wild cliff up to the configured cap; the
-				// candidate scan only proposes edges the composer can actually serve.
-				const int maxSteps = std::min(cfg.maxWildStairLevels, cfg.maxHeightLevel);
+				// Composed staircases climb any wild cliff up to the configured cap, or all
+				// accepted candidates for a biome override without maxPerZone. The candidate
+				// scan only proposes edges the composer can actually serve.
 				std::set<std::pair<int, int>> entityCells;
 				for (const PlanEntity &entity : plan.entities)
 				{
@@ -2380,11 +2386,24 @@ namespace pg
 				};
 				for (const PlanZone &zone : plan.zones)
 				{
+					const PlanBiome &biome = plan.biomes[zone.biomeIndex];
+					const std::optional<int> maxPerZone =
+						biome.wildStairsConfigured ? biome.wildStairsMaxPerZone : std::optional<int>{cfg.wildStairsPerZone};
+					if (maxPerZone.has_value() && *maxPerZone <= 0)
+					{
+						continue;
+					}
+					const double spacingCells = biome.wildStairSpacingCells.value_or(cfg.wildStairSpacingCells);
+					const double candidateRatio = biome.wildStairCandidateRatio.value_or(1.0);
+					const bool allowCrossZone = biome.wildStairAllowCrossZone.value_or(false);
+					const int maxLevels = std::min(
+						{biome.wildStairMaxLevels.value_or(cfg.maxWildStairLevels),
+						 cfg.maxComposedStairLevels,
+						 cfg.maxHeightLevel});
 					Rng rng = rngFor("zone:" + std::to_string(zone.id) + "/wild_stairs");
 					std::vector<Candidate> candidates;
 					const auto usable = [&](int p_row, int p_col) {
-						return plan.zone.contains(p_row, p_col) && plan.zone.at(p_row, p_col) == zone.id &&
-							   isLand(p_row, p_col) && plan.road.at(p_row, p_col) == 0 &&
+						return plan.zone.contains(p_row, p_col) && isLand(p_row, p_col) && plan.road.at(p_row, p_col) == 0 &&
 							   plan.water.at(p_row, p_col) == 0 && !entityCells.contains({p_row, p_col});
 					};
 					for (int i = 0; i < size; ++i)
@@ -2402,35 +2421,56 @@ namespace pg
 									continue;
 								}
 								const int dh = std::abs(plan.height.at(i, j) - plan.height.at(i + dr, j + dc));
-								if (dh >= 1 && dh <= maxSteps)
+								if (dh >= 1 && dh <= maxLevels)
 								{
-									candidates.push_back({i, j, dr, dc});
+									const bool firstLower = plan.height.at(i, j) < plan.height.at(i + dr, j + dc);
+									const int lowRow = firstLower ? i : i + dr;
+									const int lowCol = firstLower ? j : j + dc;
+									const int highRow = firstLower ? i + dr : i;
+									const int highCol = firstLower ? j + dc : j;
+									if (plan.zone.at(lowRow, lowCol) == zone.id &&
+										(allowCrossZone || plan.zone.at(highRow, highCol) == zone.id))
+									{
+										candidates.push_back({i, j, dr, dc});
+									}
 								}
 							}
 						}
 					}
+					plan.stats.wildStairCandidates += static_cast<int>(candidates.size());
 					rng.shuffle(candidates);
 					int placed = 0;
 					for (const Candidate &candidate : candidates)
 					{
-						if (placed >= cfg.wildStairsPerZone)
+						if (maxPerZone.has_value() && placed >= *maxPerZone)
 						{
 							break;
 						}
+						if (candidateRatio < 1.0 && rng.uniform() >= candidateRatio)
+						{
+							++plan.stats.wildStairRatioSkips;
+							continue;
+						}
 						const bool tooClose = std::any_of(stairCells.begin(), stairCells.end(), [&](const Cell &p_cell) {
 							return std::max(std::abs(p_cell.row - candidate.row), std::abs(p_cell.col - candidate.col)) <
-								   cfg.wildStairSpacingCells;
+								   spacingCells;
 						});
 						if (tooClose)
 						{
+							++plan.stats.wildStairSpacingSkips;
 							continue;
 						}
-						const int segments = emitStairChain(candidate.row, candidate.col, candidate.dr, candidate.dc, false);
+						const int segments =
+							emitStairChain(candidate.row, candidate.col, candidate.dr, candidate.dc, false, maxLevels);
 						if (segments > 0)
 						{
 							plan.wildStairs.push_back({stairCells.back().row, stairCells.back().col});
 							plan.stats.wildStairPlacements += segments;
 							++placed;
+						}
+						else
+						{
+							++plan.stats.wildStairPlacementRejects;
 						}
 					}
 				}
@@ -2952,6 +2992,12 @@ namespace pg
 			biome.roadStairPlatform = definition.worldgen->roadStairPlatform;
 			biome.wildSlopeLengths = definition.worldgen->wildSlopeLengths;
 			biome.wildSlopePlatform = definition.worldgen->wildSlopePlatform;
+			biome.wildStairsConfigured = definition.worldgen->wildStairs.configured;
+			biome.wildStairAllowCrossZone = definition.worldgen->wildStairs.allowCrossZone;
+			biome.wildStairsMaxPerZone = definition.worldgen->wildStairs.maxPerZone;
+			biome.wildStairMaxLevels = definition.worldgen->wildStairs.maxLevels;
+			biome.wildStairSpacingCells = definition.worldgen->wildStairs.spacingCells;
+			biome.wildStairCandidateRatio = definition.worldgen->wildStairs.candidateRatio;
 			for (const BiomeScenery &scenery : definition.worldgen->scenery)
 			{
 				biome.scenery.push_back({.prefabId = scenery.prefabId, .density = scenery.density, .spacing = scenery.spacing, .prefabSize = scenery.prefabSize});
@@ -3013,6 +3059,9 @@ namespace pg
 		out << "gateways (secondary). " << stats.secondaryGateways << "\n";
 		out << "stair prefabs........ " << stats.stairPlacements << "\n";
 		out << "wild stair prefabs... " << stats.wildStairPlacements << " (" << wildStairs.size() << " stairways)\n";
+		out << "wild candidates...... " << stats.wildStairCandidates << "  (ratio skips "
+			<< stats.wildStairRatioSkips << ", spacing skips " << stats.wildStairSpacingSkips
+			<< ", placement rejects " << stats.wildStairPlacementRejects << ")\n";
 		out << "composed stairways... " << stats.composedStairPlacements << "\n";
 		out << "rejected stairways... " << stats.rejectedStairways << "\n";
 		out << "scenery prefabs...... " << stats.sceneryPlacements << "\n";

@@ -17,6 +17,29 @@ four voxels of headroom. Cells outside any zone fall back to the shared
 `stair-length` / `stair-platform` pair. There are no per-height or mirrored prefab
 variants; the generator rotates and repeats the pieces instead.
 
+Wild climb frequency can be tuned per biome with an optional `worldgen.wildStairs`
+block:
+
+```json
+"wildStairs": {
+  "allowCrossZone": true,
+  "maxLevels": 6,
+  "spacingCells": 3,
+  "candidateRatio": 1.0
+}
+```
+
+When `worldgen.wildStairs` is present, omitting `maxPerZone` leaves the biome uncapped:
+the generator keeps placing off-road slope stairways until the suitable cliff
+candidates are exhausted by `maxLevels`, `spacingCells`, and `candidateRatio`.
+`allowCrossZone` lets the low-side biome place a wild climb into an adjacent zone,
+`maxLevels` is the tallest height difference a wild climb may bridge, `spacingCells`
+is the minimum plan-cell distance from any other stairway, and `candidateRatio` is the
+percentage of suitable cliff edges kept before placement. `maxPerZone` is still
+accepted as an optional hard cap; setting it to `null` also means uncapped. Missing
+`allowCrossZone` defaults to `false`, missing `maxLevels` or `spacingCells` falls back
+to the global `WorldGenConfig` value, and missing `candidateRatio` defaults to `1.0`.
+
 ## Layouts
 
 | Height difference | Layout |
@@ -45,7 +68,7 @@ Two regions are validated without stamping prefabs:
   guaranteed flat, clear low ground. For road climbs the realization paves it with the
   zone's road block (`WorldPlan::pavedRects`), so the road visibly turns at the
   crossing dead-end and runs beside the flight to the bottom platform instead of
-  stopping at the wall. Wild climbs keep the band as untouched natural ground;
+  stopping at the wall. Wild climbs do not reserve this road-style band;
 - the **exit cells**, the three high-plateau cells the top platform opens onto: must be
   dry, level land, and are reserved as a stair footprint and hard claim so no other
   flight, building, or scenery ever blocks the exit face to face.
