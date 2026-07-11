@@ -6,6 +6,7 @@
 #include "structures/voxel/spk_cross_plane_voxel_shape.hpp"
 #include "structures/voxel/spk_cross_voxel_shape.hpp"
 #include "structures/voxel/spk_cube_voxel_shape.hpp"
+#include "structures/voxel/spk_hexa_plane_voxel_shape.hpp"
 #include "structures/voxel/spk_slab_voxel_shape.hpp"
 #include "structures/voxel/spk_slope_voxel_shape.hpp"
 #include "structures/voxel/spk_stair_voxel_shape.hpp"
@@ -252,4 +253,35 @@ TEST(VoxelShapeLibrary, CrossUsesTwoCenteredAxisAlignedPlanes)
 	{
 		EXPECT_FLOAT_EQ(vertex.position.x, 0.5f);
 	}
+}
+
+TEST(VoxelShapeLibrary, hexaPlaneUsesTwoPlanesOnEachAxis)
+{
+	spk::HexaPlaneVoxelShape shape(spk::AtlasCell{0, 0});
+	shape.initialize();
+
+	const spk::VoxelShapeFaceSet &faces = shape.renderFaces();
+	EXPECT_EQ(faces.outerFaceCount(), 0u);
+	ASSERT_EQ(faces.innerFaces.size(), 12u);
+
+	std::array<int, 2> xPlanes{};
+	std::array<int, 2> yPlanes{};
+	std::array<int, 2> zPlanes{};
+	for (std::size_t index = 0; index < faces.innerFaces.size(); index += 2)
+	{
+		const auto &polygon = faces.innerFaces[index].polygons().front();
+		const auto countPlane = [&](auto member, std::array<int, 2> &counts) {
+			const float coordinate = polygon[0].position.*member;
+			for (const auto &vertex : polygon)
+				if (vertex.position.*member != coordinate)
+					return false;
+			++counts[coordinate < 0.5f ? 0 : 1];
+			return true;
+		};
+		EXPECT_TRUE(countPlane(&spk::Vector3::x, xPlanes) || countPlane(&spk::Vector3::y, yPlanes) ||
+			countPlane(&spk::Vector3::z, zPlanes));
+	}
+	EXPECT_EQ(xPlanes, (std::array<int, 2>{1, 1}));
+	EXPECT_EQ(yPlanes, (std::array<int, 2>{1, 1}));
+	EXPECT_EQ(zPlanes, (std::array<int, 2>{1, 1}));
 }

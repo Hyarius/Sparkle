@@ -1,1 +1,1 @@
-{"version":1,"traversal":"passable","tags":["scenery","flora","needles","pine","losTransparent"],"shape":{"type":"cube","textures":{"top":[5,1],"side":[5,1],"bottom":[5,1]}}}
+{"version":1,"traversal":"passable","tags":["scenery","flora","needles","pine","losTransparent"],"shape":{"type":"hexaPlane","textures":{"plane":[5,1]}}}
