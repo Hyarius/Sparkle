@@ -1,106 +1,33 @@
 #include "world/voxel_content_parser.hpp"
 
+#include "core/deterministic_random.hpp"
 #include "voxel/voxel_registry.hpp"
+#include "world/weighted_id_parser.hpp"
 
 #include <array>
-#include <cmath>
 #include <cstdint>
 #include <stdexcept>
-#include <string_view>
 #include <vector>
 
 namespace
 {
-	[[nodiscard]] std::uint64_t avalanche(std::uint64_t p_value) noexcept
-	{
-		p_value ^= p_value >> 30U;
-		p_value *= 0xbf58476d1ce4e5b9ULL;
-		p_value ^= p_value >> 27U;
-		p_value *= 0x94d049bb133111ebULL;
-		p_value ^= p_value >> 31U;
-		return p_value;
-	}
-
-	void mix(std::uint64_t &p_hash, std::string_view p_value)
-	{
-		for (const char character : p_value)
-		{
-			p_hash ^= static_cast<std::uint8_t>(character);
-			p_hash *= 1099511628211ULL;
-		}
-	}
-
-	void mix(std::uint64_t &p_hash, int p_value)
-	{
-		p_hash ^= static_cast<std::uint32_t>(p_value);
-		p_hash *= 1099511628211ULL;
-	}
-
 	[[nodiscard]] std::uint64_t selectionSeed(
 		const pg::JsonReader &p_reader,
 		const std::string &p_path,
 		const std::string &p_token,
 		const spk::Vector3Int &p_position)
 	{
-		std::uint64_t hash = 1469598103934665603ULL;
-		mix(hash, p_reader.file().generic_string());
-		mix(hash, p_path);
-		mix(hash, p_token);
-		mix(hash, p_position.x);
-		mix(hash, p_position.y);
-		mix(hash, p_position.z);
-		return avalanche(hash);
+		std::uint64_t hash = pg::deterministic::FnvOffset;
+		pg::deterministic::mix(hash, p_reader.file().generic_string());
+		pg::deterministic::mix(hash, p_path);
+		pg::deterministic::mix(hash, p_token);
+		pg::deterministic::mix(hash, p_position.x);
+		pg::deterministic::mix(hash, p_position.y);
+		pg::deterministic::mix(hash, p_position.z);
+		return pg::deterministic::avalanche(hash);
 	}
 
-	[[nodiscard]] double unitInterval(std::uint64_t p_hash) noexcept
-	{
-		return static_cast<double>(p_hash >> 11U) * (1.0 / 9007199254740992.0);
-	}
-
-	[[nodiscard]] double parseWeight(
-		const spk::JSON::Value &p_value,
-		const pg::JsonReader &p_reader,
-		const std::string &p_path)
-	{
-		if (!p_value.isNumber())
-		{
-			throw pg::JsonError(p_reader.file(), p_path, "expected a numeric weight");
-		}
-		const double weight = p_value.as<double>();
-		if (!std::isfinite(weight) || weight <= 0.0)
-		{
-			throw pg::JsonError(p_reader.file(), p_path, "weight must be greater than 0");
-		}
-		return weight;
-	}
-
-	[[nodiscard]] pg::VoxelCell cellFromValue(
-		const spk::JSON::Value &p_value,
-		const pg::JsonReader &p_reader,
-		const std::string &p_path,
-		const pg::VoxelRegistry &p_voxels)
-	{
-		pg::VoxelCell cell;
-		if (p_value.isNull())
-		{
-			return cell;
-		}
-		if (!p_value.isString())
-		{
-			throw pg::JsonError(p_reader.file(), p_path, "expected voxel id string or null");
-		}
-
-		const std::string voxelId = p_value.as<std::string>();
-		const pg::VoxelDefinition *definition = p_voxels.tryGet(voxelId);
-		if (definition == nullptr)
-		{
-			throw pg::JsonError(p_reader.file(), p_path, "unknown voxel id '" + voxelId + "'");
-		}
-		cell.id = p_voxels.numericId(voxelId);
-		return cell;
-	}
-
-	[[nodiscard]] pg::VoxelCell cellFromId(
+	[[nodiscard]] spk::VoxelCell cellFromId(
 		const std::string &p_voxelId,
 		const pg::JsonReader &p_reader,
 		const std::string &p_path,
@@ -111,12 +38,12 @@ namespace
 		{
 			throw pg::JsonError(p_reader.file(), p_path, "unknown voxel id '" + p_voxelId + "'");
 		}
-		pg::VoxelCell cell;
+		spk::VoxelCell cell;
 		cell.id = p_voxels.numericId(p_voxelId);
 		return cell;
 	}
 
-	[[nodiscard]] pg::VoxelCell pickCellFromPool(
+	[[nodiscard]] spk::VoxelCell pickCellFromPool(
 		const pg::detail::VoxelCellPool &p_pool,
 		const pg::JsonReader &p_reader,
 		const std::string &p_path,
@@ -126,80 +53,7 @@ namespace
 		{
 			throw pg::JsonError(p_reader.file(), p_path, "palette pool cannot be empty");
 		}
-		if (p_pool.size() == 1)
-		{
-			return p_pool.front().cell;
-		}
-
-		double totalWeight = 0.0;
-		for (const pg::detail::WeightedVoxelCell &entry : p_pool)
-		{
-			totalWeight += entry.weight;
-		}
-
-		double target = unitInterval(p_seed) * totalWeight;
-		for (const pg::detail::WeightedVoxelCell &entry : p_pool)
-		{
-			if (target < entry.weight)
-			{
-				return entry.cell;
-			}
-			target -= entry.weight;
-		}
-		return p_pool.back().cell;
-	}
-
-	void appendPaletteEntry(
-		pg::detail::VoxelCellPool &p_pool,
-		const spk::JSON::Value &p_entry,
-		const pg::JsonReader &p_reader,
-		const std::string &p_path,
-		const pg::VoxelRegistry &p_voxels)
-	{
-		if (!p_entry.isObject())
-		{
-			p_pool.push_back(
-				{.cell = cellFromValue(p_entry, p_reader, p_path, p_voxels), .weight = 1.0});
-			return;
-		}
-
-		const spk::JSON::Value *voxelValue = p_entry.find("voxel");
-		const spk::JSON::Value *idValue = p_entry.find("id");
-		if (voxelValue == nullptr && idValue == nullptr)
-		{
-			for (const auto &[voxelId, weightValue] : p_entry.asObject())
-			{
-				p_pool.push_back(
-					{.cell = cellFromId(voxelId, p_reader, p_path + "." + voxelId, p_voxels),
-					 .weight = parseWeight(weightValue, p_reader, p_path + "." + voxelId)});
-			}
-			return;
-		}
-		if (voxelValue != nullptr && idValue != nullptr)
-		{
-			throw pg::JsonError(p_reader.file(), p_path, "use either 'voxel' or 'id', not both");
-		}
-		for (const auto &[key, unused] : p_entry.asObject())
-		{
-			(void)unused;
-			if (key != "voxel" && key != "id" && key != "weight" && key != "chance")
-			{
-				throw pg::JsonError(p_reader.file(), p_path + "." + key, "unknown field");
-			}
-		}
-
-		const spk::JSON::Value &selectedVoxel = voxelValue != nullptr ? *voxelValue : *idValue;
-		const spk::JSON::Value *weightValue = p_entry.find("weight");
-		const spk::JSON::Value *chanceValue = p_entry.find("chance");
-		if (weightValue != nullptr && chanceValue != nullptr)
-		{
-			throw pg::JsonError(p_reader.file(), p_path, "use either 'weight' or 'chance', not both");
-		}
-		const double weight = weightValue != nullptr   ? parseWeight(*weightValue, p_reader, p_path + ".weight")
-							  : chanceValue != nullptr ? parseWeight(*chanceValue, p_reader, p_path + ".chance")
-													   : 1.0;
-		p_pool.push_back(
-			{.cell = cellFromValue(selectedVoxel, p_reader, p_path, p_voxels), .weight = weight});
+		return p_pool.pick(pg::deterministic::unitInterval(p_seed));
 	}
 
 	[[nodiscard]] pg::detail::VoxelCellPool parseCellPool(
@@ -209,21 +63,14 @@ namespace
 		const pg::VoxelRegistry &p_voxels)
 	{
 		pg::detail::VoxelCellPool pool;
-		if (p_value.isArray())
+		for (pg::WeightedId &entry : pg::parseWeightedIds(p_value, p_reader, p_path))
 		{
-			const spk::JSON::Value::Array &entries = p_value.asArray();
-			for (std::size_t index = 0; index < entries.size(); ++index)
+			spk::VoxelCell cell;
+			if (entry.id.has_value())
 			{
-				appendPaletteEntry(pool, entries[index], p_reader, p_path + "[" + std::to_string(index) + "]", p_voxels);
+				cell = cellFromId(*entry.id, p_reader, entry.path, p_voxels);
 			}
-		}
-		else if (p_value.isObject())
-		{
-			appendPaletteEntry(pool, p_value, p_reader, p_path, p_voxels);
-		}
-		else
-		{
-			appendPaletteEntry(pool, p_value, p_reader, p_path, p_voxels);
+			pool.add(cell, entry.weight);
 		}
 		if (pool.empty())
 		{
@@ -233,7 +80,7 @@ namespace
 	}
 
 	void requireWithin(
-		const pg::VoxelGrid &p_grid,
+		const spk::VoxelGrid &p_grid,
 		const spk::Vector3Int &p_position,
 		const pg::JsonReader &p_reader,
 		const std::string &p_key)
@@ -318,7 +165,7 @@ namespace pg::detail
 		return palette;
 	}
 
-	VoxelCell pickPaletteToken(
+	spk::VoxelCell pickPaletteToken(
 		const VoxelPalette &p_palette,
 		const std::string &p_token,
 		const JsonReader &p_reader,
@@ -337,7 +184,7 @@ namespace pg::detail
 			selectionSeed(p_reader, p_path, p_token, p_position));
 	}
 
-	VoxelCell pickPaletteCell(
+	spk::VoxelCell pickPaletteCell(
 		const VoxelPalette &p_palette,
 		const JsonReader &p_reader,
 		const std::string &p_key,
@@ -353,7 +200,7 @@ namespace pg::detail
 
 	void applyVoxelContent(
 		const JsonReader &p_reader,
-		VoxelGrid &p_grid,
+		spk::VoxelGrid &p_grid,
 		const VoxelPalette &p_palette,
 		const spk::Vector3Int &p_offset)
 	{
@@ -376,7 +223,7 @@ namespace pg::detail
 					{
 						for (int x = minimum.x; x <= maximum.x; ++x)
 						{
-							const VoxelCell value = pickPaletteCell(p_palette, fill, "voxel", {x, y, z});
+							const spk::VoxelCell value = pickPaletteCell(p_palette, fill, "voxel", {x, y, z});
 							p_grid.cell(x, y, z) = value;
 						}
 					}
@@ -391,7 +238,7 @@ namespace pg::detail
 				cellReader.forbidUnknown({"at", "voxel", "orientation", "flip"});
 				const spk::Vector3Int at = parseVector3(cellReader, "at") + p_offset;
 				requireWithin(p_grid, at, cellReader, "at");
-				VoxelCell value = pickPaletteCell(p_palette, cellReader, "voxel", at);
+				spk::VoxelCell value = pickPaletteCell(p_palette, cellReader, "voxel", at);
 				value.orientation = parseOrientation(cellReader, "orientation");
 				value.flip = parseFlip(cellReader, "flip");
 				p_grid.cell(at) = value;

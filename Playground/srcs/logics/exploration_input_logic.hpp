@@ -5,7 +5,7 @@
 #include "structures/game_engine/spk_camera_3d.hpp"
 #include "structures/game_engine/spk_component_logic.hpp"
 #include "structures/game_engine/spk_texture_mesh_renderer_3d.hpp"
-#include "voxel/atlas_cell.hpp"
+#include "structures/voxel/spk_voxel_shape.hpp"
 
 #include <functional>
 #include <optional>
@@ -27,8 +27,8 @@ namespace pg
 		spk::Camera3D &_camera;
 		spk::TextureMeshRenderer3D &_hoverRenderer;
 		ViewportSize _viewportSize;
-		AtlasCell _hoveredMask;
-		AtlasCell _invalidMask;
+		spk::AtlasCell _hoveredMask;
+		spk::AtlasCell _invalidMask;
 		std::optional<spk::Vector3Int> _hovered;
 		float _invalidSeconds = 0;
 		spk::ContractProvider<spk::Vector3Int>::Contract _invalidContract;
@@ -44,8 +44,8 @@ namespace pg
 			spk::Camera3D &p_camera,
 			spk::TextureMeshRenderer3D &p_hoverRenderer,
 			ViewportSize p_viewportSize,
-			AtlasCell p_hoveredMask,
-			AtlasCell p_invalidMask);
+			spk::AtlasCell p_hoveredMask,
+			spk::AtlasCell p_invalidMask);
 		[[nodiscard]] const std::optional<spk::Vector3Int> &hoveredCell() const noexcept;
 
 	protected:

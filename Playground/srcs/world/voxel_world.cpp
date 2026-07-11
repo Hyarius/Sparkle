@@ -1,26 +1,16 @@
 #include "world/voxel_world.hpp"
 
-#include "world/chunk_provider.hpp"
+#include <utility>
 
 namespace pg
 {
-	VoxelWorld::VoxelWorld(const VoxelRegistry &p_registry, spk::GameEngine *p_engine) :
+	VoxelWorld::VoxelWorld(
+		const VoxelRegistry &p_registry,
+		spk::VoxelMap::ChunkGenerator p_generator,
+		spk::GameEngine *p_engine) :
 		_registry(&p_registry),
-		_map(
-			p_registry.renderRegistry(),
-			[this](spk::VoxelChunk &p_chunk) {
-				if (_provider != nullptr)
-				{
-					_provider->fill(p_chunk);
-				}
-			},
-			p_engine)
+		_map(p_registry.renderRegistry(), std::move(p_generator), p_engine)
 	{
-	}
-
-	void VoxelWorld::setProvider(const IChunkProvider *p_provider) noexcept
-	{
-		_provider = p_provider;
 	}
 
 	spk::VoxelMap &VoxelWorld::map() noexcept
@@ -33,22 +23,22 @@ namespace pg
 		return _map;
 	}
 
-	const VoxelCell *VoxelWorld::tryCell(const spk::Vector3Int &p_worldPosition) const
+	const spk::VoxelCell *VoxelWorld::tryCell(const spk::Vector3Int &p_worldPosition) const
 	{
 		return _map.tryCell(p_worldPosition);
 	}
 
-	const VoxelDefinition *VoxelWorld::tryDefinition(const VoxelCell &p_cell) const
+	const VoxelDefinition *VoxelWorld::tryDefinition(const spk::VoxelCell &p_cell) const
 	{
 		return p_cell.isEmpty() ? nullptr : _registry->tryGet(p_cell.id);
 	}
 
-	const VoxelCell &VoxelWorld::cell(const spk::Vector3Int &p_worldPosition) const
+	const spk::VoxelCell &VoxelWorld::cell(const spk::Vector3Int &p_worldPosition) const
 	{
 		return _map.cell(p_worldPosition);
 	}
 
-	bool VoxelWorld::setCell(const spk::Vector3Int &p_worldPosition, const VoxelCell &p_cell)
+	bool VoxelWorld::setCell(const spk::Vector3Int &p_worldPosition, const spk::VoxelCell &p_cell)
 	{
 		if (_map.setCell(p_worldPosition, p_cell) == false)
 		{
@@ -58,14 +48,14 @@ namespace pg
 		return true;
 	}
 
-	void VoxelWorld::loadChunk(const ChunkCoordinates &p_coordinates)
+	void VoxelWorld::loadChunk(const spk::Vector3Int &p_coordinates)
 	{
-		(void)_map.chunk(p_coordinates.value);
+		(void)_map.chunk(p_coordinates);
 	}
 
-	bool VoxelWorld::unloadChunk(const ChunkCoordinates &p_coordinates)
+	bool VoxelWorld::unloadChunk(const spk::Vector3Int &p_coordinates)
 	{
-		return _map.unloadChunk(p_coordinates.value);
+		return _map.unloadChunk(p_coordinates);
 	}
 
 	void VoxelWorld::clear()
@@ -90,15 +80,8 @@ namespace pg
 		return *_registry;
 	}
 
-	std::vector<ChunkCoordinates> VoxelWorld::loadedChunkCoordinates() const
+	std::vector<spk::Vector3Int> VoxelWorld::loadedChunkCoordinates() const
 	{
-		std::vector<ChunkCoordinates> result;
-		const std::vector<spk::Vector3Int> coordinates = _map.loadedChunkCoordinates();
-		result.reserve(coordinates.size());
-		for (const spk::Vector3Int &value : coordinates)
-		{
-			result.push_back(ChunkCoordinates{value});
-		}
-		return result;
+		return _map.loadedChunkCoordinates();
 	}
 }

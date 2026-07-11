@@ -16,9 +16,9 @@
 #include "structures/game_engine/spk_entity_3d.hpp"
 #include "structures/graphics/geometry/spk_texture_mesh_3d.hpp"
 #include "structures/graphics/texture/spk_sprite_sheet.hpp"
+#include "structures/math/spk_vector3.hpp"
 #include "structures/widget/spk_debug_overlay.hpp"
 #include "structures/widget/spk_game_engine_widget.hpp"
-#include "world/chunk_coordinates.hpp"
 
 namespace spk
 {
@@ -55,10 +55,11 @@ namespace pg
 		std::unique_ptr<PlanChunkProvider> _terrainProvider;
 		// Scene construction is transactional: these objects remain widget-owned until
 		// every potentially-throwing setup step has completed. Their declaration order
-		// makes navigation release before the world during constructor unwinding.
+		// makes navigation release before the world, and the world before its captured
+		// terrain provider, during constructor unwinding.
 		std::unique_ptr<VoxelWorld> _stagedWorld;
 		std::unique_ptr<WorldNavigation> _stagedNavigation;
-		std::optional<ChunkCoordinates> _streamingFocus;
+		std::optional<spk::Vector3Int> _streamingFocus;
 
 		spk::SpriteSheet _texture;
 		spk::SpriteSheet _maskTexture;

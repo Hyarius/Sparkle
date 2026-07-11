@@ -4,18 +4,18 @@
 
 namespace pg
 {
-	bool isSolid(const VoxelCell &p_cell, const VoxelRegistry &p_registry)
+	bool isSolid(const spk::VoxelCell &p_cell, const VoxelRegistry &p_registry)
 	{
 		return !p_cell.isEmpty() && p_registry.get(p_cell.id).data.traversal == VoxelTraversal::Solid;
 	}
 
-	bool isPassableSpace(const VoxelCell &p_cell, const VoxelRegistry &p_registry)
+	bool isPassableSpace(const spk::VoxelCell &p_cell, const VoxelRegistry &p_registry)
 	{
 		return p_cell.isEmpty() || p_registry.get(p_cell.id).data.traversal == VoxelTraversal::Passable;
 	}
 
 	bool isStandable(
-		const VoxelGrid &p_grid,
+		const spk::VoxelGrid &p_grid,
 		const spk::Vector3Int &p_position,
 		const VoxelRegistry &p_registry)
 	{

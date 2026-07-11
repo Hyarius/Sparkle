@@ -6,23 +6,23 @@
 
 namespace
 {
-	const pg::VoxelCell EmptyCell{};
+	const spk::VoxelCell EmptyCell{};
 }
 
 namespace pg
 {
-	GridCellSource::GridCellSource(const VoxelGrid &p_grid, const VoxelRegistry &p_registry) :
+	GridCellSource::GridCellSource(const spk::VoxelGrid &p_grid, const VoxelRegistry &p_registry) :
 		_grid(p_grid),
 		_registry(p_registry)
 	{
 	}
 
-	const VoxelCell &GridCellSource::cell(const spk::Vector3Int &p_position) const
+	const spk::VoxelCell &GridCellSource::cell(const spk::Vector3Int &p_position) const
 	{
 		return _grid.isWithinBounds(p_position) ? _grid.cell(p_position) : EmptyCell;
 	}
 
-	const VoxelDefinition *GridCellSource::tryDefinition(const VoxelCell &p_cell) const
+	const VoxelDefinition *GridCellSource::tryDefinition(const spk::VoxelCell &p_cell) const
 	{
 		return p_cell.isEmpty() ? nullptr : _registry.tryGet(p_cell.id);
 	}
@@ -33,26 +33,26 @@ namespace pg
 	{
 	}
 
-	const VoxelCell &WorldCellSource::cell(const spk::Vector3Int &p_position) const
+	const spk::VoxelCell &WorldCellSource::cell(const spk::Vector3Int &p_position) const
 	{
 		return _world.cell(p_position + _originOffset);
 	}
 
-	const VoxelDefinition *WorldCellSource::tryDefinition(const VoxelCell &p_cell) const
+	const VoxelDefinition *WorldCellSource::tryDefinition(const spk::VoxelCell &p_cell) const
 	{
 		return p_cell.isEmpty() ? nullptr : _world.registry().tryGet(p_cell.id);
 	}
 
 	bool isSolid(const ICellSource &p_source, const spk::Vector3Int &p_position)
 	{
-		const VoxelCell &value = p_source.cell(p_position);
+		const spk::VoxelCell &value = p_source.cell(p_position);
 		const VoxelDefinition *definition = p_source.tryDefinition(value);
 		return definition != nullptr && definition->data.traversal == VoxelTraversal::Solid;
 	}
 
 	bool isPassableSpace(const ICellSource &p_source, const spk::Vector3Int &p_position)
 	{
-		const VoxelCell &value = p_source.cell(p_position);
+		const spk::VoxelCell &value = p_source.cell(p_position);
 		if (value.isEmpty())
 		{
 			return true;
@@ -70,7 +70,7 @@ namespace pg
 
 	float walkHeightAtCenter(const ICellSource &p_source, const spk::Vector3Int &p_position)
 	{
-		const VoxelCell &cell = p_source.cell(p_position);
+		const spk::VoxelCell &cell = p_source.cell(p_position);
 		const VoxelDefinition *definition = p_source.tryDefinition(cell);
 		if (definition == nullptr)
 		{
@@ -85,7 +85,7 @@ namespace pg
 		const spk::Vector3Int &p_position,
 		VoxelOrientation p_direction)
 	{
-		const VoxelCell &cell = p_source.cell(p_position);
+		const spk::VoxelCell &cell = p_source.cell(p_position);
 		const VoxelDefinition *definition = p_source.tryDefinition(cell);
 		if (definition == nullptr)
 		{

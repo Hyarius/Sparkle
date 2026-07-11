@@ -1,7 +1,6 @@
 #include "voxel/voxel_definition.hpp"
 
 #include "core/json.hpp"
-#include "voxel/atlas_cell.hpp"
 
 #include "structures/voxel/spk_cross_plane_voxel_shape.hpp"
 #include "structures/voxel/spk_cross_voxel_shape.hpp"
@@ -26,7 +25,7 @@ namespace
 	constexpr int AtlasColumns = 8;
 	constexpr int AtlasRows = 8;
 
-	pg::AtlasCell readAtlasCell(const pg::JsonReader &p_reader, const std::string &p_slot)
+	spk::AtlasCell readAtlasCell(const pg::JsonReader &p_reader, const std::string &p_slot)
 	{
 		const std::array<int, 2> value = p_reader.require<std::array<int, 2>>(p_slot);
 		if (value[0] < 0 || value[0] >= AtlasColumns || value[1] < 0 || value[1] >= AtlasRows)
@@ -53,7 +52,7 @@ namespace
 
 		if (hasSide)
 		{
-			const pg::AtlasCell side = readAtlasCell(p_reader, "side");
+			const spk::AtlasCell side = readAtlasCell(p_reader, "side");
 			result.emplace("posX", side);
 			result.emplace("negX", side);
 			result.emplace("posZ", side);
@@ -75,7 +74,7 @@ namespace
 		spk::VoxelShape::TextureSlots result;
 		result.emplace("top", readAtlasCell(p_reader, "top"));
 		result.emplace("bottom", readAtlasCell(p_reader, "bottom"));
-		const pg::AtlasCell side = readAtlasCell(p_reader, "side");
+		const spk::AtlasCell side = readAtlasCell(p_reader, "side");
 		result.emplace("posX", side);
 		result.emplace("negX", side);
 		result.emplace("posZ", side);
@@ -146,7 +145,7 @@ namespace
 			}
 			pg::JsonReader textures = p_reader.child("textures");
 			spk::VoxelShape::TextureSlots slots = readCubeTextures(textures);
-			const pg::AtlasCell topCell = slots.at("top"); // reused for the generated stage slabs
+			const spk::AtlasCell topCell = slots.at("top"); // reused for the generated stage slabs
 			ParsedShape result;
 			result.shape = std::make_unique<spk::CubeVoxelShape>(std::move(slots));
 			result.heights = {flatTop(), flatTop()};

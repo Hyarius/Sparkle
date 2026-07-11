@@ -5,6 +5,7 @@
 #include "world/prefab_definition.hpp"
 
 #include <algorithm>
+#include <cmath>
 
 namespace pg
 {
@@ -57,15 +58,14 @@ namespace pg
 		for (JsonReader roomReader : p_reader.childArray("rooms"))
 		{
 			roomReader.forbidUnknown({"prefab", "weight"});
-			InteriorRoomOption option{
-				.prefabId = roomReader.require<std::string>("prefab"),
-				.weight = roomReader.optional<double>("weight", 1.0)};
-			if (option.weight <= 0.0)
+			std::string prefabId = roomReader.require<std::string>("prefab");
+			const double weight = roomReader.optional<double>("weight", 1.0);
+			if (!std::isfinite(weight) || weight <= 0.0)
 			{
 				throw JsonError(roomReader.file(), roomReader.pathFor("weight"), "weight must be positive");
 			}
-			validateRoomPrefab(roomReader, roomReader.pathFor("prefab"), p_prefabs, option.prefabId, false);
-			result.rooms.push_back(std::move(option));
+			validateRoomPrefab(roomReader, roomReader.pathFor("prefab"), p_prefabs, prefabId, false);
+			result.rooms.add(std::move(prefabId), weight);
 		}
 
 		result.minRooms = p_reader.optional<int>("minRooms", 1);

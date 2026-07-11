@@ -39,27 +39,6 @@ namespace pg::worldgen
 		return std::nullopt;
 	}
 
-	const InteriorRoomOption &Generator::pickWeightedRoom(
-		Rng &p_rng,
-		const std::vector<InteriorRoomOption> &p_options)
-	{
-		double total = 0.0;
-		for (const InteriorRoomOption &option : p_options)
-		{
-			total += option.weight;
-		}
-		double roll = p_rng.uniform() * total;
-		for (const InteriorRoomOption &option : p_options)
-		{
-			roll -= option.weight;
-			if (roll <= 0.0)
-			{
-				return option;
-			}
-		}
-		return p_options.back();
-	}
-
 	// Composes the interior linked by a just-placed building: grows a seeded set
 	// of rooms from the entry room inside a reserved void slot east of the world,
 	// carves the doorways between connected rooms, and pairs the building's door
@@ -150,8 +129,8 @@ namespace pg::worldgen
 		for (int attempt = 0; attempt < 64 && extraPlaced < extraTarget && !open.empty(); ++attempt)
 		{
 			const OpenConnector connector = open[rng.below(static_cast<int>(open.size()))];
-			const InteriorRoomOption &option = pickWeightedRoom(rng, interior->rooms);
-			const PrefabDefinition *candidate = prefabs.tryGet(option.prefabId);
+			const std::string &roomPrefabId = interior->rooms.pickInclusive(rng.uniform());
+			const PrefabDefinition *candidate = prefabs.tryGet(roomPrefabId);
 			if (candidate == nullptr)
 			{
 				continue;

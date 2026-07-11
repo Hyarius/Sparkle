@@ -1,5 +1,7 @@
 #include "world/generator/world_plan_math.hpp"
 
+#include "core/deterministic_random.hpp"
+
 #include <deque>
 #include <limits>
 #include <utility>
@@ -9,13 +11,7 @@ namespace pg::worldgen
 	std::uint64_t deriveSeed(std::uint64_t p_master, const std::string &p_path)
 	{
 		const std::string key = std::to_string(p_master) + "::" + p_path;
-		std::uint64_t hash = 1469598103934665603ULL;
-		for (const char character : key)
-		{
-			hash ^= static_cast<std::uint8_t>(character);
-			hash *= 1099511628211ULL;
-		}
-		return hash;
+		return deterministic::fnv1a(key);
 	}
 
 	Field valueNoise(Rng &p_rng, int p_size, double p_scale)

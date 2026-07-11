@@ -2,7 +2,6 @@
 
 #include "logics/fluid_simulation_logic.hpp"
 #include "voxel/voxel_registry.hpp"
-#include "world/chunk_provider.hpp"
 #include "world/voxel_world.hpp"
 
 #include "structures/voxel/spk_voxel_chunk.hpp"
@@ -15,7 +14,7 @@
 
 namespace
 {
-	class FluidChunkProvider final : public pg::IChunkProvider
+	class FluidChunkProvider final
 	{
 	private:
 		std::int32_t _floor = -1;
@@ -30,7 +29,7 @@ namespace
 		{
 		}
 
-		void fill(spk::VoxelChunk &p_chunk) const override
+		void fill(spk::VoxelChunk &p_chunk) const
 		{
 			p_chunk.editCells([&](spk::VoxelChunk::Editor &p_editor) {
 				for (int z = 0; z < spk::VoxelChunk::Size.z; ++z)
@@ -65,16 +64,19 @@ namespace
 
 		explicit FluidSimulation(
 			std::size_t p_sourceCount,
-			std::vector<pg::ChunkCoordinates> p_chunks = {pg::ChunkCoordinates{{0, 0, 0}}})
+			std::vector<spk::Vector3Int> p_chunks = {{0, 0, 0}})
 		{
 			registry.load(std::filesystem::path(PG_RESOURCE_DIR) / "data" / "voxels");
 			provider = std::make_unique<FluidChunkProvider>(
 				registry.numericId("stone-block"),
 				registry.numericId("water"),
 				p_sourceCount);
-			world = std::make_unique<pg::VoxelWorld>(registry);
-			world->setProvider(provider.get());
-			for (const pg::ChunkCoordinates &coordinates : p_chunks)
+			world = std::make_unique<pg::VoxelWorld>(
+				registry,
+				[provider = provider.get()](spk::VoxelChunk &p_chunk) {
+					provider->fill(p_chunk);
+				});
+			for (const spk::Vector3Int &coordinates : p_chunks)
 			{
 				world->loadChunk(coordinates);
 			}
@@ -160,7 +162,7 @@ TEST(FluidSimulationLogic, MultipleLoadedChunksRemainBoundedAcrossRangeChanges)
 {
 	FluidSimulation test(
 		3,
-		{pg::ChunkCoordinates{{0, 0, 0}}, pg::ChunkCoordinates{{10, 0, 0}}});
+		{{0, 0, 0}, {10, 0, 0}});
 	test.logic->setMaxCellsPerTick(2);
 	const std::array centers = {
 		spk::Vector3Int{1, 1, 1},

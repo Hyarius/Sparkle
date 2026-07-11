@@ -5,6 +5,7 @@
 #include "voxel/voxel_registry.hpp"
 #include "world/generator/placement_rules.hpp"
 #include "world/prefab_definition.hpp"
+#include "world/weighted_id_parser.hpp"
 
 #include <algorithm>
 #include <cctype>
@@ -34,20 +35,6 @@ namespace
 		{
 			throw pg::JsonError(p_reader.file(), p_path, "unknown voxel id '" + p_id + "'");
 		}
-	}
-
-	double parseWeight(const spk::JSON::Value &p_value, const pg::JsonReader &p_reader, const std::string &p_path)
-	{
-		if (!p_value.isNumber())
-		{
-			throw pg::JsonError(p_reader.file(), p_path, "expected a numeric weight");
-		}
-		const double weight = p_value.as<double>();
-		if (!std::isfinite(weight) || weight <= 0.0)
-		{
-			throw pg::JsonError(p_reader.file(), p_path, "weight must be greater than 0");
-		}
-		return weight;
 	}
 
 	double requireFiniteDouble(pg::JsonReader &p_reader, const std::string &p_key)
@@ -90,81 +77,18 @@ namespace pg
 				return pool;
 			}
 			const spk::JSON::Value &value = *paletteReader.value().find(p_key);
-			const auto appendOne = [&](const spk::JSON::Value &p_entry, const std::string &p_path) {
-				if (!p_entry.isString())
-				{
-					throw JsonError(paletteReader.file(), p_path, "expected a voxel id string or weighted voxel object");
-				}
-				std::string voxelId = p_entry.as<std::string>();
-				requireVoxel(p_voxels, voxelId, paletteReader, p_path);
-				pool.push_back({.id = std::move(voxelId), .weight = 1.0});
-			};
-			const auto appendWeighted = [&](const spk::JSON::Value &p_entry, const std::string &p_path) {
-				if (!p_entry.isObject())
-				{
-					appendOne(p_entry, p_path);
-					return;
-				}
-
-				const spk::JSON::Value *voxelValue = p_entry.find("voxel");
-				const spk::JSON::Value *idValue = p_entry.find("id");
-				if (voxelValue == nullptr && idValue == nullptr)
-				{
-					for (const auto &[voxelId, weightValue] : p_entry.asObject())
-					{
-						requireVoxel(p_voxels, voxelId, paletteReader, p_path + "." + voxelId);
-						pool.push_back(
-							{.id = voxelId, .weight = parseWeight(weightValue, paletteReader, p_path + "." + voxelId)});
-					}
-					return;
-				}
-				if (voxelValue != nullptr && idValue != nullptr)
-				{
-					throw JsonError(paletteReader.file(), p_path, "use either 'voxel' or 'id', not both");
-				}
-				for (const auto &[key, unused] : p_entry.asObject())
-				{
-					(void)unused;
-					if (key != "voxel" && key != "id" && key != "weight" && key != "chance")
-					{
-						throw JsonError(paletteReader.file(), p_path + "." + key, "unknown field");
-					}
-				}
-
-				const spk::JSON::Value &selectedVoxel = voxelValue != nullptr ? *voxelValue : *idValue;
-				if (!selectedVoxel.isString())
-				{
-					throw JsonError(paletteReader.file(), p_path, "expected a voxel id string");
-				}
-				std::string voxelId = selectedVoxel.as<std::string>();
-				requireVoxel(p_voxels, voxelId, paletteReader, p_path);
-
-				const spk::JSON::Value *weightValue = p_entry.find("weight");
-				const spk::JSON::Value *chanceValue = p_entry.find("chance");
-				if (weightValue != nullptr && chanceValue != nullptr)
-				{
-					throw JsonError(paletteReader.file(), p_path, "use either 'weight' or 'chance', not both");
-				}
-				const double weight = weightValue != nullptr   ? parseWeight(*weightValue, paletteReader, p_path + ".weight")
-									  : chanceValue != nullptr ? parseWeight(*chanceValue, paletteReader, p_path + ".chance")
-															   : 1.0;
-				pool.push_back({.id = std::move(voxelId), .weight = weight});
-			};
-			if (value.isArray())
+			if (value.isNull())
 			{
-				const spk::JSON::Value::Array &entries = value.asArray();
-				for (std::size_t index = 0; index < entries.size(); ++index)
-				{
-					appendWeighted(entries[index], paletteReader.pathFor(p_key) + "[" + std::to_string(index) + "]");
-				}
+				return pool;
 			}
-			else if (value.isObject())
+			for (WeightedId &entry : parseWeightedIds(value, paletteReader, paletteReader.pathFor(p_key)))
 			{
-				appendWeighted(value, paletteReader.pathFor(p_key));
-			}
-			else if (!value.isNull())
-			{
-				appendOne(value, paletteReader.pathFor(p_key));
+				if (!entry.id.has_value())
+				{
+					throw JsonError(paletteReader.file(), entry.path, "expected a voxel id string");
+				}
+				requireVoxel(p_voxels, *entry.id, paletteReader, entry.path);
+				pool.add(std::move(*entry.id), entry.weight);
 			}
 			return pool;
 		};

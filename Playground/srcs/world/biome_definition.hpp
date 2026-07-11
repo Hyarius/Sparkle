@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/json.hpp"
+#include "core/weighted_pool.hpp"
 #include "structures/graphics/geometry/spk_color.hpp"
 #include "structures/math/spk_vector3.hpp"
 
@@ -18,13 +19,7 @@ namespace pg
 
 	struct BiomePalette
 	{
-		struct WeightedVoxel
-		{
-			std::string id;
-			double weight = 1.0;
-		};
-
-		using VoxelPool = std::vector<WeightedVoxel>;
+		using VoxelPool = WeightedPool<std::string>;
 
 		// Terrain and climb entries are weighted voxel pools. JSON may still use the
 		// old shorthand string for a single block, or an array of strings for equal odds.
@@ -53,12 +48,12 @@ namespace pg
 
 	struct BiomeWildStairs
 	{
-		bool configured = false;				   // missing block falls back to WorldGenConfig wild stair settings
-		std::optional<bool> allowCrossZone;		   // permits wild climbs between adjacent zones
-		std::optional<int> maxPerZone;			   // empty means no biome cap
-		std::optional<int> maxLevels;			   // falls back to WorldGenConfig::maxWildStairLevels
-		std::optional<double> spacingCells;		   // falls back to WorldGenConfig::wildStairSpacingCells
-		std::optional<double> candidateRatio;	   // 0..1 chance to keep each suitable cliff candidate
+		bool configured = false;			  // missing block falls back to WorldGenConfig wild stair settings
+		std::optional<bool> allowCrossZone;	  // permits wild climbs between adjacent zones
+		std::optional<int> maxPerZone;		  // empty means no biome cap
+		std::optional<int> maxLevels;		  // falls back to WorldGenConfig::maxWildStairLevels
+		std::optional<double> spacingCells;	  // falls back to WorldGenConfig::wildStairSpacingCells
+		std::optional<double> candidateRatio; // 0..1 chance to keep each suitable cliff candidate
 	};
 
 	// Optional per-biome knobs for the macro world generator. Biomes without this block

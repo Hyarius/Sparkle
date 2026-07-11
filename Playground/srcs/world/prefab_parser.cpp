@@ -123,7 +123,7 @@ namespace pg
 		}
 		const spk::Vector3Int contentOffset{-lowest.x, -lowest.y, -lowest.z};
 
-		VoxelGrid grid(highest - lowest + spk::Vector3Int{1, 1, 1});
+		spk::VoxelGrid grid(highest - lowest + spk::Vector3Int{1, 1, 1});
 		const detail::VoxelPalette palette = detail::parsePalette(p_reader, p_voxels);
 		detail::applyVoxelContent(p_reader, grid, palette, contentOffset);
 		for (const StairRun &run : stairRuns)
@@ -154,7 +154,7 @@ namespace pg
 				for (int width = 0; width < run.width; ++width)
 				{
 					const spk::Vector3Int position = run.from + advance * step + lateral * width + contentOffset;
-					VoxelCell cell = detail::pickPaletteToken(palette, run.voxel, p_reader, run.voxelPath, position);
+					spk::VoxelCell cell = detail::pickPaletteToken(palette, run.voxel, p_reader, run.voxelPath, position);
 					cell.orientation = run.direction;
 					grid.cell(position) = cell;
 				}
@@ -176,7 +176,7 @@ namespace pg
 				{
 					for (int x = 0; x < grid.size().x; ++x)
 					{
-						const VoxelCell &cell = grid.cell(x, y, z);
+						const spk::VoxelCell &cell = grid.cell(x, y, z);
 						if (!cell.isEmpty())
 						{
 							prefab.addVoxel(lowest + spk::Vector3Int{x, y, z}, cell);

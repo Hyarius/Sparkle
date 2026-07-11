@@ -20,10 +20,10 @@ namespace
 		pg::VoxelWorld world;
 
 		RaycastWorld() :
-			world(registry)
+			world(registry, [](spk::VoxelChunk &) {})
 		{
 			registry.load(std::filesystem::path(PG_RESOURCE_DIR) / "data" / "voxels");
-			world.loadChunk(pg::ChunkCoordinates{{0, 0, 0}});
+			world.loadChunk({0, 0, 0});
 		}
 
 		void place(

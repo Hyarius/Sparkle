@@ -171,7 +171,7 @@ namespace
 		double p_entryDistance,
 		double p_exitDistance)
 	{
-		const pg::VoxelCell &cell = p_world.cell(p_cellPosition);
+		const spk::VoxelCell &cell = p_world.cell(p_cellPosition);
 		const pg::VoxelDefinition *definition = p_world.tryDefinition(cell);
 		if (definition == nullptr || definition->data.traversal != pg::VoxelTraversal::Solid)
 		{

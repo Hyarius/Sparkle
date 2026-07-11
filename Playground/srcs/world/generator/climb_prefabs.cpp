@@ -1,13 +1,14 @@
 #include "world/generator/climb_prefabs.hpp"
 
+#include "core/deterministic_random.hpp"
 #include "core/registry.hpp"
-#include "voxel/voxel_cell.hpp"
-#include "voxel/voxel_grid.hpp"
+#include "core/weighted_pool.hpp"
 #include "voxel/voxel_registry.hpp"
 #include "world/biome_definition.hpp"
 #include "world/prefab_definition.hpp"
 
 #include "structures/voxel/spk_prefab.hpp"
+#include "structures/voxel/spk_voxel_grid.hpp"
 
 #include <cstdint>
 #include <random>
@@ -19,7 +20,7 @@ namespace pg
 {
 	namespace
 	{
-		using VoxelPool = std::vector<std::pair<std::int32_t, double>>;
+		using VoxelPool = WeightedPool<std::int32_t>;
 
 		// Pre-mixed variants per biome flight pool: enough that neighboring staircases read
 		// as distinct without flooding the registry. A single-voxel pool collapses to one.
@@ -28,47 +29,22 @@ namespace pg
 		// FNV-1a over the generated id: a stable per-variant seed so the block mix is the
 		// same on every run for a given data set (placement variety comes from the plan RNG
 		// picking among variants).
-		[[nodiscard]] std::uint64_t hashSeed(const std::string &p_key)
+		[[nodiscard]] spk::VoxelCell cellOf(std::int32_t p_id)
 		{
-			std::uint64_t hash = 1469598103934665603ULL;
-			for (const char character : p_key)
-			{
-				hash ^= static_cast<std::uint8_t>(character);
-				hash *= 1099511628211ULL;
-			}
-			return hash;
-		}
-
-		[[nodiscard]] VoxelCell cellOf(std::int32_t p_id)
-		{
-			VoxelCell cell;
+			spk::VoxelCell cell;
 			cell.id = p_id;
 			return cell;
 		}
 
-		[[nodiscard]] VoxelCell pickCell(const VoxelPool &p_pool, std::mt19937_64 &p_rng)
+		[[nodiscard]] spk::VoxelCell pickCell(const VoxelPool &p_pool, std::mt19937_64 &p_rng)
 		{
 			if (p_pool.size() == 1)
 			{
-				return cellOf(p_pool.front().first);
+				return cellOf(p_pool.front().value);
 			}
 
-			double totalWeight = 0.0;
-			for (const auto &entry : p_pool)
-			{
-				totalWeight += entry.second;
-			}
-			std::uniform_real_distribution<double> pick(0.0, totalWeight);
-			double target = pick(p_rng);
-			for (const auto &entry : p_pool)
-			{
-				if (target < entry.second)
-				{
-					return cellOf(entry.first);
-				}
-				target -= entry.second;
-			}
-			return cellOf(p_pool.back().first);
+			std::uniform_real_distribution<double> pick(0.0, p_pool.totalWeight());
+			return cellOf(p_pool.pickTarget(pick(p_rng)));
 		}
 
 		// The staircase flight: a 3x3x3 box, three ascending rows of step blocks over a base
@@ -79,7 +55,7 @@ namespace pg
 			const VoxelPool &p_steps,
 			std::mt19937_64 &p_rng)
 		{
-			VoxelGrid grid(spk::Vector3Int{3, 3, 3});
+			spk::VoxelGrid grid(spk::Vector3Int{3, 3, 3});
 			for (int x = 0; x < 3; ++x)
 			{
 				grid.cell(x, 0, 1) = pickCell(p_base, p_rng);
@@ -129,11 +105,11 @@ namespace pg
 			for (int index = 0; index < variants; ++index)
 			{
 				const std::string id = p_lengthPrefix + "#" + std::to_string(index);
-				std::mt19937_64 rng(hashSeed(id));
+				std::mt19937_64 rng(deterministic::fnv1a(id));
 				p_prefabs.add(id, makeFlight(p_base, p_steps, rng));
 				p_outLengths.push_back(id);
 			}
-			std::mt19937_64 platformRng(hashSeed(p_platformId));
+			std::mt19937_64 platformRng(deterministic::fnv1a(p_platformId));
 			p_prefabs.add(p_platformId, makePlatform(p_base, platformRng));
 			p_outPlatform = p_platformId;
 		}
@@ -147,9 +123,9 @@ namespace pg
 		const auto numericIds = [&](const BiomePalette::VoxelPool &p_voxelsIds) {
 			VoxelPool ids;
 			ids.reserve(p_voxelsIds.size());
-			for (const BiomePalette::WeightedVoxel &voxel : p_voxelsIds)
+			for (const auto &voxel : p_voxelsIds)
 			{
-				ids.emplace_back(p_voxels.numericId(voxel.id), voxel.weight);
+				ids.add(p_voxels.numericId(voxel.value), voxel.weight);
 			}
 			return ids;
 		};

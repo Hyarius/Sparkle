@@ -277,9 +277,6 @@ namespace pg::worldgen
 		int interiorSlotsUsed = 0;
 
 		[[nodiscard]] static std::optional<spk::Vector3Int> connectorDirection(const std::string &p_name);
-		[[nodiscard]] static const InteriorRoomOption &pickWeightedRoom(
-			Rng &p_rng,
-			const std::vector<InteriorRoomOption> &p_options);
 		void composeInterior(const PrefabPlacement &p_buildingPlacement);
 
 		// ---------------- Buildings (world_plan_infrastructure.cpp) ----------------

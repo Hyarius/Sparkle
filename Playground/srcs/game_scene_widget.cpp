@@ -23,7 +23,7 @@
 #include "structures/voxel/spk_voxel_chunk_streamer_logic.hpp"
 #include "structures/voxel/spk_voxel_chunk_transparent_render_logic.hpp"
 #include "structures/voxel/spk_voxel_map.hpp"
-#include "voxel/atlas_cell.hpp"
+#include "structures/voxel/spk_voxel_shape.hpp"
 #include "world/generator/plan_chunk_provider.hpp"
 #include "world/generator/world_map_image.hpp"
 #include "world/generator/world_plan.hpp"
@@ -178,8 +178,6 @@ namespace pg
 		_camera->makeMain();
 		engine.addEntity(&_cameraEntity);
 
-		_stagedWorld = std::make_unique<VoxelWorld>(p_registries.voxels(), &engine);
-
 		// Once-per-seed world skeleton: generate, report, and dump the preview map at the
 		// Playground root so the produced world can be inspected outside the game.
 		WorldGenConfig worldConfig;
@@ -205,10 +203,15 @@ namespace pg
 			}
 		});
 		_terrainProvider = std::make_unique<PlanChunkProvider>(p_registries, *_worldPlan);
-		_stagedWorld->setProvider(_terrainProvider.get());
+		_stagedWorld = std::make_unique<VoxelWorld>(
+			p_registries.voxels(),
+			[provider = _terrainProvider.get()](spk::VoxelChunk &p_chunk) {
+				provider->fill(p_chunk);
+			},
+			&engine);
 
 		spk::Vector3Int spawnCell = _terrainProvider->spawnCell();
-		const ChunkCoordinates spawnChunk = ChunkCoordinates::fromWorldCell(spawnCell);
+		const spk::Vector3Int spawnChunk = spk::VoxelChunk::coordinatesFromWorldCell(spawnCell);
 
 		// Warm up the spawn neighbourhood so the navigation graph has terrain to build on
 		// before the streamer takes over on the first tick.
@@ -218,7 +221,7 @@ namespace pg
 			{
 				for (int x = -StreamViewRange.x; x <= StreamViewRange.x; ++x)
 				{
-					_stagedWorld->loadChunk(ChunkCoordinates{spawnChunk.value + spk::Vector3Int{x, y, z}});
+					_stagedWorld->loadChunk(spawnChunk + spk::Vector3Int{x, y, z});
 				}
 			}
 		}
@@ -256,7 +259,7 @@ namespace pg
 		playerRenderer.setTint({0.95f, 0.95f, 1.0f, 1.0f});
 		_streamer = &_playerEntity.addComponent<spk::VoxelChunkStreamer>(_stagedWorld->map());
 		_streamer->setViewRange(StreamViewRange);
-		_streamer->setOriginPosition(spawnChunk.value);
+		_streamer->setOriginPosition(spawnChunk);
 		engine.addEntity(&_playerEntity);
 
 		auto &hoverRenderer = _hoverEntity.addComponent<spk::TextureMeshRenderer3D>();
@@ -287,8 +290,8 @@ namespace pg
 			*_camera,
 			hoverRenderer,
 			viewportSize,
-			AtlasCell{hovered[0], hovered[1]},
-			AtlasCell{invalid[0], invalid[1]});
+			spk::AtlasCell{hovered[0], hovered[1]},
+			spk::AtlasCell{invalid[0], invalid[1]});
 
 		// Fluid automaton: makes worldgen-placed water sources spread and fall. Operates on the
 		// map through setCell, so its edits re-bake chunks like any other cell change.
@@ -387,10 +390,10 @@ namespace pg
 		const long long start = nowNs();
 		if (_player != nullptr)
 		{
-			const ChunkCoordinates focus = ChunkCoordinates::fromWorldCell(_player->cell);
+			const spk::Vector3Int focus = spk::VoxelChunk::coordinatesFromWorldCell(_player->cell);
 			if (_streamer != nullptr)
 			{
-				_streamer->setOriginPosition(focus.value);
+				_streamer->setOriginPosition(focus);
 			}
 			if (_terrainProvider != nullptr && (!_streamingFocus.has_value() || focus != *_streamingFocus))
 			{
@@ -419,14 +422,14 @@ namespace pg
 		}
 		// Warm the destination neighbourhood so walk heights and the navigation graph
 		// have terrain the instant the player lands (mirrors the spawn warm-up).
-		const ChunkCoordinates targetChunk = ChunkCoordinates::fromWorldCell(p_target);
+		const spk::Vector3Int targetChunk = spk::VoxelChunk::coordinatesFromWorldCell(p_target);
 		for (int y = -StreamViewRange.y; y <= StreamViewRange.y; ++y)
 		{
 			for (int z = -StreamViewRange.z; z <= StreamViewRange.z; ++z)
 			{
 				for (int x = -StreamViewRange.x; x <= StreamViewRange.x; ++x)
 				{
-					_context.world.world->loadChunk(ChunkCoordinates{targetChunk.value + spk::Vector3Int{x, y, z}});
+					_context.world.world->loadChunk(targetChunk + spk::Vector3Int{x, y, z});
 				}
 			}
 		}
@@ -442,7 +445,7 @@ namespace pg
 		}
 		if (_streamer != nullptr)
 		{
-			_streamer->setOriginPosition(targetChunk.value);
+			_streamer->setOriginPosition(targetChunk);
 		}
 		// Forces the streaming-focus branch of the next update to re-center the
 		// navigation bounds around the arrival cell.

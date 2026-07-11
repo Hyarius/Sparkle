@@ -1,7 +1,7 @@
 #include "world/generator/plan_chunk_provider.hpp"
 
+#include "core/deterministic_random.hpp"
 #include "core/registries.hpp"
-#include "voxel/voxel_cell.hpp"
 #include "voxel/voxel_registry.hpp"
 #include "world/prefab_definition.hpp"
 #include "world/prefab_placement_math.hpp"
@@ -20,27 +20,12 @@ namespace pg
 {
 	namespace
 	{
-		using VoxelPool = std::vector<std::pair<std::int32_t, double>>;
+		using VoxelPool = WeightedPool<std::int32_t>;
 
 		constexpr std::uint64_t kSurfaceSalt = 0x6eed0e9da4d94a4fULL;
 		constexpr std::uint64_t kSubsurfaceSalt = 0x58f0f1a32db7c2bdULL;
 		constexpr std::uint64_t kDeepSalt = 0xf4d3b9a05f19e8b7ULL;
 		constexpr std::uint64_t kRoadSalt = 0x314adbe6734a92d1ULL;
-
-		[[nodiscard]] std::uint64_t avalanche(std::uint64_t p_value) noexcept
-		{
-			p_value ^= p_value >> 30U;
-			p_value *= 0xbf58476d1ce4e5b9ULL;
-			p_value ^= p_value >> 27U;
-			p_value *= 0x94d049bb133111ebULL;
-			p_value ^= p_value >> 31U;
-			return p_value;
-		}
-
-		[[nodiscard]] double unitInterval(std::uint64_t p_hash) noexcept
-		{
-			return static_cast<double>(p_hash >> 11U) * (1.0 / 9007199254740992.0);
-		}
 
 		// Deterministic per-column pick from a weighted pool. The final avalanche matters:
 		// without it, two variants can collapse into visible parity/checker patterns.
@@ -53,28 +38,13 @@ namespace pg
 		{
 			if (p_pool.size() <= 1)
 			{
-				return p_pool.front().first;
+				return p_pool.front().value;
 			}
 			std::uint64_t hash = static_cast<std::uint64_t>(static_cast<std::uint32_t>(p_worldX)) << 32U;
 			hash |= static_cast<std::uint32_t>(p_worldZ);
 			hash ^= p_seed + p_salt + 0x9e3779b97f4a7c15ULL;
-			hash = avalanche(hash);
-
-			double totalWeight = 0.0;
-			for (const auto &entry : p_pool)
-			{
-				totalWeight += entry.second;
-			}
-			double target = unitInterval(hash) * totalWeight;
-			for (const auto &entry : p_pool)
-			{
-				if (target < entry.second)
-				{
-					return entry.first;
-				}
-				target -= entry.second;
-			}
-			return p_pool.back().first;
+			hash = deterministic::avalanche(hash);
+			return p_pool.pick(deterministic::unitInterval(hash));
 		}
 	}
 
@@ -99,16 +69,16 @@ namespace pg
 			const auto numericPool = [&voxels](const BiomePalette::VoxelPool &p_pool) {
 				VoxelPool result;
 				result.reserve(p_pool.size());
-				for (const BiomePalette::WeightedVoxel &entry : p_pool)
+				for (const auto &entry : p_pool)
 				{
-					result.emplace_back(voxels.numericId(entry.id), entry.weight);
+					result.add(voxels.numericId(entry.value), entry.weight);
 				}
 				return result;
 			};
 			VoxelPool road = numericPool(definition.palette.road);
 			if (road.empty())
 			{
-				road.emplace_back(_road, 1.0); // biomes that declare no road fall back to the shared block
+				road.add(_road); // biomes that declare no road fall back to the shared block
 			}
 			_biomeBlocks.push_back(
 				{.surface = numericPool(definition.palette.surface),
@@ -290,7 +260,7 @@ namespace pg
 					for (int y = 0; y < spk::VoxelChunk::Size.y; ++y)
 					{
 						const int worldY = origin.y + y;
-						VoxelCell value;
+						spk::VoxelCell value;
 						if (worldY >= 0 && worldY <= column.groundTop)
 						{
 							const int depth = column.groundTop - worldY;
@@ -358,7 +328,7 @@ namespace pg
 							const spk::Vector3Int local{worldX - origin.x, worldY - origin.y, worldZ - origin.z};
 							if (p_editor.isWithinBounds(local))
 							{
-								VoxelCell cell;
+								spk::VoxelCell cell;
 								cell.id = column.deepId;
 								(void)p_editor.setCell(local, cell);
 							}
@@ -415,7 +385,7 @@ namespace pg
 							const spk::Vector3Int local{worldX - origin.x, worldY - origin.y, worldZ - origin.z};
 							if (p_editor.isWithinBounds(local))
 							{
-								VoxelCell cell;
+								spk::VoxelCell cell;
 								cell.id = column.deepId;
 								(void)p_editor.setCell(local, cell);
 							}

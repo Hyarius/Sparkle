@@ -1,21 +1,15 @@
 #pragma once
 
-#include <string>
 #include "core/json.hpp"
-#include <vector>
+#include "core/weighted_pool.hpp"
+
+#include <string>
 
 namespace pg
 {
 	struct PrefabDefinition;
 	template <typename TDefinition>
 	class Registry;
-
-	// One optional room of an interior composition; weight biases the random pick.
-	struct InteriorRoomOption
-	{
-		std::string prefabId;
-		double weight = 1.0;
-	};
 
 	// A "random composition" recipe for the inside of a building
 	// (resources/data/interiors/<id>.json). The file does not describe the interior
@@ -32,7 +26,7 @@ namespace pg
 	{
 		std::string id;
 		std::string entryPrefabId;
-		std::vector<InteriorRoomOption> rooms;
+		WeightedPool<std::string> rooms;
 		int minRooms = 1; // rooms grown beyond the entry room
 		int maxRooms = 3;
 	};

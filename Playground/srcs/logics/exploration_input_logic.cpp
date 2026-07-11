@@ -22,7 +22,7 @@ namespace
 	// z-fighting the voxel face it sits on.
 	constexpr float MaskLift = 0.02f;
 
-	[[nodiscard]] spk::Vector2 maskUV(const pg::AtlasCell &p_cell, float p_u, float p_v)
+	[[nodiscard]] spk::Vector2 maskUV(const spk::AtlasCell &p_cell, float p_u, float p_v)
 	{
 		return {(static_cast<float>(p_cell.column) + p_u) / MaskAtlasColumns, (static_cast<float>(p_cell.row) + p_v) / MaskAtlasRows};
 	}
@@ -35,7 +35,7 @@ namespace
 		spk::TextureMesh3D::Builder &p_builder,
 		const spk::VoxelShapeFace &p_face,
 		const spk::Vector3 &p_offset,
-		const pg::AtlasCell &p_mask)
+		const spk::AtlasCell &p_mask)
 	{
 		for (const spk::VoxelShapePolygon &polygon : p_face.polygons())
 		{
@@ -75,7 +75,7 @@ namespace
 	[[nodiscard]] spk::TextureMesh3D buildHoverMesh(
 		const pg::VoxelWorld &p_world,
 		const spk::Vector3Int &p_cell,
-		const pg::AtlasCell &p_mask)
+		const spk::AtlasCell &p_mask)
 	{
 		const spk::VoxelCell &cell = p_world.cell(p_cell);
 		spk::TextureMesh3D::Builder builder;
@@ -113,8 +113,8 @@ namespace pg
 		spk::Camera3D &p_camera,
 		spk::TextureMeshRenderer3D &p_hoverRenderer,
 		ViewportSize p_viewportSize,
-		AtlasCell p_hoveredMask,
-		AtlasCell p_invalidMask) :
+		spk::AtlasCell p_hoveredMask,
+		spk::AtlasCell p_invalidMask) :
 		_context(p_context),
 		_world(p_world),
 		_navigation(p_navigation),
@@ -150,7 +150,7 @@ namespace pg
 			_hoverRenderer.setMesh(std::make_shared<spk::TextureMesh3D>());
 			return;
 		}
-		const AtlasCell mask = _invalidSeconds > 0 ? _invalidMask : _hoveredMask;
+		const spk::AtlasCell mask = _invalidSeconds > 0 ? _invalidMask : _hoveredMask;
 		_hoverRenderer.setMesh(std::make_shared<spk::TextureMesh3D>(buildHoverMesh(_world, *_hovered, mask)));
 	}
 

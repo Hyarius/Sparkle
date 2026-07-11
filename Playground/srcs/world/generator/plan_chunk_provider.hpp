@@ -1,6 +1,6 @@
 #pragma once
 
-#include "world/chunk_provider.hpp"
+#include "core/weighted_pool.hpp"
 #include "world/generator/world_plan.hpp"
 
 #include "structures/math/spk_vector3.hpp"
@@ -10,6 +10,11 @@
 #include <string>
 #include <utility>
 #include <vector>
+
+namespace spk
+{
+	class VoxelChunk;
+}
 
 namespace pg
 {
@@ -28,7 +33,7 @@ namespace pg
 	//    are stamped last, rotated to their orientation, with an optional solid
 	//    foundation column grown down to the terrain.
 	// The plan is immutable and lookups are pure, so fill() is safe on worker threads.
-	class PlanChunkProvider final : public IChunkProvider
+	class PlanChunkProvider final
 	{
 	private:
 		struct ResolvedPlacement
@@ -44,7 +49,7 @@ namespace pg
 
 		struct BiomeBlocks
 		{
-			using VoxelPool = std::vector<std::pair<std::int32_t, double>>;
+			using VoxelPool = WeightedPool<std::int32_t>;
 
 			VoxelPool surface;
 			VoxelPool subsurface;
@@ -77,7 +82,7 @@ namespace pg
 	public:
 		PlanChunkProvider(const Registries &p_registries, const WorldPlan &p_plan);
 
-		void fill(spk::VoxelChunk &p_chunk) const override;
+		void fill(spk::VoxelChunk &p_chunk) const;
 
 		// Surface y of the column (for spawn placement); world coordinates.
 		[[nodiscard]] int surfaceHeight(int p_worldX, int p_worldZ) const;

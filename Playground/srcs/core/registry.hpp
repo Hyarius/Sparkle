@@ -6,17 +6,13 @@
 #include <filesystem>
 #include <functional>
 #include <map>
-#include <memory>
 #include <stdexcept>
 #include <string>
-#include <type_traits>
 #include <utility>
 #include <vector>
 
 namespace pg
 {
-	class Registries;
-
 	template <typename TDefinition>
 	class Registry
 	{
@@ -149,78 +145,4 @@ namespace pg
 		}
 	};
 
-	template <typename TBase>
-	class PolymorphicFactory
-	{
-	private:
-		using StoredParseFunction = std::function<std::unique_ptr<TBase>(JsonReader &, const Registries *)>;
-		std::map<std::string, StoredParseFunction> _parsers;
-
-		[[nodiscard]] std::unique_ptr<TBase> _parse(JsonReader &p_reader, const Registries *p_registries) const
-		{
-			const std::string type = p_reader.require<std::string>("type");
-			const auto iterator = _parsers.find(type);
-			if (iterator == _parsers.end())
-			{
-				std::string knownTypes;
-				for (const auto &[name, unused] : _parsers)
-				{
-					(void)unused;
-					if (!knownTypes.empty())
-					{
-						knownTypes += ", ";
-					}
-					knownTypes += name;
-				}
-				throw JsonError(
-					p_reader.file(),
-					p_reader.pathFor("type"),
-					"unknown polymorphic type '" + type + "' (known types: " + knownTypes + ")");
-			}
-			return iterator->second(p_reader, p_registries);
-		}
-
-	public:
-		template <typename TParseFunction>
-		void registerType(std::string p_name, TParseFunction p_parse)
-		{
-			StoredParseFunction wrapper;
-			if constexpr (std::is_invocable_r_v<std::unique_ptr<TBase>, TParseFunction &, JsonReader &, const Registries &>)
-			{
-				wrapper = [parse = std::move(p_parse)](JsonReader &p_reader, const Registries *p_registries) mutable {
-					if (p_registries == nullptr)
-					{
-						throw std::logic_error("this polymorphic parser requires registries");
-					}
-					return std::invoke(parse, p_reader, *p_registries);
-				};
-			}
-			else
-			{
-				static_assert(
-					std::is_invocable_r_v<std::unique_ptr<TBase>, TParseFunction &, JsonReader &>,
-					"A polymorphic parser must accept JsonReader&, optionally followed by const Registries&");
-				wrapper = [parse = std::move(p_parse)](JsonReader &p_reader, const Registries *) mutable {
-					return std::invoke(parse, p_reader);
-				};
-			}
-
-			const auto [unused, inserted] = _parsers.emplace(std::move(p_name), std::move(wrapper));
-			(void)unused;
-			if (!inserted)
-			{
-				throw std::logic_error("polymorphic type is already registered");
-			}
-		}
-
-		[[nodiscard]] std::unique_ptr<TBase> parse(JsonReader &p_reader) const
-		{
-			return _parse(p_reader, nullptr);
-		}
-
-		[[nodiscard]] std::unique_ptr<TBase> parse(JsonReader &p_reader, const Registries &p_registries) const
-		{
-			return _parse(p_reader, &p_registries);
-		}
-	};
 }
