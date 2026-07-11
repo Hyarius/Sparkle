@@ -175,42 +175,28 @@ int main(int argc, char **argv)
 
 	try
 	{
-		std::uint64_t worldSeed = 1;
-		int worldSize = 124;
-		bool mapOnly = false;
-		bool checkStairs = false;
-		for (int i = 1; i < argc; ++i)
+		spk::CommandLineParser parser;
+		using CliOption = spk::CommandLineParser::Option;
+		parser.addOption("--seed", {.type = CliOption::Type::String, .help = "world master seed"}, std::int64_t{1});
+		parser.addOption("--size", {.type = CliOption::Type::Integer, .help = "world size in plan cells"}, std::int64_t{124});
+		parser.addOption("--map-only", {.type = CliOption::Type::Flag, .help = "write the world map PNG and exit"}, false);
+		parser.addOption(
+			"--check-stairs", {.type = CliOption::Type::Flag, .help = "verify composed stairways headless and exit"}, false);
+
+		try
 		{
-			const std::string argument = argv[i];
-			if (argument == "--seed")
-			{
-				if (i + 1 >= argc)
-				{
-					throw std::invalid_argument("--seed requires an unsigned integer");
-				}
-				worldSeed = std::stoull(argv[++i]);
-			}
-			else if (argument == "--size")
-			{
-				if (i + 1 >= argc)
-				{
-					throw std::invalid_argument("--size requires a plan-cell count");
-				}
-				worldSize = std::stoi(argv[++i]);
-			}
-			else if (argument == "--map-only")
-			{
-				mapOnly = true;
-			}
-			else if (argument == "--check-stairs")
-			{
-				checkStairs = true;
-			}
-			else
-			{
-				throw std::invalid_argument("unknown argument: " + argument);
-			}
+			parser.parse(argc, argv);
+		} catch (const spk::CommandLineParser::Error &error)
+		{
+			std::cerr << error.what() << "\n\n" << parser.usage();
+			return 1;
 		}
+
+		const spk::JSON::Reader cli(parser.arguments(), "<cli>");
+		const std::uint64_t worldSeed = std::stoull(cli.optional<std::string>("seed", "1"));
+		const int worldSize = cli.optional<int>("size", 124);
+		const bool mapOnly = cli.optional<bool>("map-only", false);
+		const bool checkStairs = cli.optional<bool>("check-stairs", false);
 
 		// Validate CLI world-generation requests before loading registries or entering
 		// any allocation-heavy generation path. generateWorldPlan repeats this same
