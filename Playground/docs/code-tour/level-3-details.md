@@ -7,6 +7,9 @@
 
 ### 1.1 JSON plumbing (`core/json.hpp`)
 
+Since 2026-07-11 (decision D42) the implementation lives in the library as
+`spk::JSON::Reader`/`Error`/`Loader` (`structures/container/spk_json_reader.hpp`);
+`core/json.hpp` only aliases them into `pg::`.
 `JsonLoader::parseFile` wraps `spk::JSON::Value` parsing. `JsonReader` carries the
 file + JSON path for error messages, and offers `require<T>` / `optional<T>` /
 `requireEnum` / `child()` / `contains()` / `forbidUnknown({...})` — every parser uses
@@ -90,8 +93,9 @@ struct holds the growing `WorldPlan` plus scratch state: `continents`,
 - `farthestPointSeeds(candidates, k, rng)` — greedy farthest-point sampling.
 - `labelComponents(mask, count)` — 4-connected component labelling.
 - `countDiagonalOnly(mask)` — cells connected only diagonally (invariant checks).
-- `orientationFromQuarterTurns` / `quarterTurnsOf` / `rotateQuarterTurns` — the
-  quarter-turn ↔ `spk::VoxelOrientation` bridge used by claim rotation.
+- quarter-turn ↔ `spk::VoxelOrientation` arithmetic for claim rotation — since
+  2026-07-11 (decision D41) provided by the library
+  (`structures/voxel/spk_voxel_orientation.hpp`), no longer defined here.
 
 ### 2.1 buildWorldGraph (392)
 

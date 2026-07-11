@@ -6,7 +6,8 @@
 
 ## 1. Startup & data loading
 
-Files: `srcs/main.cpp`, `srcs/core/registries.cpp`, `srcs/core/json.{hpp,cpp}`,
+Files: `srcs/main.cpp`, `srcs/core/registries.cpp`, `srcs/core/json.hpp` (aliases to
+`spk::JSON::Reader` since 2026-07-11, see decision D42),
 `srcs/core/registry.hpp`, `srcs/voxel/voxel_registry.cpp`, `srcs/voxel/voxel_parser.cpp`,
 the `world/*_parser.cpp` files, `world/generator/climb_prefabs.cpp`.
 

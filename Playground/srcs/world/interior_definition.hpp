@@ -1,11 +1,11 @@
 #pragma once
 
 #include <string>
+#include "core/json.hpp"
 #include <vector>
 
 namespace pg
 {
-	class JsonReader;
 	struct PrefabDefinition;
 	template <typename TDefinition>
 	class Registry;

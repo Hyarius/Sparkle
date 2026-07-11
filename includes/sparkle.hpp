@@ -5,6 +5,7 @@
 #include "structures/container/spk_flags.hpp"
 #include "structures/container/spk_grid_2d.hpp"
 #include "structures/container/spk_json_object.hpp"
+#include "structures/container/spk_json_reader.hpp"
 #include "structures/container/spk_object_pool.hpp"
 #include "structures/container/spk_observable_value.hpp"
 #include "structures/container/spk_uuid.hpp"
@@ -158,6 +159,7 @@
 #include "structures/voxel/spk_voxel_grid.hpp"
 #include "structures/voxel/spk_voxel_map.hpp"
 #include "structures/voxel/spk_voxel_mesher.hpp"
+#include "structures/voxel/spk_voxel_orientation.hpp"
 #include "structures/voxel/spk_voxel_registry.hpp"
 #include "structures/voxel/spk_voxel_shape.hpp"
 

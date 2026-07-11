@@ -293,3 +293,23 @@ binding 3, but that binding is not hard-coded into the light command.
 Trainer encounters trigger only when the player is directly in front of the trainer on the
 same row or column, within `sightRange`. There is no widening peripheral cone. Solid voxel
 obstacles block the line through the shared world DDA raycast; passable flora does not.
+
+## D41 - Quarter-turn helpers + Prefab::rotated promoted into spk:: **[user, 2026-07-11]**
+The quarter-turn orientation arithmetic duplicated by `spk_prefab.cpp` and
+`world_plan_generator.cpp` is now `structures/voxel/spk_voxel_orientation.hpp`
+(`quarterTurnsOf`, `orientationFromQuarterTurns`, `composeOrientations`, `composeFlips`,
+`rotateQuarterTurns`); both duplicates were deleted. `spk::Prefab::rotated(orientation,
+flip)` returns a new pre-transformed prefab (positions rotated around the pivot, NegativeY
+flip mirroring through the pivot layer, cell orientation/flip composed; the source prefab
+is untouched). Only lattice-preserving transforms are offered - no quaternion/euler API,
+free angles cannot keep voxels on the grid. Rotated-prefab caching, if ever needed, is a
+Playground concern (spk::Prefab stays a plain value type safe for concurrent reads).
+
+## D42 - JsonReader promoted into spk::JSON **[user, 2026-07-11]**
+`pg::JsonError/JsonLoader/JsonReader` moved to `structures/container/spk_json_reader.hpp`
+as `spk::JSON::Error/Loader/Reader` (path-aware data-file errors, typed require/optional,
+enum mapping, child descent, unknown-key rejection). `Playground/srcs/core/json.hpp` keeps
+thin `pg::` aliases because every parser uses them; `core/json.cpp` was deleted. The five
+definition headers that forward-declared `class JsonReader` now include `core/json.hpp`
+(aliases cannot be forward-declared). Tests live at
+`tests/TUs/srcs/structures/container/json_reader_test.cpp`.

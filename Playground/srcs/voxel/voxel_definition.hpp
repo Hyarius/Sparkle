@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/json.hpp"
 #include "voxel/fluid.hpp"
 #include "voxel/voxel_data.hpp"
 #include "voxel/voxel_traversal_data.hpp"
@@ -12,7 +13,6 @@
 
 namespace pg
 {
-	class JsonReader;
 
 	// Gameplay-side description of a voxel type, keyed by the same numeric id the spk render
 	// registry uses. It no longer owns render geometry (that lives in the spk::VoxelShape held

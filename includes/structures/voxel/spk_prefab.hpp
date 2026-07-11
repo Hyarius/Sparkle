@@ -75,6 +75,18 @@ namespace spk
 		// prefab.
 		[[nodiscard]] std::pair<spk::Vector3Int, spk::Vector3Int> rotatedBounds(spk::VoxelOrientation p_orientation) const noexcept;
 
+		// A new prefab holding this one transformed in place: positions rotate by the
+		// orientation's quarter turns around +Y through the pivot and, for a NegativeY
+		// flip, mirror vertically through the pivot's layer; each non-empty cell's own
+		// orientation/flip is composed with the transform. The pivot is preserved and
+		// this prefab is left untouched. Only these lattice-preserving transforms are
+		// offered (no free angles: voxels live on a grid). Applying the result with the
+		// identity orientation matches applying this prefab with p_orientation:
+		//   p.rotated(o).applyTo(grid, dest) == p.applyTo(grid, dest, o)
+		[[nodiscard]] Prefab rotated(
+			spk::VoxelOrientation p_orientation,
+			spk::VoxelFlip p_flip = spk::VoxelFlip::PositiveY) const;
+
 		// Visits the transformed position and cell of every listed voxel in insertion
 		// order. This lets mutation-aware targets apply a prefab without exposing their
 		// backing grid. Bounds filtering remains the target's responsibility.

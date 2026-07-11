@@ -1,59 +1,8 @@
 #include "structures/voxel/spk_prefab.hpp"
 
+#include "structures/voxel/spk_voxel_orientation.hpp"
+
 #include <algorithm>
-
-namespace
-{
-	// Quarter-turns around +Y, in the order PositiveZ -> PositiveX -> NegativeZ -> NegativeX
-	// (the enum value names give the world direction of the shape's local +Z axis).
-	[[nodiscard]] int quarterTurns(spk::VoxelOrientation p_orientation) noexcept
-	{
-		switch (p_orientation)
-		{
-		case spk::VoxelOrientation::PositiveZ:
-			return 0;
-		case spk::VoxelOrientation::PositiveX:
-			return 1;
-		case spk::VoxelOrientation::NegativeZ:
-			return 2;
-		case spk::VoxelOrientation::NegativeX:
-			return 3;
-		default:
-			return 0;
-		}
-	}
-
-	[[nodiscard]] spk::VoxelOrientation orientationFromQuarterTurns(int p_turns) noexcept
-	{
-		switch (((p_turns % 4) + 4) % 4)
-		{
-		case 1:
-			return spk::VoxelOrientation::PositiveX;
-		case 2:
-			return spk::VoxelOrientation::NegativeZ;
-		case 3:
-			return spk::VoxelOrientation::NegativeX;
-		default:
-			return spk::VoxelOrientation::PositiveZ;
-		}
-	}
-
-	// Rotates a pivot-relative position by quarter turns around the +Y axis.
-	[[nodiscard]] spk::Vector3Int rotateLocal(const spk::Vector3Int &p_local, int p_turns) noexcept
-	{
-		switch (p_turns)
-		{
-		case 1:
-			return {p_local.z, p_local.y, -p_local.x};
-		case 2:
-			return {-p_local.x, p_local.y, -p_local.z};
-		case 3:
-			return {-p_local.z, p_local.y, p_local.x};
-		default:
-			return p_local;
-		}
-	}
-}
 
 namespace spk
 {
@@ -159,9 +108,9 @@ namespace spk
 		{
 			return {{0, 0, 0}, {0, 0, 0}};
 		}
-		const int turns = quarterTurns(p_orientation);
-		const spk::Vector3Int a = rotateLocal(_minBounds - _pivot, turns);
-		const spk::Vector3Int b = rotateLocal(_maxBounds - _pivot, turns);
+		const int turns = spk::quarterTurnsOf(p_orientation);
+		const spk::Vector3Int a = spk::rotateQuarterTurns(_minBounds - _pivot, turns);
+		const spk::Vector3Int b = spk::rotateQuarterTurns(_maxBounds - _pivot, turns);
 		return {
 			{std::min(a.x, b.x), std::min(a.y, b.y), std::min(a.z, b.z)},
 			{std::max(a.x, b.x), std::max(a.y, b.y), std::max(a.z, b.z)}};
@@ -177,17 +126,46 @@ namespace spk
 			return;
 		}
 
-		const int turns = quarterTurns(p_orientation);
+		const int turns = spk::quarterTurnsOf(p_orientation);
 		for (const Voxel &voxel : _voxels)
 		{
-			const spk::Vector3Int position = p_destination + rotateLocal(voxel.position - _pivot, turns);
+			const spk::Vector3Int position = p_destination + spk::rotateQuarterTurns(voxel.position - _pivot, turns);
 			spk::VoxelCell cell = voxel.cell;
 			if (!cell.isEmpty())
 			{
-				cell.orientation = orientationFromQuarterTurns(quarterTurns(cell.orientation) + turns);
+				cell.orientation = spk::composeOrientations(cell.orientation, p_orientation);
 			}
 			p_visitor(position, cell);
 		}
+	}
+
+	Prefab Prefab::rotated(spk::VoxelOrientation p_orientation, spk::VoxelFlip p_flip) const
+	{
+		Prefab result;
+		result._pivot = _pivot;
+		result._voxels.reserve(_voxels.size());
+		const int turns = spk::quarterTurnsOf(p_orientation);
+		const bool mirrored = p_flip == spk::VoxelFlip::NegativeY;
+		// The vertical mirror and the +Y rotation commute, so applying the mirror on
+		// the pivot-relative position first keeps one code path for both transforms.
+		for (const Voxel &voxel : _voxels)
+		{
+			spk::Vector3Int local = voxel.position - _pivot;
+			if (mirrored)
+			{
+				local.y = -local.y;
+			}
+			const spk::Vector3Int position = _pivot + spk::rotateQuarterTurns(local, turns);
+			spk::VoxelCell cell = voxel.cell;
+			if (!cell.isEmpty())
+			{
+				cell.orientation = spk::composeOrientations(cell.orientation, p_orientation);
+				cell.flip = spk::composeFlips(cell.flip, p_flip);
+			}
+			result._growBounds(position, position);
+			result._voxels.push_back({.position = position, .cell = cell});
+		}
+		return result;
 	}
 
 	void Prefab::applyTo(spk::VoxelGrid &p_grid, const spk::Vector3Int &p_destination, spk::VoxelOrientation p_orientation) const

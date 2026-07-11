@@ -3,6 +3,7 @@
 #include "structures/voxel/spk_cube_voxel_shape.hpp"
 #include "structures/voxel/spk_prefab.hpp"
 #include "structures/voxel/spk_voxel_map.hpp"
+#include "structures/voxel/spk_voxel_orientation.hpp"
 
 #include <memory>
 
@@ -176,6 +177,102 @@ TEST(Prefab, RotatesAroundItsPivot)
 		EXPECT_EQ(grid.cell(1, 0, 1).id, 1);
 		EXPECT_EQ(grid.cell(second).id, 2);
 	}
+}
+
+TEST(Prefab, RotatedMatchesApplyingWithTheOrientation)
+{
+	// Non-trivial pivot, an oriented cell and an explicit empty: the pre-rotated
+	// prefab stamped with the identity must write the same cells as the original
+	// stamped with the orientation.
+	spk::Prefab prefab;
+	prefab.addVoxel({1, 0, 1}, {1});
+	prefab.addVoxel({2, -1, 3}, {2, spk::VoxelOrientation::NegativeZ});
+	prefab.addVoxel({0, 1, 2}, {});
+	prefab.setPivot({1, 0, 1});
+
+	for (const spk::VoxelOrientation orientation : {
+			 spk::VoxelOrientation::PositiveZ,
+			 spk::VoxelOrientation::PositiveX,
+			 spk::VoxelOrientation::NegativeZ,
+			 spk::VoxelOrientation::NegativeX})
+	{
+		spk::VoxelGrid direct(spk::Vector3Int{8, 4, 8}, {9});
+		spk::VoxelGrid preRotated(spk::Vector3Int{8, 4, 8}, {9});
+		prefab.applyTo(direct, {4, 2, 4}, orientation);
+		prefab.rotated(orientation).applyTo(preRotated, {4, 2, 4});
+
+		for (int y = 0; y < 4; ++y)
+		{
+			for (int z = 0; z < 8; ++z)
+			{
+				for (int x = 0; x < 8; ++x)
+				{
+					EXPECT_EQ(preRotated.cell(x, y, z), direct.cell(x, y, z))
+						<< "turns " << spk::quarterTurnsOf(orientation) << " cell (" << x << ", " << y << ", " << z << ")";
+				}
+			}
+		}
+	}
+}
+
+TEST(Prefab, RotatedPreservesPivotOrderAndBounds)
+{
+	spk::Prefab prefab;
+	prefab.addVoxel({2, 0, 1}, {1});
+	prefab.addVoxel({2, 0, 1}, {2}); // same position on purpose: insertion order decides
+	prefab.setPivot({1, 0, 1});
+
+	const spk::Prefab rotated = prefab.rotated(spk::VoxelOrientation::PositiveX);
+	EXPECT_EQ(rotated.pivot(), prefab.pivot());
+	ASSERT_EQ(rotated.voxels().size(), 2u);
+	// (2,0,1) is pivot + (1,0,0); one quarter turn sends that offset to (0,0,-1).
+	EXPECT_EQ(rotated.voxels()[0].position, spk::Vector3Int(1, 0, 0));
+	EXPECT_EQ(rotated.voxels()[0].cell.id, 1);
+	EXPECT_EQ(rotated.voxels()[1].cell.id, 2);
+	EXPECT_EQ(rotated.minBounds(), spk::Vector3Int(1, 0, 0));
+	EXPECT_EQ(rotated.maxBounds(), spk::Vector3Int(1, 0, 0));
+
+	// The source prefab is untouched.
+	EXPECT_EQ(prefab.voxels()[0].position, spk::Vector3Int(2, 0, 1));
+	const auto [rotatedMin, rotatedMax] = prefab.rotatedBounds(spk::VoxelOrientation::PositiveX);
+	EXPECT_EQ(rotated.minBounds() - prefab.pivot(), rotatedMin);
+	EXPECT_EQ(rotated.maxBounds() - prefab.pivot(), rotatedMax);
+}
+
+TEST(Prefab, RotatedWithNegativeYFlipMirrorsThroughThePivotLayer)
+{
+	spk::Prefab prefab;
+	prefab.addVoxel({0, 2, 0}, {1});
+	prefab.addVoxel({0, -1, 0}, {2, spk::VoxelOrientation::PositiveX, spk::VoxelFlip::NegativeY});
+	prefab.setPivot({0, 0, 0});
+
+	const spk::Prefab flipped = prefab.rotated(spk::VoxelOrientation::PositiveZ, spk::VoxelFlip::NegativeY);
+	ASSERT_EQ(flipped.voxels().size(), 2u);
+	EXPECT_EQ(flipped.voxels()[0].position, spk::Vector3Int(0, -2, 0));
+	EXPECT_EQ(flipped.voxels()[0].cell.flip, spk::VoxelFlip::NegativeY);
+	// Cell flips compose: the already-flipped cell returns upright, its orientation
+	// (a horizontal direction) is untouched by the vertical mirror.
+	EXPECT_EQ(flipped.voxels()[1].position, spk::Vector3Int(0, 1, 0));
+	EXPECT_EQ(flipped.voxels()[1].cell.flip, spk::VoxelFlip::PositiveY);
+	EXPECT_EQ(flipped.voxels()[1].cell.orientation, spk::VoxelOrientation::PositiveX);
+
+	// Two applications of the same flip restore the original voxels.
+	const spk::Prefab restored = flipped.rotated(spk::VoxelOrientation::PositiveZ, spk::VoxelFlip::NegativeY);
+	EXPECT_EQ(restored.voxels(), prefab.voxels());
+	EXPECT_EQ(restored.minBounds(), prefab.minBounds());
+	EXPECT_EQ(restored.maxBounds(), prefab.maxBounds());
+}
+
+TEST(Prefab, RotatedComposesWithRotatedBoundsUnderFlip)
+{
+	// Mirroring swaps the vertical extents of the box; the rotation then turns it.
+	spk::Prefab prefab;
+	prefab.addVoxelRange({0, 0, 0}, {2, 1, 0}, {1});
+	prefab.setPivot({0, 0, 0});
+
+	const spk::Prefab transformed = prefab.rotated(spk::VoxelOrientation::PositiveX, spk::VoxelFlip::NegativeY);
+	EXPECT_EQ(transformed.minBounds(), spk::Vector3Int(0, -1, -2));
+	EXPECT_EQ(transformed.maxBounds(), spk::Vector3Int(0, 0, 0));
 }
 
 TEST(Prefab, NegativeYLayersLandBelowTheDestination)

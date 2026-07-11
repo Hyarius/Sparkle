@@ -6,6 +6,8 @@
 #include "world/interior_definition.hpp"
 #include "world/prefab_definition.hpp"
 
+#include "structures/voxel/spk_voxel_orientation.hpp"
+
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -282,53 +284,6 @@ namespace pg
 				}
 			}
 			return bad;
-		}
-
-		[[nodiscard]] spk::VoxelOrientation orientationFromQuarterTurns(int p_turns)
-		{
-			switch (p_turns % 4)
-			{
-			case 1:
-				return spk::VoxelOrientation::PositiveX;
-			case 2:
-				return spk::VoxelOrientation::NegativeZ;
-			case 3:
-				return spk::VoxelOrientation::NegativeX;
-			default:
-				return spk::VoxelOrientation::PositiveZ;
-			}
-		}
-
-		[[nodiscard]] int quarterTurnsOf(spk::VoxelOrientation p_orientation)
-		{
-			switch (p_orientation)
-			{
-			case spk::VoxelOrientation::PositiveX:
-				return 1;
-			case spk::VoxelOrientation::NegativeZ:
-				return 2;
-			case spk::VoxelOrientation::NegativeX:
-				return 3;
-			default:
-				return 0;
-			}
-		}
-
-		// Same quarter-turn convention as spk::Prefab (rotations around +Y through the
-		// pivot; PositiveZ identity), so claimed zones rotate exactly like the content.
-		[[nodiscard]] spk::Vector3Int rotateQuarterTurns(const spk::Vector3Int &p_local, int p_turns)
-		{
-			switch (((p_turns % 4) + 4) % 4)
-			{
-			case 1:
-				return {p_local.z, p_local.y, -p_local.x};
-			case 2:
-				return {-p_local.x, p_local.y, -p_local.z};
-			case 3:
-				return {-p_local.z, p_local.y, p_local.x};
-			default:
-				return p_local;
-			}
 		}
 
 		// ------------------------------------------------------------------
@@ -1896,9 +1851,11 @@ namespace pg
 					definition->clearance.has_value() ? definition->clearance->min : definition->prefab.minBounds();
 				const spk::Vector3Int localMax =
 					definition->clearance.has_value() ? definition->clearance->max : definition->prefab.maxBounds();
-				const int turns = quarterTurnsOf(p_placement.orientation);
-				const spk::Vector3Int a = rotateQuarterTurns(localMin - pivot, turns);
-				const spk::Vector3Int b = rotateQuarterTurns(localMax - pivot, turns);
+				// Same quarter-turn convention as spk::Prefab (rotations around +Y through
+				// the pivot), so claimed zones rotate exactly like the content.
+				const int turns = spk::quarterTurnsOf(p_placement.orientation);
+				const spk::Vector3Int a = spk::rotateQuarterTurns(localMin - pivot, turns);
+				const spk::Vector3Int b = spk::rotateQuarterTurns(localMax - pivot, turns);
 				return Claim{
 					.min = resolved->destination + spk::Vector3Int{std::min(a.x, b.x), std::min(a.y, b.y), std::min(a.z, b.z)},
 					.max = resolved->destination + spk::Vector3Int{std::max(a.x, b.x), std::max(a.y, b.y), std::max(a.z, b.z)}};
@@ -2860,7 +2817,7 @@ namespace pg
 									continue;
 								}
 
-								PrefabPlacement placement{.prefabId = entry->prefabId, .anchor = {worldX, plan.surfaceY(plan.height.at(candidate.row, candidate.col)) + 1, worldZ}, .orientation = orientationFromQuarterTurns(turns), .foundation = false};
+								PrefabPlacement placement{.prefabId = entry->prefabId, .anchor = {worldX, plan.surfaceY(plan.height.at(candidate.row, candidate.col)) + 1, worldZ}, .orientation = spk::orientationFromQuarterTurns(turns), .foundation = false};
 								// Scenery yields to every structural claim (stairways,
 								// buildings) but keeps its own lighter spacing rules.
 								const std::optional<Claim> claim = claimBoxFor(placement);

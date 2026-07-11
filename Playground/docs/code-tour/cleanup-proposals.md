@@ -160,15 +160,14 @@ Until then it is fine where it is.
 
 ## H. Other spk promotion candidates (opportunistic)
 
-- **Quarter-turn helpers** — `orientationFromQuarterTurns`, `quarterTurnsOf`,
-  `rotateQuarterTurns` in `world_plan_generator.cpp` re-implement rotation that
-  `spk::Prefab` already performs internally. Expose them from
-  `spk_voxel_enums.hpp` (they are pure functions of `VoxelOrientation`) and
-  delete the local copies. Tiny, zero-risk.
-- **`JsonReader`** (`core/json.hpp`) — path-aware error reporting, `require<T>`,
-  `forbidUnknown` over `spk::JSON::Value`. Fully generic, no pg types; would slot
-  in beside `spk::JSON::Value` as e.g. `spk::JSON::Reader` and benefit any
-  data-driven app. Medium effort (tests move up).
+- ~~**Quarter-turn helpers**~~ — **done 2026-07-11 (D41)**: now
+  `structures/voxel/spk_voxel_orientation.hpp` (+ `composeOrientations` /
+  `composeFlips`); the `spk_prefab.cpp` and `world_plan_generator.cpp` duplicates
+  are deleted, and `spk::Prefab::rotated(orientation, flip)` returns a
+  pre-transformed copy.
+- ~~**`JsonReader`**~~ — **done 2026-07-11 (D42)**: now `spk::JSON::Reader` /
+  `Error` / `Loader` in `structures/container/spk_json_reader.hpp`;
+  `pg::core/json.hpp` is thin aliases.
 - **`Registry<T>` directory loading** — generic "load a folder of JSON
   definitions with sorted ids + duplicate detection"; pairs naturally with
   `JsonReader` if that moves.

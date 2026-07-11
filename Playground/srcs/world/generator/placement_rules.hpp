@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/json.hpp"
 #include "world/generator/world_plan.hpp"
 
 #include <array>
@@ -13,7 +14,6 @@ namespace spk::JSON
 
 namespace pg
 {
-	class JsonReader;
 	struct PrefabDefinition;
 	template <typename TDefinition>
 	class Registry;

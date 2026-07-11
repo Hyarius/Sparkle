@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/json.hpp"
 #include "structures/voxel/spk_prefab.hpp"
 
 #include <optional>
@@ -8,7 +9,6 @@
 
 namespace pg
 {
-	class JsonReader;
 	class VoxelRegistry;
 
 	struct PrefabAnchor
