@@ -3,40 +3,24 @@
 #include "world/voxel_world.hpp"
 #include "world/world_navigation.hpp"
 
-#include "structures/math/spk_vector4.hpp"
-
-#include <stdexcept>
+#include "structures/voxel/spk_voxel_ray_cast.hpp"
 
 namespace pg
 {
-	WorldRay MousePicker::screenToRay(
-		const spk::Camera3D &p_camera,
-		const spk::Vector2 &p_viewportSize,
-		const spk::Vector2 &p_mousePixels)
-	{
-		if (p_viewportSize.x <= 0 || p_viewportSize.y <= 0)
-		{
-			throw std::invalid_argument("Mouse picker viewport must be positive");
-		}
-		const float ndcX = 2.0f * p_mousePixels.x / p_viewportSize.x - 1.0f;
-		const float ndcY = 1.0f - 2.0f * p_mousePixels.y / p_viewportSize.y;
-		const spk::Matrix4x4 inverse = p_camera.viewProjectionMatrix().inverse();
-		spk::Vector4 nearPoint = inverse * spk::Vector4{ndcX, ndcY, -1.0f, 1.0f};
-		spk::Vector4 farPoint = inverse * spk::Vector4{ndcX, ndcY, 1.0f, 1.0f};
-		nearPoint /= nearPoint.w;
-		farPoint /= farPoint.w;
-		return {
-			.origin = p_camera.position(),
-			.direction = (farPoint.xyz() - nearPoint.xyz()).normalized()};
-	}
-
 	std::optional<spk::Vector3Int> MousePicker::pickStandable(
 		const VoxelWorld &p_world,
 		WorldNavigation &p_navigation,
-		const WorldRay &p_ray,
+		const spk::Ray3D &p_ray,
 		float p_maxDistance)
 	{
-		const auto hit = WorldRaycaster::raycast(p_world, p_ray, p_maxDistance);
+		const auto hit = spk::VoxelRayCast::cast(
+			p_world.map(),
+			p_ray,
+			p_maxDistance,
+			[&p_world](const spk::Vector3Int &, const spk::VoxelCell &p_cell) {
+				const VoxelDefinition *definition = p_world.tryDefinition(p_cell);
+				return definition != nullptr && definition->data.traversal == VoxelTraversal::Solid;
+			});
 		if (!hit.has_value())
 		{
 			return std::nullopt;

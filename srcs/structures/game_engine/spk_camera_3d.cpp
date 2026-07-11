@@ -1,5 +1,10 @@
 #include "structures/game_engine/spk_camera_3d.hpp"
 
+#include "structures/math/spk_vector4.hpp"
+
+#include <cmath>
+#include <stdexcept>
+
 namespace spk
 {
 	Camera3D *Camera3D::_mainCamera = nullptr;
@@ -105,5 +110,32 @@ namespace spk
 	spk::Matrix4x4 Camera3D::viewProjectionMatrix() const
 	{
 		return projectionMatrix() * viewMatrix();
+	}
+
+	spk::Ray3D Camera3D::rayFromViewport(
+		const spk::Vector2 &p_viewportSize,
+		const spk::Vector2 &p_pixelPosition) const
+	{
+		if (!std::isfinite(p_viewportSize.x) || !std::isfinite(p_viewportSize.y) ||
+			p_viewportSize.x <= 0.0f || p_viewportSize.y <= 0.0f)
+		{
+			throw std::invalid_argument("Camera3D ray viewport must be finite and positive");
+		}
+		if (!std::isfinite(p_pixelPosition.x) || !std::isfinite(p_pixelPosition.y))
+		{
+			throw std::invalid_argument("Camera3D ray pixel position must be finite");
+		}
+
+		const float ndcX = 2.0f * p_pixelPosition.x / p_viewportSize.x - 1.0f;
+		const float ndcY = 1.0f - 2.0f * p_pixelPosition.y / p_viewportSize.y;
+		const spk::Matrix4x4 inverse = viewProjectionMatrix().inverse();
+		spk::Vector4 nearPoint = inverse * spk::Vector4{ndcX, ndcY, -1.0f, 1.0f};
+		spk::Vector4 farPoint = inverse * spk::Vector4{ndcX, ndcY, 1.0f, 1.0f};
+		nearPoint /= nearPoint.w;
+		farPoint /= farPoint.w;
+
+		return {
+			.origin = position(),
+			.direction = (farPoint.xyz() - nearPoint.xyz()).normalized()};
 	}
 }

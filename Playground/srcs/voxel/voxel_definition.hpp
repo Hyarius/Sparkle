@@ -2,6 +2,7 @@
 
 #include "core/json.hpp"
 #include "voxel/fluid.hpp"
+#include "voxel/shape_catalog.hpp"
 #include "voxel/voxel_data.hpp"
 #include "voxel/voxel_traversal_data.hpp"
 
@@ -26,7 +27,10 @@ namespace pg
 
 	// One parsed JSON voxel: the spk render shape plus the gameplay definition. VoxelRegistry
 	// splits it into the spk::VoxelRegistry (shape) and its own catalog (data + heights), and,
-	// when the shape is a fluid, generates its fill-stage slabs from the fluid metadata below.
+	// when the voxel declares a "fluid" block, generates its fill-stage slabs from it.
+	//
+	// The voxel references its geometry by shape-catalog id and supplies one atlas cell per
+	// texture slot the shape uses; heights come from the shape definition.
 	struct ParsedVoxel
 	{
 		std::string id;
@@ -36,5 +40,5 @@ namespace pg
 		std::optional<FluidData> fluid;
 	};
 
-	[[nodiscard]] ParsedVoxel parseVoxelDefinition(JsonReader &p_reader);
+	[[nodiscard]] ParsedVoxel parseVoxelDefinition(JsonReader &p_reader, const ShapeCatalog &p_shapes);
 }

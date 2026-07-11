@@ -1,9 +1,9 @@
 #include "voxel/voxel_registry.hpp"
 
 #include "core/registry.hpp"
+#include "voxel/shape_catalog.hpp"
 
-#include "structures/voxel/spk_cube_voxel_shape.hpp"
-#include "structures/voxel/spk_slab_voxel_shape.hpp"
+#include "structures/voxel/spk_data_voxel_shape.hpp"
 
 #include <limits>
 #include <memory>
@@ -11,15 +11,51 @@
 #include <stdexcept>
 #include <string>
 #include <utility>
+#include <vector>
+
+namespace
+{
+	// Fill-stage geometry for fluids: a slab of the given height (the full source cube is
+	// the height-1 case), every polygon on a single "fluid" slot textured with the source's
+	// top cell. Mid-height tops are inner faces, so a buried stage inside a fluid body
+	// culls its surface while an exposed one still renders it.
+	[[nodiscard]] spk::VoxelShapeDescription fluidStageDescription(float p_height)
+	{
+		const std::vector<spk::Vector2> rectangleUVs = {{0, 0}, {1, 0}, {1, 1}, {0, 1}};
+		const std::vector<spk::Vector2> sideUVs = {{0, 1}, {1, 1}, {1, 1.0f - p_height}, {0, 1.0f - p_height}};
+
+		spk::VoxelShapeDescription description;
+		description.polygons = {
+			{"fluid", {{0, p_height, 1}, {1, p_height, 1}, {1, p_height, 0}, {0, p_height, 0}}, rectangleUVs},
+			{"fluid", {{0, 0, 0}, {1, 0, 0}, {1, 0, 1}, {0, 0, 1}}, rectangleUVs},
+			{"fluid", {{1, 0, 1}, {1, 0, 0}, {1, p_height, 0}, {1, p_height, 1}}, sideUVs},
+			{"fluid", {{0, 0, 0}, {0, 0, 1}, {0, p_height, 1}, {0, p_height, 0}}, sideUVs},
+			{"fluid", {{0, 0, 1}, {1, 0, 1}, {1, p_height, 1}, {0, p_height, 1}}, sideUVs},
+			{"fluid", {{1, 0, 0}, {0, 0, 0}, {0, p_height, 0}, {1, p_height, 0}}, sideUVs},
+		};
+		return description;
+	}
+
+	[[nodiscard]] std::unique_ptr<spk::VoxelShape> makeFluidStageShape(float p_height, const spk::AtlasCell &p_texture)
+	{
+		return std::make_unique<spk::DataVoxelShape>(
+			spk::VoxelShape::TextureSlots{{"fluid", p_texture}},
+			fluidStageDescription(p_height));
+	}
+}
 
 namespace pg
 {
-	void VoxelRegistry::load(const std::filesystem::path &p_directory)
+	void VoxelRegistry::load(const ShapeCatalog &p_shapes, const std::filesystem::path &p_voxelsDirectory)
 	{
 		// Reuse the generic registry for file discovery, sorted-id ordering and duplicate-id
 		// checks, then split each parsed voxel into the render shape and the gameplay catalog.
 		Registry<ParsedVoxel> parsed;
-		parsed.load(p_directory, parseVoxelDefinition);
+		spk::loadJsonDirectory(parsed, p_voxelsDirectory, [&p_shapes](std::string_view p_id, JsonReader &p_reader) {
+			ParsedVoxel voxel = parseVoxelDefinition(p_reader, p_shapes);
+			voxel.id = p_id;
+			return voxel;
+		});
 
 		std::vector<std::string> ids = parsed.ids();
 		if (ids.size() > static_cast<std::size_t>(std::numeric_limits<std::int32_t>::max()))
@@ -84,16 +120,8 @@ namespace pg
 				VoxelData stageData;
 				stageData.traversal = VoxelTraversal::Passable;
 				stageData.tags = tagsSource.tags;
-				// The full stage is a cube so all six faces participate in boundary occlusion.
-				std::unique_ptr<spk::VoxelShape> stageShape;
-				if (stage == fluid->maxSpread)
-				{
-					stageShape = std::make_unique<spk::CubeVoxelShape>(fluid->texture);
-				}
-				else
-				{
-					stageShape = std::make_unique<spk::SlabVoxelShape>(fluid->texture, fill);
-				}
+				// The full stage fills the cell so all six faces participate in boundary occlusion.
+				std::unique_ptr<spk::VoxelShape> stageShape = makeFluidStageShape(fill, fluid->texture);
 				// Stages share the source's transparency so a water body culls its internal
 				// faces and renders as one continuous translucent volume.
 				stageShape->setTransparency(transparency);

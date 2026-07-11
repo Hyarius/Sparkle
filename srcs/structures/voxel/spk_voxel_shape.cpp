@@ -1,4 +1,5 @@
 #include "structures/voxel/spk_voxel_shape.hpp"
+#include "structures/voxel/spk_voxel_orientation.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -21,41 +22,6 @@ namespace
 		return orientation * 2 + flip;
 	}
 
-	[[nodiscard]] spk::Vector3 transformPosition(
-		const spk::Vector3 &p_position,
-		spk::VoxelOrientation p_orientation,
-		spk::VoxelFlip p_flip)
-	{
-		spk::Vector3 result;
-		switch (p_orientation)
-		{
-		case spk::VoxelOrientation::PositiveZ:
-			result = p_position;
-			break;
-		case spk::VoxelOrientation::PositiveX:
-			result = {p_position.z, p_position.y, 1.0f - p_position.x};
-			break;
-		case spk::VoxelOrientation::NegativeZ:
-			result = {1.0f - p_position.x, p_position.y, 1.0f - p_position.z};
-			break;
-		case spk::VoxelOrientation::NegativeX:
-			result = {1.0f - p_position.z, p_position.y, p_position.x};
-			break;
-		default:
-			throw std::invalid_argument("Invalid voxel orientation");
-		}
-
-		if (p_flip == spk::VoxelFlip::NegativeY)
-		{
-			result.y = 1.0f - result.y;
-		}
-		else if (p_flip != spk::VoxelFlip::PositiveY)
-		{
-			throw std::invalid_argument("Invalid voxel flip");
-		}
-		return result;
-	}
-
 	[[nodiscard]] spk::VoxelShapeFace transformFace(
 		const spk::VoxelShapeFace &p_face,
 		spk::VoxelOrientation p_orientation,
@@ -72,14 +38,14 @@ namespace
 				for (std::size_t index = polygon.size(); index > 0; --index)
 				{
 					const spk::VoxelShapeVertex &vertex = polygon[index - 1];
-					builder.addVertex({transformPosition(vertex.position, p_orientation, p_flip), vertex.data});
+					builder.addVertex({spk::transformVoxelPosition(vertex.position, p_orientation, p_flip), vertex.data});
 				}
 			}
 			else
 			{
 				for (const spk::VoxelShapeVertex &vertex : polygon)
 				{
-					builder.addVertex({transformPosition(vertex.position, p_orientation, p_flip), vertex.data});
+					builder.addVertex({spk::transformVoxelPosition(vertex.position, p_orientation, p_flip), vertex.data});
 				}
 			}
 			result.addPolygon(std::move(builder).bake());
@@ -125,191 +91,49 @@ namespace
 		return !p_face.empty();
 	}
 
-	[[nodiscard]] std::pair<float, float> boundaryPlaneCoordinates(const spk::Vector3 &p_position, spk::VoxelAxisPlane p_plane)
+	[[nodiscard]] spk::VoxelShapePolygon cellBoundaryPolygon(spk::VoxelAxisPlane p_plane)
 	{
+		std::array<spk::Vector3, 4> positions;
 		switch (p_plane)
 		{
 		case spk::VoxelAxisPlane::PositiveX:
-		case spk::VoxelAxisPlane::NegativeX:
-			return {p_position.y, p_position.z};
-		case spk::VoxelAxisPlane::PositiveY:
-		case spk::VoxelAxisPlane::NegativeY:
-			return {p_position.x, p_position.z};
-		case spk::VoxelAxisPlane::PositiveZ:
-		case spk::VoxelAxisPlane::NegativeZ:
-			return {p_position.x, p_position.y};
-		case spk::VoxelAxisPlane::Count:
+			positions = {{{1, 0, 1}, {1, 0, 0}, {1, 1, 0}, {1, 1, 1}}};
 			break;
+		case spk::VoxelAxisPlane::NegativeX:
+			positions = {{{0, 0, 0}, {0, 0, 1}, {0, 1, 1}, {0, 1, 0}}};
+			break;
+		case spk::VoxelAxisPlane::PositiveY:
+			positions = {{{0, 1, 1}, {1, 1, 1}, {1, 1, 0}, {0, 1, 0}}};
+			break;
+		case spk::VoxelAxisPlane::NegativeY:
+			positions = {{{0, 0, 0}, {1, 0, 0}, {1, 0, 1}, {0, 0, 1}}};
+			break;
+		case spk::VoxelAxisPlane::PositiveZ:
+			positions = {{{0, 0, 1}, {1, 0, 1}, {1, 1, 1}, {0, 1, 1}}};
+			break;
+		case spk::VoxelAxisPlane::NegativeZ:
+			positions = {{{1, 0, 0}, {0, 0, 0}, {0, 1, 0}, {1, 1, 0}}};
+			break;
+		case spk::VoxelAxisPlane::Count:
+		default:
+			throw std::invalid_argument("VoxelAxisPlane::Count is not a geometric plane");
 		}
-		throw std::invalid_argument("VoxelAxisPlane::Count is not a geometric plane");
+
+		spk::VoxelShapePolygon::Builder builder;
+		builder.reserve(positions.size());
+		for (const spk::Vector3 &position : positions)
+		{
+			builder.addVertex({position, {}});
+		}
+		return std::move(builder).bake();
 	}
 
-	struct BoundaryPoint
+	[[nodiscard]] spk::Vector2 interpolateUV(
+		const spk::Vector2 &p_from,
+		const spk::Vector2 &p_to,
+		float p_interpolation) noexcept
 	{
-		float first = 0.0f;
-		float second = 0.0f;
-	};
-
-	using BoundaryPolygon = std::vector<BoundaryPoint>;
-
-	[[nodiscard]] float cross(const BoundaryPoint &p_a, const BoundaryPoint &p_b, const BoundaryPoint &p_c)
-	{
-		return (p_b.first - p_a.first) * (p_c.second - p_a.second) -
-			   (p_b.second - p_a.second) * (p_c.first - p_a.first);
-	}
-
-	[[nodiscard]] float signedArea(const BoundaryPolygon &p_polygon)
-	{
-		float doubledArea = 0.0f;
-		for (std::size_t index = 0; index < p_polygon.size(); ++index)
-		{
-			const BoundaryPoint &a = p_polygon[index];
-			const BoundaryPoint &b = p_polygon[(index + 1) % p_polygon.size()];
-			doubledArea += a.first * b.second - b.first * a.second;
-		}
-		return doubledArea * 0.5f;
-	}
-
-	[[nodiscard]] bool samePoint(const BoundaryPoint &p_left, const BoundaryPoint &p_right)
-	{
-		return std::abs(p_left.first - p_right.first) <= spk::VoxelShape::BoundaryEpsilon &&
-			   std::abs(p_left.second - p_right.second) <= spk::VoxelShape::BoundaryEpsilon;
-	}
-
-	void appendDistinct(BoundaryPolygon &p_polygon, BoundaryPoint p_point)
-	{
-		if (p_polygon.empty() || !samePoint(p_polygon.back(), p_point))
-		{
-			p_polygon.push_back(p_point);
-		}
-	}
-
-	[[nodiscard]] BoundaryPolygon cleanPolygon(BoundaryPolygon p_polygon)
-	{
-		if (p_polygon.size() > 1 && samePoint(p_polygon.front(), p_polygon.back()))
-		{
-			p_polygon.pop_back();
-		}
-
-		bool changed = true;
-		while (changed && p_polygon.size() >= 3)
-		{
-			changed = false;
-			for (std::size_t index = 0; index < p_polygon.size(); ++index)
-			{
-				const BoundaryPoint &previous = p_polygon[(index + p_polygon.size() - 1) % p_polygon.size()];
-				const BoundaryPoint &current = p_polygon[index];
-				const BoundaryPoint &next = p_polygon[(index + 1) % p_polygon.size()];
-				if (samePoint(previous, current) ||
-					std::abs(cross(previous, current, next)) <= spk::VoxelShape::BoundaryEpsilon)
-				{
-					p_polygon.erase(p_polygon.begin() + static_cast<std::ptrdiff_t>(index));
-					changed = true;
-					break;
-				}
-			}
-		}
-		return p_polygon;
-	}
-
-	[[nodiscard]] bool isConvex(const BoundaryPolygon &p_polygon)
-	{
-		if (p_polygon.size() < 3 || std::abs(signedArea(p_polygon)) <= spk::VoxelShape::BoundaryEpsilon)
-		{
-			return false;
-		}
-
-		float turn = 0.0f;
-		for (std::size_t index = 0; index < p_polygon.size(); ++index)
-		{
-			const float current = cross(
-				p_polygon[index],
-				p_polygon[(index + 1) % p_polygon.size()],
-				p_polygon[(index + 2) % p_polygon.size()]);
-			if (std::abs(current) <= spk::VoxelShape::BoundaryEpsilon)
-			{
-				continue;
-			}
-			if (turn != 0.0f && current * turn < 0.0f)
-			{
-				return false;
-			}
-			turn = current;
-		}
-		return turn != 0.0f;
-	}
-
-	[[nodiscard]] BoundaryPolygon clipHalfPlane(
-		const BoundaryPolygon &p_polygon,
-		const BoundaryPoint &p_edgeStart,
-		const BoundaryPoint &p_edgeEnd,
-		float p_orientation,
-		bool p_keepInside)
-	{
-		BoundaryPolygon result;
-		if (p_polygon.empty())
-		{
-			return result;
-		}
-
-		const auto distance = [&](const BoundaryPoint &p_point) {
-			return p_orientation * cross(p_edgeStart, p_edgeEnd, p_point);
-		};
-		const auto accepted = [p_keepInside](float p_distance) {
-			return p_keepInside ? p_distance >= -spk::VoxelShape::BoundaryEpsilon : p_distance <= spk::VoxelShape::BoundaryEpsilon;
-		};
-
-		BoundaryPoint previous = p_polygon.back();
-		float previousDistance = distance(previous);
-		bool previousAccepted = accepted(previousDistance);
-		for (const BoundaryPoint &current : p_polygon)
-		{
-			const float currentDistance = distance(current);
-			const bool currentAccepted = accepted(currentDistance);
-			if (currentAccepted != previousAccepted)
-			{
-				const float denominator = previousDistance - currentDistance;
-				if (std::abs(denominator) > spk::VoxelShape::BoundaryEpsilon)
-				{
-					const float t = previousDistance / denominator;
-					appendDistinct(result, {.first = previous.first + (current.first - previous.first) * t, .second = previous.second + (current.second - previous.second) * t});
-				}
-			}
-			if (currentAccepted)
-			{
-				appendDistinct(result, current);
-			}
-			previous = current;
-			previousDistance = currentDistance;
-			previousAccepted = currentAccepted;
-		}
-		return cleanPolygon(std::move(result));
-	}
-
-	[[nodiscard]] std::vector<BoundaryPolygon> subtractConvex(
-		const BoundaryPolygon &p_subject,
-		const BoundaryPolygon &p_clip)
-	{
-		std::vector<BoundaryPolygon> result;
-		BoundaryPolygon remaining = p_subject;
-		const float orientation = signedArea(p_clip) > 0.0f ? 1.0f : -1.0f;
-		for (std::size_t edge = 0; edge < p_clip.size(); ++edge)
-		{
-			const BoundaryPoint &start = p_clip[edge];
-			const BoundaryPoint &end = p_clip[(edge + 1) % p_clip.size()];
-			BoundaryPolygon outside = clipHalfPlane(remaining, start, end, orientation, false);
-			if (outside.size() >= 3 && std::abs(signedArea(outside)) > spk::VoxelShape::BoundaryEpsilon)
-			{
-				result.push_back(std::move(outside));
-			}
-
-			remaining = clipHalfPlane(remaining, start, end, orientation, true);
-			if (remaining.size() < 3 || std::abs(signedArea(remaining)) <= spk::VoxelShape::BoundaryEpsilon)
-			{
-				break;
-			}
-		}
-		return result;
+		return p_from + (p_to - p_from) * p_interpolation;
 	}
 
 	// Area of the union of boundary polygons, clipped to the unit cell boundary. Faces
@@ -322,27 +146,19 @@ namespace
 			return 0.0f;
 		}
 
-		std::vector<BoundaryPolygon> uncovered = {
-			{{0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f}}};
+		std::vector<spk::VoxelShapePolygon> uncovered = {cellBoundaryPolygon(p_plane)};
 		for (const spk::VoxelShapePolygon &polygon : p_face.polygons())
 		{
-			BoundaryPolygon boundary;
-			boundary.reserve(polygon.size());
-			for (const spk::VoxelShapeVertex &vertex : polygon)
-			{
-				const auto [first, second] = boundaryPlaneCoordinates(vertex.position, p_plane);
-				boundary.push_back({first, second});
-			}
-			boundary = cleanPolygon(std::move(boundary));
-			if (!isConvex(boundary))
+			if (!polygon.isConvex(spk::VoxelShape::BoundaryEpsilon))
 			{
 				return 0.0f;
 			}
 
-			std::vector<BoundaryPolygon> next;
-			for (const BoundaryPolygon &piece : uncovered)
+			std::vector<spk::VoxelShapePolygon> next;
+			for (const spk::VoxelShapePolygon &piece : uncovered)
 			{
-				std::vector<BoundaryPolygon> difference = subtractConvex(piece, boundary);
+				std::vector<spk::VoxelShapePolygon> difference =
+					piece.subtractConvex(polygon, interpolateUV, spk::VoxelShape::BoundaryEpsilon);
 				next.insert(next.end(), std::make_move_iterator(difference.begin()), std::make_move_iterator(difference.end()));
 			}
 			uncovered = std::move(next);
@@ -353,9 +169,9 @@ namespace
 		}
 
 		float uncoveredArea = 0.0f;
-		for (const BoundaryPolygon &piece : uncovered)
+		for (const spk::VoxelShapePolygon &piece : uncovered)
 		{
-			uncoveredArea += std::abs(signedArea(piece));
+			uncoveredArea += piece.area();
 		}
 		return std::clamp(1.0f - uncoveredArea, 0.0f, 1.0f);
 	}
@@ -409,6 +225,11 @@ namespace spk
 			throw std::logic_error("Voxel shape texture slot was not provided: " + p_slot);
 		}
 		return iterator->second;
+	}
+
+	const VoxelShape::TextureSlots &VoxelShape::textures() const noexcept
+	{
+		return _textures;
 	}
 
 	spk::VoxelShapePolygon VoxelShape::createPolygon(

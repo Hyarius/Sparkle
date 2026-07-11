@@ -1,1 +1,11 @@
-{"version":1,"traversal":"solid","tags":["ground","coast"],"shape":{"type":"cube","textures":{"top":[5,5],"side":[5,5],"bottom":[2,0]}}}
+{
+  "version": 2,
+  "traversal": "solid",
+  "tags": ["ground", "coast"],
+  "shape": "cube",
+  "textures": {
+    "top": [5, 5],
+    "bottom": [2, 0],
+    "side": [5, 5]
+  }
+}

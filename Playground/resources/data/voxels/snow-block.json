@@ -1,1 +1,11 @@
-{"version":1,"traversal":"solid","tags":["ground","snow"],"shape":{"type":"cube","textures":{"top":[5,0],"side":[5,0],"bottom":[3,0]}}}
+{
+  "version": 2,
+  "traversal": "solid",
+  "tags": ["ground", "snow"],
+  "shape": "cube",
+  "textures": {
+    "top": [5, 0],
+    "bottom": [3, 0],
+    "side": [5, 0]
+  }
+}

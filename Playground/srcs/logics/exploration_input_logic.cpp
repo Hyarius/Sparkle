@@ -134,7 +134,7 @@ namespace pg
 	void ExplorationInputLogic::_pick(const spk::Vector2Int &p_mouse)
 	{
 		const spk::Vector2 viewport = _viewportSize();
-		const WorldRay ray = MousePicker::screenToRay(_camera, viewport, spk::Vector2(p_mouse));
+		const spk::Ray3D ray = _camera.rayFromViewport(viewport, spk::Vector2(p_mouse));
 		_hovered = MousePicker::pickStandable(_world, _navigation, ray);
 		_invalidSeconds = 0;
 		_rebuildHover();

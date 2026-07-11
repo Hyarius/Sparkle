@@ -1,30 +1,12 @@
 #pragma once
 
 #include "structures/graphics/geometry/spk_voxel_mesh_3d.hpp"
+#include "structures/voxel/spk_voxel_cell_lookup.hpp"
 #include "structures/voxel/spk_voxel_grid.hpp"
 #include "structures/voxel/spk_voxel_registry.hpp"
 
 namespace spk
 {
-	// Read access to voxel cells beyond a single grid, in world-cell coordinates.
-	// Lets the mesher cull faces against neighboring chunks. A mesh build samples each
-	// required out-of-grid coordinate at most once, immediately copies the returned cell,
-	// and retains the resulting visibility plan through buffer emission. Implementations
-	// therefore need not return the same pointer or value on later calls, but the pointer
-	// returned by one call must remain readable until that call returns.
-	class IVoxelCellLookup
-	{
-	public:
-		virtual ~IVoxelCellLookup() = default;
-
-		[[nodiscard]] virtual const spk::VoxelCell *tryCell(const spk::Vector3Int &p_worldCell) const = 0;
-
-		[[nodiscard]] virtual const spk::VoxelCell *tryRenderableCell(const spk::Vector3Int &p_worldCell) const
-		{
-			return tryCell(p_worldCell);
-		}
-	};
-
 	class VoxelMesher
 	{
 	private:
@@ -44,7 +26,7 @@ namespace spk
 			const spk::IVoxelCellLookup &p_worldLookup,
 			const spk::Vector3Int &p_worldOrigin);
 
-		// Public for the orientation truth-table tests and chunk-boundary lookup code.
+		// Compatibility wrapper; orientation code should call the free utility directly.
 		[[nodiscard]] static spk::VoxelAxisPlane mapWorldPlaneToLocal(
 			spk::VoxelAxisPlane p_worldPlane,
 			spk::VoxelOrientation p_orientation,

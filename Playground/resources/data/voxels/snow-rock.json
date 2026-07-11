@@ -1,1 +1,11 @@
-{"version":1,"traversal":"solid","tags":["scenery","rock","snow"],"shape":{"type":"cuboid","min":[0.1,0.0,0.16],"max":[0.9,0.68,0.84],"textures":{"top":[5,4],"side":[3,0],"bottom":[3,0]}}}
+{
+  "version": 2,
+  "traversal": "solid",
+  "tags": ["scenery", "rock", "snow"],
+  "shape": "snow-rock",
+  "textures": {
+    "top": [5, 4],
+    "bottom": [3, 0],
+    "side": [3, 0]
+  }
+}

@@ -19,6 +19,11 @@ namespace pg
 	//  - a parallel table of gameplay VoxelDefinitions (traversal + walk heights) for the
 	//    navigation graph.
 	// A numeric id therefore addresses both the render shape and the gameplay definition.
+	//
+	// Voxel geometry is data: voxels reference a ShapeCatalog entry by name, and load()
+	// instantiates one render shape per voxel from that shared geometry plus the voxel's
+	// own texture cells. The catalog is loaded separately (see Registries::loadAll) and
+	// passed in as the shape factory.
 	class VoxelRegistry
 	{
 	private:
@@ -32,7 +37,7 @@ namespace pg
 		std::unordered_map<std::int32_t, FluidRef> _fluidRefs;
 
 	public:
-		void load(const std::filesystem::path &p_directory);
+		void load(const ShapeCatalog &p_shapes, const std::filesystem::path &p_voxelsDirectory);
 
 		[[nodiscard]] const VoxelDefinition &get(const std::string &p_id) const;
 		[[nodiscard]] const VoxelDefinition &get(std::int32_t p_id) const;

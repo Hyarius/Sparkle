@@ -53,7 +53,7 @@ pg::VoxelWorld       // chunk container + accessors (owns chunk entities)
 pg::WorldStreamer    // decides the loaded chunk set (radius around player), fires load/unload
 pg::WorldNavigation  // world traversal graph assembled from chunk navSlices (shared graph
                      // machinery with the board, see board.md)
-pg::WorldRaycaster   // cell DDA + oriented shape-polygon intersection: surface hit/normal/distance
+spk::VoxelRayCast    // unit-cell boundary DDA; pg injects solid/passable selection policy
 pg::Actor / pg::ActorPathLogic                             // see §Actors
 pg::WorldContext     { seed; active VoxelWorld; navigation; active map info; portals }
 ```

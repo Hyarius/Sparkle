@@ -313,3 +313,27 @@ thin `pg::` aliases because every parser uses them; `core/json.cpp` was deleted.
 definition headers that forward-declared `class JsonReader` now include `core/json.hpp`
 (aliases cannot be forward-declared). Tests live at
 `tests/TUs/srcs/structures/container/json_reader_test.cpp`.
+
+## D43 - Generic utilities, voxel boundary ray cast, and prefab anchors promoted **[user, 2026-07-11]**
+`WeightedPool<T>` is now `spk::WeightedPool<T>` with finite positive weights,
+precomputed totals, validated half-open selection, and no legacy inclusive-boundary
+variant. Stable FNV/avalanche/unit-interval mechanics and semantic seed derivation are
+`spk::deterministic`; their output is a persistence contract. Definition storage and
+sorted transactional JSON-directory loading are `spk::DefinitionRegistry<T>` and
+`spk::loadJsonDirectory`; filename ids are passed explicitly to parsers rather than
+implicitly written into a detected `id` member.
+
+`spk::Ray3D` and `Camera3D::rayFromViewport` own camera unprojection.
+`spk::VoxelRayCast` is deliberately a lightweight unit-cell boundary DDA: it does not
+intersect render polygons or inspect `VoxelShape`. A caller predicate decides which
+loaded cells participate; Playground injects its solid/passable traversal policy.
+Simultaneous axis crossings enter only the edge/corner-adjacent cell and report a
+multi-axis entry normal. A selected starting cell is an immediate distance-zero hit.
+This explicitly supersedes ticket 007's shape-accurate picking direction.
+
+`spk::Prefab` now owns neutral named anchors and transforms them with `rotated()`;
+clearance, door/interior/connector naming, and portal semantics remain in `pg::`.
+`PlanGrid<T>` retains its world-specific square limits but delegates storage to existing
+`spk::Grid2D<T>`. Profiler presentation is deferred until `DebugOverlay` supports dynamic
+widget composition. Cardinal traversal/pathfinding remains Playground-specific and was
+not promoted.

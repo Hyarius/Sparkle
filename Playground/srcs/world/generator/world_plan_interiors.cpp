@@ -70,11 +70,11 @@ namespace pg::worldgen
 		// same flattened plateau. Buildings stamp with the identity orientation,
 		// so anchors resolve untransformed.
 		const spk::Vector3Int buildingPivot = building->prefab.pivot();
-		const spk::Vector3Int doorWorld = buildingBox->destination + door->at - buildingPivot;
+		const spk::Vector3Int doorWorld = buildingBox->destination + door->position - buildingPivot;
 		const spk::Vector3Int minBoundsB = building->prefab.minBounds();
 		const spk::Vector3Int maxBoundsB = building->prefab.maxBounds();
-		const double doorOffsetX = door->at.x - (minBoundsB.x + maxBoundsB.x) / 2.0;
-		const double doorOffsetZ = door->at.z - (minBoundsB.z + maxBoundsB.z) / 2.0;
+		const double doorOffsetX = door->position.x - (minBoundsB.x + maxBoundsB.x) / 2.0;
+		const double doorOffsetZ = door->position.z - (minBoundsB.z + maxBoundsB.z) / 2.0;
 		const spk::Vector3Int outward = std::abs(doorOffsetX) > std::abs(doorOffsetZ)
 											? spk::Vector3Int{doorOffsetX >= 0 ? 1 : -1, 0, 0}
 											: spk::Vector3Int{0, 0, doorOffsetZ >= 0 ? 1 : -1};
@@ -109,11 +109,11 @@ namespace pg::worldgen
 				{.min = p_destination + p_room.prefab.minBounds() - pivot,
 				 .max = p_destination + p_room.prefab.maxBounds() - pivot});
 			hardClaims.push_back(roomBoxes.back());
-			for (const PrefabAnchor &anchor : p_room.anchors)
+			for (const PrefabAnchor &anchor : p_room.prefab.anchors())
 			{
 				if (const std::optional<spk::Vector3Int> direction = connectorDirection(anchor.name))
 				{
-					open.push_back({.at = p_destination + anchor.at - pivot, .direction = *direction});
+					open.push_back({.at = p_destination + anchor.position - pivot, .direction = *direction});
 				}
 			}
 			++plan.stats.interiorRoomPlacements;
@@ -129,7 +129,7 @@ namespace pg::worldgen
 		for (int attempt = 0; attempt < 64 && extraPlaced < extraTarget && !open.empty(); ++attempt)
 		{
 			const OpenConnector connector = open[rng.below(static_cast<int>(open.size()))];
-			const std::string &roomPrefabId = interior->rooms.pickInclusive(rng.uniform());
+			const std::string &roomPrefabId = interior->rooms.pick(rng.uniform());
 			const PrefabDefinition *candidate = prefabs.tryGet(roomPrefabId);
 			if (candidate == nullptr)
 			{
@@ -138,7 +138,7 @@ namespace pg::worldgen
 			const spk::Vector3Int inwardDirection{
 				-connector.direction.x, -connector.direction.y, -connector.direction.z};
 			std::vector<const PrefabAnchor *> mates;
-			for (const PrefabAnchor &anchor : candidate->anchors)
+			for (const PrefabAnchor &anchor : candidate->prefab.anchors())
 			{
 				const std::optional<spk::Vector3Int> direction = connectorDirection(anchor.name);
 				if (direction.has_value() && *direction == inwardDirection)
@@ -153,7 +153,7 @@ namespace pg::worldgen
 			const PrefabAnchor *mate = mates[rng.below(static_cast<int>(mates.size()))];
 			const spk::Vector3Int mateWall = connector.at + connector.direction;
 			const spk::Vector3Int candidatePivot = candidate->prefab.pivot();
-			const spk::Vector3Int destination = mateWall - (mate->at - candidatePivot);
+			const spk::Vector3Int destination = mateWall - (mate->position - candidatePivot);
 			const Claim box{
 				.min = destination + candidate->prefab.minBounds() - candidatePivot,
 				.max = destination + candidate->prefab.maxBounds() - candidatePivot};
@@ -185,8 +185,8 @@ namespace pg::worldgen
 		}
 
 		const spk::Vector3Int entryPivot = entryRoom->prefab.pivot();
-		plan.portals.push_back({.from = doorWorld, .to = entryDestination + entryPad->at - entryPivot});
-		plan.portals.push_back({.from = entryDestination + exitPad->at - entryPivot, .to = doorWorld + outward});
+		plan.portals.push_back({.from = doorWorld, .to = entryDestination + entryPad->position - entryPivot});
+		plan.portals.push_back({.from = entryDestination + exitPad->position - entryPivot, .to = doorWorld + outward});
 		++plan.stats.interiorCount;
 	}
 }

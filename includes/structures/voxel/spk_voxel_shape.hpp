@@ -116,6 +116,7 @@ namespace spk
 
 		[[nodiscard]] spk::VoxelShapeFaceSet &mutableRenderFaces() noexcept;
 		[[nodiscard]] const spk::AtlasCell &texture(const std::string &p_slot) const;
+		[[nodiscard]] const TextureSlots &textures() const noexcept;
 
 		[[nodiscard]] spk::VoxelShapePolygon createPolygon(
 			const std::string &p_slot,

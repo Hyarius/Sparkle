@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/json.hpp"
+#include "core/registry.hpp"
 #include "core/weighted_pool.hpp"
 
 #include <string>
@@ -8,8 +9,6 @@
 namespace pg
 {
 	struct PrefabDefinition;
-	template <typename TDefinition>
-	class Registry;
 
 	// A "random composition" recipe for the inside of a building
 	// (resources/data/interiors/<id>.json). The file does not describe the interior

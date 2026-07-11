@@ -1,1 +1,11 @@
-{"version":1,"traversal":"solid","tags":["scenery","wood","log"],"shape":{"type":"cuboid","min":[0.04,0.08,0.3],"max":[0.96,0.42,0.7],"textures":{"top":[6,3],"side":[6,3],"bottom":[5,3]}}}
+{
+  "version": 2,
+  "traversal": "solid",
+  "tags": ["scenery", "wood", "log"],
+  "shape": "fallen-log",
+  "textures": {
+    "top": [6, 3],
+    "bottom": [5, 3],
+    "side": [6, 3]
+  }
+}

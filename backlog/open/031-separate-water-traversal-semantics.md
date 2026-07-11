@@ -41,4 +41,6 @@ Represent collision/occupancy and standability independently. For example, intro
 
 ## Dependencies / notes
 
-Coordinate this ticket with Ticket 007 (shape-aware picking) and Ticket 030 (fluid convergence).
+Ticket 007 was superseded by D43: `spk::VoxelRayCast` intentionally tests unit-cell
+boundaries and accepts a caller-owned selection predicate. Coordinate water's picking
+participation through that predicate, and coordinate simulation behavior with Ticket 030.

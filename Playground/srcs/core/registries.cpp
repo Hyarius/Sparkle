@@ -16,22 +16,36 @@ namespace pg
 		JsonReader reader(json, gameRulesFile);
 		GameRules loadedGameRules = parseGameRules(reader);
 
+		// Shapes load before voxels: every voxel references its geometry by shape id and
+		// instantiates it through the catalog.
+		ShapeCatalog loadedShapes;
+		spk::loadJsonDirectory(loadedShapes, p_dataDirectory / "shapes", [](std::string_view p_id, JsonReader &p_reader) {
+			ShapeDefinition definition = parseShapeDefinition(p_reader);
+			definition.id = p_id;
+			return definition;
+		});
 		VoxelRegistry loadedVoxels;
-		loadedVoxels.load(p_dataDirectory / "voxels");
+		loadedVoxels.load(loadedShapes, p_dataDirectory / "voxels");
 		// Prefabs load before biomes: a biome's worldgen block may reference prefabs.
 		Registry<PrefabDefinition> loadedPrefabs;
-		loadedPrefabs.load(p_dataDirectory / "prefabs", [&loadedVoxels](JsonReader &p_reader) {
-			return parsePrefabDefinition(p_reader, loadedVoxels);
+		spk::loadJsonDirectory(loadedPrefabs, p_dataDirectory / "prefabs", [&loadedVoxels](std::string_view p_id, JsonReader &p_reader) {
+			PrefabDefinition definition = parsePrefabDefinition(p_reader, loadedVoxels);
+			definition.id = p_id;
+			return definition;
 		});
 		Registry<BiomeDefinition> loadedBiomes;
-		loadedBiomes.load(p_dataDirectory / "biomes", [&loadedVoxels, &loadedPrefabs](JsonReader &p_reader) {
-			return parseBiomeDefinition(p_reader, loadedVoxels, loadedPrefabs);
+		spk::loadJsonDirectory(loadedBiomes, p_dataDirectory / "biomes", [&loadedVoxels, &loadedPrefabs](std::string_view p_id, JsonReader &p_reader) {
+			BiomeDefinition definition = parseBiomeDefinition(p_reader, loadedVoxels, loadedPrefabs);
+			definition.id = p_id;
+			return definition;
 		});
 		// Interiors reference room prefabs, so they load after prefabs; each prefab's
 		// own "interior" link is validated once both registries exist.
 		Registry<InteriorDefinition> loadedInteriors;
-		loadedInteriors.load(p_dataDirectory / "interiors", [&loadedPrefabs](JsonReader &p_reader) {
-			return parseInteriorDefinition(p_reader, loadedPrefabs);
+		spk::loadJsonDirectory(loadedInteriors, p_dataDirectory / "interiors", [&loadedPrefabs](std::string_view p_id, JsonReader &p_reader) {
+			InteriorDefinition definition = parseInteriorDefinition(p_reader, loadedPrefabs);
+			definition.id = p_id;
+			return definition;
 		});
 		for (const std::string &prefabId : loadedPrefabs.ids())
 		{
@@ -58,6 +72,7 @@ namespace pg
 		PlanPlacementRules loadedPlacementRules = parsePlanPlacementRules(placementsReader, loadedPrefabs);
 
 		_gameRules = std::move(loadedGameRules);
+		_shapes = std::move(loadedShapes);
 		_voxels = std::move(loadedVoxels);
 		_biomes = std::move(loadedBiomes);
 		_prefabs = std::move(loadedPrefabs);
@@ -69,6 +84,7 @@ namespace pg
 	}
 
 	const GameRules &Registries::gameRules() const noexcept { return _gameRules; }
+	const ShapeCatalog &Registries::shapes() const noexcept { return _shapes; }
 	const VoxelRegistry &Registries::voxels() const noexcept { return _voxels; }
 	const Registry<BiomeDefinition> &Registries::biomes() const noexcept { return _biomes; }
 	const Registry<PrefabDefinition> &Registries::prefabs() const noexcept { return _prefabs; }

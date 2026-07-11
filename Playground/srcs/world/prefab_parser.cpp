@@ -220,12 +220,12 @@ namespace pg
 				anchorReader.forbidUnknown({"name", "at"});
 				PrefabAnchor anchor{
 					.name = anchorReader.require<std::string>("name"),
-					.at = detail::parseVector3(anchorReader, "at")};
+					.position = detail::parseVector3(anchorReader, "at")};
 				if (!names.insert(anchor.name).second)
 				{
 					throw JsonError(anchorReader.file(), anchorReader.pathFor("name"), "duplicate anchor name");
 				}
-				result.anchors.push_back(std::move(anchor));
+				result.prefab.addAnchor(std::move(anchor.name), anchor.position);
 			}
 		}
 		return result;

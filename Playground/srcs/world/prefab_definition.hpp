@@ -5,17 +5,12 @@
 
 #include <optional>
 #include <string>
-#include <vector>
 
 namespace pg
 {
 	class VoxelRegistry;
 
-	struct PrefabAnchor
-	{
-		std::string name;
-		spk::Vector3Int at{};
-	};
+	using PrefabAnchor = spk::Prefab::Anchor;
 
 	// The zone (inclusive corners, prefab-local like the content) a placement claims for
 	// itself: the world planner refuses to stamp two claimed zones on top of each other.
@@ -31,7 +26,6 @@ namespace pg
 	{
 		std::string id;
 		spk::Prefab prefab;
-		std::vector<PrefabAnchor> anchors;
 		std::optional<PrefabClearance> clearance;
 		// Interior definition composed and linked (through a door portal) when the world
 		// planner places this prefab; empty for scenery and doorless structures.
@@ -40,14 +34,7 @@ namespace pg
 		[[nodiscard]] spk::Vector3Int size() const noexcept { return prefab.size(); }
 		[[nodiscard]] const PrefabAnchor *tryAnchor(const std::string &p_name) const noexcept
 		{
-			for (const PrefabAnchor &anchor : anchors)
-			{
-				if (anchor.name == p_name)
-				{
-					return &anchor;
-				}
-			}
-			return nullptr;
+			return prefab.tryAnchor(p_name);
 		}
 	};
 

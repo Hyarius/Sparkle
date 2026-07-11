@@ -1,14 +1,11 @@
 {
-  "version": 1,
+  "version": 2,
   "traversal": "solid",
   "tags": ["ground", "stone"],
-  "shape": {
-    "type": "slab",
-    "height": 0.5,
-    "textures": {
-      "top": [3, 0],
-      "side": [4, 1],
-      "bottom": [3, 0]
-    }
+  "shape": "slab",
+  "textures": {
+    "top": [3, 0],
+    "bottom": [3, 0],
+    "side": [4, 1]
   }
 }

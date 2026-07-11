@@ -1,34 +1,13 @@
 {
-	"version": 1,
-	"traversal": "solid",
-	"tags": [
-		"ground",
-		"tundra",
-		"slope"
-	],
-	"shape": {
-		"type": "slope",
-		"textures": {
-			"slope": [
-				5,
-				0
-			],
-			"back": [
-				5,
-				0
-			],
-			"bottom": [
-				3,
-				0
-			],
-			"sideLeft": [
-				5,
-				0
-			],
-			"sideRight": [
-				5,
-				0
-			]
-		}
-	}
+  "version": 2,
+  "traversal": "solid",
+  "tags": ["ground", "tundra", "slope"],
+  "shape": "slope",
+  "textures": {
+    "slope": [5, 0],
+    "back": [5, 0],
+    "bottom": [3, 0],
+    "sideLeft": [5, 0],
+    "sideRight": [5, 0]
+  }
 }

@@ -3,6 +3,8 @@
 #include "structures/voxel/spk_voxel_orientation.hpp"
 
 #include <algorithm>
+#include <stdexcept>
+#include <utility>
 
 namespace spk
 {
@@ -102,6 +104,30 @@ namespace spk
 		return _voxels;
 	}
 
+	void Prefab::addAnchor(std::string p_name, const spk::Vector3Int &p_position)
+	{
+		if (p_name.empty())
+		{
+			throw std::invalid_argument("Prefab anchor name cannot be empty");
+		}
+		if (tryAnchor(p_name) != nullptr)
+		{
+			throw std::invalid_argument("Duplicate prefab anchor '" + p_name + "'");
+		}
+		_anchors.push_back({.name = std::move(p_name), .position = p_position});
+	}
+
+	const Prefab::Anchor *Prefab::tryAnchor(std::string_view p_name) const noexcept
+	{
+		const auto iterator = std::ranges::find(_anchors, p_name, &Anchor::name);
+		return iterator == _anchors.end() ? nullptr : &*iterator;
+	}
+
+	const std::vector<Prefab::Anchor> &Prefab::anchors() const noexcept
+	{
+		return _anchors;
+	}
+
 	std::pair<spk::Vector3Int, spk::Vector3Int> Prefab::rotatedBounds(spk::VoxelOrientation p_orientation) const noexcept
 	{
 		if (_voxels.empty())
@@ -144,6 +170,7 @@ namespace spk
 		Prefab result;
 		result._pivot = _pivot;
 		result._voxels.reserve(_voxels.size());
+		result._anchors.reserve(_anchors.size());
 		const int turns = spk::quarterTurnsOf(p_orientation);
 		const bool mirrored = p_flip == spk::VoxelFlip::NegativeY;
 		// The vertical mirror and the +Y rotation commute, so applying the mirror on
@@ -164,6 +191,17 @@ namespace spk
 			}
 			result._growBounds(position, position);
 			result._voxels.push_back({.position = position, .cell = cell});
+		}
+		for (const Anchor &anchor : _anchors)
+		{
+			spk::Vector3Int local = anchor.position - _pivot;
+			if (mirrored)
+			{
+				local.y = -local.y;
+			}
+			result._anchors.push_back({
+				.name = anchor.name,
+				.position = _pivot + spk::rotateQuarterTurns(local, turns)});
 		}
 		return result;
 	}

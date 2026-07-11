@@ -1,1 +1,11 @@
-{"version":1,"traversal":"solid","tags":["door","sealed"],"shape":{"type":"cube","textures":{"top":[4,1],"side":[4,1],"bottom":[4,1]}}}
+{
+  "version": 2,
+  "traversal": "solid",
+  "tags": ["door", "sealed"],
+  "shape": "cube",
+  "textures": {
+    "top": [4, 1],
+    "bottom": [4, 1],
+    "side": [4, 1]
+  }
+}

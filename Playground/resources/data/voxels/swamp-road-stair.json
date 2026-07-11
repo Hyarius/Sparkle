@@ -1,1 +1,14 @@
-{"version":1,"traversal":"solid","tags":["ground","road","stair"],"shape":{"type":"stair","stepCount":2,"textures":{"top":[3,1],"riser":[2,0],"back":[2,0],"bottom":[2,0],"sideLeft":[2,0],"sideRight":[2,0]}}}
+{
+  "version": 2,
+  "traversal": "solid",
+  "tags": ["ground", "road", "stair"],
+  "shape": "stair",
+  "textures": {
+    "top": [3, 1],
+    "riser": [2, 0],
+    "back": [2, 0],
+    "bottom": [2, 0],
+    "sideLeft": [2, 0],
+    "sideRight": [2, 0]
+  }
+}

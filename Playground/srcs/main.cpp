@@ -177,7 +177,7 @@ int main(int argc, char **argv)
 	{
 		spk::CommandLineParser parser;
 		using CliOption = spk::CommandLineParser::Option;
-		parser.addOption("--seed", {.type = CliOption::Type::String, .help = "world master seed"}, std::int64_t{1});
+		parser.addOption("--seed", {.type = CliOption::Type::String, .help = "world master seed"}, std::string{"1"});
 		parser.addOption("--size", {.type = CliOption::Type::Integer, .help = "world size in plan cells"}, std::int64_t{124});
 		parser.addOption("--map-only", {.type = CliOption::Type::Flag, .help = "write the world map PNG and exit"}, false);
 		parser.addOption(

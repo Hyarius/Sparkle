@@ -1,1 +1,11 @@
-{"version":1,"traversal":"solid","tags":["ground","swamp"],"shape":{"type":"cube","textures":{"top":[3,0],"side":[3,0],"bottom":[2,0]}}}
+{
+  "version": 2,
+  "traversal": "solid",
+  "tags": ["ground", "swamp"],
+  "shape": "cube",
+  "textures": {
+    "top": [3, 0],
+    "bottom": [2, 0],
+    "side": [3, 0]
+  }
+}

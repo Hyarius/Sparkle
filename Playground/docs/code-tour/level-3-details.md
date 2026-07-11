@@ -439,8 +439,9 @@ happen on their shapes). `WorldNavigation::refresh` rebuilds when
 
 ### 7.2 Input → path → motion
 
-`ExplorationInputLogic` (on the player Actor): converts the mouse to a ray
-(camera unproject), `WorldRaycaster` DDA-steps world cells until a hit, hover
+`ExplorationInputLogic` (on the player Actor): asks `spk::Camera3D` for the ray
+through the mouse pixel, then `spk::VoxelRayCast` DDA-steps unit voxel boundaries
+until the pg solid-traversal predicate accepts a cell (no shape-polygon intersection); hover
 mesh tints the target cell (`hovered` vs `invalid` atlas masks from game rules);
 click → `Pathfinder` A* over graph nodes (cost = euclidean, no diagonals through
 blocked corners) → `Actor::path`. `ActorPathLogic` advances

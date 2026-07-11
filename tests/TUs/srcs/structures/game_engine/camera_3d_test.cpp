@@ -2,6 +2,8 @@
 
 #include "structures/game_engine/spk_camera_3d.hpp"
 
+#include <limits>
+
 TEST(Camera3D, BuildsExpectedPerspectiveMatrixAndInvalidatesIt)
 {
 	spk::Camera3D camera;
@@ -46,4 +48,27 @@ TEST(Camera3D, MainCameraSlotTracksLifetime)
 		EXPECT_EQ(spk::Camera3D::mainCamera(), &camera);
 	}
 	EXPECT_EQ(spk::Camera3D::mainCamera(), nullptr);
+}
+
+TEST(Camera3D, BuildsARayThroughAViewportPixel)
+{
+	spk::Camera3D camera;
+	camera.setPosition({0.0f, 0.0f, 5.0f});
+	camera.setTarget({0.0f, 0.0f, 0.0f});
+	camera.setPerspective(90.0f, 0.1f, 100.0f);
+	camera.setViewportSize(200.0f, 100.0f);
+
+	const spk::Ray3D center = camera.rayFromViewport({200, 100}, {100, 50});
+	EXPECT_EQ(center.origin, camera.position());
+	EXPECT_NEAR(center.direction.x, 0.0f, 0.0001f);
+	EXPECT_NEAR(center.direction.y, 0.0f, 0.0001f);
+	EXPECT_NEAR(center.direction.z, -1.0f, 0.0001f);
+
+	const spk::Ray3D upperLeft = camera.rayFromViewport({200, 100}, {0, 0});
+	EXPECT_LT(upperLeft.direction.x, 0.0f);
+	EXPECT_GT(upperLeft.direction.y, 0.0f);
+	EXPECT_THROW((void)camera.rayFromViewport({0, 100}, {0, 0}), std::invalid_argument);
+	EXPECT_THROW(
+		(void)camera.rayFromViewport({200, 100}, {std::numeric_limits<float>::quiet_NaN(), 0}),
+		std::invalid_argument);
 }

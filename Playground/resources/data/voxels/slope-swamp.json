@@ -1,34 +1,13 @@
 {
-	"version": 1,
-	"traversal": "solid",
-	"tags": [
-		"ground",
-		"swamp",
-		"slope"
-	],
-	"shape": {
-		"type": "slope",
-		"textures": {
-			"slope": [
-				3,
-				0
-			],
-			"back": [
-				3,
-				0
-			],
-			"bottom": [
-				2,
-				0
-			],
-			"sideLeft": [
-				3,
-				0
-			],
-			"sideRight": [
-				3,
-				0
-			]
-		}
-	}
+  "version": 2,
+  "traversal": "solid",
+  "tags": ["ground", "swamp", "slope"],
+  "shape": "slope",
+  "textures": {
+    "slope": [3, 0],
+    "back": [3, 0],
+    "bottom": [2, 0],
+    "sideLeft": [3, 0],
+    "sideRight": [3, 0]
+  }
 }

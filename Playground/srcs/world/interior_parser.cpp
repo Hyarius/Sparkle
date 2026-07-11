@@ -30,7 +30,7 @@ namespace pg
 				throw JsonError(
 					p_reader.file(), p_path, "entry room '" + p_prefabId + "' needs 'entry' and 'exit' anchors");
 			}
-			const bool hasConnector = std::ranges::any_of(prefab->anchors, [](const PrefabAnchor &p_anchor) {
+			const bool hasConnector = std::ranges::any_of(prefab->prefab.anchors(), [](const PrefabAnchor &p_anchor) {
 				return p_anchor.name.starts_with("connector:");
 			});
 			if (!p_entry && !hasConnector)

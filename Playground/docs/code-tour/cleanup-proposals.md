@@ -137,6 +137,10 @@ becomes readable. Combine with B/C.
 
 ## F. One home for hashing & weighted picking
 
+> **Status: DONE** (2026-07-11, D43). Stable hashing and semantic seed derivation
+> now live in `spk_deterministic_random.hpp`; validated half-open weighted
+> selection lives in `spk_weighted_pool.hpp`. Playground keeps thin aliases.
+
 Four weighted-pool picks and three FNV/avalanche implementations exist:
 
 | Site | Duplicated bits |
@@ -186,11 +190,12 @@ Until then it is fine where it is.
 - ~~**`JsonReader`**~~ — **done 2026-07-11 (D42)**: now `spk::JSON::Reader` /
   `Error` / `Loader` in `structures/container/spk_json_reader.hpp`;
   `pg::core/json.hpp` is thin aliases.
-- **`Registry<T>` directory loading** — generic "load a folder of JSON
-  definitions with sorted ids + duplicate detection"; pairs naturally with
-  `JsonReader` if that moves.
-- **`PlanGrid<T>`** — a checked square grid; generic but low value alone. Only
-  worth moving if spk ever grows a 2-D grid need.
+- ~~**`Registry<T>` directory loading**~~ — **done 2026-07-11 (D43)** as
+  `spk::DefinitionRegistry<T>` + transactional `spk::loadJsonDirectory`; parsers
+  receive filename-derived ids explicitly.
+- ~~**`PlanGrid<T>` storage**~~ — **done 2026-07-11 (D43)** by retaining the
+  world-specific square/size guard while delegating storage to `spk::Grid2D<T>`;
+  no duplicate generic grid was promoted.
 
 ## I. Naming: two `VoxelRegistry` classes
 
@@ -215,8 +220,10 @@ mechanical renaming.
   pipeline in places. Worth a sweep now that this code tour exists.
 - **Dead code** — `perlin_chunk_provider.{hpp,cpp}` unused: ticket 039 already
   covers it (remove or revive).
-- **Overlay bookkeeping in `GameSceneWidget`** — ~150 lines of profiler-row/
-  overlay management (`_configureOverlay`, `_syncProfilerRows`,
+- **Overlay bookkeeping in `GameSceneWidget`** — **deferred by user decision**
+  until `DebugOverlay` supports dynamic widget composition instead of only text
+  labels. The current ~150 lines of profiler-row/overlay management
+  (`_configureOverlay`, `_syncProfilerRows`,
   `_applyOverlayGeometry`, `_refreshOverlay`) could move to a small
   `pg::SceneDebugOverlay` helper class; the widget keeps only construction and
   the frame hook. Cosmetic, do it whenever the file is touched next.
@@ -225,7 +232,7 @@ mechanical renaming.
 
 Realization/streaming performance and spatial indexing (026), warm-up
 synchronicity (001/026), fluid correctness (005/030/031/032), navigation rebuild
-cost (024/025), raycaster shape-awareness (007), mesher partial-occlusion
+cost (024/025), mesher partial-occlusion
 correctness (004), worldgen config/runtime unification (038), hard-coded world
 dimensions (034), stale voxel functionality (039).
 
@@ -235,6 +242,6 @@ dimensions (034), stale voxel functionality (039).
 2. **J.stepCost + J.makeWorldPlan + D** (shared placement math) — one sitting.
 3. **B** (`PlanStairway` record) then **E** (CliffFrame) — makes stairs legible.
 4. **C** (file split) — mechanical after B/E.
-5. **F**, **I**, **J.overlay** — opportunistic.
+5. ~~**F**~~, **I**; **J.overlay** waits for the dynamic-widget debug refactor.
 6. **G/H** (spk promotions) — propose per `promote-to-spk.md` once the fluid
    tickets are closed.

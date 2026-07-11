@@ -1,1 +1,9 @@
-{"version":1,"traversal":"passable","tags":["scenery","flora","needles","pine","snow","losTransparent"],"shape":{"type":"hexaPlane","textures":{"plane":[6,5]}}}
+{
+  "version": 2,
+  "traversal": "passable",
+  "tags": ["scenery", "flora", "needles", "pine", "snow", "losTransparent"],
+  "shape": "hexa-plane",
+  "textures": {
+    "plane": [6, 5]
+  }
+}

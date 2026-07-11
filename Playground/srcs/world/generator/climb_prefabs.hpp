@@ -1,12 +1,12 @@
 #pragma once
 
+#include "core/registry.hpp"
+
 namespace pg
 {
 	class VoxelRegistry;
 	struct BiomeDefinition;
 	struct PrefabDefinition;
-	template <typename TDefinition>
-	class Registry;
 
 	// Builds every biome's staircases and slopes from voxels instead of hand-authored
 	// prefab files. For each worldgen biome that declares "stair"/"slope" voxels in its

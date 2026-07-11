@@ -2,7 +2,7 @@
 
 #include "structures/voxel/spk_prefab.hpp"
 #include "structures/voxel/spk_voxel_chunk.hpp"
-#include "structures/voxel/spk_voxel_mesher.hpp"
+#include "structures/voxel/spk_voxel_cell_lookup.hpp"
 
 #include <cstdint>
 #include <functional>

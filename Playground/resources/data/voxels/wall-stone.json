@@ -1,16 +1,14 @@
 {
-  "version": 1,
+  "version": 2,
   "traversal": "solid",
   "tags": ["wall", "stone"],
-  "shape": {
-    "type": "cube",
-    "textures": {
-      "top": [4, 0],
-      "posX": [5, 0],
-      "negX": [5, 0],
-      "posZ": [6, 0],
-      "negZ": [6, 0],
-      "bottom": [3, 0]
-    }
+  "shape": "cube-directional",
+  "textures": {
+    "top": [4, 0],
+    "bottom": [3, 0],
+    "posX": [5, 0],
+    "negX": [5, 0],
+    "posZ": [6, 0],
+    "negZ": [6, 0]
   }
 }

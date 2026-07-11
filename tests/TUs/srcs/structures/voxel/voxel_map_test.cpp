@@ -243,6 +243,9 @@ TEST(VoxelMap, ChunkMutationIsRejectedOffItsOwningThread)
 	const TestRegistry test;
 	spk::VoxelMap map(test.registry, [](spk::VoxelChunk &) {
 	});
+	// A fresh map is unbound (setup phase); the guard only arms once an owner claims
+	// the map, as VoxelChunkStreamerLogic does from the update loop.
+	map.bindMutationThread();
 	spk::VoxelChunk &chunk = map.chunk({0, 0, 0});
 	std::atomic_bool rejected = false;
 	std::thread worker([&]() {

@@ -3,6 +3,8 @@
 #include "structures/voxel/spk_voxel_grid.hpp"
 
 #include <functional>
+#include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -33,11 +35,23 @@ namespace spk
 			[[nodiscard]] bool operator==(const Voxel &) const noexcept = default;
 		};
 
+		// A named prefab-local attachment point. Sparkle only owns its spatial
+		// meaning; applications decide whether an anchor is a door, socket, portal,
+		// room connector, or something else.
+		struct Anchor
+		{
+			std::string name;
+			spk::Vector3Int position{};
+
+			[[nodiscard]] bool operator==(const Anchor &) const noexcept = default;
+		};
+
 	private:
 		spk::Vector3Int _pivot{};
 		spk::Vector3Int _minBounds{};
 		spk::Vector3Int _maxBounds{};
 		std::vector<Voxel> _voxels;
+		std::vector<Anchor> _anchors;
 
 		void _growBounds(const spk::Vector3Int &p_minimum, const spk::Vector3Int &p_maximum) noexcept;
 
@@ -68,6 +82,10 @@ namespace spk
 		// Extents of that box per axis (zero when the prefab is empty).
 		[[nodiscard]] spk::Vector3Int size() const noexcept;
 		[[nodiscard]] const std::vector<Voxel> &voxels() const noexcept;
+
+		void addAnchor(std::string p_name, const spk::Vector3Int &p_position);
+		[[nodiscard]] const Anchor *tryAnchor(std::string_view p_name) const noexcept;
+		[[nodiscard]] const std::vector<Anchor> &anchors() const noexcept;
 
 		// Corners of the bounding box relative to the stamp destination once rotated by
 		// the given orientation (quarter turns around +Y through the pivot; PositiveZ

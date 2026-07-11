@@ -1,13 +1,11 @@
 {
-  "version": 1,
+  "version": 2,
   "traversal": "solid",
   "tags": ["ground", "dirt"],
-  "shape": {
-    "type": "cube",
-    "textures": {
-      "top": [2, 0],
-      "side": [2, 0],
-      "bottom": [2, 0]
-    }
+  "shape": "cube",
+  "textures": {
+    "top": [2, 0],
+    "bottom": [2, 0],
+    "side": [2, 0]
   }
 }

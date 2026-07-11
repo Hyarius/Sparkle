@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/json.hpp"
+#include "core/registry.hpp"
 #include "world/generator/world_plan.hpp"
 
 #include <array>
@@ -15,8 +16,6 @@ namespace spk::JSON
 namespace pg
 {
 	struct PrefabDefinition;
-	template <typename TDefinition>
-	class Registry;
 
 	// JSON slot name <-> entity kind, shared by placements.json and the per-biome
 	// "worldgen.prefabs" blocks.

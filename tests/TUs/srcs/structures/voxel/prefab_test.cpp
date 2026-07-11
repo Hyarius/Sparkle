@@ -275,6 +275,33 @@ TEST(Prefab, RotatedComposesWithRotatedBoundsUnderFlip)
 	EXPECT_EQ(transformed.maxBounds(), spk::Vector3Int(0, 0, 0));
 }
 
+TEST(Prefab, OwnsNamedAnchorsAndRejectsInvalidNames)
+{
+	spk::Prefab prefab;
+	prefab.addAnchor("door", {2, 1, -1});
+
+	ASSERT_NE(prefab.tryAnchor("door"), nullptr);
+	EXPECT_EQ(prefab.tryAnchor("door")->position, spk::Vector3Int(2, 1, -1));
+	EXPECT_EQ(prefab.tryAnchor("missing"), nullptr);
+	EXPECT_THROW(prefab.addAnchor("door", {0, 0, 0}), std::invalid_argument);
+	EXPECT_THROW(prefab.addAnchor("", {0, 0, 0}), std::invalid_argument);
+}
+
+TEST(Prefab, RotatedTransformsAnchorsAroundThePivot)
+{
+	spk::Prefab prefab;
+	prefab.setPivot({1, 0, 1});
+	prefab.addAnchor("socket", {2, 2, 1});
+
+	const spk::Prefab transformed = prefab.rotated(
+		spk::VoxelOrientation::PositiveX,
+		spk::VoxelFlip::NegativeY);
+	ASSERT_NE(transformed.tryAnchor("socket"), nullptr);
+	// Pivot-relative (+1,+2,0) mirrors to (+1,-2,0), then turns to (0,-2,-1).
+	EXPECT_EQ(transformed.tryAnchor("socket")->position, spk::Vector3Int(1, -2, 0));
+	EXPECT_EQ(prefab.tryAnchor("socket")->position, spk::Vector3Int(2, 2, 1));
+}
+
 TEST(Prefab, NegativeYLayersLandBelowTheDestination)
 {
 	spk::VoxelGrid grid(spk::Vector3Int{3, 3, 3});

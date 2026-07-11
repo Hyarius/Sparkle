@@ -10,7 +10,7 @@ trainers, prefab stamping — replacing hand-written map JSON.
 ## Reading
 
 [tooling.md](../../03-systems/tooling.md) ·
-[02-data-model.md §13/§13b](../../02-data-model.md) · `MousePicker`/`WorldRaycaster`
+[02-data-model.md §13/§13b](../../02-data-model.md) · `MousePicker`/`spk::VoxelRayCast`
 (step 07 — reused directly).
 
 ## Files

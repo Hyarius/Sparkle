@@ -14,6 +14,7 @@
 #include "structures/voxel/spk_slope_voxel_shape.hpp"
 #include "structures/voxel/spk_stair_voxel_shape.hpp"
 #include "structures/voxel/spk_voxel_mesher.hpp"
+#include "structures/voxel/spk_voxel_orientation.hpp"
 
 namespace
 {
@@ -648,6 +649,23 @@ TEST(VoxelMesher, PartialBoundaryOverlapRemovesOnlyTheIntersection)
 
 	const spk::VoxelMesh3D &mesh = spk::VoxelMesher::buildRenderMesh(grid, registry).transparent;
 	EXPECT_NEAR(surfaceAreaOnBoundary(mesh, spk::VoxelAxisPlane::PositiveX, 1.0f), 0.75f, 0.0001f);
+
+	bool foundClippedVertex = false;
+	for (const spk::VoxelVertex3D &vertex : mesh.vertices())
+	{
+		if (vertex.normal != spk::Vector3(1.0f, 0.0f, 0.0f) || std::abs(vertex.position.x - 1.0f) > 0.0001f)
+		{
+			continue;
+		}
+		EXPECT_NEAR(vertex.uv.x, (1.0f - vertex.position.z) / 8.0f, 0.0001f);
+		EXPECT_NEAR(vertex.uv.y, (1.0f - vertex.position.y) / 8.0f, 0.0001f);
+		foundClippedVertex = foundClippedVertex ||
+			std::abs(vertex.position.y - 0.25f) <= 0.0001f ||
+			std::abs(vertex.position.y - 0.75f) <= 0.0001f ||
+			std::abs(vertex.position.z - 0.25f) <= 0.0001f ||
+			std::abs(vertex.position.z - 0.75f) <= 0.0001f;
+	}
+	EXPECT_TRUE(foundClippedVertex);
 }
 
 TEST(VoxelMesher, DiamondExtremaDoNotMasqueradeAsFullBoundaryCoverage)
@@ -708,7 +726,7 @@ TEST(VoxelMesher, BoundaryOverlapTracksNeighborOrientationAndVerticalFlip)
 			{
 				const spk::VoxelAxisPlane opposite = static_cast<spk::VoxelAxisPlane>(
 					static_cast<int>(candidate) % 2 == 0 ? static_cast<int>(candidate) + 1 : static_cast<int>(candidate) - 1);
-				if (spk::VoxelMesher::mapWorldPlaneToLocal(opposite, orientation, flip) == spk::VoxelAxisPlane::NegativeX)
+				if (spk::mapWorldPlaneToLocal(opposite, orientation, flip) == spk::VoxelAxisPlane::NegativeX)
 				{
 					sharedPlane = candidate;
 					break;
@@ -795,7 +813,7 @@ TEST(VoxelMesher, MixedShapeInnerFacesDependOnTrueCellEnclosure)
 				spk::VoxelAxisPlane openPlane = spk::VoxelAxisPlane::Count;
 				for (const spk::VoxelAxisPlane candidate : planes)
 				{
-					if (spk::VoxelMesher::mapWorldPlaneToLocal(candidate, orientation, flip) == spk::VoxelAxisPlane::NegativeZ)
+					if (spk::mapWorldPlaneToLocal(candidate, orientation, flip) == spk::VoxelAxisPlane::NegativeZ)
 					{
 						openPlane = candidate;
 						break;
@@ -827,46 +845,6 @@ TEST(VoxelMesher, MixedShapeInnerFacesDependOnTrueCellEnclosure)
 			}
 		}
 	}
-}
-
-TEST(VoxelMesher, MapsWorldPlanesToLocalForEveryOrientationAndFlip)
-{
-	using O = spk::VoxelOrientation;
-	using P = spk::VoxelAxisPlane;
-	using F = spk::VoxelFlip;
-
-	constexpr std::array worldPlanes = {P::PositiveX, P::NegativeX, P::PositiveY, P::NegativeY, P::PositiveZ, P::NegativeZ};
-	constexpr std::array orientations = {O::PositiveZ, O::PositiveX, O::NegativeZ, O::NegativeX};
-	constexpr std::array positiveYMappings = {
-		std::array{P::PositiveX, P::NegativeX, P::PositiveY, P::NegativeY, P::PositiveZ, P::NegativeZ},
-		std::array{P::PositiveZ, P::NegativeZ, P::PositiveY, P::NegativeY, P::NegativeX, P::PositiveX},
-		std::array{P::NegativeX, P::PositiveX, P::PositiveY, P::NegativeY, P::NegativeZ, P::PositiveZ},
-		std::array{P::NegativeZ, P::PositiveZ, P::PositiveY, P::NegativeY, P::PositiveX, P::NegativeX}};
-
-	for (std::size_t orientationIndex = 0; orientationIndex < orientations.size(); ++orientationIndex)
-	{
-		for (std::size_t planeIndex = 0; planeIndex < worldPlanes.size(); ++planeIndex)
-		{
-			EXPECT_EQ(
-				spk::VoxelMesher::mapWorldPlaneToLocal(worldPlanes[planeIndex], orientations[orientationIndex], F::PositiveY),
-				positiveYMappings[orientationIndex][planeIndex]);
-
-			P flippedMapping = positiveYMappings[orientationIndex][planeIndex];
-			if (flippedMapping == P::PositiveY)
-			{
-				flippedMapping = P::NegativeY;
-			}
-			else if (flippedMapping == P::NegativeY)
-			{
-				flippedMapping = P::PositiveY;
-			}
-			EXPECT_EQ(
-				spk::VoxelMesher::mapWorldPlaneToLocal(worldPlanes[planeIndex], orientations[orientationIndex], F::NegativeY),
-				flippedMapping);
-		}
-	}
-
-	EXPECT_THROW((void)spk::VoxelMesher::mapWorldPlaneToLocal(P::Count, O::PositiveZ, F::PositiveY), std::invalid_argument);
 }
 
 TEST(VoxelMesher, OrientedCellsRemainWatertight)

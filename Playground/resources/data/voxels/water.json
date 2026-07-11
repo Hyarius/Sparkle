@@ -1,1 +1,15 @@
-{"version":1,"traversal":"solid","tags":["water","river","losTransparent"],"transparency":0.5,"shape":{"type":"fluid","maxSpread":8,"textures":{"top":[2,1],"side":[2,1],"bottom":[2,1]}}}
+{
+  "version": 2,
+  "traversal": "solid",
+  "tags": ["water", "river", "losTransparent"],
+  "transparency": 0.5,
+  "shape": "cube",
+  "textures": {
+    "top": [2, 1],
+    "bottom": [2, 1],
+    "side": [2, 1]
+  },
+  "fluid": {
+    "maxSpread": 8
+  }
+}

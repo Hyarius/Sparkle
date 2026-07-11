@@ -192,8 +192,9 @@ Files: `srcs/board/*` (`traversal_graph.cpp`, `traversal_graph_builder.cpp`,
    the max vertical gap from game rules.
 2. `WorldNavigation` caches the graph and rebuilds lazily whenever
    `VoxelWorld::revision()` moves or bounds are reset (streaming recenters them).
-3. `ExplorationInputLogic` raycasts the mouse (`WorldRaycaster`, DDA over cells) to
-   hover-highlight a cell (mask overlay mesh) and, on click, asks `Pathfinder` (A*
+3. `ExplorationInputLogic` builds a camera ray and uses `spk::VoxelRayCast` (unit-cell
+   boundary DDA, filtered by pg traversal semantics) to hover-highlight a cell
+   (mask overlay mesh) and, on click, asks `Pathfinder` (A*
    over the graph) for a path to the target.
 4. `ActorPathLogic` advances the actor along its path segments at `Actor::speed`,
    emits `playerMoved` events per cell (which chapter 5 uses for portals), and

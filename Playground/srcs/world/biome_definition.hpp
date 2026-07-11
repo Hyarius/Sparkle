@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/json.hpp"
+#include "core/registry.hpp"
 #include "core/weighted_pool.hpp"
 #include "structures/graphics/geometry/spk_color.hpp"
 #include "structures/math/spk_vector3.hpp"
@@ -14,8 +15,6 @@ namespace pg
 {
 	class VoxelRegistry;
 	struct PrefabDefinition;
-	template <typename TDefinition>
-	class Registry;
 
 	struct BiomePalette
 	{

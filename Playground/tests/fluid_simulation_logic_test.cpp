@@ -66,7 +66,16 @@ namespace
 			std::size_t p_sourceCount,
 			std::vector<spk::Vector3Int> p_chunks = {{0, 0, 0}})
 		{
-			registry.load(std::filesystem::path(PG_RESOURCE_DIR) / "data" / "voxels");
+			pg::ShapeCatalog shapes;
+			spk::loadJsonDirectory(
+				shapes,
+				std::filesystem::path(PG_RESOURCE_DIR) / "data" / "shapes",
+				[](std::string_view p_id, pg::JsonReader &p_reader) {
+					pg::ShapeDefinition definition = pg::parseShapeDefinition(p_reader);
+					definition.id = p_id;
+					return definition;
+				});
+			registry.load(shapes, std::filesystem::path(PG_RESOURCE_DIR) / "data" / "voxels");
 			provider = std::make_unique<FluidChunkProvider>(
 				registry.numericId("stone-block"),
 				registry.numericId("water"),

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "core/registry.hpp"
+#include "structures/container/spk_grid_2d.hpp"
 #include "structures/graphics/geometry/spk_color.hpp"
 #include "structures/math/spk_vector3.hpp"
 #include "structures/voxel/spk_voxel_enums.hpp"
@@ -25,9 +27,9 @@ namespace pg
 
 	private:
 		int _size = 0;
-		std::vector<TValue> _values;
+		spk::Grid2D<TValue> _values;
 
-		[[nodiscard]] static std::size_t _checkedArea(int p_size)
+		[[nodiscard]] static spk::Vector2UInt _checkedSize(int p_size)
 		{
 			if (p_size <= 0)
 			{
@@ -37,24 +39,15 @@ namespace pg
 			{
 				throw std::length_error("PlanGrid size exceeds MaximumDimension");
 			}
-			const std::size_t side = static_cast<std::size_t>(p_size);
-			if (side > std::numeric_limits<std::size_t>::max() / side)
-			{
-				throw std::length_error("PlanGrid area overflows size_t");
-			}
-			const std::size_t area = side * side;
-			if (area > std::vector<TValue>{}.max_size())
-			{
-				throw std::length_error("PlanGrid area exceeds vector storage limits");
-			}
-			return area;
+			const unsigned int side = static_cast<unsigned int>(p_size);
+			return {side, side};
 		}
 
 	public:
 		PlanGrid() = default;
 		explicit PlanGrid(int p_size, TValue p_fill = TValue{}) :
 			_size(p_size),
-			_values(_checkedArea(p_size), p_fill)
+			_values(_checkedSize(p_size), p_fill)
 		{
 		}
 
@@ -72,8 +65,7 @@ namespace pg
 			{
 				throw std::out_of_range("PlanGrid coordinates are outside the grid");
 			}
-			return _values[static_cast<std::size_t>(p_row) * static_cast<std::size_t>(_size) +
-						   static_cast<std::size_t>(p_col)];
+			return _values.at(static_cast<std::size_t>(p_col), static_cast<std::size_t>(p_row));
 		}
 		[[nodiscard]] const TValue &at(int p_row, int p_col) const
 		{
@@ -81,8 +73,7 @@ namespace pg
 			{
 				throw std::out_of_range("PlanGrid coordinates are outside the grid");
 			}
-			return _values[static_cast<std::size_t>(p_row) * static_cast<std::size_t>(_size) +
-						   static_cast<std::size_t>(p_col)];
+			return _values.at(static_cast<std::size_t>(p_col), static_cast<std::size_t>(p_row));
 		}
 	};
 
@@ -441,8 +432,6 @@ namespace pg
 		[[nodiscard]] std::string report() const;
 	};
 
-	template <typename TDefinition>
-	class Registry;
 	struct BiomeDefinition;
 	struct PrefabDefinition;
 	struct InteriorDefinition;

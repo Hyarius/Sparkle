@@ -1,1 +1,11 @@
-{"version":1,"traversal":"solid","tags":["scenery","flora","cactus"],"shape":{"type":"cuboid","min":[0.28,0.0,0.28],"max":[0.72,1.0,0.72],"textures":{"top":[3,6],"side":[4,6],"bottom":[3,6]}}}
+{
+  "version": 2,
+  "traversal": "solid",
+  "tags": ["scenery", "flora", "cactus"],
+  "shape": "cactus-pillar",
+  "textures": {
+    "top": [3, 6],
+    "bottom": [3, 6],
+    "side": [4, 6]
+  }
+}

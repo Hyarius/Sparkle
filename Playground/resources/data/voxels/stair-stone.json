@@ -1,17 +1,14 @@
 {
-  "version": 1,
+  "version": 2,
   "traversal": "solid",
   "tags": ["ground", "stone", "stair"],
-  "shape": {
-    "type": "stair",
-    "stepCount": 2,
-    "textures": {
-      "top": [3, 0],
-      "riser": [4, 1],
-      "back": [3, 0],
-      "bottom": [3, 0],
-      "sideLeft": [5, 1],
-      "sideRight": [5, 1]
-    }
+  "shape": "stair",
+  "textures": {
+    "top": [3, 0],
+    "riser": [4, 1],
+    "back": [3, 0],
+    "bottom": [3, 0],
+    "sideLeft": [5, 1],
+    "sideRight": [5, 1]
   }
 }
