@@ -194,6 +194,22 @@ namespace pg
 		int maxZ = 0;
 	};
 
+	// One committed composed staircase (top platform, flight pieces, bottom platform),
+	// recorded by the generator at commit time so consumers (the --check-stairs
+	// harness, the preview map, future gameplay) never re-infer the group from the
+	// flat placement list. Anchor y's are stand heights (first air layer above the
+	// platform surface): topAnchor.y on the high plateau, bottomAnchor.y on the low
+	// ground.
+	struct PlanStairway
+	{
+		spk::Vector3Int topAnchor{};	// top platform anchor, flush with the high plateau
+		spk::Vector3Int bottomAnchor{}; // bottom platform anchor on the low ground
+		int steps = 0;					// height levels climbed == flight piece count
+		bool alongX = false;			// the flight runs along world x (else z)
+		int tangent = 1;				// along-axis direction from top toward bottom
+		bool road = false;				// road climb (paved approach band) vs wild slope
+	};
+
 	// A one-way teleport: an actor whose cell reaches `from` (the block it stands on)
 	// is moved to stand on `to`. Door cells of buildings pair with the entry pad of
 	// their composed interior; the interior's exit pad pairs back with the cell just
@@ -333,6 +349,7 @@ namespace pg
 		std::vector<std::pair<PlanEntity, PlanEntity>> boatLinks;
 		std::vector<PrefabPlacement> placements;
 		std::vector<std::pair<int, int>> wildStairs; // (row, col) of each wild stairway's lower cell
+		std::vector<PlanStairway> stairways;		 // every committed composed staircase
 		std::vector<PlanStairRect> stairRects;		 // world-column footprints of every stairway
 		// Approach bands of composed staircases: realization paves these columns with
 		// the zone's road block, so the road visibly turns at the crossing dead-end and

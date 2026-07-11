@@ -59,12 +59,6 @@ namespace
 	{
 		const pg::PlanChunkProvider provider(p_registries, p_plan);
 		VoxelSampler sampler{provider, p_registries.voxels().renderRegistry(), {}};
-		const auto isPlatform = [](const std::string &p_id) {
-			return p_id.find("stair-platform") != std::string::npos || p_id.find("slope-platform") != std::string::npos;
-		};
-		const auto isLength = [](const std::string &p_id) {
-			return p_id.find("stair-length") != std::string::npos || p_id.find("slope-length") != std::string::npos;
-		};
 		std::set<std::int32_t> roadIds{p_registries.voxels().numericId("road-block")};
 		for (const std::string &biomeId : p_registries.biomes().ids())
 		{
@@ -76,51 +70,21 @@ namespace
 
 		int groups = 0;
 		int failures = 0;
-		const auto &placements = p_plan.placements;
-		for (std::size_t index = 0; index < placements.size(); ++index)
+		// The plan records every committed composed staircase as a PlanStairway; each
+		// record is checked against the voxels the realization actually stamps, so
+		// plan and realization cannot drift apart silently.
+		for (const pg::PlanStairway &stairway : p_plan.stairways)
 		{
-			if (!isPlatform(placements[index].prefabId))
-			{
-				continue;
-			}
-			std::size_t end = index + 1;
-			while (end < placements.size() && isLength(placements[end].prefabId))
-			{
-				++end;
-			}
-			if (end == index + 1 || end >= placements.size() || !isPlatform(placements[end].prefabId))
-			{
-				continue;
-			}
-			const spk::Vector3Int topAnchor = placements[index].anchor;
-			const spk::Vector3Int bottomAnchor = placements[end].anchor;
-			const int steps = static_cast<int>(end - index - 1);
-			const bool alongX = topAnchor.z == bottomAnchor.z;
+			const spk::Vector3Int topAnchor = stairway.topAnchor;
+			const spk::Vector3Int bottomAnchor = stairway.bottomAnchor;
+			const int steps = stairway.steps;
+			const bool alongX = stairway.alongX;
 			const int acrossCenter = alongX ? topAnchor.z : topAnchor.x;
 			const int topAlong = alongX ? topAnchor.x : topAnchor.z;
 			const int bottomAlong = alongX ? bottomAnchor.x : bottomAnchor.z;
-			const int tangent = bottomAlong > topAlong ? 1 : -1;
+			const int tangent = stairway.tangent;
 			const int highStand = topAnchor.y;
 			const int lowStand = bottomAnchor.y;
-			// A real composed group forms a strict lattice: same across-line, pieces
-			// every 3 cells, one 3-voxel level per piece. Anything else is a run of
-			// unrelated neighboring placements; keep scanning.
-			bool lattice = highStand == lowStand + 3 * steps &&
-						   bottomAlong == topAlong + tangent * 3 * (steps + 1) &&
-						   (alongX ? bottomAnchor.z == topAnchor.z : bottomAnchor.x == topAnchor.x);
-			for (std::size_t piece = index + 1; piece < end && lattice; ++piece)
-			{
-				const spk::Vector3Int &anchor = placements[piece].anchor;
-				const int k = static_cast<int>(piece - index);
-				lattice = (alongX ? anchor.z == topAnchor.z : anchor.x == topAnchor.x) &&
-						  (alongX ? anchor.x : anchor.z) == topAlong + tangent * 3 * k &&
-						  anchor.y == lowStand + 3 * (steps - k);
-			}
-			if (!lattice)
-			{
-				continue;
-			}
-			index = end; // the group is consumed; resume after its bottom platform
 			++groups;
 			const auto standAt = [&](int p_across, int p_along) {
 				return alongX ? sampler.standHeight(p_along, p_across, highStand + 2)
@@ -163,7 +127,7 @@ namespace
 			// 3. The three-column approach band beside the structure is flat low
 			//    ground end to end; road climbs must also have it paved with a road
 			//    block, wild slope climbs keep natural ground.
-			const bool roadGroup = placements[index].prefabId.find("stair-platform") != std::string::npos;
+			const bool roadGroup = stairway.road;
 			bool bandClear = true;
 			for (int outward = 2; outward <= 4 && bandClear; ++outward)
 			{

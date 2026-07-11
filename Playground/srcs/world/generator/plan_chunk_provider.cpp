@@ -4,6 +4,7 @@
 #include "voxel/voxel_cell.hpp"
 #include "voxel/voxel_registry.hpp"
 #include "world/prefab_definition.hpp"
+#include "world/prefab_placement_math.hpp"
 
 #include "structures/voxel/spk_voxel_chunk.hpp"
 
@@ -125,23 +126,14 @@ namespace pg
 						  << std::endl;
 				continue;
 			}
-			// anchor.x/z is the footprint center and anchor.y the ground level. The
-			// rotated bounding box is re-anchored on those regardless of where the
-			// prefab's pivot sits, and content below the ground level (floor slabs,
-			// POI pedestals) sinks into the terrain.
-			const auto [rotatedMin, rotatedMax] = prefab->prefab.rotatedBounds(placement.orientation);
-			const spk::Vector3Int extents = rotatedMax - rotatedMin + spk::Vector3Int{1, 1, 1};
-			const spk::Vector3Int worldMin = placement.anchorToPivot
-												 ? placement.anchor + rotatedMin
-												 : spk::Vector3Int{
-													   placement.anchor.x - extents.x / 2,
-													   placement.anchor.y + rotatedMin.y,
-													   placement.anchor.z - extents.z / 2};
+			// Shared with the world planner (prefab_placement_math.hpp): the plan's
+			// claimed zones and stair footprints reason about exactly this box.
+			const ResolvedPlacementBox box = resolvePlacement(prefab->prefab, placement);
 			_placements.push_back(
 				{.definition = prefab,
-				 .worldMin = worldMin,
-				 .rotatedSize = extents,
-				 .destination = placement.anchorToPivot ? placement.anchor : worldMin - rotatedMin,
+				 .worldMin = box.worldMin,
+				 .rotatedSize = box.extents,
+				 .destination = box.destination,
 				 .orientation = placement.orientation,
 				 .foundation = placement.foundation});
 		}
