@@ -78,13 +78,24 @@ placement rules (which validates prefab ids, so it loads after synthesis).
 
 ## 2. World plan generation
 
-All in `world/generator/world_plan_generator.cpp` unless noted. The `Generator`
-struct holds the growing `WorldPlan` plus scratch state: `continents`,
-`zoneContinent`, `borders`, `distOcean`, `hardClaims`, `stairCells`,
-`stairFootprints`, `interiorSlotsUsed`, and three RNG streams (`roadRng`,
-`prefabPickRng`, plus per-stage `rngFor(path)`).
+The `Generator` struct (declared in `world/generator/world_plan_generator.hpp`,
+namespace `pg::worldgen`) holds the growing `WorldPlan` plus scratch state:
+`continents`, `zoneContinent`, `borders`, `distOcean`, `hardClaims`,
+`stairCells`, `stairFootprints`, `interiorSlotsUsed`, and three RNG streams
+(`roadRng`, `prefabPickRng`, plus per-stage `rngFor(path)`). Its stage
+implementations are split over topic files (2026-07-11):
 
-### 2.0 Shared helpers (lines 36–336)
+| File | Contents |
+|---|---|
+| `world_plan_math.{hpp,cpp}` | `Cell`, `Rng`, `deriveSeed`, noise, BFS helpers |
+| `world_plan_terrain.cpp` | graph, landmass + zones, heights, water (2.1–2.5) |
+| `world_plan_infrastructure.cpp` | gateways, entities, ports, roads, boats, bridges, buildings (2.6–2.10, 2.12) |
+| `world_plan_stairways.cpp` | claims, stair candidates, stair placement (2.11) |
+| `world_plan_interiors.cpp` | room composition and portals (2.12) |
+| `world_plan_scenery.cpp` | biome dressing (2.13) |
+| `world_plan_generator.cpp` | orchestration (`run`), stats, `planBiomesFrom`, `report`, `generateWorldPlan` |
+
+### 2.0 Shared helpers (`world_plan_math.{hpp,cpp}`)
 
 - `deriveSeed(master, path)` — FNV-1a over `"<master>::<path>"`.
 - `Rng` — mt19937_64 with `uniform()`, `below(n)`, `poisson(mean)`, `shuffle`.
@@ -97,12 +108,12 @@ struct holds the growing `WorldPlan` plus scratch state: `continents`,
   2026-07-11 (decision D41) provided by the library
   (`structures/voxel/spk_voxel_orientation.hpp`), no longer defined here.
 
-### 2.1 buildWorldGraph (392)
+### 2.1 buildWorldGraph
 
 Shuffles biome indices and progression ranks; zone *i* gets
 `biomeIndices[i % biomeCount]` and a shuffled progression.
 
-### 2.2 buildLandmass (414) + dropTinyIslands (473)
+### 2.2 buildLandmass + dropTinyIslands
 
 `field = (1 - radialDistance) + coastNoise*(noise-0.5) + 0.25*(fine-0.5)`; if
 `fragmentation > 0`, subtracts 1–3 gaussian "channel" troughs at random angles with
@@ -110,14 +121,14 @@ wobbled distance. `land = field > landThreshold`. Islands under
 `max(20, 1% of area)` cells are dropped (keeping at least the biggest). Continents
 labelled; `distOcean = distanceTo(!land)`.
 
-### 2.3 assignZones (528) + enforceContiguousZones (565) + mapZoneContinents (649) + findBorders (679)
+### 2.3 assignZones + enforceContiguousZones + mapZoneContinents + findBorders
 
 Farthest-point seeds over land; per-cell warped (±12% value noise) nearest-seed
 assignment. Two passes reattach non-main zone fragments to a bordering zone. Each
 zone maps to its majority continent. `borders[(zoneA,zoneB)]` collects boundary
 cells.
 
-### 2.4 assignHeights (707)
+### 2.4 assignHeights
 
 Peak cells: `~2*(size/124)²` picks in peak-flagged zones, restricted to the 40% most
 inland cells of the zone. Then per land cell:
@@ -127,7 +138,7 @@ undulation is 3 octaves of value noise scaled by `undulationLevels`, `peakLift`
 decays over `cellsPerLevel*maxHeight*0.7` cells with pow 1.5, weight 1.0 in peak
 biomes / 0.25 elsewhere. Cells ≤1 from the coast are forced to level 0.
 
-### 2.5 generateWater (824)
+### 2.5 generateWater
 
 - `effective = height + jitter` (ocean = −1e6).
 - **Priority flood**: ocean-seeded min-heap fills depressions; `receiver[cell]`
@@ -139,13 +150,13 @@ biomes / 0.25 elsewhere. Cells ≤1 from the coast are forced to level 0.
   from the highest inland candidates, then each walks `receiver` links until sea /
   existing water; the walked channel becomes `water`.
 
-### 2.6 resolveGateways (1070)
+### 2.6 resolveGateways
 
 Per zone-pair border: the cell nearest the border centroid becomes a primary
 gateway; borders > 8 cells have a 50% chance of a secondary gateway at the farthest
 cell.
 
-### 2.7 placeEntities (1119) + assignPorts (1231)
+### 2.7 placeEntities + assignPorts
 
 Per zone: candidate cells = in-zone, dry land. `sample(kind, count, block,
 distRatio, coastRule)` shuffles candidates and accepts cells respecting (a) blocking
@@ -155,7 +166,7 @@ by halving until placed. Cities: inland first, then anywhere. POIs (rare/uncommo
 normal): anywhere. `assignPorts` promotes each continent's most coastal cities
 (within `2*coastDistCells`) to port cities.
 
-### 2.8 buildRoads (1521) + findPath (1337) + stepCost (1296) + removeRoadSquares (1621)
+### 2.8 buildRoads + findPath + stepCost + removeRoadSquares
 
 Hub = the zone's gym (fallback: first settlement). Roads: hub → each settlement
 (nearest first), hub-adjacent roads → `poiRoadConnections` random POIs (attached at
@@ -170,18 +181,18 @@ step `dh` +7·dh, `dh > maxComposedStairLevels` blocked; existing road ×0.25.
 `removeRoadSquares` erases the redundant corner of any surviving 2×2 (only when its
 two outside neighbors are non-road, so connectivity is preserved through the L).
 
-### 2.9 addBoatLinks (1660)
+### 2.9 addBoatLinks
 
 Labels road components. Each component needs ≥1 port city — port-less components
 promote their most coastal city. Component #1 is the base; every other component
 links its nearest port pair to it (`boatLinks`), making the road graph logically
 one component (checked in `report()`).
 
-### 2.10 markBridges (1765)
+### 2.10 markBridges
 
 `road && (water || !land)` ⇒ `bridge`.
 
-### 2.11 Stairways (1795–2462) — the intricate part
+### 2.11 Stairways (`world_plan_stairways.cpp`) — the intricate part
 
 Concepts:
 
@@ -234,7 +245,7 @@ step. `placeWildStairways` collects per-zone off-road cliff candidates, shuffles
 enforces Chebyshev spacing `wildStairSpacingCells` against every stairway, places
 up to `wildStairsPerZone`.
 
-### 2.12 Buildings & interiors (2464–2754)
+### 2.12 Buildings (`world_plan_infrastructure.cpp`) & interiors (`world_plan_interiors.cpp`)
 
 `placeBuildings`: for each entity with a pool (biome override first, then
 placements.json), anchor = cell center at `surfaceY(level)+1`, try 9 nudges (center,
@@ -253,7 +264,7 @@ reject if outside the slot or colliding with a placed room, else stamp an
 both connectors. Finally two one-way portals: door cell → entry pad, exit pad →
 one cell outside the door (outward = dominant door-offset axis).
 
-### 2.13 placeScenery (2760)
+### 2.13 placeScenery (`world_plan_scenery.cpp`)
 
 Per zone: candidate cells = in-zone dry land, no road/entity/stairs. Per cell, each
 scenery entry rolls `poisson(density)` requests; each request gets 8 attempts: a
@@ -262,7 +273,7 @@ height, off-road, dry; center-distance spacing against previously placed scenery
 (`placedScenery` map + `maximumSpacing` search radius); claim must be free
 (scenery yields to structures). Placement stored with random orientation.
 
-### 2.14 computeStats (2883) + report (3000)
+### 2.14 computeStats + report (`world_plan_generator.cpp`)
 
 Counts land/road/river cells, gyms too close to coast, diagonal-only road/river
 steps, road 2×2 squares (must be 0), gateways, boat links, road components. The

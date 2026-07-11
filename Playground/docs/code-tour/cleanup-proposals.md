@@ -72,6 +72,16 @@ it, and future gameplay (minimap icons, fast travel) gets the data for free.
 
 ## C. Split `world_plan_generator.cpp` (2 953 lines)
 
+> **Status: DONE** (2026-07-11, after B). `Generator` survived as the
+> state-owning orchestrator, declared in `world_plan_generator.hpp`
+> (namespace `pg::worldgen`); its stage implementations moved into
+> `world_plan_math.{hpp,cpp}`, `world_plan_terrain.cpp`,
+> `world_plan_infrastructure.cpp` (entities, ports, roads, buildings),
+> `world_plan_stairways.cpp` (claims included), `world_plan_interiors.cpp`,
+> and `world_plan_scenery.cpp`; `world_plan_generator.cpp` keeps `run()`,
+> stats, and the public entry point (~260 lines). The sketch below is the
+> original proposal, kept for context (final file names differ).
+
 The internal structure is actually clean — one `Generator` struct with well-named
 stages — but it is the only file in the project an editor chokes on, and unrelated
 concerns (grid math, road A*, stair composing, interior growing) share one blob.

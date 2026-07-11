@@ -35,7 +35,9 @@ the `world/*_parser.cpp` files, `world/generator/climb_prefabs.cpp`.
 ## 2. World plan generation
 
 Files: `world/generator/world_plan.hpp` (data model),
-`world_plan_generator.cpp` (the `Generator`), `world_plan_validation.cpp`.
+`world_plan_generator.hpp` (the `Generator`, stages split over
+`world_plan_{math,terrain,infrastructure,stairways,interiors,scenery,generator}.cpp`),
+`world_plan_validation.cpp`.
 
 `generateWorldPlan()` validates the config then runs `Generator::run()`, a fixed
 stage sequence. Every stage draws randomness from `rngFor("semantic/path")` — a
