@@ -45,6 +45,7 @@
 #include "type/spk_time_unit.hpp"
 #include "utils/spk_time_utils.hpp"
 
+#include "structures/system/spk_command_line_parser.hpp"
 #include "structures/system/spk_profiler.hpp"
 
 #include "structures/system/device/input/spk_keyboard.hpp"
