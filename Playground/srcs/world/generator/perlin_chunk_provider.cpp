@@ -15,12 +15,7 @@ namespace pg
 		const VoxelRegistry &p_voxels, std::uint64_t p_seed, PerlinTerrainParameters p_parameters) :
 		_voxels(p_voxels),
 		_parameters(p_parameters),
-		_height(spk::Perlin::Parameters{
-			.seed = static_cast<std::uint32_t>(p_seed ^ (p_seed >> 32)),
-			.octaves = p_parameters.octaves,
-			.persistence = p_parameters.persistence,
-			.lacunarity = p_parameters.lacunarity,
-			.frequency = p_parameters.frequency})
+		_height(spk::Perlin::Parameters{.seed = static_cast<std::uint32_t>(p_seed ^ (p_seed >> 32)), .octaves = p_parameters.octaves, .persistence = p_parameters.persistence, .lacunarity = p_parameters.lacunarity, .frequency = p_parameters.frequency})
 	{
 		_grass = _voxels.numericId("grass-block");
 		_dirt = _voxels.numericId("dirt-block");
@@ -69,42 +64,44 @@ namespace pg
 	void PerlinChunkProvider::fill(spk::VoxelChunk &p_chunk) const
 	{
 		const spk::Vector3Int origin = p_chunk.worldOrigin();
-		for (int z = 0; z < spk::VoxelChunk::Size.z; ++z)
-		{
-			for (int x = 0; x < spk::VoxelChunk::Size.x; ++x)
+		p_chunk.editCells([&](spk::VoxelChunk::Editor &p_editor) {
+			for (int z = 0; z < spk::VoxelChunk::Size.z; ++z)
 			{
-				const int top = surfaceHeight(origin.x + x, origin.z + z);
-				for (int y = 0; y < spk::VoxelChunk::Size.y; ++y)
+				for (int x = 0; x < spk::VoxelChunk::Size.x; ++x)
 				{
-					const int worldY = origin.y + y;
-					VoxelCell value;
-					if (worldY <= top)
+					const int top = surfaceHeight(origin.x + x, origin.z + z);
+					for (int y = 0; y < spk::VoxelChunk::Size.y; ++y)
 					{
-						const int depth = top - worldY;
-						if (depth == 0)
+						const int worldY = origin.y + y;
+						VoxelCell value;
+						if (worldY <= top)
 						{
-							value.id = top <= _parameters.seaLevel ? _sand : _grass;
+							const int depth = top - worldY;
+							if (depth == 0)
+							{
+								value.id = top <= _parameters.seaLevel ? _sand : _grass;
+							}
+							else if (depth <= 3)
+							{
+								value.id = _dirt;
+							}
+							else
+							{
+								value.id = _stone;
+							}
 						}
-						else if (depth <= 3)
+						else if (worldY <= _parameters.seaLevel)
 						{
-							value.id = _dirt;
+							value.id = _water;
 						}
 						else
 						{
-							value.id = _stone;
+							continue; // above both terrain and water: leave as air
 						}
+						(void)p_editor.setCell(x, y, z, value);
 					}
-					else if (worldY <= _parameters.seaLevel)
-					{
-						value.id = _water;
-					}
-					else
-					{
-						continue; // above both terrain and water: leave as air
-					}
-					p_chunk.grid().cell(x, y, z) = value;
 				}
 			}
-		}
+		});
 	}
 }

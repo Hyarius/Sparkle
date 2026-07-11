@@ -271,43 +271,45 @@ namespace pg
 			return; // below the world: keep it empty
 		}
 
-		for (int z = 0; z < spk::VoxelChunk::Size.z; ++z)
-		{
-			for (int x = 0; x < spk::VoxelChunk::Size.x; ++x)
+		p_chunk.editCells([&](spk::VoxelChunk::Editor &p_editor) {
+			for (int z = 0; z < spk::VoxelChunk::Size.z; ++z)
 			{
-				const Column column = _column(origin.x + x, origin.z + z);
-				for (int y = 0; y < spk::VoxelChunk::Size.y; ++y)
+				for (int x = 0; x < spk::VoxelChunk::Size.x; ++x)
 				{
-					const int worldY = origin.y + y;
-					VoxelCell value;
-					if (worldY >= 0 && worldY <= column.groundTop)
+					const Column column = _column(origin.x + x, origin.z + z);
+					for (int y = 0; y < spk::VoxelChunk::Size.y; ++y)
 					{
-						const int depth = column.groundTop - worldY;
-						if (depth == 0)
+						const int worldY = origin.y + y;
+						VoxelCell value;
+						if (worldY >= 0 && worldY <= column.groundTop)
 						{
-							value.id = column.surfaceId;
+							const int depth = column.groundTop - worldY;
+							if (depth == 0)
+							{
+								value.id = column.surfaceId;
+							}
+							else if (depth <= column.subsurfaceDepth)
+							{
+								value.id = column.subsurfaceId;
+							}
+							else
+							{
+								value.id = column.deepId;
+							}
 						}
-						else if (depth <= column.subsurfaceDepth)
+						else if (worldY == column.waterY)
 						{
-							value.id = column.subsurfaceId;
+							value.id = _water;
 						}
 						else
 						{
-							value.id = column.deepId;
+							continue;
 						}
+						(void)p_editor.setCell(x, y, z, value);
 					}
-					else if (worldY == column.waterY)
-					{
-						value.id = _water;
-					}
-					else
-					{
-						continue;
-					}
-					p_chunk.grid().cell(x, y, z) = value;
 				}
 			}
-		}
+		});
 
 		const spk::Vector3Int chunkMin = origin;
 		const spk::Vector3Int chunkMax = origin + spk::VoxelChunk::Size;
@@ -329,35 +331,36 @@ namespace pg
 	void PlanChunkProvider::_stamp(spk::VoxelChunk &p_chunk, const ResolvedPlacement &p_placement) const
 	{
 		const spk::Vector3Int origin = p_chunk.worldOrigin();
-
-		// Foundation: solid pillar from below the box down to the terrain, so ramps and
-		// buildings never float over a carved channel or a lower neighboring cell.
-		if (p_placement.foundation)
-		{
-			for (int dz = 0; dz < p_placement.rotatedSize.z; ++dz)
+		p_chunk.editCells([&](spk::VoxelChunk::Editor &p_editor) {
+			// Foundation: solid pillar from below the box down to the terrain, so ramps and
+			// buildings never float over a carved channel or a lower neighboring cell.
+			if (p_placement.foundation)
 			{
-				for (int dx = 0; dx < p_placement.rotatedSize.x; ++dx)
+				for (int dz = 0; dz < p_placement.rotatedSize.z; ++dz)
 				{
-					const int worldX = p_placement.worldMin.x + dx;
-					const int worldZ = p_placement.worldMin.z + dz;
-					const Column column = _column(worldX, worldZ);
-					for (int worldY = column.groundTop + 1; worldY < p_placement.worldMin.y; ++worldY)
+					for (int dx = 0; dx < p_placement.rotatedSize.x; ++dx)
 					{
-						const spk::Vector3Int local{worldX - origin.x, worldY - origin.y, worldZ - origin.z};
-						if (p_chunk.grid().isWithinBounds(local))
+						const int worldX = p_placement.worldMin.x + dx;
+						const int worldZ = p_placement.worldMin.z + dz;
+						const Column column = _column(worldX, worldZ);
+						for (int worldY = column.groundTop + 1; worldY < p_placement.worldMin.y; ++worldY)
 						{
-							VoxelCell cell;
-							cell.id = column.deepId;
-							p_chunk.grid().cell(local) = cell;
+							const spk::Vector3Int local{worldX - origin.x, worldY - origin.y, worldZ - origin.z};
+							if (p_editor.isWithinBounds(local))
+							{
+								VoxelCell cell;
+								cell.id = column.deepId;
+								(void)p_editor.setCell(local, cell);
+							}
 						}
 					}
 				}
 			}
-		}
 
-		// Stamp the rotated box; the prefab lists its empty cells too, so they overwrite
-		// (carve) and interiors and the air above ramps stay clear even against a cliff.
-		p_placement.definition->prefab.applyTo(p_chunk.grid(), p_placement.destination - origin, p_placement.orientation);
+			// Stamp the rotated box; the prefab lists its empty cells too, so they overwrite
+			// (carve) and interiors and the air above ramps stay clear even against a cliff.
+			p_editor.applyPrefab(p_placement.definition->prefab, p_placement.destination - origin, p_placement.orientation);
+		});
 	}
 
 	int PlanChunkProvider::surfaceHeight(int p_worldX, int p_worldZ) const

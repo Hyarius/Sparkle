@@ -2,6 +2,7 @@
 
 #include "structures/voxel/spk_voxel_grid.hpp"
 
+#include <functional>
 #include <utility>
 #include <vector>
 
@@ -73,6 +74,14 @@ namespace spk
 		// is the identity, matching VoxelOrientation semantics). Zero for an empty
 		// prefab.
 		[[nodiscard]] std::pair<spk::Vector3Int, spk::Vector3Int> rotatedBounds(spk::VoxelOrientation p_orientation) const noexcept;
+
+		// Visits the transformed position and cell of every listed voxel in insertion
+		// order. This lets mutation-aware targets apply a prefab without exposing their
+		// backing grid. Bounds filtering remains the target's responsibility.
+		void forEachAppliedVoxel(
+			const spk::Vector3Int &p_destination,
+			spk::VoxelOrientation p_orientation,
+			const std::function<void(const spk::Vector3Int &, const spk::VoxelCell &)> &p_visitor) const;
 
 		// Stamps the prefab into the grid: every voxel lands at p_destination plus its
 		// position rotated around the pivot, so p_destination is where the pivot lands

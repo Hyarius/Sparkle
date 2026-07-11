@@ -5,8 +5,10 @@
 #include "structures/voxel/spk_voxel_enums.hpp"
 
 #include <cstdint>
+#include <limits>
 #include <map>
 #include <optional>
+#include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
@@ -18,15 +20,41 @@ namespace pg
 	template <typename TValue>
 	class PlanGrid
 	{
+	public:
+		static constexpr int MaximumDimension = 4096;
+
 	private:
 		int _size = 0;
 		std::vector<TValue> _values;
+
+		[[nodiscard]] static std::size_t _checkedArea(int p_size)
+		{
+			if (p_size <= 0)
+			{
+				throw std::invalid_argument("PlanGrid size must be positive");
+			}
+			if (p_size > MaximumDimension)
+			{
+				throw std::length_error("PlanGrid size exceeds MaximumDimension");
+			}
+			const std::size_t side = static_cast<std::size_t>(p_size);
+			if (side > std::numeric_limits<std::size_t>::max() / side)
+			{
+				throw std::length_error("PlanGrid area overflows size_t");
+			}
+			const std::size_t area = side * side;
+			if (area > std::vector<TValue>{}.max_size())
+			{
+				throw std::length_error("PlanGrid area exceeds vector storage limits");
+			}
+			return area;
+		}
 
 	public:
 		PlanGrid() = default;
 		explicit PlanGrid(int p_size, TValue p_fill = TValue{}) :
 			_size(p_size),
-			_values(static_cast<std::size_t>(p_size) * static_cast<std::size_t>(p_size), p_fill)
+			_values(_checkedArea(p_size), p_fill)
 		{
 		}
 
@@ -40,11 +68,21 @@ namespace pg
 		}
 		[[nodiscard]] TValue &at(int p_row, int p_col)
 		{
-			return _values[static_cast<std::size_t>(p_row) * _size + p_col];
+			if (!contains(p_row, p_col))
+			{
+				throw std::out_of_range("PlanGrid coordinates are outside the grid");
+			}
+			return _values[static_cast<std::size_t>(p_row) * static_cast<std::size_t>(_size) +
+						   static_cast<std::size_t>(p_col)];
 		}
 		[[nodiscard]] const TValue &at(int p_row, int p_col) const
 		{
-			return _values[static_cast<std::size_t>(p_row) * _size + p_col];
+			if (!contains(p_row, p_col))
+			{
+				throw std::out_of_range("PlanGrid coordinates are outside the grid");
+			}
+			return _values[static_cast<std::size_t>(p_row) * static_cast<std::size_t>(_size) +
+						   static_cast<std::size_t>(p_col)];
 		}
 	};
 
@@ -168,31 +206,43 @@ namespace pg
 
 	struct WorldGenConfig
 	{
-		int size = 124; // plan cells per side
-		int zoneCount = 8;
-		std::uint64_t masterSeed = 1234;
+		static constexpr int MinimumPlanSize = 16;
+		static constexpr int MaximumPlanSize = 512;
+		static constexpr int MaximumZoneCount = 256;
+		static constexpr int MaximumHeightLevel = std::numeric_limits<std::int8_t>::max();
+		static constexpr int MaximumPerZoneCount = 64;
+		static constexpr int MaximumBlocksPerCell = 256;
+		static constexpr int MaximumBlocksPerLevel = 64;
+		static constexpr int MaximumGroundMagnitude = 1'000'000;
+		static constexpr int MaximumInteriorGap = 1'000'000;
+		static constexpr int MinimumInteriorSlotBlocks = 8;
+		static constexpr int MaximumInteriorSlotBlocks = 4096;
+
+		int size = 124; // [MinimumPlanSize, MaximumPlanSize] plan cells per side
+		int zoneCount = 8; // [1, min(MaximumZoneCount, size * size)]
+		std::uint64_t masterSeed = 1234; // the complete uint64_t domain is valid
 
 		// Territory / landmass
-		double landThreshold = 0.42;
-		double coastNoise = 0.55;
-		double fragmentation = 0.0;
-		double minZoneFraction = 0.03;
+		double landThreshold = 0.42; // finite, strictly between 0 and 1
+		double coastNoise = 0.55; // finite [0, 2]
+		double fragmentation = 0.0; // finite [0, 1]
+		double minZoneFraction = 0.03; // finite (0, 1]
 
 		// Heights (in strata levels)
-		int maxHeightLevel = 6;
-		double cellsPerLevel = 10.0;
-		double coastTrendWeight = 0.5;
-		double undulationLevels = 2.2;
-		double heightFeatureCells = 26.0;
+		int maxHeightLevel = 6; // [1, MaximumHeightLevel], fits PlanGrid<int8_t>
+		double cellsPerLevel = 10.0; // finite (0, 4096]
+		double coastTrendWeight = 0.5; // finite [0, 1]
+		double undulationLevels = 2.2; // finite [0, MaximumHeightLevel]
+		double heightFeatureCells = 26.0; // finite (0, 4096]
 
 		// Rivers / lakes
 		bool enableRivers = true;
-		double riversPerZone = 0.5;
-		double lakeMinDepth = 0.9;
-		int lakeMinSize = 6;
-		int lakeMaxSize = 40;
+		double riversPerZone = 0.5; // finite [0, MaximumPerZoneCount]
+		double lakeMinDepth = 0.9; // finite (0, MaximumHeightLevel]
+		int lakeMinSize = 6; // [1, lakeMaxSize]
+		int lakeMaxSize = 40; // [lakeMinSize, size * size]
 
-		// Settlement quotas (per zone)
+		// Settlement quotas (per zone), each in [0, MaximumPerZoneCount].
 		int gymsPerZone = 1;
 		int citiesPerZone = 3;
 		int normalPoiPerZone = 5;
@@ -200,40 +250,40 @@ namespace pg
 		int rarePoiPerZone = 2;
 		int poiRoadConnections = 3;
 
-		// Blocking radii (plan cells)
+		// Blocking radii (plan cells), each finite in [0, size].
 		double blockGym = 5.0;
 		double blockCity = 3.0;
 		double blockRare = 4.0;
 		double blockUncommon = 3.5;
 		double blockNormal = 3.0;
 
-		// Spread spacing as a ratio of the zone radius
+		// Spread spacing as a ratio of the zone radius, each finite in [0, 1].
 		double distRatioCity = 0.55;
 		double distRatioGym = 0.9;
 		double distRatioPoi = 0.35;
 
 		// Coast rules
-		double coastDistCells = 4.0;
-		int portsPerContinent = 1;
+		double coastDistCells = 4.0; // finite [0, size]
+		int portsPerContinent = 1; // [0, MaximumPerZoneCount]
 
 		// Wild staircases: off-road ramps across strata cliffs, per zone, so the player
 		// can climb levels away from the road network.
-		int wildStairsPerZone = 4;
-		double wildStairSpacingCells = 4.0; // min distance between stairways
-		int maxRoadStairLevels = 2;		// straight perpendicular runs that fit inside one plan cell
-		int maxWildStairLevels = 3;		// tallest composed off-road staircase
-		int maxComposedStairLevels = 6; // tallest composed road staircase (platform + N flights + platform)
+		int wildStairsPerZone = 4; // [0, MaximumPerZoneCount]
+		double wildStairSpacingCells = 4.0; // finite [0, size]
+		int maxRoadStairLevels = 2; // [1, maxComposedStairLevels]
+		int maxWildStairLevels = 3; // [1, maxComposedStairLevels]
+		int maxComposedStairLevels = 6; // [1, maxHeightLevel]
 
 		// Realization (voxel) parameters
-		int blocksPerCell = 8;	// horizontal blocks per plan cell
-		int blocksPerLevel = 3; // the requested 3-block strata
-		int groundLevelTop = 3; // world y of the level-0 surface block
+		int blocksPerCell = 8; // [4, MaximumBlocksPerCell]
+		int blocksPerLevel = 3; // [1, min(MaximumBlocksPerLevel, blocksPerCell)]
+		int groundLevelTop = 3; // [-MaximumGroundMagnitude, MaximumGroundMagnitude]
 
 		// Interiors: composed room layouts live in a reserved band of columns past the
 		// east edge of the world (terrain realization leaves the band void), one square
 		// slot per interior, entered through door portals.
-		int interiorRegionGap = 128; // void blocks between the world edge and the band
-		int interiorSlotBlocks = 64; // square slot side per composed interior
+		int interiorRegionGap = 128; // [0, MaximumInteriorGap]
+		int interiorSlotBlocks = 64; // [MinimumInteriorSlotBlocks, MaximumInteriorSlotBlocks]
 	};
 
 	struct WorldPlanStats
@@ -294,28 +344,55 @@ namespace pg
 
 		// World-cell x/z of the minimum corner of plan cell (0,0); the world is centered
 		// on the voxel origin.
-		[[nodiscard]] int worldOffset() const noexcept
+		[[nodiscard]] int worldOffset() const
 		{
-			return -(config.size * config.blocksPerCell) / 2;
+			const std::int64_t width = static_cast<std::int64_t>(config.size) * config.blocksPerCell;
+			const std::int64_t result = -width / 2;
+			if (result < std::numeric_limits<int>::min() || result > std::numeric_limits<int>::max())
+			{
+				throw std::overflow_error("WorldPlan world offset is outside the int coordinate range");
+			}
+			return static_cast<int>(result);
 		}
 		// Plan-cell index of a world column (same formula on both axes).
-		[[nodiscard]] int cellIndexFromWorld(int p_worldCoordinate) const noexcept
+		[[nodiscard]] int cellIndexFromWorld(int p_worldCoordinate) const
 		{
-			const int shifted = p_worldCoordinate - worldOffset();
-			return shifted >= 0 ? shifted / config.blocksPerCell
-								: (shifted - config.blocksPerCell + 1) / config.blocksPerCell;
+			if (config.blocksPerCell <= 0)
+			{
+				throw std::logic_error("WorldPlan blocksPerCell must be positive");
+			}
+			const std::int64_t shifted = static_cast<std::int64_t>(p_worldCoordinate) - worldOffset();
+			const std::int64_t result = shifted >= 0
+										? shifted / config.blocksPerCell
+										: (shifted - config.blocksPerCell + 1) / config.blocksPerCell;
+			if (result < std::numeric_limits<int>::min() || result > std::numeric_limits<int>::max())
+			{
+				throw std::overflow_error("WorldPlan cell index is outside the int coordinate range");
+			}
+			return static_cast<int>(result);
 		}
 		// World y of the surface block of a cell sitting at p_level.
-		[[nodiscard]] int surfaceY(int p_level) const noexcept
+		[[nodiscard]] int surfaceY(int p_level) const
 		{
-			return config.groundLevelTop + p_level * config.blocksPerLevel;
+			const std::int64_t result = static_cast<std::int64_t>(config.groundLevelTop) +
+									static_cast<std::int64_t>(p_level) * config.blocksPerLevel;
+			if (result < std::numeric_limits<int>::min() || result > std::numeric_limits<int>::max())
+			{
+				throw std::overflow_error("WorldPlan surface height is outside the int coordinate range");
+			}
+			return static_cast<int>(result);
 		}
 		// First column of the interior band; columns at or past it get no terrain.
-		[[nodiscard]] int interiorRegionMinX() const noexcept
+		[[nodiscard]] int interiorRegionMinX() const
 		{
-			return -worldOffset() + config.interiorRegionGap;
+			const std::int64_t result = -static_cast<std::int64_t>(worldOffset()) + config.interiorRegionGap;
+			if (result < std::numeric_limits<int>::min() || result > std::numeric_limits<int>::max())
+			{
+				throw std::overflow_error("WorldPlan interior region is outside the int coordinate range");
+			}
+			return static_cast<int>(result);
 		}
-		[[nodiscard]] bool isInteriorColumn(int p_worldX) const noexcept
+		[[nodiscard]] bool isInteriorColumn(int p_worldX) const
 		{
 			return p_worldX >= interiorRegionMinX();
 		}
@@ -332,6 +409,10 @@ namespace pg
 	// Collects the worldgen-enabled biomes out of the loaded biome registry (sorted by
 	// id, so generation stays deterministic for a given data set).
 	[[nodiscard]] std::vector<PlanBiome> planBiomesFrom(const Registry<BiomeDefinition> &p_biomes);
+
+	// Validates every field and derived allocation/coordinate bound. Throws
+	// std::invalid_argument with the offending field name before generation allocates.
+	void validateWorldGenConfig(const WorldGenConfig &p_config);
 
 	[[nodiscard]] WorldPlan generateWorldPlan(
 		const WorldGenConfig &p_config,

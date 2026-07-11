@@ -54,8 +54,14 @@ namespace pg
 		{
 			ParsedVoxel &voxel = parsed.getMutable(id);
 			const std::optional<FluidData> fluid = voxel.fluid;
-			const VoxelData tagsSource = voxel.data; // copied before the move, reused for stage tags
+			const VoxelData tagsSource = voxel.data;				// copied before the move, reused for stage tags
 			const float transparency = voxel.shape->transparency(); // reused for the generated stage slabs
+			if (fluid.has_value())
+			{
+				// Every generated fill stage is the same optical medium as its authored
+				// source, even when rounding gives their alpha values a small difference.
+				voxel.shape->setTransparentOcclusionGroup(id);
+			}
 			const std::int32_t sourceNumeric = registerVoxel(id, std::move(voxel.shape), std::move(voxel.data), voxel.heights);
 
 			if (fluid.has_value() == false)
@@ -78,10 +84,7 @@ namespace pg
 				VoxelData stageData;
 				stageData.traversal = VoxelTraversal::Passable;
 				stageData.tags = tagsSource.tags;
-				// The full stage must be a cube, not a height-1.0 slab: a slab's four sides are
-				// inner faces the mesher only emits while an outer face is visible, so a column
-				// cell covered above and below (a waterfall interior) would vanish entirely even
-				// with air on its sides. A cube exposes its sides as occlusion-aware outer faces.
+				// The full stage is a cube so all six faces participate in boundary occlusion.
 				std::unique_ptr<spk::VoxelShape> stageShape;
 				if (stage == fluid->maxSpread)
 				{
@@ -94,6 +97,7 @@ namespace pg
 				// Stages share the source's transparency so a water body culls its internal
 				// faces and renders as one continuous translucent volume.
 				stageShape->setTransparency(transparency);
+				stageShape->setTransparentOcclusionGroup(id);
 				const std::int32_t stageNumeric = registerVoxel(
 					id + "#" + std::to_string(stage),
 					std::move(stageShape),

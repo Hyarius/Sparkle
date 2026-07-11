@@ -1,6 +1,6 @@
 # Bound and overflow-proof streamer window expansion
 
-- **Status:** Ready
+- **Status:** In Progress
 - **Priority:** P1 — High, availability and undefined behavior
 - **Area:** Engine / voxel chunk streaming / coordinate safety
 

@@ -1,8 +1,12 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <array>
+#include <atomic>
 #include <memory>
 #include <stdexcept>
+#include <thread>
+#include <type_traits>
 
 #include "structures/game_engine/spk_game_engine.hpp"
 #include "structures/voxel/spk_cube_voxel_shape.hpp"
@@ -159,33 +163,119 @@ TEST(VoxelMap, BoundaryEditsDirtyTheNeighborChunk)
 	EXPECT_TRUE(neighbor.renderer().needsSynchronization());
 }
 
-TEST(VoxelMap, MutableGridAccessMarksTheChunkDirty)
+TEST(VoxelMap, DirectChunkEditsInvalidateEachTouchedLoadedNeighbor)
+{
+	const TestRegistry test;
+	spk::VoxelMap map(test.registry, [](spk::VoxelChunk &) {
+	});
+	spk::VoxelChunk &origin = map.chunk({0, 0, 0});
+	const std::array offsets = {
+		spk::Vector3Int{-1, 0, 0},
+		spk::Vector3Int{1, 0, 0},
+		spk::Vector3Int{0, -1, 0},
+		spk::Vector3Int{0, 1, 0},
+		spk::Vector3Int{0, 0, -1},
+		spk::Vector3Int{0, 0, 1}};
+	const std::array positions = {
+		spk::Vector3Int{0, 1, 1},
+		spk::Vector3Int{15, 2, 2},
+		spk::Vector3Int{3, 0, 3},
+		spk::Vector3Int{4, 15, 4},
+		spk::Vector3Int{5, 5, 0},
+		spk::Vector3Int{6, 6, 15}};
+	for (const spk::Vector3Int &offset : offsets)
+	{
+		(void)map.chunk(offset);
+	}
+	synchronizeAll(map);
+
+	origin.setCell({7, 7, 7}, {test.cube});
+	EXPECT_TRUE(origin.renderer().needsSynchronization());
+	for (const spk::Vector3Int &offset : offsets)
+	{
+		const spk::VoxelChunk *neighbor = map.tryChunk(offset);
+		ASSERT_NE(neighbor, nullptr);
+		EXPECT_FALSE(neighbor->renderer().needsSynchronization());
+	}
+	synchronizeAll(map);
+
+	for (std::size_t index = 0; index < positions.size(); ++index)
+	{
+		origin.setCell(positions[index], {test.cube});
+		EXPECT_TRUE(origin.renderer().needsSynchronization());
+		for (std::size_t neighborIndex = 0; neighborIndex < offsets.size(); ++neighborIndex)
+		{
+			const spk::VoxelChunk *neighbor = map.tryChunk(offsets[neighborIndex]);
+			ASSERT_NE(neighbor, nullptr);
+			EXPECT_EQ(neighbor->renderer().needsSynchronization(), neighborIndex == index);
+		}
+		synchronizeAll(map);
+	}
+}
+
+TEST(VoxelMap, ChunkEditAfterABakeCannotBypassInvalidation)
 {
 	const TestRegistry test;
 	spk::VoxelMap map(test.registry, [](spk::VoxelChunk &) {
 	});
 	spk::VoxelChunk &chunk = map.chunk({0, 0, 0});
+	static_assert(std::is_same_v<decltype(chunk.grid()), const spk::VoxelGrid &>);
+	static_assert(std::is_same_v<decltype(std::declval<spk::VoxelChunk::Editor &>().cell(0, 0, 0)), const spk::VoxelCell &>);
+
 	chunk.renderer().synchronize();
 	ASSERT_FALSE(chunk.renderer().needsSynchronization());
 
-	chunk.grid().cell(1, 2, 3) = {test.cube};
+	chunk.editCells([&](spk::VoxelChunk::Editor &p_editor) {
+		EXPECT_TRUE(p_editor.setCell(1, 2, 3, {test.cube}));
+	});
 	EXPECT_TRUE(chunk.renderer().needsSynchronization());
+	chunk.renderer().synchronize();
+	EXPECT_EQ(chunk.renderer().meshRevision(), 2u);
+
+	chunk.editCells([&](spk::VoxelChunk::Editor &p_editor) {
+		EXPECT_FALSE(p_editor.setCell(1, 2, 3, {test.cube}));
+	});
+	EXPECT_FALSE(chunk.renderer().needsSynchronization());
+}
+
+TEST(VoxelMap, ChunkMutationIsRejectedOffItsOwningThread)
+{
+	const TestRegistry test;
+	spk::VoxelMap map(test.registry, [](spk::VoxelChunk &) {
+	});
+	spk::VoxelChunk &chunk = map.chunk({0, 0, 0});
+	std::atomic_bool rejected = false;
+	std::thread worker([&]() {
+		try
+		{
+			chunk.setCell({1, 1, 1}, {test.cube});
+		} catch (const std::logic_error &)
+		{
+			rejected.store(true);
+		}
+	});
+	worker.join();
+
+	EXPECT_TRUE(rejected.load());
+	EXPECT_TRUE(chunk.cell({1, 1, 1}).isEmpty());
 }
 
 TEST(VoxelMap, CullsFacesAcrossChunkBoundaries)
 {
 	const TestRegistry test;
 	spk::VoxelMap map(test.registry, [&](spk::VoxelChunk &p_chunk) {
-		for (int y = 0; y < spk::VoxelChunk::Size.y; ++y)
-		{
-			for (int z = 0; z < spk::VoxelChunk::Size.z; ++z)
+		p_chunk.editCells([&](spk::VoxelChunk::Editor &p_editor) {
+			for (int y = 0; y < spk::VoxelChunk::Size.y; ++y)
 			{
-				for (int x = 0; x < spk::VoxelChunk::Size.x; ++x)
+				for (int z = 0; z < spk::VoxelChunk::Size.z; ++z)
 				{
-					p_chunk.grid().cell(x, y, z) = {test.cube};
+					for (int x = 0; x < spk::VoxelChunk::Size.x; ++x)
+					{
+						(void)p_editor.setCell(x, y, z, {test.cube});
+					}
 				}
 			}
-		}
+		});
 	});
 
 	// A lone, fully solid 16x16x16 chunk exposes its hull: 6 sides of 256 faces.
@@ -217,16 +307,18 @@ TEST(VoxelMap, InactiveChunksDoNotOccludeActiveNeighbors)
 {
 	const TestRegistry test;
 	spk::VoxelMap map(test.registry, [&](spk::VoxelChunk &p_chunk) {
-		for (int y = 0; y < spk::VoxelChunk::Size.y; ++y)
-		{
-			for (int z = 0; z < spk::VoxelChunk::Size.z; ++z)
+		p_chunk.editCells([&](spk::VoxelChunk::Editor &p_editor) {
+			for (int y = 0; y < spk::VoxelChunk::Size.y; ++y)
 			{
-				for (int x = 0; x < spk::VoxelChunk::Size.x; ++x)
+				for (int z = 0; z < spk::VoxelChunk::Size.z; ++z)
 				{
-					p_chunk.grid().cell(x, y, z) = {test.cube};
+					for (int x = 0; x < spk::VoxelChunk::Size.x; ++x)
+					{
+						(void)p_editor.setCell(x, y, z, {test.cube});
+					}
 				}
 			}
-		}
+		});
 	});
 
 	spk::VoxelChunk &origin = map.chunk({0, 0, 0});

@@ -6,6 +6,7 @@
 #include "structures/math/spk_vector3.hpp"
 
 #include <cstddef>
+#include <deque>
 #include <optional>
 #include <unordered_map>
 #include <unordered_set>
@@ -32,24 +33,39 @@ namespace pg
 		VoxelWorld &_world;
 		const VoxelRegistry &_registry;
 
-		long long _tickIntervalMs = 120;     // one wavefront step every ~120 ms (visible flow, low churn)
+		long long _tickIntervalMs = 120; // one wavefront step every ~120 ms (visible flow, low churn)
 		long long _accumulatedMs = 0;
-		int _range = 48;                      // half-extent (blocks, horizontal) of the simulated box
-		std::size_t _maxCellsPerTick = 6000;  // hard cap on cells advanced per step
+		int _range = 48;					 // half-extent (blocks, horizontal) of the simulated box
+		std::size_t _maxCellsPerTick = 6000; // hard cap on cells advanced per step
+		std::size_t _lastProcessedCellCount = 0;
 
 		std::optional<spk::Vector3Int> _playerCell;
 
-		// Source cells discovered per loaded chunk (so an unload drops them all in one erase),
-		// plus the moving flow front to advance on the next step.
+		// Source cells discovered per loaded chunk (so an unload drops them all in one erase).
+		// The frontier is an insertion-ordered queue with a membership set: processed cells
+		// move to the back only when they still need service, so no rebuilt source prefix can
+		// permanently overtake them.
 		std::unordered_map<spk::Vector3Int, std::vector<spk::Vector3Int>> _sourcesByChunk;
-		std::unordered_set<spk::Vector3Int> _frontier;
+		std::deque<spk::Vector3Int> _frontier;
+		std::unordered_set<spk::Vector3Int> _frontierMembership;
+		std::size_t _sourceCursor = 0;
+		bool _serveFrontierNext = true;
 
 		void _syncLoadedChunks();
 		void _step();
+		void _enqueueFrontier(const spk::Vector3Int &p_position);
 		[[nodiscard]] bool _inRange(const spk::Vector3Int &p_cell) const;
 
 	public:
 		explicit FluidSimulationLogic(VoxelWorld &p_world);
+
+		void setSimulationCenter(std::optional<spk::Vector3Int> p_center) noexcept;
+		void setMaxCellsPerTick(std::size_t p_maximum) noexcept;
+		[[nodiscard]] std::size_t maxCellsPerTick() const noexcept;
+		[[nodiscard]] std::size_t lastProcessedCellCount() const noexcept;
+		// Runs one deterministic scheduling/simulation step immediately. This is also the
+		// implementation used by the timed update path and is useful for tools/tests.
+		void stepNow();
 
 	protected:
 		void _parseComponentForUpdate(const spk::UpdateContext &p_tick, Actor &p_actor) override;

@@ -11,6 +11,9 @@ namespace pg
 
 	struct WorldContext
 	{
+		// GameSceneWidget publishes these only after scene construction succeeds. Scene
+		// teardown releases navigation first and then the world, because the map borrows
+		// the scene's GameEngine while unregistering its loaded chunk entities.
 		std::unique_ptr<VoxelWorld> world;
 		std::unique_ptr<WorldNavigation> navigation;
 		bool explorationActive = false;

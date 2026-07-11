@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <iterator>
 #include <stdexcept>
 #include <utility>
 
@@ -115,58 +116,13 @@ namespace
 		{
 			for (const spk::VoxelShapeVertex &vertex : polygon)
 			{
-				if (std::abs(planeCoordinate(vertex.position, p_plane) - expected) > 0.0001f)
+				if (std::abs(planeCoordinate(vertex.position, p_plane) - expected) > spk::VoxelShape::BoundaryEpsilon)
 				{
 					return false;
 				}
 			}
 		}
 		return !p_face.empty();
-	}
-
-	[[nodiscard]] bool coversCellBoundary(const spk::VoxelShapeFace &p_face, spk::VoxelAxisPlane p_plane)
-	{
-		if (p_face.size() != 1 || p_face.polygons().front().size() != 4 ||
-			!liesOnCellBoundary(p_face, p_plane))
-		{
-			return false;
-		}
-
-		float firstMinimum = 1.0f;
-		float firstMaximum = 0.0f;
-		float secondMinimum = 1.0f;
-		float secondMaximum = 0.0f;
-		for (const spk::VoxelShapeVertex &vertex : p_face.polygons().front())
-		{
-			float first = 0.0f;
-			float second = 0.0f;
-			switch (p_plane)
-			{
-			case spk::VoxelAxisPlane::PositiveX:
-			case spk::VoxelAxisPlane::NegativeX:
-				first = vertex.position.y;
-				second = vertex.position.z;
-				break;
-			case spk::VoxelAxisPlane::PositiveY:
-			case spk::VoxelAxisPlane::NegativeY:
-				first = vertex.position.x;
-				second = vertex.position.z;
-				break;
-			case spk::VoxelAxisPlane::PositiveZ:
-			case spk::VoxelAxisPlane::NegativeZ:
-				first = vertex.position.x;
-				second = vertex.position.y;
-				break;
-			case spk::VoxelAxisPlane::Count:
-				break;
-			}
-			firstMinimum = std::min(firstMinimum, first);
-			firstMaximum = std::max(firstMaximum, first);
-			secondMinimum = std::min(secondMinimum, second);
-			secondMaximum = std::max(secondMaximum, second);
-		}
-		return std::abs(firstMinimum) < 0.0001f && std::abs(secondMinimum) < 0.0001f &&
-			   std::abs(firstMaximum - 1.0f) < 0.0001f && std::abs(secondMaximum - 1.0f) < 0.0001f;
 	}
 
 	[[nodiscard]] std::pair<float, float> boundaryPlaneCoordinates(const spk::Vector3 &p_position, spk::VoxelAxisPlane p_plane)
@@ -188,8 +144,177 @@ namespace
 		throw std::invalid_argument("VoxelAxisPlane::Count is not a geometric plane");
 	}
 
-	// Area of the face projected on its boundary plane, as a fraction of the unit cell side
-	// (shoelace formula per polygon). Faces not on the boundary cover nothing by definition.
+	struct BoundaryPoint
+	{
+		float first = 0.0f;
+		float second = 0.0f;
+	};
+
+	using BoundaryPolygon = std::vector<BoundaryPoint>;
+
+	[[nodiscard]] float cross(const BoundaryPoint &p_a, const BoundaryPoint &p_b, const BoundaryPoint &p_c)
+	{
+		return (p_b.first - p_a.first) * (p_c.second - p_a.second) -
+			   (p_b.second - p_a.second) * (p_c.first - p_a.first);
+	}
+
+	[[nodiscard]] float signedArea(const BoundaryPolygon &p_polygon)
+	{
+		float doubledArea = 0.0f;
+		for (std::size_t index = 0; index < p_polygon.size(); ++index)
+		{
+			const BoundaryPoint &a = p_polygon[index];
+			const BoundaryPoint &b = p_polygon[(index + 1) % p_polygon.size()];
+			doubledArea += a.first * b.second - b.first * a.second;
+		}
+		return doubledArea * 0.5f;
+	}
+
+	[[nodiscard]] bool samePoint(const BoundaryPoint &p_left, const BoundaryPoint &p_right)
+	{
+		return std::abs(p_left.first - p_right.first) <= spk::VoxelShape::BoundaryEpsilon &&
+			   std::abs(p_left.second - p_right.second) <= spk::VoxelShape::BoundaryEpsilon;
+	}
+
+	void appendDistinct(BoundaryPolygon &p_polygon, BoundaryPoint p_point)
+	{
+		if (p_polygon.empty() || !samePoint(p_polygon.back(), p_point))
+		{
+			p_polygon.push_back(p_point);
+		}
+	}
+
+	[[nodiscard]] BoundaryPolygon cleanPolygon(BoundaryPolygon p_polygon)
+	{
+		if (p_polygon.size() > 1 && samePoint(p_polygon.front(), p_polygon.back()))
+		{
+			p_polygon.pop_back();
+		}
+
+		bool changed = true;
+		while (changed && p_polygon.size() >= 3)
+		{
+			changed = false;
+			for (std::size_t index = 0; index < p_polygon.size(); ++index)
+			{
+				const BoundaryPoint &previous = p_polygon[(index + p_polygon.size() - 1) % p_polygon.size()];
+				const BoundaryPoint &current = p_polygon[index];
+				const BoundaryPoint &next = p_polygon[(index + 1) % p_polygon.size()];
+				if (samePoint(previous, current) ||
+					std::abs(cross(previous, current, next)) <= spk::VoxelShape::BoundaryEpsilon)
+				{
+					p_polygon.erase(p_polygon.begin() + static_cast<std::ptrdiff_t>(index));
+					changed = true;
+					break;
+				}
+			}
+		}
+		return p_polygon;
+	}
+
+	[[nodiscard]] bool isConvex(const BoundaryPolygon &p_polygon)
+	{
+		if (p_polygon.size() < 3 || std::abs(signedArea(p_polygon)) <= spk::VoxelShape::BoundaryEpsilon)
+		{
+			return false;
+		}
+
+		float turn = 0.0f;
+		for (std::size_t index = 0; index < p_polygon.size(); ++index)
+		{
+			const float current = cross(
+				p_polygon[index],
+				p_polygon[(index + 1) % p_polygon.size()],
+				p_polygon[(index + 2) % p_polygon.size()]);
+			if (std::abs(current) <= spk::VoxelShape::BoundaryEpsilon)
+			{
+				continue;
+			}
+			if (turn != 0.0f && current * turn < 0.0f)
+			{
+				return false;
+			}
+			turn = current;
+		}
+		return turn != 0.0f;
+	}
+
+	[[nodiscard]] BoundaryPolygon clipHalfPlane(
+		const BoundaryPolygon &p_polygon,
+		const BoundaryPoint &p_edgeStart,
+		const BoundaryPoint &p_edgeEnd,
+		float p_orientation,
+		bool p_keepInside)
+	{
+		BoundaryPolygon result;
+		if (p_polygon.empty())
+		{
+			return result;
+		}
+
+		const auto distance = [&](const BoundaryPoint &p_point) {
+			return p_orientation * cross(p_edgeStart, p_edgeEnd, p_point);
+		};
+		const auto accepted = [p_keepInside](float p_distance) {
+			return p_keepInside ? p_distance >= -spk::VoxelShape::BoundaryEpsilon : p_distance <= spk::VoxelShape::BoundaryEpsilon;
+		};
+
+		BoundaryPoint previous = p_polygon.back();
+		float previousDistance = distance(previous);
+		bool previousAccepted = accepted(previousDistance);
+		for (const BoundaryPoint &current : p_polygon)
+		{
+			const float currentDistance = distance(current);
+			const bool currentAccepted = accepted(currentDistance);
+			if (currentAccepted != previousAccepted)
+			{
+				const float denominator = previousDistance - currentDistance;
+				if (std::abs(denominator) > spk::VoxelShape::BoundaryEpsilon)
+				{
+					const float t = previousDistance / denominator;
+					appendDistinct(result, {.first = previous.first + (current.first - previous.first) * t, .second = previous.second + (current.second - previous.second) * t});
+				}
+			}
+			if (currentAccepted)
+			{
+				appendDistinct(result, current);
+			}
+			previous = current;
+			previousDistance = currentDistance;
+			previousAccepted = currentAccepted;
+		}
+		return cleanPolygon(std::move(result));
+	}
+
+	[[nodiscard]] std::vector<BoundaryPolygon> subtractConvex(
+		const BoundaryPolygon &p_subject,
+		const BoundaryPolygon &p_clip)
+	{
+		std::vector<BoundaryPolygon> result;
+		BoundaryPolygon remaining = p_subject;
+		const float orientation = signedArea(p_clip) > 0.0f ? 1.0f : -1.0f;
+		for (std::size_t edge = 0; edge < p_clip.size(); ++edge)
+		{
+			const BoundaryPoint &start = p_clip[edge];
+			const BoundaryPoint &end = p_clip[(edge + 1) % p_clip.size()];
+			BoundaryPolygon outside = clipHalfPlane(remaining, start, end, orientation, false);
+			if (outside.size() >= 3 && std::abs(signedArea(outside)) > spk::VoxelShape::BoundaryEpsilon)
+			{
+				result.push_back(std::move(outside));
+			}
+
+			remaining = clipHalfPlane(remaining, start, end, orientation, true);
+			if (remaining.size() < 3 || std::abs(signedArea(remaining)) <= spk::VoxelShape::BoundaryEpsilon)
+			{
+				break;
+			}
+		}
+		return result;
+	}
+
+	// Area of the union of boundary polygons, clipped to the unit cell boundary. Faces
+	// not on the boundary cover nothing. Unsupported non-convex polygons conservatively
+	// report no coverage so they can never delete neighboring geometry.
 	[[nodiscard]] float boundaryCoverage(const spk::VoxelShapeFace &p_face, spk::VoxelAxisPlane p_plane)
 	{
 		if (!liesOnCellBoundary(p_face, p_plane))
@@ -197,19 +322,48 @@ namespace
 			return 0.0f;
 		}
 
-		float area = 0.0f;
+		std::vector<BoundaryPolygon> uncovered = {
+			{{0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f}}};
 		for (const spk::VoxelShapePolygon &polygon : p_face.polygons())
 		{
-			float doubledArea = 0.0f;
-			for (std::size_t index = 0; index < polygon.size(); ++index)
+			BoundaryPolygon boundary;
+			boundary.reserve(polygon.size());
+			for (const spk::VoxelShapeVertex &vertex : polygon)
 			{
-				const auto [firstA, secondA] = boundaryPlaneCoordinates(polygon[index].position, p_plane);
-				const auto [firstB, secondB] = boundaryPlaneCoordinates(polygon[(index + 1) % polygon.size()].position, p_plane);
-				doubledArea += firstA * secondB - firstB * secondA;
+				const auto [first, second] = boundaryPlaneCoordinates(vertex.position, p_plane);
+				boundary.push_back({first, second});
 			}
-			area += std::abs(doubledArea) * 0.5f;
+			boundary = cleanPolygon(std::move(boundary));
+			if (!isConvex(boundary))
+			{
+				return 0.0f;
+			}
+
+			std::vector<BoundaryPolygon> next;
+			for (const BoundaryPolygon &piece : uncovered)
+			{
+				std::vector<BoundaryPolygon> difference = subtractConvex(piece, boundary);
+				next.insert(next.end(), std::make_move_iterator(difference.begin()), std::make_move_iterator(difference.end()));
+			}
+			uncovered = std::move(next);
+			if (uncovered.empty())
+			{
+				return 1.0f;
+			}
 		}
-		return std::min(area, 1.0f);
+
+		float uncoveredArea = 0.0f;
+		for (const BoundaryPolygon &piece : uncovered)
+		{
+			uncoveredArea += std::abs(signedArea(piece));
+		}
+		return std::clamp(1.0f - uncoveredArea, 0.0f, 1.0f);
+	}
+
+	[[nodiscard]] bool coversCellBoundary(const spk::VoxelShapeFace &p_face, spk::VoxelAxisPlane p_plane)
+	{
+		return liesOnCellBoundary(p_face, p_plane) &&
+			   boundaryCoverage(p_face, p_plane) >= 1.0f - spk::VoxelShape::BoundaryEpsilon;
 	}
 }
 
@@ -401,6 +555,16 @@ namespace spk
 	bool VoxelShape::isTransparent() const noexcept
 	{
 		return _transparency > 0.0f;
+	}
+
+	void VoxelShape::setTransparentOcclusionGroup(std::string p_group)
+	{
+		_transparentOcclusionGroup = std::move(p_group);
+	}
+
+	const std::string &VoxelShape::transparentOcclusionGroup() const noexcept
+	{
+		return _transparentOcclusionGroup;
 	}
 
 	bool VoxelShape::initialized() const noexcept

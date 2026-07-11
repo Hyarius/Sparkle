@@ -29,9 +29,15 @@ target_compile_definitions(PlaygroundCore
 
 target_compile_features(PlaygroundCore PUBLIC cxx_std_23)
 
-add_executable(SparklePlayground "${CMAKE_CURRENT_SOURCE_DIR}/srcs/main.cpp")
+if(SPARKLE_BUILD_PLAYGROUND OR SPARKLE_BUILD_TESTS)
+	add_executable(SparklePlayground "${CMAKE_CURRENT_SOURCE_DIR}/srcs/main.cpp")
 
-target_link_libraries(SparklePlayground
-	PRIVATE
-		PlaygroundCore
-)
+	target_link_libraries(SparklePlayground
+		PRIVATE
+			PlaygroundCore
+	)
+endif()
+
+if(SPARKLE_BUILD_TESTS)
+	add_subdirectory(tests)
+endif()

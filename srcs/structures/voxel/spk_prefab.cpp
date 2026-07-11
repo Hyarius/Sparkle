@@ -167,22 +167,37 @@ namespace spk
 			{std::max(a.x, b.x), std::max(a.y, b.y), std::max(a.z, b.z)}};
 	}
 
-	void Prefab::applyTo(spk::VoxelGrid &p_grid, const spk::Vector3Int &p_destination, spk::VoxelOrientation p_orientation) const
+	void Prefab::forEachAppliedVoxel(
+		const spk::Vector3Int &p_destination,
+		spk::VoxelOrientation p_orientation,
+		const std::function<void(const spk::Vector3Int &, const spk::VoxelCell &)> &p_visitor) const
 	{
+		if (p_visitor == nullptr)
+		{
+			return;
+		}
+
 		const int turns = quarterTurns(p_orientation);
 		for (const Voxel &voxel : _voxels)
 		{
 			const spk::Vector3Int position = p_destination + rotateLocal(voxel.position - _pivot, turns);
-			if (!p_grid.isWithinBounds(position))
-			{
-				continue;
-			}
 			spk::VoxelCell cell = voxel.cell;
 			if (!cell.isEmpty())
 			{
 				cell.orientation = orientationFromQuarterTurns(quarterTurns(cell.orientation) + turns);
 			}
-			p_grid.cell(position) = cell;
+			p_visitor(position, cell);
 		}
+	}
+
+	void Prefab::applyTo(spk::VoxelGrid &p_grid, const spk::Vector3Int &p_destination, spk::VoxelOrientation p_orientation) const
+	{
+		forEachAppliedVoxel(p_destination, p_orientation, [&p_grid](const spk::Vector3Int &p_position, const spk::VoxelCell &p_cell) {
+			if (!p_grid.isWithinBounds(p_position))
+			{
+				return;
+			}
+			p_grid.cell(p_position) = p_cell;
+		});
 	}
 }

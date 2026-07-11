@@ -80,10 +80,19 @@ write-once per command; `lookAt` for views; CCW right-handed math.
 ```
 screenToRay(camera, viewportSize, mousePx) -> {origin, direction}
     // invert viewProjection, unproject NDC near/far points (Matrix4x4::inverse exists)
-pickCell(world, ray)   -> optional<VoxelHit{cell, enterFace, distance}>   // WorldRaycaster DDA
+pickCell(world, ray)   -> optional<VoxelHit{cell, enterFace, distance, normal}>
+    // DDA broad phase, then oriented/flipped render-polygon intersection in each solid cell
 pickStandable(world, ray) -> optional<Vector3Int>
     // DDA hit then descend the column to the topmost standable cell (board.md rule)
 ```
+
+Picking uses simultaneous-axis DDA advancement for exact edge/corner ties, so cells touched
+only at zero area are not tested in arbitrary axis order. The narrow phase returns the first
+actual shape surface; `enterFace` is `Count` for oblique faces while `normal` always carries
+the polygon normal. A ray starting inside closed geometry returns its nearest exit surface;
+a ray starting exactly on a crossed surface may return distance zero, while coplanar grazing
+does not count as a crossing. Origins, directions, maximum distance, and the traversed cell
+range are validated before any float-to-integer conversion.
 
 Used by exploration click-to-move (D27) and battle targeting (D14). Hover feedback = a
 highlight quad on the picked cell every frame the mouse moves.

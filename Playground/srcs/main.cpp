@@ -244,6 +244,17 @@ int main(int argc, char **argv)
 			}
 		}
 
+		// Validate CLI world-generation requests before loading registries or entering
+		// any allocation-heavy generation path. generateWorldPlan repeats this same
+		// authoritative check for non-CLI callers.
+		if (mapOnly || checkStairs)
+		{
+			pg::WorldGenConfig requestedConfig;
+			requestedConfig.masterSeed = worldSeed;
+			requestedConfig.size = worldSize;
+			pg::validateWorldGenConfig(requestedConfig);
+		}
+
 		pg::Registries registries;
 		registries.loadAll(std::filesystem::path(PG_RESOURCE_DIR) / "data");
 

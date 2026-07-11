@@ -1,6 +1,6 @@
 # Validate world-generation configuration before allocating or generating
 
-- **Status:** Ready
+- **Status:** In Progress
 - **Priority:** P1 — High, robustness and undefined behavior
 - **Area:** Playground / world generation / configuration
 

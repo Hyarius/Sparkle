@@ -124,6 +124,15 @@ TEST(VoxelShape, AtlasUVProjectsLocalUVsIntoTheCell)
 	EXPECT_FLOAT_EQ(customUV.y, 1.5f / 2.0f);
 }
 
+TEST(VoxelShape, TransparentOcclusionGroupIsExplicitShapeMetadata)
+{
+	spk::CubeVoxelShape shape(spk::AtlasCell{0, 0});
+	EXPECT_TRUE(shape.transparentOcclusionGroup().empty());
+
+	shape.setTransparentOcclusionGroup("water");
+	EXPECT_EQ(shape.transparentOcclusionGroup(), "water");
+}
+
 TEST(VoxelShape, UniformCubeUsesItsCellOnEveryFace)
 {
 	spk::CubeVoxelShape shape(spk::AtlasCell{3, 2});

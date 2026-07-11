@@ -1,6 +1,6 @@
 # Prevent dangling voxel-world state when scene construction fails
 
-- **Status:** Ready
+- **Status:** In Progress
 - **Priority:** P0 — High, memory safety
 - **Area:** Playground / scene lifetime / voxel map ownership
 
@@ -53,3 +53,5 @@ Avoid relying on callers to clear the context after catching the exception: by t
 ## Dependencies / notes
 
 This ticket is independent of normal-path engine/map ownership cleanup. A later ownership-hardening ticket may replace raw borrowed engine pointers, but this failure path should not wait for that larger redesign.
+
+Implementation stages the world and navigation inside `GameSceneWidget` until the constructor's final non-throwing commit. `GameSceneConstructionOptions::afterInitialWorldReady` provides the deterministic post-warmup failure checkpoint used by the regression test; preview-map output can be disabled for side-effect-free tests.

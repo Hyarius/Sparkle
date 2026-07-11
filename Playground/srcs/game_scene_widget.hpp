@@ -3,6 +3,7 @@
 #include <atomic>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
@@ -31,15 +32,32 @@ namespace pg
 	class ActorPathLogic;
 	class CameraControllerLogic;
 	class PlanChunkProvider;
+	class VoxelWorld;
+	class WorldNavigation;
 	struct WorldPlan;
+
+	struct GameSceneConstructionOptions
+	{
+		std::uint64_t worldSeed = 1;
+		bool writeWorldMapPreview = true;
+		// Optional diagnostics/failure-injection checkpoint. It runs after the initial
+		// chunks and navigation exist but before either object is published to GameContext.
+		std::function<void(const VoxelWorld &, const WorldNavigation &)> afterInitialWorldReady;
+	};
 
 	class GameSceneWidget : public spk::GameEngineWidget
 	{
 	private:
 		GameContext &_context;
+		bool _previousExplorationActive = false;
 		std::uint64_t _worldSeed = 1;
 		std::shared_ptr<const WorldPlan> _worldPlan;
 		std::unique_ptr<PlanChunkProvider> _terrainProvider;
+		// Scene construction is transactional: these objects remain widget-owned until
+		// every potentially-throwing setup step has completed. Their declaration order
+		// makes navigation release before the world during constructor unwinding.
+		std::unique_ptr<VoxelWorld> _stagedWorld;
+		std::unique_ptr<WorldNavigation> _stagedNavigation;
 		std::optional<ChunkCoordinates> _streamingFocus;
 
 		spk::SpriteSheet _texture;
@@ -71,7 +89,7 @@ namespace pg
 		// in snapshot order. Grows the first time the voxel logic registers its probes.
 		std::vector<std::string> _profilerRowNames;
 
-		void _buildScene(const Registries &p_registries);
+		void _buildScene(const Registries &p_registries, const GameSceneConstructionOptions &p_options);
 		void _executeTeleport(const spk::Vector3Int &p_target);
 		void _configureOverlay();
 		[[nodiscard]] std::size_t _profilerSectionRowCount() const;
@@ -92,6 +110,12 @@ namespace pg
 			GameContext &p_context,
 			const Registries &p_registries,
 			std::uint64_t p_worldSeed = 1);
+		GameSceneWidget(
+			const std::string &p_name,
+			spk::Widget *p_parent,
+			GameContext &p_context,
+			const Registries &p_registries,
+			const GameSceneConstructionOptions &p_options);
 		~GameSceneWidget() override;
 	};
 }

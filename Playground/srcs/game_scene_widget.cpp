@@ -38,7 +38,7 @@ namespace
 {
 	// Chunks kept active around the player, per horizontal axis (inclusive radius). Mirrors
 	// the historical world-streamer radius.
-	constexpr spk::Vector3Int StreamViewRange{2, 1, 2};
+	constexpr spk::Vector3Int StreamViewRange{8, 1, 8};
 
 	enum OverlayRow : std::size_t
 	{
@@ -111,21 +111,44 @@ namespace pg
 		GameContext &p_context,
 		const Registries &p_registries,
 		std::uint64_t p_worldSeed) :
+		GameSceneWidget(
+			p_name,
+			p_parent,
+			p_context,
+			p_registries,
+			GameSceneConstructionOptions{.worldSeed = p_worldSeed})
+	{
+	}
+
+	GameSceneWidget::GameSceneWidget(
+		const std::string &p_name,
+		spk::Widget *p_parent,
+		GameContext &p_context,
+		const Registries &p_registries,
+		const GameSceneConstructionOptions &p_options) :
 		spk::GameEngineWidget(p_name, p_parent),
 		_context(p_context),
-		_worldSeed(p_worldSeed),
+		_previousExplorationActive(p_context.world.explorationActive),
+		_worldSeed(p_options.worldSeed),
 		_overlay(p_name + "/DebugOverlay", this)
 	{
-		_context.world.explorationActive = true;
-		_buildScene(p_registries);
+		_buildScene(p_registries, p_options);
 		_configureOverlay();
 		_overlay.deactivate();
 		activate();
+
+		// Commit only after the last potentially-throwing operation. Until this point,
+		// member unwinding destroys navigation and the map while the base engine is alive.
+		_context.world.navigation.reset();
+		_context.world.world.reset();
+		_context.world.world = std::move(_stagedWorld);
+		_context.world.navigation = std::move(_stagedNavigation);
+		_context.world.explorationActive = true;
 	}
 
 	GameSceneWidget::~GameSceneWidget()
 	{
-		_context.world.explorationActive = false;
+		_context.world.explorationActive = _previousExplorationActive;
 		_context.world.navigation.reset();
 		// Destroys the VoxelWorld (and its spk::VoxelMap), unregistering every chunk entity
 		// from the engine while the engine is still alive.
@@ -133,7 +156,9 @@ namespace pg
 		_terrainProvider.reset();
 	}
 
-	void GameSceneWidget::_buildScene(const Registries &p_registries)
+	void GameSceneWidget::_buildScene(
+		const Registries &p_registries,
+		const GameSceneConstructionOptions &p_options)
 	{
 		_texture.loadFromFile(std::filesystem::path(PG_RESOURCE_DIR) / "textures" / "voxels.png", {8u, 8u});
 		_maskTexture.loadFromFile(std::filesystem::path(PG_RESOURCE_DIR) / "textures" / "mask.png", {4u, 4u});
@@ -153,7 +178,7 @@ namespace pg
 		_camera->makeMain();
 		engine.addEntity(&_cameraEntity);
 
-		_context.world.world = std::make_unique<VoxelWorld>(p_registries.voxels(), &engine);
+		_stagedWorld = std::make_unique<VoxelWorld>(p_registries.voxels(), &engine);
 
 		// Once-per-seed world skeleton: generate, report, and dump the preview map at the
 		// Playground root so the produced world can be inspected outside the game.
@@ -179,19 +204,8 @@ namespace pg
 				_pendingTeleport = found->second;
 			}
 		});
-		const std::filesystem::path mapPath =
-			std::filesystem::path(PG_RESOURCE_DIR).parent_path() / "world_map.png";
-		if (writeWorldMapPng(*_worldPlan, mapPath))
-		{
-			std::cout << "world map written to " << mapPath.generic_string() << std::endl;
-		}
-		else
-		{
-			std::cerr << "failed to write world map to " << mapPath.generic_string() << std::endl;
-		}
-
 		_terrainProvider = std::make_unique<PlanChunkProvider>(p_registries, *_worldPlan);
-		_context.world.world->setProvider(_terrainProvider.get());
+		_stagedWorld->setProvider(_terrainProvider.get());
 
 		spk::Vector3Int spawnCell = _terrainProvider->spawnCell();
 		const ChunkCoordinates spawnChunk = ChunkCoordinates::fromWorldCell(spawnCell);
@@ -204,7 +218,7 @@ namespace pg
 			{
 				for (int x = -StreamViewRange.x; x <= StreamViewRange.x; ++x)
 				{
-					_context.world.world->loadChunk(ChunkCoordinates{spawnChunk.value + spk::Vector3Int{x, y, z}});
+					_stagedWorld->loadChunk(ChunkCoordinates{spawnChunk.value + spk::Vector3Int{x, y, z}});
 				}
 			}
 		}
@@ -213,12 +227,16 @@ namespace pg
 		const TraversalBounds navigationBounds{
 			{spawnCell.x - margin, 0, spawnCell.z - margin},
 			{spawnCell.x + margin + 1, _terrainProvider->maxHeight() + 16, spawnCell.z + margin + 1}};
-		_context.world.navigation = std::make_unique<WorldNavigation>(
-			*_context.world.world,
+		_stagedNavigation = std::make_unique<WorldNavigation>(
+			*_stagedWorld,
 			navigationBounds,
 			static_cast<float>(p_registries.gameRules().maxVerticalTraversalGap));
+		if (p_options.afterInitialWorldReady)
+		{
+			p_options.afterInitialWorldReady(*_stagedWorld, *_stagedNavigation);
+		}
 
-		const auto standableSpawn = _context.world.navigation->topStandableInColumn(spawnCell.x, spawnCell.z);
+		const auto standableSpawn = _stagedNavigation->topStandableInColumn(spawnCell.x, spawnCell.z);
 		if (!standableSpawn.has_value())
 		{
 			throw std::runtime_error("generated spawn column has no standable cell");
@@ -236,7 +254,7 @@ namespace pg
 		playerRenderer.setMesh(_playerMesh);
 		playerRenderer.setTexture(&_texture);
 		playerRenderer.setTint({0.95f, 0.95f, 1.0f, 1.0f});
-		_streamer = &_playerEntity.addComponent<spk::VoxelChunkStreamer>(_context.world.world->map());
+		_streamer = &_playerEntity.addComponent<spk::VoxelChunkStreamer>(_stagedWorld->map());
 		_streamer->setViewRange(StreamViewRange);
 		_streamer->setOriginPosition(spawnChunk.value);
 		engine.addEntity(&_playerEntity);
@@ -250,8 +268,8 @@ namespace pg
 
 		_pathLogic = &engine.add<ActorPathLogic>(
 			_context.events,
-			*_context.world.navigation,
-			*_context.world.world,
+			*_stagedNavigation,
+			*_stagedWorld,
 			[this] {
 				return _context.world.explorationActive;
 			});
@@ -264,8 +282,8 @@ namespace pg
 		const auto invalid = p_registries.gameRules().overlayMasks.at("invalid");
 		_inputLogic = &engine.add<ExplorationInputLogic>(
 			_context,
-			*_context.world.world,
-			*_context.world.navigation,
+			*_stagedWorld,
+			*_stagedNavigation,
 			*_camera,
 			hoverRenderer,
 			viewportSize,
@@ -274,16 +292,25 @@ namespace pg
 
 		// Fluid automaton: makes worldgen-placed water sources spread and fall. Operates on the
 		// map through setCell, so its edits re-bake chunks like any other cell change.
-		engine.add<FluidSimulationLogic>(*_context.world.world);
-
-		// Visual probe for checking the side view of falling water voxels.
-		_context.world.world->setCell(
-			spawnCell + spk::Vector3Int{0, 6, 0},
-			VoxelCell{.id = p_registries.voxels().numericId("water")});
+		engine.add<FluidSimulationLogic>(*_stagedWorld);
 
 		_streamingFocus = spawnChunk;
 
-		std::cout << "Streaming generated world from " << _context.world.world->loadedChunkCount()
+		if (p_options.writeWorldMapPreview)
+		{
+			const std::filesystem::path mapPath =
+				std::filesystem::path(PG_RESOURCE_DIR).parent_path() / "world_map.png";
+			if (writeWorldMapPng(*_worldPlan, mapPath))
+			{
+				std::cout << "world map written to " << mapPath.generic_string() << std::endl;
+			}
+			else
+			{
+				std::cerr << "failed to write world map to " << mapPath.generic_string() << std::endl;
+			}
+		}
+
+		std::cout << "Streaming generated world from " << _stagedWorld->loadedChunkCount()
 				  << " initial chunks" << std::endl;
 	}
 

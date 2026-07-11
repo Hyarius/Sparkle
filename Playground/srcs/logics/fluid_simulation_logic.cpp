@@ -7,8 +7,10 @@
 #include "structures/voxel/spk_voxel_grid.hpp"
 #include "structures/voxel/spk_voxel_map.hpp"
 
+#include <algorithm>
 #include <array>
 #include <cstdlib>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -27,7 +29,7 @@ namespace pg
 	{
 		if (p_actor.player)
 		{
-			_playerCell = p_actor.cell;
+			setSimulationCenter(p_actor.cell);
 		}
 	}
 
@@ -45,6 +47,36 @@ namespace pg
 		}
 		_accumulatedMs = 0;
 
+		stepNow();
+	}
+
+	void FluidSimulationLogic::setSimulationCenter(std::optional<spk::Vector3Int> p_center) noexcept
+	{
+		_playerCell = std::move(p_center);
+	}
+
+	void FluidSimulationLogic::setMaxCellsPerTick(std::size_t p_maximum) noexcept
+	{
+		_maxCellsPerTick = p_maximum;
+	}
+
+	std::size_t FluidSimulationLogic::maxCellsPerTick() const noexcept
+	{
+		return _maxCellsPerTick;
+	}
+
+	std::size_t FluidSimulationLogic::lastProcessedCellCount() const noexcept
+	{
+		return _lastProcessedCellCount;
+	}
+
+	void FluidSimulationLogic::stepNow()
+	{
+		if (_registry.fluids().empty())
+		{
+			_lastProcessedCellCount = 0;
+			return;
+		}
 		_syncLoadedChunks();
 		_step();
 	}
@@ -117,6 +149,14 @@ namespace pg
 		}
 	}
 
+	void FluidSimulationLogic::_enqueueFrontier(const spk::Vector3Int &p_position)
+	{
+		if (_frontierMembership.insert(p_position).second)
+		{
+			_frontier.push_back(p_position);
+		}
+	}
+
 	void FluidSimulationLogic::_step()
 	{
 		spk::VoxelMap &map = _world.map();
@@ -130,35 +170,70 @@ namespace pg
 			spk::Vector3Int{0, 0, 1},
 			spk::Vector3Int{0, 0, -1}};
 
-		// Work list for this step: every in-range source (persistent) then the current flow front.
-		std::vector<spk::Vector3Int> work;
+		// Build a deterministic view of only the in-range source chunks. The cursor survives
+		// across steps, so an over-budget source population is revisited in rotating order.
+		std::vector<spk::Vector3Int> sourceChunks;
+		sourceChunks.reserve(_sourcesByChunk.size());
 		for (const auto &[coordinates, sources] : _sourcesByChunk)
 		{
-			(void)coordinates;
-			for (const spk::Vector3Int &position : sources)
+			(void)sources;
+			const spk::Vector3Int origin = coordinates * spk::VoxelChunk::Size;
+			const spk::Vector3Int maximum = origin + spk::VoxelChunk::Size - spk::Vector3Int{1, 1, 1};
+			if (!_playerCell.has_value() ||
+				(maximum.x >= _playerCell->x - _range && origin.x <= _playerCell->x + _range &&
+				 maximum.z >= _playerCell->z - _range && origin.z <= _playerCell->z + _range))
+			{
+				sourceChunks.push_back(coordinates);
+			}
+		}
+		std::ranges::sort(sourceChunks, [](const spk::Vector3Int &p_left, const spk::Vector3Int &p_right) {
+			return std::tie(p_left.x, p_left.y, p_left.z) < std::tie(p_right.x, p_right.y, p_right.z);
+		});
+		std::vector<spk::Vector3Int> sources;
+		for (const spk::Vector3Int &coordinates : sourceChunks)
+		{
+			for (const spk::Vector3Int &position : _sourcesByChunk.at(coordinates))
 			{
 				if (_inRange(position))
 				{
-					work.push_back(position);
+					sources.push_back(position);
 				}
 			}
 		}
-		for (const spk::Vector3Int &position : _frontier)
+		if (!sources.empty())
 		{
-			if (_inRange(position))
-			{
-				work.push_back(position);
-			}
+			_sourceCursor %= sources.size();
 		}
 
-		std::unordered_set<spk::Vector3Int> next;
-		std::size_t processed = 0;
-
-		for (const spk::Vector3Int &position : work)
+		const std::size_t initialFrontierCount = _frontier.size();
+		std::size_t frontierVisits = 0;
+		std::size_t sourceVisits = 0;
+		_lastProcessedCellCount = 0;
+		while (_lastProcessedCellCount < _maxCellsPerTick &&
+			   (frontierVisits < initialFrontierCount || sourceVisits < sources.size()))
 		{
-			if (processed >= _maxCellsPerTick)
+			const bool frontierAvailable = frontierVisits < initialFrontierCount;
+			const bool sourceAvailable = sourceVisits < sources.size();
+			const bool useFrontier = frontierAvailable && (!sourceAvailable || _serveFrontierNext);
+			spk::Vector3Int position;
+			if (useFrontier)
 			{
-				next.insert(position); // defer the rest to the next step
+				position = _frontier.front();
+				_frontier.pop_front();
+				_frontierMembership.erase(position);
+				++frontierVisits;
+				_serveFrontierNext = false;
+			}
+			else
+			{
+				position = sources[_sourceCursor];
+				_sourceCursor = (_sourceCursor + 1) % sources.size();
+				++sourceVisits;
+				_serveFrontierNext = true;
+			}
+			++_lastProcessedCellCount;
+			if (!_inRange(position))
+			{
 				continue;
 			}
 
@@ -172,8 +247,6 @@ namespace pg
 			{
 				continue; // the cell was overwritten by something that is not this fluid
 			}
-			++processed;
-
 			const FluidFamily &family = families[reference->family];
 			const spk::Vector3Int belowPosition = position + Down;
 			const spk::VoxelCell *below = map.tryCell(belowPosition);
@@ -183,10 +256,10 @@ namespace pg
 			if (family.falls && below != nullptr && below->isEmpty())
 			{
 				map.setCell(belowPosition, spk::VoxelCell{.id = family.stageId(family.maxSpread)});
-				next.insert(belowPosition);
+				_enqueueFrontier(belowPosition);
 				if (reference->source == false)
 				{
-					next.insert(position); // keep the column alive until its base is supported
+					_enqueueFrontier(position); // keep the column alive until its base is supported
 				}
 				continue;
 			}
@@ -202,7 +275,7 @@ namespace pg
 			{
 				if (reference->source == false && below == nullptr)
 				{
-					next.insert(position); // support not loaded yet; retry once it is
+					_enqueueFrontier(position); // support not loaded yet; retry once it is
 				}
 				continue;
 			}
@@ -253,7 +326,7 @@ namespace pg
 						continue;
 					}
 					map.setCell(openNeighbors[index], spk::VoxelCell{.id = family.stageId(outflow)});
-					next.insert(openNeighbors[index]);
+					_enqueueFrontier(openNeighbors[index]);
 					produced = true;
 				}
 			}
@@ -262,10 +335,8 @@ namespace pg
 			// are re-enumerated from _sourcesByChunk each step, so they need not linger here.
 			if (reference->source == false && produced)
 			{
-				next.insert(position);
+				_enqueueFrontier(position);
 			}
 		}
-
-		_frontier = std::move(next);
 	}
 }

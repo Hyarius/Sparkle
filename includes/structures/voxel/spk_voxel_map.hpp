@@ -4,7 +4,11 @@
 #include "structures/voxel/spk_voxel_chunk.hpp"
 #include "structures/voxel/spk_voxel_mesher.hpp"
 
+#include <cstdint>
 #include <functional>
+#include <memory>
+#include <optional>
+#include <thread>
 #include <unordered_map>
 #include <vector>
 
@@ -19,6 +23,8 @@ namespace spk
 	// laying on chunk boundaries are culled against the neighboring chunk.
 	class VoxelMap : public spk::IVoxelCellLookup
 	{
+		friend class spk::VoxelChunk;
+
 	public:
 		using ChunkGenerator = std::function<void(spk::VoxelChunk &)>;
 
@@ -27,8 +33,14 @@ namespace spk
 		ChunkGenerator _generator;
 		spk::GameEngine *_engine = nullptr;
 		std::unordered_map<spk::Vector3Int, spk::VoxelChunk> _chunks;
+		std::shared_ptr<const void> _lifetimeToken = std::make_shared<const int>(0);
+		// Owning thread stamped onto every chunk. Empty until the update loop claims the map
+		// (see bindMutationThread), so chunks generated during single-threaded setup stay
+		// unbound and freely editable; afterwards, cross-thread mutation is caught.
+		std::optional<std::thread::id> _mutationThread;
 
 		void _requestNeighborSynchronization(const spk::Vector3Int &p_coordinates);
+		void _onChunkEdited(const spk::VoxelChunk &p_chunk, std::uint8_t p_changedBoundaries) noexcept;
 
 	public:
 		VoxelMap(const spk::VoxelRegistry &p_registry, ChunkGenerator p_generator, spk::GameEngine *p_engine = nullptr);
@@ -49,6 +61,7 @@ namespace spk
 
 		[[nodiscard]] std::size_t loadedChunkCount() const noexcept;
 		[[nodiscard]] std::vector<spk::Vector3Int> loadedChunkCoordinates() const;
+		[[nodiscard]] std::weak_ptr<const void> lifetimeToken() const noexcept;
 
 		// Cell access in world coordinates, restricted to already-loaded chunks.
 		[[nodiscard]] const spk::VoxelCell *tryCell(const spk::Vector3Int &p_worldCell) const override;
@@ -67,6 +80,15 @@ namespace spk
 			spk::VoxelOrientation p_orientation = spk::VoxelOrientation::PositiveZ);
 
 		[[nodiscard]] const spk::VoxelRegistry &registry() const noexcept;
+
+		// Binds every current and future chunk's mutation guard to p_thread (the caller by
+		// default). VoxelChunkStreamerLogic calls this from the update loop the first time it
+		// drives the map, so chunks warmed up on the construction thread stop tripping the
+		// guard and later off-thread edits are caught. Idempotent when already bound to p_thread.
+		void bindMutationThread(std::thread::id p_thread = std::this_thread::get_id());
+		// Clears the guard on the map and every loaded chunk: mutation becomes unrestricted.
+		void unbindMutationThread() noexcept;
+		[[nodiscard]] bool hasBoundMutationThread() const noexcept;
 
 		template <typename TFunction>
 		void forEachLoadedChunk(TFunction p_function)

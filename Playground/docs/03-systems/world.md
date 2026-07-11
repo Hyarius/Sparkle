@@ -53,10 +53,25 @@ pg::VoxelWorld       // chunk container + accessors (owns chunk entities)
 pg::WorldStreamer    // decides the loaded chunk set (radius around player), fires load/unload
 pg::WorldNavigation  // world traversal graph assembled from chunk navSlices (shared graph
                      // machinery with the board, see board.md)
-pg::WorldRaycaster   // DDA over VoxelWorld cells: first solid hit, entry face, distance
+pg::WorldRaycaster   // cell DDA + oriented shape-polygon intersection: surface hit/normal/distance
 pg::Actor / pg::ActorPathLogic                             // see §Actors
 pg::WorldContext     { seed; active VoxelWorld; navigation; active map info; portals }
 ```
+
+The promoted runtime chunk type is `spk::VoxelChunk`. Its `grid()` view is always const.
+Runtime and generated writes use `setCell(...)` or a short-lived `editCells(Editor&)`
+callback; the editor exposes setters and const reads, never mutable grid/cell aliases. A
+bulk callback coalesces all writes into one dirty request, and a map-owned chunk reports the
+exact changed boundaries so only affected loaded neighbours rebake. Voxel writes belong to
+the chunk's construction/update thread and finish before the render logic starts and joins
+background mesh builds.
+
+`FluidSimulationLogic` keeps persistent sources and the moving frontier as separate fair
+work streams. A rotating source cursor alternates with the insertion-ordered frontier while
+both have work, and candidate processing never exceeds `maxCellsPerTick`. Source chunks are
+sorted explicitly and out-of-range chunks are rejected before their source vectors are
+visited, making a fixed world/configuration/tick sequence reproducible without allowing a
+fresh source prefix to starve deferred flow.
 
 One `spk::Entity` per loaded chunk carrying its `Chunk` component — the chunk **is** the
 data package; there is no separate view component (D32). For M1 the whole

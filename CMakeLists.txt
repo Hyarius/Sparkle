@@ -34,7 +34,7 @@ if(SPARKLE_BUILD_TESTS)
     endif()
 endif()
 
-if(SPARKLE_BUILD_PLAYGROUND)
+if(SPARKLE_BUILD_PLAYGROUND OR SPARKLE_BUILD_TESTS)
     add_subdirectory(Playground)
 endif()
 

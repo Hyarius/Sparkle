@@ -19,8 +19,10 @@ namespace pg
 	struct VoxelHit
 	{
 		spk::Vector3Int cell{};
+		// Axis plane for axis-aligned surfaces; Count for slopes and other oblique faces.
 		VoxelAxisPlane enterFace = VoxelAxisPlane::Count;
 		float distance = 0;
+		spk::Vector3 normal{};
 	};
 
 	class WorldRaycaster

@@ -20,8 +20,9 @@ JSON: [02-data-model.md §3](../02-data-model.md).
 - Provide **mask faces** per shape — how an overlay decal drapes over the voxel's top
   surface — consumed by the battle overlay (D31, M1 scope) and later by world decals.
 - Provide the traversal inputs (solidity + `CardinalHeightSet`) that navigation
-  ([board.md](board.md), [world.md](world.md)) consumes. All spatial queries are analytic
-  (DDA raycasts + walk heights) — **there is no collision geometry** (D30).
+  ([board.md](board.md), [world.md](world.md)) consumes. Spatial queries remain analytic:
+  cell DDA plus render-polygon narrow phase for picking, and walk heights for movement —
+  **there is no separate collision geometry** (D30).
 
 Out of scope here: chunk streaming (world.md), walkability graph (board.md), rendering
 commands (rendering-cameras.md).
@@ -45,8 +46,9 @@ pg::VoxelShape (abstract)
   ├─ virtuals: _constructRenderFaces(), _constructMask(),
   │            _constructPositiveYHeights(), _constructNegativeYHeights() (=positive)
   └─ concrete: CubeShape, CuboidShape, SlabShape, SlopeShape, StairShape, CrossPlaneShape, CrossShape
-  // NO collision products (D30): raycasts are DDA over cells, movement is walk-height
-  // analytic. If a future feature needs sub-voxel surface geometry (physics debris,
+  // NO collision products (D30): picking narrows DDA candidates against transformed render
+  // polygons; movement is walk-height analytic. If a future feature needs distinct
+  // sub-voxel surface geometry (physics debris,
   // shadow-casting geometry), add a dedicated product then, with its consumer documented.
 
 pg::VoxelShape::Face     { std::vector<Polygon> }        // Polygon = ≥3 Vertex{pos, uv}

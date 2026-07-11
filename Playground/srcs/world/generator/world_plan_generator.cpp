@@ -3069,6 +3069,9 @@ namespace pg
 		const Registry<PrefabDefinition> &p_prefabs,
 		const Registry<InteriorDefinition> &p_interiors)
 	{
+		// This is the public allocation boundary. Keep validation ahead of Generator's
+		// plan-grid construction and every arithmetic-heavy generation stage.
+		validateWorldGenConfig(p_config);
 		return Generator(p_config, p_biomes, p_placementRules, p_prefabs, p_interiors).run();
 	}
 }

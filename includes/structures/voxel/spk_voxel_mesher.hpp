@@ -7,7 +7,11 @@
 namespace spk
 {
 	// Read access to voxel cells beyond a single grid, in world-cell coordinates.
-	// Lets the mesher cull faces against neighboring chunks.
+	// Lets the mesher cull faces against neighboring chunks. A mesh build samples each
+	// required out-of-grid coordinate at most once, immediately copies the returned cell,
+	// and retains the resulting visibility plan through buffer emission. Implementations
+	// therefore need not return the same pointer or value on later calls, but the pointer
+	// returned by one call must remain readable until that call returns.
 	class IVoxelCellLookup
 	{
 	public:

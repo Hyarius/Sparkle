@@ -64,66 +64,67 @@ TEST(VoxelRenderPerformance, BakesAnEightByEightChunkSquareWithinBudget)
 		registry,
 		[&](spk::VoxelChunk &p_chunk) {
 			const spk::Vector3Int origin = p_chunk.worldOrigin();
-			spk::VoxelGrid &grid = p_chunk.grid();
 			constexpr std::array orientations = {
 				spk::VoxelOrientation::PositiveX,
 				spk::VoxelOrientation::PositiveZ,
 				spk::VoxelOrientation::NegativeX,
 				spk::VoxelOrientation::NegativeZ};
-			for (int z = 0; z < spk::VoxelChunk::Size.z; ++z)
-			{
-				for (int x = 0; x < spk::VoxelChunk::Size.x; ++x)
+			p_chunk.editCells([&](spk::VoxelChunk::Editor &p_editor) {
+				for (int z = 0; z < spk::VoxelChunk::Size.z; ++z)
 				{
-					const int worldX = origin.x + x;
-					const int worldZ = origin.z + z;
-					const float rawHeight = perlin.sample2D(
-						static_cast<float>(worldX),
-						static_cast<float>(worldZ),
-						1.0f,
-						static_cast<float>(spk::VoxelChunk::Size.y - 1));
-
-					const int height = std::clamp(
-						static_cast<int>(rawHeight),
-						1,
-						spk::VoxelChunk::Size.y);
-
-					for (int y = 0; y < height - 1; ++y)
+					for (int x = 0; x < spk::VoxelChunk::Size.x; ++x)
 					{
-						const bool carveCave = y > 0 && positiveModulo(worldX * 31 + y * 17 + worldZ * 13, 23) == 0;
-						if (carveCave == false)
+						const int worldX = origin.x + x;
+						const int worldZ = origin.z + z;
+						const float rawHeight = perlin.sample2D(
+							static_cast<float>(worldX),
+							static_cast<float>(worldZ),
+							1.0f,
+							static_cast<float>(spk::VoxelChunk::Size.y - 1));
+
+						const int height = std::clamp(
+							static_cast<int>(rawHeight),
+							1,
+							spk::VoxelChunk::Size.y);
+
+						for (int y = 0; y < height - 1; ++y)
 						{
-							grid.cell(x, y, z) = {cube};
+							const bool carveCave = y > 0 && positiveModulo(worldX * 31 + y * 17 + worldZ * 13, 23) == 0;
+							if (carveCave == false)
+							{
+								(void)p_editor.setCell(x, y, z, {cube});
+								++generatedVoxelCount;
+							}
+						}
+
+						const int topY = height - 1;
+						const int topPattern = positiveModulo(worldX * 7 + worldZ * 11, 8);
+						const spk::VoxelOrientation orientation = orientations[static_cast<std::size_t>(positiveModulo(worldX + worldZ, 4))];
+						const spk::VoxelFlip flip = positiveModulo(worldX * 3 + worldZ, 2) == 0
+														? spk::VoxelFlip::PositiveY
+														: spk::VoxelFlip::NegativeY;
+						const std::int32_t topShape = topPattern < 2 ? slab : topPattern < 4 ? slope
+																		  : topPattern < 6	 ? stair
+																							 : cube;
+						(void)p_editor.setCell(x, topY, z, {topShape, orientation, flip});
+						++generatedVoxelCount;
+
+						// Sparse geometry above the terrain forces the mesher through many exposed,
+						// non-cubic faces instead of mostly processing a solid height map.
+						for (int y = height; y < spk::VoxelChunk::Size.y; ++y)
+						{
+							const int structurePattern = positiveModulo(worldX * 19 + y * 7 + worldZ * 29, 13);
+							if (structurePattern > 1)
+							{
+								continue;
+							}
+							const std::int32_t shape = structurePattern == 0 ? crossPlane : stair;
+							(void)p_editor.setCell(x, y, z, {shape, orientations[static_cast<std::size_t>(positiveModulo(worldX + y + worldZ, 4))], flip});
 							++generatedVoxelCount;
 						}
 					}
-
-					const int topY = height - 1;
-					const int topPattern = positiveModulo(worldX * 7 + worldZ * 11, 8);
-					const spk::VoxelOrientation orientation = orientations[static_cast<std::size_t>(positiveModulo(worldX + worldZ, 4))];
-					const spk::VoxelFlip flip = positiveModulo(worldX * 3 + worldZ, 2) == 0
-													? spk::VoxelFlip::PositiveY
-													: spk::VoxelFlip::NegativeY;
-					const std::int32_t topShape = topPattern < 2 ? slab : topPattern < 4 ? slope
-																	  : topPattern < 6	 ? stair
-																						 : cube;
-					grid.cell(x, topY, z) = {topShape, orientation, flip};
-					++generatedVoxelCount;
-
-					// Sparse geometry above the terrain forces the mesher through many exposed,
-					// non-cubic faces instead of mostly processing a solid height map.
-					for (int y = height; y < spk::VoxelChunk::Size.y; ++y)
-					{
-						const int structurePattern = positiveModulo(worldX * 19 + y * 7 + worldZ * 29, 13);
-						if (structurePattern > 1)
-						{
-							continue;
-						}
-						const std::int32_t shape = structurePattern == 0 ? crossPlane : stair;
-						grid.cell(x, y, z) = {shape, orientations[static_cast<std::size_t>(positiveModulo(worldX + y + worldZ, 4))], flip};
-						++generatedVoxelCount;
-					}
 				}
-			}
+			});
 		},
 		&engine);
 
@@ -193,7 +194,7 @@ TEST(VoxelRenderPerformance, BakesAnEightByEightChunkSquareWithinBudget)
 	EXPECT_LT(generationElapsed.milliseconds(), MaximumGenerationMilliseconds);
 	EXPECT_LT(elapsed.milliseconds(), MaximumRenderPassMilliseconds);
 	EXPECT_EQ(generatedVoxelCount, 141704u);
-	// Slab sides are outer-shell faces: the ones buried against covering neighbors are
-	// culled, so the terrain bakes fewer triangles than when they were unconditional.
-	EXPECT_EQ(triangleCount, 757519u);
+	// Exact boundary subtraction retains visible partial faces and may split one source
+	// polygon into several remnants; exposed slope/stair inner faces are retained too.
+	EXPECT_EQ(triangleCount, 785699u);
 }

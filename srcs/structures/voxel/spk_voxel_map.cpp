@@ -34,6 +34,7 @@ namespace spk
 
 	VoxelMap::~VoxelMap()
 	{
+		_lifetimeToken.reset();
 		clear();
 	}
 
@@ -48,6 +49,27 @@ namespace spk
 		}
 	}
 
+	void VoxelMap::_onChunkEdited(const spk::VoxelChunk &p_chunk, std::uint8_t p_changedBoundaries) noexcept
+	{
+		const std::array boundaries = {
+			std::pair{spk::VoxelChunk::NegativeXBoundary, spk::Vector3Int{-1, 0, 0}},
+			std::pair{spk::VoxelChunk::PositiveXBoundary, spk::Vector3Int{1, 0, 0}},
+			std::pair{spk::VoxelChunk::NegativeYBoundary, spk::Vector3Int{0, -1, 0}},
+			std::pair{spk::VoxelChunk::PositiveYBoundary, spk::Vector3Int{0, 1, 0}},
+			std::pair{spk::VoxelChunk::NegativeZBoundary, spk::Vector3Int{0, 0, -1}},
+			std::pair{spk::VoxelChunk::PositiveZBoundary, spk::Vector3Int{0, 0, 1}}};
+		for (const auto &[boundary, offset] : boundaries)
+		{
+			if ((p_changedBoundaries & boundary) != 0)
+			{
+				if (spk::VoxelChunk *neighbor = tryChunk(p_chunk.coordinates() + offset); neighbor != nullptr)
+				{
+					neighbor->renderer().requestSynchronization();
+				}
+			}
+		}
+	}
+
 	spk::VoxelChunk &VoxelMap::chunk(const spk::Vector3Int &p_coordinates)
 	{
 		if (spk::VoxelChunk *existing = tryChunk(p_coordinates); existing != nullptr)
@@ -57,8 +79,14 @@ namespace spk
 
 		// unordered_map is node-based: the chunk's address stays stable even if the
 		// generator loads further chunks (and rehashes the table) while filling this one.
-		const auto emplaced = _chunks.try_emplace(p_coordinates, p_coordinates, *_registry, this);
+		const auto emplaced = _chunks.try_emplace(p_coordinates, p_coordinates, *_registry, this, this, nullptr);
 		spk::VoxelChunk &result = emplaced.first->second;
+		// Inherit the map's owning thread so the guard covers generation on this very thread and
+		// every later edit. While the map is unbound (setup phase) the chunk stays unbound too.
+		if (_mutationThread.has_value())
+		{
+			result.bindMutationThread(*_mutationThread);
+		}
 		if (_engine != nullptr)
 		{
 			_engine->addEntity(&result);
@@ -160,6 +188,11 @@ namespace spk
 		return result;
 	}
 
+	std::weak_ptr<const void> VoxelMap::lifetimeToken() const noexcept
+	{
+		return _lifetimeToken;
+	}
+
 	const spk::VoxelCell *VoxelMap::tryCell(const spk::Vector3Int &p_worldCell) const
 	{
 		const spk::VoxelChunk *loaded = tryChunk(spk::VoxelChunk::coordinatesFromWorldCell(p_worldCell));
@@ -193,26 +226,6 @@ namespace spk
 			return true;
 		}
 		target->setCell(local, p_cell);
-
-		// A cell laying on a chunk boundary also affects the occlusion of the adjacent
-		// chunk: its mesh must be re-baked too.
-		const std::array boundaries = {
-			std::pair{local.x == 0, spk::Vector3Int{-1, 0, 0}},
-			std::pair{local.x == spk::VoxelChunk::Size.x - 1, spk::Vector3Int{1, 0, 0}},
-			std::pair{local.y == 0, spk::Vector3Int{0, -1, 0}},
-			std::pair{local.y == spk::VoxelChunk::Size.y - 1, spk::Vector3Int{0, 1, 0}},
-			std::pair{local.z == 0, spk::Vector3Int{0, 0, -1}},
-			std::pair{local.z == spk::VoxelChunk::Size.z - 1, spk::Vector3Int{0, 0, 1}}};
-		for (const auto &[touchesBoundary, offset] : boundaries)
-		{
-			if (touchesBoundary)
-			{
-				if (spk::VoxelChunk *neighbor = tryChunk(target->coordinates() + offset); neighbor != nullptr)
-				{
-					neighbor->renderer().requestSynchronization();
-				}
-			}
-		}
 		return true;
 	}
 
@@ -236,9 +249,9 @@ namespace spk
 				for (int chunkX = minChunk.x; chunkX <= maxChunk.x; ++chunkX)
 				{
 					spk::VoxelChunk &target = chunk({chunkX, chunkY, chunkZ});
-					// The non-const grid() access flags the chunk's own mesh for re-baking.
-					p_prefab.applyTo(target.grid(), p_worldDestination - target.worldOrigin(), p_orientation);
-					_requestNeighborSynchronization(target.coordinates());
+					target.editCells([&](spk::VoxelChunk::Editor &p_editor) {
+						p_editor.applyPrefab(p_prefab, p_worldDestination - target.worldOrigin(), p_orientation);
+					});
 				}
 			}
 		}
@@ -247,5 +260,34 @@ namespace spk
 	const spk::VoxelRegistry &VoxelMap::registry() const noexcept
 	{
 		return *_registry;
+	}
+
+	void VoxelMap::bindMutationThread(std::thread::id p_thread)
+	{
+		if (_mutationThread.has_value() && *_mutationThread == p_thread)
+		{
+			return;
+		}
+		_mutationThread = p_thread;
+		for (auto &[coordinates, loadedChunk] : _chunks)
+		{
+			(void)coordinates;
+			loadedChunk.bindMutationThread(p_thread);
+		}
+	}
+
+	void VoxelMap::unbindMutationThread() noexcept
+	{
+		_mutationThread.reset();
+		for (auto &[coordinates, loadedChunk] : _chunks)
+		{
+			(void)coordinates;
+			loadedChunk.unbindMutationThread();
+		}
+	}
+
+	bool VoxelMap::hasBoundMutationThread() const noexcept
+	{
+		return _mutationThread.has_value();
 	}
 }

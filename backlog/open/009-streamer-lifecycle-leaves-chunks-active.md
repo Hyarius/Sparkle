@@ -1,6 +1,6 @@
 # Reconcile chunk state when streamers disappear or deactivate
 
-- **Status:** Ready
+- **Status:** In Progress
 - **Priority:** P1 — Medium/high, lifecycle correctness
 - **Area:** Engine / voxel chunk streaming / entity lifecycle
 
