@@ -13,3 +13,6 @@ Battle, encounter, creature progression, AI, taming, and their editor pages are 
 of the playground. Their former implementation remains available in Git history.
 
 Build and run instructions are in [howto/build-and-run.md](howto/build-and-run.md).
+
+A layered walkthrough of the current codebase (big picture → systems → function-level,
+plus cleanup proposals) lives in [code-tour/](code-tour/README.md).
