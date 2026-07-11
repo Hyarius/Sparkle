@@ -129,11 +129,24 @@ namespace pg
 			// Shared with the world planner (prefab_placement_math.hpp): the plan's
 			// claimed zones and stair footprints reason about exactly this box.
 			const ResolvedPlacementBox box = resolvePlacement(prefab->prefab, placement);
+			int realizationMinY = box.worldMin.y;
+			if (placement.foundation)
+			{
+				for (int dz = 0; dz < box.extents.z; ++dz)
+				{
+					for (int dx = 0; dx < box.extents.x; ++dx)
+					{
+						const Column column = _column(box.worldMin.x + dx, box.worldMin.z + dz);
+						realizationMinY = std::min(realizationMinY, column.groundTop + 1);
+					}
+				}
+			}
 			_placements.push_back(
 				{.definition = prefab,
 				 .worldMin = box.worldMin,
 				 .rotatedSize = box.extents,
 				 .destination = box.destination,
+				 .realizationMinY = realizationMinY,
 				 .orientation = placement.orientation,
 				 .foundation = placement.foundation});
 		}
@@ -311,8 +324,8 @@ namespace pg
 									placement.worldMin.x + placement.rotatedSize.x > chunkMin.x &&
 									placement.worldMin.z < chunkMax.z &&
 									placement.worldMin.z + placement.rotatedSize.z > chunkMin.z &&
-									placement.worldMin.y < chunkMax.y &&
-									placement.worldMin.y + placement.rotatedSize.y > chunkMin.y - 32;
+									placement.realizationMinY < chunkMax.y &&
+									placement.worldMin.y + placement.rotatedSize.y > chunkMin.y;
 			if (intersects)
 			{
 				_stamp(p_chunk, placement);
@@ -352,6 +365,59 @@ namespace pg
 			// Stamp the rotated box; the prefab lists its empty cells too, so they overwrite
 			// (carve) and interiors and the air above ramps stay clear even against a cliff.
 			p_editor.applyPrefab(p_placement.definition->prefab, p_placement.destination - origin, p_placement.orientation);
+
+			// A ramp's bounding box contains authored air below its higher treads. The
+			// rectangular foundation pass above deliberately stops at the box, and stamping
+			// then carves that authored air. Support every column that actually contains a
+			// solid prefab voxel down to terrain so the stair cannot leave a diagonal gap.
+			if (p_placement.foundation)
+			{
+				const int width = p_placement.rotatedSize.x;
+				const int depth = p_placement.rotatedSize.z;
+				std::vector<int> supportTops(
+					static_cast<std::size_t>(width * depth),
+					std::numeric_limits<int>::max());
+				p_placement.definition->prefab.forEachAppliedVoxel(
+					p_placement.destination,
+					p_placement.orientation,
+					[&](const spk::Vector3Int &p_position, const spk::VoxelCell &p_cell) {
+						if (p_cell.isEmpty())
+						{
+							return;
+						}
+						const int dx = p_position.x - p_placement.worldMin.x;
+						const int dz = p_position.z - p_placement.worldMin.z;
+						if (dx >= 0 && dx < width && dz >= 0 && dz < depth)
+						{
+							int &supportTop = supportTops[static_cast<std::size_t>(dz * width + dx)];
+							supportTop = std::min(supportTop, p_position.y);
+						}
+					});
+				for (int dz = 0; dz < depth; ++dz)
+				{
+					for (int dx = 0; dx < width; ++dx)
+					{
+						const int supportTop = supportTops[static_cast<std::size_t>(dz * width + dx)];
+						if (supportTop == std::numeric_limits<int>::max())
+						{
+							continue;
+						}
+						const int worldX = p_placement.worldMin.x + dx;
+						const int worldZ = p_placement.worldMin.z + dz;
+						const Column column = _column(worldX, worldZ);
+						for (int worldY = column.groundTop + 1; worldY < supportTop; ++worldY)
+						{
+							const spk::Vector3Int local{worldX - origin.x, worldY - origin.y, worldZ - origin.z};
+							if (p_editor.isWithinBounds(local))
+							{
+								VoxelCell cell;
+								cell.id = column.deepId;
+								(void)p_editor.setCell(local, cell);
+							}
+						}
+					}
+				}
+			}
 		});
 	}
 

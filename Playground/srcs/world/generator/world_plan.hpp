@@ -200,20 +200,25 @@ namespace pg
 		int maxZ = 0;
 	};
 
-	// One committed composed staircase (top platform, flight pieces, bottom platform),
-	// recorded by the generator at commit time so consumers (the --check-stairs
-	// harness, the preview map, future gameplay) never re-infer the group from the
-	// flat placement list. Anchor y's are stand heights (first air layer above the
-	// platform surface): topAnchor.y on the high plateau, bottomAnchor.y on the low
-	// ground.
+	// One committed composed staircase, including its exact top-to-bottom walking
+	// route for one-pass, switchback, and perpendicular layouts. It is recorded at
+	// commit time so consumers (the --check-stairs harness, the preview map, future
+	// gameplay) never re-infer the group from the flat placement list. Anchor y's are
+	// stand heights: topAnchor.y on the high plateau, bottomAnchor.y on the low ground.
 	struct PlanStairway
 	{
 		spk::Vector3Int topAnchor{};	// top platform anchor, flush with the high plateau
 		spk::Vector3Int bottomAnchor{}; // bottom platform anchor on the low ground
+		spk::Vector3Int plateauCell{};  // high-ground cell immediately beyond the top platform
+		std::vector<spk::Vector3Int> centerPath; // ordered walk columns from top to bottom
+		PlanStairRect approachRect{}; // flat lane connecting the road to the bottom platform
 		int steps = 0;					// height levels climbed == flight piece count
 		bool alongX = false;			// the flight runs along world x (else z)
 		int tangent = 1;				// along-axis direction from top toward bottom
 		bool road = false;				// road climb (paved approach band) vs wild slope
+		bool approachReserved = false; // approachRect was validated and kept clear
+		bool switchback = false;		// two opposing parallel runs joined by a landing
+		bool perpendicular = false;	// final straight fallback crossing away from the cliff
 	};
 
 	// A one-way teleport: an actor whose cell reaches `from` (the block it stands on)
@@ -292,7 +297,7 @@ namespace pg
 		// can climb levels away from the road network.
 		int wildStairsPerZone = 4; // [0, MaximumPerZoneCount]
 		double wildStairSpacingCells = 4.0; // finite [0, size]
-		int maxRoadStairLevels = 2; // [1, maxComposedStairLevels]
+		int maxRoadStairLevels = 6; // [1, maxComposedStairLevels], perpendicular fallback cap
 		int maxWildStairLevels = 3; // [1, maxComposedStairLevels]
 		int maxComposedStairLevels = 6; // [1, maxHeightLevel]
 

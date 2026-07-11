@@ -75,72 +75,55 @@ namespace
 		// plan and realization cannot drift apart silently.
 		for (const pg::PlanStairway &stairway : p_plan.stairways)
 		{
-			const spk::Vector3Int topAnchor = stairway.topAnchor;
-			const spk::Vector3Int bottomAnchor = stairway.bottomAnchor;
-			const int steps = stairway.steps;
-			const bool alongX = stairway.alongX;
-			const int acrossCenter = alongX ? topAnchor.z : topAnchor.x;
-			const int topAlong = alongX ? topAnchor.x : topAnchor.z;
-			const int bottomAlong = alongX ? bottomAnchor.x : bottomAnchor.z;
-			const int tangent = stairway.tangent;
-			const int highStand = topAnchor.y;
-			const int lowStand = bottomAnchor.y;
 			++groups;
-			const auto standAt = [&](int p_across, int p_along) {
-				return alongX ? sampler.standHeight(p_along, p_across, highStand + 2)
-							  : sampler.standHeight(p_across, p_along, highStand + 2);
+			const int highStand = stairway.topAnchor.y;
+			const int lowStand = stairway.bottomAnchor.y;
+			const auto standAt = [&](const spk::Vector3Int &p_position) {
+				return sampler.standHeight(p_position.x, p_position.z, highStand + 2);
 			};
 
-			// 1. Exactly one across-side of the top platform is the high plateau, flush.
-			const bool plateauPositive = standAt(acrossCenter + 2, topAlong) == highStand;
-			const bool plateauNegative = standAt(acrossCenter - 2, topAlong) == highStand;
-			if (plateauPositive == plateauNegative)
+			// 1. The recorded exit beyond the top platform is flush with the plateau.
+			if (standAt(stairway.plateauCell) != highStand)
 			{
-				std::cerr << "FAIL group " << groups << ": top platform not flush against exactly one cliff side"
-						  << " (top anchor " << topAnchor.x << "," << topAnchor.y << "," << topAnchor.z
-						  << ", highStand " << highStand << ", side+ " << standAt(acrossCenter + 2, topAlong)
-						  << ", side- " << standAt(acrossCenter - 2, topAlong) << ", steps " << steps << ")"
-						  << std::endl;
+				std::cerr << "FAIL group " << groups << ": top platform is not flush with its plateau exit" << std::endl;
 				++failures;
 				continue;
 			}
-			const int plateauSide = plateauPositive ? 1 : -1;
 
-			// 2. Walking the strip's middle column descends at most one voxel per cell
-			//    and ends on the bottom platform's stand height.
-			int previous = standAt(acrossCenter, topAlong);
-			bool walkable = previous == highStand;
-			for (int along = topAlong + tangent; along != bottomAlong + tangent * 2 && walkable; along += tangent)
+			// 2. Follow the recorded route, including switchback landings: every next
+			//    column stays level or descends one voxel, ending on the low platform.
+			if (stairway.centerPath.empty())
 			{
-				const int current = standAt(acrossCenter, along);
+				std::cerr << "FAIL group " << groups << ": staircase has no recorded center path" << std::endl;
+				++failures;
+				continue;
+			}
+			int previous = standAt(stairway.centerPath.front());
+			bool walkable = previous == highStand;
+			for (std::size_t index = 1; index < stairway.centerPath.size() && walkable; ++index)
+			{
+				const int current = standAt(stairway.centerPath[index]);
 				walkable = current == previous || current == previous - 1;
 				previous = current;
 			}
 			if (!walkable || previous != lowStand)
 			{
-				std::cerr << "FAIL group " << groups << ": strip walk broken (last stand " << previous
+				std::cerr << "FAIL group " << groups << ": recorded stair route is broken (last stand " << previous
 						  << ", expected " << lowStand << ")" << std::endl;
 				++failures;
 				continue;
 			}
 
-			// 3. The three-column approach band beside the structure is flat low
-			//    ground end to end; road climbs must also have it paved with a road
-			//    block, wild slope climbs keep natural ground.
-			const bool roadGroup = stairway.road;
+			// 3. A reserved road approach is flat low ground and paved end to end.
 			bool bandClear = true;
-			for (int outward = 2; outward <= 4 && bandClear; ++outward)
+			if (stairway.approachReserved)
 			{
-				const int across = acrossCenter - outward * plateauSide;
-				for (int along = topAlong - tangent; along != bottomAlong + tangent * 2 && bandClear; along += tangent)
+				for (int z = stairway.approachRect.minZ; z <= stairway.approachRect.maxZ && bandClear; ++z)
 				{
-					bandClear = standAt(across, along) == lowStand;
-					if (bandClear && roadGroup)
+					for (int x = stairway.approachRect.minX; x <= stairway.approachRect.maxX && bandClear; ++x)
 					{
-						const spk::Vector3Int surfacePosition = alongX
-																	? spk::Vector3Int{along, lowStand - 1, across}
-																	: spk::Vector3Int{across, lowStand - 1, along};
-						bandClear = roadIds.contains(sampler.at(surfacePosition).id);
+						bandClear = standAt({x, 0, z}) == lowStand &&
+								roadIds.contains(sampler.at({x, lowStand - 1, z}).id);
 					}
 				}
 			}
@@ -150,8 +133,10 @@ namespace
 				++failures;
 				continue;
 			}
-			std::cout << "ok: composed " << (roadGroup ? "road" : "wild") << " stairway " << groups << " ("
-					  << steps << " levels, " << (alongX ? "along x" : "along z") << ")" << std::endl;
+			const char *layout = stairway.switchback ? "switchback" : (stairway.perpendicular ? "perpendicular" : "one pass");
+			std::cout << "ok: composed " << (stairway.road ? "road" : "wild") << " stairway " << groups << " ("
+					  << stairway.steps << " levels, " << layout << ")"
+					  << std::endl;
 		}
 		std::cout << groups << " composed stairways checked, " << failures << " failures" << std::endl;
 		return failures == 0 && groups > 0 ? 0 : 1;

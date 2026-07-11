@@ -37,6 +37,7 @@ namespace pg
 			spk::Vector3Int worldMin{};	   // min corner of the rotated bounding box
 			spk::Vector3Int rotatedSize{}; // extents of that box
 			spk::Vector3Int destination{}; // world cell the prefab's pivot lands on
+			int realizationMinY = 0;	   // lowest terrain/support or prefab voxel written
 			spk::VoxelOrientation orientation = spk::VoxelOrientation::PositiveZ;
 			bool foundation = false;
 		};

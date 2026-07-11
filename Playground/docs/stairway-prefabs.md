@@ -45,7 +45,7 @@ to the global `WorldGenConfig` value, and missing `candidateRatio` defaults to `
 | Height difference | Layout |
 |---|---|
 | 1 level | one straight length centered on the crossing, perpendicular to the cliff |
-| 2+ levels | composed staircase parallel to the cliff (see below); a 2-level road climb falls back to two chained straight flights when the composed footprint is obstructed |
+| 2+ levels | try one run parallel to the cliff, then a two-run switchback, then a perpendicular chain as the final fallback |
 | above `maxComposedStairLevels` (roads) / `maxWildStairLevels` (wild) | edge rejected |
 
 ## The composed staircase
@@ -61,6 +61,14 @@ the wall (no gap column):
 
 Every piece is placed with `foundation`, so the flight and the top platform stand on
 solid pillars down to the terrain instead of floating.
+
+If neither direction has enough length for that one-pass layout, the generator folds
+the climb into a switchback. The first run descends along the cliff, a 3x6 landing
+crosses to a second lane, and the second run reverses direction. This needs roughly
+half as much length along the cliff. Only when both parallel and switchback candidates
+are obstructed does a road climb try the less attractive perpendicular chain;
+`maxRoadStairLevels` caps that final fallback (the default matches the composed-climb
+limit).
 
 Two regions are validated without stamping prefabs:
 

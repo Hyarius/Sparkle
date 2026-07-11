@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <cstdint>
@@ -11,7 +12,10 @@
 #include <vector>
 
 #include "core/registries.hpp"
+#include "world/generator/plan_chunk_provider.hpp"
 #include "world/generator/world_plan.hpp"
+
+#include "structures/voxel/spk_voxel_chunk.hpp"
 
 namespace
 {
@@ -51,6 +55,52 @@ TEST(WorldPlanValidation, DefaultConfigurationAndFullSeedDomainAreValid)
 	EXPECT_NO_THROW(pg::validateWorldGenConfig(config));
 	config.masterSeed = std::numeric_limits<std::uint64_t>::max();
 	EXPECT_NO_THROW(pg::validateWorldGenConfig(config));
+}
+
+TEST(PlanChunkProvider, StairFoundationUsesTerrainVoxels)
+{
+	const pg::Registries &registries = loadedRegistries();
+	pg::WorldPlan plan;
+	plan.config.size = 1;
+	plan.config.blocksPerCell = 8;
+	plan.config.blocksPerLevel = 3;
+	plan.config.groundLevelTop = 3;
+	plan.land = pg::PlanGrid<std::uint8_t>(1, 1);
+	plan.zone = pg::PlanGrid<std::int16_t>(1, -1);
+	plan.height = pg::PlanGrid<std::int8_t>(1, 0);
+	plan.water = pg::PlanGrid<std::uint8_t>(1, 0);
+	plan.lake = pg::PlanGrid<std::uint8_t>(1, 0);
+	plan.road = pg::PlanGrid<std::uint8_t>(1, 0);
+	plan.bridge = pg::PlanGrid<std::uint8_t>(1, 0);
+	const int stairY = spk::VoxelChunk::Size.y + 10;
+	plan.placements.push_back(
+		{.prefabId = "stair-length", .anchor = {0, stairY, 0}, .foundation = true});
+
+	const pg::PlanChunkProvider provider(registries, plan);
+	const spk::Vector3Int foundationPosition{0, spk::VoxelChunk::Size.y - 1, -1};
+	spk::VoxelChunk foundationChunk(
+		spk::VoxelChunk::coordinatesFromWorldCell(foundationPosition),
+		registries.voxels().renderRegistry());
+	provider.fill(foundationChunk);
+	const auto foundationCellAt = [&](int p_y) -> const spk::VoxelCell & {
+		return foundationChunk.cell(
+			foundationChunk.localFromWorld({foundationPosition.x, p_y, foundationPosition.z}));
+	};
+
+	const std::int32_t terrainId = registries.voxels().numericId("stone-block");
+	for (int y = plan.config.groundLevelTop + 1; y < spk::VoxelChunk::Size.y; ++y)
+	{
+		EXPECT_EQ(foundationCellAt(y).id, terrainId) << "foundation voxel at y=" << y;
+	}
+
+	const spk::Vector3Int stairPosition{foundationPosition.x, stairY, foundationPosition.z};
+	spk::VoxelChunk stairChunk(
+		spk::VoxelChunk::coordinatesFromWorldCell(stairPosition),
+		registries.voxels().renderRegistry());
+	provider.fill(stairChunk);
+	EXPECT_EQ(
+		stairChunk.cell(stairChunk.localFromWorld(stairPosition)).id,
+		registries.voxels().numericId("road-stair"));
 }
 
 TEST(WorldPlanValidation, RejectsEveryIntegerFieldOutsideItsDocumentedRange)
@@ -254,6 +304,27 @@ TEST(WorldPlanValidation, DefaultGenerationIsDeterministic)
 		second.land.at(config.size / 2, config.size / 2));
 	EXPECT_EQ(first.zone.at(config.size / 2, config.size / 2),
 		second.zone.at(config.size / 2, config.size / 2));
+}
+
+TEST(WorldPlanValidation, UsesRoadSwitchbackBeforePerpendicularFallback)
+{
+	const pg::Registries &registries = loadedRegistries();
+	Config config;
+	config.masterSeed = 9784;
+	const pg::WorldPlan plan = pg::generateWorldPlan(
+		config,
+		pg::planBiomesFrom(registries.biomes()),
+		registries.placementRules(),
+		registries.prefabs(),
+		registries.interiors());
+
+	const auto switchback = std::ranges::find_if(plan.stairways, [](const pg::PlanStairway &p_stairway) {
+		return p_stairway.road && p_stairway.switchback;
+	});
+	ASSERT_NE(switchback, plan.stairways.end());
+	EXPECT_FALSE(switchback->perpendicular);
+	EXPECT_EQ(switchback->steps, 4);
+	EXPECT_GE(switchback->centerPath.size(), static_cast<std::size_t>(10));
 }
 
 TEST(WorldPlanValidation, RepresentativeMinimumConfigurationGenerates)
