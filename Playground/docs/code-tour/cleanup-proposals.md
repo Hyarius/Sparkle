@@ -31,6 +31,14 @@ parse arguments and dispatch.
 
 ## B. Record composed stairways in the plan instead of re-inferring them
 
+> **Status: DONE** (2026-07-11, second pass). `PlanStairway` now carries a
+> `StairLayout` enum, the contiguous placement range, its footprints, an
+> `optional<PlanStairRect>` paved approach, its low plan cell, and the walk
+> path — `wildStairs`/`stairRects`/`pavedRects` were removed from `WorldPlan`.
+> `emitStairChain` is split into per-layout `StairCandidate` builders funneled
+> through a single `tryCommitStairCandidate`, and one-level ramps are recorded
+> too. The sketch below is the original proposal, kept for context.
+
 This is the root cause of the "why is this so complicated?" feeling around stairs.
 A composed staircase currently exists as *implicit structure* in four places that
 must agree:

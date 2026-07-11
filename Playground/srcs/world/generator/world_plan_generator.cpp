@@ -2022,42 +2022,82 @@ namespace pg
 				return true;
 			}
 
-			bool commitStairGroup(
-				std::vector<PrefabPlacement> p_placements,
-				int p_lowLevel,
-				int p_lowZone,
-				RoadRule p_roadRule,
-				const std::vector<StairFootprint> &p_extraFootprints = {},
-				const std::vector<StairFootprint> &p_reservedFootprints = {},
-				const std::vector<Claim> &p_extraClaims = {})
+			// Geometry of one cliff crossing, shared by every stair layout builder: the
+			// local frame, the strata on both sides, and the wall-hugging low-side
+			// columns. "Across" is the horizontal axis perpendicular to the cliff,
+			// "along" the axis running beside it.
+			struct StairSite
 			{
+				CliffFrame frame;
+				int steps = 0;
+				int lowLevel = 0;
+				int highLevel = 0;
+				int lowZone = 0;
+				int lowRow = 0;
+				int lowCol = 0;
+				int surface = 0;		 // stand base of the low ground
+				int highSurface = 0;	 // stand base of the high plateau
+				int boundary = 0;		 // across coordinate of the first column of the neighbor cell
+				int wallSide = 0;		 // across direction pointing away from the wall, onto the low side
+				int wallColumn = 0;		 // low-side column hugging the cliff wall
+				int alongCenterBase = 0; // along coordinate of the crossing's road-strip center
+				bool firstLower = false; // the scanned cell (not its neighbor) is the low side
+				bool onRoad = false;
+			};
+
+			// One fully shaped staircase attempt from a layout builder, ready for the
+			// single validate-and-commit step. checkedBand is validated exactly like a
+			// stamped footprint but never realized (the walkway lane beside a road
+			// climb); reservedExit is only tested against other stairways.
+			struct StairCandidate
+			{
+				std::vector<PrefabPlacement> placements;
+				std::optional<StairFootprint> checkedBand;
+				std::optional<StairFootprint> reservedExit;
+				std::vector<Claim> claims;
+				PlanStairway record;
+			};
+
+			// The one commit gate every layout goes through: validates the candidate's
+			// stamped and checked rectangles, claims its zones, appends its placements
+			// to the plan as one contiguous run, and records the staircase.
+			bool tryCommitStairCandidate(const StairSite &p_site, StairCandidate &&p_candidate)
+			{
+				// Straight ramps crossing on the road network must stay on road cells,
+				// composed road climbs may also use clear terrain beside the road, and
+				// wild stairways must not touch roads at all.
+				const RoadRule roadRule = p_site.onRoad
+											  ? (p_site.steps == 1 ? RoadRule::Require : RoadRule::Allow)
+											  : RoadRule::Forbid;
 				std::vector<StairFootprint> footprints;
-				footprints.reserve(p_placements.size() + p_extraFootprints.size() + p_reservedFootprints.size());
-				for (const PrefabPlacement &placement : p_placements)
+				footprints.reserve(p_candidate.placements.size() + 2);
+				for (const PrefabPlacement &placement : p_candidate.placements)
 				{
 					const std::optional<StairFootprint> footprint = stairFootprintOf(placement);
 					if (!footprint.has_value() ||
-						!stairFootprintFits(*footprint, p_lowLevel, p_lowZone, p_roadRule, footprints))
+						!stairFootprintFits(*footprint, p_site.lowLevel, p_site.lowZone, roadRule, footprints))
 					{
 						return false;
 					}
 					footprints.push_back(*footprint);
 				}
-				// Extra check-only rectangles (the approach lane beside a composed climb):
+				// The check-only band (the approach lane beside a composed road climb):
 				// validated and reserved exactly like stamped footprints, never realized.
-				for (const StairFootprint &extra : p_extraFootprints)
+				if (p_candidate.checkedBand.has_value())
 				{
-					if (!stairFootprintFits(extra, p_lowLevel, p_lowZone, p_roadRule, footprints))
+					if (!stairFootprintFits(*p_candidate.checkedBand, p_site.lowLevel, p_site.lowZone, roadRule, footprints))
 					{
 						return false;
 					}
-					footprints.push_back(extra);
+					footprints.push_back(*p_candidate.checkedBand);
 				}
-				// Reserved rectangles (the exit cells on the high plateau): only tested
-				// against other stairways, then recorded, so two flights can never meet
-				// face to face across a boundary. Their terrain is validated by the caller.
-				for (const StairFootprint &reserved : p_reservedFootprints)
+				// The reserved exit (the plateau cells beyond the top platform): only
+				// tested against other stairways, then recorded, so two flights can never
+				// meet face to face across a boundary. Its terrain was validated by the
+				// layout builder.
+				if (p_candidate.reservedExit.has_value())
 				{
+					const StairFootprint &reserved = *p_candidate.reservedExit;
 					const bool blocked =
 						std::ranges::any_of(
 							stairFootprints,
@@ -2073,26 +2113,35 @@ namespace pg
 				}
 				// Stairways are placed first and have priority: they claim their zones
 				// unconditionally, and everything placed later must keep clear of them.
-				for (const PrefabPlacement &placement : p_placements)
+				for (const PrefabPlacement &placement : p_candidate.placements)
 				{
 					if (const std::optional<Claim> claim = claimBoxFor(placement); claim.has_value())
 					{
 						hardClaims.push_back(*claim);
 					}
 				}
-				hardClaims.insert(hardClaims.end(), p_extraClaims.begin(), p_extraClaims.end());
-				plan.placements.insert(
-					plan.placements.end(),
-					std::make_move_iterator(p_placements.begin()),
-					std::make_move_iterator(p_placements.end()));
-				stairFootprints.insert(stairFootprints.end(), footprints.begin(), footprints.end());
+				hardClaims.insert(hardClaims.end(), p_candidate.claims.begin(), p_candidate.claims.end());
+
+				PlanStairway &record = p_candidate.record;
+				record.firstPlacement = plan.placements.size();
+				record.placementCount = p_candidate.placements.size();
+				record.lowRow = p_site.lowRow;
+				record.lowCol = p_site.lowCol;
+				record.steps = p_site.steps;
+				record.road = p_site.onRoad;
 				// The preview map repaints these rectangles in road color: where a climb
 				// detours the walked path, the drawn road follows the actual structure.
+				record.footprints.reserve(footprints.size());
 				for (const StairFootprint &footprint : footprints)
 				{
-					plan.stairRects.push_back(
+					record.footprints.push_back(
 						{.minX = footprint.minX, .maxX = footprint.maxX, .minZ = footprint.minZ, .maxZ = footprint.maxZ});
 				}
+				plan.placements.insert(
+					plan.placements.end(),
+					std::make_move_iterator(p_candidate.placements.begin()),
+					std::make_move_iterator(p_candidate.placements.end()));
+				stairFootprints.insert(stairFootprints.end(), footprints.begin(), footprints.end());
 				for (const StairFootprint &footprint : footprints)
 				{
 					const int minRow = plan.cellIndexFromWorld(footprint.minZ);
@@ -2110,13 +2159,277 @@ namespace pg
 						}
 					}
 				}
+				stairCells.push_back({p_site.lowRow, p_site.lowCol});
+				if (record.steps >= 2)
+				{
+					++plan.stats.composedStairPlacements;
+				}
+				plan.stairways.push_back(std::move(record));
 				return true;
+			}
+
+			// Shared tail of both composed layouts: the three high-plateau cells the top
+			// platform opens onto must be dry, level land; they are reserved so no other
+			// flight or building ever blocks the exit face to face. Road climbs also get
+			// their approach band checked and paved, plus one claim over the whole
+			// structure (band included, low ground to above the top platform) that keeps
+			// scenery and buildings out from under the flight and off the approach.
+			[[nodiscard]] bool guardComposedCandidate(
+				const StairSite &p_site,
+				StairCandidate &p_candidate,
+				const StairFootprint &p_band,
+				int p_alongMin,
+				int p_alongMax,
+				int p_topAlong)
+			{
+				const CliffFrame &frame = p_site.frame;
+				const int exitColumn = p_site.wallColumn - p_site.wallSide;
+				for (int along = p_topAlong - 1; along <= p_topAlong + 1; ++along)
+				{
+					const Cell exitCell = frame.cell(exitColumn, along);
+					const bool clear = plan.land.contains(exitCell.row, exitCell.col) &&
+									   isLand(exitCell.row, exitCell.col) &&
+									   plan.height.at(exitCell.row, exitCell.col) == p_site.highLevel &&
+									   plan.water.at(exitCell.row, exitCell.col) == 0 &&
+									   plan.bridge.at(exitCell.row, exitCell.col) == 0;
+					if (!clear)
+					{
+						return false;
+					}
+				}
+				p_candidate.reservedExit = frame.rect(exitColumn, exitColumn, p_topAlong - 1, p_topAlong + 1);
+				if (p_site.onRoad)
+				{
+					const int bandAcrossMin = frame.acrossIsX ? p_band.minX : p_band.minZ;
+					const int bandAcrossMax = frame.acrossIsX ? p_band.maxX : p_band.maxZ;
+					p_candidate.checkedBand = p_band;
+					p_candidate.claims.push_back(frame.claim(
+						std::min(p_site.wallColumn, bandAcrossMin),
+						std::max(p_site.wallColumn, bandAcrossMax),
+						p_site.surface,
+						p_site.highSurface + 4,
+						p_alongMin,
+						p_alongMax));
+					p_candidate.record.pavedApproach =
+						PlanStairRect{.minX = p_band.minX, .maxX = p_band.maxX, .minZ = p_band.minZ, .maxZ = p_band.maxZ};
+				}
+				p_candidate.claims.push_back(frame.claim(
+					exitColumn, exitColumn, p_site.highSurface + 1, p_site.highSurface + 4, p_topAlong - 1, p_topAlong + 1));
+				p_candidate.record.plateauCell = frame.at(exitColumn, 0, p_topAlong);
+				return true;
+			}
+
+			// One run along the cliff. The three across-columns nearest the wall carry
+			// the platforms and the flight: the top platform pads the 3-wide road strip
+			// of the crossing so stepping over the boundary lands on it flush, then the
+			// flight descends beside the cliff toward the bottom platform. The fourth
+			// column is a checked, unstamped walkway lane connecting the road dead-end
+			// below the top platform to the bottom platform.
+			[[nodiscard]] std::optional<StairCandidate> makeOnePassCandidate(
+				const StairSite &p_site,
+				const std::string &p_platformId,
+				int p_tangent,
+				int p_crossOffset)
+			{
+				const CliffFrame &frame = p_site.frame;
+				const int run = cfg.blocksPerLevel; // ramp run == ramp rise (cube prefab)
+				const int steps = p_site.steps;
+				const int acrossCenter = p_site.wallColumn + p_site.wallSide;
+				// The three columns beyond the structure form the paved approach band:
+				// the road-width path from the crossing dead-end to the bottom platform.
+				const int bandNearColumn = p_site.wallColumn + 3 * p_site.wallSide;
+				const int bandFarColumn = p_site.wallColumn + 5 * p_site.wallSide;
+				const int alongCenter = p_site.alongCenterBase + p_crossOffset;
+
+				StairCandidate candidate;
+				candidate.record.layout = StairLayout::OnePass;
+				candidate.record.topAnchor = frame.at(acrossCenter, p_site.highSurface + 1, alongCenter);
+				candidate.record.bottomAnchor =
+					frame.at(acrossCenter, p_site.surface + 1, alongCenter + p_tangent * run * (steps + 1));
+				candidate.placements.reserve(static_cast<std::size_t>(steps) + 2);
+
+				PrefabPlacement top;
+				top.prefabId = p_platformId;
+				top.foundation = true;
+				top.anchor = candidate.record.topAnchor;
+				candidate.placements.push_back(std::move(top));
+
+				for (int segment = 1; segment <= steps; ++segment)
+				{
+					PrefabPlacement piece;
+					piece.prefabId = pickStairLength(p_site.lowZone, p_site.onRoad);
+					piece.orientation = frame.alongAscend(p_tangent);
+					piece.foundation = true;
+					piece.anchor = frame.at(
+						acrossCenter,
+						p_site.surface + 1 + run * (steps - segment),
+						alongCenter + p_tangent * run * segment);
+					candidate.placements.push_back(std::move(piece));
+				}
+
+				PrefabPlacement bottom;
+				bottom.prefabId = p_platformId;
+				bottom.foundation = true;
+				bottom.anchor = candidate.record.bottomAnchor;
+				candidate.placements.push_back(std::move(bottom));
+
+				const int nearEdge = alongCenter - p_tangent;
+				const int farEdge = alongCenter + p_tangent * (run * (steps + 1) + 1);
+				const int alongMin = std::min(nearEdge, farEdge);
+				const int alongMax = std::max(nearEdge, farEdge);
+				const StairFootprint band = frame.rect(
+					std::min(bandNearColumn, bandFarColumn), std::max(bandNearColumn, bandFarColumn), alongMin, alongMax);
+				candidate.record.centerPath.reserve(static_cast<std::size_t>(run * (steps + 1) + 1));
+				for (int distance = 0; distance <= run * (steps + 1); ++distance)
+				{
+					candidate.record.centerPath.push_back(frame.at(acrossCenter, 0, alongCenter + p_tangent * distance));
+				}
+				if (!guardComposedCandidate(p_site, candidate, band, alongMin, alongMax, alongCenter))
+				{
+					return std::nullopt;
+				}
+				return candidate;
+			}
+
+			// A long one-pass flight may run out of clear low ground along the cliff:
+			// fold taller climbs into two adjacent, opposing runs joined by a 3x6
+			// landing before giving up on the edge.
+			[[nodiscard]] std::optional<StairCandidate> makeSwitchbackCandidate(
+				const StairSite &p_site,
+				const std::string &p_platformId,
+				int p_tangent,
+				int p_crossOffset)
+			{
+				const CliffFrame &frame = p_site.frame;
+				const int run = cfg.blocksPerLevel;
+				const int steps = p_site.steps;
+				const int firstPassSteps = (steps + 1) / 2;
+				const int secondPassSteps = steps - firstPassSteps;
+				const int middleStand = p_site.surface + 1 + run * secondPassSteps;
+				const int nearCenter = p_site.wallColumn + p_site.wallSide;
+				const int farCenter = nearCenter + 3 * p_site.wallSide;
+				const int bandNearColumn = p_site.wallColumn + 6 * p_site.wallSide;
+				const int bandFarColumn = p_site.wallColumn + 8 * p_site.wallSide;
+				const int topAlong = p_site.alongCenterBase + p_crossOffset;
+				const int turnAlong = topAlong + p_tangent * run * (firstPassSteps + 1);
+				const int bottomAlong = turnAlong - p_tangent * run * (secondPassSteps + 1);
+
+				StairCandidate candidate;
+				candidate.record.layout = StairLayout::Switchback;
+				candidate.record.topAnchor = frame.at(nearCenter, p_site.highSurface + 1, topAlong);
+				candidate.record.bottomAnchor = frame.at(farCenter, p_site.surface + 1, bottomAlong);
+				candidate.placements.reserve(static_cast<std::size_t>(steps) + 4);
+				auto addPlatform = [&](int p_across, int p_y, int p_along) {
+					PrefabPlacement platform;
+					platform.prefabId = p_platformId;
+					platform.foundation = true;
+					platform.anchor = frame.at(p_across, p_y, p_along);
+					candidate.placements.push_back(std::move(platform));
+				};
+				auto addFlight = [&](int p_across, int p_y, int p_along, int p_ascendTangent) {
+					PrefabPlacement piece;
+					piece.prefabId = pickStairLength(p_site.lowZone, p_site.onRoad);
+					piece.orientation = frame.alongAscend(p_ascendTangent);
+					piece.foundation = true;
+					piece.anchor = frame.at(p_across, p_y, p_along);
+					candidate.placements.push_back(std::move(piece));
+				};
+
+				addPlatform(nearCenter, p_site.highSurface + 1, topAlong);
+				for (int segment = 1; segment <= firstPassSteps; ++segment)
+				{
+					addFlight(
+						nearCenter,
+						p_site.surface + 1 + run * (steps - segment),
+						topAlong + p_tangent * run * segment,
+						p_tangent);
+				}
+				addPlatform(nearCenter, middleStand, turnAlong);
+				addPlatform(farCenter, middleStand, turnAlong);
+				for (int segment = 1; segment <= secondPassSteps; ++segment)
+				{
+					addFlight(
+						farCenter,
+						p_site.surface + 1 + run * (secondPassSteps - segment),
+						turnAlong - p_tangent * run * segment,
+						-p_tangent);
+				}
+				addPlatform(farCenter, p_site.surface + 1, bottomAlong);
+
+				const int alongMin = std::min({topAlong, turnAlong, bottomAlong}) - 1;
+				const int alongMax = std::max({topAlong, turnAlong, bottomAlong}) + 1;
+				const StairFootprint band = frame.rect(
+					std::min(bandNearColumn, bandFarColumn), std::max(bandNearColumn, bandFarColumn), alongMin, alongMax);
+
+				candidate.record.centerPath.reserve(
+					static_cast<std::size_t>(run * (firstPassSteps + secondPassSteps + 2) + 4));
+				for (int distance = 0; distance <= run * (firstPassSteps + 1); ++distance)
+				{
+					candidate.record.centerPath.push_back(frame.at(nearCenter, 0, topAlong + p_tangent * distance));
+				}
+				for (int laneStep = 1; laneStep <= 3; ++laneStep)
+				{
+					candidate.record.centerPath.push_back(
+						frame.at(nearCenter + p_site.wallSide * laneStep, 0, turnAlong));
+				}
+				for (int distance = 1; distance <= run * (secondPassSteps + 1); ++distance)
+				{
+					candidate.record.centerPath.push_back(frame.at(farCenter, 0, turnAlong - p_tangent * distance));
+				}
+				if (!guardComposedCandidate(p_site, candidate, band, alongMin, alongMax, topAlong))
+				{
+					return std::nullopt;
+				}
+				return candidate;
+			}
+
+			// A centered straight flight crossing away from the cliff: the shape of
+			// every one-level ramp, and the last-resort fallback for taller climbs.
+			[[nodiscard]] StairCandidate makePerpendicularCandidate(const StairSite &p_site)
+			{
+				const CliffFrame &frame = p_site.frame;
+				const int run = cfg.blocksPerLevel;
+				const int steps = p_site.steps;
+				const int alongCenter = p_site.alongCenterBase;
+
+				StairCandidate candidate;
+				candidate.record.layout = StairLayout::Perpendicular;
+				candidate.placements.reserve(static_cast<std::size_t>(steps));
+				for (int segment = 1; segment <= steps; ++segment)
+				{
+					PrefabPlacement placement;
+					// Each segment draws its own flight variant so a climb reads as a mix.
+					placement.prefabId = pickStairLength(p_site.lowZone, p_site.onRoad);
+					placement.foundation = true;
+					const int rise = p_site.surface + 1 + run * (segment - 1);
+					const int distanceFromBoundary = run * (steps - segment); // 0 = against the boundary
+					placement.orientation = frame.acrossAscend(p_site.firstLower);
+					const int minAcross = p_site.firstLower
+											  ? p_site.boundary - distanceFromBoundary - run
+											  : p_site.boundary + distanceFromBoundary;
+					placement.anchor = frame.at(minAcross + run / 2, rise, alongCenter);
+					candidate.placements.push_back(std::move(placement));
+				}
+				const int topAcross = p_site.wallColumn;
+				const int descent = p_site.wallSide;
+				const int bottomAcross = topAcross + descent * (run * steps + 1);
+				candidate.record.topAnchor = frame.at(topAcross, p_site.highSurface + 1, alongCenter);
+				candidate.record.bottomAnchor = frame.at(bottomAcross, p_site.surface + 1, alongCenter);
+				candidate.record.plateauCell = frame.at(topAcross - descent, 0, alongCenter);
+				candidate.record.centerPath.reserve(static_cast<std::size_t>(run * steps + 2));
+				for (int distance = 0; distance <= run * steps + 1; ++distance)
+				{
+					candidate.record.centerPath.push_back(frame.at(topAcross + descent * distance, 0, alongCenter));
+				}
+				return candidate;
 			}
 
 			// Places an adaptive staircase across a cliff. One-level climbs use a
 			// centered perpendicular ramp. Taller climbs try, in order, one run along
 			// the cliff, a compact two-run switchback, and finally a perpendicular
-			// chain. Returns the number of emitted prefab placements.
+			// chain; both tangent directions and three sideways nudges are tried per
+			// composed layout. Every committed staircase becomes a PlanStairway record.
+			// Returns the number of emitted prefab placements.
 			int emitStairChain(
 				int p_row,
 				int p_col,
@@ -2126,7 +2439,6 @@ namespace pg
 				std::optional<int> p_wildMaximumLevels = std::nullopt)
 			{
 				const int blocks = cfg.blocksPerCell;
-				const int run = cfg.blocksPerLevel; // ramp run == ramp rise (cube prefab)
 				const int offset = plan.worldOffset();
 				const int strip = blocks / 2 - 1; // strip start (3-wide, centered)
 				const CliffFrame frame{.acrossIsX = p_dc == 1, .plan = plan};
@@ -2143,10 +2455,7 @@ namespace pg
 				const int lowCol = firstLower ? p_col : nc;
 				const int lowLevel = std::min(levelA, levelB);
 				const int highLevel = std::max(levelA, levelB);
-				const int lowZone = plan.zone.at(lowRow, lowCol);
 				const int steps = highLevel - lowLevel;
-				const int surface = plan.surfaceY(lowLevel);
-				const int highSurface = plan.surfaceY(highLevel);
 
 				const int maximumLevels = p_onRoad ? cfg.maxComposedStairLevels : p_wildMaximumLevels.value_or(cfg.maxWildStairLevels);
 				if (steps > maximumLevels)
@@ -2155,323 +2464,54 @@ namespace pg
 					return 0;
 				}
 
+				const int boundary = frame.acrossIsX ? offset + (p_col + 1) * blocks
+													 : offset + (p_row + 1) * blocks;
+				const StairSite site{
+					.frame = frame,
+					.steps = steps,
+					.lowLevel = lowLevel,
+					.highLevel = highLevel,
+					.lowZone = plan.zone.at(lowRow, lowCol),
+					.lowRow = lowRow,
+					.lowCol = lowCol,
+					.surface = plan.surfaceY(lowLevel),
+					.highSurface = plan.surfaceY(highLevel),
+					.boundary = boundary,
+					.wallSide = firstLower ? -1 : 1, // away from the wall, low side
+					.wallColumn = firstLower ? boundary - 1 : boundary,
+					.alongCenterBase = (frame.acrossIsX ? offset + p_row * blocks : offset + p_col * blocks) + strip + 1,
+					.firstLower = firstLower,
+					.onRoad = p_onRoad};
+
+				const auto commit = [&](std::optional<StairCandidate> p_candidate) {
+					return p_candidate.has_value() && tryCommitStairCandidate(site, std::move(*p_candidate));
+				};
+
 				if (steps >= 2)
 				{
-					// Composed staircase. Local frame: "across" is the horizontal axis
-					// perpendicular to the cliff, "along" the axis running beside it. The
-					// three across-columns nearest the wall carry the platforms and the
-					// flight; the fourth is a checked, unstamped walkway lane connecting
-					// the road dead-end below the top platform to the bottom platform.
-					const std::string platformId = stairPlatformPrefabFor(lowZone, p_onRoad);
-					const int boundary = frame.acrossIsX ? offset + (p_col + 1) * blocks
-														 : offset + (p_row + 1) * blocks;
-					const int wallSide = firstLower ? -1 : 1; // away from the wall, low side
-					const int wallColumn = firstLower ? boundary - 1 : boundary;
-					const int acrossCenter = wallColumn + wallSide;
-					// The three columns beyond the structure form the paved approach band:
-					// the road-width path from the crossing dead-end to the bottom platform.
-					const int bandNearColumn = wallColumn + 3 * wallSide;
-					const int bandFarColumn = wallColumn + 5 * wallSide;
-					const int alongCenterBase =
-						(frame.acrossIsX ? offset + p_row * blocks : offset + p_col * blocks) + strip + 1;
-
+					const std::string platformId = stairPlatformPrefabFor(site.lowZone, p_onRoad);
 					constexpr std::array tangents = {1, -1};
 					constexpr std::array crossOffsets = {0, -1, 1};
 					for (const int tangent : tangents)
 					{
 						for (const int crossOffset : crossOffsets)
 						{
-							// The top platform pads the 3-wide road strip of the crossing, so
-							// stepping over the boundary lands on it flush; the flight then
-							// descends beside the cliff toward the bottom platform.
-							const int alongCenter = alongCenterBase + crossOffset;
-							const spk::Vector3Int topAnchor = frame.at(acrossCenter, highSurface + 1, alongCenter);
-							const spk::Vector3Int bottomAnchor =
-								frame.at(acrossCenter, surface + 1, alongCenter + tangent * run * (steps + 1));
-							std::vector<PrefabPlacement> placements;
-							placements.reserve(static_cast<std::size_t>(steps) + 2);
-
-							PrefabPlacement top;
-							top.prefabId = platformId;
-							top.foundation = true;
-							top.anchor = topAnchor;
-							placements.push_back(std::move(top));
-
-							for (int segment = 1; segment <= steps; ++segment)
+							if (commit(makeOnePassCandidate(site, platformId, tangent, crossOffset)))
 							{
-								PrefabPlacement piece;
-								piece.prefabId = pickStairLength(lowZone, p_onRoad);
-								piece.orientation = frame.alongAscend(tangent);
-								piece.foundation = true;
-								piece.anchor = frame.at(
-									acrossCenter,
-									surface + 1 + run * (steps - segment),
-									alongCenter + tangent * run * segment);
-								placements.push_back(std::move(piece));
-							}
-
-							PrefabPlacement bottom;
-							bottom.prefabId = platformId;
-							bottom.foundation = true;
-							bottom.anchor = bottomAnchor;
-							placements.push_back(std::move(bottom));
-
-							const int nearEdge = alongCenter - tangent;
-							const int farEdge = alongCenter + tangent * (run * (steps + 1) + 1);
-							const int alongMin = std::min(nearEdge, farEdge);
-							const int alongMax = std::max(nearEdge, farEdge);
-							const int bandMin = std::min(bandNearColumn, bandFarColumn);
-							const int bandMax = std::max(bandNearColumn, bandFarColumn);
-							const StairFootprint band = frame.rect(bandMin, bandMax, alongMin, alongMax);
-							std::vector<spk::Vector3Int> centerPath;
-							centerPath.reserve(static_cast<std::size_t>(run * (steps + 1) + 1));
-							for (int distance = 0; distance <= run * (steps + 1); ++distance)
-							{
-								centerPath.push_back(frame.at(acrossCenter, 0, alongCenter + tangent * distance));
-							}
-							// The three high-plateau cells the top platform opens onto must be
-							// dry, level land, and are reserved so no other flight or building
-							// ever blocks the exit face to face.
-							const int exitColumn = wallColumn - wallSide;
-							bool exitClear = true;
-							for (int along = alongCenter - 1; along <= alongCenter + 1 && exitClear; ++along)
-							{
-								const Cell exitCell = frame.cell(exitColumn, along);
-								exitClear = plan.land.contains(exitCell.row, exitCell.col) &&
-											isLand(exitCell.row, exitCell.col) &&
-											plan.height.at(exitCell.row, exitCell.col) == highLevel &&
-											plan.water.at(exitCell.row, exitCell.col) == 0 &&
-											plan.bridge.at(exitCell.row, exitCell.col) == 0;
-							}
-							if (!exitClear)
-							{
-								continue;
-							}
-							const StairFootprint exit =
-								frame.rect(exitColumn, exitColumn, alongCenter - 1, alongCenter + 1);
-							const Claim exitClaim = frame.claim(
-								exitColumn, exitColumn, highSurface + 1, highSurface + 4, alongCenter - 1, alongCenter + 1);
-							// One claim over the whole structure, approach band included, from
-							// the low ground to above the top platform: keeps scenery and
-							// buildings out from under the flight and off the approach.
-							const int acrossMin = std::min(wallColumn, bandFarColumn);
-							const int acrossMax = std::max(wallColumn, bandFarColumn);
-							const Claim stripClaim =
-								frame.claim(acrossMin, acrossMax, surface, highSurface + 4, alongMin, alongMax);
-
-							std::vector<StairFootprint> extraFootprints;
-							std::vector<Claim> extraClaims;
-							if (p_onRoad)
-							{
-								extraFootprints.push_back(band);
-								extraClaims.push_back(stripClaim);
-							}
-							extraClaims.push_back(exitClaim);
-							if (commitStairGroup(
-									std::move(placements),
-									lowLevel,
-									lowZone,
-									p_onRoad ? RoadRule::Allow : RoadRule::Forbid,
-									extraFootprints,
-									{exit},
-									extraClaims))
-							{
-								// Only road climbs pave their approach; wild ones keep the
-								// validated band as untouched natural ground.
-								if (p_onRoad)
-								{
-									plan.pavedRects.push_back(
-										{.minX = band.minX, .maxX = band.maxX, .minZ = band.minZ, .maxZ = band.maxZ});
-								}
-								// The committed group becomes a first-class plan record; nothing
-								// downstream ever re-infers it from the placement list.
-								plan.stairways.push_back(
-									{.topAnchor = topAnchor,
-									 .bottomAnchor = bottomAnchor,
-									 .plateauCell = frame.at(exitColumn, 0, alongCenter),
-									 .centerPath = std::move(centerPath),
-									 .approachRect = {.minX = band.minX,
-													  .maxX = band.maxX,
-													  .minZ = band.minZ,
-													  .maxZ = band.maxZ},
-									 .steps = steps,
-									 .alongX = !frame.acrossIsX,
-									 .tangent = tangent,
-									 .road = p_onRoad,
-									 .approachReserved = p_onRoad,
-									 .switchback = false,
-									 .perpendicular = false});
-								++plan.stats.composedStairPlacements;
-								stairCells.push_back({lowRow, lowCol});
-								return steps + 2;
+								return static_cast<int>(plan.stairways.back().placementCount);
 							}
 						}
 					}
-
-					// A long one-pass flight may run out of clear low ground along the
-					// cliff. Fold taller climbs into two adjacent, opposing runs joined
-					// by a 3x6 landing before giving up on the edge.
-					// Layout priority is deliberate: one run along the cliff, then this
-					// compact switchback, and only then the less attractive perpendicular
-					// fallback below.
+					for (const int tangent : tangents)
 					{
-						const int firstPassSteps = (steps + 1) / 2;
-						const int secondPassSteps = steps - firstPassSteps;
-						const int middleStand = surface + 1 + run * secondPassSteps;
-						const int boundary = frame.acrossIsX ? offset + (p_col + 1) * blocks
-														 : offset + (p_row + 1) * blocks;
-						const int wallSide = firstLower ? -1 : 1;
-						const int wallColumn = firstLower ? boundary - 1 : boundary;
-						const int nearCenter = wallColumn + wallSide;
-						const int farCenter = nearCenter + 3 * wallSide;
-						const int bandNearColumn = wallColumn + 6 * wallSide;
-						const int bandFarColumn = wallColumn + 8 * wallSide;
-						const int alongCenterBase =
-							(frame.acrossIsX ? offset + p_row * blocks : offset + p_col * blocks) + strip + 1;
-
-						constexpr std::array switchbackTangents = {1, -1};
-						constexpr std::array switchbackOffsets = {0, -1, 1};
-						for (const int tangent : switchbackTangents)
+						for (const int crossOffset : crossOffsets)
 						{
-							for (const int crossOffset : switchbackOffsets)
+							if (commit(makeSwitchbackCandidate(site, platformId, tangent, crossOffset)))
 							{
-								const int topAlong = alongCenterBase + crossOffset;
-								const int turnAlong = topAlong + tangent * run * (firstPassSteps + 1);
-								const int bottomAlong = turnAlong - tangent * run * (secondPassSteps + 1);
-								const spk::Vector3Int topAnchor = frame.at(nearCenter, highSurface + 1, topAlong);
-								const spk::Vector3Int bottomAnchor = frame.at(farCenter, surface + 1, bottomAlong);
-
-								std::vector<PrefabPlacement> placements;
-								placements.reserve(static_cast<std::size_t>(steps) + 4);
-								auto addPlatform = [&](int p_across, int p_y, int p_along) {
-									PrefabPlacement platform;
-									platform.prefabId = platformId;
-									platform.foundation = true;
-									platform.anchor = frame.at(p_across, p_y, p_along);
-									placements.push_back(std::move(platform));
-								};
-
-								addPlatform(nearCenter, highSurface + 1, topAlong);
-								for (int segment = 1; segment <= firstPassSteps; ++segment)
-								{
-									PrefabPlacement piece;
-									piece.prefabId = pickStairLength(lowZone, p_onRoad);
-									piece.orientation = frame.alongAscend(tangent);
-									piece.foundation = true;
-									piece.anchor = frame.at(
-										nearCenter,
-										surface + 1 + run * (steps - segment),
-										topAlong + tangent * run * segment);
-									placements.push_back(std::move(piece));
-								}
-								addPlatform(nearCenter, middleStand, turnAlong);
-								addPlatform(farCenter, middleStand, turnAlong);
-								for (int segment = 1; segment <= secondPassSteps; ++segment)
-								{
-									PrefabPlacement piece;
-									piece.prefabId = pickStairLength(lowZone, p_onRoad);
-									piece.orientation = frame.alongAscend(-tangent);
-									piece.foundation = true;
-									piece.anchor = frame.at(
-										farCenter,
-										surface + 1 + run * (secondPassSteps - segment),
-										turnAlong - tangent * run * segment);
-									placements.push_back(std::move(piece));
-								}
-								addPlatform(farCenter, surface + 1, bottomAlong);
-
-								const int alongMin = std::min({topAlong, turnAlong, bottomAlong}) - 1;
-								const int alongMax = std::max({topAlong, turnAlong, bottomAlong}) + 1;
-								const int bandMin = std::min(bandNearColumn, bandFarColumn);
-								const int bandMax = std::max(bandNearColumn, bandFarColumn);
-								const StairFootprint band = frame.rect(bandMin, bandMax, alongMin, alongMax);
-
-								const int exitColumn = wallColumn - wallSide;
-								bool exitClear = true;
-								for (int along = topAlong - 1; along <= topAlong + 1 && exitClear; ++along)
-								{
-									const Cell exitCell = frame.cell(exitColumn, along);
-									exitClear = plan.land.contains(exitCell.row, exitCell.col) &&
-												isLand(exitCell.row, exitCell.col) &&
-												plan.height.at(exitCell.row, exitCell.col) == highLevel &&
-												plan.water.at(exitCell.row, exitCell.col) == 0 &&
-												plan.bridge.at(exitCell.row, exitCell.col) == 0;
-								}
-								if (!exitClear)
-								{
-									continue;
-								}
-
-								const StairFootprint exit = frame.rect(exitColumn, exitColumn, topAlong - 1, topAlong + 1);
-								const Claim exitClaim = frame.claim(
-									exitColumn, exitColumn, highSurface + 1, highSurface + 4, topAlong - 1, topAlong + 1);
-								const int acrossMin = std::min(wallColumn, bandFarColumn);
-								const int acrossMax = std::max(wallColumn, bandFarColumn);
-								const Claim stripClaim =
-									frame.claim(acrossMin, acrossMax, surface, highSurface + 4, alongMin, alongMax);
-								std::vector<StairFootprint> extraFootprints;
-								std::vector<Claim> extraClaims;
-								if (p_onRoad)
-								{
-									extraFootprints.push_back(band);
-									extraClaims.push_back(stripClaim);
-								}
-								extraClaims.push_back(exitClaim);
-								if (!commitStairGroup(
-										std::move(placements),
-										lowLevel,
-										lowZone,
-										p_onRoad ? RoadRule::Allow : RoadRule::Forbid,
-										extraFootprints,
-										{exit},
-										extraClaims))
-								{
-									continue;
-								}
-
-								if (p_onRoad)
-								{
-									plan.pavedRects.push_back(
-										{.minX = band.minX, .maxX = band.maxX, .minZ = band.minZ, .maxZ = band.maxZ});
-								}
-								std::vector<spk::Vector3Int> centerPath;
-								centerPath.reserve(static_cast<std::size_t>(
-									run * (firstPassSteps + secondPassSteps + 2) + 4));
-								for (int distance = 0; distance <= run * (firstPassSteps + 1); ++distance)
-								{
-									centerPath.push_back(frame.at(nearCenter, 0, topAlong + tangent * distance));
-								}
-								for (int laneStep = 1; laneStep <= 3; ++laneStep)
-								{
-									centerPath.push_back(frame.at(nearCenter + wallSide * laneStep, 0, turnAlong));
-								}
-								for (int distance = 1; distance <= run * (secondPassSteps + 1); ++distance)
-								{
-									centerPath.push_back(frame.at(farCenter, 0, turnAlong - tangent * distance));
-								}
-								plan.stairways.push_back(
-									{.topAnchor = topAnchor,
-									 .bottomAnchor = bottomAnchor,
-									 .plateauCell = frame.at(exitColumn, 0, topAlong),
-									 .centerPath = std::move(centerPath),
-									 .approachRect = {.minX = band.minX,
-													  .maxX = band.maxX,
-													  .minZ = band.minZ,
-													  .maxZ = band.maxZ},
-									 .steps = steps,
-									 .alongX = !frame.acrossIsX,
-									 .tangent = tangent,
-									 .road = p_onRoad,
-									 .approachReserved = p_onRoad,
-									 .switchback = true,
-									 .perpendicular = false});
-								++plan.stats.composedStairPlacements;
-								stairCells.push_back({lowRow, lowCol});
-								return steps + 4;
+								return static_cast<int>(plan.stairways.back().placementCount);
 							}
 						}
 					}
-
 					// Last resort: a short transition may still fit as a centered straight
 					// flight perpendicular to the cliff.
 					if (p_onRoad && steps > cfg.maxRoadStairLevels)
@@ -2480,67 +2520,12 @@ namespace pg
 						return 0;
 					}
 				}
-				std::vector<PrefabPlacement> placements;
-				placements.reserve(static_cast<std::size_t>(steps));
-
-				for (int segment = 1; segment <= steps; ++segment)
-				{
-					PrefabPlacement placement;
-					// Each segment draws its own flight variant so a climb reads as a mix.
-					placement.prefabId = pickStairLength(lowZone, p_onRoad);
-					placement.foundation = true;
-					const int rise = surface + 1 + run * (segment - 1);
-					const int distanceFromBoundary = run * (steps - segment); // 0 = against the boundary
-					placement.orientation = frame.acrossAscend(firstLower);
-					const int boundary = frame.acrossIsX ? offset + (p_col + 1) * blocks
-														 : offset + (p_row + 1) * blocks;
-					const int minAcross =
-						firstLower ? boundary - distanceFromBoundary - run : boundary + distanceFromBoundary;
-					const int alongCenter =
-						(frame.acrossIsX ? offset + p_row * blocks : offset + p_col * blocks) + strip + 1;
-					placement.anchor = frame.at(minAcross + run / 2, rise, alongCenter);
-					placements.push_back(std::move(placement));
-				}
-				if (!commitStairGroup(
-						std::move(placements),
-						lowLevel,
-						lowZone,
-						p_onRoad && steps == 1 ? RoadRule::Require : (p_onRoad ? RoadRule::Allow : RoadRule::Forbid)))
+				if (!commit(makePerpendicularCandidate(site)))
 				{
 					++plan.stats.rejectedStairways;
 					return 0;
 				}
-				if (steps >= 2)
-				{
-					const int boundary = frame.acrossIsX ? offset + (p_col + 1) * blocks
-														 : offset + (p_row + 1) * blocks;
-					const int alongCenter =
-						(frame.acrossIsX ? offset + p_row * blocks : offset + p_col * blocks) + strip + 1;
-					const int topAcross = firstLower ? boundary - 1 : boundary;
-					const int descent = firstLower ? -1 : 1;
-					const int bottomAcross = topAcross + descent * (run * steps + 1);
-					std::vector<spk::Vector3Int> centerPath;
-					centerPath.reserve(static_cast<std::size_t>(run * steps + 2));
-					for (int distance = 0; distance <= run * steps + 1; ++distance)
-					{
-						centerPath.push_back(frame.at(topAcross + descent * distance, 0, alongCenter));
-					}
-					plan.stairways.push_back(
-						{.topAnchor = frame.at(topAcross, highSurface + 1, alongCenter),
-						 .bottomAnchor = frame.at(bottomAcross, surface + 1, alongCenter),
-						 .plateauCell = frame.at(topAcross - descent, 0, alongCenter),
-						 .centerPath = std::move(centerPath),
-						 .steps = steps,
-						 .alongX = frame.acrossIsX,
-						 .tangent = descent,
-						 .road = p_onRoad,
-						 .approachReserved = false,
-						 .switchback = false,
-						 .perpendicular = true});
-					++plan.stats.composedStairPlacements;
-				}
-				stairCells.push_back({lowRow, lowCol});
-				return steps;
+				return static_cast<int>(plan.stairways.back().placementCount);
 			}
 
 			// Stairways: wherever the road steps between two strata levels, place an
@@ -2670,7 +2655,6 @@ namespace pg
 							emitStairChain(candidate.row, candidate.col, candidate.dr, candidate.dc, false, maxLevels);
 						if (segments > 0)
 						{
-							plan.wildStairs.push_back({stairCells.back().row, stairCells.back().col});
 							plan.stats.wildStairPlacements += segments;
 							++placed;
 						}
@@ -3264,7 +3248,9 @@ namespace pg
 		out << "gateways (primary)... " << stats.primaryGateways << "\n";
 		out << "gateways (secondary). " << stats.secondaryGateways << "\n";
 		out << "stair prefabs........ " << stats.stairPlacements << "\n";
-		out << "wild stair prefabs... " << stats.wildStairPlacements << " (" << wildStairs.size() << " stairways)\n";
+		const auto wildStairwayCount =
+			std::ranges::count_if(stairways, [](const PlanStairway &p_stairway) { return !p_stairway.road; });
+		out << "wild stair prefabs... " << stats.wildStairPlacements << " (" << wildStairwayCount << " stairways)\n";
 		out << "wild candidates...... " << stats.wildStairCandidates << "  (ratio skips "
 			<< stats.wildStairRatioSkips << ", spacing skips " << stats.wildStairSpacingSkips
 			<< ", placement rejects " << stats.wildStairPlacementRejects << ")\n";

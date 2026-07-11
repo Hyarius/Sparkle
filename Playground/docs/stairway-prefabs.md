@@ -74,7 +74,7 @@ Two regions are validated without stamping prefabs:
 
 - the **approach band**, the three columns beyond the structure along its full length:
   guaranteed flat, clear low ground. For road climbs the realization paves it with the
-  zone's road block (`WorldPlan::pavedRects`), so the road visibly turns at the
+  zone's road block (`PlanStairway::pavedApproach`), so the road visibly turns at the
   crossing dead-end and runs beside the flight to the bottom platform instead of
   stopping at the wall. Wild climbs do not reserve this road-style band;
 - the **exit cells**, the three high-plateau cells the top platform opens onto: must be
@@ -102,9 +102,12 @@ report exposes seeds that need topology tuning.
 
 ## Map and verification
 
-Committed stair rectangles are stored in `WorldPlan::stairRects` and painted in road
-color on the preview map at sub-cell resolution, so the drawn road network shows where
-a climb actually detours the path.
+Every committed staircase (one-level ramps included) is one `PlanStairway` record on
+`WorldPlan::stairways`: its layout, the contiguous placement range it stamped, its
+validated footprint rectangles, the optional paved approach, its low plan cell, and
+the top-to-bottom walking route. The footprint rectangles are painted in road color on
+the preview map at sub-cell resolution, so the drawn road network shows where a climb
+actually detours the path.
 
 `SparklePlayground --check-stairs [--seed N]` realizes chunks around every composed
 staircase and verifies, on the actual stamped voxels, that the top platform is flush

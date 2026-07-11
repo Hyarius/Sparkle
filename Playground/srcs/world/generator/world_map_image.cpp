@@ -397,23 +397,30 @@ namespace pg
 			const auto toPixel = [&](int p_world) {
 				return static_cast<int>((static_cast<long long>(p_world - offset) * scale) / blocks);
 			};
-			for (const PlanStairRect &rect : p_plan.stairRects)
+			for (const PlanStairway &stairway : p_plan.stairways)
 			{
-				const int x0 = toPixel(rect.minX);
-				const int x1 = toPixel(rect.maxX + 1);
-				const int z0 = toPixel(rect.minZ);
-				const int z1 = toPixel(rect.maxZ + 1);
-				canvas.fillRect(x0, titleBar + z0, std::max(1, x1 - x0), std::max(1, z1 - z0), roadColor);
+				for (const PlanStairRect &rect : stairway.footprints)
+				{
+					const int x0 = toPixel(rect.minX);
+					const int x1 = toPixel(rect.maxX + 1);
+					const int z0 = toPixel(rect.minZ);
+					const int z1 = toPixel(rect.maxZ + 1);
+					canvas.fillRect(x0, titleBar + z0, std::max(1, x1 - x0), std::max(1, z1 - z0), roadColor);
+				}
 			}
 		}
 
 		// Wild staircases: brown square with a white border so they stand out from the
 		// black road dots (they mark off-road climbs between strata).
 		const Color wildStairColor = fromHex(0x8A5A24);
-		for (const auto &[row, col] : p_plan.wildStairs)
+		for (const PlanStairway &stairway : p_plan.stairways)
 		{
-			const int cx = col * scale + scale / 2;
-			const int cy = titleBar + row * scale + scale / 2;
+			if (stairway.road)
+			{
+				continue;
+			}
+			const int cx = stairway.lowCol * scale + scale / 2;
+			const int cy = titleBar + stairway.lowRow * scale + scale / 2;
 			canvas.fillRect(cx - 3, cy - 3, 7, 7, {250, 250, 250});
 			canvas.fillRect(cx - 2, cy - 2, 5, 5, wildStairColor);
 		}

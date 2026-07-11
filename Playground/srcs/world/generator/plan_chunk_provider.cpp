@@ -257,8 +257,13 @@ namespace pg
 		// Stairway approach bands: the road-width path beside a composed staircase,
 		// paved so the road visibly turns at the cliff and reaches the bottom platform.
 		// The generator validated these columns as flat, dry land.
-		for (const PlanStairRect &rect : _plan.pavedRects)
+		for (const PlanStairway &stairway : _plan.stairways)
 		{
+			if (!stairway.pavedApproach.has_value())
+			{
+				continue;
+			}
+			const PlanStairRect &rect = *stairway.pavedApproach;
 			if (p_worldX >= rect.minX && p_worldX <= rect.maxX && p_worldZ >= rect.minZ && p_worldZ <= rect.maxZ)
 			{
 				column.surfaceId = pickVoxel(blocksOfBiome.road, p_worldX, p_worldZ, cfg.masterSeed, kRoadSalt);

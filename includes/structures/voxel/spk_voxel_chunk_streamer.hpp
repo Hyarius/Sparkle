@@ -21,7 +21,7 @@ namespace spk
 		// A single map may request at most this many distinct chunks per update. This
 		// keeps accepted windows synchronously bounded while still covering the
 		// Playground's normal 5 x 3 x 5 window comfortably.
-		static constexpr std::size_t MaximumChunkWindowVolume = std::numeric_limits<std::size_t>::max();//4096;
+		static constexpr std::size_t MaximumChunkWindowVolume = 4096;
 
 	private:
 		spk::VoxelMap *_map = nullptr;

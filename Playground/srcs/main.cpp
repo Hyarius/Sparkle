@@ -70,11 +70,18 @@ namespace
 
 		int groups = 0;
 		int failures = 0;
-		// The plan records every committed composed staircase as a PlanStairway; each
+		// The plan records every committed staircase as a PlanStairway; each composed
 		// record is checked against the voxels the realization actually stamps, so
 		// plan and realization cannot drift apart silently.
 		for (const pg::PlanStairway &stairway : p_plan.stairways)
 		{
+			if (stairway.steps < 2)
+			{
+				// One-level ramps carry a record too, but their surroundings (plateau
+				// cell, path ends) are not reserved against later placements, so the
+				// composed walk checks below do not apply to them.
+				continue;
+			}
 			++groups;
 			const int highStand = stairway.topAnchor.y;
 			const int lowStand = stairway.bottomAnchor.y;
@@ -114,13 +121,14 @@ namespace
 				continue;
 			}
 
-			// 3. A reserved road approach is flat low ground and paved end to end.
+			// 3. A paved road approach is flat low ground and paved end to end.
 			bool bandClear = true;
-			if (stairway.approachReserved)
+			if (stairway.pavedApproach.has_value())
 			{
-				for (int z = stairway.approachRect.minZ; z <= stairway.approachRect.maxZ && bandClear; ++z)
+				const pg::PlanStairRect &band = *stairway.pavedApproach;
+				for (int z = band.minZ; z <= band.maxZ && bandClear; ++z)
 				{
-					for (int x = stairway.approachRect.minX; x <= stairway.approachRect.maxX && bandClear; ++x)
+					for (int x = band.minX; x <= band.maxX && bandClear; ++x)
 					{
 						bandClear = standAt({x, 0, z}) == lowStand &&
 								roadIds.contains(sampler.at({x, lowStand - 1, z}).id);
@@ -133,7 +141,18 @@ namespace
 				++failures;
 				continue;
 			}
-			const char *layout = stairway.switchback ? "switchback" : (stairway.perpendicular ? "perpendicular" : "one pass");
+			const char *layout = "one pass";
+			switch (stairway.layout)
+			{
+			case pg::StairLayout::Switchback:
+				layout = "switchback";
+				break;
+			case pg::StairLayout::Perpendicular:
+				layout = "perpendicular";
+				break;
+			case pg::StairLayout::OnePass:
+				break;
+			}
 			std::cout << "ok: composed " << (stairway.road ? "road" : "wild") << " stairway " << groups << " ("
 					  << stairway.steps << " levels, " << layout << ")"
 					  << std::endl;

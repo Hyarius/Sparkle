@@ -204,27 +204,30 @@ neighboring cells (levels differ):
 
 1. `steps = highLevel - lowLevel`; reject if > cap (`maxComposedStairLevels` /
    `maxWildStairLevels`).
-2. **steps ≥ 2 — composed staircase.** Local frame: *across* = axis perpendicular
-   to the cliff, *along* = axis beside it. The flight hugs the cliff wall on the
-   low side: top platform at `highSurface+1` padding the road strip of the
-   crossing, one 3×3×3 flight per level descending along the wall, bottom platform
-   at `surface+1`. For each candidate layout (2 tangents × 3 cross offsets):
-   - build the placements (`anchorToPivot` platforms/flights, all `foundation`),
-   - validate an extra unstamped **approach band** (3 columns beside the
-     structure, the walkway from the road dead-end to the bottom platform),
-   - validate + reserve the 3 **exit cells** on the high plateau (must be level,
-     dry land; reserved so two flights never meet face-to-face),
-   - claim one box over the whole structure + band (low ground to above the top
-     platform) and one over the exit,
-   - `commitStairGroup` re-validates every footprint, then commits: appends
-     placements, claims, `stairRects` (painted road-colored on the map),
-     `stairCells` (spacing), and for road climbs `pavedRects` (the band is paved
-     at realization).
-   First fitting layout wins (`return steps + 2` placements).
-3. **Fallback — straight ramp.** One centered flight per level, stacked against
-   the boundary, orientation facing uphill; road rule `Require`/`Forbid`. Used for
-   1-level steps and as fallback for 2-level road steps when composition fails
-   (`maxRoadStairLevels`).
+2. **steps ≥ 2 — composed staircase.** Local frame (`StairSite`): *across* = axis
+   perpendicular to the cliff, *along* = axis beside it. The flight hugs the cliff
+   wall on the low side: top platform at `highSurface+1` padding the road strip of
+   the crossing, one 3×3×3 flight per level descending along the wall, bottom
+   platform at `surface+1`. Each layout builder (`makeOnePassCandidate`,
+   `makeSwitchbackCandidate`, tried for 2 tangents × 3 cross offsets each) shapes
+   a `StairCandidate`:
+   - the placements (`anchorToPivot` platforms/flights, all `foundation`),
+   - an unstamped checked **approach band** (3 columns beside the structure, the
+     walkway from the road dead-end to the bottom platform),
+   - the 3 reserved **exit cells** on the high plateau (must be level, dry land;
+     reserved so two flights never meet face-to-face),
+   - one claim box over the whole structure + band (low ground to above the top
+     platform) and one over the exit.
+   `tryCommitStairCandidate` — the single commit gate for every layout —
+   re-validates every footprint, then commits: appends the placements as one
+   contiguous run, the claims, `stairCells` (spacing), and pushes the
+   `PlanStairway` record carrying the footprints (painted road-colored on the
+   map) and, for road climbs, the paved approach band. First fitting layout wins.
+3. **Fallback — straight ramp** (`makePerpendicularCandidate`). One centered
+   flight per level, stacked against the boundary, orientation facing uphill; road
+   rule `Require`/`Forbid`. Used for 1-level steps and as fallback for 2-level
+   road steps when composition fails (`maxRoadStairLevels`). Goes through the same
+   commit gate, so one-level ramps get a `PlanStairway` record too.
 
 `placeStairways` scans every road cell's east/south road neighbor with a height
 step. `placeWildStairways` collects per-zone off-road cliff candidates, shuffles,
@@ -311,7 +314,8 @@ Order of decisions per (x,z):
    3-wide **cross** (center strip + arms toward wet neighbors);
 5. road → inside the road cross: surface = road pool pick, `waterY = -1`
    (bridge decks fill their pier);
-6. paved stair approach bands (`pavedRects` linear scan) override the surface id.
+6. paved stair approach bands (linear scan over `stairways` records with a
+   `pavedApproach`) override the surface id.
 
 ### 4.2 fill + stamping (266)
 

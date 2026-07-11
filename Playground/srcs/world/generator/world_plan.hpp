@@ -200,25 +200,40 @@ namespace pg
 		int maxZ = 0;
 	};
 
-	// One committed composed staircase, including its exact top-to-bottom walking
-	// route for one-pass, switchback, and perpendicular layouts. It is recorded at
-	// commit time so consumers (the --check-stairs harness, the preview map, future
-	// gameplay) never re-infer the group from the flat placement list. Anchor y's are
-	// stand heights: topAnchor.y on the high plateau, bottomAnchor.y on the low ground.
+	// How a committed staircase crosses its cliff. Taller climbs try the layouts in
+	// this order; one-level climbs are always a single perpendicular ramp.
+	enum class StairLayout : std::uint8_t
+	{
+		OnePass,	   // one straight run descending along the cliff wall
+		Switchback,	   // two opposing parallel runs joined by a landing
+		Perpendicular  // straight flight crossing away from the cliff (fallback, and every one-level ramp)
+	};
+
+	// One committed staircase (road or wild, one-level ramps included), with its
+	// exact top-to-bottom walking route. It is recorded at commit time so consumers
+	// (the --check-stairs harness, the preview map, the realization, future gameplay)
+	// never re-infer the group from the flat placement list. Anchor y's are stand
+	// heights: topAnchor.y on the high plateau, bottomAnchor.y on the low ground.
 	struct PlanStairway
 	{
-		spk::Vector3Int topAnchor{};	// top platform anchor, flush with the high plateau
-		spk::Vector3Int bottomAnchor{}; // bottom platform anchor on the low ground
-		spk::Vector3Int plateauCell{};  // high-ground cell immediately beyond the top platform
+		StairLayout layout = StairLayout::Perpendicular;
+		spk::Vector3Int topAnchor{};	// top stand column, flush with the high plateau
+		spk::Vector3Int bottomAnchor{}; // bottom stand column on the low ground
+		spk::Vector3Int plateauCell{};  // high-ground cell immediately beyond the top exit
 		std::vector<spk::Vector3Int> centerPath; // ordered walk columns from top to bottom
-		PlanStairRect approachRect{}; // flat lane connecting the road to the bottom platform
-		int steps = 0;					// height levels climbed == flight piece count
-		bool alongX = false;			// the flight runs along world x (else z)
-		int tangent = 1;				// along-axis direction from top toward bottom
-		bool road = false;				// road climb (paved approach band) vs wild slope
-		bool approachReserved = false; // approachRect was validated and kept clear
-		bool switchback = false;		// two opposing parallel runs joined by a landing
-		bool perpendicular = false;	// final straight fallback crossing away from the cliff
+		std::size_t firstPlacement = 0; // start of this staircase's contiguous run in WorldPlan::placements
+		std::size_t placementCount = 0; // prefab placements stamped for this staircase
+		// Every rectangle this staircase validated and reserved: the stamped pieces
+		// plus the checked walkway lane and the plateau exit. The preview map paints
+		// them in road color.
+		std::vector<PlanStairRect> footprints;
+		// Road climbs only: the flat approach lane connecting the road dead-end to the
+		// bottom platform; realization paves these columns with the zone's road block.
+		std::optional<PlanStairRect> pavedApproach;
+		int lowRow = 0; // plan cell of the low ground at the crossing
+		int lowCol = 0;
+		int steps = 0;	   // height levels climbed == flight piece count
+		bool road = false; // road climb (paved approach band) vs wild slope
 	};
 
 	// A one-way teleport: an actor whose cell reaches `from` (the block it stands on)
@@ -363,13 +378,7 @@ namespace pg
 		std::vector<PlanGateway> gateways;
 		std::vector<std::pair<PlanEntity, PlanEntity>> boatLinks;
 		std::vector<PrefabPlacement> placements;
-		std::vector<std::pair<int, int>> wildStairs; // (row, col) of each wild stairway's lower cell
-		std::vector<PlanStairway> stairways;		 // every committed composed staircase
-		std::vector<PlanStairRect> stairRects;		 // world-column footprints of every stairway
-		// Approach bands of composed staircases: realization paves these columns with
-		// the zone's road block, so the road visibly turns at the crossing dead-end and
-		// runs beside the flight to the bottom platform instead of stopping at the wall.
-		std::vector<PlanStairRect> pavedRects;
+		std::vector<PlanStairway> stairways; // every committed staircase, road and wild
 		std::vector<PlanPortal> portals;
 
 		WorldPlanStats stats;

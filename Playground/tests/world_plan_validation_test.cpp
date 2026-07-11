@@ -319,12 +319,17 @@ TEST(WorldPlanValidation, UsesRoadSwitchbackBeforePerpendicularFallback)
 		registries.interiors());
 
 	const auto switchback = std::ranges::find_if(plan.stairways, [](const pg::PlanStairway &p_stairway) {
-		return p_stairway.road && p_stairway.switchback;
+		return p_stairway.road && p_stairway.layout == pg::StairLayout::Switchback;
 	});
 	ASSERT_NE(switchback, plan.stairways.end());
-	EXPECT_FALSE(switchback->perpendicular);
 	EXPECT_EQ(switchback->steps, 4);
 	EXPECT_GE(switchback->centerPath.size(), static_cast<std::size_t>(10));
+	// A switchback stamps two platforms per landing plus top/bottom: steps + 4
+	// contiguous placements, all recorded on the stairway itself.
+	EXPECT_EQ(switchback->placementCount, static_cast<std::size_t>(switchback->steps + 4));
+	EXPECT_LE(switchback->firstPlacement + switchback->placementCount, plan.placements.size());
+	EXPECT_TRUE(switchback->pavedApproach.has_value());
+	EXPECT_FALSE(switchback->footprints.empty());
 }
 
 TEST(WorldPlanValidation, RepresentativeMinimumConfigurationGenerates)
