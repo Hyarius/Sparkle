@@ -35,9 +35,9 @@ namespace spk
 		const spk::VoxelShapePolygon alongZ = createVerticalRectangle(
 			"plane", {0.5f, 0, 1}, {0.5f, 0, 0}, {0.5f, 1, 0}, {0.5f, 1, 1});
 
-		mutableRenderFaces().innerFaces.push_back(alongX);
-		mutableRenderFaces().innerFaces.push_back(reversed(alongX));
-		mutableRenderFaces().innerFaces.push_back(alongZ);
-		mutableRenderFaces().innerFaces.push_back(reversed(alongZ));
+		mutableRenderFaces().innerFaces.push_back(VoxelShapeFace(alongX));
+		mutableRenderFaces().innerFaces.push_back(VoxelShapeFace(reversed(alongX)));
+		mutableRenderFaces().innerFaces.push_back(VoxelShapeFace(alongZ));
+		mutableRenderFaces().innerFaces.push_back(VoxelShapeFace(reversed(alongZ)));
 	}
 }

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "structures/container/spk_cached_data.hpp"
 #include "structures/graphics/geometry/spk_polygon_3d.hpp"
 #include "structures/math/spk_vector2.hpp"
 #include "structures/math/spk_vector3.hpp"
@@ -26,48 +27,39 @@ namespace spk
 
 	using VoxelShapePolygonData = spk::Vector2;
 	using VoxelShapePolygon = spk::Polygon3D<VoxelShapePolygonData>;
+	using VoxelShapePolygon2D = spk::Polygon2D<VoxelShapePolygonData>;
+	using VoxelShapePolygonProjection2D = spk::VoxelShapePolygon::Projection2D;
 	using VoxelShapeVertex = spk::VoxelShapePolygon::Vertex;
 
 	class VoxelShapeFace
 	{
+	public:
+		using ProjectedPolygons = std::vector<spk::VoxelShapePolygonProjection2D>;
+		using ProjectedPolygonCache = std::optional<ProjectedPolygons>;
+
 	private:
 		std::vector<spk::VoxelShapePolygon> _polygons;
+		mutable spk::CachedData<ProjectedPolygonCache> _projectedPolygons;
+
+		[[nodiscard]] ProjectedPolygonCache _generateProjectedPolygons() const;
+		void _invalidateProjectionCache() const;
 
 	public:
 		VoxelShapeFace() = default;
-		VoxelShapeFace(spk::VoxelShapePolygon p_polygon)
-		{
-			addPolygon(std::move(p_polygon));
-		}
+		explicit VoxelShapeFace(spk::VoxelShapePolygon p_polygon);
 
-		void reserve(std::size_t p_capacity)
-		{
-			_polygons.reserve(p_capacity);
-		}
+		VoxelShapeFace(const VoxelShapeFace &p_other);
+		VoxelShapeFace &operator=(const VoxelShapeFace &p_other);
+		VoxelShapeFace(VoxelShapeFace &&p_other) noexcept;
+		VoxelShapeFace &operator=(VoxelShapeFace &&p_other) noexcept;
 
-		void addPolygon(spk::VoxelShapePolygon p_polygon)
-		{
-			if (!_polygons.empty() && _polygons.front().normal() != p_polygon.normal())
-			{
-				throw std::logic_error("VoxelShapeFace polygons must share the same normal");
-			}
-			_polygons.push_back(std::move(p_polygon));
-		}
+		void reserve(std::size_t p_capacity);
+		void addPolygon(spk::VoxelShapePolygon p_polygon);
 
-		[[nodiscard]] std::span<const spk::VoxelShapePolygon> polygons() const noexcept
-		{
-			return _polygons;
-		}
-
-		[[nodiscard]] bool empty() const noexcept
-		{
-			return _polygons.empty();
-		}
-
-		[[nodiscard]] std::size_t size() const noexcept
-		{
-			return _polygons.size();
-		}
+		[[nodiscard]] std::span<const spk::VoxelShapePolygon> polygons() const noexcept;
+		[[nodiscard]] const ProjectedPolygonCache &projectedPolygons() const;
+		[[nodiscard]] bool empty() const noexcept;
+		[[nodiscard]] std::size_t size() const noexcept;
 	};
 
 	// A voxel's render geometry is split in two shells: the outer shell holds at most one

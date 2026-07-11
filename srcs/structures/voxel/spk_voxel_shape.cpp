@@ -91,40 +91,14 @@ namespace
 		return !p_face.empty();
 	}
 
-	[[nodiscard]] spk::VoxelShapePolygon cellBoundaryPolygon(spk::VoxelAxisPlane p_plane)
+	[[nodiscard]] spk::VoxelShapePolygon2D cellBoundaryPolygon2D()
 	{
-		std::array<spk::Vector3, 4> positions;
-		switch (p_plane)
-		{
-		case spk::VoxelAxisPlane::PositiveX:
-			positions = {{{1, 0, 1}, {1, 0, 0}, {1, 1, 0}, {1, 1, 1}}};
-			break;
-		case spk::VoxelAxisPlane::NegativeX:
-			positions = {{{0, 0, 0}, {0, 0, 1}, {0, 1, 1}, {0, 1, 0}}};
-			break;
-		case spk::VoxelAxisPlane::PositiveY:
-			positions = {{{0, 1, 1}, {1, 1, 1}, {1, 1, 0}, {0, 1, 0}}};
-			break;
-		case spk::VoxelAxisPlane::NegativeY:
-			positions = {{{0, 0, 0}, {1, 0, 0}, {1, 0, 1}, {0, 0, 1}}};
-			break;
-		case spk::VoxelAxisPlane::PositiveZ:
-			positions = {{{0, 0, 1}, {1, 0, 1}, {1, 1, 1}, {0, 1, 1}}};
-			break;
-		case spk::VoxelAxisPlane::NegativeZ:
-			positions = {{{1, 0, 0}, {0, 0, 0}, {0, 1, 0}, {1, 1, 0}}};
-			break;
-		case spk::VoxelAxisPlane::Count:
-		default:
-			throw std::invalid_argument("VoxelAxisPlane::Count is not a geometric plane");
-		}
-
-		spk::VoxelShapePolygon::Builder builder;
-		builder.reserve(positions.size());
-		for (const spk::Vector3 &position : positions)
-		{
-			builder.addVertex({position, {}});
-		}
+		spk::VoxelShapePolygon2D::Builder builder;
+		builder.reserve(4);
+		builder.addVertex({{0.0f, 0.0f}, {}});
+		builder.addVertex({{1.0f, 0.0f}, {}});
+		builder.addVertex({{1.0f, 1.0f}, {}});
+		builder.addVertex({{0.0f, 1.0f}, {}});
 		return std::move(builder).bake();
 	}
 
@@ -146,20 +120,32 @@ namespace
 			return 0.0f;
 		}
 
-		std::vector<spk::VoxelShapePolygon> uncovered = {cellBoundaryPolygon(p_plane)};
-		for (const spk::VoxelShapePolygon &polygon : p_face.polygons())
+		const spk::VoxelShapeFace::ProjectedPolygonCache &projectedPolygons =
+			p_face.projectedPolygons();
+		if (!projectedPolygons.has_value())
 		{
-			if (!polygon.isConvex(spk::VoxelShape::BoundaryEpsilon))
+			return 0.0f;
+		}
+
+		std::vector<spk::VoxelShapePolygon2D> uncovered = {cellBoundaryPolygon2D()};
+		for (const spk::VoxelShapePolygonProjection2D &projection : *projectedPolygons)
+		{
+			if (!projection.polygon.isConvex())
 			{
 				return 0.0f;
 			}
 
-			std::vector<spk::VoxelShapePolygon> next;
-			for (const spk::VoxelShapePolygon &piece : uncovered)
+			std::vector<spk::VoxelShapePolygon2D> next;
+			for (const spk::VoxelShapePolygon2D &piece : uncovered)
 			{
-				std::vector<spk::VoxelShapePolygon> difference =
-					piece.subtractConvex(polygon, interpolateUV, spk::VoxelShape::BoundaryEpsilon);
-				next.insert(next.end(), std::make_move_iterator(difference.begin()), std::make_move_iterator(difference.end()));
+				std::vector<spk::VoxelShapePolygon2D> difference =
+					piece.subtractConvex(
+						projection.polygon,
+						interpolateUV);
+				next.insert(
+					next.end(),
+					std::make_move_iterator(difference.begin()),
+					std::make_move_iterator(difference.end()));
 			}
 			uncovered = std::move(next);
 			if (uncovered.empty())
@@ -169,22 +155,141 @@ namespace
 		}
 
 		float uncoveredArea = 0.0f;
-		for (const spk::VoxelShapePolygon &piece : uncovered)
+		for (const spk::VoxelShapePolygon2D &piece : uncovered)
 		{
 			uncoveredArea += piece.area();
 		}
 		return std::clamp(1.0f - uncoveredArea, 0.0f, 1.0f);
 	}
 
-	[[nodiscard]] bool coversCellBoundary(const spk::VoxelShapeFace &p_face, spk::VoxelAxisPlane p_plane)
-	{
-		return liesOnCellBoundary(p_face, p_plane) &&
-			   boundaryCoverage(p_face, p_plane) >= 1.0f - spk::VoxelShape::BoundaryEpsilon;
-	}
 }
 
 namespace spk
 {
+	VoxelShapeFace::ProjectedPolygonCache VoxelShapeFace::_generateProjectedPolygons() const
+	{
+		ProjectedPolygons result;
+		result.reserve(_polygons.size());
+
+		std::optional<spk::VoxelShapePolygon::AxisAlignedPlane> commonPlane;
+		for (const spk::VoxelShapePolygon &polygon : _polygons)
+		{
+			std::optional<spk::VoxelShapePolygonProjection2D> projection =
+				polygon.tryProjectTo2D();
+			if (!projection.has_value())
+			{
+				return std::nullopt;
+			}
+
+			if (commonPlane.has_value() && projection->plane != *commonPlane)
+			{
+				return std::nullopt;
+			}
+			commonPlane = projection->plane;
+			result.push_back(std::move(*projection));
+		}
+
+		return result;
+	}
+
+	void VoxelShapeFace::_invalidateProjectionCache() const
+	{
+		_projectedPolygons.release();
+	}
+
+	VoxelShapeFace::VoxelShapeFace(spk::VoxelShapePolygon p_polygon)
+	{
+		addPolygon(std::move(p_polygon));
+	}
+
+	VoxelShapeFace::VoxelShapeFace(const VoxelShapeFace &p_other) :
+		_polygons(p_other._polygons)
+	{
+		if (p_other._projectedPolygons.isCached())
+		{
+			_projectedPolygons.set(p_other._projectedPolygons.get());
+		}
+	}
+
+	VoxelShapeFace &VoxelShapeFace::operator=(const VoxelShapeFace &p_other)
+	{
+		if (this != &p_other)
+		{
+			_invalidateProjectionCache();
+			_polygons = p_other._polygons;
+			if (p_other._projectedPolygons.isCached())
+			{
+				_projectedPolygons.set(p_other._projectedPolygons.get());
+			}
+		}
+		return *this;
+	}
+
+	VoxelShapeFace::VoxelShapeFace(VoxelShapeFace &&p_other) noexcept :
+		_polygons(std::move(p_other._polygons))
+	{
+		if (std::optional<ProjectedPolygonCache> cached = p_other._projectedPolygons.take();
+			cached.has_value())
+		{
+			_projectedPolygons.set(std::move(*cached));
+		}
+	}
+
+	VoxelShapeFace &VoxelShapeFace::operator=(VoxelShapeFace &&p_other) noexcept
+	{
+		if (this != &p_other)
+		{
+			_invalidateProjectionCache();
+			_polygons = std::move(p_other._polygons);
+			if (std::optional<ProjectedPolygonCache> cached = p_other._projectedPolygons.take();
+				cached.has_value())
+			{
+				_projectedPolygons.set(std::move(*cached));
+			}
+		}
+		return *this;
+	}
+
+	void VoxelShapeFace::reserve(std::size_t p_capacity)
+	{
+		_polygons.reserve(p_capacity);
+	}
+
+	void VoxelShapeFace::addPolygon(spk::VoxelShapePolygon p_polygon)
+	{
+		if (!_polygons.empty() && _polygons.front().normal() != p_polygon.normal())
+		{
+			throw std::logic_error("VoxelShapeFace polygons must share the same normal");
+		}
+
+		_polygons.push_back(std::move(p_polygon));
+		_invalidateProjectionCache();
+	}
+
+	std::span<const spk::VoxelShapePolygon> VoxelShapeFace::polygons() const noexcept
+	{
+		return _polygons;
+	}
+
+	const VoxelShapeFace::ProjectedPolygonCache &VoxelShapeFace::projectedPolygons() const
+	{
+		if (!_projectedPolygons.isCached())
+		{
+			_projectedPolygons.set(_generateProjectedPolygons());
+		}
+		return _projectedPolygons.get();
+	}
+
+	bool VoxelShapeFace::empty() const noexcept
+	{
+		return _polygons.empty();
+	}
+
+	std::size_t VoxelShapeFace::size() const noexcept
+	{
+		return _polygons.size();
+	}
+
 	std::optional<spk::VoxelShapeFace> &VoxelShapeFaceSet::outer(spk::VoxelAxisPlane p_plane)
 	{
 		return outerShell.at(static_cast<std::size_t>(p_plane));
@@ -331,15 +436,21 @@ namespace spk
 			}
 
 			const auto plane = static_cast<spk::VoxelAxisPlane>(planeIndex);
-			_outerFacesOnCellBoundary[planeIndex] = liesOnCellBoundary(*face, plane);
-			_outerFacesCoverCellBoundary[planeIndex] = coversCellBoundary(*face, plane);
-			_outerFaceBoundaryCoverage[planeIndex] = boundaryCoverage(*face, plane);
+			const bool liesOnBoundary = liesOnCellBoundary(*face, plane);
+			const float coverage = liesOnBoundary ? boundaryCoverage(*face, plane) : 0.0f;
+			_outerFacesOnCellBoundary[planeIndex] = liesOnBoundary;
+			_outerFacesCoverCellBoundary[planeIndex] =
+				liesOnBoundary && coverage >= 1.0f - spk::VoxelShape::BoundaryEpsilon;
+			_outerFaceBoundaryCoverage[planeIndex] = coverage;
+
 			auto &variants = _transformedOuterFaces[planeIndex].emplace();
 			for (const auto orientation : {spk::VoxelOrientation::PositiveX, spk::VoxelOrientation::PositiveZ, spk::VoxelOrientation::NegativeX, spk::VoxelOrientation::NegativeZ})
 			{
 				for (const auto flip : {spk::VoxelFlip::PositiveY, spk::VoxelFlip::NegativeY})
 				{
-					variants[transformVariantIndex(orientation, flip)] = transformFace(*face, orientation, flip);
+					spk::VoxelShapeFace &variant = variants[transformVariantIndex(orientation, flip)];
+					variant = transformFace(*face, orientation, flip);
+					(void)variant.projectedPolygons();
 				}
 			}
 		}

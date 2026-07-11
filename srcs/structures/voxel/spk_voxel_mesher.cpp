@@ -200,37 +200,116 @@ namespace
 		return p_from + (p_to - p_from) * p_interpolation;
 	}
 
-	[[nodiscard]] std::vector<spk::VoxelShapePolygon> visibleDifference(
-		const spk::VoxelShapePolygon &p_polygon,
-		const spk::VoxelShapeFace &p_occluder)
+	using VoxelShapeAxisAlignedPlane = spk::VoxelShapePolygon::AxisAlignedPlane;
+	using VoxelShapePolygon2D = spk::VoxelShapePolygon2D;
+
+	[[nodiscard]] spk::Vector3 restorePosition(
+		const spk::Vector2 &p_position,
+		VoxelShapeAxisAlignedPlane p_plane,
+		float p_coordinate)
 	{
-		// The admitted built-in boundary polygons are convex. For a custom non-convex
-		// polygon, retain the original face rather than risk deleting visible geometry.
-		if (!p_polygon.isConvex(spk::VoxelShape::BoundaryEpsilon) ||
-			std::ranges::any_of(p_occluder.polygons(), [](const spk::VoxelShapePolygon &p_candidate) {
-				return !p_candidate.isConvex(spk::VoxelShape::BoundaryEpsilon);
-			}))
+		switch (p_plane)
 		{
-			return {p_polygon};
+		case VoxelShapeAxisAlignedPlane::XY:
+			return {p_position.x, p_position.y, p_coordinate};
+
+		case VoxelShapeAxisAlignedPlane::XZ:
+			return {p_position.x, p_coordinate, p_position.y};
+
+		case VoxelShapeAxisAlignedPlane::YZ:
+			return {p_coordinate, p_position.x, p_position.y};
 		}
 
-		std::vector<spk::VoxelShapePolygon> visible = {p_polygon};
-		for (const spk::VoxelShapePolygon &occludingPolygon : p_occluder.polygons())
+		throw std::logic_error("Unsupported Polygon3D projection plane");
+	}
+
+	[[nodiscard]] spk::VoxelShapePolygon restorePolygon3D(
+		const VoxelShapePolygon2D &p_polygon,
+		VoxelShapeAxisAlignedPlane p_plane,
+		float p_coordinate)
+	{
+		spk::VoxelShapePolygon::Builder builder;
+		builder.reserve(p_polygon.size());
+
+		for (const auto &vertex : p_polygon)
 		{
-			std::vector<spk::VoxelShapePolygon> next;
-			for (const spk::VoxelShapePolygon &piece : visible)
+			builder.addVertex({
+				.position = restorePosition(vertex.position, p_plane, p_coordinate),
+				.data = vertex.data});
+		}
+
+		return builder.bake();
+	}
+
+	[[nodiscard]] std::vector<spk::VoxelShapePolygon> visibleDifference(
+		const spk::VoxelShapeFace &p_face,
+		std::size_t p_polygonIndex,
+		const spk::VoxelShapeFace &p_occluder)
+	{
+		const std::span<const spk::VoxelShapePolygon> polygons = p_face.polygons();
+		const spk::VoxelShapePolygon &polygon = polygons[p_polygonIndex];
+
+		const spk::VoxelShapeFace::ProjectedPolygonCache &polygonProjections =
+			p_face.projectedPolygons();
+		const spk::VoxelShapeFace::ProjectedPolygonCache &occluderProjections =
+			p_occluder.projectedPolygons();
+
+		if (!polygonProjections.has_value() ||
+			p_polygonIndex >= polygonProjections->size() ||
+			!occluderProjections.has_value())
+		{
+			return {polygon};
+		}
+
+		const spk::VoxelShapePolygonProjection2D &polygonProjection =
+			polygonProjections->at(p_polygonIndex);
+		if (!polygonProjection.polygon.isConvex())
+		{
+			return {polygon};
+		}
+
+		for (const spk::VoxelShapePolygonProjection2D &occluderProjection : *occluderProjections)
+		{
+			if (occluderProjection.plane != polygonProjection.plane ||
+				!occluderProjection.polygon.isConvex())
 			{
-				std::vector<spk::VoxelShapePolygon> difference =
-					piece.subtractConvex(occludingPolygon, interpolateUV, spk::VoxelShape::BoundaryEpsilon);
-				next.insert(next.end(), std::make_move_iterator(difference.begin()), std::make_move_iterator(difference.end()));
+				return {polygon};
 			}
+		}
+
+		std::vector<spk::VoxelShapePolygon2D> visible = {polygonProjection.polygon};
+		for (const spk::VoxelShapePolygonProjection2D &occluderProjection : *occluderProjections)
+		{
+			std::vector<spk::VoxelShapePolygon2D> next;
+			for (const spk::VoxelShapePolygon2D &piece : visible)
+			{
+				std::vector<spk::VoxelShapePolygon2D> difference =
+					piece.subtractConvex(
+						occluderProjection.polygon,
+						interpolateUV);
+				next.insert(
+					next.end(),
+					std::make_move_iterator(difference.begin()),
+					std::make_move_iterator(difference.end()));
+			}
+
 			visible = std::move(next);
 			if (visible.empty())
 			{
 				break;
 			}
 		}
-		return visible;
+
+		std::vector<spk::VoxelShapePolygon> result;
+		result.reserve(visible.size());
+		for (const spk::VoxelShapePolygon2D &visiblePolygon : visible)
+		{
+			result.push_back(restorePolygon3D(
+				visiblePolygon,
+				polygonProjection.plane,
+				polygonProjection.coordinate));
+		}
+		return result;
 	}
 
 	template <typename TFunction>
@@ -271,10 +350,10 @@ namespace
 		}
 
 		bool emitted = false;
-		for (const spk::VoxelShapePolygon &polygon : p_face.polygons())
+		for (std::size_t polygonIndex = 0; polygonIndex < p_face.size(); ++polygonIndex)
 		{
 			for (const spk::VoxelShapePolygon &visible :
-				 visibleDifference(polygon, *p_occlusion.partialOccluder))
+				 visibleDifference(p_face, polygonIndex, *p_occlusion.partialOccluder))
 			{
 				p_function(visible, p_offset, p_alpha);
 				emitted = true;

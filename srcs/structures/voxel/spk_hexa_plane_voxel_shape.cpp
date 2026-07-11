@@ -40,8 +40,8 @@ namespace spk
 
 			for (const spk::VoxelShapePolygon *plane : {&xy, &xz, &yz})
 			{
-				mutableRenderFaces().innerFaces.push_back(*plane);
-				mutableRenderFaces().innerFaces.push_back(reversed(*plane));
+				mutableRenderFaces().innerFaces.push_back(VoxelShapeFace(*plane));
+				mutableRenderFaces().innerFaces.push_back(VoxelShapeFace(reversed(*plane)));
 			}
 		}
 	}

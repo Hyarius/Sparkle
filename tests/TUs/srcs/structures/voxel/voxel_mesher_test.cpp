@@ -56,10 +56,10 @@ namespace
 		void _constructRenderFaces() override
 		{
 			auto &faces = mutableRenderFaces();
-			faces.innerFaces.push_back(createRectangle(
-				"quad", {0, 0, 0}, {1, 0, 1}, {1, 1, 1}, {0, 1, 0}));
-			faces.innerFaces.push_back(createRectangle(
-				"quad", {0, 0, 1}, {1, 0, 0}, {1, 1, 0}, {0, 1, 1}));
+			faces.innerFaces.push_back(spk::VoxelShapeFace(createRectangle(
+				"quad", {0, 0, 0}, {1, 0, 1}, {1, 1, 1}, {0, 1, 0})));
+			faces.innerFaces.push_back(spk::VoxelShapeFace(createRectangle(
+				"quad", {0, 0, 1}, {1, 0, 0}, {1, 1, 0}, {0, 1, 1})));
 		}
 	};
 

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "structures/graphics/geometry/spk_polygon_2d.hpp"
+#include "structures/math/spk_approx_value.hpp"
 #include "structures/math/spk_vector3.hpp"
 
 #include <cmath>
@@ -17,6 +19,20 @@ namespace spk
 	class Polygon3D
 	{
 	public:
+		enum class AxisAlignedPlane
+		{
+			XY,
+			XZ,
+			YZ
+		};
+
+		struct Projection2D
+		{
+			AxisAlignedPlane plane;
+			float coordinate;
+			spk::Polygon2D<TData> polygon;
+		};
+	
 		struct Vertex
 		{
 			spk::Vector3 position{};
@@ -287,6 +303,103 @@ namespace spk
 		[[nodiscard]] float area() const noexcept
 		{
 			return _area(_vertices, _normal);
+		}
+
+		[[nodiscard]] std::optional<AxisAlignedPlane> projectionPlane() const noexcept
+		{
+			const auto isAngularlyEqual = [](float p_value, float p_expected) {
+				return spk::ApproxValue(
+					p_value,
+					spk::Math::Constants::angularPrecision) == p_expected;
+			};
+
+			if (_normal == spk::Vector3{0.0f, 0.0f, 1.0f} || _normal == spk::Vector3{0.0f, 0.0f, -1.0f})
+			{
+				return AxisAlignedPlane::XY;
+			}
+
+			if (_normal == spk::Vector3{0.0f, 1.0f, 0.0f} || _normal == spk::Vector3{0.0f, -1.0f, 0.0f})
+			{
+				return AxisAlignedPlane::XZ;
+			}
+
+			if (_normal == spk::Vector3{1.0f, 0.0f, 0.0f} || _normal == spk::Vector3{-1.0f, 0.0f, 0.0f})
+			{
+				return AxisAlignedPlane::YZ;
+			}
+
+			return std::nullopt;
+		}
+
+		[[nodiscard]] bool isProjectable() const noexcept
+		{
+			return projectionPlane().has_value();
+		}
+
+		[[nodiscard]] std::optional<Projection2D> tryProjectTo2D() const
+		{
+			const std::optional<AxisAlignedPlane> plane = projectionPlane();
+			if (plane.has_value() == false)
+			{
+				return std::nullopt;
+			}
+
+			typename spk::Polygon2D<TData>::Builder builder;
+			builder.reserve(_vertices.size());
+
+			float coordinate = 0.0f;
+			switch (plane.value())
+			{
+			case AxisAlignedPlane::XY:
+				coordinate = _vertices.front().position.z;
+				for (const Vertex &vertex : _vertices)
+				{
+					if (spk::ApproxValue(vertex.position.z) != coordinate)
+					{
+						return std::nullopt;
+					}
+
+					builder.addVertex({
+						.position = {vertex.position.x, vertex.position.y},
+						.data = vertex.data});
+				}
+				break;
+
+			case AxisAlignedPlane::XZ:
+				coordinate = _vertices.front().position.y;
+				for (const Vertex &vertex : _vertices)
+				{
+					if (spk::ApproxValue(vertex.position.y) != coordinate)
+					{
+						return std::nullopt;
+					}
+
+					builder.addVertex({
+						.position = {vertex.position.x, vertex.position.z},
+						.data = vertex.data});
+				}
+				break;
+
+			case AxisAlignedPlane::YZ:
+				coordinate = _vertices.front().position.x;
+				for (const Vertex &vertex : _vertices)
+				{
+					if (spk::ApproxValue(vertex.position.x) != coordinate)
+					{
+						return std::nullopt;
+					}
+
+					builder.addVertex({
+						.position = {vertex.position.y, vertex.position.z},
+						.data = vertex.data});
+				}
+				break;
+			}
+
+			return Projection2D{
+				.plane = plane.value(),
+				.coordinate = coordinate,
+				.polygon = builder.bake()};
 		}
 
 		[[nodiscard]] bool isConvex(float p_epsilon) const noexcept

@@ -77,9 +77,9 @@ namespace spk
 				spk::Vector2{1, 1.0f - z1},
 				spk::Vector2{1, 1.0f - z0},
 				spk::Vector2{0, 1.0f - z0}};
-			faces.innerFaces.push_back(createPolygon("top", topPositions, topUVs));
-			faces.innerFaces.push_back(createVerticalRectangle(
-				"riser", {1, y0, z0}, {0, y0, z0}, {0, y1, z0}, {1, y1, z0}, 1.0f - y0, 1.0f - y1));
+			faces.innerFaces.push_back(VoxelShapeFace(createPolygon("top", topPositions, topUVs)));
+			faces.innerFaces.push_back(VoxelShapeFace(createVerticalRectangle(
+				"riser", {1, y0, z0}, {0, y0, z0}, {0, y1, z0}, {1, y1, z0}, 1.0f - y0, 1.0f - y1)));
 		}
 
 		faces.outer(spk::VoxelAxisPlane::PositiveZ).emplace(createVerticalRectangle("back", {0, 0, 1}, {1, 0, 1}, {1, 1, 1}, {0, 1, 1}));

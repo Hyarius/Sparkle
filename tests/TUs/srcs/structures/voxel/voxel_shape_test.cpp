@@ -37,8 +37,8 @@ namespace
 	protected:
 		void _constructRenderFaces() override
 		{
-			mutableRenderFaces().innerFaces.push_back(createRectangle(
-				"quad", {0, 0, 0}, {1, 0, 1}, {1, 1, 1}, {0, 1, 0}));
+			mutableRenderFaces().innerFaces.push_back(spk::VoxelShapeFace(createRectangle(
+				"quad", {0, 0, 0}, {1, 0, 1}, {1, 1, 1}, {0, 1, 0})));
 		}
 	};
 }

@@ -35,7 +35,7 @@ namespace spk
 			spk::Vector3{0, 0, 0}, spk::Vector3{0, 1, 1}, spk::Vector3{1, 1, 1}, spk::Vector3{1, 0, 0}};
 		const std::array<spk::Vector2, 4> slopeUVs = {
 			spk::Vector2{0, 1}, spk::Vector2{0, 0}, spk::Vector2{1, 0}, spk::Vector2{1, 1}};
-		faces.innerFaces.push_back(createPolygon("slope", slopePositions, slopeUVs));
+		faces.innerFaces.push_back(VoxelShapeFace(createPolygon("slope", slopePositions, slopeUVs)));
 		faces.outer(spk::VoxelAxisPlane::PositiveZ).emplace(createVerticalRectangle("back", {0, 0, 1}, {1, 0, 1}, {1, 1, 1}, {0, 1, 1}));
 		faces.outer(spk::VoxelAxisPlane::NegativeY).emplace(createRectangle("bottom", {0, 0, 0}, {1, 0, 0}, {1, 0, 1}, {0, 0, 1}));
 		faces.outer(spk::VoxelAxisPlane::PositiveX).emplace(createVerticalTriangle("sideRight", {1, 0, 1}, {1, 0, 0}, {1, 1, 1}));
