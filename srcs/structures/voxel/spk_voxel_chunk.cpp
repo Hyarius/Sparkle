@@ -161,6 +161,7 @@ namespace spk
 		}
 
 		_renderer->requestSynchronization();
+		++_contentRevision;
 		if (_owner != nullptr)
 		{
 			_owner->_onChunkEdited(*this, p_editor._changedBoundaries);
@@ -195,6 +196,11 @@ namespace spk
 	const spk::VoxelGrid &VoxelChunk::grid() const noexcept
 	{
 		return _grid;
+	}
+
+	std::uint64_t VoxelChunk::contentRevision() const noexcept
+	{
+		return _contentRevision;
 	}
 
 	const spk::VoxelCell &VoxelChunk::cell(const spk::Vector3Int &p_localPosition) const

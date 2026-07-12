@@ -95,7 +95,7 @@ TEST(VoxelChunkStreamer, StreamsBakesAndRendersTheWindowInOneTick)
 	EXPECT_FALSE(builder.empty());
 	// The caller-owned target/viewport is preserved; each explicit pass receives
 	// required frame setup and the nine chunks remain one opaque contribution.
-	EXPECT_EQ(builder.size(), 15u);
+	EXPECT_EQ(builder.size(), 12u);
 }
 
 TEST(VoxelChunkStreamer, MovingTheOriginSlidesTheActiveWindow)

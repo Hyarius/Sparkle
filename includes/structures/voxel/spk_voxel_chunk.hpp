@@ -81,6 +81,7 @@ namespace spk
 		// generation) and standalone tooling/tests can edit it before the update thread exists.
 		// VoxelMap binds this to the update thread once streaming begins (see bindMutationThread).
 		std::optional<std::thread::id> _mutationThread;
+		std::uint64_t _contentRevision = 1;
 
 		void _assertMutationThread() const;
 		void _commit(Editor &p_editor) noexcept;
@@ -107,6 +108,7 @@ namespace spk
 		[[nodiscard]] spk::Vector3Int localFromWorld(const spk::Vector3Int &p_worldCell) const noexcept;
 
 		[[nodiscard]] const spk::VoxelGrid &grid() const noexcept;
+		[[nodiscard]] std::uint64_t contentRevision() const noexcept;
 
 		// Binds cell mutation to p_thread: any later edit from another thread throws. This is
 		// how the "owning update thread" is established. A chunk starts unbound (no check);

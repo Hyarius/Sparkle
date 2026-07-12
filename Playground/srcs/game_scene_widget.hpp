@@ -94,6 +94,7 @@ namespace pg
 		spk::Entity3D _sunEntity;
 		spk::Light3D *_sun = nullptr;
 		std::unordered_map<spk::Vector3Int, std::unique_ptr<spk::Entity3D>> _voxelLightEntities;
+		std::unordered_map<spk::Vector3Int, std::uint64_t> _voxelLightChunkRevisions;
 		std::size_t _voxelLightRevision = std::numeric_limits<std::size_t>::max();
 		spk::DebugOverlay _overlay;
 

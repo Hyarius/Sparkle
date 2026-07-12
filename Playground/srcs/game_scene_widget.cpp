@@ -59,6 +59,7 @@ namespace
 		DeltaTime,
 		TimeOfDay,
 		SelectedLights,
+		DiscardedLights,
 		RowCount
 	};
 
@@ -388,6 +389,7 @@ namespace pg
 		_overlay.setText(DeltaTime, 0, "Frame delta");
 		_overlay.setText(TimeOfDay, 0, "Time of day");
 		_overlay.setText(SelectedLights, 0, "Selected lights (D/P/S)");
+		_overlay.setText(DiscardedLights, 0, "Discarded lights (D/P/S)");
 
 		if (_profilerRowNames.empty() == true)
 		{
@@ -485,9 +487,18 @@ namespace pg
 			return;
 		}
 		_voxelLightRevision = _context.world.world->revision();
-		std::unordered_set<spk::Vector3Int> required;
+		std::unordered_set<spk::Vector3Int> loadedChunks;
 		spk::GameEngine &engine = gameEngine();
 		_context.world.world->map().forEachLoadedChunk([&](const spk::VoxelChunk &chunk) {
+			loadedChunks.insert(chunk.coordinates());
+			const auto known = _voxelLightChunkRevisions.find(chunk.coordinates());
+			if (known != _voxelLightChunkRevisions.end() && known->second == chunk.contentRevision()) return;
+			for (auto iterator = _voxelLightEntities.begin(); iterator != _voxelLightEntities.end();)
+			{
+				if (spk::VoxelChunk::coordinatesFromWorldCell(iterator->first) != chunk.coordinates()) { ++iterator; continue; }
+				engine.removeEntity(iterator->second.get());
+				iterator = _voxelLightEntities.erase(iterator);
+			}
 			const spk::VoxelGrid &grid = chunk.grid();
 			for (int y = 0; y < grid.size().y; ++y)
 			{
@@ -506,11 +517,6 @@ namespace pg
 							continue;
 						}
 						const spk::Vector3Int worldCell = chunk.worldOrigin() + spk::Vector3Int{x, y, z};
-						required.insert(worldCell);
-						if (_voxelLightEntities.contains(worldCell))
-						{
-							continue;
-						}
 						auto entity = std::make_unique<spk::Entity3D>();
 						entity->transform().setPosition(spk::Vector3(worldCell) + spk::Vector3{0.5f, 0.5f, 0.5f});
 						auto &light = entity->addComponent<spk::Light3D>();
@@ -539,16 +545,22 @@ namespace pg
 					}
 				}
 			}
+			_voxelLightChunkRevisions[chunk.coordinates()] = chunk.contentRevision();
 		});
-		for (auto iterator = _voxelLightEntities.begin(); iterator != _voxelLightEntities.end();)
+		for (auto iterator = _voxelLightChunkRevisions.begin(); iterator != _voxelLightChunkRevisions.end();)
 		{
-			if (required.contains(iterator->first))
+			if (loadedChunks.contains(iterator->first))
 			{
 				++iterator;
 				continue;
 			}
-			engine.removeEntity(iterator->second.get());
-			iterator = _voxelLightEntities.erase(iterator);
+			for (auto lights = _voxelLightEntities.begin(); lights != _voxelLightEntities.end();)
+			{
+				if (spk::VoxelChunk::coordinatesFromWorldCell(lights->first) != iterator->first) { ++lights; continue; }
+				engine.removeEntity(lights->second.get());
+				lights = _voxelLightEntities.erase(lights);
+			}
+			iterator = _voxelLightChunkRevisions.erase(iterator);
 		}
 	}
 
@@ -641,6 +653,7 @@ namespace pg
 		{
 			const spk::SceneLightingDiagnostics &diagnostics = _lighting->diagnostics();
 			_overlay.setText(SelectedLights, 1, std::to_string(diagnostics.selectedDirectional) + " / " + std::to_string(diagnostics.selectedPoint) + " / " + std::to_string(diagnostics.selectedSpot));
+			_overlay.setText(DiscardedLights, 1, std::to_string(diagnostics.discardedDirectional) + " / " + std::to_string(diagnostics.discardedPoint) + " / " + std::to_string(diagnostics.discardedSpot));
 		}
 
 		if (p_tick.profiler != nullptr)

@@ -52,6 +52,21 @@ namespace
 		return pg::parseVoxelDefinition(reader, loadedShapes());
 	}
 
+TEST(VoxelLightingDefinition, ParsesPointLightWithSparkleColor)
+{
+	const pg::ParsedVoxel voxel = parseFromText(R"({
+        "version": 2, "traversal": "solid", "tags": [], "shape": "cube",
+        "light": { "type": "point", "color": "#3366CC80", "power": 8.0, "reach": 12.0 },
+        "textures": { "top": [0,0], "bottom": [0,0], "side": [0,0] }
+    })");
+	ASSERT_TRUE(voxel.light.has_value());
+	EXPECT_EQ(voxel.light->type, pg::VoxelLightType::Point);
+	EXPECT_FLOAT_EQ(voxel.light->color.r, 0x33 / 255.0f);
+	EXPECT_FLOAT_EQ(voxel.light->color.a, 0x80 / 255.0f);
+	EXPECT_FLOAT_EQ(voxel.light->power, 8.0f);
+	EXPECT_FLOAT_EQ(voxel.light->reach, 12.0f);
+}
+
 	// A scratch voxel directory for end-to-end load() tests.
 	class VoxelDirectory
 	{
