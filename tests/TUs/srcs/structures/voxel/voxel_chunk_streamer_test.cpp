@@ -140,6 +140,27 @@ TEST(VoxelChunkStreamer, CanEvictChunksOutsideTheActiveWindow)
 	EXPECT_NE(world.map.tryChunk({3, 0, 0}), nullptr);
 }
 
+TEST(VoxelChunkStreamer, EvictsLeastRecentlyActiveChunksWhenRetentionBudgetIsExceeded)
+{
+	StreamedWorld world;
+	world.streamerLogic->setMaximumRetainedInactiveChunks(2);
+	world.streamer->setViewRange({0, 0, 0});
+	world.tick();
+
+	world.streamer->setOriginPosition({1, 0, 0});
+	world.tick();
+	world.streamer->setOriginPosition({2, 0, 0});
+	world.tick();
+	world.streamer->setOriginPosition({3, 0, 0});
+	world.tick();
+
+	EXPECT_EQ(world.map.loadedChunkCount(), 3u); // one active + two cached
+	EXPECT_EQ(world.map.tryChunk({0, 0, 0}), nullptr);
+	EXPECT_NE(world.map.tryChunk({1, 0, 0}), nullptr);
+	EXPECT_NE(world.map.tryChunk({2, 0, 0}), nullptr);
+	EXPECT_TRUE(world.isChunkActive({3, 0, 0}));
+}
+
 TEST(VoxelChunkStreamer, RetentionPolicyDoesNotClaimManuallyLoadedChunks)
 {
 	StreamedWorld world;

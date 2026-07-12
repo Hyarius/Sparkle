@@ -41,6 +41,16 @@ namespace spk
 		return _retainInactiveChunks;
 	}
 
+	void VoxelChunkStreamerLogic::setMaximumRetainedInactiveChunks(std::size_t p_maximum) noexcept
+	{
+		_maximumRetainedInactiveChunks = p_maximum;
+	}
+
+	std::size_t VoxelChunkStreamerLogic::maximumRetainedInactiveChunks() const noexcept
+	{
+		return _maximumRetainedInactiveChunks;
+	}
+
 	void VoxelChunkStreamerLogic::_onUpdateStarted(const spk::UpdateContext &p_tick)
 	{
 		(void)p_tick;
@@ -171,24 +181,51 @@ namespace spk
 					map->setChunkActive(coordinates, true);
 					streaming.ownedChunks.insert(coordinates);
 				}
+				streaming.inactiveChunks.erase(coordinates);
 			}
 
-			for (auto owned = streaming.ownedChunks.begin(); owned != streaming.ownedChunks.end();)
+			if (_retainInactiveChunks)
 			{
-				if (streaming.wantedChunks.contains(*owned))
+				for (const spk::Vector3Int &coordinates : streaming.ownedChunks)
 				{
-					++owned;
-					continue;
+					if (streaming.wantedChunks.contains(coordinates))
+					{
+						continue;
+					}
+					map->setChunkActive(coordinates, false);
+					streaming.inactiveChunks.try_emplace(coordinates, streaming.nextInactiveStamp++);
 				}
-				if (_retainInactiveChunks)
+			}
+			else
+			{
+				for (auto owned = streaming.ownedChunks.begin(); owned != streaming.ownedChunks.end();)
 				{
-					map->setChunkActive(*owned, false);
-				}
-				else
-				{
+					if (streaming.wantedChunks.contains(*owned))
+					{
+						++owned;
+						continue;
+					}
 					map->unloadChunk(*owned);
+					streaming.inactiveChunks.erase(*owned);
+					owned = streaming.ownedChunks.erase(owned);
 				}
-				owned = streaming.ownedChunks.erase(owned);
+			}
+
+			// Evict least-recently-active chunks until the per-map cache budget is met.
+			// Active chunks are never candidates, so the visible window remains intact.
+			while (streaming.inactiveChunks.size() > _maximumRetainedInactiveChunks)
+			{
+				auto oldest = streaming.inactiveChunks.begin();
+				for (auto candidate = std::next(oldest); candidate != streaming.inactiveChunks.end(); ++candidate)
+				{
+					if (candidate->second < oldest->second)
+					{
+						oldest = candidate;
+					}
+				}
+				map->unloadChunk(oldest->first);
+				streaming.ownedChunks.erase(oldest->first);
+				streaming.inactiveChunks.erase(oldest);
 			}
 
 			++iterator;

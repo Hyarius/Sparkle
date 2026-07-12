@@ -47,6 +47,9 @@ namespace
 	// Chunks kept active around the player, per horizontal axis (inclusive radius). Mirrors
 	// the historical world-streamer radius.
 	constexpr spk::Vector3Int StreamViewRange{8, 1, 8};
+	// Keep recent terrain available for backtracking without retaining an unlimited
+	// history. This is in addition to the 867-chunk active stream window.
+	constexpr std::size_t MaximumRetainedInactiveChunks = 1024;
 
 	enum OverlayRow : std::size_t
 	{
@@ -184,7 +187,8 @@ namespace pg
 		// Stream and bake first, then submit all opaque chunk and actor geometry. The
 		// lower-priority transparent chunk pass runs last so water blends over the player
 		// without preventing the player from writing its depth first.
-		engine.add<spk::VoxelChunkStreamerLogic>();
+		auto &chunkStreamerLogic = engine.add<spk::VoxelChunkStreamerLogic>();
+		chunkStreamerLogic.setMaximumRetainedInactiveChunks(MaximumRetainedInactiveChunks);
 		// Fluid automaton (priority 50, after streaming, before baking): makes worldgen-placed
 		// water sources spread and fall; its map edits re-bake chunks like any other cell change.
 		engine.add<spk::VoxelFluidSimulationLogic>();
@@ -303,6 +307,20 @@ namespace pg
 		playerRenderer.setMesh(_playerMesh);
 		playerRenderer.setTexture(&_texture);
 		playerRenderer.setTint({0.95f, 0.95f, 1.0f, 1.0f});
+		// The warm-up was loaded directly so navigation could be constructed before
+		// the first update. Deactivate it now: the streamer claims and reactivates
+		// the spawn window on that update, making these chunks subject to its cache
+		// budget instead of leaving a permanently active manual set behind.
+		for (int y = -StreamViewRange.y; y <= StreamViewRange.y; ++y)
+		{
+			for (int z = -StreamViewRange.z; z <= StreamViewRange.z; ++z)
+			{
+				for (int x = -StreamViewRange.x; x <= StreamViewRange.x; ++x)
+				{
+					_stagedWorld->map().setChunkActive(spawnChunk + spk::Vector3Int{x, y, z}, false);
+				}
+			}
+		}
 		_streamer = &_playerEntity.addComponent<spk::VoxelChunkStreamer>(_stagedWorld->map());
 		_streamer->setViewRange(StreamViewRange);
 		_streamer->setOriginPosition(spawnChunk);
@@ -322,6 +340,9 @@ namespace pg
 						return registry.definition(p_cell.id).data.traversal == VoxelTraversal::Solid;
 					}});
 		_fluidSimulator->setSimulationCenter(_player->cell);
+		// The simulation box must cover the whole visible stream window, not just the
+		// historical 48-cell gameplay radius, otherwise visible distant water freezes.
+		_fluidSimulator->setHorizontalRange((StreamViewRange.x + 1) * spk::VoxelChunk::Size.x - 1);
 		engine.addEntity(&_playerEntity);
 
 		auto &hoverRenderer = _hoverEntity.addComponent<spk::TextureMeshRenderer3D>();
