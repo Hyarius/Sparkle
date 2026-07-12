@@ -14,6 +14,7 @@
 #include "structures/voxel/spk_slope_voxel_shape.hpp"
 #include "structures/voxel/spk_stair_voxel_shape.hpp"
 #include "structures/voxel/spk_voxel_mesher.hpp"
+#include "structures/voxel/spk_voxel_mesher_occlusion.hpp"
 #include "structures/voxel/spk_voxel_orientation.hpp"
 
 namespace
@@ -350,6 +351,22 @@ namespace
 			result += (b.position - a.position).cross(c.position - a.position).length() * 0.5f;
 		}
 		return result;
+	}
+
+	[[nodiscard]] bool samePolygon(const spk::VoxelShapePolygon &p_left, const spk::VoxelShapePolygon &p_right)
+	{
+		if (p_left.size() != p_right.size() || p_left.normal() != p_right.normal())
+		{
+			return false;
+		}
+		for (std::size_t index = 0; index < p_left.size(); ++index)
+		{
+			if (p_left[index].position != p_right[index].position || p_left[index].data != p_right[index].data)
+			{
+				return false;
+			}
+		}
+		return true;
 	}
 
 	[[nodiscard]] bool containsPolygon(
@@ -862,4 +879,47 @@ TEST(VoxelMesher, OrientedCellsRemainWatertight)
 		EXPECT_EQ(spk::VoxelMesher::buildRenderMesh(grid, test.registry).opaque.nbShape(), 10u)
 			<< "orientation " << static_cast<int>(orientation);
 	}
+}
+
+// The mesher clips partial occlusions through a per-bake VoxelFaceRemnantCache keyed by
+// the (source face, occluder face) address pair. It must hand back exactly what a fresh
+// subtraction produces, in the same order, and reuse the stored result on a repeat query.
+TEST(VoxelMesher, FaceRemnantCacheMatchesAFreshSubtraction)
+{
+	const TestRegistry test;
+	const spk::VoxelShape &cubeShape = test.registry.shape(test.cube);
+	const spk::VoxelShape &slabShape = test.registry.shape(test.slab);
+
+	// Cube +X face against a slab's half-height -X face: a genuine partial occlusion.
+	const spk::VoxelShapeFace &source = cubeShape.transformedOuterFace(
+		spk::VoxelAxisPlane::PositiveX, spk::VoxelOrientation::PositiveZ, spk::VoxelFlip::PositiveY);
+	const spk::VoxelShapeFace &occluder = slabShape.transformedOuterFace(
+		spk::VoxelAxisPlane::NegativeX, spk::VoxelOrientation::PositiveZ, spk::VoxelFlip::PositiveY);
+
+	const std::vector<spk::VoxelShapePolygon> fresh = spk::visibleFaceRemnants(source, occluder);
+	ASSERT_FALSE(fresh.empty());
+
+	// The subtraction actually removed area: the remnants cover less than the source.
+	float remnantArea = 0.0f;
+	for (const spk::VoxelShapePolygon &polygon : fresh)
+	{
+		remnantArea += polygon.area();
+	}
+	float sourceArea = 0.0f;
+	for (const spk::VoxelShapePolygon &polygon : source.polygons())
+	{
+		sourceArea += polygon.area();
+	}
+	EXPECT_LT(remnantArea, sourceArea - 0.1f);
+
+	spk::VoxelFaceRemnantCache cache;
+	const std::vector<spk::VoxelShapePolygon> &cached = cache.remnants(source, occluder);
+	ASSERT_EQ(cached.size(), fresh.size());
+	for (std::size_t index = 0; index < cached.size(); ++index)
+	{
+		EXPECT_TRUE(samePolygon(cached[index], fresh[index])) << "remnant " << index << " differs";
+	}
+
+	// Repeated queries return the same storage: the memoization actually hits.
+	EXPECT_EQ(&cache.remnants(source, occluder), &cached);
 }

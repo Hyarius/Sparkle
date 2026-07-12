@@ -331,6 +331,20 @@ namespace spk
 			return IVector3<TType>(x, y, z);
 		}
 
+		[[nodiscard]] IVector3<float> dehomogenized() const
+		{
+			const float divisor = static_cast<float>(w);
+			if (spk::ApproxValue(divisor) == 0)
+			{
+				throw std::invalid_argument("spk::IVector4: cannot dehomogenize with a zero w component");
+			}
+			
+			return IVector3<float>(
+				static_cast<float>(x) / divisor,
+				static_cast<float>(y) / divisor,
+				static_cast<float>(z) / divisor);
+		}
+
 		[[nodiscard]] static IVector4<TType> lerp(const IVector4<TType> &p_from, const IVector4<TType> &p_to, const float p_alpha) noexcept
 		{
 			const float fromX = static_cast<float>(p_from.x);

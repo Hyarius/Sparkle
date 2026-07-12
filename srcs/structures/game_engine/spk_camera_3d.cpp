@@ -92,7 +92,27 @@ namespace spk
 		return _target;
 	}
 
-	float Camera3D::aspectRatio() const
+	const spk::Vector3 &Camera3D::up() const noexcept
+	{
+		return _up;
+	}
+
+	float Camera3D::fieldOfView() const noexcept
+	{
+		return _fieldOfView;
+	}
+
+	float Camera3D::nearPlane() const noexcept
+	{
+		return _nearPlane;
+	}
+
+	float Camera3D::farPlane() const noexcept
+	{
+		return _farPlane;
+	}
+
+	float Camera3D::aspectRatio() const noexcept
 	{
 		return _aspectRatio;
 	}

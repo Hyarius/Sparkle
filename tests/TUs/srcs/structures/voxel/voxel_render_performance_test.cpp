@@ -291,8 +291,5 @@ TEST(VoxelRenderPerformance, SingleChunkBakeStaysWithinBudget)
 	const spk::Duration elapsed = chronometer.elapsedTime();
 	const long long averageMicroseconds = elapsed.nanoseconds() / 1000 / BakeCount;
 
-	std::cout << "[ PERF     ] single chunk bake: avg " << averageMicroseconds << " us over "
-			  << BakeCount << " bakes (" << triangleCount << " triangles)" << std::endl;
-
 	EXPECT_LT(averageMicroseconds / 1000, MaximumSingleChunkBakeMilliseconds);
 }

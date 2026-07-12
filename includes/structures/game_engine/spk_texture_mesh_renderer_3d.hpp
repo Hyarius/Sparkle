@@ -16,6 +16,8 @@ namespace spk
 		std::shared_ptr<const spk::TextureMesh3D> _mesh;
 		const spk::Texture *_texture = nullptr;
 		bool _translucent = false;
+		bool _castsShadows = true;
+		bool _receivesShadows = true;
 		spk::Color _tint;
 
 	public:
@@ -32,6 +34,16 @@ namespace spk
 		void setTranslucent(bool p_translucent)
 		{
 			_translucent = p_translucent;
+		}
+
+		void setCastsShadows(bool p_value) noexcept
+		{
+			_castsShadows = p_value;
+		}
+
+		void setReceivesShadows(bool p_value) noexcept
+		{
+			_receivesShadows = p_value;
 		}
 
 		void setTint(const spk::Color &p_tint)
@@ -52,6 +64,16 @@ namespace spk
 		[[nodiscard]] bool translucent() const
 		{
 			return _translucent;
+		}
+
+		[[nodiscard]] bool castsShadows() const noexcept
+		{
+			return _castsShadows;
+		}
+
+		[[nodiscard]] bool receivesShadows() const noexcept
+		{
+			return _receivesShadows;
 		}
 
 		[[nodiscard]] const spk::Color &tint() const

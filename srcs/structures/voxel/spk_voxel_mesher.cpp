@@ -15,8 +15,7 @@
 // dirty chunk), so every acceleration structure here is either immutable
 // (VoxelWorldToLocalPlaneTable, built at compile time) or owned by one bake and
 // destroyed with it (VoxelFaceRemnantCache, the neighbor snapshot, the plan vectors).
-// None of it changes the emitted meshes: the golden-reference tests in
-// voxel_mesher_invariance_test.cpp pin the output byte-for-byte.
+// None of it changes the emitted meshes, which voxel_mesher_test.cpp specifies.
 
 namespace
 {

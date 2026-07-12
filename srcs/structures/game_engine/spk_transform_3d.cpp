@@ -1,6 +1,53 @@
 #include "structures/game_engine/spk_transform_3d.hpp"
 
+#include <cmath>
+#include <stdexcept>
+
 #include "structures/game_engine/spk_entity.hpp"
+#include "structures/math/spk_vector4.hpp"
+
+namespace
+{
+	[[nodiscard]] spk::Quaternion normalizedFiniteQuaternion(const spk::Quaternion &p_quaternion)
+	{
+		if (std::isfinite(p_quaternion.x) == false ||
+			std::isfinite(p_quaternion.y) == false ||
+			std::isfinite(p_quaternion.z) == false ||
+			std::isfinite(p_quaternion.w) == false)
+		{
+			throw std::invalid_argument("spk::Transform3D rotation quaternion must be finite");
+		}
+
+		const float squaredLength =
+			p_quaternion.x * p_quaternion.x +
+			p_quaternion.y * p_quaternion.y +
+			p_quaternion.z * p_quaternion.z +
+			p_quaternion.w * p_quaternion.w;
+
+		if (std::isfinite(squaredLength) == false || squaredLength <= 0.0f)
+		{
+			throw std::invalid_argument("spk::Transform3D rotation quaternion must have a non-zero finite length");
+		}
+
+		const float inverseLength = 1.0f / std::sqrt(squaredLength);
+		return {
+			p_quaternion.x * inverseLength,
+			p_quaternion.y * inverseLength,
+			p_quaternion.z * inverseLength,
+			p_quaternion.w * inverseLength};
+	}
+
+	[[nodiscard]] spk::Quaternion multiply(
+		const spk::Quaternion &p_left,
+		const spk::Quaternion &p_right)
+	{
+		return {
+			p_left.w * p_right.x + p_left.x * p_right.w + p_left.y * p_right.z - p_left.z * p_right.y,
+			p_left.w * p_right.y - p_left.x * p_right.z + p_left.y * p_right.w + p_left.z * p_right.x,
+			p_left.w * p_right.z + p_left.x * p_right.y - p_left.y * p_right.x + p_left.z * p_right.w,
+			p_left.w * p_right.w - p_left.x * p_right.x - p_left.y * p_right.y - p_left.z * p_right.z};
+	}
+}
 
 namespace spk
 {
@@ -105,12 +152,13 @@ namespace spk
 
 	void Transform3D::setRotation(const spk::Quaternion &p_rotation)
 	{
-		if (_rotation.x == p_rotation.x && _rotation.y == p_rotation.y &&
-			_rotation.z == p_rotation.z && _rotation.w == p_rotation.w)
+		const spk::Quaternion normalized = normalizedFiniteQuaternion(p_rotation);
+		if (_rotation.x == normalized.x && _rotation.y == normalized.y &&
+			_rotation.z == normalized.z && _rotation.w == normalized.w)
 		{
 			return;
 		}
-		_rotation = p_rotation;
+		_rotation = normalized;
 		_invalidate();
 	}
 
@@ -132,5 +180,30 @@ namespace spk
 	const spk::Matrix4x4 &Transform3D::inverseModelTransform() const
 	{
 		return _inverseModelTransform.get();
+	}
+
+	spk::Quaternion Transform3D::worldRotation() const
+	{
+		const spk::Quaternion localRotation = normalizedFiniteQuaternion(_rotation);
+		const spk::Transform3D *parentTransform = _parentTransform();
+		if (parentTransform == nullptr)
+		{
+			return localRotation;
+		}
+		return normalizedFiniteQuaternion(
+			multiply(parentTransform->worldRotation(), localRotation));
+	}
+
+	spk::Vector3 Transform3D::worldForward() const
+	{
+		const spk::Vector4 forward =
+			spk::Matrix4x4::rotation(worldRotation()) *
+			spk::Vector4(0.0f, 0.0f, -1.0f, 0.0f);
+		return forward.xyz().normalized();
+	}
+
+	spk::Vector3 Transform3D::worldPosition() const
+	{
+		return modelTransform() * spk::Vector3::Zero;
 	}
 }

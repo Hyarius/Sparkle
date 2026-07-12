@@ -148,8 +148,7 @@ namespace spk
 			requires(X == 4 && Y == 4)
 		[[nodiscard]] spk::Vector3 operator*(const spk::Vector3 &p_vector) const
 		{
-			const spk::Vector4 transformed = (*this) * spk::Vector4(p_vector, 1.0f);
-			return {transformed.x / transformed.w, transformed.y / transformed.w, transformed.z / transformed.w};
+			return ((*this) * spk::Vector4(p_vector, 1.0f)).dehomogenized();
 		}
 
 		[[nodiscard]] IMatrix operator*(const IMatrix &p_other) const

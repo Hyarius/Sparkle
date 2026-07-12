@@ -177,7 +177,7 @@ either immutable or owned by a single bake:
 Enclosure (`cellIsFullyEnclosed`) is only probed for shapes that actually own
 inner faces; full cubes skip it entirely.
 
-None of this changes the emitted geometry: the golden-reference tests in
-`voxel_mesher_invariance_test.cpp` pin the opaque and transparent meshes of a
-representative grid byte-for-byte, and `voxel_render_performance_test.cpp`
+None of this changes the emitted geometry, which `voxel_mesher_test.cpp`
+specifies (occlusion and enclosure behavior per shape class, plus the remnant
+cache agreeing with a fresh subtraction); `voxel_render_performance_test.cpp`
 guards the throughput (8×8 chunk square and single-chunk budgets).

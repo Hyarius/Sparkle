@@ -43,5 +43,18 @@ namespace spk
 
 		[[nodiscard]] const spk::Matrix4x4 &modelTransform() const;
 		[[nodiscard]] const spk::Matrix4x4 &inverseModelTransform() const;
+
+		/**
+		 * Returns the explicitly composed ancestor/local quaternion rotation.
+		 * Translation and scale are ignored.
+		 */
+		[[nodiscard]] spk::Quaternion worldRotation() const;
+
+		/**
+		 * Returns the normalized world-space local -Z direction.
+		 */
+		[[nodiscard]] spk::Vector3 worldForward() const;
+
+		[[nodiscard]] spk::Vector3 worldPosition() const;
 	};
 }

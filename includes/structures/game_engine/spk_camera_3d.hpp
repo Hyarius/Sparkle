@@ -41,7 +41,11 @@ namespace spk
 
 		[[nodiscard]] const spk::Vector3 &position() const;
 		[[nodiscard]] const spk::Vector3 &target() const;
-		[[nodiscard]] float aspectRatio() const;
+		[[nodiscard]] const spk::Vector3 &up() const noexcept;
+		[[nodiscard]] float fieldOfView() const noexcept;
+		[[nodiscard]] float nearPlane() const noexcept;
+		[[nodiscard]] float farPlane() const noexcept;
+		[[nodiscard]] float aspectRatio() const noexcept;
 		[[nodiscard]] const spk::Matrix4x4 &projectionMatrix() const;
 		[[nodiscard]] spk::Matrix4x4 viewMatrix() const;
 		[[nodiscard]] spk::Matrix4x4 viewProjectionMatrix() const;
