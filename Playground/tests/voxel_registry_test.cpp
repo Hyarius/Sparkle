@@ -6,10 +6,12 @@
 
 #include "structures/voxel/spk_voxel_mesher.hpp"
 
+#include <cstdint>
 #include <filesystem>
 #include <fstream>
 #include <string>
 #include <string_view>
+#include <variant>
 #include <vector>
 
 namespace
@@ -109,12 +111,13 @@ TEST(VoxelParsing, VersionTwoBecomesOneDefaultState)
 		"textures": { "plane": [0, 2] }
 	})");
 
-	ASSERT_EQ(voxel.states.size(), 1u);
-	EXPECT_EQ(voxel.states.front().id, spk::VoxelStateId{0});
-	EXPECT_EQ(voxel.states.front().name, "default");
-	EXPECT_NE(voxel.states.front().shape, nullptr);
+	ASSERT_TRUE(std::holds_alternative<pg::ParsedRegularVoxel>(voxel.rendering));
+	const pg::ParsedRegularVoxel &regular = std::get<pg::ParsedRegularVoxel>(voxel.rendering);
+	ASSERT_EQ(regular.states.size(), 1u);
+	EXPECT_EQ(regular.states.front().id, spk::VoxelStateId{0});
+	EXPECT_EQ(regular.states.front().name, "default");
+	EXPECT_NE(regular.states.front().shape, nullptr);
 	EXPECT_EQ(voxel.data.traversal, pg::VoxelTraversal::Passable);
-	EXPECT_FALSE(voxel.fluid.has_value());
 }
 
 TEST(VoxelParsing, VersionTwoRejectsStates)
@@ -279,11 +282,141 @@ TEST(VoxelParsing, VersionThreeForbidsFluidWithAuthoredStates)
 	EXPECT_THROW(
 		(void)parseFromText(R"({
 			"version": 3,
-			"traversal": "solid",
+			"traversal": "passable",
 			"tags": [],
-			"shape": "cube",
+			"textures": { "top": [0, 0], "bottom": [2, 0], "side": [1, 0] },
 			"fluid": { "maxSpread": 4 },
 			"states": [ { "id": 0, "textures": { "top": [0, 0], "bottom": [2, 0], "side": [1, 0] } } ]
+		})"),
+		pg::JsonError);
+}
+
+// ---------------------------------------------------------------------------
+// Parsing: version 3 fluids (generated states)
+// ---------------------------------------------------------------------------
+
+namespace
+{
+	constexpr const char *kFluidJson = R"({
+		"version": 3,
+		"traversal": "passable",
+		"tags": ["water", "river", "losTransparent"],
+		"transparency": 0.5,
+		"textures": { "top": [2, 1], "bottom": [3, 1], "side": [4, 1] },
+		"fluid": { "maxSpread": 6, "falls": false }
+	})";
+}
+
+TEST(VoxelParsing, FluidBlockYieldsAGeneratedFluidDescription)
+{
+	const pg::ParsedVoxel voxel = parseFromText(kFluidJson);
+
+	ASSERT_TRUE(std::holds_alternative<pg::ParsedFluidVoxel>(voxel.rendering));
+	const spk::VoxelFluidDescription &description = std::get<pg::ParsedFluidVoxel>(voxel.rendering).description;
+	EXPECT_EQ(description.levelCount, 6u);
+	EXPECT_FALSE(description.falls);
+	EXPECT_FLOAT_EQ(description.appearance.transparency, 0.5f);
+	EXPECT_EQ(description.appearance.topTexture, (spk::AtlasCell{2, 1}));
+	EXPECT_EQ(description.appearance.bottomTexture, (spk::AtlasCell{3, 1}));
+	EXPECT_EQ(description.appearance.sideTexture, (spk::AtlasCell{4, 1}));
+	EXPECT_EQ(voxel.data.traversal, pg::VoxelTraversal::Passable);
+	EXPECT_TRUE(voxel.data.hasTag("water"));
+}
+
+TEST(VoxelParsing, FluidFallsDefaultsToTrueAndSpreadDefaultsToEight)
+{
+	const pg::ParsedVoxel voxel = parseFromText(R"({
+		"version": 3,
+		"traversal": "passable",
+		"tags": [],
+		"textures": { "top": [2, 1], "bottom": [2, 1], "side": [2, 1] },
+		"fluid": {}
+	})");
+
+	const spk::VoxelFluidDescription &description = std::get<pg::ParsedFluidVoxel>(voxel.rendering).description;
+	EXPECT_TRUE(description.falls);
+	EXPECT_EQ(description.levelCount, 8u);
+}
+
+TEST(VoxelParsing, FluidRequiresVersionThree)
+{
+	EXPECT_THROW(
+		(void)parseFromText(R"({
+			"version": 2,
+			"traversal": "passable",
+			"tags": [],
+			"shape": "cube",
+			"textures": { "top": [2, 1], "bottom": [2, 1], "side": [2, 1] },
+			"fluid": { "maxSpread": 8 }
+		})"),
+		pg::JsonError);
+}
+
+TEST(VoxelParsing, FluidForbidsShape)
+{
+	EXPECT_THROW(
+		(void)parseFromText(R"({
+			"version": 3,
+			"traversal": "passable",
+			"tags": [],
+			"shape": "cube",
+			"textures": { "top": [2, 1], "bottom": [2, 1], "side": [2, 1] },
+			"fluid": { "maxSpread": 8 }
+		})"),
+		pg::JsonError);
+}
+
+TEST(VoxelParsing, FluidRejectsMissingTextureSlot)
+{
+	EXPECT_THROW(
+		(void)parseFromText(R"({
+			"version": 3,
+			"traversal": "passable",
+			"tags": [],
+			"textures": { "top": [2, 1], "bottom": [2, 1] },
+			"fluid": { "maxSpread": 8 }
+		})"),
+		pg::JsonError);
+}
+
+TEST(VoxelParsing, FluidRejectsExtraTextureSlot)
+{
+	EXPECT_THROW(
+		(void)parseFromText(R"({
+			"version": 3,
+			"traversal": "passable",
+			"tags": [],
+			"textures": { "top": [2, 1], "bottom": [2, 1], "side": [2, 1], "extra": [0, 0] },
+			"fluid": { "maxSpread": 8 }
+		})"),
+		pg::JsonError);
+}
+
+TEST(VoxelParsing, FluidRejectsInvalidSpread)
+{
+	for (const char *spread : {"0", "17", "-3"})
+	{
+		EXPECT_THROW(
+			(void)parseFromText(std::string(R"({
+				"version": 3,
+				"traversal": "passable",
+				"tags": [],
+				"textures": { "top": [2, 1], "bottom": [2, 1], "side": [2, 1] },
+				"fluid": { "maxSpread": )") + spread + "} }"),
+			pg::JsonError)
+			<< spread;
+	}
+}
+
+TEST(VoxelParsing, FluidRejectsSolidTraversal)
+{
+	EXPECT_THROW(
+		(void)parseFromText(R"({
+			"version": 3,
+			"traversal": "solid",
+			"tags": [],
+			"textures": { "top": [2, 1], "bottom": [2, 1], "side": [2, 1] },
+			"fluid": { "maxSpread": 8 }
 		})"),
 		pg::JsonError);
 }
@@ -301,17 +434,19 @@ TEST(VoxelParsing, SharedShapeDataIsAppliedToEveryState)
 		]
 	})");
 
-	ASSERT_EQ(voxel.states.size(), 2u);
+	ASSERT_TRUE(std::holds_alternative<pg::ParsedRegularVoxel>(voxel.rendering));
+	const pg::ParsedRegularVoxel &regular = std::get<pg::ParsedRegularVoxel>(voxel.rendering);
+	ASSERT_EQ(regular.states.size(), 2u);
 	const pg::ShapeDefinition &cube = loadedShapes().get("cube");
-	for (const pg::ParsedVoxelState &state : voxel.states)
+	for (const pg::ParsedVoxelState &state : regular.states)
 	{
 		EXPECT_NE(state.shape, nullptr);
 		// Every ordinary state receives the shared shape's cardinal heights.
 		EXPECT_EQ(state.heights.positiveY.stationary, cube.heights.positiveY.stationary);
 		EXPECT_EQ(state.heights.positiveY.positiveX, cube.heights.positiveY.positiveX);
 	}
-	EXPECT_EQ(voxel.states[0].name, "default");
-	EXPECT_EQ(voxel.states[1].name, "mossy");
+	EXPECT_EQ(regular.states[0].name, "default");
+	EXPECT_EQ(regular.states[1].name, "mossy");
 }
 
 // ---------------------------------------------------------------------------
@@ -408,32 +543,31 @@ TEST(VoxelRegistryStates, MultiStateVoxelResolvesExplicitStates)
 }
 
 // ---------------------------------------------------------------------------
-// Fluid compatibility: one semantic type, source + levels as states
+// Fluids: one semantic type, Sparkle-generated source + level states
 // ---------------------------------------------------------------------------
 
 TEST(VoxelRegistryFluids, WaterSourceAndLevelsShareOneType)
 {
 	const pg::VoxelRegistry &registry = loadedVoxels();
+	const spk::VoxelRegistry &render = registry.renderRegistry();
 
-	ASSERT_FALSE(registry.fluids().empty());
-	const pg::FluidFamily &family = registry.fluids().front();
+	ASSERT_TRUE(render.hasFluids());
+	ASSERT_EQ(render.fluidFamilies().size(), 1u);
+	const spk::VoxelFluidFamily &family = render.fluidFamilies().front();
 	EXPECT_EQ(family.type, registry.typeId("water"));
 
 	// Source is state zero, flow levels use states one through N.
-	EXPECT_EQ(family.source.state, spk::VoxelStateId{0});
-	EXPECT_TRUE(family.source.source);
-	EXPECT_EQ(family.source.runtime, registry.runtimeId("water"));
-	ASSERT_EQ(family.levels.size(), static_cast<std::size_t>(family.maxSpread));
-	std::vector<spk::VoxelRuntimeId> runtimes{family.source.runtime};
-	for (int stage = 1; stage <= family.maxSpread; ++stage)
+	EXPECT_EQ(family.sourceState, spk::VoxelStateId{0});
+	EXPECT_EQ(family.sourceRuntime, registry.runtimeId("water"));
+	ASSERT_EQ(family.levelCount(), 8u);
+	std::vector<spk::VoxelRuntimeId> runtimes{family.sourceRuntime};
+	for (std::size_t level = 1; level <= family.levelCount(); ++level)
 	{
-		const pg::FluidStateRef &level = family.levels[static_cast<std::size_t>(stage - 1)];
-		EXPECT_EQ(level.type, family.type);
-		EXPECT_EQ(level.state, spk::VoxelStateId{static_cast<std::uint16_t>(stage)});
-		EXPECT_EQ(level.level, static_cast<std::size_t>(stage));
-		EXPECT_FALSE(level.source);
-		EXPECT_EQ(level.runtime, registry.runtimeId("water", level.state));
-		runtimes.push_back(level.runtime);
+		const spk::VoxelFluidState &state = family.level(level);
+		EXPECT_EQ(state.state, (spk::VoxelStateId{static_cast<std::uint16_t>(level)}));
+		EXPECT_EQ(state.level, level);
+		EXPECT_EQ(state.runtime, registry.runtimeId("water", state.state));
+		runtimes.push_back(state.runtime);
 	}
 
 	// Each state has a distinct runtime id.
@@ -445,9 +579,13 @@ TEST(VoxelRegistryFluids, WaterSourceAndLevelsShareOneType)
 		}
 	}
 
-	// The whole family belongs to the "water" definition (no separate semantic types).
+	// The whole family belongs to the "water" definition (no separate semantic types and
+	// no synthetic "water#k" string ids); type-level gameplay data is shared by every
+	// state: all passable, all tagged.
 	const pg::VoxelDefinition &water = registry.get("water");
-	EXPECT_EQ(water.states.size(), static_cast<std::size_t>(family.maxSpread) + 1u);
+	EXPECT_EQ(water.states.size(), family.levelCount() + 1u);
+	EXPECT_EQ(water.data.traversal, pg::VoxelTraversal::Passable);
+	EXPECT_TRUE(water.data.hasTag("water"));
 	for (const spk::VoxelRuntimeId runtime : runtimes)
 	{
 		EXPECT_EQ(&registry.definition(runtime), &water);
@@ -457,26 +595,55 @@ TEST(VoxelRegistryFluids, WaterSourceAndLevelsShareOneType)
 TEST(VoxelRegistryFluids, FluidRefsClassifySourceAndLevels)
 {
 	const pg::VoxelRegistry &registry = loadedVoxels();
-	const pg::FluidFamily &family = registry.fluids().front();
+	const spk::VoxelRegistry &render = registry.renderRegistry();
+	const spk::VoxelFluidFamily &family = render.fluidFamilies().front();
 
-	const pg::FluidRef *source = registry.tryFluidRef(family.source.runtime);
+	const spk::VoxelFluidRef *source = render.tryFluidRef(family.sourceRuntime);
 	ASSERT_NE(source, nullptr);
 	EXPECT_TRUE(source->source);
-	EXPECT_EQ(source->stage, family.maxSpread);
+	EXPECT_EQ(source->level, family.levelCount());
 
-	for (int stage = 1; stage <= family.maxSpread; ++stage)
+	for (std::size_t level = 1; level <= family.levelCount(); ++level)
 	{
-		const pg::FluidRef *reference = registry.tryFluidRef(family.stageId(stage));
+		const spk::VoxelFluidRef *reference = render.tryFluidRef(family.level(level).runtime);
 		ASSERT_NE(reference, nullptr);
 		EXPECT_FALSE(reference->source);
-		EXPECT_EQ(reference->stage, stage);
+		EXPECT_EQ(reference->level, level);
 		EXPECT_EQ(reference->family, 0u);
 	}
 
 	// Ordinary voxels report no fluid classification.
-	EXPECT_EQ(registry.tryFluidRef(registry.runtimeId("stone-block")), nullptr);
+	EXPECT_EQ(render.tryFluidRef(registry.runtimeId("stone-block")), nullptr);
 
 	// Debug names expose the state, not a synthetic voxel id.
-	EXPECT_EQ(registry.debugName(family.source.runtime), "water@source");
-	EXPECT_EQ(registry.debugName(family.stageId(1)), "water@1");
+	EXPECT_EQ(registry.debugName(family.sourceRuntime), "water@source");
+	EXPECT_EQ(registry.debugName(family.level(1).runtime), "water@1");
+}
+
+TEST(VoxelRegistryFluids, CardinalHeightsMatchTheRenderedFillHeights)
+{
+	const pg::VoxelRegistry &registry = loadedVoxels();
+	const spk::VoxelFluidFamily &family = registry.renderRegistry().fluidFamilies().front();
+	const pg::VoxelDefinition &water = registry.get("water");
+
+	const auto expectFlat = [](const pg::CardinalHeightCollection &p_heights, float p_expected) {
+		for (const pg::CardinalHeightSet *set : {&p_heights.positiveY, &p_heights.negativeY})
+		{
+			EXPECT_FLOAT_EQ(set->positiveX, p_expected);
+			EXPECT_FLOAT_EQ(set->negativeX, p_expected);
+			EXPECT_FLOAT_EQ(set->positiveZ, p_expected);
+			EXPECT_FLOAT_EQ(set->negativeZ, p_expected);
+			EXPECT_FLOAT_EQ(set->stationary, p_expected);
+		}
+	};
+
+	// The source surface sits at full height, flow level k at k / N - the same heights
+	// the generated render slabs use. Water stays non-walkable regardless (passable type).
+	expectFlat(water.state(spk::VoxelStateId{0}).heights, 1.0f);
+	for (std::size_t level = 1; level <= family.levelCount(); ++level)
+	{
+		expectFlat(
+			water.state(spk::VoxelStateId{static_cast<std::uint16_t>(level)}).heights,
+			family.level(level).height);
+	}
 }

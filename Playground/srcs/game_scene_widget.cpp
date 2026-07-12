@@ -12,7 +12,6 @@
 #include "logics/actor_path_logic.hpp"
 #include "logics/camera_controller_logic.hpp"
 #include "logics/exploration_input_logic.hpp"
-#include "logics/fluid_simulation_logic.hpp"
 #include "structures/game_engine/spk_texture_mesh_render_logic.hpp"
 #include "structures/game_engine/spk_texture_mesh_renderer_3d.hpp"
 #include "structures/graphics/geometry/spk_primitive_object.hpp"
@@ -22,6 +21,8 @@
 #include "structures/voxel/spk_voxel_chunk_streamer.hpp"
 #include "structures/voxel/spk_voxel_chunk_streamer_logic.hpp"
 #include "structures/voxel/spk_voxel_chunk_transparent_render_logic.hpp"
+#include "structures/voxel/spk_voxel_fluid_simulation_logic.hpp"
+#include "structures/voxel/spk_voxel_fluid_simulator.hpp"
 #include "structures/voxel/spk_voxel_map.hpp"
 #include "structures/voxel/spk_voxel_shape.hpp"
 #include "world/generator/plan_chunk_provider.hpp"
@@ -168,6 +169,9 @@ namespace pg
 		// lower-priority transparent chunk pass runs last so water blends over the player
 		// without preventing the player from writing its depth first.
 		engine.add<spk::VoxelChunkStreamerLogic>();
+		// Fluid automaton (priority 50, after streaming, before baking): makes worldgen-placed
+		// water sources spread and fall; its map edits re-bake chunks like any other cell change.
+		engine.add<spk::VoxelFluidSimulationLogic>();
 		engine.add<spk::VoxelChunkRenderLogic>(_texture);
 		engine.add<spk::TextureMeshRenderLogic>(false);
 		engine.add<spk::VoxelChunkTransparentRenderLogic>(_texture);
@@ -260,6 +264,22 @@ namespace pg
 		_streamer = &_playerEntity.addComponent<spk::VoxelChunkStreamer>(_stagedWorld->map());
 		_streamer->setViewRange(StreamViewRange);
 		_streamer->setOriginPosition(spawnChunk);
+		// The fluid simulator rides the player entity like the streamer: the update loop
+		// re-centers it on the player cell. The only Playground policy is the traversal
+		// mapping (passable voxels are replaceable by fluid, solid voxels are support);
+		// fluid cells themselves are classified by the simulation.
+		_fluidSimulator = &_playerEntity.addComponent<spk::VoxelFluidSimulator>(
+			_stagedWorld->map(),
+			spk::VoxelFluidCellRules{
+				.canReplace =
+					[&registry = _stagedWorld->registry()](const spk::VoxelCell &p_cell) {
+						return registry.definition(p_cell.id).data.traversal == VoxelTraversal::Passable;
+					},
+				.providesSupport =
+					[&registry = _stagedWorld->registry()](const spk::VoxelCell &p_cell) {
+						return registry.definition(p_cell.id).data.traversal == VoxelTraversal::Solid;
+					}});
+		_fluidSimulator->setSimulationCenter(_player->cell);
 		engine.addEntity(&_playerEntity);
 
 		auto &hoverRenderer = _hoverEntity.addComponent<spk::TextureMeshRenderer3D>();
@@ -292,10 +312,6 @@ namespace pg
 			viewportSize,
 			spk::AtlasCell{hovered[0], hovered[1]},
 			spk::AtlasCell{invalid[0], invalid[1]});
-
-		// Fluid automaton: makes worldgen-placed water sources spread and fall. Operates on the
-		// map through setCell, so its edits re-bake chunks like any other cell change.
-		engine.add<FluidSimulationLogic>(*_stagedWorld);
 
 		_streamingFocus = spawnChunk;
 
@@ -394,6 +410,10 @@ namespace pg
 			if (_streamer != nullptr)
 			{
 				_streamer->setOriginPosition(focus);
+			}
+			if (_fluidSimulator != nullptr)
+			{
+				_fluidSimulator->setSimulationCenter(_player->cell);
 			}
 			if (_terrainProvider != nullptr && (!_streamingFocus.has_value() || focus != *_streamingFocus))
 			{

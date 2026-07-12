@@ -3,44 +3,28 @@
 #include "core/registry.hpp"
 #include "voxel/shape_catalog.hpp"
 
-#include "structures/voxel/spk_data_voxel_shape.hpp"
-
 #include <cstdint>
 #include <memory>
-#include <optional>
 #include <stdexcept>
 #include <string>
 #include <utility>
+#include <variant>
 #include <vector>
 
 namespace
 {
-	// Fill-stage geometry for fluids: a slab of the given height (the full source cube is
-	// the height-1 case), every polygon on a single "fluid" slot textured with the source's
-	// top cell. Mid-height tops are inner faces, so a buried stage inside a fluid body
-	// culls its surface while an exposed one still renders it.
-	[[nodiscard]] spk::VoxelShapeDescription fluidStageDescription(float p_height)
+	// Fluid states expose their rendered fill height as flat navigation heights (the fluid
+	// surface, identical in every direction). This never makes a fluid ordinary walking
+	// ground - the type is passable - but a later boat-navigation graph can read them.
+	[[nodiscard]] pg::CardinalHeightCollection flatHeights(float p_height)
 	{
-		const std::vector<spk::Vector2> rectangleUVs = {{0, 0}, {1, 0}, {1, 1}, {0, 1}};
-		const std::vector<spk::Vector2> sideUVs = {{0, 1}, {1, 1}, {1, 1.0f - p_height}, {0, 1.0f - p_height}};
-
-		spk::VoxelShapeDescription description;
-		description.polygons = {
-			{"fluid", {{0, p_height, 1}, {1, p_height, 1}, {1, p_height, 0}, {0, p_height, 0}}, rectangleUVs},
-			{"fluid", {{0, 0, 0}, {1, 0, 0}, {1, 0, 1}, {0, 0, 1}}, rectangleUVs},
-			{"fluid", {{1, 0, 1}, {1, 0, 0}, {1, p_height, 0}, {1, p_height, 1}}, sideUVs},
-			{"fluid", {{0, 0, 0}, {0, 0, 1}, {0, p_height, 1}, {0, p_height, 0}}, sideUVs},
-			{"fluid", {{0, 0, 1}, {1, 0, 1}, {1, p_height, 1}, {0, p_height, 1}}, sideUVs},
-			{"fluid", {{1, 0, 0}, {0, 0, 0}, {0, p_height, 0}, {1, p_height, 0}}, sideUVs},
-		};
-		return description;
-	}
-
-	[[nodiscard]] std::unique_ptr<spk::VoxelShape> makeFluidStageShape(float p_height, const spk::AtlasCell &p_texture)
-	{
-		return std::make_unique<spk::DataVoxelShape>(
-			spk::VoxelShape::TextureSlots{{"fluid", p_texture}},
-			fluidStageDescription(p_height));
+		const pg::CardinalHeightSet set{
+			.positiveX = p_height,
+			.negativeX = p_height,
+			.positiveZ = p_height,
+			.negativeZ = p_height,
+			.stationary = p_height};
+		return {.positiveY = set, .negativeY = set};
 	}
 }
 
@@ -62,8 +46,6 @@ namespace pg
 		std::vector<VoxelDefinition> definitions;
 		std::vector<std::string> typeToString;
 		std::map<std::string, spk::VoxelTypeId> stringToType;
-		std::vector<FluidFamily> fluids;
-		std::unordered_map<spk::VoxelRuntimeId, FluidRef> fluidRefs;
 		const std::vector<std::string> ids = parsed.ids();
 		definitions.reserve(ids.size());
 		typeToString.reserve(ids.size());
@@ -71,105 +53,84 @@ namespace pg
 		for (const std::string &id : ids)
 		{
 			ParsedVoxel &voxel = parsed.getMutable(id);
-			const std::optional<FluidData> fluid = voxel.fluid;
+			VoxelDefinition definition{.id = id, .data = std::move(voxel.data)};
 
-			// Gather every state shape, then register them transactionally as one type.
-			// The parallel vectors keep the state metadata (name + heights) aligned with
-			// the shapes handed to the spk registry.
-			std::vector<std::unique_ptr<spk::VoxelShape>> stateShapes;
-			std::vector<std::string> stateNames;
-			std::vector<CardinalHeightCollection> stateHeights;
-			stateShapes.reserve(voxel.states.size());
-			stateNames.reserve(voxel.states.size());
-			stateHeights.reserve(voxel.states.size());
-			for (ParsedVoxelState &state : voxel.states)
+			if (ParsedFluidVoxel *fluid = std::get_if<ParsedFluidVoxel>(&voxel.rendering); fluid != nullptr)
 			{
-				stateShapes.push_back(std::move(state.shape));
-				stateNames.push_back(std::move(state.name));
-				stateHeights.push_back(state.heights);
-			}
-
-			if (fluid.has_value())
-			{
-				// One semantic fluid type: state 0 is the authored source, states
-				// 1..maxSpread the generated fill stages. Every stage is the same optical
-				// medium as its source (shared transparency + occlusion group), so a fluid
-				// body culls its internal faces and renders as one translucent volume.
-				const float transparency = stateShapes.front()->transparency();
-				stateShapes.front()->setTransparentOcclusionGroup(id);
-				stateNames.front() = "source";
-				for (int stage = 1; stage <= fluid->maxSpread; ++stage)
+				// One semantic fluid type whose states Sparkle generates: state 0 is the
+				// persistent source, states 1..maxSpread the flow levels. The public
+				// semantic id stays the plain string ("water"); state identity is numeric.
+				const std::size_t familyIndex = renderRegistry.registerFluid(fluid->description);
+				const spk::VoxelFluidFamily &family = renderRegistry.fluidFamily(familyIndex);
+				if (family.type.index() != definitions.size())
 				{
-					const float fill = static_cast<float>(stage) / static_cast<float>(fluid->maxSpread);
-					std::unique_ptr<spk::VoxelShape> stageShape = makeFluidStageShape(fill, fluid->texture);
-					stageShape->setTransparency(transparency);
-					stageShape->setTransparentOcclusionGroup(id);
-					stateShapes.push_back(std::move(stageShape));
-					stateNames.push_back(std::to_string(stage));
-					stateHeights.push_back(CardinalHeightCollection{});
+					throw std::logic_error("voxel registry lost lockstep with the spk render registry");
 				}
-			}
 
-			const std::size_t expectedStates = stateShapes.size();
-			const spk::VoxelTypeRegistration registration = renderRegistry.registerType(std::move(stateShapes));
-			if (registration.states.size() != expectedStates || registration.type.index() != definitions.size())
-			{
-				throw std::logic_error("voxel registry lost lockstep with the spk render registry");
-			}
-
-			VoxelDefinition definition{.id = id, .typeId = registration.type, .data = std::move(voxel.data)};
-			definition.states.reserve(registration.states.size());
-			for (std::size_t index = 0; index < registration.states.size(); ++index)
-			{
+				definition.typeId = family.type;
+				definition.states.reserve(family.levelCount() + 1);
 				definition.states.push_back(VoxelStateDefinition{
-					.id = {static_cast<std::uint16_t>(index)},
-					.runtimeId = registration.states[index],
-					.name = std::move(stateNames[index]),
-					.heights = stateHeights[index]});
-			}
-
-			if (fluid.has_value())
-			{
-				const std::size_t familyIndex = fluids.size();
-				FluidFamily family;
-				family.type = registration.type;
-				family.maxSpread = fluid->maxSpread;
-				family.falls = fluid->falls;
-				family.source = FluidStateRef{
-					.type = registration.type,
-					.state = {},
-					.runtime = registration.states.front(),
-					.level = static_cast<std::size_t>(fluid->maxSpread),
-					.source = true};
-				family.levels.reserve(static_cast<std::size_t>(fluid->maxSpread));
-				for (int stage = 1; stage <= fluid->maxSpread; ++stage)
+					.id = family.sourceState,
+					.runtimeId = family.sourceRuntime,
+					.name = "source",
+					.heights = flatHeights(1.0f)});
+				for (const spk::VoxelFluidState &level : family.levels)
 				{
-					const spk::VoxelRuntimeId runtime = registration.states[static_cast<std::size_t>(stage)];
-					family.levels.push_back(FluidStateRef{
-						.type = registration.type,
-						.state = {static_cast<std::uint16_t>(stage)},
-						.runtime = runtime,
-						.level = static_cast<std::size_t>(stage),
-						.source = false});
-					fluidRefs.emplace(runtime, FluidRef{.family = familyIndex, .stage = stage, .source = false});
+					definition.states.push_back(VoxelStateDefinition{
+						.id = level.state,
+						.runtimeId = level.runtime,
+						.name = std::to_string(level.level),
+						.heights = flatHeights(level.height)});
 				}
-				fluidRefs.emplace(
-					family.source.runtime,
-					FluidRef{.family = familyIndex, .stage = fluid->maxSpread, .source = true});
-				fluids.push_back(std::move(family));
+			}
+			else
+			{
+				ParsedRegularVoxel &regular = std::get<ParsedRegularVoxel>(voxel.rendering);
+
+				// Gather every state shape, then register them transactionally as one type.
+				// The parallel vectors keep the state metadata (name + heights) aligned with
+				// the shapes handed to the spk registry.
+				std::vector<std::unique_ptr<spk::VoxelShape>> stateShapes;
+				std::vector<std::string> stateNames;
+				std::vector<CardinalHeightCollection> stateHeights;
+				stateShapes.reserve(regular.states.size());
+				stateNames.reserve(regular.states.size());
+				stateHeights.reserve(regular.states.size());
+				for (ParsedVoxelState &state : regular.states)
+				{
+					stateShapes.push_back(std::move(state.shape));
+					stateNames.push_back(std::move(state.name));
+					stateHeights.push_back(state.heights);
+				}
+
+				const std::size_t expectedStates = stateShapes.size();
+				const spk::VoxelTypeRegistration registration = renderRegistry.registerType(std::move(stateShapes));
+				if (registration.states.size() != expectedStates || registration.type.index() != definitions.size())
+				{
+					throw std::logic_error("voxel registry lost lockstep with the spk render registry");
+				}
+
+				definition.typeId = registration.type;
+				definition.states.reserve(registration.states.size());
+				for (std::size_t index = 0; index < registration.states.size(); ++index)
+				{
+					definition.states.push_back(VoxelStateDefinition{
+						.id = {static_cast<std::uint16_t>(index)},
+						.runtimeId = registration.states[index],
+						.name = std::move(stateNames[index]),
+						.heights = stateHeights[index]});
+				}
 			}
 
+			stringToType.emplace(id, definition.typeId);
 			definitions.push_back(std::move(definition));
 			typeToString.push_back(id);
-			stringToType.emplace(id, registration.type);
 		}
 
 		_renderRegistry = std::move(renderRegistry);
 		_definitions = std::move(definitions);
 		_typeToString = std::move(typeToString);
 		_stringToType = std::move(stringToType);
-		_fluids = std::move(fluids);
-		_fluidRefs = std::move(fluidRefs);
 	}
 
 	const VoxelDefinition &VoxelRegistry::get(const std::string &p_id) const
@@ -303,16 +264,5 @@ namespace pg
 	const spk::VoxelRegistry &VoxelRegistry::renderRegistry() const noexcept
 	{
 		return _renderRegistry;
-	}
-
-	const std::vector<FluidFamily> &VoxelRegistry::fluids() const noexcept
-	{
-		return _fluids;
-	}
-
-	const FluidRef *VoxelRegistry::tryFluidRef(spk::VoxelRuntimeId p_runtime) const noexcept
-	{
-		const auto iterator = _fluidRefs.find(p_runtime);
-		return iterator == _fluidRefs.end() ? nullptr : &iterator->second;
 	}
 }

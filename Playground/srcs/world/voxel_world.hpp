@@ -22,7 +22,6 @@ namespace pg
 	{
 	private:
 		const VoxelRegistry *_registry = nullptr;
-		std::size_t _editRevision = 0;
 		spk::VoxelMap _map;
 
 	public:

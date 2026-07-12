@@ -1,6 +1,5 @@
 #pragma once
 
-#include "voxel/fluid.hpp"
 #include "voxel/voxel_definition.hpp"
 
 #include "structures/voxel/spk_voxel_ids.hpp"
@@ -9,7 +8,6 @@
 #include <filesystem>
 #include <map>
 #include <string>
-#include <unordered_map>
 #include <vector>
 
 namespace pg
@@ -34,10 +32,6 @@ namespace pg
 		std::vector<VoxelDefinition> _definitions; // indexed by spk::VoxelTypeId
 		std::vector<std::string> _typeToString;
 		std::map<std::string, spk::VoxelTypeId> _stringToType;
-		// Fluids and, for every fluid runtime id (source or generated stage), where it sits
-		// in its family - so the simulation can classify a cell in O(1).
-		std::vector<FluidFamily> _fluids;
-		std::unordered_map<spk::VoxelRuntimeId, FluidRef> _fluidRefs;
 
 	public:
 		void load(const ShapeCatalog &p_shapes, const std::filesystem::path &p_voxelsDirectory);
@@ -72,12 +66,9 @@ namespace pg
 		[[nodiscard]] std::size_t typeCount() const noexcept;
 		[[nodiscard]] std::size_t runtimeStateCount() const noexcept;
 
-		// The render-side registry, consumed by the spk voxel map and mesher.
+		// The render-side registry, consumed by the spk voxel map and mesher. Fluids
+		// declared through the "fluid" block live there too (spk::VoxelRegistry owns the
+		// families and the runtime-id classification): see fluidFamilies() / tryFluidRef().
 		[[nodiscard]] const spk::VoxelRegistry &renderRegistry() const noexcept;
-
-		// Fluids declared through the "fluid" block, resolved to one type + its states.
-		[[nodiscard]] const std::vector<FluidFamily> &fluids() const noexcept;
-		// Classifies a runtime id as a fluid source / stage, or nullptr if it is no fluid.
-		[[nodiscard]] const FluidRef *tryFluidRef(spk::VoxelRuntimeId p_runtime) const noexcept;
 	};
 }

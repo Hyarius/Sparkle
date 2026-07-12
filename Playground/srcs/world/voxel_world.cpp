@@ -40,12 +40,7 @@ namespace pg
 
 	bool VoxelWorld::setCell(const spk::Vector3Int &p_worldPosition, const spk::VoxelCell &p_cell)
 	{
-		if (_map.setCell(p_worldPosition, p_cell) == false)
-		{
-			return false;
-		}
-		++_editRevision;
-		return true;
+		return _map.setCell(p_worldPosition, p_cell);
 	}
 
 	void VoxelWorld::loadChunk(const spk::Vector3Int &p_coordinates)
@@ -70,9 +65,10 @@ namespace pg
 
 	std::size_t VoxelWorld::revision() const noexcept
 	{
-		// Any load/unload changes the chunk count; edits bump the counter explicitly. The
-		// navigation graph rebuilds whenever this value moves.
-		return _editRevision + _map.loadedChunkCount();
+		// The map tracks world-content revision itself (chunk load/unload/clear + committed
+		// cell edits), so even direct engine edits - e.g. the spk fluid simulation - are
+		// observed. The navigation graph rebuilds whenever this value moves.
+		return static_cast<std::size_t>(_map.revision());
 	}
 
 	const VoxelRegistry &VoxelWorld::registry() const noexcept

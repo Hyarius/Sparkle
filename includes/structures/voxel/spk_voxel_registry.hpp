@@ -1,5 +1,6 @@
 #pragma once
 
+#include "structures/voxel/spk_voxel_fluid.hpp"
 #include "structures/voxel/spk_voxel_ids.hpp"
 #include "structures/voxel/spk_voxel_shape.hpp"
 
@@ -40,6 +41,11 @@ namespace spk
 		std::vector<std::unique_ptr<spk::VoxelShape>> _shapes;
 		std::vector<spk::VoxelStateReference> _runtimeToState;
 		std::vector<VoxelTypeRecord> _types;
+		// Fluid families plus, per registered runtime state, where that state sits in its
+		// family (std::nullopt for every ordinary state). Runtime ids are dense, so fluid
+		// classification is direct indexing.
+		std::vector<spk::VoxelFluidFamily> _fluidFamilies;
+		std::vector<std::optional<spk::VoxelFluidRef>> _fluidRefs;
 
 	public:
 		// Registers one semantic voxel type whose states are the given shapes: p_states[k]
@@ -52,6 +58,22 @@ namespace spk
 		// through registerType() and returns its runtime id. New code that cares about
 		// the semantic type should call registerType() directly.
 		spk::VoxelRuntimeId registerShape(std::unique_ptr<spk::VoxelShape> p_shape);
+
+		// Registers one fluid as one new semantic voxel type whose states are all engine
+		// generated: state 0 is the persistent source (full height) and states 1..levelCount
+		// the flow levels (level k renders at height k / levelCount). Every state of the
+		// family shares one registry-generated transparent occlusion group (unique per
+		// family), so a fluid body culls its internal faces without erasing the interface
+		// against other transparent materials. Returns the fluid-family index. Callers can
+		// never supply fluid geometry: it is always a validated full-width slab.
+		[[nodiscard]] std::size_t registerFluid(const spk::VoxelFluidDescription &p_description);
+
+		[[nodiscard]] const spk::VoxelFluidFamily &fluidFamily(std::size_t p_family) const;
+		[[nodiscard]] const std::vector<spk::VoxelFluidFamily> &fluidFamilies() const noexcept;
+		// Classifies a runtime id as a fluid source / level in O(1), nullptr for ordinary
+		// states (and for invalid ids).
+		[[nodiscard]] const spk::VoxelFluidRef *tryFluidRef(spk::VoxelRuntimeId p_runtimeId) const noexcept;
+		[[nodiscard]] bool hasFluids() const noexcept;
 
 		[[nodiscard]] const spk::VoxelShape &shape(spk::VoxelRuntimeId p_runtimeId) const;
 		[[nodiscard]] const spk::VoxelShape *tryShape(spk::VoxelRuntimeId p_runtimeId) const noexcept;

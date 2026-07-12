@@ -51,6 +51,9 @@ namespace spk
 
 	void VoxelMap::_onChunkEdited(const spk::VoxelChunk &p_chunk, std::uint8_t p_changedBoundaries) noexcept
 	{
+		// One committed batch of changed cells == one revision bump (the editor only
+		// commits when at least one stored value actually changed).
+		++_revision;
 		const std::array boundaries = {
 			std::pair{spk::VoxelChunk::NegativeXBoundary, spk::Vector3Int{-1, 0, 0}},
 			std::pair{spk::VoxelChunk::PositiveXBoundary, spk::Vector3Int{1, 0, 0}},
@@ -105,6 +108,7 @@ namespace spk
 			_requestNeighborSynchronization(p_coordinates);
 			throw;
 		}
+		++_revision; // the chunk finished loading: its content is now observable
 		_requestNeighborSynchronization(p_coordinates);
 		return result;
 	}
@@ -133,6 +137,7 @@ namespace spk
 			_engine->removeEntity(&iterator->second);
 		}
 		_chunks.erase(iterator);
+		++_revision;
 		_requestNeighborSynchronization(p_coordinates);
 		return true;
 	}
@@ -168,6 +173,10 @@ namespace spk
 				_engine->removeEntity(&loadedChunk);
 			}
 		}
+		if (!_chunks.empty())
+		{
+			++_revision;
+		}
 		_chunks.clear();
 	}
 
@@ -191,6 +200,11 @@ namespace spk
 	std::weak_ptr<const void> VoxelMap::lifetimeToken() const noexcept
 	{
 		return _lifetimeToken;
+	}
+
+	std::uint64_t VoxelMap::revision() const noexcept
+	{
+		return _revision;
 	}
 
 	const spk::VoxelCell *VoxelMap::tryCell(const spk::Vector3Int &p_worldCell) const

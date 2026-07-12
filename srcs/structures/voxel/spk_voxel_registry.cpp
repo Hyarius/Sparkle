@@ -80,6 +80,117 @@ namespace spk
 		return registerType(std::move(states)).defaultRuntimeId();
 	}
 
+	std::size_t VoxelRegistry::registerFluid(const spk::VoxelFluidDescription &p_description)
+	{
+		if (p_description.levelCount < 1)
+		{
+			throw std::invalid_argument("A fluid needs at least one flow level");
+		}
+		if (p_description.appearance.transparency < 0.0f || p_description.appearance.transparency >= 1.0f)
+		{
+			throw std::invalid_argument(
+				"Fluid transparency must be between 0 (opaque) and strictly below 1 (a fully "
+				"invisible fluid would never render)");
+		}
+
+		// Every state of one family is the same optical medium: a shared, registry-unique
+		// occlusion group culls the internal faces of one fluid body while keeping the
+		// interface against other transparent materials (including other fluid families).
+		const std::size_t familyIndex = _fluidFamilies.size();
+		const std::string occlusionGroup = "spk::fluid#" + std::to_string(familyIndex);
+
+		// Generate every shape before touching any storage; registerType() is itself
+		// transactional, so a failure never leaves a partial family behind.
+		std::vector<std::unique_ptr<spk::VoxelShape>> states;
+		states.reserve(p_description.levelCount + 1);
+		states.push_back(detail::makeVoxelFluidStateShape(p_description.appearance, 1.0f));
+		for (std::size_t level = 1; level <= p_description.levelCount; ++level)
+		{
+			const float height = static_cast<float>(level) / static_cast<float>(p_description.levelCount);
+			states.push_back(detail::makeVoxelFluidStateShape(p_description.appearance, height));
+		}
+		for (const std::unique_ptr<spk::VoxelShape> &shape : states)
+		{
+			shape->setTransparency(p_description.appearance.transparency);
+			shape->setTransparentOcclusionGroup(occlusionGroup);
+		}
+
+		// Allocate everything the post-registration bookkeeping needs up front, so once
+		// registerType() has committed the type nothing below can throw and desynchronize
+		// the family/classification tables from the registered states.
+		spk::VoxelFluidFamily family;
+		family.levels.resize(p_description.levelCount);
+		_fluidRefs.reserve(_shapes.size() + p_description.levelCount + 1);
+		_fluidFamilies.reserve(_fluidFamilies.size() + 1);
+
+		const VoxelTypeRegistration registration = registerType(std::move(states));
+
+		family.type = registration.type;
+		family.sourceState = spk::VoxelStateId{0};
+		family.sourceRuntime = registration.states.front();
+		family.falls = p_description.falls;
+		for (std::size_t level = 1; level <= p_description.levelCount; ++level)
+		{
+			family.levels[level - 1] = spk::VoxelFluidState{
+				.state = {static_cast<std::uint16_t>(level)},
+				.runtime = registration.states[level],
+				.level = level,
+				.height = static_cast<float>(level) / static_cast<float>(p_description.levelCount)};
+		}
+
+		// Keep the dense classification table aligned with every registered runtime state;
+		// ordinary states registered in between stay std::nullopt.
+		_fluidRefs.resize(_shapes.size());
+		_fluidRefs[family.sourceRuntime.index()] = spk::VoxelFluidRef{
+			.family = familyIndex,
+			.type = family.type,
+			.state = family.sourceState,
+			.runtime = family.sourceRuntime,
+			.level = p_description.levelCount,
+			.source = true};
+		for (const spk::VoxelFluidState &level : family.levels)
+		{
+			_fluidRefs[level.runtime.index()] = spk::VoxelFluidRef{
+				.family = familyIndex,
+				.type = family.type,
+				.state = level.state,
+				.runtime = level.runtime,
+				.level = level.level,
+				.source = false};
+		}
+		_fluidFamilies.push_back(std::move(family));
+		return familyIndex;
+	}
+
+	const spk::VoxelFluidFamily &VoxelRegistry::fluidFamily(std::size_t p_family) const
+	{
+		if (p_family >= _fluidFamilies.size())
+		{
+			throw std::out_of_range("Unknown fluid family [" + std::to_string(p_family) + "]");
+		}
+		return _fluidFamilies[p_family];
+	}
+
+	const std::vector<spk::VoxelFluidFamily> &VoxelRegistry::fluidFamilies() const noexcept
+	{
+		return _fluidFamilies;
+	}
+
+	const spk::VoxelFluidRef *VoxelRegistry::tryFluidRef(spk::VoxelRuntimeId p_runtimeId) const noexcept
+	{
+		if (!p_runtimeId.isValid() || p_runtimeId.index() >= _fluidRefs.size())
+		{
+			return nullptr;
+		}
+		const std::optional<spk::VoxelFluidRef> &reference = _fluidRefs[p_runtimeId.index()];
+		return reference.has_value() ? &reference.value() : nullptr;
+	}
+
+	bool VoxelRegistry::hasFluids() const noexcept
+	{
+		return !_fluidFamilies.empty();
+	}
+
 	const spk::VoxelShape &VoxelRegistry::shape(spk::VoxelRuntimeId p_runtimeId) const
 	{
 		const spk::VoxelShape *result = tryShape(p_runtimeId);

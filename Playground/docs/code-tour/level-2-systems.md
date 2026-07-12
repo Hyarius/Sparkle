@@ -208,23 +208,26 @@ Files: `srcs/board/*` (`traversal_graph.cpp`, `traversal_graph_builder.cpp`,
 
 ## 8. Fluid simulation
 
-Files: `srcs/voxel/fluid.hpp`, fluid part of `srcs/voxel/voxel_registry.cpp`,
-`srcs/logics/fluid_simulation_logic.cpp`.
+Files: fluid part of `srcs/voxel/voxel_parser.cpp` / `srcs/voxel/voxel_registry.cpp`,
+`srcs/logics/fluid_simulation_logic.cpp`; the engine core lives in Sparkle
+(`structures/voxel/spk_voxel_fluid.hpp`, `spk_voxel_fluid_simulation.hpp`).
 
-1. **Data** (load time): a voxel with shape type `fluid` declares `maxSpread`
-   (viscosity). The registry generates `maxSpread` stage voxels — slabs of height
-   k/maxSpread sharing the source's transparency group — and records the family and
-   a per-id `FluidRef` (family, stage, isSource) for O(1) classification.
-2. **Runtime** (priority 50, between streamer and render): every 150 ms budget-step:
-   - `_syncLoadedChunks` — scans newly-loaded chunks once for source cells; forgets
-     unloaded chunks.
-   - `_step` — interleaves the persistent **frontier** (active flow cells) with the
-     in-range **sources** (rotating cursor), max `_maxCellsPerTick` cells:
-     a cell **falls** into empty space below (column stays full); if resting on
-     solid ground it **spreads** to open sides one stage weaker (sources and
-     waterfall bases pour at full strength); when a side leads to a further drop,
-     only drop edges are poured (cascades stay narrow ribbons).
-3. All edits go through `VoxelMap::setCell`, so chunks re-bake like any other edit.
+1. **Data** (load time): a version-3 voxel JSON with a `"fluid"` block declares
+   `maxSpread` (viscosity) plus top/bottom/side textures; `shape` and authored
+   `states` are forbidden. The registry calls `spk::VoxelRegistry::registerFluid`,
+   which generates one semantic type — state 0 the source, states 1..maxSpread
+   slabs of height k/maxSpread sharing one family-unique transparent occlusion
+   group — and classifies every runtime id via `spk::VoxelRegistry::tryFluidRef`
+   (O(1)). Fluid states expose flat cardinal heights equal to their fill height.
+2. **Runtime** (priority 50, between streamer and render): `FluidSimulationLogic`
+   is only a scheduler around `spk::VoxelFluidSimulation` — it picks the tick
+   interval, the player-centred bounds and the cell budget, and supplies the two
+   traversal callbacks (passable ⇒ replaceable by fluid, solid ⇒ support). Source
+   discovery, frontier scheduling, falling, weakening sideways spread, drop
+   priority and support-climbing all live in the Sparkle simulation.
+3. All edits go through `VoxelMap::setCell`, so chunks re-bake like any other edit
+   and the map's own `revision()` (which `VoxelWorld::revision()` now forwards)
+   moves for the navigation cache.
 
 ## 9. Headless tools & diagnostics
 

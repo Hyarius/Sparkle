@@ -1,18 +1,18 @@
 #pragma once
 
 #include "core/json.hpp"
-#include "voxel/fluid.hpp"
 #include "voxel/shape_catalog.hpp"
 #include "voxel/voxel_data.hpp"
 #include "voxel/voxel_traversal_data.hpp"
 
+#include "structures/voxel/spk_voxel_fluid.hpp"
 #include "structures/voxel/spk_voxel_ids.hpp"
 #include "structures/voxel/spk_voxel_shape.hpp"
 
 #include <memory>
-#include <optional>
 #include <stdexcept>
 #include <string>
+#include <variant>
 #include <vector>
 
 namespace pg
@@ -75,21 +75,33 @@ namespace pg
 		CardinalHeightCollection heights;
 	};
 
-	// One parsed JSON voxel: the shared gameplay data plus one render shape per authored
-	// state. VoxelRegistry registers all state shapes as one spk voxel type and keeps the
-	// definitions on its side.
+	// An ordinary voxel's rendering: its authored states, instantiated from the shared
+	// shape definition.
+	struct ParsedRegularVoxel
+	{
+		std::vector<ParsedVoxelState> states;
+	};
+
+	// A fluid voxel's rendering: nothing is authored beyond the description handed to
+	// spk::VoxelRegistry::registerFluid, which generates the source and flow-level states.
+	struct ParsedFluidVoxel
+	{
+		spk::VoxelFluidDescription description;
+	};
+
+	// One parsed JSON voxel: the shared gameplay data plus its rendering, which is exactly
+	// one of ordinary authored states or a generated fluid (never both). VoxelRegistry
+	// registers either as one spk voxel type and keeps the definitions on its side.
 	//
 	// Version 2 files author a single top-level "textures" block and become one state
-	// (id 0, name "default"); version 3 files author an explicit "states" array.
+	// (id 0, name "default"); version 3 files author an explicit "states" array, or a
+	// "fluid" block with type-level "textures" (top/bottom/side).
 	struct ParsedVoxel
 	{
 		std::string id;
 		VoxelData data;
-		std::vector<ParsedVoxelState> states;
 
-		// Keep the existing parsed fluid data until the dedicated Sparkle fluid migration
-		// is applied (fluids are authored as version 2 single-state voxels meanwhile).
-		std::optional<FluidData> fluid;
+		std::variant<ParsedRegularVoxel, ParsedFluidVoxel> rendering;
 	};
 
 	[[nodiscard]] ParsedVoxel parseVoxelDefinition(JsonReader &p_reader, const ShapeCatalog &p_shapes);

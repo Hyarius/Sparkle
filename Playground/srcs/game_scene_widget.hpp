@@ -23,6 +23,7 @@
 namespace spk
 {
 	class VoxelChunkStreamer;
+	class VoxelFluidSimulator;
 }
 
 namespace pg
@@ -68,6 +69,7 @@ namespace pg
 		spk::Entity3D _hoverEntity;
 		Actor *_player = nullptr;
 		spk::VoxelChunkStreamer *_streamer = nullptr;
+		spk::VoxelFluidSimulator *_fluidSimulator = nullptr;
 		ExplorationInputLogic *_inputLogic = nullptr;
 		ActorPathLogic *_pathLogic = nullptr;
 		CameraControllerLogic *_cameraLogic = nullptr;

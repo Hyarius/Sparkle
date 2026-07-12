@@ -38,6 +38,12 @@ namespace spk
 		// (see bindMutationThread), so chunks generated during single-threaded setup stay
 		// unbound and freely editable; afterwards, cross-thread mutation is caught.
 		std::optional<std::thread::id> _mutationThread;
+		// Bumped whenever the observable world content changes: a chunk finishes loading or
+		// unloads, clear() removes chunks, or a chunk editor commits changed cells (one bump
+		// per committed batch, never for identical assignments). Caches such as navigation
+		// graphs watch this value, including for edits made directly by engine systems
+		// (e.g. the fluid simulation) that bypass application-side write paths.
+		std::uint64_t _revision = 0;
 
 		void _requestNeighborSynchronization(const spk::Vector3Int &p_coordinates);
 		void _onChunkEdited(const spk::VoxelChunk &p_chunk, std::uint8_t p_changedBoundaries) noexcept;
@@ -62,6 +68,10 @@ namespace spk
 		[[nodiscard]] std::size_t loadedChunkCount() const noexcept;
 		[[nodiscard]] std::vector<spk::Vector3Int> loadedChunkCoordinates() const;
 		[[nodiscard]] std::weak_ptr<const void> lifetimeToken() const noexcept;
+
+		// World-content revision: moves whenever observable cell content changes (chunk
+		// load/unload/clear, committed cell edits). Identical assignments never bump it.
+		[[nodiscard]] std::uint64_t revision() const noexcept;
 
 		// Cell access in world coordinates, restricted to already-loaded chunks.
 		[[nodiscard]] const spk::VoxelCell *tryCell(const spk::Vector3Int &p_worldCell) const override;
