@@ -54,6 +54,8 @@ namespace
 		UpdateTime,
 		RenderTime,
 		DeltaTime,
+		TimeOfDay,
+		SelectedLights,
 		RowCount
 	};
 
@@ -198,9 +200,9 @@ namespace pg
 		_sunEntity.transform().setRotation(spk::Quaternion::lookAt(
 			{0.0f, 0.0f, 0.0f}, {-0.35f, -0.85f, -0.40f}));
 		engine.addEntity(&_sunEntity);
-		auto *lighting = engine.renderPipeline().findFeature<spk::SceneLightingRenderFeature>();
-		if (lighting == nullptr) throw std::runtime_error("Scene lighting feature is unavailable");
-		_dayTimeLogic = &engine.add<DayTimeManagementLogic>(_sunEntity, *lighting);
+		_lighting = engine.renderPipeline().findFeature<spk::SceneLightingRenderFeature>();
+		if (_lighting == nullptr) throw std::runtime_error("Scene lighting feature is unavailable");
+		_dayTimeLogic = &engine.add<DayTimeManagementLogic>(_sunEntity, *_lighting);
 
 		// Once-per-seed world skeleton: generate, report, and dump the preview map at the
 		// Playground root so the produced world can be inspected outside the game.
@@ -287,8 +289,22 @@ namespace pg
 			entity.transform().setPosition(spk::Vector3(cell) + spk::Vector3{0.5f, 0.5f, 0.5f});
 			auto &light = entity.addComponent<spk::Light3D>();
 			const VoxelLightDefinition &definition = *p_registries.voxels().get(id).light;
-			(void)light.point();
-			light.point().range = definition.reach;
+			switch (definition.type)
+			{
+				case VoxelLightType::Directional:
+					(void)light.directional();
+					break;
+				case VoxelLightType::Point:
+					(void)light.point();
+					light.point().range = definition.reach;
+					break;
+				case VoxelLightType::Spot:
+					(void)light.spot();
+					light.spot().range = definition.reach;
+					light.spot().innerHalfAngleDegrees = definition.innerHalfAngleDegrees;
+					light.spot().outerHalfAngleDegrees = definition.outerHalfAngleDegrees;
+					break;
+			}
 			light.color() = definition.color;
 			light.intensity() = definition.power;
 			light.selectionPriority() = 100;
@@ -392,6 +408,8 @@ namespace pg
 		_overlay.setText(UpdateTime, 0, "Update duration");
 		_overlay.setText(RenderTime, 0, "Render duration");
 		_overlay.setText(DeltaTime, 0, "Frame delta");
+		_overlay.setText(TimeOfDay, 0, "Time of day");
+		_overlay.setText(SelectedLights, 0, "Selected lights (D/P/S)");
 
 		if (_profilerRowNames.empty() == true)
 		{
@@ -565,6 +583,12 @@ namespace pg
 		_overlay.setText(UpdateTime, 1, formatFloat(static_cast<float>(_updateDurationNs.load()) / 1.0e6f, " ms"));
 		_overlay.setText(RenderTime, 1, formatFloat(static_cast<float>(_renderDurationNs.load()) / 1.0e6f, " ms"));
 		_overlay.setText(DeltaTime, 1, std::to_string(p_tick.deltaTime.milliseconds()) + " ms");
+		_overlay.setText(TimeOfDay, 1, _dayTimeLogic == nullptr ? "-" : formatFloat(_dayTimeLogic->timeOfDayHours(), " h"));
+		if (_lighting != nullptr)
+		{
+			const spk::SceneLightingDiagnostics &diagnostics = _lighting->diagnostics();
+			_overlay.setText(SelectedLights, 1, std::to_string(diagnostics.selectedDirectional) + " / " + std::to_string(diagnostics.selectedPoint) + " / " + std::to_string(diagnostics.selectedSpot));
+		}
 
 		if (p_tick.profiler != nullptr)
 		{

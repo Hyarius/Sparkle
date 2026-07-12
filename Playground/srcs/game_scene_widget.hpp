@@ -25,6 +25,7 @@ namespace spk
 {
 	class VoxelChunkStreamer;
 	class VoxelFluidSimulator;
+	class SceneLightingRenderFeature;
 }
 
 namespace pg
@@ -76,6 +77,7 @@ namespace pg
 		ActorPathLogic *_pathLogic = nullptr;
 		CameraControllerLogic *_cameraLogic = nullptr;
 		DayTimeManagementLogic *_dayTimeLogic = nullptr;
+		spk::SceneLightingRenderFeature *_lighting = nullptr;
 
 		// Door/exit-pad cells mapped to their teleport destination (from the world
 		// plan's portals). Stepping on a key cell queues the teleport; it executes
