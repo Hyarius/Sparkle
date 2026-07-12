@@ -9,24 +9,27 @@
 #include <numbers>
 #include <stdexcept>
 #include <string>
+#include <unordered_set>
 
 #include "core/registries.hpp"
 #include "logics/actor_path_logic.hpp"
 #include "logics/camera_controller_logic.hpp"
 #include "logics/day_time_management_logic.hpp"
 #include "logics/exploration_input_logic.hpp"
-#include "structures/game_engine/spk_texture_mesh_render_logic.hpp"
 #include "structures/game_engine/rendering/spk_scene_lighting_render_feature.hpp"
+#include "structures/game_engine/spk_texture_mesh_render_logic.hpp"
 #include "structures/game_engine/spk_texture_mesh_renderer_3d.hpp"
 #include "structures/graphics/geometry/spk_primitive_object.hpp"
 #include "structures/math/spk_vector3.hpp"
 #include "structures/system/spk_profiler.hpp"
+#include "structures/voxel/spk_voxel_chunk.hpp"
 #include "structures/voxel/spk_voxel_chunk_render_logic.hpp"
 #include "structures/voxel/spk_voxel_chunk_streamer.hpp"
 #include "structures/voxel/spk_voxel_chunk_streamer_logic.hpp"
 #include "structures/voxel/spk_voxel_chunk_transparent_render_logic.hpp"
 #include "structures/voxel/spk_voxel_fluid_simulation_logic.hpp"
 #include "structures/voxel/spk_voxel_fluid_simulator.hpp"
+#include "structures/voxel/spk_voxel_grid.hpp"
 #include "structures/voxel/spk_voxel_map.hpp"
 #include "structures/voxel/spk_voxel_shape.hpp"
 #include "world/generator/plan_chunk_provider.hpp"
@@ -155,6 +158,12 @@ namespace pg
 
 	GameSceneWidget::~GameSceneWidget()
 	{
+		for (auto &[position, entity] : _voxelLightEntities)
+		{
+			(void)position;
+			gameEngine().removeEntity(entity.get());
+		}
+		_voxelLightEntities.clear();
 		_context.world.explorationActive = _previousExplorationActive;
 		_context.world.navigation.reset();
 		// Destroys the VoxelWorld (and its spk::VoxelMap), unregistering every chunk entity
@@ -197,11 +206,13 @@ namespace pg
 		// construction during the daylight preview.
 		_sun->castsShadows() = true;
 		_sun->selectionPriority() = 1000;
-		_sunEntity.transform().setRotation(spk::Quaternion::lookAt(
-			{0.0f, 0.0f, 0.0f}, {-0.35f, -0.85f, -0.40f}));
+		_sunEntity.transform().setRotation(spk::Quaternion::lookAt({0.0f, 0.0f, 0.0f}, {-0.35f, -0.85f, -0.40f}));
 		engine.addEntity(&_sunEntity);
 		_lighting = engine.renderPipeline().findFeature<spk::SceneLightingRenderFeature>();
-		if (_lighting == nullptr) throw std::runtime_error("Scene lighting feature is unavailable");
+		if (_lighting == nullptr)
+		{
+			throw std::runtime_error("Scene lighting feature is unavailable");
+		}
 		_dayTimeLogic = &engine.add<DayTimeManagementLogic>(_sunEntity, *_lighting);
 
 		// Once-per-seed world skeleton: generate, report, and dump the preview map at the
@@ -274,44 +285,11 @@ namespace pg
 		// A deliberately obvious point-light fixture for checking local attenuation.
 		const spk::Vector3Int glowingVoxelCell = spawnCell + spk::Vector3Int{3, 1, 0};
 		_stagedWorld->setCell(glowingVoxelCell, {p_registries.voxels().runtimeId("glowing-voxel")});
-		_glowingVoxelLightEntity.transform().setPosition(spk::Vector3(glowingVoxelCell) + spk::Vector3{0.5f, 0.5f, 0.5f});
-		_glowingVoxelLight = &_glowingVoxelLightEntity.addComponent<spk::Light3D>();
-		const VoxelLightDefinition &lightDefinition = *p_registries.voxels().get("glowing-voxel").light;
-		if (lightDefinition.type == VoxelLightType::Directional) (void)_glowingVoxelLight->directional();
-		else if (lightDefinition.type == VoxelLightType::Point) { (void)_glowingVoxelLight->point(); _glowingVoxelLight->point().range = lightDefinition.reach; }
-		else { (void)_glowingVoxelLight->spot(); _glowingVoxelLight->spot().range = lightDefinition.reach; _glowingVoxelLight->spot().innerHalfAngleDegrees = lightDefinition.innerHalfAngleDegrees; _glowingVoxelLight->spot().outerHalfAngleDegrees = lightDefinition.outerHalfAngleDegrees; }
-		_glowingVoxelLight->color() = lightDefinition.color;
-		_glowingVoxelLight->intensity() = lightDefinition.power;
-		_glowingVoxelLight->selectionPriority() = 100;
-		engine.addEntity(&_glowingVoxelLightEntity);
-		const auto addGlowingFixture = [&](const std::string &id, const spk::Vector3Int &cell, spk::Entity3D &entity) {
+		const auto addGlowingFixture = [&](const std::string &id, const spk::Vector3Int &cell) {
 			_stagedWorld->setCell(cell, {p_registries.voxels().runtimeId(id)});
-			entity.transform().setPosition(spk::Vector3(cell) + spk::Vector3{0.5f, 0.5f, 0.5f});
-			auto &light = entity.addComponent<spk::Light3D>();
-			const VoxelLightDefinition &definition = *p_registries.voxels().get(id).light;
-			switch (definition.type)
-			{
-				case VoxelLightType::Directional:
-					(void)light.directional();
-					break;
-				case VoxelLightType::Point:
-					(void)light.point();
-					light.point().range = definition.reach;
-					break;
-				case VoxelLightType::Spot:
-					(void)light.spot();
-					light.spot().range = definition.reach;
-					light.spot().innerHalfAngleDegrees = definition.innerHalfAngleDegrees;
-					light.spot().outerHalfAngleDegrees = definition.outerHalfAngleDegrees;
-					break;
-			}
-			light.color() = definition.color;
-			light.intensity() = definition.power;
-			light.selectionPriority() = 100;
-			engine.addEntity(&entity);
 		};
-		addGlowingFixture("glowing-blue-voxel", glowingVoxelCell + spk::Vector3Int{0, 0, 5}, _blueGlowingVoxelLightEntity);
-		addGlowingFixture("glowing-green-voxel", glowingVoxelCell + spk::Vector3Int{0, 0, -5}, _greenGlowingVoxelLightEntity);
+		addGlowingFixture("glowing-blue-voxel", glowingVoxelCell + spk::Vector3Int{0, 0, 5});
+		addGlowingFixture("glowing-green-voxel", glowingVoxelCell + spk::Vector3Int{0, 0, -5});
 		_camera->setTarget(spk::Vector3(spawnCell));
 		_camera->setPosition(spk::Vector3(spawnCell) + spk::Vector3{46.0f, 56.0f, -90.0f});
 
@@ -488,6 +466,7 @@ namespace pg
 			}
 		}
 		spk::GameEngineWidget::_onUpdate(p_tick);
+		_syncVoxelLights();
 		if (_pendingTeleport.has_value())
 		{
 			const spk::Vector3Int target = *_pendingTeleport;
@@ -497,6 +476,80 @@ namespace pg
 		_updateDurationNs.store(nowNs() - start, std::memory_order_relaxed);
 		invalidateRenderUnit();
 		_refreshOverlay(p_tick);
+	}
+
+	void GameSceneWidget::_syncVoxelLights()
+	{
+		if (_context.world.world == nullptr || _context.world.world->revision() == _voxelLightRevision)
+		{
+			return;
+		}
+		_voxelLightRevision = _context.world.world->revision();
+		std::unordered_set<spk::Vector3Int> required;
+		spk::GameEngine &engine = gameEngine();
+		_context.world.world->map().forEachLoadedChunk([&](const spk::VoxelChunk &chunk) {
+			const spk::VoxelGrid &grid = chunk.grid();
+			for (int y = 0; y < grid.size().y; ++y)
+			{
+				for (int z = 0; z < grid.size().z; ++z)
+				{
+					for (int x = 0; x < grid.size().x; ++x)
+					{
+						const spk::VoxelCell &cell = grid.cell(x, y, z);
+						if (cell.isEmpty())
+						{
+							continue;
+						}
+						const VoxelDefinition *definition = _context.world.world->registry().tryDefinition(cell.id);
+						if (definition == nullptr || !definition->light.has_value())
+						{
+							continue;
+						}
+						const spk::Vector3Int worldCell = chunk.worldOrigin() + spk::Vector3Int{x, y, z};
+						required.insert(worldCell);
+						if (_voxelLightEntities.contains(worldCell))
+						{
+							continue;
+						}
+						auto entity = std::make_unique<spk::Entity3D>();
+						entity->transform().setPosition(spk::Vector3(worldCell) + spk::Vector3{0.5f, 0.5f, 0.5f});
+						auto &light = entity->addComponent<spk::Light3D>();
+						const VoxelLightDefinition &authored = *definition->light;
+						switch (authored.type)
+						{
+						case VoxelLightType::Directional:
+							(void)light.directional();
+							break;
+						case VoxelLightType::Point:
+							(void)light.point();
+							light.point().range = authored.reach;
+							break;
+						case VoxelLightType::Spot:
+							(void)light.spot();
+							light.spot().range = authored.reach;
+							light.spot().innerHalfAngleDegrees = authored.innerHalfAngleDegrees;
+							light.spot().outerHalfAngleDegrees = authored.outerHalfAngleDegrees;
+							break;
+						}
+						light.color() = authored.color;
+						light.intensity() = authored.power;
+						light.selectionPriority() = 100;
+						engine.addEntity(entity.get());
+						_voxelLightEntities.emplace(worldCell, std::move(entity));
+					}
+				}
+			}
+		});
+		for (auto iterator = _voxelLightEntities.begin(); iterator != _voxelLightEntities.end();)
+		{
+			if (required.contains(iterator->first))
+			{
+				++iterator;
+				continue;
+			}
+			engine.removeEntity(iterator->second.get());
+			iterator = _voxelLightEntities.erase(iterator);
+		}
 	}
 
 	void GameSceneWidget::_executeTeleport(const spk::Vector3Int &p_target)

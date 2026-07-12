@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <limits>
 #include <optional>
 #include <string>
 #include <unordered_map>
@@ -92,10 +93,8 @@ namespace pg
 		// scene data and its local -Z axis is the ray-travel direction.
 		spk::Entity3D _sunEntity;
 		spk::Light3D *_sun = nullptr;
-		spk::Entity3D _glowingVoxelLightEntity;
-		spk::Light3D *_glowingVoxelLight = nullptr;
-		spk::Entity3D _blueGlowingVoxelLightEntity;
-		spk::Entity3D _greenGlowingVoxelLightEntity;
+		std::unordered_map<spk::Vector3Int, std::unique_ptr<spk::Entity3D>> _voxelLightEntities;
+		std::size_t _voxelLightRevision = std::numeric_limits<std::size_t>::max();
 		spk::DebugOverlay _overlay;
 
 		mutable std::atomic<long long> _renderDurationNs{0};
@@ -107,6 +106,7 @@ namespace pg
 
 		void _buildScene(const Registries &p_registries, const GameSceneConstructionOptions &p_options);
 		void _executeTeleport(const spk::Vector3Int &p_target);
+		void _syncVoxelLights();
 		void _configureOverlay();
 		[[nodiscard]] std::size_t _profilerSectionRowCount() const;
 		void _applyOverlayGeometry();
