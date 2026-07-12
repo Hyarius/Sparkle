@@ -20,6 +20,14 @@ namespace spk
 
 	public:
 		UseFrameBufferRenderCommand(const spk::FrameBufferObject *p_target, const spk::Viewport &p_viewport);
+		[[nodiscard]] const spk::FrameBufferObject *target() const noexcept
+		{
+			return _target;
+		}
+		[[nodiscard]] const spk::Viewport &viewport() const noexcept
+		{
+			return _viewport;
+		}
 
 		void execute(spk::RenderContext &p_renderContext) override;
 	};

@@ -51,6 +51,11 @@ namespace spk
 		}
 
 	public:
+		[[nodiscard]] spk::RenderPhaseMask renderPhases() const noexcept override
+		{
+			return spk::renderPhaseBit(spk::RenderPhase::SceneOverlay);
+		}
+
 		[[nodiscard]] static std::size_t lastSpriteCount()
 		{
 			return _lastSpriteCount.load(std::memory_order_relaxed);
@@ -117,6 +122,29 @@ namespace spk
 				p_builder.add(std::move(command));
 			}
 			_renderCommands.clear();
+		}
+
+		void _onRenderPhaseStarted(const spk::RenderPhaseContext &p_context, std::size_t p_componentCount) override
+		{
+			(void)p_context;
+			_onRenderStarted(p_componentCount);
+		}
+		void _parseComponentForRender(
+			const spk::RenderPhaseContext &p_context,
+			spk::SpriteRenderer2D &p_sprite) override
+		{
+			(void)p_context;
+			_parseComponentForRender(p_sprite);
+		}
+		void _executeRender(const spk::RenderPhaseContext &p_context, spk::RenderPass &p_pass) override
+		{
+			spk::RenderUnitBuilder builder;
+			_executeRender(builder);
+			spk::RenderUnit unit = builder.build();
+			for (auto &command : unit.takeCommands())
+			{
+				p_pass.add(p_context.phase, std::move(command));
+			}
 		}
 	};
 }

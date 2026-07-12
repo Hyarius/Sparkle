@@ -13,6 +13,10 @@ namespace spk
 	{
 	public:
 		static constexpr spk::PriorizableTrait::Priority DefaultPriority = 50;
+		[[nodiscard]] spk::RenderPhaseMask renderPhases() const noexcept override
+		{
+			return spk::RenderPhaseMask::None;
+		}
 
 		VoxelFluidSimulationLogic();
 

@@ -19,7 +19,14 @@ namespace spk
 	VoxelChunkTransparentRenderLogic::VoxelChunkTransparentRenderLogic(const spk::Texture &p_texture) :
 		_texture(p_texture)
 	{
-		setPriority(DefaultPriority);
+	}
+
+	void VoxelChunkTransparentRenderLogic::_onRenderPhaseStarted(
+		const spk::RenderPhaseContext &p_context,
+		std::size_t p_componentCount)
+	{
+		_onRenderStarted(p_componentCount);
+		_camera = p_context.frame.mainCamera;
 	}
 
 	void VoxelChunkTransparentRenderLogic::_syncCache(CachedDraw &p_cached, const spk::Matrix4x4 &p_model)

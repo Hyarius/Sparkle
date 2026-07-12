@@ -1,0 +1,40 @@
+@startuml
+title Scene render plan construction and execution
+
+participant GameEngineWidget as Widget
+participant GameEngine as Engine
+participant SceneRenderPipeline as Pipeline
+participant RenderPipelineBuilder as Builder
+participant ComponentLogicRegistry as Logics
+participant RenderPlan as Plan
+participant "render thread" as RenderThread
+
+Widget -> Engine : buildRenderUnit(request(target, viewport, clear))
+Engine -> Pipeline : buildPlan(request, logics, components)
+loop features in registration order
+	Pipeline -> Builder : append pre-main passes
+end
+Pipeline -> Builder : add MainScene pass
+loop PassSetup, SceneOpaque, SceneTransparent, SceneOverlay
+	Pipeline -> Logics : renderPhase(context, pass)
+	Logics -> Builder : phase-owned commands
+end
+loop features in registration order
+	Pipeline -> Builder : append post-main passes
+end
+Builder --> Pipeline : RenderPlan
+Pipeline --> Engine : inspectable plan
+Engine -> Plan : compile()
+Plan --> Engine : move-owned RenderUnit
+Engine --> Widget : RenderUnit
+Widget -> Widget : append default-target bind + flipped image
+RenderThread -> RenderThread : execute linear command snapshot
+
+note right of Plan
+Each pass compiles:
+target bind + viewport/scissor
+typed clear
+declared phases in order
+end note
+
+@enduml

@@ -24,10 +24,6 @@ namespace spk
 	class VoxelChunkRenderLogic : public spk::ComponentLogic<spk::VoxelChunkRenderer>
 	{
 	private:
-		static constexpr unsigned int CameraBinding = 1;
-		static constexpr unsigned int DirectionalLightBinding = 3;
-		static constexpr float AmbientLight = 0.35f;
-
 		struct CachedDraw
 		{
 			bool hasModel = false;
@@ -37,7 +33,6 @@ namespace spk
 
 		const spk::Texture &_texture;
 		std::shared_ptr<spk::SamplerObject> _sampler;
-		bool _emitFrameState = true;
 		spk::WorkerPool *_workerPool = nullptr;
 
 		// Timing probes, resolved from the profiler carried by the UpdateContext (owned by
@@ -67,11 +62,14 @@ namespace spk
 		// The referenced pool must outlive this logic.
 		explicit VoxelChunkRenderLogic(
 			const spk::Texture &p_texture,
-			bool p_emitFrameState = true,
 			spk::WorkerPool &p_workerPool = spk::WorkerPool::global());
 
 		[[nodiscard]] spk::WorkerPool &workerPool() noexcept;
 		[[nodiscard]] const spk::WorkerPool &workerPool() const noexcept;
+		[[nodiscard]] spk::RenderPhaseMask renderPhases() const noexcept override
+		{
+			return spk::renderPhaseBit(spk::RenderPhase::SceneOpaque);
+		}
 
 	protected:
 		void _onUpdateStarted(const spk::UpdateContext &p_tick) override;
@@ -81,5 +79,23 @@ namespace spk
 		void _onRenderStarted(std::size_t p_componentCount) override;
 		void _parseComponentForRender(spk::VoxelChunkRenderer &p_renderer) override;
 		void _executeRender(spk::RenderUnitBuilder &p_builder) override;
+		void _onRenderPhaseStarted(const spk::RenderPhaseContext &p_context, std::size_t p_componentCount) override;
+		void _parseComponentForRender(
+			const spk::RenderPhaseContext &p_context,
+			spk::VoxelChunkRenderer &p_renderer) override
+		{
+			(void)p_context;
+			_parseComponentForRender(p_renderer);
+		}
+		void _executeRender(const spk::RenderPhaseContext &p_context, spk::RenderPass &p_pass) override
+		{
+			spk::RenderUnitBuilder builder;
+			_executeRender(builder);
+			spk::RenderUnit unit = builder.build();
+			for (auto &command : unit.takeCommands())
+			{
+				p_pass.add(p_context.phase, std::move(command));
+			}
+		}
 	};
 }

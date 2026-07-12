@@ -49,7 +49,7 @@ namespace
 				&engine)
 		{
 			streamerLogic = &engine.add<spk::VoxelChunkStreamerLogic>(p_retainInactiveChunks);
-			renderLogic = &engine.add<spk::VoxelChunkRenderLogic>(texture, false);
+			renderLogic = &engine.add<spk::VoxelChunkRenderLogic>(texture);
 			camera.makeMain();
 			streamer = &player.addComponent<spk::VoxelChunkStreamer>(map);
 			engine.addEntity(&player);
@@ -93,7 +93,7 @@ TEST(VoxelChunkStreamer, StreamsBakesAndRendersTheWindowInOneTick)
 	EXPECT_TRUE(world.isChunkActive({-1, 0, 1}));
 	EXPECT_FALSE(world.streamer->needsStreaming());
 	EXPECT_FALSE(builder.empty());
-	EXPECT_EQ(builder.size(), 9u);
+	EXPECT_EQ(builder.size(), 11u);
 }
 
 TEST(VoxelChunkStreamer, MovingTheOriginSlidesTheActiveWindow)
@@ -278,7 +278,9 @@ TEST(VoxelChunkStreamer, ReusedMapAddressDoesNotReuseHistoricalStreamingState)
 	(void)engine.add<spk::VoxelChunkStreamerLogic>();
 
 	alignas(spk::VoxelMap) std::byte mapStorage[sizeof(spk::VoxelMap)];
-	auto generator = [&cube](spk::VoxelChunk &p_chunk) { p_chunk.setCell({0, 0, 0}, {cube}); };
+	auto generator = [&cube](spk::VoxelChunk &p_chunk) {
+		p_chunk.setCell({0, 0, 0}, {cube});
+	};
 	spk::VoxelMap *firstMap = std::construct_at(
 		reinterpret_cast<spk::VoxelMap *>(mapStorage), registry, generator, &engine);
 	spk::Entity3D firstPlayer;

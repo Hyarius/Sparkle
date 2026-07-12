@@ -3,8 +3,6 @@
 #include "structures/game_engine/spk_camera_3d.hpp"
 #include "structures/game_engine/spk_entity.hpp"
 #include "structures/game_engine/spk_transform_3d.hpp"
-#include "structures/graphics/rendering/command/spk_camera_update_render_command.hpp"
-#include "structures/graphics/rendering/command/spk_directional_light_update_render_command.hpp"
 #include "structures/graphics/rendering/command/spk_draw_voxel_mesh_3d_render_command.hpp"
 #include "structures/graphics/spk_sampler_object.hpp"
 #include "structures/graphics/spk_texture.hpp"
@@ -22,10 +20,8 @@ namespace spk
 {
 	VoxelChunkRenderLogic::VoxelChunkRenderLogic(
 		const spk::Texture &p_texture,
-		bool p_emitFrameState,
 		spk::WorkerPool &p_workerPool) :
 		_texture(p_texture),
-		_emitFrameState(p_emitFrameState),
 		_workerPool(&p_workerPool)
 	{
 	}
@@ -199,6 +195,18 @@ namespace spk
 		}
 	}
 
+	void VoxelChunkRenderLogic::_onRenderPhaseStarted(
+		const spk::RenderPhaseContext &p_context,
+		std::size_t p_componentCount)
+	{
+		_onRenderStarted(p_componentCount);
+		_camera = p_context.frame.mainCamera;
+		if (_camera != nullptr)
+		{
+			_cameraMatrix = _camera->viewProjectionMatrix();
+		}
+	}
+
 	void VoxelChunkRenderLogic::_parseComponentForRender(spk::VoxelChunkRenderer &p_renderer)
 	{
 		if (_camera == nullptr || p_renderer.needsSynchronization())
@@ -236,17 +244,6 @@ namespace spk
 		if (_renderAssemblyProbe != nullptr)
 		{
 			assemblySample.emplace(*_renderAssemblyProbe);
-		}
-
-		if (_emitFrameState)
-		{
-			p_builder.emplace<spk::CameraUpdateRenderCommand>(CameraBinding, _cameraMatrix);
-			p_builder.emplace<spk::DirectionalLightUpdateRenderCommand>(
-				DirectionalLightBinding,
-				spk::DirectionalLight{
-					.direction = spk::Vector3(1.0f, -2.0f, 0.5f).normalized(),
-					.color = spk::Color(1.0f, 0.95f, 0.85f),
-					.ambient = AmbientLight});
 		}
 
 		for (const spk::VoxelChunkRenderer *renderer : _visibleChunks)

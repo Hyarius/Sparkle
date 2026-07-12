@@ -71,6 +71,7 @@ Diagrams for understanding how Sparkle subsystems work together internally witho
 | Widget event propagation | `widget-event-propagation-sequence.puml` |
 | Input state | `input-state-class.puml` |
 | Render snapshot rebuild | `render-snapshot-rebuild-sequence.puml` |
+| Scene render passes and phases | `scene-render-pipeline-sequence.puml` |
 | Render context and viewport | `render-context-viewport-class.puml` |
 | Render commands | `render-commands-class.puml` |
 | Resource loading | `resource-loading-class.puml` |

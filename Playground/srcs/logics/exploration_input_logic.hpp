@@ -19,6 +19,10 @@ namespace pg
 	{
 	public:
 		using ViewportSize = std::function<spk::Vector2()>;
+		[[nodiscard]] spk::RenderPhaseMask renderPhases() const noexcept override
+		{
+			return spk::RenderPhaseMask::None;
+		}
 
 	private:
 		GameContext &_context;

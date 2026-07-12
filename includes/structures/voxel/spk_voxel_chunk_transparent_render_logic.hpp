@@ -15,14 +15,10 @@ namespace spk
 	class Texture;
 	class UniformBufferObject;
 
-	// Late render pass for transparent chunk geometry. Its lower default priority places
-	// it after the normal-priority opaque voxel and actor render logics. Chunks are then
-	// ordered back-to-front within this pass for alpha blending.
+	// Transparent chunk contributor. The SceneTransparent phase structurally follows
+	// every opaque contributor; chunks are sorted back-to-front within this contributor.
 	class VoxelChunkTransparentRenderLogic : public spk::ComponentLogic<spk::VoxelChunkRenderer>
 	{
-	public:
-		static constexpr spk::PriorizableTrait::Priority DefaultPriority = -100;
-
 	private:
 		struct CachedDraw
 		{
@@ -42,10 +38,32 @@ namespace spk
 
 	public:
 		explicit VoxelChunkTransparentRenderLogic(const spk::Texture &p_texture);
+		[[nodiscard]] spk::RenderPhaseMask renderPhases() const noexcept override
+		{
+			return spk::renderPhaseBit(spk::RenderPhase::SceneTransparent);
+		}
 
 	protected:
 		void _onRenderStarted(std::size_t p_componentCount) override;
 		void _parseComponentForRender(spk::VoxelChunkRenderer &p_renderer) override;
 		void _executeRender(spk::RenderUnitBuilder &p_builder) override;
+		void _onRenderPhaseStarted(const spk::RenderPhaseContext &p_context, std::size_t p_componentCount) override;
+		void _parseComponentForRender(
+			const spk::RenderPhaseContext &p_context,
+			spk::VoxelChunkRenderer &p_renderer) override
+		{
+			(void)p_context;
+			_parseComponentForRender(p_renderer);
+		}
+		void _executeRender(const spk::RenderPhaseContext &p_context, spk::RenderPass &p_pass) override
+		{
+			spk::RenderUnitBuilder builder;
+			_executeRender(builder);
+			spk::RenderUnit unit = builder.build();
+			for (auto &command : unit.takeCommands())
+			{
+				p_pass.add(p_context.phase, std::move(command));
+			}
+		}
 	};
 }

@@ -148,9 +148,18 @@ TEST(GameEngineWidgetTest, BuildsFrameBufferPassthroughWhenSized)
 	// the widget. With an empty engine the unit is the scaffolding only: bind the
 	// framebuffer, clear it, return to the screen and blit the color attachment.
 	EXPECT_EQ(renderUnit->size(), 4u);
-	EXPECT_NE(dynamic_cast<const spk::UseFrameBufferRenderCommand *>(renderUnit->commands()[0].get()), nullptr);
-	EXPECT_NE(dynamic_cast<const spk::ClearCommand *>(renderUnit->commands()[1].get()), nullptr);
-	EXPECT_NE(dynamic_cast<const spk::UseFrameBufferRenderCommand *>(renderUnit->commands()[2].get()), nullptr);
+	const auto *mainBind = dynamic_cast<const spk::UseFrameBufferRenderCommand *>(renderUnit->commands()[0].get());
+	ASSERT_NE(mainBind, nullptr);
+	EXPECT_EQ(mainBind->target(), &widget.frameBuffer());
+	EXPECT_EQ(mainBind->viewport().geometry(), widget.frameBuffer().viewport().geometry());
+	const auto *mainClear = dynamic_cast<const spk::ClearCommand *>(renderUnit->commands()[1].get());
+	ASSERT_NE(mainClear, nullptr);
+	EXPECT_EQ(mainClear->mask(), GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+	EXPECT_FLOAT_EQ(mainClear->depth(), 1.0f);
+	EXPECT_EQ(mainClear->stencil(), 0u);
+	const auto *screenBind = dynamic_cast<const spk::UseFrameBufferRenderCommand *>(renderUnit->commands()[2].get());
+	ASSERT_NE(screenBind, nullptr);
+	EXPECT_EQ(screenBind->target(), nullptr);
 	EXPECT_NE(dynamic_cast<const spk::ImageRenderCommand *>(renderUnit->commands()[3].get()), nullptr);
 }
 

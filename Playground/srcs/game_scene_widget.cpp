@@ -173,7 +173,7 @@ namespace pg
 		// water sources spread and fall; its map edits re-bake chunks like any other cell change.
 		engine.add<spk::VoxelFluidSimulationLogic>();
 		engine.add<spk::VoxelChunkRenderLogic>(_texture);
-		engine.add<spk::TextureMeshRenderLogic>(false);
+		engine.add<spk::TextureMeshRenderLogic>();
 		engine.add<spk::VoxelChunkTransparentRenderLogic>(_texture);
 
 		_camera = &_cameraEntity.addComponent<spk::Camera3D>();

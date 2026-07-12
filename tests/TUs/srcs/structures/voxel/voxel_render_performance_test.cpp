@@ -104,8 +104,8 @@ TEST(VoxelRenderPerformance, BakesAnEightByEightChunkSquareWithinBudget)
 														? spk::VoxelFlip::PositiveY
 														: spk::VoxelFlip::NegativeY;
 						const spk::VoxelRuntimeId topShape = topPattern < 2 ? slab : topPattern < 4 ? slope
-																		  : topPattern < 6	 ? stair
-																							 : cube;
+																				 : topPattern < 6	? stair
+																									: cube;
 						(void)p_editor.setCell(x, topY, z, {topShape, orientation, flip});
 						++generatedVoxelCount;
 
@@ -131,7 +131,7 @@ TEST(VoxelRenderPerformance, BakesAnEightByEightChunkSquareWithinBudget)
 	spk::Camera3D camera;
 	camera.makeMain();
 	spk::Texture texture;
-	InstrumentedVoxelChunkRenderLogic logic(texture, false);
+	InstrumentedVoxelChunkRenderLogic logic(texture);
 
 	spk::Chronometer generationChronometer;
 	generationChronometer.start();

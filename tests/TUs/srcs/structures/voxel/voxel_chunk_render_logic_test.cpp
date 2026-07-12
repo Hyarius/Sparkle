@@ -31,11 +31,16 @@ TEST(VoxelChunkRenderLogic, TransparentChunksRenderAfterOpaqueActors)
 	spk::Texture texture;
 	spk::GameEngine engine;
 	spk::VoxelChunkRenderLogic &opaqueChunks = engine.add<spk::VoxelChunkRenderLogic>(texture);
-	spk::TextureMeshRenderLogic &actors = engine.add<spk::TextureMeshRenderLogic>(false);
+	spk::TextureMeshRenderLogic &actors = engine.add<spk::TextureMeshRenderLogic>();
 	spk::VoxelChunkTransparentRenderLogic &transparentChunks = engine.add<spk::VoxelChunkTransparentRenderLogic>(texture);
 
 	EXPECT_EQ(opaqueChunks.priority(), actors.priority());
-	EXPECT_GT(actors.priority(), transparentChunks.priority());
+	EXPECT_EQ(actors.priority(), transparentChunks.priority());
+	EXPECT_TRUE(spk::containsRenderPhase(opaqueChunks.renderPhases(), spk::RenderPhase::SceneOpaque));
+	EXPECT_TRUE(spk::containsRenderPhase(actors.renderPhases(), spk::RenderPhase::SceneOpaque));
+	EXPECT_TRUE(spk::containsRenderPhase(actors.renderPhases(), spk::RenderPhase::SceneTransparent));
+	EXPECT_TRUE(spk::containsRenderPhase(transparentChunks.renderPhases(), spk::RenderPhase::SceneTransparent));
+	EXPECT_FALSE(spk::containsRenderPhase(transparentChunks.renderPhases(), spk::RenderPhase::SceneOpaque));
 
 	spk::VoxelMap map(
 		registry,

@@ -13,6 +13,12 @@ namespace spk
 {
 	class AnimationLogic : public spk::ComponentLogic<AnimationController2D>
 	{
+	public:
+		[[nodiscard]] spk::RenderPhaseMask renderPhases() const noexcept override
+		{
+			return spk::RenderPhaseMask::None;
+		}
+
 	protected:
 		void _parseComponentForUpdate(const spk::UpdateContext &p_tick, AnimationController2D &p_controller) override
 		{

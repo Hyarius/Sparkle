@@ -39,6 +39,15 @@ namespace spk
 		return _logicRegistry;
 	}
 
+	spk::SceneRenderPipeline &GameEngine::renderPipeline() noexcept
+	{
+		return _renderPipeline;
+	}
+	const spk::SceneRenderPipeline &GameEngine::renderPipeline() const noexcept
+	{
+		return _renderPipeline;
+	}
+
 	void GameEngine::addEntity(spk::Entity *p_entity)
 	{
 		if (p_entity == nullptr)
@@ -61,6 +70,8 @@ namespace spk
 
 	void GameEngine::update(const spk::UpdateContext &p_tick)
 	{
+		_profiler = p_tick.profiler;
+		++_frameIndex;
 		if (isActivated() == false)
 		{
 			return;
@@ -71,13 +82,19 @@ namespace spk
 
 	spk::RenderUnit GameEngine::buildRenderUnit()
 	{
-		spk::RenderUnitBuilder builder;
+		const spk::Viewport compatibilityViewport(spk::Rect2D(0, 0, 1, 1));
+		return buildRenderUnit(spk::RenderFrameRequest{.mainTarget = spk::RenderTargetReference{.frameBuffer = nullptr, .viewport = compatibilityViewport}, .mainClear = {}});
+	}
 
-		if (isActivated() == true)
-		{
-			_logicRegistry.render(builder, _components);
-		}
+	spk::RenderPlan GameEngine::buildRenderPlan(const spk::RenderFrameRequest &p_request)
+	{
+		return _renderPipeline.buildPlan(
+			p_request, _logicRegistry, _components, _profiler, _frameIndex, isActivated());
+	}
 
-		return builder.build();
+	spk::RenderUnit GameEngine::buildRenderUnit(const spk::RenderFrameRequest &p_request)
+	{
+		spk::RenderPlan plan = buildRenderPlan(p_request);
+		return plan.compile();
 	}
 }

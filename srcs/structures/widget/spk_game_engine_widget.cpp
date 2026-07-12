@@ -33,14 +33,8 @@ namespace spk
 
 		spk::RenderUnitBuilder builder;
 
-		// 1. Bind the off-screen framebuffer, clear it (color + depth, so entities
-		//    depth-sort against a fresh buffer each frame) and render the engine
-		//    into it through the framebuffer's own viewport.
-		builder.emplace<spk::UseFrameBufferRenderCommand>(&_frameBuffer, _frameBuffer.viewport());
-		builder.emplace<spk::ClearCommand>(
-			std::array<float, 4>{0.0f, 0.0f, 0.0f, 0.0f},
-			static_cast<GLbitfield>(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT));
-		builder.add(_gameEngine.buildRenderUnit());
+		// The engine plan owns the explicit off-screen bind and clear lifetime.
+		builder.add(_gameEngine.buildRenderUnit(spk::RenderFrameRequest{.mainTarget = spk::RenderTargetReference{.frameBuffer = &_frameBuffer, .viewport = _frameBuffer.viewport()}, .mainClear = spk::RenderPassClear{.color = spk::Color(0.0f, 0.0f, 0.0f, 0.0f), .depth = 1.0f, .stencil = 0}}));
 
 		// 2. Return to the screen and blit the color attachment onto this widget's
 		//    rectangle. The section is vertically flipped because a render-to-

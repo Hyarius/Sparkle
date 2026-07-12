@@ -14,6 +14,12 @@ namespace pg
 
 	class ActorPathLogic : public spk::ComponentLogic<Actor>
 	{
+	public:
+		[[nodiscard]] spk::RenderPhaseMask renderPhases() const noexcept override
+		{
+			return spk::RenderPhaseMask::None;
+		}
+
 	private:
 		EventCenter &_events;
 		WorldNavigation &_navigation;
