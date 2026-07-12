@@ -83,16 +83,24 @@ namespace spk
 	spk::RenderUnit GameEngine::buildRenderUnit()
 	{
 		const spk::Viewport compatibilityViewport(spk::Rect2D(0, 0, 1, 1));
-		return buildRenderUnit(spk::RenderFrameRequest{.mainTarget = spk::RenderTargetReference{.frameBuffer = nullptr, .viewport = compatibilityViewport}, .mainClear = {}});
+		return buildRenderUnit(spk::SceneRenderFrameRequest{.mainTarget = spk::RenderTargetReference{.frameBuffer = nullptr, .viewport = compatibilityViewport}, .mainClear = {}});
 	}
 
-	spk::RenderPlan GameEngine::buildRenderPlan(const spk::RenderFrameRequest &p_request)
+	void GameEngine::contributeRenderPasses(spk::RenderFrameBuildContext &p_frame, const spk::SceneRenderFrameRequest &p_request)
 	{
-		return _renderPipeline.buildPlan(
-			p_request, _logicRegistry, _components, _profiler, _frameIndex, isActivated());
+		_renderPipeline.buildPasses(
+			p_frame, _renderScope, p_request, _logicRegistry, _components, _profiler, isActivated());
 	}
 
-	spk::RenderUnit GameEngine::buildRenderUnit(const spk::RenderFrameRequest &p_request)
+	spk::RenderPlan GameEngine::buildRenderPlan(const spk::SceneRenderFrameRequest &p_request)
+	{
+		spk::RenderPassBucketPack passes;
+		spk::RenderFrameBuildContext frame{.passes = passes, .frameIndex = _frameIndex};
+		contributeRenderPasses(frame, p_request);
+		return passes.build();
+	}
+
+	spk::RenderUnit GameEngine::buildRenderUnit(const spk::SceneRenderFrameRequest &p_request)
 	{
 		spk::RenderPlan plan = buildRenderPlan(p_request);
 		return plan.compile();

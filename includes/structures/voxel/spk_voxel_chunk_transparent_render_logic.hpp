@@ -1,6 +1,8 @@
 #pragma once
 
 #include "structures/game_engine/spk_component_logic.hpp"
+#include "structures/game_engine/rendering/spk_scene_render_passes.hpp"
+#include "structures/graphics/rendering/pass/spk_render_pass_bucket_pack.hpp"
 #include "structures/math/spk_matrix.hpp"
 #include "structures/voxel/spk_voxel_chunk_renderer.hpp"
 
@@ -38,32 +40,11 @@ namespace spk
 
 	public:
 		explicit VoxelChunkTransparentRenderLogic(const spk::Texture &p_texture);
-		[[nodiscard]] spk::RenderPhaseMask renderPhases() const noexcept override
-		{
-			return spk::renderPhaseBit(spk::RenderPhase::SceneTransparent);
-		}
-
 	protected:
-		void _onRenderStarted(std::size_t p_componentCount) override;
-		void _parseComponentForRender(spk::VoxelChunkRenderer &p_renderer) override;
-		void _executeRender(spk::RenderUnitBuilder &p_builder) override;
-		void _onRenderPhaseStarted(const spk::RenderPhaseContext &p_context, std::size_t p_componentCount) override;
+		void _onRenderStarted(const spk::SceneRenderBuildContext &p_context, std::size_t p_componentCount) override;
 		void _parseComponentForRender(
-			const spk::RenderPhaseContext &p_context,
-			spk::VoxelChunkRenderer &p_renderer) override
-		{
-			(void)p_context;
-			_parseComponentForRender(p_renderer);
-		}
-		void _executeRender(const spk::RenderPhaseContext &p_context, spk::RenderPass &p_pass) override
-		{
-			spk::RenderUnitBuilder builder;
-			_executeRender(builder);
-			spk::RenderUnit unit = builder.build();
-			for (auto &command : unit.takeCommands())
-			{
-				p_pass.add(p_context.phase, std::move(command));
-			}
-		}
+			const spk::SceneRenderBuildContext &p_context,
+			spk::VoxelChunkRenderer &p_renderer) override;
+		void _executeRender(const spk::SceneRenderBuildContext &p_context) override;
 	};
 }

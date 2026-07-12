@@ -1,26 +1,32 @@
 #include <gtest/gtest.h>
 
 #include <memory>
+#include <unordered_map>
 #include <vector>
 
+#include "structures/game_engine/rendering/spk_shadow_render_pass.hpp"
 #include "structures/graphics/opengl/spk_opengl_clear_command.hpp"
 #include "structures/graphics/rendering/command/spk_use_framebuffer_render_command.hpp"
-#include "structures/graphics/rendering/pipeline/spk_render_plan.hpp"
+#include "structures/graphics/rendering/pass/spk_render_pass_bucket_pack.hpp"
 #include "structures/graphics/spk_framebuffer_object.hpp"
 
 namespace
 {
+	inline constexpr auto TestPass = spk::makeRenderPassTypeId("spk.test.pass");
+	inline constexpr auto OtherPass = spk::makeRenderPassTypeId("spk.test.other");
+
 	class MarkerCommand : public spk::RenderCommand
 	{
 	public:
 		int marker;
-		explicit MarkerCommand(int p_marker) :
-			marker(p_marker)
-		{
-		}
-		void execute(spk::RenderContext &) override
-		{
-		}
+		explicit MarkerCommand(int p_marker) : marker(p_marker) {}
+		void execute(spk::RenderContext &) override {}
+	};
+
+	class OtherDerivedPass : public spk::RenderPass
+	{
+	public:
+		using spk::RenderPass::RenderPass;
 	};
 
 	spk::Viewport viewport()
@@ -28,145 +34,114 @@ namespace
 		return spk::Viewport(spk::Rect2D(0, 0, 16, 16));
 	}
 
-	spk::RenderPassDescription mainDescription(const spk::FrameBufferObject *p_target = nullptr)
+	spk::RenderPass::Description description(const std::string &p_name = "Test")
 	{
-		return spk::RenderPassDescription{
-			.id = {.kind = spk::RenderPassKind::MainScene, .instance = 0, .debugName = "MainScene"},
-			.target = {.frameBuffer = p_target, .viewport = viewport()},
-			.clear = {},
-			.phases = {
-				spk::RenderPhase::PassSetup,
-				spk::RenderPhase::SceneOpaque,
-				spk::RenderPhase::SceneTransparent,
-				spk::RenderPhase::SceneOverlay}};
+		return {.debugName = p_name, .target = {.frameBuffer = nullptr, .viewport = viewport()}, .clear = {}};
 	}
 }
 
-TEST(RenderPlanTest, EmptyPlanIsInspectableAndCompilesToEmptyUnit)
+TEST(RenderPassIdentityTest, LiteralIdsAndKeysAreStableAndStrong)
 {
-	spk::RenderPlan plan;
-	EXPECT_TRUE(plan.empty());
-	EXPECT_EQ(plan.size(), 0u);
-	EXPECT_TRUE(plan.compile().empty());
+	constexpr auto same = spk::makeRenderPassTypeId("spk.test.pass");
+	static_assert(TestPass == same);
+	static_assert(TestPass != OtherPass);
+	EXPECT_EQ(TestPass.value, 18413676259322888550ull);
+
+	const spk::RenderPass::Key base{.type = TestPass, .scope = {7}, .instance = 2};
+	EXPECT_EQ(base, (spk::RenderPass::Key{.type = TestPass, .scope = {7}, .instance = 2}));
+	EXPECT_NE(base, (spk::RenderPass::Key{.type = TestPass, .scope = {8}, .instance = 2}));
+	EXPECT_NE(base, (spk::RenderPass::Key{.type = TestPass, .scope = {7}, .instance = 3}));
+	std::unordered_map<spk::RenderPass::Key, int> index{{base, 42}};
+	EXPECT_EQ(index.at(base), 42);
 }
 
-TEST(RenderPlanTest, ValidMainPassKeepsIdentityPhasesAndDiagnostics)
+TEST(RenderPassBucketPackTest, LookupDuplicateTypedAccessAndFilteringAreDeterministic)
 {
-	spk::RenderPlan plan;
-	spk::RenderPass pass(mainDescription());
-	pass.emplace<MarkerCommand>(spk::RenderPhase::SceneOpaque, 7);
-	pass.recordContributor(spk::RenderPhase::SceneOpaque);
-	plan.addPass(std::move(pass));
-
-	ASSERT_EQ(plan.size(), 1u);
-	EXPECT_EQ(plan.passes()[0].description().id.debugName, "MainScene");
-	EXPECT_EQ(plan.passes()[0].description().id.instance, 0u);
-	ASSERT_EQ(plan.diagnostics().size(), 1u);
-	EXPECT_EQ(plan.diagnostics()[0].phases[1].commandCount, 1u);
-	EXPECT_EQ(plan.diagnostics()[0].phases[1].contributorCount, 1u);
+	spk::RenderPassBucketPack pack;
+	EXPECT_TRUE(pack.empty());
+	const spk::RenderPass::Key key{.type = TestPass, .scope = {7}};
+	auto &pass = pack.emplacePass<spk::RenderPass>(key, 10, "First", description("ignored"));
+	EXPECT_THROW(pass.setPriority(11), std::logic_error);
+	EXPECT_EQ(&pack.require(key), &pass);
+	EXPECT_EQ(pack.find(key), &pass);
+	EXPECT_EQ(pack.find({.type = OtherPass}), nullptr);
+	EXPECT_THROW((void)pack.require({.type = OtherPass}), std::invalid_argument);
+	EXPECT_THROW((void)pack.emplacePass<OtherDerivedPass>(key, 20, "Duplicate", description()), std::invalid_argument);
+	ASSERT_EQ(pack.passesOfType(TestPass).size(), 1u);
+	ASSERT_EQ(pack.passesOfType(TestPass, spk::RenderPass::ScopeId{7}).size(), 1u);
+	EXPECT_TRUE(pack.passesOfType(TestPass, spk::RenderPass::ScopeId{8}).empty());
+	EXPECT_THROW((void)pack.require<OtherDerivedPass>(key), std::invalid_argument);
 }
 
-TEST(RenderPlanTest, DuplicatePassIdentityIsRejectedWithoutParsingDebugName)
+TEST(RenderPassBucketPackTest, CanonicalNameRegistrationRejectsHashCollisions)
 {
-	spk::RenderPlan plan;
-	plan.addPass(spk::RenderPass(mainDescription()));
-	auto duplicate = mainDescription();
-	duplicate.id.debugName = "Different label";
-	EXPECT_THROW(plan.addPass(spk::RenderPass(std::move(duplicate))), std::invalid_argument);
+	spk::RenderPassBucketPack pack;
+	pack.registerPassType(TestPass, "spk.test.pass");
+	EXPECT_NO_THROW(pack.registerPassType(TestPass, "spk.test.pass"));
+	EXPECT_THROW(pack.registerPassType(TestPass, "different.canonical.name"), std::invalid_argument);
 }
 
-TEST(RenderPlanTest, MovingPlanTransfersCompilationOwnershipExactlyOnce)
+TEST(RenderPassBucketPackTest, PassAndContributorOrderingSurvivesPlanCompilation)
 {
-	spk::RenderPlan original;
-	original.addPass(spk::RenderPass(mainDescription()));
-	spk::RenderPlan moved(std::move(original));
-	EXPECT_THROW((void)original.compile(), std::logic_error);
-	EXPECT_NO_THROW((void)moved.compile());
-	EXPECT_THROW((void)moved.compile(), std::logic_error);
-}
+	spk::RenderPassBucketPack pack;
+	const auto add = [&](spk::RenderPass::TypeId p_type, std::uint32_t p_instance, int p_priority, int p_marker) {
+		auto &pass = pack.emplacePass<spk::RenderPass>(
+			{.type = p_type, .scope = {4}, .instance = p_instance}, p_priority,
+			"Pass", description());
+		pass.contribute(0, 0).emplace<MarkerCommand>(p_marker);
+		return &pass;
+	};
+	add(TestPass, 0, 1000, 3);
+	add(OtherPass, 0, 100, 1);
+	auto *equal = add(OtherPass, 1, 100, 2);
+	auto late = equal->contribute(10, 0);
+	late.emplace<MarkerCommand>(22);
+	auto early = equal->contribute(-10, 99);
+	early.emplace<MarkerCommand>(20);
+	auto tied = equal->contribute(10, 0);
+	tied.emplace<MarkerCommand>(23);
 
-TEST(RenderPassTest, RejectsDuplicateAndInvalidBuiltInPhaseOrder)
-{
-	auto duplicate = mainDescription();
-	duplicate.phases = {spk::RenderPhase::SceneOpaque, spk::RenderPhase::SceneOpaque};
-	EXPECT_THROW(spk::RenderPass(std::move(duplicate)), std::invalid_argument);
+	const auto sorted = pack.diagnostics(true);
+	ASSERT_EQ(sorted.size(), 3u);
+	EXPECT_EQ(sorted[0].key.instance, 0u);
+	EXPECT_EQ(sorted[1].key.instance, 1u);
+	EXPECT_EQ(sorted[2].priority, 1000);
 
-	auto setupLate = mainDescription();
-	setupLate.phases = {spk::RenderPhase::SceneOpaque, spk::RenderPhase::PassSetup};
-	EXPECT_THROW(spk::RenderPass(std::move(setupLate)), std::invalid_argument);
+	spk::RenderPlan plan = pack.build();
+	EXPECT_THROW((void)pack.build(), std::logic_error);
+	EXPECT_THROW(late.emplace<MarkerCommand>(99), std::logic_error);
+	EXPECT_THROW(equal->setPriority(0), std::logic_error);
+	ASSERT_EQ(plan.passes().size(), 3u);
+	EXPECT_EQ(plan.passes()[0]->priority(), 100);
+	EXPECT_EQ(plan.passes()[1]->declarationOrder(), 2u);
 
-	auto transparentFirst = mainDescription();
-	transparentFirst.phases = {spk::RenderPhase::SceneTransparent, spk::RenderPhase::SceneOpaque};
-	EXPECT_THROW(spk::RenderPass(std::move(transparentFirst)), std::invalid_argument);
-}
-
-TEST(RenderPassTest, CommandsCanOnlyEnterDeclaredPhases)
-{
-	spk::RenderPass pass(mainDescription());
-	EXPECT_NO_THROW(pass.emplace<MarkerCommand>(spk::RenderPhase::SceneOpaque, 1));
-	EXPECT_EQ(pass.commandCount(spk::RenderPhase::SceneOpaque), 1u);
-	EXPECT_THROW(pass.emplace<MarkerCommand>(spk::RenderPhase::ShadowCaster, 2), std::invalid_argument);
-}
-
-TEST(RenderPassTest, TypedClearValidatesAttachmentCapabilitiesAndDepthRange)
-{
-	spk::FrameBufferObject depthTarget(spk::FrameBufferObject::depthTextureTarget({16, 16}));
-	auto depth = mainDescription(&depthTarget);
-	depth.id.kind = spk::RenderPassKind::Shadow;
-	depth.id.debugName = "Depth";
-	depth.phases = {spk::RenderPhase::PassSetup, spk::RenderPhase::ShadowCaster};
-	depth.clear.depth = 1.0f;
-	EXPECT_NO_THROW({ spk::RenderPass pass{depth}; (void)pass; });
-
-	depth.clear.color = spk::Color(0, 0, 0, 0);
-	EXPECT_THROW({ spk::RenderPass pass{depth}; (void)pass; }, std::invalid_argument);
-	depth.clear.color.reset();
-	depth.clear.depth = 1.1f;
-	EXPECT_THROW({ spk::RenderPass pass{depth}; (void)pass; }, std::invalid_argument);
-}
-
-TEST(RenderPlanTest, CompileEmitsBindThenClearAndPreservesPassAndPhaseOrder)
-{
-	spk::FrameBufferObject firstTarget(spk::FrameBufferObject::colorTarget({16, 16}));
-	spk::FrameBufferObject secondTarget(spk::FrameBufferObject::depthTextureTarget({16, 16}));
-
-	auto shadowDescription = spk::RenderPassDescription{
-		.id = {.kind = spk::RenderPassKind::Shadow, .instance = 0, .debugName = "Shadow[0]"},
-		.target = {.frameBuffer = &secondTarget, .viewport = secondTarget.viewport()},
-		.clear = {.depth = 1.0f},
-		.phases = {spk::RenderPhase::PassSetup, spk::RenderPhase::ShadowCaster}};
-	spk::RenderPass shadow(shadowDescription);
-	shadow.emplace<MarkerCommand>(spk::RenderPhase::PassSetup, 1);
-	shadow.emplace<MarkerCommand>(spk::RenderPhase::ShadowCaster, 2);
-
-	auto main = mainDescription(&firstTarget);
-	main.clear = {.color = spk::Color(0, 0, 0, 0), .depth = 1.0f, .stencil = 0};
-	spk::RenderPass mainPass(main);
-	mainPass.emplace<MarkerCommand>(spk::RenderPhase::SceneOpaque, 3);
-	mainPass.emplace<MarkerCommand>(spk::RenderPhase::SceneTransparent, 4);
-
-	spk::RenderPlan plan;
-	plan.addPass(std::move(shadow));
-	plan.addPass(std::move(mainPass));
 	spk::RenderUnit unit = plan.compile();
-	ASSERT_EQ(unit.size(), 8u);
-	const auto *shadowBind = dynamic_cast<const spk::UseFrameBufferRenderCommand *>(unit.commands()[0].get());
-	ASSERT_NE(shadowBind, nullptr);
-	EXPECT_EQ(shadowBind->target(), &secondTarget);
-	const auto *shadowClear = dynamic_cast<const spk::ClearCommand *>(unit.commands()[1].get());
-	ASSERT_NE(shadowClear, nullptr);
-	EXPECT_EQ(shadowClear->mask(), GL_DEPTH_BUFFER_BIT);
-	EXPECT_FLOAT_EQ(shadowClear->depth(), 1.0f);
-	EXPECT_EQ(dynamic_cast<const MarkerCommand *>(unit.commands()[2].get())->marker, 1);
-	EXPECT_EQ(dynamic_cast<const MarkerCommand *>(unit.commands()[3].get())->marker, 2);
-	const auto *mainBind = dynamic_cast<const spk::UseFrameBufferRenderCommand *>(unit.commands()[4].get());
-	ASSERT_NE(mainBind, nullptr);
-	EXPECT_EQ(mainBind->target(), &firstTarget);
-	const auto *mainClear = dynamic_cast<const spk::ClearCommand *>(unit.commands()[5].get());
-	ASSERT_NE(mainClear, nullptr);
-	EXPECT_EQ(mainClear->mask(), GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-	EXPECT_EQ(mainClear->stencil(), 0u);
-	EXPECT_EQ(dynamic_cast<const MarkerCommand *>(unit.commands()[6].get())->marker, 3);
-	EXPECT_EQ(dynamic_cast<const MarkerCommand *>(unit.commands()[7].get())->marker, 4);
+	std::vector<int> markers;
+	for (const auto &command : unit.commands())
+	{
+		if (const auto *marker = dynamic_cast<const MarkerCommand *>(command.get()); marker != nullptr)
+		{
+			markers.push_back(marker->marker);
+		}
+	}
+	EXPECT_EQ(markers, (std::vector<int>{1, 20, 2, 22, 23, 3}));
 	EXPECT_THROW((void)plan.compile(), std::logic_error);
+}
+
+TEST(RenderPassBucketPackTest, DerivedShadowPassRemainsTypedAndPolymorphic)
+{
+	spk::FrameBufferObject target(spk::FrameBufferObject::depthTextureTarget({16, 16}));
+	spk::RenderPassBucketPack pack;
+	const spk::RenderPass::Key key{.type = spk::LightingRenderPasses::DirectionalShadow, .scope = {5}, .instance = 2};
+	auto &shadow = pack.emplacePass<spk::ShadowRenderPass>(
+		key, 102, "DirectionalShadow[2]",
+		{.debugName = "DirectionalShadow[2]", .target = {.frameBuffer = &target, .viewport = target.viewport()}, .clear = {.depth = 1.0f}},
+		2u, spk::Matrix4x4::identity());
+	EXPECT_EQ(shadow.cascadeIndex(), 2u);
+	EXPECT_EQ(&pack.require(key), static_cast<spk::RenderPass *>(&shadow));
+	EXPECT_EQ(&pack.require<spk::ShadowRenderPass>(key), &shadow);
+	EXPECT_EQ(pack.passesOfType<spk::ShadowRenderPass>(spk::LightingRenderPasses::DirectionalShadow, spk::RenderPass::ScopeId{5}).size(), 1u);
+	spk::RenderPlan plan = pack.build();
+	ASSERT_NE(dynamic_cast<spk::ShadowRenderPass *>(plan.passes()[0].get()), nullptr);
+	EXPECT_NO_THROW((void)plan.compile());
 }

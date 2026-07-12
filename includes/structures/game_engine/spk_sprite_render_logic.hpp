@@ -14,6 +14,8 @@
 #include "structures/game_engine/spk_entity_2d.hpp"
 #include "structures/game_engine/spk_sprite_renderer_2d.hpp"
 #include "structures/game_engine/spk_transform_2d.hpp"
+#include "structures/game_engine/rendering/spk_scene_render_passes.hpp"
+#include "structures/graphics/rendering/pass/spk_render_pass_bucket_pack.hpp"
 #include "structures/graphics/rendering/command/spk_camera_update_render_command.hpp"
 #include "structures/graphics/rendering/command/spk_instanced_sprite_render_command.hpp"
 #include "structures/math/spk_matrix.hpp"
@@ -51,11 +53,6 @@ namespace spk
 		}
 
 	public:
-		[[nodiscard]] spk::RenderPhaseMask renderPhases() const noexcept override
-		{
-			return spk::renderPhaseBit(spk::RenderPhase::SceneOverlay);
-		}
-
 		[[nodiscard]] static std::size_t lastSpriteCount()
 		{
 			return _lastSpriteCount.load(std::memory_order_relaxed);
@@ -67,7 +64,7 @@ namespace spk
 		}
 
 	protected:
-		void _onRenderStarted(std::size_t p_componentCount) override
+		void _onRenderStarted(const spk::SceneRenderBuildContext &, std::size_t p_componentCount) override
 		{
 			(void)p_componentCount;
 			_renderCommands.clear();
@@ -78,7 +75,7 @@ namespace spk
 			}
 		}
 
-		void _parseComponentForRender(SpriteRenderer2D &p_sprite) override
+		void _parseComponentForRender(const spk::SceneRenderBuildContext &, SpriteRenderer2D &p_sprite) override
 		{
 			if (_camera == nullptr ||
 				p_sprite.mesh() == nullptr ||
@@ -100,7 +97,7 @@ namespace spk
 			instance.setSprite(p_sprite.sprite());
 		}
 
-		void _executeRender(spk::RenderUnitBuilder &p_builder) override
+		void _executeRender(const spk::SceneRenderBuildContext &p_context) override
 		{
 			std::size_t spriteCount = 0;
 			for (const std::unique_ptr<InstancedSpriteRenderCommand> &command : _renderCommands)
@@ -116,35 +113,14 @@ namespace spk
 				return;
 			}
 
-			p_builder.emplace<CameraUpdateRenderCommand>(CameraBinding, _cameraMatrix);
+			auto &pass = p_context.frame.passes.require({.type = spk::SceneRenderPasses::MainOverlay, .scope = p_context.sceneScope});
+			auto commands = pass.contribute(renderPriority(spk::SceneRenderPasses::MainOverlay), p_context.contributorRegistrationOrder);
+			commands.emplace<CameraUpdateRenderCommand>(CameraBinding, _cameraMatrix);
 			for (std::unique_ptr<InstancedSpriteRenderCommand> &command : _renderCommands)
 			{
-				p_builder.add(std::move(command));
+				commands.add(std::move(command));
 			}
 			_renderCommands.clear();
-		}
-
-		void _onRenderPhaseStarted(const spk::RenderPhaseContext &p_context, std::size_t p_componentCount) override
-		{
-			(void)p_context;
-			_onRenderStarted(p_componentCount);
-		}
-		void _parseComponentForRender(
-			const spk::RenderPhaseContext &p_context,
-			spk::SpriteRenderer2D &p_sprite) override
-		{
-			(void)p_context;
-			_parseComponentForRender(p_sprite);
-		}
-		void _executeRender(const spk::RenderPhaseContext &p_context, spk::RenderPass &p_pass) override
-		{
-			spk::RenderUnitBuilder builder;
-			_executeRender(builder);
-			spk::RenderUnit unit = builder.build();
-			for (auto &command : unit.takeCommands())
-			{
-				p_pass.add(p_context.phase, std::move(command));
-			}
 		}
 	};
 }

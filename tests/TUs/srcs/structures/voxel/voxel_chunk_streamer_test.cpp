@@ -93,7 +93,9 @@ TEST(VoxelChunkStreamer, StreamsBakesAndRendersTheWindowInOneTick)
 	EXPECT_TRUE(world.isChunkActive({-1, 0, 1}));
 	EXPECT_FALSE(world.streamer->needsStreaming());
 	EXPECT_FALSE(builder.empty());
-	EXPECT_EQ(builder.size(), 11u);
+	// The caller-owned target/viewport is preserved; each explicit pass receives
+	// required frame setup and the nine chunks remain one opaque contribution.
+	EXPECT_EQ(builder.size(), 15u);
 }
 
 TEST(VoxelChunkStreamer, MovingTheOriginSlidesTheActiveWindow)

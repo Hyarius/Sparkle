@@ -1,7 +1,11 @@
 #include "structures/widget/spk_widget.hpp"
 
 #include "structures/graphics/rendering/command/spk_viewport_render_command.hpp"
+#include "structures/graphics/rendering/command/spk_render_unit_render_command.hpp"
+#include "structures/graphics/rendering/pass/spk_render_pass_bucket_pack.hpp"
 #include "structures/graphics/rendering/unit/spk_render_unit_builder.hpp"
+#include "structures/widget/rendering/spk_widget_render_passes.hpp"
+#include "structures/widget/rendering/spk_widget_render_priorities.hpp"
 #include <algorithm>
 #include <cmath>
 #include <memory>
@@ -15,23 +19,15 @@ namespace spk
 			return std::make_unique<spk::Viewport>();
 		}
 
-		std::shared_ptr<spk::RenderUnit> makeViewportUnit(const spk::Viewport &p_viewport)
-		{
-			if (p_viewport.geometry().empty() == true ||
-				p_viewport.scissor().empty() == true)
-			{
-				return nullptr;
-			}
-
-			spk::RenderUnitBuilder builder;
-			builder.emplace<spk::ViewportCommand>(p_viewport);
-			return std::make_shared<spk::RenderUnit>(builder.build());
-		}
 	}
 
 	spk::RenderUnit Widget::_buildRenderUnit() const
 	{
 		return spk::RenderUnit();
+	}
+
+	void Widget::_contributeAdditionalRenderPasses(const spk::WidgetRenderBuildContext &) const
+	{
 	}
 
 	void Widget::_onGeometryChange()
@@ -349,7 +345,7 @@ namespace spk
 		return (_renderUnit);
 	}
 
-	void Widget::appendRenderUnits(spk::RenderSnapshotBuilder &p_builder) const
+	void Widget::_collectRenderPasses(const spk::WidgetRenderBuildContext &p_context) const
 	{
 		spk::HierarchyTrait<Widget>::HierarchyMutationGuard guard(this);
 
@@ -357,6 +353,7 @@ namespace spk
 		{
 			return;
 		}
+		_contributeAdditionalRenderPasses(p_context);
 
 		if (_viewport != nullptr &&
 			_viewport->geometry().empty() == false &&
@@ -371,16 +368,59 @@ namespace spk
 				: spk::Rect2D(
 					  0, 0, static_cast<unsigned int>(std::max(_absoluteGeometry.right(), 1)), static_cast<unsigned int>(std::max(_absoluteGeometry.bottom(), 1)));
 
-		p_builder.append(makeViewportUnit(spk::Viewport(frameGeometry, _scissor)));
-		p_builder.append(renderUnit());
+		auto &overlay = p_context.frame.passes.require({.type = spk::WidgetRenderPasses::Overlay, .scope = p_context.widgetScope});
+		const std::size_t registrationOrder = (*p_context.nextRegistrationOrder)++;
+		auto commands = overlay.contribute(spk::RenderContributionPriorities::Default, registrationOrder);
+		if (!frameGeometry.empty() && !_scissor.empty())
+		{
+			commands.emplace<spk::ViewportCommand>(spk::Viewport(frameGeometry, _scissor));
+		}
+		std::shared_ptr<spk::RenderUnit> unit = renderUnit();
+		if (unit != nullptr && !unit->empty())
+		{
+			commands.emplace<spk::RenderUnitRenderCommand>(std::move(unit));
+		}
 
 		for (const auto *child : children())
 		{
 			if (child != nullptr)
 			{
-				child->appendRenderUnits(p_builder);
+				child->_collectRenderPasses(p_context);
 			}
 		}
+	}
+
+	void Widget::appendRenderUnits(spk::RenderSnapshotBuilder &p_builder) const
+	{
+		const spk::Rect2D frameGeometry =
+			(parent() != nullptr)
+				? parent()->absoluteGeometry()
+				: spk::Rect2D(0, 0, static_cast<unsigned int>(std::max(_absoluteGeometry.right(), 1)), static_cast<unsigned int>(std::max(_absoluteGeometry.bottom(), 1)));
+		appendRenderUnits(
+			p_builder,
+			spk::RenderTargetReference{.frameBuffer = nullptr, .viewport = spk::Viewport(frameGeometry), .activeTarget = true});
+	}
+
+	void Widget::appendRenderUnits(spk::RenderSnapshotBuilder &p_builder, const spk::RenderTargetReference &p_target) const
+	{
+		spk::RenderPlan plan = buildRenderPlan(p_target);
+		p_builder.append(std::make_shared<spk::RenderUnit>(plan.compile()));
+	}
+
+	spk::RenderPlan Widget::buildRenderPlan(const spk::RenderTargetReference &p_target) const
+	{
+		spk::RenderPassBucketPack passes;
+		spk::RenderFrameBuildContext frame{.passes = passes};
+		passes.registerPassType(spk::WidgetRenderPasses::Overlay, "spk.widget.overlay");
+		passes.emplacePass<spk::RenderPass>(
+			{.type = spk::WidgetRenderPasses::Overlay, .scope = _renderScope},
+			spk::WidgetRenderPriorities::Overlay,
+			"WidgetOverlay",
+			{.debugName = "WidgetOverlay", .target = p_target, .clear = {.color = spk::Color(0, 0, 0, 0), .depth = 1.0f, .stencil = 0}});
+		std::size_t registrationOrder = 0;
+		const spk::WidgetRenderBuildContext context{.frame = frame, .widgetScope = _renderScope, .nextRegistrationOrder = &registrationOrder};
+		_collectRenderPasses(context);
+		return passes.build();
 	}
 
 	void Widget::update(const spk::UpdateContext &p_tick)

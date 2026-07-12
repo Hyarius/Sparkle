@@ -21,14 +21,6 @@ namespace spk
 	{
 	}
 
-	void VoxelChunkTransparentRenderLogic::_onRenderPhaseStarted(
-		const spk::RenderPhaseContext &p_context,
-		std::size_t p_componentCount)
-	{
-		_onRenderStarted(p_componentCount);
-		_camera = p_context.frame.mainCamera;
-	}
-
 	void VoxelChunkTransparentRenderLogic::_syncCache(CachedDraw &p_cached, const spk::Matrix4x4 &p_model)
 	{
 		if (p_cached.modelUBO == nullptr)
@@ -58,18 +50,18 @@ namespace spk
 		}
 	}
 
-	void VoxelChunkTransparentRenderLogic::_onRenderStarted(std::size_t p_componentCount)
+	void VoxelChunkTransparentRenderLogic::_onRenderStarted(const spk::SceneRenderBuildContext &p_context, std::size_t p_componentCount)
 	{
 		_visibleChunks.clear();
 		_visibleChunks.reserve(p_componentCount);
-		_camera = spk::Camera3D::mainCamera();
+		_camera = p_context.mainCamera;
 		if (_sampler == nullptr)
 		{
 			_sampler = spk::DrawVoxelMesh3DRenderCommand::makeSampler(_texture);
 		}
 	}
 
-	void VoxelChunkTransparentRenderLogic::_parseComponentForRender(spk::VoxelChunkRenderer &p_renderer)
+	void VoxelChunkTransparentRenderLogic::_parseComponentForRender(const spk::SceneRenderBuildContext &, spk::VoxelChunkRenderer &p_renderer)
 	{
 		if (_camera == nullptr || p_renderer.needsSynchronization() || p_renderer.meshes().transparent.indexes().empty())
 		{
@@ -89,7 +81,7 @@ namespace spk
 		_visibleChunks.push_back(&p_renderer);
 	}
 
-	void VoxelChunkTransparentRenderLogic::_executeRender(spk::RenderUnitBuilder &p_builder)
+	void VoxelChunkTransparentRenderLogic::_executeRender(const spk::SceneRenderBuildContext &p_context)
 	{
 		if (_camera == nullptr || _visibleChunks.empty())
 		{
@@ -106,9 +98,11 @@ namespace spk
 			return squaredDistance(p_left) > squaredDistance(p_right);
 		});
 
+		auto &pass = p_context.frame.passes.require({.type = spk::SceneRenderPasses::MainTransparent, .scope = p_context.sceneScope});
+		auto commands = pass.contribute(renderPriority(spk::SceneRenderPasses::MainTransparent), p_context.contributorRegistrationOrder);
 		for (const spk::VoxelChunkRenderer *renderer : _visibleChunks)
 		{
-			p_builder.add(std::make_unique<spk::DrawVoxelMesh3DRenderCommand>(renderer->sharedTransparentMesh(), _cache.at(renderer).modelUBO, _sampler, true));
+			commands.add(std::make_unique<spk::DrawVoxelMesh3DRenderCommand>(renderer->sharedTransparentMesh(), _cache.at(renderer).modelUBO, _sampler, true));
 		}
 		_pruneUnloadedChunks();
 	}

@@ -33,19 +33,24 @@ namespace spk
 
 		spk::RenderUnitBuilder builder;
 
-		// The engine plan owns the explicit off-screen bind and clear lifetime.
-		builder.add(_gameEngine.buildRenderUnit(spk::RenderFrameRequest{.mainTarget = spk::RenderTargetReference{.frameBuffer = &_frameBuffer, .viewport = _frameBuffer.viewport()}, .mainClear = spk::RenderPassClear{.color = spk::Color(0.0f, 0.0f, 0.0f, 0.0f), .depth = 1.0f, .stencil = 0}}));
-
-		// 2. Return to the screen and blit the color attachment onto this widget's
-		//    rectangle. The section is vertically flipped because a render-to-
-		//    texture target is stored bottom-up relative to screen coordinates.
-		builder.emplace<spk::UseFrameBufferRenderCommand>(nullptr, viewport());
-
 		const spk::Texture::Section flippedSection({0.0f, 1.0f}, {1.0f, -1.0f});
 		const spk::Rect2D localRect({0, 0}, frameBufferSize);
 		builder.emplace<spk::ImageRenderCommand>(_frameBuffer.colorAttachment(), flippedSection, localRect);
 
 		return builder.build();
+	}
+
+	void GameEngineWidget::_contributeAdditionalRenderPasses(const spk::WidgetRenderBuildContext &p_context) const
+	{
+		if (_frameBuffer.size().x == 0 || _frameBuffer.size().y == 0)
+		{
+			return;
+		}
+		_gameEngine.contributeRenderPasses(
+			p_context.frame,
+			spk::SceneRenderFrameRequest{
+				.mainTarget = {.frameBuffer = &_frameBuffer, .viewport = _frameBuffer.viewport()},
+				.mainClear = {.color = spk::Color(0, 0, 0, 0), .depth = 1.0f, .stencil = 0}});
 	}
 
 	void GameEngineWidget::_onGeometryChange()

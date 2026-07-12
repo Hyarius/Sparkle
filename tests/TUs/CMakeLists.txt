@@ -28,3 +28,11 @@ target_link_libraries(SparkleTest PRIVATE
 target_include_directories(SparkleTest PRIVATE ${Stb_INCLUDE_DIR})
 
 gtest_discover_tests(SparkleTest PROPERTIES LABELS all)
+
+add_test(
+	NAME GenericRenderingDependencyBoundary
+	COMMAND ${CMAKE_COMMAND}
+		-DSPARKLE_SOURCE_ROOT=${CMAKE_SOURCE_DIR}
+		-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/check_generic_rendering_dependencies.cmake
+)
+set_tests_properties(GenericRenderingDependencyBoundary PROPERTIES LABELS "all;architecture")

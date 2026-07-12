@@ -7,7 +7,6 @@
 #include <cstring>
 #include <iterator>
 #include <memory>
-#include <optional>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -16,6 +15,8 @@
 #include "structures/game_engine/spk_component_logic.hpp"
 #include "structures/game_engine/spk_texture_mesh_renderer_3d.hpp"
 #include "structures/game_engine/spk_transform_3d.hpp"
+#include "structures/game_engine/rendering/spk_scene_render_passes.hpp"
+#include "structures/graphics/rendering/pass/spk_render_pass_bucket_pack.hpp"
 #include "structures/graphics/rendering/command/spk_draw_texture_mesh_3d_render_command.hpp"
 #include "structures/graphics/spk_sampler_object.hpp"
 #include "structures/graphics/spk_uniform_buffer_object.hpp"
@@ -39,14 +40,11 @@ namespace spk
 		};
 
 		spk::Camera3D *_camera = nullptr;
-		std::optional<spk::RenderPhase> _activePhase;
 		std::unordered_map<const spk::TextureMeshRenderer3D *, CachedDraw> _cache;
 		std::vector<const spk::TextureMeshRenderer3D *> _seenRenderers;
 		std::vector<std::unique_ptr<spk::DrawTextureMesh3DRenderCommand>> _opaqueCommands;
 		std::vector<std::unique_ptr<spk::DrawTextureMesh3DRenderCommand>> _translucentCommands;
 		std::size_t _triangleCount = 0;
-		std::size_t _frameMeshCount = 0;
-		std::size_t _frameTriangleCount = 0;
 
 		[[nodiscard]] CachedDraw &_syncCache(
 			spk::TextureMeshRenderer3D &p_renderer,
@@ -94,12 +92,6 @@ namespace spk
 	public:
 		TextureMeshRenderLogic() = default;
 
-		[[nodiscard]] spk::RenderPhaseMask renderPhases() const noexcept override
-		{
-			return spk::renderPhaseBit(spk::RenderPhase::SceneOpaque) |
-				   spk::renderPhaseBit(spk::RenderPhase::SceneTransparent);
-		}
-
 		[[nodiscard]] static std::size_t lastMeshCount() noexcept
 		{
 			return _lastMeshCount.load(std::memory_order_relaxed);
@@ -111,9 +103,8 @@ namespace spk
 		}
 
 	protected:
-		void _onRenderStarted(std::size_t p_componentCount) override
+		void _onRenderStarted(const spk::SceneRenderBuildContext &p_context, std::size_t p_componentCount) override
 		{
-			_activePhase.reset();
 			_opaqueCommands.clear();
 			_translucentCommands.clear();
 			_opaqueCommands.reserve(p_componentCount);
@@ -121,30 +112,10 @@ namespace spk
 			_seenRenderers.clear();
 			_seenRenderers.reserve(p_componentCount);
 			_triangleCount = 0;
-			_camera = spk::Camera3D::mainCamera();
-			_frameMeshCount = 0;
-			_frameTriangleCount = 0;
+			_camera = p_context.mainCamera;
 		}
 
-		void _onRenderPhaseStarted(const spk::RenderPhaseContext &p_context, std::size_t p_componentCount) override
-		{
-			_activePhase = p_context.phase;
-			_opaqueCommands.clear();
-			_translucentCommands.clear();
-			_opaqueCommands.reserve(p_componentCount);
-			_translucentCommands.reserve(p_componentCount);
-			_seenRenderers.clear();
-			_seenRenderers.reserve(p_componentCount);
-			_triangleCount = 0;
-			if (p_context.phase == spk::RenderPhase::SceneOpaque)
-			{
-				_frameMeshCount = 0;
-				_frameTriangleCount = 0;
-			}
-			_camera = p_context.frame.mainCamera;
-		}
-
-		void _parseComponentForRender(spk::TextureMeshRenderer3D &p_renderer) override
+		void _parseComponentForRender(const spk::SceneRenderBuildContext &, spk::TextureMeshRenderer3D &p_renderer) override
 		{
 			if (_camera == nullptr || p_renderer.mesh() == nullptr || p_renderer.texture() == nullptr)
 			{
@@ -161,59 +132,37 @@ namespace spk
 			}
 			const CachedDraw &cached = _syncCache(p_renderer, model);
 			_seenRenderers.push_back(&p_renderer);
-			const spk::RenderPhase rendererPhase = p_renderer.translucent() ? spk::RenderPhase::SceneTransparent : spk::RenderPhase::SceneOpaque;
-			if (_activePhase.has_value() && *_activePhase != rendererPhase)
-			{
-				return;
-			}
 			_triangleCount += p_renderer.mesh()->layoutBuffer().indexCount() / 3;
 			auto command = std::make_unique<spk::DrawTextureMesh3DRenderCommand>(
 				p_renderer.mesh(), cached.modelUBO, cached.sampler, p_renderer.translucent());
 			(p_renderer.translucent() ? _translucentCommands : _opaqueCommands).push_back(std::move(command));
 		}
 
-		void _executeRender(spk::RenderUnitBuilder &p_builder) override
+		void _executeRender(const spk::SceneRenderBuildContext &p_context) override
 		{
 			const std::size_t meshCount = _opaqueCommands.size() + _translucentCommands.size();
-			if (_activePhase.has_value())
-			{
-				_frameMeshCount += meshCount;
-				_frameTriangleCount += _triangleCount;
-				_lastMeshCount.store(_frameMeshCount, std::memory_order_relaxed);
-				_lastTriangleCount.store(_frameTriangleCount, std::memory_order_relaxed);
-			}
-			else
-			{
-				_lastMeshCount.store(meshCount, std::memory_order_relaxed);
-				_lastTriangleCount.store(_triangleCount, std::memory_order_relaxed);
-			}
+			_lastMeshCount.store(meshCount, std::memory_order_relaxed);
+			_lastTriangleCount.store(_triangleCount, std::memory_order_relaxed);
 			_pruneUnusedRenderers();
 			if (meshCount == 0)
 			{
 				return;
 			}
 
+			auto &opaquePass = p_context.frame.passes.require({.type = spk::SceneRenderPasses::MainOpaque, .scope = p_context.sceneScope});
+			auto opaque = opaquePass.contribute(renderPriority(spk::SceneRenderPasses::MainOpaque), p_context.contributorRegistrationOrder);
 			for (auto &command : _opaqueCommands)
 			{
-				p_builder.add(std::move(command));
+				opaque.add(std::move(command));
 			}
+			auto &transparentPass = p_context.frame.passes.require({.type = spk::SceneRenderPasses::MainTransparent, .scope = p_context.sceneScope});
+			auto transparent = transparentPass.contribute(renderPriority(spk::SceneRenderPasses::MainTransparent), p_context.contributorRegistrationOrder);
 			for (auto &command : _translucentCommands)
 			{
-				p_builder.add(std::move(command));
+				transparent.add(std::move(command));
 			}
 			_opaqueCommands.clear();
 			_translucentCommands.clear();
-		}
-
-		void _executeRender(const spk::RenderPhaseContext &p_context, spk::RenderPass &p_pass) override
-		{
-			spk::RenderUnitBuilder builder;
-			_executeRender(builder);
-			spk::RenderUnit unit = builder.build();
-			for (auto &command : unit.takeCommands())
-			{
-				p_pass.add(p_context.phase, std::move(command));
-			}
 		}
 	};
 }

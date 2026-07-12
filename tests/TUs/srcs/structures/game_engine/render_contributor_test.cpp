@@ -2,7 +2,10 @@
 
 #include <vector>
 
+#include "structures/game_engine/rendering/spk_scene_render_pipeline.hpp"
+#include "structures/game_engine/rendering/spk_scene_render_passes.hpp"
 #include "structures/game_engine/spk_component_logic_registry.hpp"
+#include "structures/graphics/rendering/pass/spk_render_pass_bucket_pack.hpp"
 
 namespace
 {
@@ -10,128 +13,92 @@ namespace
 	{
 	public:
 		int marker;
-		explicit MarkerCommand(int p_marker) :
-			marker(p_marker)
-		{
-		}
-		void execute(spk::RenderContext &) override
-		{
-		}
+		explicit MarkerCommand(int p_marker) : marker(p_marker) {}
+		void execute(spk::RenderContext &) override {}
 	};
 
 	template <int Id>
-	class TagComponent : public spk::Component
-	{
-	};
+	class TagComponent : public spk::Component {};
 
-	std::vector<int> g_updates;
+	std::vector<int> updates;
 
-	template <int Id, spk::RenderPhaseMask Phases>
-	class PhaseLogic : public spk::ComponentLogic<TagComponent<Id>>
+	template <int Id, bool Transparent = false>
+	class PassLogic : public spk::ComponentLogic<TagComponent<Id>>
 	{
 	public:
 		int renderCalls = 0;
-		[[nodiscard]] spk::RenderPhaseMask renderPhases() const noexcept override
-		{
-			return Phases;
-		}
 
 	protected:
 		void _onUpdateStarted(const spk::UpdateContext &) override
 		{
-			g_updates.push_back(Id);
+			updates.push_back(Id);
 		}
-		void _executeRender(const spk::RenderPhaseContext &p_context, spk::RenderPass &p_pass) override
+
+		void _executeRender(const spk::SceneRenderBuildContext &p_context) override
 		{
 			++renderCalls;
-			p_pass.emplace<MarkerCommand>(p_context.phase, Id);
+			auto &opaque = p_context.frame.passes.require({.type = spk::SceneRenderPasses::MainOpaque, .scope = p_context.sceneScope});
+			opaque.contribute(this->renderPriority(spk::SceneRenderPasses::MainOpaque), p_context.contributorRegistrationOrder).template emplace<MarkerCommand>(Id);
+			if constexpr (Transparent)
+			{
+				auto &transparent = p_context.frame.passes.require({.type = spk::SceneRenderPasses::MainTransparent, .scope = p_context.sceneScope});
+				transparent.contribute(this->renderPriority(spk::SceneRenderPasses::MainTransparent), p_context.contributorRegistrationOrder).template emplace<MarkerCommand>(Id * 10);
+			}
 		}
 	};
 
-	std::vector<int> dispatch(spk::ComponentLogicRegistry &p_logics, spk::RenderPhase p_phase)
+	std::vector<int> renderMarkers(spk::ComponentLogicRegistry &p_logics)
 	{
 		spk::ComponentRegistry components;
+		spk::RenderPassBucketPack passes;
+		spk::RenderFrameBuildContext frame{.passes = passes};
+		spk::SceneRenderPipeline pipeline;
 		const spk::Viewport viewport(spk::Rect2D(0, 0, 8, 8));
-		const spk::RenderFrameRequest request{
-			.mainTarget = {.frameBuffer = nullptr, .viewport = viewport}, .mainClear = {}};
-		spk::RenderFrameContext frame{.request = request, .components = components};
-		spk::RenderPass pass(spk::RenderPassDescription{.id = {.kind = spk::RenderPassKind::Auxiliary, .instance = 0, .debugName = "Probe"}, .target = request.mainTarget, .clear = {}, .phases = {p_phase}});
-		const spk::RenderPhaseContext context{
-			.frame = frame, .pass = pass.description(), .phase = p_phase, .passInstance = 0};
-		p_logics.renderPhase(context, pass, components);
-
+		const spk::SceneRenderFrameRequest request{.mainTarget = {.frameBuffer = nullptr, .viewport = viewport}, .mainClear = {}};
+		pipeline.buildPasses(frame, {3}, request, p_logics, components);
+		spk::RenderUnit unit = passes.build().compile();
 		std::vector<int> result;
-		for (auto &command : pass.takeCommands(p_phase))
+		for (const auto &command : unit.commands())
 		{
-			result.push_back(dynamic_cast<MarkerCommand &>(*command).marker);
+			if (const auto *marker = dynamic_cast<const MarkerCommand *>(command.get()); marker != nullptr)
+			{
+				result.push_back(marker->marker);
+			}
 		}
 		return result;
 	}
 }
 
-TEST(RenderContributorTest, LogicParticipatesOnlyInDeclaredPhases)
+TEST(RenderContributorTest, LogicIsCollectedOnceAndMayContributeToSeveralPasses)
 {
-	constexpr auto opaque = spk::renderPhaseBit(spk::RenderPhase::SceneOpaque);
 	spk::ComponentLogicRegistry logics;
-	auto &logic = logics.add<PhaseLogic<1, opaque>>();
-	EXPECT_EQ(dispatch(logics, spk::RenderPhase::SceneOpaque), (std::vector<int>{1}));
-	EXPECT_TRUE(dispatch(logics, spk::RenderPhase::SceneTransparent).empty());
+	auto &logic = logics.add<PassLogic<1, true>>();
+	EXPECT_EQ(renderMarkers(logics), (std::vector<int>{1, 10}));
 	EXPECT_EQ(logic.renderCalls, 1);
 }
 
-TEST(RenderContributorTest, OneLogicCanParticipateInMultiplePhases)
+TEST(RenderContributorTest, PassSpecificPriorityIsAscendingAndKeepsRegistrationOrderOnTies)
 {
-	constexpr auto phases = spk::renderPhaseBit(spk::RenderPhase::SceneOpaque) |
-							spk::renderPhaseBit(spk::RenderPhase::SceneTransparent);
 	spk::ComponentLogicRegistry logics;
-	auto &logic = logics.add<PhaseLogic<1, phases>>();
-	EXPECT_EQ(dispatch(logics, spk::RenderPhase::SceneOpaque), (std::vector<int>{1}));
-	EXPECT_EQ(dispatch(logics, spk::RenderPhase::SceneTransparent), (std::vector<int>{1}));
-	EXPECT_EQ(logic.renderCalls, 2);
+	auto &first = logics.add<PassLogic<1>>();
+	auto &second = logics.add<PassLogic<2>>();
+	EXPECT_EQ(renderMarkers(logics), (std::vector<int>{1, 2}));
+	second.setRenderPriority(spk::SceneRenderPasses::MainOpaque, -10);
+	EXPECT_EQ(renderMarkers(logics), (std::vector<int>{2, 1}));
+	first.setRenderPriority(spk::SceneRenderPasses::MainOpaque, -10);
+	EXPECT_EQ(renderMarkers(logics), (std::vector<int>{1, 2}));
 }
 
-TEST(RenderContributorTest, PhasePriorityIsLocalAndEqualPriorityKeepsRegistrationOrder)
+TEST(RenderContributorTest, RenderPriorityDoesNotChangeUpdateOrderingAndInactiveLogicDoesNothing)
 {
-	constexpr auto phases = spk::renderPhaseBit(spk::RenderPhase::SceneOpaque) |
-							spk::renderPhaseBit(spk::RenderPhase::SceneTransparent);
 	spk::ComponentLogicRegistry logics;
-	auto &first = logics.add<PhaseLogic<1, phases>>();
-	auto &second = logics.add<PhaseLogic<2, phases>>();
-	EXPECT_EQ(dispatch(logics, spk::RenderPhase::SceneOpaque), (std::vector<int>{1, 2}));
-
-	second.setRenderPriority(spk::RenderPhase::SceneOpaque, 10);
-	EXPECT_EQ(dispatch(logics, spk::RenderPhase::SceneOpaque), (std::vector<int>{2, 1}));
-	EXPECT_EQ(dispatch(logics, spk::RenderPhase::SceneTransparent), (std::vector<int>{1, 2}));
-
-	first.setRenderPriority(spk::RenderPhase::SceneOpaque, 10);
-	EXPECT_EQ(dispatch(logics, spk::RenderPhase::SceneOpaque), (std::vector<int>{1, 2}));
-}
-
-TEST(RenderContributorTest, RenderPriorityDoesNotChangeUpdateOrder)
-{
-	constexpr auto opaque = spk::renderPhaseBit(spk::RenderPhase::SceneOpaque);
-	spk::ComponentLogicRegistry logics;
-	logics.add<PhaseLogic<1, opaque>>();
-	auto &second = logics.add<PhaseLogic<2, opaque>>();
-	second.setRenderPriority(spk::RenderPhase::SceneOpaque, 100);
-
-	g_updates.clear();
+	logics.add<PassLogic<1>>();
+	auto &second = logics.add<PassLogic<2>>();
+	second.setRenderPriority(spk::SceneRenderPasses::MainOpaque, -100);
+	updates.clear();
 	spk::ComponentRegistry components;
-	logics.update(spk::UpdateContext{}, components);
-	EXPECT_EQ(g_updates, (std::vector<int>{1, 2}));
-	EXPECT_EQ(dispatch(logics, spk::RenderPhase::SceneOpaque), (std::vector<int>{2, 1}));
-}
-
-TEST(RenderContributorTest, InactiveClearDuplicateAndRepeatedDispatchAreDeterministic)
-{
-	constexpr auto opaque = spk::renderPhaseBit(spk::RenderPhase::SceneOpaque);
-	spk::ComponentLogicRegistry logics;
-	auto &first = logics.add<PhaseLogic<1, opaque>>();
-	EXPECT_EQ(&first, (&logics.add<PhaseLogic<1, opaque>>()));
-	logics.add<PhaseLogic<2, opaque>>().deactivate();
-	EXPECT_EQ(dispatch(logics, spk::RenderPhase::SceneOpaque), (std::vector<int>{1}));
-	EXPECT_EQ(dispatch(logics, spk::RenderPhase::SceneOpaque), (std::vector<int>{1}));
-	logics.clear();
-	EXPECT_EQ((logics.get<PhaseLogic<1, opaque>>()), nullptr);
-	EXPECT_TRUE(dispatch(logics, spk::RenderPhase::SceneOpaque).empty());
+	logics.update({}, components);
+	EXPECT_EQ(updates, (std::vector<int>{1, 2}));
+	second.deactivate();
+	EXPECT_EQ(renderMarkers(logics), (std::vector<int>{1}));
 }

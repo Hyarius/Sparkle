@@ -1,40 +1,47 @@
 @startuml
-title Scene render plan construction and execution
+title Priority-sorted render-pass bucket construction and execution
 
 participant GameEngineWidget as Widget
-participant GameEngine as Engine
 participant SceneRenderPipeline as Pipeline
-participant RenderPipelineBuilder as Builder
+participant ISceneRenderPipelineFeature as Feature
 participant ComponentLogicRegistry as Logics
+participant RenderPassBucketPack as Pack
+participant "widget traversal" as Widgets
 participant RenderPlan as Plan
 participant "render thread" as RenderThread
 
-Widget -> Engine : buildRenderUnit(request(target, viewport, clear))
-Engine -> Pipeline : buildPlan(request, logics, components)
-loop features in registration order
-	Pipeline -> Builder : append pre-main passes
+Widget -> Pack : install WidgetOverlay[windowScope]
+Widget -> Pipeline : buildPasses(shared frame, sceneScope, request)
+Pipeline -> Pack : install MainOpaque/Transparent/Overlay
+loop features
+  Pipeline -> Feature : prepareFrame(context)
+  Pipeline -> Feature : declarePasses(context, pack)
+  Feature -> Pack : emplace typed shadow/custom passes
 end
-Pipeline -> Builder : add MainScene pass
-loop PassSetup, SceneOpaque, SceneTransparent, SceneOverlay
-	Pipeline -> Logics : renderPhase(context, pass)
-	Logics -> Builder : phase-owned commands
+Pipeline -> Pipeline : contribute pass setup buckets
+loop features
+  Pipeline -> Feature : contribute(context)
 end
-loop features in registration order
-	Pipeline -> Builder : append post-main passes
-end
-Builder --> Pipeline : RenderPlan
-Pipeline --> Engine : inspectable plan
-Engine -> Plan : compile()
-Plan --> Engine : move-owned RenderUnit
-Engine --> Widget : RenderUnit
-Widget -> Widget : append default-target bind + flipped image
-RenderThread -> RenderThread : execute linear command snapshot
+Pipeline -> Logics : render(context) once per logic
+Logics -> Pack : require/find passes and contribute commands
+Widget -> Widgets : traverse hierarchy
+Widgets -> Pack : contribute viewport/scissor + cached widget units
+Pack -> Pack : seal contributions; stable sort priority/order
+Pack --> Plan : move polymorphic pass ownership
+Plan -> Plan : compile target/clear/commands
+Plan --> RenderThread : move-owned RenderUnit
+RenderThread -> RenderThread : execute immutable command snapshot
 
-note right of Plan
-Each pass compiles:
-target bind + viewport/scissor
-typed clear
-declared phases in order
+note right of Pack
+Pass key = type + scope + instance
+Pass order = priority + declaration order
+Contribution order = priority + registration order
+end note
+
+note right of Widgets
+GameEngineWidget scene renders off-screen.
+Its framebuffer image is a normal
+WidgetOverlay contribution.
 end note
 
 @enduml

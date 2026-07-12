@@ -10,11 +10,6 @@ namespace pg
 	class CameraControllerLogic : public spk::ComponentLogic<Actor>
 	{
 	public:
-		[[nodiscard]] spk::RenderPhaseMask renderPhases() const noexcept override
-		{
-			return spk::RenderPhaseMask::None;
-		}
-
 	private:
 		GameContext &_context;
 		spk::Camera3D &_camera;

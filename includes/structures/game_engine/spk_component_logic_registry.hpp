@@ -1,22 +1,24 @@
 #pragma once
 
 #include <algorithm>
-#include <array>
 #include <concepts>
 #include <memory>
 #include <stdexcept>
 #include <typeindex>
 #include <typeinfo>
+#include <tuple>
 #include <unordered_map>
 #include <utility>
 #include <vector>
 
+#include "structures/game_engine/rendering/spk_scene_render_passes.hpp"
+#include "structures/game_engine/rendering/spk_scene_render_priorities.hpp"
 #include "structures/game_engine/spk_camera_3d.hpp"
 #include "structures/game_engine/spk_component_logic.hpp"
 #include "structures/game_engine/spk_component_registry.hpp"
 #include "structures/graphics/rendering/command/spk_camera_update_render_command.hpp"
 #include "structures/graphics/rendering/command/spk_directional_light_update_render_command.hpp"
-#include "structures/graphics/rendering/pipeline/spk_render_plan.hpp"
+#include "structures/graphics/rendering/pass/spk_render_pass_bucket_pack.hpp"
 #include "structures/graphics/spk_directional_light.hpp"
 
 namespace spk
@@ -24,16 +26,11 @@ namespace spk
 	class ComponentLogicRegistry
 	{
 	private:
-		static constexpr std::size_t PhaseCount = static_cast<std::size_t>(spk::RenderPhase::Count);
-
 		std::vector<std::unique_ptr<spk::IComponentLogic>> _logics;
 		std::unordered_map<std::type_index, spk::IComponentLogic *> _lookup;
 		std::vector<spk::IComponentLogic *> _updateEventOrder;
-		std::array<std::vector<spk::IComponentLogic *>, PhaseCount> _renderContributors;
 		std::vector<spk::PriorizableTrait::Contract> _priorityContracts;
-		std::vector<spk::IComponentLogic::RenderPriorityContract> _renderPriorityContracts;
 		bool _updateEventOrderDirty = false;
-		std::array<bool, PhaseCount> _renderOrderDirty{};
 
 		void _ensureUpdateEventSorted()
 		{
@@ -53,32 +50,6 @@ namespace spk
 			_updateEventOrderDirty = false;
 		}
 
-		void _ensureRenderSorted(RenderPhase p_phase)
-		{
-			const std::size_t index = static_cast<std::size_t>(p_phase);
-			if (index >= PhaseCount)
-			{
-				throw std::invalid_argument("Invalid render phase");
-			}
-			if (!_renderOrderDirty[index])
-			{
-				return;
-			}
-			auto &contributors = _renderContributors[index];
-			contributors.clear();
-			for (const auto &logic : _logics)
-			{
-				if (containsRenderPhase(logic->renderPhases(), p_phase))
-				{
-					contributors.push_back(logic.get());
-				}
-			}
-			std::stable_sort(contributors.begin(), contributors.end(), [p_phase](const auto *p_lhs, const auto *p_rhs) {
-				return p_lhs->renderPriority(p_phase) > p_rhs->renderPriority(p_phase);
-			});
-			_renderOrderDirty[index] = false;
-		}
-
 	public:
 		ComponentLogicRegistry() = default;
 		~ComponentLogicRegistry() = default;
@@ -89,17 +60,11 @@ namespace spk
 
 		void clear()
 		{
-			_renderPriorityContracts.clear();
 			_priorityContracts.clear();
 			_lookup.clear();
 			_updateEventOrder.clear();
-			for (auto &contributors : _renderContributors)
-			{
-				contributors.clear();
-			}
 			_logics.clear();
 			_updateEventOrderDirty = false;
-			_renderOrderDirty.fill(false);
 		}
 
 		template <typename TLogic, typename... TArguments>
@@ -114,39 +79,13 @@ namespace spk
 
 			auto logic = std::make_unique<TLogic>(std::forward<TArguments>(p_arguments)...);
 			TLogic &result = *logic;
-			const RenderPhaseMask phases = result.renderPhases();
-			if ((phases & ~allRenderPhases()) != RenderPhaseMask::None)
-			{
-				throw std::invalid_argument("Component logic declares an invalid render phase mask");
-			}
-
-			_priorityContracts.push_back(result.subscribeToPriorityChange([this, logicPointer = logic.get()]() {
+			_priorityContracts.push_back(result.subscribeToPriorityChange([this]() {
 				_updateEventOrderDirty = true;
-				for (std::size_t index = 0; index < PhaseCount; ++index)
-				{
-					if (containsRenderPhase(logicPointer->renderPhases(), static_cast<RenderPhase>(index)))
-					{
-						_renderOrderDirty[index] = true;
-					}
-				}
-			}));
-			_renderPriorityContracts.push_back(result.subscribeToRenderPriorityChange([this](RenderPhase p_phase) {
-				if (p_phase < RenderPhase::Count)
-				{
-					_renderOrderDirty[static_cast<std::size_t>(p_phase)] = true;
-				}
 			}));
 
 			_lookup.emplace(typeIndex, logic.get());
 			_logics.push_back(std::move(logic));
 			_updateEventOrderDirty = true;
-			for (std::size_t index = 0; index < PhaseCount; ++index)
-			{
-				if (containsRenderPhase(phases, static_cast<RenderPhase>(index)))
-				{
-					_renderOrderDirty[index] = true;
-				}
-			}
 			return result;
 		}
 
@@ -178,20 +117,20 @@ namespace spk
 			}
 		}
 
-		void renderPhase(
-			const spk::RenderPhaseContext &p_context,
-			spk::RenderPass &p_pass,
+		void render(
+			const spk::SceneRenderBuildContext &p_context,
 			spk::ComponentRegistry &p_registry)
 		{
-			_ensureRenderSorted(p_context.phase);
-			for (spk::IComponentLogic *logic : _renderContributors[static_cast<std::size_t>(p_context.phase)])
+			for (std::size_t index = 0; index < _logics.size(); ++index)
 			{
+				spk::IComponentLogic *logic = _logics[index].get();
 				if (logic == nullptr || !logic->isActivated())
 				{
 					continue;
 				}
-				p_pass.recordContributor(p_context.phase);
-				logic->onRenderPhase(p_context, p_pass, p_registry);
+				spk::SceneRenderBuildContext logicContext = p_context;
+				logicContext.contributorRegistrationOrder = index;
+				logic->onRender(logicContext, p_registry);
 			}
 		}
 
@@ -201,36 +140,40 @@ namespace spk
 		void render(spk::RenderUnitBuilder &p_builder, spk::ComponentRegistry &p_registry)
 		{
 			const spk::Viewport viewport(spk::Rect2D(0, 0, 1, 1));
-			const spk::RenderFrameRequest request{
-				.mainTarget = spk::RenderTargetReference{.frameBuffer = nullptr, .viewport = viewport},
+			const spk::SceneRenderFrameRequest request{
+				.mainTarget = spk::RenderTargetReference{.frameBuffer = nullptr, .viewport = viewport, .activeTarget = true},
 				.mainClear = {}};
-			spk::RenderFrameContext frame{
-				.request = request, .components = p_registry, .mainCamera = spk::Camera3D::mainCamera()};
-			spk::RenderPass pass(spk::RenderPassDescription{.id = {.kind = spk::RenderPassKind::MainScene, .instance = 0, .debugName = "CompatibilityMain"}, .target = request.mainTarget, .clear = {}, .phases = {spk::RenderPhase::PassSetup, spk::RenderPhase::SceneOpaque, spk::RenderPhase::SceneTransparent, spk::RenderPhase::SceneOverlay}});
-			if (frame.mainCamera != nullptr)
+			spk::RenderPassBucketPack passes;
+			spk::RenderFrameBuildContext frame{.passes = passes};
+			const spk::RenderPass::ScopeId scope = spk::RenderPass::ScopeId::generate();
+			for (const auto [type, priority, name] : {
+					 std::tuple{spk::SceneRenderPasses::MainOpaque, spk::SceneRenderPriorities::MainOpaque, "CompatibilityOpaque"},
+					 std::tuple{spk::SceneRenderPasses::MainTransparent, spk::SceneRenderPriorities::MainTransparent, "CompatibilityTransparent"},
+					 std::tuple{spk::SceneRenderPasses::MainOverlay, spk::SceneRenderPriorities::MainOverlay, "CompatibilityOverlay"}})
 			{
-				pass.emplace<spk::CameraUpdateRenderCommand>(
-					spk::RenderPhase::PassSetup, 1u, frame.mainCamera->viewProjectionMatrix());
-				pass.emplace<spk::DirectionalLightUpdateRenderCommand>(
-					spk::RenderPhase::PassSetup,
-					3u,
-					spk::DirectionalLight{
-						.direction = spk::Vector3(1.0f, -2.0f, 0.5f).normalized(),
-						.color = spk::Color(1.0f, 0.95f, 0.85f),
-						.ambient = 0.35f});
+				passes.emplacePass<spk::RenderPass>({.type = type, .scope = scope}, priority, name, {.debugName = name, .target = request.mainTarget, .clear = {}});
 			}
-			for (spk::RenderPhase phase : pass.description().phases)
+			spk::Camera3D *mainCamera = spk::Camera3D::mainCamera();
+			if (mainCamera != nullptr)
 			{
-				const spk::RenderPhaseContext context{
-					.frame = frame,
-					.pass = pass.description(),
-					.phase = phase,
-					.passInstance = 0};
-				renderPhase(context, pass, p_registry);
-				for (auto &command : pass.takeCommands(phase))
+				for (const auto type : {spk::SceneRenderPasses::MainOpaque, spk::SceneRenderPasses::MainTransparent, spk::SceneRenderPasses::MainOverlay})
 				{
-					p_builder.add(std::move(command));
+					auto setup = passes.require({.type = type, .scope = scope}).contribute(spk::RenderContributionPriorities::PassSetup, 0);
+					setup.emplace<spk::CameraUpdateRenderCommand>(1u, mainCamera->viewProjectionMatrix());
+					setup.emplace<spk::DirectionalLightUpdateRenderCommand>(
+						3u,
+						spk::DirectionalLight{
+							.direction = spk::Vector3(1.0f, -2.0f, 0.5f).normalized(),
+							.color = spk::Color(1.0f, 0.95f, 0.85f),
+							.ambient = 0.35f});
 				}
+			}
+			spk::SceneRenderBuildContext context{.frame = frame, .sceneScope = scope, .request = request, .components = p_registry, .mainCamera = mainCamera};
+			render(context, p_registry);
+			spk::RenderUnit unit = passes.build().compile();
+			for (auto &command : unit.takeCommands())
+			{
+				p_builder.add(std::move(command));
 			}
 		}
 

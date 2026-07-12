@@ -7,11 +7,12 @@
 
 #include "structures/container/spk_uuid.hpp"
 #include "structures/design_pattern/spk_activable_trait.hpp"
+#include "structures/game_engine/rendering/spk_scene_render_pipeline.hpp"
 #include "structures/game_engine/spk_component_logic_registry.hpp"
 #include "structures/game_engine/spk_component_registry.hpp"
 #include "structures/game_engine/spk_entity.hpp"
-#include "structures/graphics/rendering/pipeline/spk_scene_render_pipeline.hpp"
 #include "structures/graphics/rendering/unit/spk_render_unit_builder.hpp"
+#include "structures/graphics/rendering/plan/spk_render_plan.hpp"
 
 namespace spk
 {
@@ -28,6 +29,7 @@ namespace spk
 		spk::ComponentRegistry _components{_id};
 		spk::ComponentLogicRegistry _logicRegistry;
 		spk::SceneRenderPipeline _renderPipeline;
+		spk::RenderPass::ScopeId _renderScope = spk::RenderPass::ScopeId::generate();
 		spk::Profiler *_profiler = nullptr;
 		std::size_t _frameIndex = 0;
 
@@ -67,8 +69,9 @@ namespace spk
 		[[nodiscard]] spk::SceneRenderPipeline &renderPipeline() noexcept;
 		[[nodiscard]] const spk::SceneRenderPipeline &renderPipeline() const noexcept;
 
-		[[nodiscard]] spk::RenderPlan buildRenderPlan(const spk::RenderFrameRequest &p_request);
-		[[nodiscard]] spk::RenderUnit buildRenderUnit(const spk::RenderFrameRequest &p_request);
+		void contributeRenderPasses(spk::RenderFrameBuildContext &p_frame, const spk::SceneRenderFrameRequest &p_request);
+		[[nodiscard]] spk::RenderPlan buildRenderPlan(const spk::SceneRenderFrameRequest &p_request);
+		[[nodiscard]] spk::RenderUnit buildRenderUnit(const spk::SceneRenderFrameRequest &p_request);
 
 		template <typename TLogic, typename... TArguments>
 			requires std::derived_from<TLogic, spk::IComponentLogic>

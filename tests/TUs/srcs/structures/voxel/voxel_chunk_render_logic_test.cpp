@@ -5,6 +5,7 @@
 #include "structures/game_engine/spk_camera_3d.hpp"
 #include "structures/game_engine/spk_entity_3d.hpp"
 #include "structures/game_engine/spk_game_engine.hpp"
+#include "structures/game_engine/rendering/spk_scene_render_passes.hpp"
 #include "structures/game_engine/spk_texture_mesh_render_logic.hpp"
 #include "structures/game_engine/spk_texture_mesh_renderer_3d.hpp"
 #include "structures/graphics/geometry/spk_primitive_object.hpp"
@@ -36,11 +37,8 @@ TEST(VoxelChunkRenderLogic, TransparentChunksRenderAfterOpaqueActors)
 
 	EXPECT_EQ(opaqueChunks.priority(), actors.priority());
 	EXPECT_EQ(actors.priority(), transparentChunks.priority());
-	EXPECT_TRUE(spk::containsRenderPhase(opaqueChunks.renderPhases(), spk::RenderPhase::SceneOpaque));
-	EXPECT_TRUE(spk::containsRenderPhase(actors.renderPhases(), spk::RenderPhase::SceneOpaque));
-	EXPECT_TRUE(spk::containsRenderPhase(actors.renderPhases(), spk::RenderPhase::SceneTransparent));
-	EXPECT_TRUE(spk::containsRenderPhase(transparentChunks.renderPhases(), spk::RenderPhase::SceneTransparent));
-	EXPECT_FALSE(spk::containsRenderPhase(transparentChunks.renderPhases(), spk::RenderPhase::SceneOpaque));
+	EXPECT_EQ(opaqueChunks.renderPriority(spk::SceneRenderPasses::MainOpaque), actors.renderPriority(spk::SceneRenderPasses::MainOpaque));
+	EXPECT_EQ(actors.renderPriority(spk::SceneRenderPasses::MainTransparent), transparentChunks.renderPriority(spk::SceneRenderPasses::MainTransparent));
 
 	spk::VoxelMap map(
 		registry,
@@ -61,20 +59,25 @@ TEST(VoxelChunkRenderLogic, TransparentChunksRenderAfterOpaqueActors)
 	camera.makeMain();
 	engine.logicRegistry().update(spk::UpdateContext{}, engine.componentRegistry());
 
-	spk::RenderUnitBuilder builder;
-	engine.logicRegistry().render(builder, engine.componentRegistry());
-	const spk::RenderUnit renderUnit = builder.build();
+	const spk::Viewport viewport(spk::Rect2D(0, 0, 16, 16));
+	const spk::RenderUnit renderUnit = engine.buildRenderUnit({.mainTarget = {.frameBuffer = nullptr, .viewport = viewport}, .mainClear = {}});
 	const auto &commands = renderUnit.commands();
-	ASSERT_EQ(commands.size(), 5u);
-	EXPECT_NE(dynamic_cast<const spk::CameraUpdateRenderCommand *>(commands[0].get()), nullptr);
-	EXPECT_NE(dynamic_cast<const spk::DirectionalLightUpdateRenderCommand *>(commands[1].get()), nullptr);
-
-	const auto *opaqueVoxel = dynamic_cast<const spk::DrawVoxelMesh3DRenderCommand *>(commands[2].get());
+	std::vector<const spk::RenderCommand *> draws;
+	for (const auto &command : commands)
+	{
+		if (dynamic_cast<const spk::DrawVoxelMesh3DRenderCommand *>(command.get()) != nullptr ||
+			dynamic_cast<const spk::DrawTextureMesh3DRenderCommand *>(command.get()) != nullptr)
+		{
+			draws.push_back(command.get());
+		}
+	}
+	ASSERT_EQ(draws.size(), 3u);
+	const auto *opaqueVoxel = dynamic_cast<const spk::DrawVoxelMesh3DRenderCommand *>(draws[0]);
 	ASSERT_NE(opaqueVoxel, nullptr);
 	EXPECT_FALSE(opaqueVoxel->translucent());
-	EXPECT_NE(dynamic_cast<const spk::DrawTextureMesh3DRenderCommand *>(commands[3].get()), nullptr);
+	EXPECT_NE(dynamic_cast<const spk::DrawTextureMesh3DRenderCommand *>(draws[1]), nullptr);
 
-	const auto *transparentVoxel = dynamic_cast<const spk::DrawVoxelMesh3DRenderCommand *>(commands[4].get());
+	const auto *transparentVoxel = dynamic_cast<const spk::DrawVoxelMesh3DRenderCommand *>(draws[2]);
 	ASSERT_NE(transparentVoxel, nullptr);
 	EXPECT_TRUE(transparentVoxel->translucent());
 }

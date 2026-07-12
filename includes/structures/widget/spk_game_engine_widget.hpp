@@ -23,6 +23,7 @@ namespace spk
 	protected:
 		void _onUpdate(const spk::UpdateContext &p_tick) override;
 		[[nodiscard]] spk::RenderUnit _buildRenderUnit() const override;
+		void _contributeAdditionalRenderPasses(const spk::WidgetRenderBuildContext &p_context) const override;
 		void _onGeometryChange() override;
 
 		void _onWindowCloseRequestedEvent(spk::WindowCloseRequestedEvent &p_event) override;

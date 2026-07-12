@@ -31,7 +31,7 @@ namespace spk
 		}
 	};
 
-	struct RenderPassDescription
+	struct RenderPass::Description
 	{
 		RenderPassId id;
 		RenderTargetReference target;
@@ -58,21 +58,21 @@ namespace spk
 			std::size_t contributorCount = 0;
 		};
 
-		RenderPassDescription _description;
+		RenderPass::Description _description;
 		std::vector<PhaseCommands> _phaseCommands;
 
 		[[nodiscard]] PhaseCommands &_commandsFor(RenderPhase p_phase);
 		[[nodiscard]] const PhaseCommands &_commandsFor(RenderPhase p_phase) const;
 
 	public:
-		explicit RenderPass(RenderPassDescription p_description);
+		explicit RenderPass(RenderPass::Description p_description);
 
 		RenderPass(const RenderPass &) = delete;
 		RenderPass &operator=(const RenderPass &) = delete;
 		RenderPass(RenderPass &&) noexcept = default;
 		RenderPass &operator=(RenderPass &&) noexcept = delete;
 
-		[[nodiscard]] const RenderPassDescription &description() const noexcept;
+		[[nodiscard]] const RenderPass::Description &description() const noexcept;
 		[[nodiscard]] bool declares(RenderPhase p_phase) const noexcept;
 		[[nodiscard]] std::size_t commandCount(RenderPhase p_phase) const;
 		[[nodiscard]] std::size_t contributorCount(RenderPhase p_phase) const;
@@ -92,6 +92,6 @@ namespace spk
 		}
 	};
 
-	void validateRenderPassDescription(const RenderPassDescription &p_description);
+	void validateRenderPassDescription(const RenderPass::Description &p_description);
 	[[nodiscard]] std::string renderPassDisplayName(const RenderPassId &p_id);
 }

@@ -22,10 +22,6 @@ namespace spk
 	{
 	public:
 		static constexpr spk::PriorizableTrait::Priority DefaultPriority = 100;
-		[[nodiscard]] spk::RenderPhaseMask renderPhases() const noexcept override
-		{
-			return spk::RenderPhaseMask::None;
-		}
 		// Bounds total coordinate expansion, activation, and owned-chunk release across
 		// every streamer/map handled by one update.
 		static constexpr std::size_t MaximumRequestedChunksPerUpdate =

@@ -3,11 +3,15 @@
 #include "structures/game_engine/spk_game_engine.hpp"
 #include "structures/graphics/opengl/spk_opengl_clear_command.hpp"
 #include "structures/graphics/rendering/command/spk_image_render_command.hpp"
+#include "structures/graphics/rendering/command/spk_render_unit_render_command.hpp"
 #include "structures/graphics/rendering/command/spk_use_framebuffer_render_command.hpp"
+#include "structures/graphics/rendering/snapshot/spk_render_snapshot_builder.hpp"
 #include "structures/system/device/input/spk_keyboard.hpp"
 #include "structures/system/device/input/spk_mouse.hpp"
 #include "structures/system/event/spk_events.hpp"
 #include "structures/widget/spk_game_engine_widget.hpp"
+#include "structures/widget/rendering/spk_widget_render_passes.hpp"
+#include "structures/game_engine/rendering/spk_scene_render_passes.hpp"
 
 namespace
 {
@@ -140,27 +144,68 @@ TEST(GameEngineWidgetTest, BuildsFrameBufferPassthroughWhenSized)
 {
 	spk::GameEngineWidget widget("Game");
 	widget.setGeometry(spk::Rect2D(0, 0, 32, 32));
+	widget.activate();
 
 	auto renderUnit = widget.renderUnit();
 
 	ASSERT_NE(renderUnit, nullptr);
-	// The engine renders into an off-screen framebuffer that is then blitted onto
-	// the widget. With an empty engine the unit is the scaffolding only: bind the
-	// framebuffer, clear it, return to the screen and blit the color attachment.
-	EXPECT_EQ(renderUnit->size(), 4u);
-	const auto *mainBind = dynamic_cast<const spk::UseFrameBufferRenderCommand *>(renderUnit->commands()[0].get());
-	ASSERT_NE(mainBind, nullptr);
-	EXPECT_EQ(mainBind->target(), &widget.frameBuffer());
-	EXPECT_EQ(mainBind->viewport().geometry(), widget.frameBuffer().viewport().geometry());
-	const auto *mainClear = dynamic_cast<const spk::ClearCommand *>(renderUnit->commands()[1].get());
-	ASSERT_NE(mainClear, nullptr);
-	EXPECT_EQ(mainClear->mask(), GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-	EXPECT_FLOAT_EQ(mainClear->depth(), 1.0f);
-	EXPECT_EQ(mainClear->stencil(), 0u);
-	const auto *screenBind = dynamic_cast<const spk::UseFrameBufferRenderCommand *>(renderUnit->commands()[2].get());
-	ASSERT_NE(screenBind, nullptr);
-	EXPECT_EQ(screenBind->target(), nullptr);
-	EXPECT_NE(dynamic_cast<const spk::ImageRenderCommand *>(renderUnit->commands()[3].get()), nullptr);
+	// The cached widget unit now owns only the composition image. Scene work is
+	// declared into the shared frame pack during widget traversal.
+	ASSERT_EQ(renderUnit->size(), 1u);
+	EXPECT_NE(dynamic_cast<const spk::ImageRenderCommand *>(renderUnit->commands()[0].get()), nullptr);
+
+	spk::RenderSnapshotBuilder snapshot;
+	widget.appendRenderUnits(snapshot);
+	ASSERT_EQ(snapshot.units().size(), 1u);
+	const auto &commands = snapshot.units()[0]->commands();
+	std::size_t firstSceneBind = commands.size();
+	std::size_t composition = commands.size();
+	for (std::size_t index = 0; index < commands.size(); ++index)
+	{
+		if (const auto *bind = dynamic_cast<const spk::UseFrameBufferRenderCommand *>(commands[index].get());
+			bind != nullptr && bind->target() == &widget.frameBuffer() && firstSceneBind == commands.size())
+		{
+			firstSceneBind = index;
+		}
+		if (const auto *nested = dynamic_cast<const spk::RenderUnitRenderCommand *>(commands[index].get());
+			nested != nullptr && nested->unit() == renderUnit)
+		{
+			composition = index;
+		}
+	}
+	EXPECT_LT(firstSceneBind, composition);
+}
+
+TEST(GameEngineWidgetTest, SharedPlanOrdersScenePassesBeforeWidgetOverlay)
+{
+	spk::GameEngineWidget widget("Game");
+	widget.setGeometry(spk::Rect2D(0, 0, 32, 32));
+	widget.activate();
+	spk::RenderPlan plan = widget.buildRenderPlan(
+		{.frameBuffer = nullptr, .viewport = widget.viewport(), .activeTarget = true});
+	const auto diagnostics = plan.diagnostics();
+	ASSERT_EQ(diagnostics.size(), 4u);
+	EXPECT_EQ(diagnostics[0].key.type, spk::SceneRenderPasses::MainOpaque);
+	EXPECT_EQ(diagnostics[1].key.type, spk::SceneRenderPasses::MainTransparent);
+	EXPECT_EQ(diagnostics[2].key.type, spk::SceneRenderPasses::MainOverlay);
+	EXPECT_EQ(diagnostics[3].key.type, spk::WidgetRenderPasses::Overlay);
+	EXPECT_TRUE(diagnostics[0].clear.color.has_value());
+	EXPECT_FALSE(diagnostics[1].clear.color.has_value());
+	EXPECT_FALSE(diagnostics[2].clear.color.has_value());
+}
+
+TEST(WidgetOverlayPassTest, RootWidgetsOwnDistinctOverlayScopes)
+{
+	spk::Widget first("First");
+	spk::Widget second("Second");
+	first.setGeometry(spk::Rect2D(0, 0, 8, 8));
+	second.setGeometry(spk::Rect2D(0, 0, 8, 8));
+	spk::RenderPlan firstPlan = first.buildRenderPlan({.frameBuffer = nullptr, .viewport = first.viewport(), .activeTarget = true});
+	spk::RenderPlan secondPlan = second.buildRenderPlan({.frameBuffer = nullptr, .viewport = second.viewport(), .activeTarget = true});
+	ASSERT_EQ(firstPlan.size(), 1u);
+	ASSERT_EQ(secondPlan.size(), 1u);
+	EXPECT_EQ(firstPlan.passes()[0]->key().type, spk::WidgetRenderPasses::Overlay);
+	EXPECT_NE(firstPlan.passes()[0]->key().scope, secondPlan.passes()[0]->key().scope);
 }
 
 TEST(GameEngineWidgetTest, UsesExplicitSampleableColorAndRenderbufferDepthTarget)

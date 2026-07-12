@@ -7,6 +7,8 @@
 
 #include "structures/game_engine/spk_camera_3d.hpp"
 #include "structures/game_engine/spk_game_engine.hpp"
+#include "structures/game_engine/rendering/spk_scene_render_passes.hpp"
+#include "structures/graphics/rendering/pass/spk_render_pass_bucket_pack.hpp"
 #include "structures/graphics/rendering/unit/spk_render_unit_builder.hpp"
 #include "structures/graphics/spk_texture.hpp"
 #include "structures/math/spk_perlin.hpp"
@@ -171,24 +173,31 @@ TEST(VoxelRenderPerformance, BakesAnEightByEightChunkSquareWithinBudget)
 		}
 	}
 
-	logic._onRenderStarted(map.loadedChunkCount());
+	spk::RenderPassBucketPack passes;
+	spk::RenderFrameBuildContext frame{.passes = passes};
+	const spk::RenderPass::ScopeId scope{1};
+	const spk::Viewport viewport(spk::Rect2D(0, 0, 1, 1));
+	const spk::SceneRenderFrameRequest request{.mainTarget = {.frameBuffer = nullptr, .viewport = viewport}, .mainClear = {}};
+	auto &opaquePass = passes.emplacePass<spk::RenderPass>(
+		{.type = spk::SceneRenderPasses::MainOpaque, .scope = scope}, 1000, "MainOpaque",
+		{.debugName = "MainOpaque", .target = request.mainTarget, .clear = {}});
+	const spk::SceneRenderBuildContext renderContext{.frame = frame, .sceneScope = scope, .request = request, .components = engine.componentRegistry(), .mainCamera = &camera};
+	logic._onRenderStarted(renderContext, map.loadedChunkCount());
 	for (spk::Component *component : renderers)
 	{
 		if (component != nullptr)
 		{
-			logic._parseComponentForRender(*static_cast<spk::VoxelChunkRenderer *>(component));
+			logic._parseComponentForRender(renderContext, *static_cast<spk::VoxelChunkRenderer *>(component));
 		}
 	}
-	spk::RenderUnitBuilder builder;
-	logic._executeRender(builder);
+	logic._executeRender(renderContext);
 
 	const spk::Duration elapsed = chronometer.elapsedTime();
 
-	EXPECT_EQ(builder.size(), static_cast<std::size_t>(ChunkSpan * ChunkSpan));
-	EXPECT_FALSE(builder.empty());
+	EXPECT_EQ(opaquePass.commandCount(), static_cast<std::size_t>(ChunkSpan * ChunkSpan));
 
 	std::cout << "[ PERF     ] 8x8 chunk render pass: " << elapsed.milliseconds() << " ms ("
-			  << generatedVoxelCount << " voxels, " << triangleCount << " triangles in " << builder.size() << " meshes)" << std::endl;
+			  << generatedVoxelCount << " voxels, " << triangleCount << " triangles in " << opaquePass.commandCount() << " meshes)" << std::endl;
 	std::cout << "[ PERF     ] 8x8 chunk generation: " << generationElapsed.milliseconds() << " ms" << std::endl;
 
 	EXPECT_LT(generationElapsed.milliseconds(), MaximumGenerationMilliseconds);

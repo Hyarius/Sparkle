@@ -1,20 +1,22 @@
 #pragma once
 
 #include <algorithm>
-#include <array>
 #include <concepts>
 #include <cstddef>
 #include <optional>
 #include <stdexcept>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
 #include "structures/design_pattern/spk_activable_trait.hpp"
 #include "structures/design_pattern/spk_priorizable_trait.hpp"
+#include "structures/game_engine/rendering/spk_scene_render_build_context.hpp"
+#include "structures/game_engine/rendering/spk_scene_render_passes.hpp"
 #include "structures/game_engine/spk_component.hpp"
 #include "structures/game_engine/spk_component_registry.hpp"
-#include "structures/graphics/rendering/pipeline/spk_render_pass.hpp"
 #include "structures/graphics/rendering/unit/spk_render_unit_builder.hpp"
+#include "structures/graphics/rendering/pass/spk_render_pass_bucket_pack.hpp"
 #include "structures/system/event/spk_events.hpp"
 #include "structures/system/event/spk_update_context.hpp"
 
@@ -28,9 +30,8 @@ namespace spk
 
 	private:
 		virtual void onUpdate(const spk::UpdateContext &p_tick, spk::ComponentRegistry &p_registry) = 0;
-		virtual void onRenderPhase(
-			const spk::RenderPhaseContext &p_context,
-			spk::RenderPass &p_pass,
+		virtual void onRender(
+			const spk::SceneRenderBuildContext &p_context,
 			spk::ComponentRegistry &p_registry) = 0;
 
 		virtual void onEvent(spk::WindowCloseRequestedEvent &p_event, spk::ComponentRegistry &p_registry) = 0;
@@ -55,12 +56,8 @@ namespace spk
 	protected:
 		IComponentLogic();
 
-	public:
-		using RenderPriorityContract = spk::ContractProvider<spk::RenderPhase>::Contract;
-
 	private:
-		std::array<std::optional<spk::PriorizableTrait::Priority>, static_cast<std::size_t>(spk::RenderPhase::Count)> _renderPriorities{};
-		spk::ContractProvider<spk::RenderPhase> _renderPriorityChangeProvider;
+		std::unordered_map<spk::RenderPass::TypeId, spk::PriorizableTrait::Priority> _renderPriorities;
 
 	public:
 		~IComponentLogic() override;
@@ -71,42 +68,15 @@ namespace spk
 		IComponentLogic(IComponentLogic &&) noexcept = delete;
 		IComponentLogic &operator=(IComponentLogic &&) noexcept = delete;
 
-		// Compatibility defaults un-migrated logics to opaque scene work. All
-		// engine render logics override this declaration explicitly.
-		[[nodiscard]] virtual spk::RenderPhaseMask renderPhases() const noexcept
+		void setRenderPriority(spk::RenderPass::TypeId p_passType, spk::PriorizableTrait::Priority p_priority)
 		{
-			return spk::renderPhaseBit(spk::RenderPhase::SceneOpaque);
+			_renderPriorities[p_passType] = p_priority;
 		}
 
-		void setRenderPriority(spk::RenderPhase p_phase, spk::PriorizableTrait::Priority p_priority)
+		[[nodiscard]] spk::PriorizableTrait::Priority renderPriority(spk::RenderPass::TypeId p_passType) const noexcept
 		{
-			if (p_phase >= spk::RenderPhase::Count)
-			{
-				throw std::invalid_argument("Invalid render phase priority");
-			}
-			auto &priority = _renderPriorities[static_cast<std::size_t>(p_phase)];
-			if (priority.has_value() && *priority == p_priority)
-			{
-				return;
-			}
-			priority = p_priority;
-			_renderPriorityChangeProvider.trigger(p_phase);
-		}
-
-		[[nodiscard]] spk::PriorizableTrait::Priority renderPriority(spk::RenderPhase p_phase) const noexcept
-		{
-			if (p_phase >= spk::RenderPhase::Count)
-			{
-				return priority();
-			}
-			const auto &value = _renderPriorities[static_cast<std::size_t>(p_phase)];
-			return value.value_or(priority());
-		}
-
-		[[nodiscard]] RenderPriorityContract subscribeToRenderPriorityChange(
-			spk::ContractProvider<spk::RenderPhase>::Callback p_callback)
-		{
-			return _renderPriorityChangeProvider.subscribe(std::move(p_callback));
+			auto iterator = _renderPriorities.find(p_passType);
+			return iterator == _renderPriorities.end() ? priority() : iterator->second;
 		}
 	};
 
@@ -170,9 +140,8 @@ namespace spk
 			_executeUpdate(p_tick);
 		}
 
-		void onRenderPhase(
-			const spk::RenderPhaseContext &p_context,
-			spk::RenderPass &p_pass,
+		void onRender(
+			const spk::SceneRenderBuildContext &p_context,
 			spk::ComponentRegistry &p_registry) final
 		{
 			if (isActivated() == false)
@@ -188,7 +157,7 @@ namespace spk
 					return p_component != nullptr && p_component->isProcessable() == true;
 				}));
 
-			_onRenderPhaseStarted(p_context, componentCount);
+			_onRenderStarted(p_context, componentCount);
 
 			for (spk::Component *component : components)
 			{
@@ -198,7 +167,7 @@ namespace spk
 				}
 			}
 
-			_executeRender(p_context, p_pass);
+			_executeRender(p_context);
 		}
 
 		void onEvent(spk::WindowCloseRequestedEvent &p_event, spk::ComponentRegistry &p_registry) final
@@ -292,6 +261,21 @@ namespace spk
 		}
 
 	protected:
+		// Compatibility hooks are collected once and explicitly mapped to MainOpaque.
+		// New render logics should override the context-aware hooks below.
+		virtual void _onRenderStarted(std::size_t p_componentCount)
+		{
+			(void)p_componentCount;
+		}
+		virtual void _parseComponentForRender(TComponent &p_component)
+		{
+			(void)p_component;
+		}
+		virtual void _executeRender(spk::RenderUnitBuilder &p_builder)
+		{
+			(void)p_builder;
+		}
+
 		virtual void _onUpdateStarted(const spk::UpdateContext &p_tick)
 		{
 			(void)p_tick;
@@ -306,37 +290,30 @@ namespace spk
 			(void)p_tick;
 		}
 
-		virtual void _onRenderStarted(std::size_t p_componentCount)
-		{
-			(void)p_componentCount;
-		}
-		virtual void _parseComponentForRender(TComponent &p_component)
-		{
-			(void)p_component;
-		}
-		virtual void _executeRender(spk::RenderUnitBuilder &p_builder)
-		{
-			(void)p_builder;
-		}
-
-		virtual void _onRenderPhaseStarted(const spk::RenderPhaseContext &p_context, std::size_t p_componentCount)
+		virtual void _onRenderStarted(const spk::SceneRenderBuildContext &p_context, std::size_t p_componentCount)
 		{
 			(void)p_context;
 			_onRenderStarted(p_componentCount);
 		}
-		virtual void _parseComponentForRender(const spk::RenderPhaseContext &p_context, TComponent &p_component)
+		virtual void _parseComponentForRender(const spk::SceneRenderBuildContext &p_context, TComponent &p_component)
 		{
 			(void)p_context;
 			_parseComponentForRender(p_component);
 		}
-		virtual void _executeRender(const spk::RenderPhaseContext &p_context, spk::RenderPass &p_pass)
+		virtual void _executeRender(const spk::SceneRenderBuildContext &p_context)
 		{
-			spk::RenderUnitBuilder compatibilityBuilder;
-			_executeRender(compatibilityBuilder);
-			spk::RenderUnit unit = compatibilityBuilder.build();
-			for (std::unique_ptr<spk::RenderCommand> &command : unit.takeCommands())
+			spk::RenderUnitBuilder builder;
+			_executeRender(builder);
+			spk::RenderUnit unit = builder.build();
+			if (unit.empty())
 			{
-				p_pass.add(p_context.phase, std::move(command));
+				return;
+			}
+			auto &pass = p_context.frame.passes.require({.type = spk::SceneRenderPasses::MainOpaque, .scope = p_context.sceneScope});
+			auto commands = pass.contribute(renderPriority(spk::SceneRenderPasses::MainOpaque), p_context.contributorRegistrationOrder);
+			for (auto &command : unit.takeCommands())
+			{
+				commands.add(std::move(command));
 			}
 		}
 

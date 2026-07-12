@@ -2,84 +2,38 @@
 
 #include <memory>
 
+#include "structures/game_engine/rendering/spk_scene_render_passes.hpp"
 #include "structures/game_engine/spk_camera_3d.hpp"
 #include "structures/game_engine/spk_entity_3d.hpp"
 #include "structures/game_engine/spk_game_engine.hpp"
 #include "structures/game_engine/spk_texture_mesh_render_logic.hpp"
 #include "structures/game_engine/spk_texture_mesh_renderer_3d.hpp"
 #include "structures/graphics/geometry/spk_primitive_object.hpp"
-#include "structures/graphics/rendering/unit/spk_render_unit_builder.hpp"
 #include "structures/graphics/spk_framebuffer_object.hpp"
 
 namespace
 {
-	class TestTextureMeshRenderLogic : public spk::TextureMeshRenderLogic
+	spk::SceneRenderFrameRequest requestFor(spk::FrameBufferObject &p_target)
 	{
-	public:
-		using spk::TextureMeshRenderLogic::_executeRender;
-		using spk::TextureMeshRenderLogic::_onRenderStarted;
-		using spk::TextureMeshRenderLogic::_parseComponentForRender;
-		using spk::TextureMeshRenderLogic::TextureMeshRenderLogic;
-	};
+		return {.mainTarget = {.frameBuffer = &p_target, .viewport = p_target.viewport()},
+			.mainClear = {.color = spk::Color(0, 0, 0, 0), .depth = 1.0f, .stencil = 0}};
+	}
 }
 
 TEST(TextureMeshRenderLogic, SkipsRenderersWithoutAnActiveCamera)
 {
+	spk::GameEngine engine;
+	engine.add<spk::TextureMeshRenderLogic>();
 	spk::Entity3D entity;
-	spk::TextureMeshRenderer3D &renderer = entity.addComponent<spk::TextureMeshRenderer3D>();
-	TestTextureMeshRenderLogic logic;
-	logic._onRenderStarted(1);
-	logic._parseComponentForRender(renderer);
-	spk::RenderUnitBuilder builder;
-	logic._executeRender(builder);
-
-	EXPECT_TRUE(builder.empty());
+	entity.addComponent<spk::TextureMeshRenderer3D>();
+	engine.addEntity(&entity);
+	spk::FrameBufferObject target(spk::FrameBufferObject::colorTarget({16, 16}));
+	spk::RenderPlan plan = engine.buildRenderPlan(requestFor(target));
+	EXPECT_EQ(plan.diagnostics()[0].commandCount, 0u);
 	EXPECT_EQ(spk::TextureMeshRenderLogic::lastMeshCount(), 0u);
 }
 
-TEST(TextureMeshRenderLogic, EmitsDrawAndTracksMeshStatistics)
-{
-	spk::Camera3D camera;
-	camera.makeMain();
-	spk::Entity3D entity;
-	spk::Texture texture;
-	auto mesh = std::make_shared<spk::TextureMesh3D>(spk::PrimitiveObject::CreateCube());
-	spk::TextureMeshRenderer3D &renderer = entity.addComponent<spk::TextureMeshRenderer3D>();
-	renderer.setMesh(mesh);
-	renderer.setTexture(&texture);
-
-	TestTextureMeshRenderLogic logic;
-	logic._onRenderStarted(1);
-	logic._parseComponentForRender(renderer);
-	spk::RenderUnitBuilder builder;
-	logic._executeRender(builder);
-
-	EXPECT_EQ(builder.size(), 1u);
-	EXPECT_EQ(spk::TextureMeshRenderLogic::lastMeshCount(), 1u);
-	EXPECT_EQ(spk::TextureMeshRenderLogic::lastTriangleCount(), 12u);
-}
-
-TEST(TextureMeshRenderLogic, GeometryLogicDoesNotEmitPassWideFrameState)
-{
-	spk::Camera3D camera;
-	camera.makeMain();
-	spk::Entity3D entity;
-	spk::Texture texture;
-	auto mesh = std::make_shared<spk::TextureMesh3D>(spk::PrimitiveObject::CreateCube());
-	spk::TextureMeshRenderer3D &renderer = entity.addComponent<spk::TextureMeshRenderer3D>();
-	renderer.setMesh(mesh);
-	renderer.setTexture(&texture);
-
-	TestTextureMeshRenderLogic logic;
-	logic._onRenderStarted(1);
-	logic._parseComponentForRender(renderer);
-	spk::RenderUnitBuilder builder;
-	logic._executeRender(builder);
-
-	EXPECT_EQ(builder.size(), 1u);
-}
-
-TEST(TextureMeshRenderLogic, ExplicitPipelineSeparatesOpaqueAndTranslucentQueues)
+TEST(TextureMeshRenderLogic, OneCollectionSeparatesOpaqueAndTranslucentQueues)
 {
 	spk::Camera3D camera;
 	camera.makeMain();
@@ -102,9 +56,12 @@ TEST(TextureMeshRenderLogic, ExplicitPipelineSeparatesOpaqueAndTranslucentQueues
 	engine.addEntity(&transparentEntity);
 
 	spk::FrameBufferObject target(spk::FrameBufferObject::colorTarget({16, 16}));
-	spk::RenderPlan plan = engine.buildRenderPlan(spk::RenderFrameRequest{.mainTarget = {.frameBuffer = &target, .viewport = target.viewport()}, .mainClear = {.color = spk::Color(0, 0, 0, 0), .depth = 1.0f, .stencil = 0}});
-	ASSERT_EQ(plan.size(), 1u);
-	EXPECT_EQ(plan.passes()[0].commandCount(spk::RenderPhase::PassSetup), 2u);
-	EXPECT_EQ(plan.passes()[0].commandCount(spk::RenderPhase::SceneOpaque), 1u);
-	EXPECT_EQ(plan.passes()[0].commandCount(spk::RenderPhase::SceneTransparent), 1u);
+	spk::RenderPlan plan = engine.buildRenderPlan(requestFor(target));
+	ASSERT_EQ(plan.size(), 3u);
+	EXPECT_EQ(plan.passes()[0]->key().type, spk::SceneRenderPasses::MainOpaque);
+	EXPECT_EQ(plan.passes()[1]->key().type, spk::SceneRenderPasses::MainTransparent);
+	EXPECT_EQ(plan.passes()[0]->commandCount(), 3u);
+	EXPECT_EQ(plan.passes()[1]->commandCount(), 3u);
+	EXPECT_EQ(spk::TextureMeshRenderLogic::lastMeshCount(), 2u);
+	EXPECT_EQ(spk::TextureMeshRenderLogic::lastTriangleCount(), 24u);
 }

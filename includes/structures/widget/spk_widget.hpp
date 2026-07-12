@@ -8,12 +8,15 @@
 #include "structures/design_pattern/spk_activable_trait.hpp"
 #include "structures/design_pattern/spk_inherence_trait.hpp"
 #include "structures/graphics/rendering/snapshot/spk_render_snapshot_builder.hpp"
+#include "structures/graphics/rendering/pass/spk_render_target_reference.hpp"
+#include "structures/graphics/rendering/plan/spk_render_plan.hpp"
 #include "structures/graphics/rendering/state/spk_viewport.hpp"
 #include "structures/graphics/rendering/unit/spk_render_unit_builder.hpp"
 #include "structures/math/spk_rect_2d.hpp"
 #include "structures/system/event/spk_events.hpp"
 #include "structures/system/event/spk_update_context.hpp"
 #include "structures/widget/spk_resizable_element.hpp"
+#include "structures/widget/rendering/spk_widget_render_build_context.hpp"
 
 namespace spk
 {
@@ -49,12 +52,14 @@ namespace spk
 		spk::Vector2 _sizeRatio{1.0f, 1.0f};
 
 		mutable std::unique_ptr<spk::Viewport> _viewport;
+		spk::RenderPass::ScopeId _renderScope = spk::RenderPass::ScopeId::generate();
 
 		void _updateAbsoluteGeometryAndScissor();
 		void _updateSelfGeometryAndScissor();
 		void _computeRatio();
 
 		void _onResize(const spk::Rect2D &p_geometry);
+		void _collectRenderPasses(const spk::WidgetRenderBuildContext &p_context) const;
 
 		template <typename TEvent>
 		void _propagate(TEvent &p_event, void (spk::Widget::*p_handler)(TEvent &))
@@ -89,6 +94,7 @@ namespace spk
 		void _onParentChanged(spk::Widget *p_oldParent, spk::Widget *p_newParent) override;
 
 		[[nodiscard]] virtual spk::RenderUnit _buildRenderUnit() const;
+		virtual void _contributeAdditionalRenderPasses(const spk::WidgetRenderBuildContext &p_context) const;
 		virtual void _onGeometryChange();
 
 		virtual void _onUpdate(const spk::UpdateContext &p_tick);
@@ -148,7 +154,9 @@ namespace spk
 		[[nodiscard]] const spk::Viewport &viewport() const;
 
 		[[nodiscard]] std::shared_ptr<spk::RenderUnit> renderUnit() const;
+		[[nodiscard]] spk::RenderPlan buildRenderPlan(const spk::RenderTargetReference &p_target) const;
 		void appendRenderUnits(spk::RenderSnapshotBuilder &p_builder) const;
+		void appendRenderUnits(spk::RenderSnapshotBuilder &p_builder, const spk::RenderTargetReference &p_target) const;
 		void update(const spk::UpdateContext &p_tick);
 	};
 }
