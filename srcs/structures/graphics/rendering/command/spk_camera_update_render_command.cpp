@@ -5,14 +5,19 @@
 namespace spk
 {
 	CameraUpdateRenderCommand::CameraUpdateRenderCommand(GLuint p_bindingPoint, const spk::Matrix4x4 &p_viewProjection) :
-		_viewProjection(p_viewProjection),
-		_cameraUBO(p_bindingPoint, spk::BufferObject::Usage::DynamicDraw, sizeof(spk::Matrix4x4))
+		CameraUpdateRenderCommand(p_bindingPoint, p_viewProjection, spk::Matrix4x4::identity())
+	{
+	}
+
+	CameraUpdateRenderCommand::CameraUpdateRenderCommand(GLuint p_bindingPoint, const spk::Matrix4x4 &p_viewProjection, const spk::Matrix4x4 &p_view) :
+		_camera{.viewProjection = p_viewProjection, .view = p_view},
+		_cameraUBO(p_bindingPoint, spk::BufferObject::Usage::DynamicDraw, sizeof(spk::CameraGpuData))
 	{
 	}
 
 	void CameraUpdateRenderCommand::execute(spk::RenderContext &p_renderContext)
 	{
-		_cameraUBO.edit(&_viewProjection, sizeof(_viewProjection));
+		_cameraUBO.edit(&_camera, sizeof(_camera));
 		_cameraUBO.activate(p_renderContext);
 	}
 }

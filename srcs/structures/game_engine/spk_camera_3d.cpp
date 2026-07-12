@@ -132,6 +132,34 @@ namespace spk
 		return projectionMatrix() * viewMatrix();
 	}
 
+	std::array<spk::Vector3, 8> Camera3D::frustumSliceCorners(float nearDistance, float farDistance) const
+	{
+		if (!std::isfinite(nearDistance) || !std::isfinite(farDistance) || nearDistance <= 0.0f || farDistance <= nearDistance || nearDistance < _nearPlane || farDistance > _farPlane)
+			throw std::invalid_argument("Camera frustum slice must be finite and lie within the camera clip range");
+		const spk::Vector3 forward = (_target - _position).normalized();
+		spk::Vector3 right = forward.cross(_up);
+		// A top-down camera has a forward vector parallel to its nominal up axis.
+		// Match Matrix4x4::lookAt's robust fallback instead of normalizing zero.
+		if (right.isZero())
+		{
+			const spk::Vector3 fallbackUp = std::fabs(forward.y) < 0.999f
+				? spk::Vector3(0.0f, 1.0f, 0.0f)
+				: spk::Vector3(1.0f, 0.0f, 0.0f);
+			right = forward.cross(fallbackUp);
+		}
+		right = right.normalized();
+		const spk::Vector3 up = right.cross(forward).normalized();
+		const float tangent = std::tan(spk::degreeToRadian(_fieldOfView) * 0.5f);
+		const auto cornersAt = [&](float distance) {
+			const spk::Vector3 center = _position + forward * distance;
+			const float halfHeight = tangent * distance;
+			const float halfWidth = halfHeight * _aspectRatio;
+			return std::array<spk::Vector3, 4>{center - right * halfWidth - up * halfHeight, center + right * halfWidth - up * halfHeight, center + right * halfWidth + up * halfHeight, center - right * halfWidth + up * halfHeight};
+		};
+		const auto nearCorners = cornersAt(nearDistance); const auto farCorners = cornersAt(farDistance);
+		return {nearCorners[0], nearCorners[1], nearCorners[2], nearCorners[3], farCorners[0], farCorners[1], farCorners[2], farCorners[3]};
+	}
+
 	spk::Ray3D Camera3D::rayFromViewport(
 		const spk::Vector2 &p_viewportSize,
 		const spk::Vector2 &p_pixelPosition) const

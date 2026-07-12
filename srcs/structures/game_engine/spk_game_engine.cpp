@@ -1,11 +1,13 @@
 #include "structures/game_engine/spk_game_engine.hpp"
 
 #include "structures/game_engine/spk_component_store.hpp"
+#include "structures/game_engine/rendering/spk_scene_lighting_render_feature.hpp"
 
 namespace spk
 {
 	GameEngine::GameEngine()
 	{
+		_renderPipeline.emplaceFeature<spk::SceneLightingRenderFeature>();
 		activate();
 	}
 

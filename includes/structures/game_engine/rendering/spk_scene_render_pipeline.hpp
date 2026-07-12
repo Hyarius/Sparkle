@@ -33,6 +33,18 @@ namespace spk
 			return result;
 		}
 
+		template <typename TFeature>
+			requires std::derived_from<TFeature, spk::ISceneRenderPipelineFeature>
+		[[nodiscard]] TFeature *findFeature() noexcept
+		{
+			for (const auto &feature : _features)
+			{
+				if (auto *typed = dynamic_cast<TFeature *>(feature.get()); typed != nullptr)
+					return typed;
+			}
+			return nullptr;
+		}
+
 		void clearFeatures() noexcept;
 		[[nodiscard]] std::size_t featureCount() const noexcept;
 		void buildPasses(

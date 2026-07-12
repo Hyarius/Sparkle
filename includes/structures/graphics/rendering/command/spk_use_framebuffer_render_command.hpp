@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+
 #include "structures/graphics/rendering/command/spk_render_command.hpp"
 #include "structures/graphics/rendering/state/spk_viewport.hpp"
 
@@ -15,11 +17,13 @@ namespace spk
 	class UseFrameBufferRenderCommand : public spk::RenderCommand
 	{
 	private:
+		std::shared_ptr<const spk::FrameBufferObject> _ownedTarget;
 		const spk::FrameBufferObject *_target;
 		spk::Viewport _viewport;
 
 	public:
 		UseFrameBufferRenderCommand(const spk::FrameBufferObject *p_target, const spk::Viewport &p_viewport);
+		UseFrameBufferRenderCommand(std::shared_ptr<const spk::FrameBufferObject> p_target, const spk::Viewport &p_viewport);
 		[[nodiscard]] const spk::FrameBufferObject *target() const noexcept
 		{
 			return _target;

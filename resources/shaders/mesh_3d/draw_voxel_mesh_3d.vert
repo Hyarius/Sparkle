@@ -8,6 +8,7 @@ layout(location = 3) in float inAlpha;
 layout(std140, binding = 1) uniform CameraData
 {
 	mat4 uViewProjection;
+	mat4 uView;
 };
 
 layout(std140, binding = 2) uniform ModelData
@@ -19,6 +20,7 @@ layout(std140, binding = 2) uniform ModelData
 out vec3 vertexNormal;
 out vec2 vertexUV;
 out float vertexAlpha;
+out vec3 vertexWorldPosition;
 
 void main()
 {
@@ -26,4 +28,5 @@ void main()
 	vertexNormal = normalize(transpose(inverse(mat3(uModel))) * inLocalNormal);
 	vertexUV = inLocalUV;
 	vertexAlpha = inAlpha;
+	vertexWorldPosition = (uModel * vec4(inLocalPosition, 1.0)).xyz;
 }

@@ -62,6 +62,17 @@ The defaults are `MainOpaque=1000`, `MainTransparent=1100`,
 Pass-wide camera/light state uses the reserved contributor priority
 `RenderContributionPriorities::PassSetup=-100000`.
 
+## Scene lighting bindings
+
+`SceneLightingRenderFeature` publishes an immutable snapshot before geometry is
+collected. Its C++ binding contract lives in
+`spk_scene_gpu_bindings.hpp`: camera UBO `1`, model UBO `2`, lighting-header
+UBO `3`, and directional/point/spot `std430` SSBOs `4`/`5`/`6`. Texture unit
+`0` remains the material texture. The two 3D mesh shader families declare the
+same values directly because GLSL cannot include C++ headers. Light directions
+always represent ray travel from the light into the scene; the Lambert vector
+toward a directional light is therefore the negated stored direction.
+
 Inside one pass, contributions sort by contributor priority ascending, then
 logic/widget registration order. Commands within one contribution retain
 insertion order. Logic priority still controls update/event ordering and is

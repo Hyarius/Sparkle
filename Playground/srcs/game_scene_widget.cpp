@@ -2,17 +2,21 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <cstdio>
 #include <filesystem>
 #include <iostream>
+#include <numbers>
 #include <stdexcept>
 #include <string>
 
 #include "core/registries.hpp"
 #include "logics/actor_path_logic.hpp"
 #include "logics/camera_controller_logic.hpp"
+#include "logics/day_time_management_logic.hpp"
 #include "logics/exploration_input_logic.hpp"
 #include "structures/game_engine/spk_texture_mesh_render_logic.hpp"
+#include "structures/game_engine/rendering/spk_scene_lighting_render_feature.hpp"
 #include "structures/game_engine/spk_texture_mesh_renderer_3d.hpp"
 #include "structures/graphics/geometry/spk_primitive_object.hpp"
 #include "structures/math/spk_vector3.hpp"
@@ -182,6 +186,22 @@ namespace pg
 		_camera->makeMain();
 		engine.addEntity(&_cameraEntity);
 
+		_sun = &_sunEntity.addComponent<spk::Light3D>();
+		(void)_sun->directional();
+		_sun->intensity() = 1.35f;
+		_sun->color() = {1.0f, 0.96f, 0.84f, 1.0f};
+		// Shadow drawing/sampling is not wired through geometry yet. Keep the
+		// authored intent off until that path is complete, avoiding empty cascade
+		// construction during the daylight preview.
+		_sun->castsShadows() = true;
+		_sun->selectionPriority() = 1000;
+		_sunEntity.transform().setRotation(spk::Quaternion::lookAt(
+			{0.0f, 0.0f, 0.0f}, {-0.35f, -0.85f, -0.40f}));
+		engine.addEntity(&_sunEntity);
+		auto *lighting = engine.renderPipeline().findFeature<spk::SceneLightingRenderFeature>();
+		if (lighting == nullptr) throw std::runtime_error("Scene lighting feature is unavailable");
+		_dayTimeLogic = &engine.add<DayTimeManagementLogic>(_sunEntity, *lighting);
+
 		// Once-per-seed world skeleton: generate, report, and dump the preview map at the
 		// Playground root so the produced world can be inspected outside the game.
 		WorldGenConfig worldConfig;
@@ -249,6 +269,33 @@ namespace pg
 			throw std::runtime_error("generated spawn column has no standable cell");
 		}
 		spawnCell = *standableSpawn;
+		// A deliberately obvious point-light fixture for checking local attenuation.
+		const spk::Vector3Int glowingVoxelCell = spawnCell + spk::Vector3Int{3, 1, 0};
+		_stagedWorld->setCell(glowingVoxelCell, {p_registries.voxels().runtimeId("glowing-voxel")});
+		_glowingVoxelLightEntity.transform().setPosition(spk::Vector3(glowingVoxelCell) + spk::Vector3{0.5f, 0.5f, 0.5f});
+		_glowingVoxelLight = &_glowingVoxelLightEntity.addComponent<spk::Light3D>();
+		const VoxelLightDefinition &lightDefinition = *p_registries.voxels().get("glowing-voxel").light;
+		if (lightDefinition.type == VoxelLightType::Directional) (void)_glowingVoxelLight->directional();
+		else if (lightDefinition.type == VoxelLightType::Point) { (void)_glowingVoxelLight->point(); _glowingVoxelLight->point().range = lightDefinition.reach; }
+		else { (void)_glowingVoxelLight->spot(); _glowingVoxelLight->spot().range = lightDefinition.reach; _glowingVoxelLight->spot().innerHalfAngleDegrees = lightDefinition.innerHalfAngleDegrees; _glowingVoxelLight->spot().outerHalfAngleDegrees = lightDefinition.outerHalfAngleDegrees; }
+		_glowingVoxelLight->color() = lightDefinition.color;
+		_glowingVoxelLight->intensity() = lightDefinition.power;
+		_glowingVoxelLight->selectionPriority() = 100;
+		engine.addEntity(&_glowingVoxelLightEntity);
+		const auto addGlowingFixture = [&](const std::string &id, const spk::Vector3Int &cell, spk::Entity3D &entity) {
+			_stagedWorld->setCell(cell, {p_registries.voxels().runtimeId(id)});
+			entity.transform().setPosition(spk::Vector3(cell) + spk::Vector3{0.5f, 0.5f, 0.5f});
+			auto &light = entity.addComponent<spk::Light3D>();
+			const VoxelLightDefinition &definition = *p_registries.voxels().get(id).light;
+			(void)light.point();
+			light.point().range = definition.reach;
+			light.color() = definition.color;
+			light.intensity() = definition.power;
+			light.selectionPriority() = 100;
+			engine.addEntity(&entity);
+		};
+		addGlowingFixture("glowing-blue-voxel", glowingVoxelCell + spk::Vector3Int{0, 0, 5}, _blueGlowingVoxelLightEntity);
+		addGlowingFixture("glowing-green-voxel", glowingVoxelCell + spk::Vector3Int{0, 0, -5}, _greenGlowingVoxelLightEntity);
 		_camera->setTarget(spk::Vector3(spawnCell));
 		_camera->setPosition(spk::Vector3(spawnCell) + spk::Vector3{46.0f, 56.0f, -90.0f});
 

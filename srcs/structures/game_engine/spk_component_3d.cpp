@@ -24,4 +24,14 @@ namespace spk
 	{
 		return static_cast<const spk::Entity3D *>(spk::Component::entity());
 	}
+
+	spk::Transform3D &Component3D::transform()
+	{
+		return entity()->transform();
+	}
+
+	const spk::Transform3D &Component3D::transform() const
+	{
+		return entity()->transform();
+	}
 }

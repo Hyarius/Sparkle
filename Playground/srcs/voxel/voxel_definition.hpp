@@ -8,8 +8,10 @@
 #include "structures/voxel/spk_voxel_fluid.hpp"
 #include "structures/voxel/spk_voxel_ids.hpp"
 #include "structures/voxel/spk_voxel_shape.hpp"
+#include "structures/graphics/geometry/spk_color.hpp"
 
 #include <memory>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <variant>
@@ -17,6 +19,16 @@
 
 namespace pg
 {
+	enum class VoxelLightType { Directional, Point, Spot };
+	struct VoxelLightDefinition
+	{
+		VoxelLightType type = VoxelLightType::Point;
+		spk::Color color{1.0f, 1.0f, 1.0f, 1.0f};
+		float power = 1.0f;
+		float reach = 10.0f;
+		float innerHalfAngleDegrees = 20.0f;
+		float outerHalfAngleDegrees = 30.0f;
+	};
 	// One state of a semantic voxel type: only what can legitimately differ between states
 	// lives here - the dense runtime handle the world stores, the walk heights and an
 	// optional authored name. Gameplay identity (traversal, tags) stays on the type.
@@ -39,6 +51,7 @@ namespace pg
 		spk::VoxelTypeId typeId{};
 
 		VoxelData data;
+		std::optional<VoxelLightDefinition> light;
 
 		std::vector<VoxelStateDefinition> states;
 
@@ -100,6 +113,7 @@ namespace pg
 	{
 		std::string id;
 		VoxelData data;
+		std::optional<VoxelLightDefinition> light;
 
 		std::variant<ParsedRegularVoxel, ParsedFluidVoxel> rendering;
 	};

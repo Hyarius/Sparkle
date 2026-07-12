@@ -1,0 +1,6 @@
+#include "structures/graphics/rendering/command/spk_draw_voxel_shadow_render_command.hpp"
+#include "spk_generated_resources.hpp"
+#include "structures/graphics/rendering/command/spk_opengl_draw_state_guard.hpp"
+#include "structures/graphics/spk_program.hpp"
+#include "structures/graphics/spk_buffer_object.hpp"
+namespace spk { DrawVoxelShadowRenderCommand::DrawVoxelShadowRenderCommand(std::shared_ptr<const VoxelMesh3D> mesh, std::shared_ptr<UniformBufferObject> model, const Matrix4x4 &matrix) : _mesh(std::move(mesh)), _model(std::move(model)), _shadow(7, BufferObject::Usage::StaticDraw, sizeof(matrix)) { _shadow.edit(&matrix, sizeof(matrix)); } void DrawVoxelShadowRenderCommand::execute(RenderContext &context) { if (!_mesh || !_model || _mesh->layoutBuffer().indexCount()==0) return; OpenGLDrawStateGuard guard; glEnable(GL_CULL_FACE); glCullFace(GL_BACK); glFrontFace(GL_CCW); glEnable(GL_DEPTH_TEST); glDepthMask(GL_TRUE); glDisable(GL_BLEND); static Program program(SPARKLE_GET_RESOURCE_AS_STRING("resources/shaders/mesh_3d/draw_shadow.vert"), SPARKLE_GET_RESOURCE_AS_STRING("resources/shaders/mesh_3d/draw_shadow.frag")); program.activate(context); _model->activate(context); _shadow.activate(context); _mesh->layoutBuffer().activate(context); program.render(context, Primitive::Triangles, 0, _mesh->layoutBuffer().indexCount()); } }

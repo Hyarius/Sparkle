@@ -19,6 +19,13 @@ namespace spk
 	{
 	}
 
+	UseFrameBufferRenderCommand::UseFrameBufferRenderCommand(
+		std::shared_ptr<const spk::FrameBufferObject> p_target,
+		const spk::Viewport &p_viewport) :
+		_ownedTarget(std::move(p_target)), _target(_ownedTarget.get()), _viewport(p_viewport)
+	{
+	}
+
 	void UseFrameBufferRenderCommand::execute(spk::RenderContext &p_renderContext)
 	{
 		if (p_renderContext.supportsOpenGLCommands() == false)

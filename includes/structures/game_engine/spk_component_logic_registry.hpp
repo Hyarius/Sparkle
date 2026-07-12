@@ -13,6 +13,7 @@
 
 #include "structures/game_engine/rendering/spk_scene_render_passes.hpp"
 #include "structures/game_engine/rendering/spk_scene_render_priorities.hpp"
+#include "structures/graphics/rendering/spk_scene_gpu_bindings.hpp"
 #include "structures/game_engine/spk_camera_3d.hpp"
 #include "structures/game_engine/spk_component_logic.hpp"
 #include "structures/game_engine/spk_component_registry.hpp"
@@ -159,13 +160,7 @@ namespace spk
 				for (const auto type : {spk::SceneRenderPasses::MainOpaque, spk::SceneRenderPasses::MainTransparent, spk::SceneRenderPasses::MainOverlay})
 				{
 					auto setup = passes.require({.type = type, .scope = scope}).contribute(spk::RenderContributionPriorities::PassSetup, 0);
-					setup.emplace<spk::CameraUpdateRenderCommand>(1u, mainCamera->viewProjectionMatrix());
-					setup.emplace<spk::DirectionalLightUpdateRenderCommand>(
-						3u,
-						spk::DirectionalLight{
-							.direction = spk::Vector3(1.0f, -2.0f, 0.5f).normalized(),
-							.color = spk::Color(1.0f, 0.95f, 0.85f),
-							.ambient = 0.35f});
+					setup.emplace<spk::CameraUpdateRenderCommand>(spk::SceneGpuBindings::Camera, mainCamera->viewProjectionMatrix(), mainCamera->viewMatrix());
 				}
 			}
 			spk::SceneRenderBuildContext context{.frame = frame, .sceneScope = scope, .request = request, .components = p_registry, .mainCamera = mainCamera};

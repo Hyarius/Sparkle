@@ -14,6 +14,7 @@
 #include "core/game_context.hpp"
 #include "structures/game_engine/spk_camera_3d.hpp"
 #include "structures/game_engine/spk_entity_3d.hpp"
+#include "structures/game_engine/spk_light_3d.hpp"
 #include "structures/graphics/geometry/spk_texture_mesh_3d.hpp"
 #include "structures/graphics/texture/spk_sprite_sheet.hpp"
 #include "structures/math/spk_vector3.hpp"
@@ -32,6 +33,7 @@ namespace pg
 	class ExplorationInputLogic;
 	class ActorPathLogic;
 	class CameraControllerLogic;
+	class DayTimeManagementLogic;
 	class PlanChunkProvider;
 	class VoxelWorld;
 	class WorldNavigation;
@@ -73,6 +75,7 @@ namespace pg
 		ExplorationInputLogic *_inputLogic = nullptr;
 		ActorPathLogic *_pathLogic = nullptr;
 		CameraControllerLogic *_cameraLogic = nullptr;
+		DayTimeManagementLogic *_dayTimeLogic = nullptr;
 
 		// Door/exit-pad cells mapped to their teleport destination (from the world
 		// plan's portals). Stepping on a key cell queues the teleport; it executes
@@ -83,6 +86,14 @@ namespace pg
 
 		spk::Entity3D _cameraEntity;
 		spk::Camera3D *_camera = nullptr;
+		// Playground-owned sun: unlike the old engine placeholder, this is normal
+		// scene data and its local -Z axis is the ray-travel direction.
+		spk::Entity3D _sunEntity;
+		spk::Light3D *_sun = nullptr;
+		spk::Entity3D _glowingVoxelLightEntity;
+		spk::Light3D *_glowingVoxelLight = nullptr;
+		spk::Entity3D _blueGlowingVoxelLightEntity;
+		spk::Entity3D _greenGlowingVoxelLightEntity;
 		spk::DebugOverlay _overlay;
 
 		mutable std::atomic<long long> _renderDurationNs{0};

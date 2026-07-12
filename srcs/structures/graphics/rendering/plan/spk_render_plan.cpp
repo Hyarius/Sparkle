@@ -94,7 +94,10 @@ namespace spk
 			const spk::RenderPass::Description &description = pass->description();
 			if (!description.target.activeTarget)
 			{
-				builder.emplace<spk::UseFrameBufferRenderCommand>(description.target.frameBuffer, description.target.viewport);
+				if (description.target.ownedFrameBuffer != nullptr)
+					builder.emplace<spk::UseFrameBufferRenderCommand>(description.target.ownedFrameBuffer, description.target.viewport);
+				else
+					builder.emplace<spk::UseFrameBufferRenderCommand>(description.target.frameBuffer, description.target.viewport);
 			}
 
 			GLbitfield mask = 0;

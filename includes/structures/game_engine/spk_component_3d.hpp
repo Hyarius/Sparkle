@@ -5,6 +5,7 @@
 namespace spk
 {
 	class Entity3D;
+	class Transform3D;
 
 	class Component3D : public spk::Component
 	{
@@ -17,5 +18,7 @@ namespace spk
 
 		[[nodiscard]] spk::Entity3D *entity();
 		[[nodiscard]] const spk::Entity3D *entity() const;
+		[[nodiscard]] spk::Transform3D &transform();
+		[[nodiscard]] const spk::Transform3D &transform() const;
 	};
 }

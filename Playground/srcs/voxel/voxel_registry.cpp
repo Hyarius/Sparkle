@@ -53,7 +53,7 @@ namespace pg
 		for (const std::string &id : ids)
 		{
 			ParsedVoxel &voxel = parsed.getMutable(id);
-			VoxelDefinition definition{.id = id, .data = std::move(voxel.data)};
+			VoxelDefinition definition{.id = id, .data = std::move(voxel.data), .light = std::move(voxel.light)};
 
 			if (ParsedFluidVoxel *fluid = std::get_if<ParsedFluidVoxel>(&voxel.rendering); fluid != nullptr)
 			{

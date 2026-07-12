@@ -7,6 +7,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <limits>
+#include <cmath>
 #include <map>
 #include <memory>
 #include <set>
@@ -16,6 +17,26 @@
 
 namespace
 {
+	std::optional<pg::VoxelLightDefinition> parseLight(pg::JsonReader &reader)
+	{
+		if (!reader.contains("light")) return std::nullopt;
+		pg::JsonReader light = reader.child("light");
+		light.forbidUnknown({"type", "color", "power", "reach", "innerHalfAngleDegrees", "outerHalfAngleDegrees"});
+		static const std::map<std::string, pg::VoxelLightType> types{{"directional", pg::VoxelLightType::Directional}, {"point", pg::VoxelLightType::Point}, {"spot", pg::VoxelLightType::Spot}};
+		pg::VoxelLightDefinition result;
+		result.type = light.requireEnum<pg::VoxelLightType>("type", types);
+		// Reuse Sparkle's canonical #RRGGBB / #RRGGBBAA color representation.
+		result.color = spk::Color(light.require<std::string>("color"));
+		result.power = light.require<float>("power");
+		result.reach = light.optional<float>("reach", result.reach);
+		result.innerHalfAngleDegrees = light.optional<float>("innerHalfAngleDegrees", result.innerHalfAngleDegrees);
+		result.outerHalfAngleDegrees = light.optional<float>("outerHalfAngleDegrees", result.outerHalfAngleDegrees);
+		if (!std::isfinite(result.power) || result.power < 0.0f || !std::isfinite(result.reach) || result.reach <= 0.0f || !std::isfinite(result.color.r) || !std::isfinite(result.color.g) || !std::isfinite(result.color.b) || result.color.r < 0 || result.color.g < 0 || result.color.b < 0)
+			throw pg::JsonError(light.file(), light.path(), "light color must be non-negative and light power/reach must be finite positive values");
+		if (result.type == pg::VoxelLightType::Spot && (!std::isfinite(result.innerHalfAngleDegrees) || !std::isfinite(result.outerHalfAngleDegrees) || result.innerHalfAngleDegrees < 0 || result.outerHalfAngleDegrees < result.innerHalfAngleDegrees || result.outerHalfAngleDegrees >= 90.0f))
+			throw pg::JsonError(light.file(), light.path(), "spot light angles must satisfy 0 <= inner <= outer < 90");
+		return result;
+	}
 	constexpr int AtlasColumns = 8;
 	constexpr int AtlasRows = 8;
 
@@ -278,7 +299,7 @@ namespace pg
 {
 	ParsedVoxel parseVoxelDefinition(JsonReader &p_reader, const ShapeCatalog &p_shapes)
 	{
-		p_reader.forbidUnknown({"version", "traversal", "tags", "transparency", "shape", "textures", "states", "fluid"});
+		p_reader.forbidUnknown({"version", "traversal", "tags", "transparency", "shape", "textures", "states", "fluid", "light"});
 
 		const int version = p_reader.require<int>("version");
 		if (version != 2 && version != 3)
@@ -295,6 +316,7 @@ namespace pg
 
 		// Type-level fields: shared by every state of the voxel.
 		ParsedVoxel result;
+		result.light = parseLight(p_reader);
 		result.data.traversal = p_reader.requireEnum<VoxelTraversal>("traversal", traversalValues);
 		result.data.tags = p_reader.require<std::vector<std::string>>("tags");
 		const float transparency = p_reader.optional<float>("transparency", 0.0f);

@@ -7,8 +7,7 @@
 #include "structures/game_engine/rendering/spk_scene_render_passes.hpp"
 #include "structures/game_engine/rendering/spk_scene_render_priorities.hpp"
 #include "structures/graphics/rendering/command/spk_camera_update_render_command.hpp"
-#include "structures/graphics/rendering/command/spk_directional_light_update_render_command.hpp"
-#include "structures/graphics/spk_directional_light.hpp"
+#include "structures/graphics/rendering/spk_scene_gpu_bindings.hpp"
 #include "structures/system/spk_profiler.hpp"
 
 namespace spk
@@ -40,8 +39,7 @@ namespace spk
 		{
 			auto &pass = p_context.frame.passes.require({.type = type, .scope = p_context.sceneScope, .instance = 0});
 			auto setup = pass.contribute(spk::RenderContributionPriorities::PassSetup, 0);
-			setup.emplace<spk::CameraUpdateRenderCommand>(1u, p_context.mainCamera->viewProjectionMatrix());
-			setup.emplace<spk::DirectionalLightUpdateRenderCommand>(3u, spk::DirectionalLight{.direction = spk::Vector3(1.0f, -2.0f, 0.5f).normalized(), .color = spk::Color(1.0f, 0.95f, 0.85f), .ambient = 0.35f});
+			setup.emplace<spk::CameraUpdateRenderCommand>(spk::SceneGpuBindings::Camera, p_context.mainCamera->viewProjectionMatrix(), p_context.mainCamera->viewMatrix());
 		}
 	}
 

@@ -1,4 +1,6 @@
 #include "structures/voxel/spk_voxel_chunk_render_logic.hpp"
+#include "structures/game_engine/rendering/spk_shadow_render_pass.hpp"
+#include "structures/graphics/rendering/command/spk_draw_voxel_shadow_render_command.hpp"
 
 #include "structures/game_engine/spk_camera_3d.hpp"
 #include "structures/game_engine/spk_entity.hpp"
@@ -67,7 +69,8 @@ namespace spk
 		}
 		else if (!p_cached.hasModel || std::memcmp(&p_cached.model, &p_model, sizeof(p_model)) != 0)
 		{
-			spk::DrawVoxelMesh3DRenderCommand::updateModelUBO(*p_cached.modelUBO, p_model, spk::Color{1, 1, 1, 1});
+			// Previously queued main or shadow draws retain the old immutable UBO.
+			p_cached.modelUBO = spk::DrawVoxelMesh3DRenderCommand::makeModelUBO(p_model, spk::Color{1, 1, 1, 1});
 			p_cached.model = p_model;
 			p_cached.hasModel = true;
 		}
@@ -243,6 +246,8 @@ namespace spk
 				continue;
 			}
 			commands.add(std::make_unique<spk::DrawVoxelMesh3DRenderCommand>(renderer->sharedOpaqueMesh(), _cache.at(renderer).modelUBO, _sampler, false));
+			for (spk::ShadowRenderPass &shadow : p_context.frame.passes.passesOfType<spk::ShadowRenderPass>(spk::LightingRenderPasses::DirectionalShadow, p_context.sceneScope))
+				shadow.contribute(renderPriority(spk::LightingRenderPasses::DirectionalShadow), p_context.contributorRegistrationOrder).emplace<spk::DrawVoxelShadowRenderCommand>(renderer->sharedOpaqueMesh(), _cache.at(renderer).modelUBO, shadow.lightViewProjection());
 		}
 
 		_pruneUnloadedChunks();

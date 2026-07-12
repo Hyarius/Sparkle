@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "traversal": "solid",
+  "tags": ["debug", "glowing", "light-test"],
+  "shape": "cube",
+  "light": {
+    "type": "point",
+    "color": "#00FF00FF",
+    "power": 10.0,
+    "reach": 16.0
+  },
+  "textures": { "top": [7, 6], "bottom": [7, 6], "side": [7, 6] }
+}

@@ -18,6 +18,8 @@
 #include "structures/game_engine/rendering/spk_scene_render_passes.hpp"
 #include "structures/graphics/rendering/pass/spk_render_pass_bucket_pack.hpp"
 #include "structures/graphics/rendering/command/spk_draw_texture_mesh_3d_render_command.hpp"
+#include "structures/graphics/rendering/command/spk_draw_texture_mesh_shadow_render_command.hpp"
+#include "structures/game_engine/rendering/spk_shadow_render_pass.hpp"
 #include "structures/graphics/spk_sampler_object.hpp"
 #include "structures/graphics/spk_uniform_buffer_object.hpp"
 #include "structures/math/spk_matrix.hpp"
@@ -68,7 +70,8 @@ namespace spk
 			}
 			else if (!cached.hasModelData || std::memcmp(&cached.modelData, &modelData, sizeof(modelData)) != 0)
 			{
-				spk::DrawTextureMesh3DRenderCommand::updateModelUBO(*cached.modelUBO, p_model, p_renderer.tint());
+				// Commands can outlive this frame; publish instead of mutating their UBO.
+				cached.modelUBO = spk::DrawTextureMesh3DRenderCommand::makeModelUBO(p_model, p_renderer.tint());
 				cached.modelData = modelData;
 				cached.hasModelData = true;
 			}
@@ -115,7 +118,7 @@ namespace spk
 			_camera = p_context.mainCamera;
 		}
 
-		void _parseComponentForRender(const spk::SceneRenderBuildContext &, spk::TextureMeshRenderer3D &p_renderer) override
+		void _parseComponentForRender(const spk::SceneRenderBuildContext &p_context, spk::TextureMeshRenderer3D &p_renderer) override
 		{
 			if (_camera == nullptr || p_renderer.mesh() == nullptr || p_renderer.texture() == nullptr)
 			{
@@ -136,6 +139,11 @@ namespace spk
 			auto command = std::make_unique<spk::DrawTextureMesh3DRenderCommand>(
 				p_renderer.mesh(), cached.modelUBO, cached.sampler, p_renderer.translucent());
 			(p_renderer.translucent() ? _translucentCommands : _opaqueCommands).push_back(std::move(command));
+			if (!p_renderer.translucent() && p_renderer.castsShadows())
+			{
+				for (spk::ShadowRenderPass &shadow : p_context.frame.passes.passesOfType<spk::ShadowRenderPass>(spk::LightingRenderPasses::DirectionalShadow, p_context.sceneScope))
+					shadow.contribute(renderPriority(spk::LightingRenderPasses::DirectionalShadow), p_context.contributorRegistrationOrder).emplace<spk::DrawTextureMeshShadowRenderCommand>(p_renderer.mesh(), cached.modelUBO, shadow.lightViewProjection());
+			}
 		}
 
 		void _executeRender(const spk::SceneRenderBuildContext &p_context) override

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <array>
+
 #include "structures/container/spk_cached_data.hpp"
 #include "structures/game_engine/spk_component.hpp"
 #include "structures/math/spk_matrix.hpp"
@@ -49,6 +51,7 @@ namespace spk
 		[[nodiscard]] const spk::Matrix4x4 &projectionMatrix() const;
 		[[nodiscard]] spk::Matrix4x4 viewMatrix() const;
 		[[nodiscard]] spk::Matrix4x4 viewProjectionMatrix() const;
+		[[nodiscard]] std::array<spk::Vector3, 8> frustumSliceCorners(float p_nearDistance, float p_farDistance) const;
 		// Builds a perspective ray through a viewport pixel. Pixel coordinates use
 		// the usual UI convention: origin at the viewport's top-left.
 		[[nodiscard]] spk::Ray3D rayFromViewport(
