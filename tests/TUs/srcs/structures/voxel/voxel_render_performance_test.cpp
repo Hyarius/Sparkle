@@ -50,11 +50,11 @@ namespace
 TEST(VoxelRenderPerformance, BakesAnEightByEightChunkSquareWithinBudget)
 {
 	spk::VoxelRegistry registry;
-	const std::int32_t cube = registry.registerShape(std::make_unique<spk::CubeVoxelShape>(spk::AtlasCell{0, 0}));
-	const std::int32_t slope = registry.registerShape(std::make_unique<spk::SlopeVoxelShape>(spk::AtlasCell{1, 0}));
-	const std::int32_t slab = registry.registerShape(std::make_unique<spk::SlabVoxelShape>(spk::AtlasCell{1, 0}));
-	const std::int32_t stair = registry.registerShape(std::make_unique<spk::StairVoxelShape>(spk::AtlasCell{2, 0}, 4));
-	const std::int32_t crossPlane = registry.registerShape(std::make_unique<spk::DiagonalCrossVoxelShape>(spk::AtlasCell{3, 0}));
+	const spk::VoxelRuntimeId cube = registry.registerShape(std::make_unique<spk::CubeVoxelShape>(spk::AtlasCell{0, 0}));
+	const spk::VoxelRuntimeId slope = registry.registerShape(std::make_unique<spk::SlopeVoxelShape>(spk::AtlasCell{1, 0}));
+	const spk::VoxelRuntimeId slab = registry.registerShape(std::make_unique<spk::SlabVoxelShape>(spk::AtlasCell{1, 0}));
+	const spk::VoxelRuntimeId stair = registry.registerShape(std::make_unique<spk::StairVoxelShape>(spk::AtlasCell{2, 0}, 4));
+	const spk::VoxelRuntimeId crossPlane = registry.registerShape(std::make_unique<spk::DiagonalCrossVoxelShape>(spk::AtlasCell{3, 0}));
 
 	const spk::Perlin perlin(spk::Perlin::Parameters{.seed = 12345, .octaves = 4, .persistence = 0.5f, .lacunarity = 2.0f, .frequency = 1.0f / 32.0f});
 
@@ -103,7 +103,7 @@ TEST(VoxelRenderPerformance, BakesAnEightByEightChunkSquareWithinBudget)
 						const spk::VoxelFlip flip = positiveModulo(worldX * 3 + worldZ, 2) == 0
 														? spk::VoxelFlip::PositiveY
 														: spk::VoxelFlip::NegativeY;
-						const std::int32_t topShape = topPattern < 2 ? slab : topPattern < 4 ? slope
+						const spk::VoxelRuntimeId topShape = topPattern < 2 ? slab : topPattern < 4 ? slope
 																		  : topPattern < 6	 ? stair
 																							 : cube;
 						(void)p_editor.setCell(x, topY, z, {topShape, orientation, flip});
@@ -118,7 +118,7 @@ TEST(VoxelRenderPerformance, BakesAnEightByEightChunkSquareWithinBudget)
 							{
 								continue;
 							}
-							const std::int32_t shape = structurePattern == 0 ? crossPlane : stair;
+							const spk::VoxelRuntimeId shape = structurePattern == 0 ? crossPlane : stair;
 							(void)p_editor.setCell(x, y, z, {shape, orientations[static_cast<std::size_t>(positiveModulo(worldX + y + worldZ, 4))], flip});
 							++generatedVoxelCount;
 						}

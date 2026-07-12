@@ -160,11 +160,11 @@ TEST(VoxelShape, MissingTextureSlotThrows)
 TEST(VoxelRegistry, AttributesSequentialIdsAndInitializesShapes)
 {
 	spk::VoxelRegistry registry;
-	const std::int32_t first = registry.registerShape(std::make_unique<spk::CubeVoxelShape>(spk::AtlasCell{0, 0}));
-	const std::int32_t second = registry.registerShape(std::make_unique<InnerOnlyShape>());
+	const spk::VoxelRuntimeId first = registry.registerShape(std::make_unique<spk::CubeVoxelShape>(spk::AtlasCell{0, 0}));
+	const spk::VoxelRuntimeId second = registry.registerShape(std::make_unique<InnerOnlyShape>());
 
-	EXPECT_EQ(first, 0);
-	EXPECT_EQ(second, 1);
+	EXPECT_EQ(first, spk::VoxelRuntimeId{0});
+	EXPECT_EQ(second, spk::VoxelRuntimeId{1});
 	EXPECT_EQ(registry.size(), 2u);
 	EXPECT_TRUE(registry.shape(first).initialized());
 	EXPECT_TRUE(registry.shape(second).initialized());
@@ -176,8 +176,8 @@ TEST(VoxelRegistry, RejectsInvalidLookupsAndNullShapes)
 	spk::VoxelRegistry registry;
 
 	EXPECT_THROW((void)registry.registerShape(nullptr), std::invalid_argument);
-	EXPECT_EQ(registry.tryShape(0), nullptr);
-	EXPECT_EQ(registry.tryShape(-1), nullptr);
-	EXPECT_THROW((void)registry.shape(0), std::out_of_range);
-	EXPECT_THROW((void)registry.shape(spk::VoxelCell::EmptyId), std::out_of_range);
+	EXPECT_EQ(registry.tryShape(spk::VoxelRuntimeId{0}), nullptr);
+	EXPECT_EQ(registry.tryShape(spk::VoxelRuntimeId{-1}), nullptr);
+	EXPECT_THROW((void)registry.shape(spk::VoxelRuntimeId{0}), std::out_of_range);
+	EXPECT_THROW((void)registry.shape(spk::VoxelRuntimeId{}), std::out_of_range);
 }

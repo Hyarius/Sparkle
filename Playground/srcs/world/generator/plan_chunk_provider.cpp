@@ -20,7 +20,7 @@ namespace pg
 {
 	namespace
 	{
-		using VoxelPool = WeightedPool<std::int32_t>;
+		using VoxelPool = WeightedPool<spk::VoxelRuntimeId>;
 
 		constexpr std::uint64_t kSurfaceSalt = 0x6eed0e9da4d94a4fULL;
 		constexpr std::uint64_t kSubsurfaceSalt = 0x58f0f1a32db7c2bdULL;
@@ -29,7 +29,7 @@ namespace pg
 
 		// Deterministic per-column pick from a weighted pool. The final avalanche matters:
 		// without it, two variants can collapse into visible parity/checker patterns.
-		[[nodiscard]] std::int32_t pickVoxel(
+		[[nodiscard]] spk::VoxelRuntimeId pickVoxel(
 			const VoxelPool &p_pool,
 			int p_worldX,
 			int p_worldZ,
@@ -52,10 +52,10 @@ namespace pg
 		_plan(p_plan)
 	{
 		const VoxelRegistry &voxels = p_registries.voxels();
-		_road = voxels.numericId("road-block");
-		_water = voxels.numericId("water");
-		_sand = voxels.numericId("sand-block");
-		_stone = voxels.numericId("stone-block");
+		_road = voxels.runtimeId("road-block");
+		_water = voxels.runtimeId("water");
+		_sand = voxels.runtimeId("sand-block");
+		_stone = voxels.runtimeId("stone-block");
 		_fallbackBlocks = {
 			.surface = {{_stone, 1.0}},
 			.subsurface = {{_stone, 1.0}},
@@ -71,7 +71,7 @@ namespace pg
 				result.reserve(p_pool.size());
 				for (const auto &entry : p_pool)
 				{
-					result.add(voxels.numericId(entry.value), entry.weight);
+					result.add(voxels.runtimeId(entry.value.id, entry.value.state), entry.weight);
 				}
 				return result;
 			};

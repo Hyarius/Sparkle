@@ -14,8 +14,15 @@ class VoxelData {
 }
 class VoxelDefinition {
   +id : string
-  +data : VoxelData
-  +shape : unique_ptr<VoxelShape>
+  +typeId : spk::VoxelTypeId
+  +data : VoxelData  .. shared by every state ..
+  +states : vector<VoxelStateDefinition>
+}
+class VoxelStateDefinition {
+  +id : spk::VoxelStateId
+  +runtimeId : spk::VoxelRuntimeId
+  +name : string
+  +heights : CardinalHeightCollection
 }
 abstract class VoxelShape {
   +render : FaceSet
@@ -54,13 +61,14 @@ VoxelShape <|-- SlopeShape
 VoxelShape <|-- StairShape
 VoxelShape <|-- CrossPlaneShape
 VoxelDefinition *-- VoxelData
-VoxelDefinition *-- VoxelShape
+VoxelDefinition *-- VoxelStateDefinition
+VoxelStateDefinition ..> VoxelShape : runtimeId → spk registry shape
 VoxelShape *-- FaceSet
 VoxelShape *-- CardinalHeightSet
 FaceSet *-- Face
 
 class VoxelCell {
-  +id : int32 = -1
+  +id : spk::VoxelRuntimeId (dense, -1 = empty)
   +orientation : VoxelOrientation
   +flip : VoxelFlip
   +isEmpty()
@@ -70,8 +78,10 @@ class VoxelGrid {
   +cell(x,y,z)
 }
 class VoxelRegistry {
-  +get(stringId) / get(numericId)
-  .. stable numeric ids, sorted load ..
+  +get(stringId) / get(typeId)
+  +definition(runtimeId) / state(runtimeId)
+  +runtimeId(stringId, state = 0)
+  .. dense type/state/runtime ids, sorted load ..
 }
 class VoxelMesher <<static>> {
   +buildRenderMesh(grid, registry) : Mesh3D
@@ -85,7 +95,7 @@ class VoxelMesher <<static>> {
 VoxelGrid *-- VoxelCell
 VoxelMesher ..> VoxelGrid
 VoxelMesher ..> VoxelRegistry
-VoxelCell ..> VoxelRegistry : id →  definition
+VoxelCell ..> VoxelRegistry : runtime id → definition + state
 
 note bottom of VoxelMesher
   Shell face emitted unless neighbour's facing

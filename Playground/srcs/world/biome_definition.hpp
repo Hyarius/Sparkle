@@ -3,6 +3,8 @@
 #include "core/json.hpp"
 #include "core/registry.hpp"
 #include "core/weighted_pool.hpp"
+#include "voxel/voxel_reference.hpp"
+
 #include "structures/graphics/geometry/spk_color.hpp"
 #include "structures/math/spk_vector3.hpp"
 
@@ -18,10 +20,11 @@ namespace pg
 
 	struct BiomePalette
 	{
-		using VoxelPool = WeightedPool<std::string>;
+		using VoxelPool = WeightedPool<VoxelReference>;
 
 		// Terrain and climb entries are weighted voxel pools. JSON may still use the
 		// old shorthand string for a single block, or an array of strings for equal odds.
+		// Entries resolve to the voxel's default state unless they select one explicitly.
 		VoxelPool surface;
 		VoxelPool subsurface;
 		VoxelPool deep;

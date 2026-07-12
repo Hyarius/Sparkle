@@ -17,8 +17,11 @@ the `world/*_parser.cpp` files, `world/generator/climb_prefabs.cpp`.
    - **game rules** (`config/game-rules.json`),
    - **voxels** (`voxels/*.json`) → `pg::VoxelRegistry` builds *two lockstep views*:
      an `spk::VoxelRegistry` of render shapes and a parallel `VoxelDefinition` table
-     (traversal + walk heights). Voxels with shape type `fluid` additionally generate
-     one slab voxel per fill stage (`water#1..#8`) and a `FluidFamily` record.
+     (traversal/tags on the type, walk heights per state). Each voxel file is ONE
+     semantic type (`spk::VoxelTypeId`) whose states (`spk::VoxelStateId`) each own a
+     dense `spk::VoxelRuntimeId` (the value cells store). Voxels with a `fluid` block
+     additionally generate one slab *state* per fill stage (water states `1..8`,
+     state `0` = source) and a `FluidFamily` record.
    - **biomes** (`biomes/*.json`) → palettes as *weighted voxel pools* (surface,
      subsurface, deep, road, stair, slope) + a `worldgen` block (height shift, peak
      flag, scenery, entity prefab pools).

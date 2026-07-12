@@ -24,7 +24,12 @@ namespace pg
 
 	const VoxelDefinition *GridCellSource::tryDefinition(const spk::VoxelCell &p_cell) const
 	{
-		return p_cell.isEmpty() ? nullptr : _registry.tryGet(p_cell.id);
+		return p_cell.isEmpty() ? nullptr : _registry.tryDefinition(p_cell.id);
+	}
+
+	const VoxelStateDefinition *GridCellSource::tryState(const spk::VoxelCell &p_cell) const
+	{
+		return p_cell.isEmpty() ? nullptr : _registry.tryState(p_cell.id);
 	}
 
 	WorldCellSource::WorldCellSource(const VoxelWorld &p_world, spk::Vector3Int p_originOffset) :
@@ -40,7 +45,12 @@ namespace pg
 
 	const VoxelDefinition *WorldCellSource::tryDefinition(const spk::VoxelCell &p_cell) const
 	{
-		return p_cell.isEmpty() ? nullptr : _world.registry().tryGet(p_cell.id);
+		return p_cell.isEmpty() ? nullptr : _world.registry().tryDefinition(p_cell.id);
+	}
+
+	const VoxelStateDefinition *WorldCellSource::tryState(const spk::VoxelCell &p_cell) const
+	{
+		return p_cell.isEmpty() ? nullptr : _world.registry().tryState(p_cell.id);
 	}
 
 	bool isSolid(const ICellSource &p_source, const spk::Vector3Int &p_position)
@@ -71,13 +81,13 @@ namespace pg
 	float walkHeightAtCenter(const ICellSource &p_source, const spk::Vector3Int &p_position)
 	{
 		const spk::VoxelCell &cell = p_source.cell(p_position);
-		const VoxelDefinition *definition = p_source.tryDefinition(cell);
-		if (definition == nullptr)
+		const VoxelStateDefinition *state = p_source.tryState(cell);
+		if (state == nullptr)
 		{
 			return static_cast<float>(p_position.y);
 		}
 		return static_cast<float>(p_position.y) +
-			   resolveWorldHeights(definition->heights.get(cell.flip), cell.orientation).stationary;
+			   resolveWorldHeights(state->heights.get(cell.flip), cell.orientation).stationary;
 	}
 
 	float walkHeightAtEdge(
@@ -86,13 +96,13 @@ namespace pg
 		VoxelOrientation p_direction)
 	{
 		const spk::VoxelCell &cell = p_source.cell(p_position);
-		const VoxelDefinition *definition = p_source.tryDefinition(cell);
-		if (definition == nullptr)
+		const VoxelStateDefinition *state = p_source.tryState(cell);
+		if (state == nullptr)
 		{
 			return static_cast<float>(p_position.y);
 		}
 		return static_cast<float>(p_position.y) +
-			   resolveWorldHeights(definition->heights.get(cell.flip), cell.orientation).get(p_direction);
+			   resolveWorldHeights(state->heights.get(cell.flip), cell.orientation).get(p_direction);
 	}
 
 	spk::Vector3 interpolateWalkSegment(

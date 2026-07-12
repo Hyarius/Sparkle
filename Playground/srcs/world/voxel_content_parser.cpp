@@ -29,6 +29,7 @@ namespace
 
 	[[nodiscard]] spk::VoxelCell cellFromId(
 		const std::string &p_voxelId,
+		spk::VoxelStateId p_state,
 		const pg::JsonReader &p_reader,
 		const std::string &p_path,
 		const pg::VoxelRegistry &p_voxels)
@@ -38,8 +39,16 @@ namespace
 		{
 			throw pg::JsonError(p_reader.file(), p_path, "unknown voxel id '" + p_voxelId + "'");
 		}
+		const pg::VoxelStateDefinition *state = definition->tryState(p_state);
+		if (state == nullptr)
+		{
+			throw pg::JsonError(
+				p_reader.file(),
+				p_path,
+				"voxel '" + p_voxelId + "' has no state " + std::to_string(p_state.value));
+		}
 		spk::VoxelCell cell;
-		cell.id = p_voxels.numericId(p_voxelId);
+		cell.id = state->runtimeId;
 		return cell;
 	}
 
@@ -68,7 +77,12 @@ namespace
 			spk::VoxelCell cell;
 			if (entry.id.has_value())
 			{
-				cell = cellFromId(*entry.id, p_reader, entry.path, p_voxels);
+				cell = cellFromId(
+					*entry.id, entry.state.value_or(spk::VoxelStateId{}), p_reader, entry.path, p_voxels);
+			}
+			else if (entry.state.has_value())
+			{
+				throw pg::JsonError(p_reader.file(), entry.path, "an empty palette entry cannot select a state");
 			}
 			pool.add(cell, entry.weight);
 		}

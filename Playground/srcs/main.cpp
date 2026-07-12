@@ -59,12 +59,12 @@ namespace
 	{
 		const pg::PlanChunkProvider provider(p_registries, p_plan);
 		VoxelSampler sampler{provider, p_registries.voxels().renderRegistry(), {}};
-		std::set<std::int32_t> roadIds{p_registries.voxels().numericId("road-block")};
+		std::set<spk::VoxelRuntimeId> roadIds{p_registries.voxels().runtimeId("road-block")};
 		for (const std::string &biomeId : p_registries.biomes().ids())
 		{
 			for (const auto &roadBlock : p_registries.biomes().get(biomeId).palette.road)
 			{
-				roadIds.insert(p_registries.voxels().numericId(roadBlock.value));
+				roadIds.insert(p_registries.voxels().runtimeId(roadBlock.value.id, roadBlock.value.state));
 			}
 		}
 

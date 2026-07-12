@@ -20,7 +20,7 @@ namespace pg
 {
 	namespace
 	{
-		using VoxelPool = WeightedPool<std::int32_t>;
+		using VoxelPool = WeightedPool<spk::VoxelRuntimeId>;
 
 		// Pre-mixed variants per biome flight pool: enough that neighboring staircases read
 		// as distinct without flooding the registry. A single-voxel pool collapses to one.
@@ -29,7 +29,7 @@ namespace pg
 		// FNV-1a over the generated id: a stable per-variant seed so the block mix is the
 		// same on every run for a given data set (placement variety comes from the plan RNG
 		// picking among variants).
-		[[nodiscard]] spk::VoxelCell cellOf(std::int32_t p_id)
+		[[nodiscard]] spk::VoxelCell cellOf(spk::VoxelRuntimeId p_id)
 		{
 			spk::VoxelCell cell;
 			cell.id = p_id;
@@ -129,7 +129,7 @@ namespace pg
 			ids.reserve(p_voxelsIds.size());
 			for (const auto &voxel : p_voxelsIds)
 			{
-				ids.add(p_voxels.numericId(voxel.value), voxel.weight);
+				ids.add(p_voxels.runtimeId(voxel.value.id, voxel.value.state), voxel.weight);
 			}
 			return ids;
 		};

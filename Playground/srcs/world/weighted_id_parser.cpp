@@ -2,6 +2,8 @@
 
 #include <cmath>
 #include <cstddef>
+#include <cstdint>
+#include <limits>
 
 namespace
 {
@@ -38,6 +40,27 @@ namespace
 		return p_value.as<std::string>();
 	}
 
+	[[nodiscard]] std::optional<spk::VoxelStateId> parseState(
+		const spk::JSON::Value *p_value,
+		const pg::JsonReader &p_reader,
+		const std::string &p_path)
+	{
+		if (p_value == nullptr)
+		{
+			return std::nullopt;
+		}
+		if (!p_value->isNumber())
+		{
+			throw pg::JsonError(p_reader.file(), p_path, "expected a state id number");
+		}
+		const std::int64_t state = p_value->as<std::int64_t>();
+		if (state < 0 || state > static_cast<std::int64_t>(std::numeric_limits<std::uint16_t>::max()))
+		{
+			throw pg::JsonError(p_reader.file(), p_path, "state id is out of range");
+		}
+		return spk::VoxelStateId{static_cast<std::uint16_t>(state)};
+	}
+
 	void appendOne(
 		std::vector<pg::WeightedId> &p_result,
 		const spk::JSON::Value &p_entry,
@@ -68,7 +91,7 @@ namespace
 		for (const auto &[key, unused] : p_entry.asObject())
 		{
 			(void)unused;
-			if (key != "voxel" && key != "id" && key != "weight" && key != "chance")
+			if (key != "voxel" && key != "id" && key != "weight" && key != "chance" && key != "state")
 			{
 				throw pg::JsonError(p_reader.file(), p_path + "." + key, "unknown field");
 			}
@@ -84,7 +107,11 @@ namespace
 							  : chanceValue != nullptr ? parseWeight(*chanceValue, p_reader, p_path + ".chance")
 													   : 1.0;
 		const spk::JSON::Value &selectedId = voxelValue != nullptr ? *voxelValue : *idValue;
-		p_result.push_back({.id = parseId(selectedId, p_reader, p_path), .weight = weight, .path = p_path});
+		p_result.push_back(
+			{.id = parseId(selectedId, p_reader, p_path),
+			 .state = parseState(p_entry.find("state"), p_reader, p_path + ".state"),
+			 .weight = weight,
+			 .path = p_path});
 	}
 }
 

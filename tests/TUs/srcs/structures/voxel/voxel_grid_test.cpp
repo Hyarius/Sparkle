@@ -15,7 +15,7 @@ TEST(VoxelGrid, DefaultConstructedGridIsEmpty)
 
 TEST(VoxelGrid, SizedGridStartsWithTheFillCell)
 {
-	const spk::VoxelCell fill{4, spk::VoxelOrientation::NegativeX, spk::VoxelFlip::NegativeY};
+	const spk::VoxelCell fill{spk::VoxelRuntimeId{4}, spk::VoxelOrientation::NegativeX, spk::VoxelFlip::NegativeY};
 	const spk::VoxelGrid grid({2, 3, 4}, fill);
 
 	EXPECT_EQ(grid.cells().size(), 24u);
@@ -49,8 +49,8 @@ TEST(VoxelGrid, NegativeSizeIsRejected)
 TEST(VoxelGrid, WrittenCellsAreReadBack)
 {
 	spk::VoxelGrid grid({4, 4, 4});
-	grid.cell(1, 2, 3) = {7};
+	grid.cell(1, 2, 3) = {spk::VoxelRuntimeId{7}};
 
-	EXPECT_EQ(grid.cell({1, 2, 3}).id, 7);
+	EXPECT_EQ(grid.cell({1, 2, 3}).id, spk::VoxelRuntimeId{7});
 	EXPECT_FALSE(grid.cell(1, 2, 3).isEmpty());
 }

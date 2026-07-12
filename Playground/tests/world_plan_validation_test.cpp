@@ -87,7 +87,7 @@ TEST(PlanChunkProvider, StairFoundationUsesTerrainVoxels)
 			foundationChunk.localFromWorld({foundationPosition.x, p_y, foundationPosition.z}));
 	};
 
-	const std::int32_t terrainId = registries.voxels().numericId("stone-block");
+	const spk::VoxelRuntimeId terrainId = registries.voxels().runtimeId("stone-block");
 	for (int y = plan.config.groundLevelTop + 1; y < spk::VoxelChunk::Size.y; ++y)
 	{
 		EXPECT_EQ(foundationCellAt(y).id, terrainId) << "foundation voxel at y=" << y;

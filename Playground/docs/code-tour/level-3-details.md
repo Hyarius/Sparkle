@@ -41,13 +41,15 @@ from the historical pg shapes so navigation behaves identically):
 | `stair` | `StairVoxelShape` | stepCount 1–64 |
 | `crossPlane` / `cross` | diagonal / axis quads | no walk heights |
 
-`VoxelRegistry::load` then registers every parsed voxel into the render registry
-(numeric id = registration order) and mirrors it in the gameplay table. For each
-fluid: stages `1..maxSpread-1` become `SlabVoxelShape(fill = k/maxSpread)`, the last
-stage a full cube; all stages get `traversal = Passable`, the source's tags, the
-source's transparency, and `setTransparentOcclusionGroup(sourceId)` so the whole
-family culls internal faces together. Ids are `"<id>#<stage>"`. `FluidRef` entries
-map every id (source included) back to (family, stage, isSource).
+`VoxelRegistry::load` then registers every parsed voxel as ONE type through the spk
+registry's batch `registerType()` (type/state/runtime ids all dense, in registration
+order) and mirrors it in the gameplay table. For each fluid: the authored source is
+state `0` and stages `1..maxSpread` become slab states (`fill = k/maxSpread`, the
+last one full height); all states share the type's traversal/tags/transparency and
+`setTransparentOcclusionGroup(sourceId)` so the whole family culls internal faces
+together. No synthetic string ids exist anymore (debug formatting shows
+`water@source` / `water@3`). `FluidRef` entries map every runtime id (source
+included) back to (family, stage, isSource).
 
 ### 1.4 Biomes (`world/biome_definition.cpp`)
 

@@ -17,7 +17,7 @@ namespace
 	struct TestRegistry
 	{
 		spk::VoxelRegistry registry;
-		std::int32_t cube = 0;
+		spk::VoxelRuntimeId cube{};
 
 		TestRegistry()
 		{

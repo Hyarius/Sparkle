@@ -1,22 +1,23 @@
 #pragma once
 
 #include "structures/voxel/spk_voxel_enums.hpp"
-
-#include <cstdint>
+#include "structures/voxel/spk_voxel_ids.hpp"
 
 namespace spk
 {
+	// One cell of a voxel grid: the dense runtime handle of the registered voxel state it
+	// holds (see spk::VoxelRegistry), plus the transformations applied to that state.
+	// Orientation and flip are transformations of the current state, not states themselves:
+	// a state describes an actual semantic variation (texture variant, fill level, ...).
 	struct VoxelCell
 	{
-		static constexpr std::int32_t EmptyId = -1;
-
-		std::int32_t id = EmptyId;
+		spk::VoxelRuntimeId id{};
 		spk::VoxelOrientation orientation = spk::VoxelOrientation::PositiveZ;
 		spk::VoxelFlip flip = spk::VoxelFlip::PositiveY;
 
 		[[nodiscard]] bool isEmpty() const noexcept
 		{
-			return id == EmptyId;
+			return !id.isValid();
 		}
 
 		[[nodiscard]] bool operator==(const VoxelCell &) const noexcept = default;

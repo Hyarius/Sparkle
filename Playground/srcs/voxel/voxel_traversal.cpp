@@ -6,12 +6,12 @@ namespace pg
 {
 	bool isSolid(const spk::VoxelCell &p_cell, const VoxelRegistry &p_registry)
 	{
-		return !p_cell.isEmpty() && p_registry.get(p_cell.id).data.traversal == VoxelTraversal::Solid;
+		return !p_cell.isEmpty() && p_registry.definition(p_cell.id).data.traversal == VoxelTraversal::Solid;
 	}
 
 	bool isPassableSpace(const spk::VoxelCell &p_cell, const VoxelRegistry &p_registry)
 	{
-		return p_cell.isEmpty() || p_registry.get(p_cell.id).data.traversal == VoxelTraversal::Passable;
+		return p_cell.isEmpty() || p_registry.definition(p_cell.id).data.traversal == VoxelTraversal::Passable;
 	}
 
 	bool isStandable(

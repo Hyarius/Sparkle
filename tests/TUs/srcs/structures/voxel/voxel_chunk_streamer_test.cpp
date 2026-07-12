@@ -24,7 +24,7 @@ namespace
 	struct StreamedWorld
 	{
 		spk::VoxelRegistry registry;
-		std::int32_t cube = 0;
+		spk::VoxelRuntimeId cube{};
 		int generationCount = 0;
 
 		spk::GameEngine engine;
@@ -273,7 +273,7 @@ TEST(VoxelChunkStreamer, RemovingStreamersOneAtATimePreservesTheRemainingUnion)
 TEST(VoxelChunkStreamer, ReusedMapAddressDoesNotReuseHistoricalStreamingState)
 {
 	spk::VoxelRegistry registry;
-	const std::int32_t cube = registry.registerShape(std::make_unique<spk::CubeVoxelShape>(spk::AtlasCell{0, 0}));
+	const spk::VoxelRuntimeId cube = registry.registerShape(std::make_unique<spk::CubeVoxelShape>(spk::AtlasCell{0, 0}));
 	spk::GameEngine engine;
 	(void)engine.add<spk::VoxelChunkStreamerLogic>();
 

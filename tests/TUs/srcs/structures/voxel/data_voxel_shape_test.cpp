@@ -204,9 +204,9 @@ TEST(DataVoxelShape, RejectsInvalidDescriptions)
 TEST(DataVoxelShape, BuriedDataSlabSuppressesItsTopFace)
 {
 	spk::VoxelRegistry registry;
-	const std::int32_t cube = registry.registerShape(std::make_unique<spk::CubeVoxelShape>(spk::AtlasCell{0, 0}));
-	const std::int32_t legacySlab = registry.registerShape(std::make_unique<spk::SlabVoxelShape>(spk::AtlasCell{0, 0}, 0.5f));
-	const std::int32_t dataSlab = registry.registerShape(std::make_unique<spk::DataVoxelShape>(UniformSideSlots, slabDescription()));
+	const spk::VoxelRuntimeId cube = registry.registerShape(std::make_unique<spk::CubeVoxelShape>(spk::AtlasCell{0, 0}));
+	const spk::VoxelRuntimeId legacySlab = registry.registerShape(std::make_unique<spk::SlabVoxelShape>(spk::AtlasCell{0, 0}, 0.5f));
+	const spk::VoxelRuntimeId dataSlab = registry.registerShape(std::make_unique<spk::DataVoxelShape>(UniformSideSlots, slabDescription()));
 
 	// Same fully enclosed cell, two slab flavors: the legacy slab keeps its mid-height top
 	// in the PositiveY outer slot, which the mesher can never occlude; the data slab's top

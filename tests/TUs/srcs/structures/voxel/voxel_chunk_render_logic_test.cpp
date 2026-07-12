@@ -22,11 +22,11 @@
 TEST(VoxelChunkRenderLogic, TransparentChunksRenderAfterOpaqueActors)
 {
 	spk::VoxelRegistry registry;
-	const std::int32_t stone = registry.registerShape(
+	const spk::VoxelRuntimeId stone = registry.registerShape(
 		std::make_unique<spk::CubeVoxelShape>(spk::AtlasCell{0, 0}));
 	auto waterShape = std::make_unique<spk::CubeVoxelShape>(spk::AtlasCell{1, 0});
 	waterShape->setTransparency(0.5f);
-	const std::int32_t water = registry.registerShape(std::move(waterShape));
+	const spk::VoxelRuntimeId water = registry.registerShape(std::move(waterShape));
 
 	spk::Texture texture;
 	spk::GameEngine engine;

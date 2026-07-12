@@ -5,7 +5,7 @@
 
 #include "structures/voxel/spk_data_voxel_shape.hpp"
 
-#include <limits>
+#include <cstdint>
 #include <memory>
 #include <optional>
 #include <stdexcept>
@@ -49,7 +49,8 @@ namespace pg
 	void VoxelRegistry::load(const ShapeCatalog &p_shapes, const std::filesystem::path &p_voxelsDirectory)
 	{
 		// Reuse the generic registry for file discovery, sorted-id ordering and duplicate-id
-		// checks, then split each parsed voxel into the render shape and the gameplay catalog.
+		// checks, then register each parsed voxel as ONE spk voxel type whose states are its
+		// authored (or, for fluids, generated) render shapes.
 		Registry<ParsedVoxel> parsed;
 		spk::loadJsonDirectory(parsed, p_voxelsDirectory, [&p_shapes](std::string_view p_id, JsonReader &p_reader) {
 			ParsedVoxel voxel = parseVoxelDefinition(p_reader, p_shapes);
@@ -57,152 +58,246 @@ namespace pg
 			return voxel;
 		});
 
-		std::vector<std::string> ids = parsed.ids();
-		if (ids.size() > static_cast<std::size_t>(std::numeric_limits<std::int32_t>::max()))
-		{
-			throw std::length_error("Voxel registry exceeds int32 numeric id capacity");
-		}
-
 		spk::VoxelRegistry renderRegistry;
 		std::vector<VoxelDefinition> definitions;
-		std::vector<std::string> numericToString;
-		std::map<std::string, std::int32_t> stringToNumeric;
+		std::vector<std::string> typeToString;
+		std::map<std::string, spk::VoxelTypeId> stringToType;
 		std::vector<FluidFamily> fluids;
-		std::unordered_map<std::int32_t, FluidRef> fluidRefs;
+		std::unordered_map<spk::VoxelRuntimeId, FluidRef> fluidRefs;
+		const std::vector<std::string> ids = parsed.ids();
 		definitions.reserve(ids.size());
-		numericToString.reserve(ids.size());
-
-		// Registers one shape + its parallel gameplay definition, keeping the render registry id,
-		// the definition table and the id<->name maps in lockstep. Generated fluid stages go
-		// through here too, so they get their own ids without disturbing the authored voxels.
-		const auto registerVoxel = [&](const std::string &p_id,
-									   std::unique_ptr<spk::VoxelShape> p_shape,
-									   VoxelData p_data,
-									   const CardinalHeightCollection &p_heights) -> std::int32_t {
-			const std::int32_t numeric = renderRegistry.registerShape(std::move(p_shape));
-			definitions.push_back(VoxelDefinition{.id = p_id, .data = std::move(p_data), .heights = p_heights});
-			numericToString.push_back(p_id);
-			stringToNumeric.emplace(p_id, numeric);
-			return numeric;
-		};
+		typeToString.reserve(ids.size());
 
 		for (const std::string &id : ids)
 		{
 			ParsedVoxel &voxel = parsed.getMutable(id);
 			const std::optional<FluidData> fluid = voxel.fluid;
-			const VoxelData tagsSource = voxel.data;				// copied before the move, reused for stage tags
-			const float transparency = voxel.shape->transparency(); // reused for the generated stage slabs
+
+			// Gather every state shape, then register them transactionally as one type.
+			// The parallel vectors keep the state metadata (name + heights) aligned with
+			// the shapes handed to the spk registry.
+			std::vector<std::unique_ptr<spk::VoxelShape>> stateShapes;
+			std::vector<std::string> stateNames;
+			std::vector<CardinalHeightCollection> stateHeights;
+			stateShapes.reserve(voxel.states.size());
+			stateNames.reserve(voxel.states.size());
+			stateHeights.reserve(voxel.states.size());
+			for (ParsedVoxelState &state : voxel.states)
+			{
+				stateShapes.push_back(std::move(state.shape));
+				stateNames.push_back(std::move(state.name));
+				stateHeights.push_back(state.heights);
+			}
+
 			if (fluid.has_value())
 			{
-				// Every generated fill stage is the same optical medium as its authored
-				// source, even when rounding gives their alpha values a small difference.
-				voxel.shape->setTransparentOcclusionGroup(id);
+				// One semantic fluid type: state 0 is the authored source, states
+				// 1..maxSpread the generated fill stages. Every stage is the same optical
+				// medium as its source (shared transparency + occlusion group), so a fluid
+				// body culls its internal faces and renders as one translucent volume.
+				const float transparency = stateShapes.front()->transparency();
+				stateShapes.front()->setTransparentOcclusionGroup(id);
+				stateNames.front() = "source";
+				for (int stage = 1; stage <= fluid->maxSpread; ++stage)
+				{
+					const float fill = static_cast<float>(stage) / static_cast<float>(fluid->maxSpread);
+					std::unique_ptr<spk::VoxelShape> stageShape = makeFluidStageShape(fill, fluid->texture);
+					stageShape->setTransparency(transparency);
+					stageShape->setTransparentOcclusionGroup(id);
+					stateShapes.push_back(std::move(stageShape));
+					stateNames.push_back(std::to_string(stage));
+					stateHeights.push_back(CardinalHeightCollection{});
+				}
 			}
-			const std::int32_t sourceNumeric = registerVoxel(id, std::move(voxel.shape), std::move(voxel.data), voxel.heights);
 
-			if (fluid.has_value() == false)
+			const std::size_t expectedStates = stateShapes.size();
+			const spk::VoxelTypeRegistration registration = renderRegistry.registerType(std::move(stateShapes));
+			if (registration.states.size() != expectedStates || registration.type.index() != definitions.size())
 			{
-				continue;
+				throw std::logic_error("voxel registry lost lockstep with the spk render registry");
 			}
 
-			// One slab per fill stage: stage k renders at height k / maxSpread, so the fluid is
-			// a near-full cube next to the source and a thin film at the edge of its reach. The
-			// stages are passable and carry the source's tags (water, ...) for gameplay queries.
-			const std::size_t familyIndex = fluids.size();
-			FluidFamily family;
-			family.sourceId = sourceNumeric;
-			family.maxSpread = fluid->maxSpread;
-			family.falls = fluid->falls;
-			family.stageIds.reserve(static_cast<std::size_t>(fluid->maxSpread));
-			for (int stage = 1; stage <= fluid->maxSpread; ++stage)
+			VoxelDefinition definition{.id = id, .typeId = registration.type, .data = std::move(voxel.data)};
+			definition.states.reserve(registration.states.size());
+			for (std::size_t index = 0; index < registration.states.size(); ++index)
 			{
-				const float fill = static_cast<float>(stage) / static_cast<float>(fluid->maxSpread);
-				VoxelData stageData;
-				stageData.traversal = VoxelTraversal::Passable;
-				stageData.tags = tagsSource.tags;
-				// The full stage fills the cell so all six faces participate in boundary occlusion.
-				std::unique_ptr<spk::VoxelShape> stageShape = makeFluidStageShape(fill, fluid->texture);
-				// Stages share the source's transparency so a water body culls its internal
-				// faces and renders as one continuous translucent volume.
-				stageShape->setTransparency(transparency);
-				stageShape->setTransparentOcclusionGroup(id);
-				const std::int32_t stageNumeric = registerVoxel(
-					id + "#" + std::to_string(stage),
-					std::move(stageShape),
-					std::move(stageData),
-					CardinalHeightCollection{});
-				family.stageIds.push_back(stageNumeric);
-				fluidRefs.emplace(stageNumeric, FluidRef{.family = familyIndex, .stage = stage, .source = false});
+				definition.states.push_back(VoxelStateDefinition{
+					.id = {static_cast<std::uint16_t>(index)},
+					.runtimeId = registration.states[index],
+					.name = std::move(stateNames[index]),
+					.heights = stateHeights[index]});
 			}
-			fluidRefs.emplace(sourceNumeric, FluidRef{.family = familyIndex, .stage = fluid->maxSpread, .source = true});
-			fluids.push_back(std::move(family));
+
+			if (fluid.has_value())
+			{
+				const std::size_t familyIndex = fluids.size();
+				FluidFamily family;
+				family.type = registration.type;
+				family.maxSpread = fluid->maxSpread;
+				family.falls = fluid->falls;
+				family.source = FluidStateRef{
+					.type = registration.type,
+					.state = {},
+					.runtime = registration.states.front(),
+					.level = static_cast<std::size_t>(fluid->maxSpread),
+					.source = true};
+				family.levels.reserve(static_cast<std::size_t>(fluid->maxSpread));
+				for (int stage = 1; stage <= fluid->maxSpread; ++stage)
+				{
+					const spk::VoxelRuntimeId runtime = registration.states[static_cast<std::size_t>(stage)];
+					family.levels.push_back(FluidStateRef{
+						.type = registration.type,
+						.state = {static_cast<std::uint16_t>(stage)},
+						.runtime = runtime,
+						.level = static_cast<std::size_t>(stage),
+						.source = false});
+					fluidRefs.emplace(runtime, FluidRef{.family = familyIndex, .stage = stage, .source = false});
+				}
+				fluidRefs.emplace(
+					family.source.runtime,
+					FluidRef{.family = familyIndex, .stage = fluid->maxSpread, .source = true});
+				fluids.push_back(std::move(family));
+			}
+
+			definitions.push_back(std::move(definition));
+			typeToString.push_back(id);
+			stringToType.emplace(id, registration.type);
 		}
 
 		_renderRegistry = std::move(renderRegistry);
 		_definitions = std::move(definitions);
-		_numericToString = std::move(numericToString);
-		_stringToNumeric = std::move(stringToNumeric);
+		_typeToString = std::move(typeToString);
+		_stringToType = std::move(stringToType);
 		_fluids = std::move(fluids);
 		_fluidRefs = std::move(fluidRefs);
 	}
 
 	const VoxelDefinition &VoxelRegistry::get(const std::string &p_id) const
 	{
-		return get(numericId(p_id));
+		return get(typeId(p_id));
 	}
 
-	const VoxelDefinition &VoxelRegistry::get(std::int32_t p_id) const
+	const VoxelDefinition &VoxelRegistry::get(spk::VoxelTypeId p_type) const
 	{
-		const VoxelDefinition *definition = tryGet(p_id);
+		const VoxelDefinition *definition = tryGet(p_type);
 		if (definition == nullptr)
 		{
-			throw std::out_of_range("unknown numeric voxel registry id");
+			throw std::out_of_range("unknown voxel type id " + std::to_string(p_type.value));
 		}
 		return *definition;
 	}
 
 	const VoxelDefinition *VoxelRegistry::tryGet(const std::string &p_id) const noexcept
 	{
-		const auto iterator = _stringToNumeric.find(p_id);
-		return iterator == _stringToNumeric.end() ? nullptr : tryGet(iterator->second);
+		const auto iterator = _stringToType.find(p_id);
+		return iterator == _stringToType.end() ? nullptr : tryGet(iterator->second);
 	}
 
-	const VoxelDefinition *VoxelRegistry::tryGet(std::int32_t p_id) const noexcept
+	const VoxelDefinition *VoxelRegistry::tryGet(spk::VoxelTypeId p_type) const noexcept
 	{
-		if (p_id < 0 || static_cast<std::size_t>(p_id) >= _definitions.size())
+		if (p_type.index() >= _definitions.size())
 		{
 			return nullptr;
 		}
-		return &_definitions[static_cast<std::size_t>(p_id)];
+		return &_definitions[p_type.index()];
 	}
 
-	std::int32_t VoxelRegistry::numericId(const std::string &p_id) const
+	const VoxelDefinition &VoxelRegistry::definition(spk::VoxelRuntimeId p_runtime) const
 	{
-		const auto iterator = _stringToNumeric.find(p_id);
-		if (iterator == _stringToNumeric.end())
+		const VoxelDefinition *result = tryDefinition(p_runtime);
+		if (result == nullptr)
+		{
+			throw std::out_of_range("unknown voxel runtime id " + std::to_string(p_runtime.value));
+		}
+		return *result;
+	}
+
+	const VoxelDefinition *VoxelRegistry::tryDefinition(spk::VoxelRuntimeId p_runtime) const noexcept
+	{
+		const spk::VoxelStateReference *reference = _renderRegistry.tryStateReference(p_runtime);
+		return reference == nullptr ? nullptr : tryGet(reference->type);
+	}
+
+	const VoxelStateDefinition &VoxelRegistry::state(spk::VoxelRuntimeId p_runtime) const
+	{
+		const VoxelStateDefinition *result = tryState(p_runtime);
+		if (result == nullptr)
+		{
+			throw std::out_of_range("unknown voxel runtime id " + std::to_string(p_runtime.value));
+		}
+		return *result;
+	}
+
+	const VoxelStateDefinition *VoxelRegistry::tryState(spk::VoxelRuntimeId p_runtime) const noexcept
+	{
+		const spk::VoxelStateReference *reference = _renderRegistry.tryStateReference(p_runtime);
+		if (reference == nullptr)
+		{
+			return nullptr;
+		}
+		const VoxelDefinition *definition = tryGet(reference->type);
+		return definition == nullptr ? nullptr : definition->tryState(reference->state);
+	}
+
+	spk::VoxelTypeId VoxelRegistry::typeId(const std::string &p_id) const
+	{
+		const auto iterator = _stringToType.find(p_id);
+		if (iterator == _stringToType.end())
 		{
 			throw std::out_of_range("unknown voxel registry id '" + p_id + "'");
 		}
 		return iterator->second;
 	}
 
-	const std::string &VoxelRegistry::stringId(std::int32_t p_id) const
+	spk::VoxelRuntimeId VoxelRegistry::runtimeId(const std::string &p_id, spk::VoxelStateId p_state) const
 	{
-		if (p_id < 0 || static_cast<std::size_t>(p_id) >= _numericToString.size())
+		return runtimeId(typeId(p_id), p_state);
+	}
+
+	spk::VoxelRuntimeId VoxelRegistry::runtimeId(spk::VoxelTypeId p_type, spk::VoxelStateId p_state) const
+	{
+		return _renderRegistry.runtimeId(p_type, p_state);
+	}
+
+	spk::VoxelRuntimeId VoxelRegistry::numericId(const std::string &p_id) const
+	{
+		return runtimeId(p_id, spk::VoxelStateId{});
+	}
+
+	const std::string &VoxelRegistry::stringId(spk::VoxelTypeId p_type) const
+	{
+		if (p_type.index() >= _typeToString.size())
 		{
-			throw std::out_of_range("unknown numeric voxel registry id");
+			throw std::out_of_range("unknown voxel type id " + std::to_string(p_type.value));
 		}
-		return _numericToString[static_cast<std::size_t>(p_id)];
+		return _typeToString[p_type.index()];
+	}
+
+	std::string VoxelRegistry::debugName(spk::VoxelRuntimeId p_runtime) const
+	{
+		const VoxelDefinition &owner = definition(p_runtime);
+		const VoxelStateDefinition &stateDefinition = state(p_runtime);
+		if (stateDefinition.id == spk::VoxelStateId{} && stateDefinition.name == "default")
+		{
+			return owner.id;
+		}
+		return owner.id + "@" +
+			   (stateDefinition.name.empty() ? std::to_string(stateDefinition.id.value) : stateDefinition.name);
 	}
 
 	const std::vector<std::string> &VoxelRegistry::ids() const noexcept
 	{
-		return _numericToString;
+		return _typeToString;
 	}
 
-	std::size_t VoxelRegistry::size() const noexcept
+	std::size_t VoxelRegistry::typeCount() const noexcept
 	{
-		return _numericToString.size();
+		return _definitions.size();
+	}
+
+	std::size_t VoxelRegistry::runtimeStateCount() const noexcept
+	{
+		return _renderRegistry.runtimeStateCount();
 	}
 
 	const spk::VoxelRegistry &VoxelRegistry::renderRegistry() const noexcept
@@ -215,9 +310,9 @@ namespace pg
 		return _fluids;
 	}
 
-	const FluidRef *VoxelRegistry::tryFluidRef(std::int32_t p_id) const noexcept
+	const FluidRef *VoxelRegistry::tryFluidRef(spk::VoxelRuntimeId p_runtime) const noexcept
 	{
-		const auto iterator = _fluidRefs.find(p_id);
+		const auto iterator = _fluidRefs.find(p_runtime);
 		return iterator == _fluidRefs.end() ? nullptr : &iterator->second;
 	}
 }

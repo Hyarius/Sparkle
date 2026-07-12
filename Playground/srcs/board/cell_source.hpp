@@ -14,7 +14,10 @@ namespace pg
 	public:
 		virtual ~ICellSource() = default;
 		[[nodiscard]] virtual const spk::VoxelCell &cell(const spk::Vector3Int &p_position) const = 0;
+		// Type-level data (traversal, tags) of the cell's voxel, or nullptr when empty.
 		[[nodiscard]] virtual const VoxelDefinition *tryDefinition(const spk::VoxelCell &p_cell) const = 0;
+		// State-level data (walk heights) of the cell's voxel state, or nullptr when empty.
+		[[nodiscard]] virtual const VoxelStateDefinition *tryState(const spk::VoxelCell &p_cell) const = 0;
 	};
 
 	class GridCellSource final : public ICellSource
@@ -27,6 +30,7 @@ namespace pg
 		GridCellSource(const spk::VoxelGrid &p_grid, const VoxelRegistry &p_registry);
 		[[nodiscard]] const spk::VoxelCell &cell(const spk::Vector3Int &p_position) const override;
 		[[nodiscard]] const VoxelDefinition *tryDefinition(const spk::VoxelCell &p_cell) const override;
+		[[nodiscard]] const VoxelStateDefinition *tryState(const spk::VoxelCell &p_cell) const override;
 	};
 
 	class WorldCellSource final : public ICellSource
@@ -39,6 +43,7 @@ namespace pg
 		explicit WorldCellSource(const VoxelWorld &p_world, spk::Vector3Int p_originOffset = {});
 		[[nodiscard]] const spk::VoxelCell &cell(const spk::Vector3Int &p_position) const override;
 		[[nodiscard]] const VoxelDefinition *tryDefinition(const spk::VoxelCell &p_cell) const override;
+		[[nodiscard]] const VoxelStateDefinition *tryState(const spk::VoxelCell &p_cell) const override;
 	};
 
 	[[nodiscard]] bool isSolid(const ICellSource &p_source, const spk::Vector3Int &p_position);

@@ -4,6 +4,7 @@
 #include "world/generator/world_plan.hpp"
 
 #include "structures/math/spk_vector3.hpp"
+#include "structures/voxel/spk_voxel_ids.hpp"
 
 #include <cstdint>
 #include <map>
@@ -49,7 +50,7 @@ namespace pg
 
 		struct BiomeBlocks
 		{
-			using VoxelPool = WeightedPool<std::int32_t>;
+			using VoxelPool = WeightedPool<spk::VoxelRuntimeId>;
 
 			VoxelPool surface;
 			VoxelPool subsurface;
@@ -60,9 +61,9 @@ namespace pg
 		struct Column
 		{
 			int groundTop = -1; // highest solid block (-1: no ground in this column)
-			std::int32_t surfaceId = -1;
-			std::int32_t subsurfaceId = -1;
-			std::int32_t deepId = -1;
+			spk::VoxelRuntimeId surfaceId{};
+			spk::VoxelRuntimeId subsurfaceId{};
+			spk::VoxelRuntimeId deepId{};
 			int waterY = -1;		 // water block at this height (-1: none)
 			int subsurfaceDepth = 3; // blocks of subsurface under the surface block
 		};
@@ -70,10 +71,10 @@ namespace pg
 		const WorldPlan &_plan;
 		std::vector<BiomeBlocks> _biomeBlocks; // indexed like _plan.biomes
 		BiomeBlocks _fallbackBlocks;		   // for land cells outside any zone
-		std::int32_t _road = -1;
-		std::int32_t _water = -1;
-		std::int32_t _sand = -1;
-		std::int32_t _stone = -1;
+		spk::VoxelRuntimeId _road{};
+		spk::VoxelRuntimeId _water{};
+		spk::VoxelRuntimeId _sand{};
+		spk::VoxelRuntimeId _stone{};
 		std::vector<ResolvedPlacement> _placements;
 
 		[[nodiscard]] Column _column(int p_worldX, int p_worldZ) const;

@@ -78,7 +78,8 @@ namespace pg
 		_prefabs = std::move(loadedPrefabs);
 		_interiors = std::move(loadedInteriors);
 		_placementRules = std::move(loadedPlacementRules);
-		std::cout << "Loaded " << _voxels.size() << " voxel definitions, " << _biomes.size()
+		std::cout << "Loaded " << _voxels.typeCount() << " voxel types containing "
+				  << _voxels.runtimeStateCount() << " runtime states, " << _biomes.size()
 				  << " biome definitions, " << _prefabs.size() << " prefabs, and " << _interiors.size()
 				  << " interiors" << std::endl;
 	}

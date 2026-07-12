@@ -22,7 +22,7 @@ namespace
 		std::map<spk::Vector3Int, spk::VoxelCell, PositionLess> _cells;
 
 	public:
-		void set(const spk::Vector3Int &p_position, std::int32_t p_id)
+		void set(const spk::Vector3Int &p_position, spk::VoxelRuntimeId p_id)
 		{
 			_cells[p_position] = {.id = p_id};
 		}
@@ -38,7 +38,7 @@ namespace
 TEST(VoxelRayCast, HitsTheBoundaryOfTheFirstNonEmptyVoxel)
 {
 	Cells cells;
-	cells.set({2, 0, 0}, 7);
+	cells.set({2, 0, 0}, spk::VoxelRuntimeId{7});
 
 	const auto hit = spk::VoxelRayCast::cast(cells, {{0.25f, 0.5f, 0.5f}, {2, 0, 0}}, 4.0f);
 	ASSERT_TRUE(hit.has_value());
@@ -50,14 +50,14 @@ TEST(VoxelRayCast, HitsTheBoundaryOfTheFirstNonEmptyVoxel)
 TEST(VoxelRayCast, TreatsEveryVoxelAsAUnitBoxAndSupportsSelectionPolicy)
 {
 	Cells cells;
-	cells.set({1, 0, 0}, 1);
-	cells.set({2, 0, 0}, 2);
+	cells.set({1, 0, 0}, spk::VoxelRuntimeId{1});
+	cells.set({2, 0, 0}, spk::VoxelRuntimeId{2});
 
 	const auto hit = spk::VoxelRayCast::cast(
 		cells,
 		{{0.5f, 0.9f, 0.5f}, {1, 0, 0}},
 		4.0f,
-		[](const spk::Vector3Int &, const spk::VoxelCell &p_cell) { return p_cell.id == 2; });
+		[](const spk::Vector3Int &, const spk::VoxelCell &p_cell) { return p_cell.id == spk::VoxelRuntimeId{2}; });
 	ASSERT_TRUE(hit.has_value());
 	EXPECT_EQ(hit->cell, spk::Vector3Int(2, 0, 0));
 	EXPECT_NEAR(hit->distance, 1.5f, 0.0001f);
@@ -66,7 +66,7 @@ TEST(VoxelRayCast, TreatsEveryVoxelAsAUnitBoxAndSupportsSelectionPolicy)
 TEST(VoxelRayCast, ReportsImmediateHitWhenStartingInsideASelectedCell)
 {
 	Cells cells;
-	cells.set({1, 0, 0}, 1);
+	cells.set({1, 0, 0}, spk::VoxelRuntimeId{1});
 
 	const auto hit = spk::VoxelRayCast::cast(cells, {{1.5f, 0.25f, 0.5f}, {1, 0, 0}}, 2.0f);
 	ASSERT_TRUE(hit.has_value());
@@ -77,8 +77,8 @@ TEST(VoxelRayCast, ReportsImmediateHitWhenStartingInsideASelectedCell)
 TEST(VoxelRayCast, AdvancesEveryAxisAtEdgeAndCornerTies)
 {
 	Cells cells;
-	cells.set({1, 1, 0}, 1);
-	cells.set({1, 1, 1}, 2);
+	cells.set({1, 1, 0}, spk::VoxelRuntimeId{1});
+	cells.set({1, 1, 1}, spk::VoxelRuntimeId{2});
 
 	const auto edge = spk::VoxelRayCast::cast(cells, {{0.5f, 0.5f, 0.5f}, {1, 1, 0}}, 4.0f);
 	ASSERT_TRUE(edge.has_value());
@@ -89,7 +89,7 @@ TEST(VoxelRayCast, AdvancesEveryAxisAtEdgeAndCornerTies)
 		cells,
 		{{0.5f, 0.5f, 0.5f}, {1, 1, 1}},
 		4.0f,
-		[](const spk::Vector3Int &, const spk::VoxelCell &p_cell) { return p_cell.id == 2; });
+		[](const spk::Vector3Int &, const spk::VoxelCell &p_cell) { return p_cell.id == spk::VoxelRuntimeId{2}; });
 	ASSERT_TRUE(corner.has_value());
 	EXPECT_EQ(corner->cell, spk::Vector3Int(1, 1, 1));
 	EXPECT_EQ(corner->entryNormal, spk::Vector3Int(-1, -1, -1));
@@ -98,7 +98,7 @@ TEST(VoxelRayCast, AdvancesEveryAxisAtEdgeAndCornerTies)
 TEST(VoxelRayCast, ValidatesInputsAndHonorsMaximumDistance)
 {
 	Cells cells;
-	cells.set({2, 0, 0}, 1);
+	cells.set({2, 0, 0}, spk::VoxelRuntimeId{1});
 
 	EXPECT_FALSE(spk::VoxelRayCast::cast(cells, {{0, 0.5f, 0.5f}, {1, 0, 0}}, 1.99f));
 	EXPECT_TRUE(spk::VoxelRayCast::cast(cells, {{0, 0.5f, 0.5f}, {1, 0, 0}}, 2.0f));

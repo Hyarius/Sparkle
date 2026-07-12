@@ -17,12 +17,12 @@ namespace
 	struct ShapeLibrary
 	{
 		spk::VoxelRegistry registry;
-		std::int32_t cube = 0;
-		std::int32_t halfSlab = 0;
-		std::int32_t fullSlab = 0;
-		std::int32_t slope = 0;
-		std::int32_t stair = 0;
-		std::int32_t cross = 0;
+		spk::VoxelRuntimeId cube{};
+		spk::VoxelRuntimeId halfSlab{};
+		spk::VoxelRuntimeId fullSlab{};
+		spk::VoxelRuntimeId slope{};
+		spk::VoxelRuntimeId stair{};
+		spk::VoxelRuntimeId cross{};
 
 		ShapeLibrary()
 		{

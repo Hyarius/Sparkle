@@ -179,19 +179,19 @@ namespace
 	struct TestRegistry
 	{
 		spk::VoxelRegistry registry;
-		std::int32_t cube = 0;
-		std::int32_t slab = 0;
-		std::int32_t cross = 0;
-		std::int32_t water = 0;		// half-transparent cube
-		std::int32_t deepWater = 0; // same optical medium as water
-		std::int32_t shallowWater = 0;
-		std::int32_t tallWater = 0;
-		std::int32_t midBandWater = 0;
-		std::int32_t insetTransparentSide = 0;
-		std::int32_t glass = 0; // another optical medium and transparency
-		std::int32_t ghost = 0; // fully transparent, never rendered
-		std::int32_t slope = 0;
-		std::int32_t stair = 0;
+		spk::VoxelRuntimeId cube{};
+		spk::VoxelRuntimeId slab{};
+		spk::VoxelRuntimeId cross{};
+		spk::VoxelRuntimeId water{};		// half-transparent cube
+		spk::VoxelRuntimeId deepWater{}; // same optical medium as water
+		spk::VoxelRuntimeId shallowWater{};
+		spk::VoxelRuntimeId tallWater{};
+		spk::VoxelRuntimeId midBandWater{};
+		spk::VoxelRuntimeId insetTransparentSide{};
+		spk::VoxelRuntimeId glass{}; // another optical medium and transparency
+		spk::VoxelRuntimeId ghost{}; // fully transparent, never rendered
+		spk::VoxelRuntimeId slope{};
+		spk::VoxelRuntimeId stair{};
 
 		TestRegistry()
 		{
@@ -218,7 +218,7 @@ namespace
 		spk::VoxelCell _cube;
 
 	public:
-		explicit SolidFloorLookup(std::int32_t p_cubeId) :
+		explicit SolidFloorLookup(spk::VoxelRuntimeId p_cubeId) :
 			_cube{p_cubeId}
 		{
 		}
@@ -240,7 +240,7 @@ namespace
 	public:
 		SwitchingLookup(
 			const spk::Vector3Int &p_target,
-			std::int32_t p_id,
+			spk::VoxelRuntimeId p_id,
 			bool p_occupiedFirst) :
 			_target(p_target),
 			_cell{p_id},
@@ -547,8 +547,8 @@ TEST(VoxelMesher, SameTransparencyLevelsCullTheirSharedFaces)
 TEST(VoxelMesher, EqualAlphaDifferentMediaKeepTheirInterface)
 {
 	spk::VoxelRegistry registry;
-	const std::int32_t water = registry.registerShape(makeTransparentCube(0.5f, "water"));
-	const std::int32_t glass = registry.registerShape(makeTransparentCube(0.5f, "glass"));
+	const spk::VoxelRuntimeId water = registry.registerShape(makeTransparentCube(0.5f, "water"));
+	const spk::VoxelRuntimeId glass = registry.registerShape(makeTransparentCube(0.5f, "glass"));
 	spk::VoxelGrid grid({2, 1, 1});
 	grid.cell(0, 0, 0) = {water};
 	grid.cell(1, 0, 0) = {glass};
@@ -559,8 +559,8 @@ TEST(VoxelMesher, EqualAlphaDifferentMediaKeepTheirInterface)
 TEST(VoxelMesher, SameMediumDoesNotRequireExactAlphaEquality)
 {
 	spk::VoxelRegistry registry;
-	const std::int32_t first = registry.registerShape(makeTransparentCube(0.5f, "water"));
-	const std::int32_t second = registry.registerShape(makeTransparentCube(0.50005f, "water"));
+	const spk::VoxelRuntimeId first = registry.registerShape(makeTransparentCube(0.5f, "water"));
+	const spk::VoxelRuntimeId second = registry.registerShape(makeTransparentCube(0.50005f, "water"));
 	spk::VoxelGrid grid({2, 1, 1});
 	grid.cell(0, 0, 0) = {first};
 	grid.cell(1, 0, 0) = {second};
@@ -571,7 +571,7 @@ TEST(VoxelMesher, SameMediumDoesNotRequireExactAlphaEquality)
 TEST(VoxelMesher, RepeatedTransparentShapeIsItsOwnDefaultMedium)
 {
 	spk::VoxelRegistry registry;
-	const std::int32_t water = registry.registerShape(makeTransparentCube(0.5f));
+	const spk::VoxelRuntimeId water = registry.registerShape(makeTransparentCube(0.5f));
 	const spk::VoxelGrid grid({2, 1, 1}, {water});
 
 	EXPECT_EQ(spk::VoxelMesher::buildRenderMesh(grid, registry).transparent.nbShape(), 10u);
@@ -608,9 +608,9 @@ TEST(VoxelMesher, SameTransparencySlabsCullTheirSharedFacesDespiteDifferentFillH
 TEST(VoxelMesher, VerticalFacesWithSharedYButDisjointHorizontalRangesDoNotCull)
 {
 	spk::VoxelRegistry registry;
-	const std::int32_t left = registry.registerShape(makeTransparentCuboid(
+	const spk::VoxelRuntimeId left = registry.registerShape(makeTransparentCuboid(
 		{0, 0.2f, 0.0f}, {1, 0.8f, 0.4f}, 0.5f, "water"));
-	const std::int32_t right = registry.registerShape(makeTransparentCuboid(
+	const spk::VoxelRuntimeId right = registry.registerShape(makeTransparentCuboid(
 		{0, 0.2f, 0.6f}, {1, 0.8f, 1.0f}, 0.5f, "water"));
 	spk::VoxelGrid grid({2, 1, 1});
 	grid.cell(0, 0, 0) = {left};
@@ -624,9 +624,9 @@ TEST(VoxelMesher, VerticalFacesWithSharedYButDisjointHorizontalRangesDoNotCull)
 TEST(VoxelMesher, HorizontalEqualAreaDisjointFootprintsDoNotCull)
 {
 	spk::VoxelRegistry registry;
-	const std::int32_t bottom = registry.registerShape(makeTransparentCuboid(
+	const spk::VoxelRuntimeId bottom = registry.registerShape(makeTransparentCuboid(
 		{0.0f, 0, 0.0f}, {0.4f, 1, 0.4f}, 0.5f, "water"));
-	const std::int32_t top = registry.registerShape(makeTransparentCuboid(
+	const spk::VoxelRuntimeId top = registry.registerShape(makeTransparentCuboid(
 		{0.6f, 0, 0.6f}, {1.0f, 1, 1.0f}, 0.5f, "water"));
 	spk::VoxelGrid grid({1, 2, 1});
 	grid.cell(0, 0, 0) = {bottom};
@@ -640,8 +640,8 @@ TEST(VoxelMesher, HorizontalEqualAreaDisjointFootprintsDoNotCull)
 TEST(VoxelMesher, PartialBoundaryOverlapRemovesOnlyTheIntersection)
 {
 	spk::VoxelRegistry registry;
-	const std::int32_t cube = registry.registerShape(makeTransparentCube(0.5f, "water"));
-	const std::int32_t patch = registry.registerShape(makeTransparentCuboid(
+	const spk::VoxelRuntimeId cube = registry.registerShape(makeTransparentCube(0.5f, "water"));
+	const spk::VoxelRuntimeId patch = registry.registerShape(makeTransparentCuboid(
 		{0, 0.25f, 0.25f}, {0.8f, 0.75f, 0.75f}, 0.5f, "water"));
 	spk::VoxelGrid grid({2, 1, 1});
 	grid.cell(0, 0, 0) = {cube};
@@ -671,8 +671,8 @@ TEST(VoxelMesher, PartialBoundaryOverlapRemovesOnlyTheIntersection)
 TEST(VoxelMesher, DiamondExtremaDoNotMasqueradeAsFullBoundaryCoverage)
 {
 	spk::VoxelRegistry registry;
-	const std::int32_t cube = registry.registerShape(std::make_unique<spk::CubeVoxelShape>(spk::AtlasCell{0, 0}));
-	const std::int32_t diamond = registry.registerShape(std::make_unique<DiamondBoundaryShape>());
+	const spk::VoxelRuntimeId cube = registry.registerShape(std::make_unique<spk::CubeVoxelShape>(spk::AtlasCell{0, 0}));
+	const spk::VoxelRuntimeId diamond = registry.registerShape(std::make_unique<DiamondBoundaryShape>());
 	const spk::VoxelShape &diamondShape = registry.shape(diamond);
 	EXPECT_FALSE(diamondShape.outerFaceCoversCellBoundary(spk::VoxelAxisPlane::NegativeX));
 	EXPECT_NEAR(diamondShape.outerFaceBoundaryCoverage(spk::VoxelAxisPlane::NegativeX), 0.5f, 0.0001f);
@@ -687,8 +687,8 @@ TEST(VoxelMesher, DiamondExtremaDoNotMasqueradeAsFullBoundaryCoverage)
 TEST(VoxelMesher, OverlappingBoundaryPolygonsContributeUnionCoverageOnly)
 {
 	spk::VoxelRegistry registry;
-	const std::int32_t cube = registry.registerShape(std::make_unique<spk::CubeVoxelShape>(spk::AtlasCell{0, 0}));
-	const std::int32_t strips = registry.registerShape(std::make_unique<OverlappingBoundaryShape>());
+	const spk::VoxelRuntimeId cube = registry.registerShape(std::make_unique<spk::CubeVoxelShape>(spk::AtlasCell{0, 0}));
+	const spk::VoxelRuntimeId strips = registry.registerShape(std::make_unique<OverlappingBoundaryShape>());
 	const spk::VoxelShape &stripShape = registry.shape(strips);
 	EXPECT_FALSE(stripShape.outerFaceCoversCellBoundary(spk::VoxelAxisPlane::NegativeX));
 	EXPECT_NEAR(stripShape.outerFaceBoundaryCoverage(spk::VoxelAxisPlane::NegativeX), 0.6f, 0.0001f);
@@ -803,7 +803,7 @@ TEST(VoxelMesher, MixedShapeInnerFacesDependOnTrueCellEnclosure)
 		spk::VoxelAxisPlane::PositiveZ,
 		spk::VoxelAxisPlane::NegativeZ};
 
-	for (const std::int32_t shapeId : {test.slope, test.stair})
+	for (const spk::VoxelRuntimeId shapeId : {test.slope, test.stair})
 	{
 		const spk::VoxelShape &shape = test.registry.shape(shapeId);
 		for (const spk::VoxelOrientation orientation : orientations)

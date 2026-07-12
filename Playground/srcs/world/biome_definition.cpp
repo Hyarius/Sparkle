@@ -27,13 +27,22 @@ namespace
 
 	void requireVoxel(
 		const pg::VoxelRegistry &p_voxels,
-		const std::string &p_id,
+		const pg::VoxelReference &p_reference,
 		const pg::JsonReader &p_reader,
 		const std::string &p_path)
 	{
-		if (p_id.empty() || p_voxels.tryGet(p_id) == nullptr)
+		const pg::VoxelDefinition *definition =
+			p_reference.id.empty() ? nullptr : p_voxels.tryGet(p_reference.id);
+		if (definition == nullptr)
 		{
-			throw pg::JsonError(p_reader.file(), p_path, "unknown voxel id '" + p_id + "'");
+			throw pg::JsonError(p_reader.file(), p_path, "unknown voxel id '" + p_reference.id + "'");
+		}
+		if (definition->tryState(p_reference.state) == nullptr)
+		{
+			throw pg::JsonError(
+				p_reader.file(),
+				p_path,
+				"voxel '" + p_reference.id + "' has no state " + std::to_string(p_reference.state.value));
 		}
 	}
 
@@ -87,8 +96,11 @@ namespace pg
 				{
 					throw JsonError(paletteReader.file(), entry.path, "expected a voxel id string");
 				}
-				requireVoxel(p_voxels, *entry.id, paletteReader, entry.path);
-				pool.add(std::move(*entry.id), entry.weight);
+				VoxelReference reference{
+					.id = std::move(*entry.id),
+					.state = entry.state.value_or(spk::VoxelStateId{})};
+				requireVoxel(p_voxels, reference, paletteReader, entry.path);
+				pool.add(std::move(reference), entry.weight);
 			}
 			return pool;
 		};

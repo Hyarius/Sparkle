@@ -17,13 +17,13 @@ namespace
 	struct SceneRegistry
 	{
 		spk::VoxelRegistry registry;
-		std::int32_t grass = 0;
-		std::int32_t stone = 0;
-		std::int32_t wall = 0;
-		std::int32_t slope = 0;
-		std::int32_t stair = 0;
-		std::int32_t slab = 0;
-		std::int32_t bush = 0;
+		spk::VoxelRuntimeId grass{};
+		spk::VoxelRuntimeId stone{};
+		spk::VoxelRuntimeId wall{};
+		spk::VoxelRuntimeId slope{};
+		spk::VoxelRuntimeId stair{};
+		spk::VoxelRuntimeId slab{};
+		spk::VoxelRuntimeId bush{};
 
 		SceneRegistry()
 		{

@@ -2,6 +2,8 @@
 
 #include "core/json.hpp"
 
+#include "structures/voxel/spk_voxel_ids.hpp"
+
 #include <optional>
 #include <string>
 #include <vector>
@@ -11,6 +13,10 @@ namespace pg
 	struct WeightedId
 	{
 		std::optional<std::string> id;
+		// Voxel entries may select a non-default state of their type ({"voxel": "bush",
+		// "state": 1}); a bare id string is shorthand for state 0. Domains whose ids are
+		// not voxels must reject entries that specify a state.
+		std::optional<spk::VoxelStateId> state;
 		double weight = 1.0;
 		std::string path;
 	};

@@ -52,10 +52,13 @@ pg::VoxelShape (abstract)
   // shadow-casting geometry), add a dedicated product then, with its consumer documented.
 
 pg::VoxelShape::Face     { std::vector<Polygon> }        // Polygon = ≥3 Vertex{pos, uv}
-pg::VoxelCell            { int32_t id = -1; VoxelOrientation; VoxelFlip; bool isEmpty() }
+pg::VoxelCell            { spk::VoxelRuntimeId id (dense, -1 = empty); VoxelOrientation;
+                           VoxelFlip; bool isEmpty() }
 pg::VoxelGrid            { Vector3Int size; dense std::vector<VoxelCell>;
                            cell(x,y,z) accessors; bounds checks }
-pg::VoxelRegistry        // Registry<VoxelDefinition> + stable numeric id per string id
+pg::VoxelRegistry        // string id -> spk::VoxelTypeId -> VoxelDefinition (type data +
+                         // one VoxelStateDefinition per state); runtime ids resolve back
+                         // through the spk registry's state references
 pg::VoxelMesher          // static: buildRenderMesh / buildCollisionMesh / buildMaskMesh
 ```
 

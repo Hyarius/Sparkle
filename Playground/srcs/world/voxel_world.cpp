@@ -30,7 +30,7 @@ namespace pg
 
 	const VoxelDefinition *VoxelWorld::tryDefinition(const spk::VoxelCell &p_cell) const
 	{
-		return p_cell.isEmpty() ? nullptr : _registry->tryGet(p_cell.id);
+		return p_cell.isEmpty() ? nullptr : _registry->tryDefinition(p_cell.id);
 	}
 
 	const spk::VoxelCell &VoxelWorld::cell(const spk::Vector3Int &p_worldPosition) const

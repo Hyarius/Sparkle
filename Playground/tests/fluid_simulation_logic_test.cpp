@@ -17,12 +17,12 @@ namespace
 	class FluidChunkProvider final
 	{
 	private:
-		std::int32_t _floor = -1;
-		std::int32_t _source = -1;
+		spk::VoxelRuntimeId _floor{};
+		spk::VoxelRuntimeId _source{};
 		std::size_t _sourceCount = 0;
 
 	public:
-		FluidChunkProvider(std::int32_t p_floor, std::int32_t p_source, std::size_t p_sourceCount) :
+		FluidChunkProvider(spk::VoxelRuntimeId p_floor, spk::VoxelRuntimeId p_source, std::size_t p_sourceCount) :
 			_floor(p_floor),
 			_source(p_source),
 			_sourceCount(p_sourceCount)

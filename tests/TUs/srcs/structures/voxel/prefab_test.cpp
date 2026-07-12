@@ -12,7 +12,7 @@ namespace
 	struct TestRegistry
 	{
 		spk::VoxelRegistry registry;
-		std::int32_t cube = 0;
+		spk::VoxelRuntimeId cube{};
 
 		TestRegistry()
 		{
@@ -29,8 +29,8 @@ TEST(Prefab, DeducesItsBoundsFromItsVoxels)
 	EXPECT_EQ(prefab.size(), spk::Vector3Int(0, 0, 0));
 
 	// Positions are trusted as authored, negative coordinates included.
-	prefab.addVoxel({2, -1, 0}, {1});
-	prefab.addVoxelRange({-1, 1, 1}, {0, 2, 3}, {1});
+	prefab.addVoxel({2, -1, 0}, {spk::VoxelRuntimeId{1}});
+	prefab.addVoxelRange({-1, 1, 1}, {0, 2, 3}, {spk::VoxelRuntimeId{1}});
 	EXPECT_EQ(prefab.minBounds(), spk::Vector3Int(-1, -1, 0));
 	EXPECT_EQ(prefab.maxBounds(), spk::Vector3Int(2, 2, 3));
 	EXPECT_EQ(prefab.size(), spk::Vector3Int(4, 4, 4));
@@ -39,7 +39,7 @@ TEST(Prefab, DeducesItsBoundsFromItsVoxels)
 TEST(Prefab, AddVoxelRangeFillsAnInclusiveBox)
 {
 	spk::Prefab prefab;
-	const spk::VoxelCell cell{.id = 7, .orientation = spk::VoxelOrientation::NegativeZ};
+	const spk::VoxelCell cell{.id = spk::VoxelRuntimeId{7}, .orientation = spk::VoxelOrientation::NegativeZ};
 
 	prefab.addVoxelRange({2, 1, 3}, {1, 0, 1}, cell);
 
@@ -60,7 +60,7 @@ TEST(Prefab, AddVoxelRangeFillsAnInclusiveBox)
 TEST(Prefab, AddVoxelRangeWithMatchingCornersAddsOneVoxel)
 {
 	spk::Prefab prefab;
-	const spk::VoxelCell cell{.id = 3};
+	const spk::VoxelCell cell{.id = spk::VoxelRuntimeId{3}};
 
 	prefab.addVoxelRange({1, 1, 1}, {1, 1, 1}, cell);
 
@@ -71,7 +71,7 @@ TEST(Prefab, AddVoxelRangeWithMatchingCornersAddsOneVoxel)
 TEST(Prefab, ListsEveryCellOfAGridIncludingEmpties)
 {
 	spk::VoxelGrid grid(spk::Vector3Int{2, 2, 2});
-	grid.cell(1, 0, 1) = {7};
+	grid.cell(1, 0, 1) = {spk::VoxelRuntimeId{7}};
 
 	const spk::Prefab prefab(grid);
 	EXPECT_EQ(prefab.minBounds(), spk::Vector3Int(0, 0, 0));
@@ -86,7 +86,7 @@ TEST(Prefab, ListsEveryCellOfAGridIncludingEmpties)
 		{
 			++nonEmpty;
 			EXPECT_EQ(voxel.position, spk::Vector3Int(1, 0, 1));
-			EXPECT_EQ(voxel.cell.id, 7);
+			EXPECT_EQ(voxel.cell.id, spk::VoxelRuntimeId{7});
 		}
 	}
 	EXPECT_EQ(nonEmpty, 1);
@@ -95,13 +95,13 @@ TEST(Prefab, ListsEveryCellOfAGridIncludingEmpties)
 TEST(Prefab, GridConstructorPlacesTheBoxAtTheGivenOrigin)
 {
 	spk::VoxelGrid grid(spk::Vector3Int{1, 2, 1});
-	grid.cell(0, 0, 0) = {7};
+	grid.cell(0, 0, 0) = {spk::VoxelRuntimeId{7}};
 
 	const spk::Prefab prefab(grid, {0, -1, 0});
 	EXPECT_EQ(prefab.minBounds(), spk::Vector3Int(0, -1, 0));
 	EXPECT_EQ(prefab.maxBounds(), spk::Vector3Int(0, 0, 0));
 	ASSERT_EQ(prefab.voxels().size(), 2u);
-	EXPECT_EQ(prefab.voxels()[0], (spk::Prefab::Voxel{.position = {0, -1, 0}, .cell = {7}}));
+	EXPECT_EQ(prefab.voxels()[0], (spk::Prefab::Voxel{.position = {0, -1, 0}, .cell = {spk::VoxelRuntimeId{7}}}));
 	EXPECT_EQ(prefab.voxels()[1].position, spk::Vector3Int(0, 0, 0));
 	EXPECT_TRUE(prefab.voxels()[1].cell.isEmpty());
 }
@@ -109,7 +109,7 @@ TEST(Prefab, GridConstructorPlacesTheBoxAtTheGivenOrigin)
 TEST(Prefab, RotatedBoundsFollowTheOrientation)
 {
 	spk::Prefab prefab;
-	prefab.addVoxelRange({0, -1, 0}, {2, 1, 0}, {1});
+	prefab.addVoxelRange({0, -1, 0}, {2, 1, 0}, {spk::VoxelRuntimeId{1}});
 
 	const auto [identityMin, identityMax] = prefab.rotatedBounds(spk::VoxelOrientation::PositiveZ);
 	EXPECT_EQ(identityMin, spk::Vector3Int(0, -1, 0));
@@ -126,8 +126,8 @@ TEST(Prefab, AppliesWithQuarterTurnRotations)
 	// Two markers; the second carries its own orientation so the test also proves cell
 	// orientations rotate along with positions (around the default pivot, the origin).
 	spk::Prefab prefab;
-	prefab.addVoxel({0, 0, 0}, {1});
-	prefab.addVoxel({1, 0, 2}, {2, spk::VoxelOrientation::PositiveX});
+	prefab.addVoxel({0, 0, 0}, {spk::VoxelRuntimeId{1}});
+	prefab.addVoxel({1, 0, 2}, {spk::VoxelRuntimeId{2}, spk::VoxelOrientation::PositiveX});
 
 	struct Expectation
 	{
@@ -148,8 +148,8 @@ TEST(Prefab, AppliesWithQuarterTurnRotations)
 		spk::VoxelGrid grid(spk::Vector3Int{5, 1, 5});
 		prefab.applyTo(grid, {2, 0, 2}, expectation.applied);
 
-		EXPECT_EQ(grid.cell(expectation.first).id, 1);
-		EXPECT_EQ(grid.cell(expectation.second).id, 2);
+		EXPECT_EQ(grid.cell(expectation.first).id, spk::VoxelRuntimeId{1});
+		EXPECT_EQ(grid.cell(expectation.second).id, spk::VoxelRuntimeId{2});
 		EXPECT_EQ(grid.cell(expectation.second).orientation, expectation.rotatedCell);
 	}
 }
@@ -159,8 +159,8 @@ TEST(Prefab, RotatesAroundItsPivot)
 	// The pivot cell lands on the destination for every orientation; its +X neighbor
 	// swings around it.
 	spk::Prefab prefab;
-	prefab.addVoxel({1, 0, 1}, {1});
-	prefab.addVoxel({2, 0, 1}, {2});
+	prefab.addVoxel({1, 0, 1}, {spk::VoxelRuntimeId{1}});
+	prefab.addVoxel({2, 0, 1}, {spk::VoxelRuntimeId{2}});
 	prefab.setPivot({1, 0, 1});
 
 	const std::pair<spk::VoxelOrientation, spk::Vector3Int> expectations[] = {
@@ -174,8 +174,8 @@ TEST(Prefab, RotatesAroundItsPivot)
 		spk::VoxelGrid grid(spk::Vector3Int{3, 1, 3});
 		prefab.applyTo(grid, {1, 0, 1}, applied);
 
-		EXPECT_EQ(grid.cell(1, 0, 1).id, 1);
-		EXPECT_EQ(grid.cell(second).id, 2);
+		EXPECT_EQ(grid.cell(1, 0, 1).id, spk::VoxelRuntimeId{1});
+		EXPECT_EQ(grid.cell(second).id, spk::VoxelRuntimeId{2});
 	}
 }
 
@@ -185,8 +185,8 @@ TEST(Prefab, RotatedMatchesApplyingWithTheOrientation)
 	// prefab stamped with the identity must write the same cells as the original
 	// stamped with the orientation.
 	spk::Prefab prefab;
-	prefab.addVoxel({1, 0, 1}, {1});
-	prefab.addVoxel({2, -1, 3}, {2, spk::VoxelOrientation::NegativeZ});
+	prefab.addVoxel({1, 0, 1}, {spk::VoxelRuntimeId{1}});
+	prefab.addVoxel({2, -1, 3}, {spk::VoxelRuntimeId{2}, spk::VoxelOrientation::NegativeZ});
 	prefab.addVoxel({0, 1, 2}, {});
 	prefab.setPivot({1, 0, 1});
 
@@ -196,8 +196,8 @@ TEST(Prefab, RotatedMatchesApplyingWithTheOrientation)
 			 spk::VoxelOrientation::NegativeZ,
 			 spk::VoxelOrientation::NegativeX})
 	{
-		spk::VoxelGrid direct(spk::Vector3Int{8, 4, 8}, {9});
-		spk::VoxelGrid preRotated(spk::Vector3Int{8, 4, 8}, {9});
+		spk::VoxelGrid direct(spk::Vector3Int{8, 4, 8}, {spk::VoxelRuntimeId{9}});
+		spk::VoxelGrid preRotated(spk::Vector3Int{8, 4, 8}, {spk::VoxelRuntimeId{9}});
 		prefab.applyTo(direct, {4, 2, 4}, orientation);
 		prefab.rotated(orientation).applyTo(preRotated, {4, 2, 4});
 
@@ -218,8 +218,8 @@ TEST(Prefab, RotatedMatchesApplyingWithTheOrientation)
 TEST(Prefab, RotatedPreservesPivotOrderAndBounds)
 {
 	spk::Prefab prefab;
-	prefab.addVoxel({2, 0, 1}, {1});
-	prefab.addVoxel({2, 0, 1}, {2}); // same position on purpose: insertion order decides
+	prefab.addVoxel({2, 0, 1}, {spk::VoxelRuntimeId{1}});
+	prefab.addVoxel({2, 0, 1}, {spk::VoxelRuntimeId{2}}); // same position on purpose: insertion order decides
 	prefab.setPivot({1, 0, 1});
 
 	const spk::Prefab rotated = prefab.rotated(spk::VoxelOrientation::PositiveX);
@@ -227,8 +227,8 @@ TEST(Prefab, RotatedPreservesPivotOrderAndBounds)
 	ASSERT_EQ(rotated.voxels().size(), 2u);
 	// (2,0,1) is pivot + (1,0,0); one quarter turn sends that offset to (0,0,-1).
 	EXPECT_EQ(rotated.voxels()[0].position, spk::Vector3Int(1, 0, 0));
-	EXPECT_EQ(rotated.voxels()[0].cell.id, 1);
-	EXPECT_EQ(rotated.voxels()[1].cell.id, 2);
+	EXPECT_EQ(rotated.voxels()[0].cell.id, spk::VoxelRuntimeId{1});
+	EXPECT_EQ(rotated.voxels()[1].cell.id, spk::VoxelRuntimeId{2});
 	EXPECT_EQ(rotated.minBounds(), spk::Vector3Int(1, 0, 0));
 	EXPECT_EQ(rotated.maxBounds(), spk::Vector3Int(1, 0, 0));
 
@@ -242,8 +242,8 @@ TEST(Prefab, RotatedPreservesPivotOrderAndBounds)
 TEST(Prefab, RotatedWithNegativeYFlipMirrorsThroughThePivotLayer)
 {
 	spk::Prefab prefab;
-	prefab.addVoxel({0, 2, 0}, {1});
-	prefab.addVoxel({0, -1, 0}, {2, spk::VoxelOrientation::PositiveX, spk::VoxelFlip::NegativeY});
+	prefab.addVoxel({0, 2, 0}, {spk::VoxelRuntimeId{1}});
+	prefab.addVoxel({0, -1, 0}, {spk::VoxelRuntimeId{2}, spk::VoxelOrientation::PositiveX, spk::VoxelFlip::NegativeY});
 	prefab.setPivot({0, 0, 0});
 
 	const spk::Prefab flipped = prefab.rotated(spk::VoxelOrientation::PositiveZ, spk::VoxelFlip::NegativeY);
@@ -267,7 +267,7 @@ TEST(Prefab, RotatedComposesWithRotatedBoundsUnderFlip)
 {
 	// Mirroring swaps the vertical extents of the box; the rotation then turns it.
 	spk::Prefab prefab;
-	prefab.addVoxelRange({0, 0, 0}, {2, 1, 0}, {1});
+	prefab.addVoxelRange({0, 0, 0}, {2, 1, 0}, {spk::VoxelRuntimeId{1}});
 	prefab.setPivot({0, 0, 0});
 
 	const spk::Prefab transformed = prefab.rotated(spk::VoxelOrientation::PositiveX, spk::VoxelFlip::NegativeY);
@@ -306,17 +306,17 @@ TEST(Prefab, NegativeYLayersLandBelowTheDestination)
 {
 	spk::VoxelGrid grid(spk::Vector3Int{3, 3, 3});
 	spk::Prefab prefab;
-	prefab.addVoxel({0, -1, 0}, {1});
-	prefab.addVoxel({0, 0, 0}, {2});
+	prefab.addVoxel({0, -1, 0}, {spk::VoxelRuntimeId{1}});
+	prefab.addVoxel({0, 0, 0}, {spk::VoxelRuntimeId{2}});
 
 	prefab.applyTo(grid, {1, 1, 1}, spk::VoxelOrientation::PositiveX);
-	EXPECT_EQ(grid.cell(1, 0, 1).id, 1);
-	EXPECT_EQ(grid.cell(1, 1, 1).id, 2);
+	EXPECT_EQ(grid.cell(1, 0, 1).id, spk::VoxelRuntimeId{1});
+	EXPECT_EQ(grid.cell(1, 1, 1).id, spk::VoxelRuntimeId{2});
 }
 
 TEST(Prefab, CarvesListedEmptyCellsAndLeavesUnlistedOnesUntouched)
 {
-	spk::VoxelGrid grid(spk::Vector3Int{3, 3, 3}, {5});
+	spk::VoxelGrid grid(spk::Vector3Int{3, 3, 3}, {spk::VoxelRuntimeId{5}});
 
 	// Only one cell is listed (as an explicit empty): its neighbors stay untouched.
 	spk::Prefab prefab;
@@ -324,7 +324,7 @@ TEST(Prefab, CarvesListedEmptyCellsAndLeavesUnlistedOnesUntouched)
 
 	prefab.applyTo(grid, {1, 1, 1});
 	EXPECT_TRUE(grid.cell(1, 1, 1).isEmpty());
-	EXPECT_EQ(grid.cell(2, 1, 1).id, 5);
+	EXPECT_EQ(grid.cell(2, 1, 1).id, spk::VoxelRuntimeId{5});
 }
 
 TEST(Prefab, SkipsVoxelsLandingOutsideTheGrid)
@@ -332,11 +332,11 @@ TEST(Prefab, SkipsVoxelsLandingOutsideTheGrid)
 	spk::VoxelGrid grid(spk::Vector3Int{2, 2, 2});
 
 	spk::Prefab prefab;
-	prefab.addVoxel({0, 0, 0}, {1});
-	prefab.addVoxel({1, 0, 0}, {2});
+	prefab.addVoxel({0, 0, 0}, {spk::VoxelRuntimeId{1}});
+	prefab.addVoxel({1, 0, 0}, {spk::VoxelRuntimeId{2}});
 
 	EXPECT_NO_THROW(prefab.applyTo(grid, {-1, 0, 0}));
-	EXPECT_EQ(grid.cell(0, 0, 0).id, 2);
+	EXPECT_EQ(grid.cell(0, 0, 0).id, spk::VoxelRuntimeId{2});
 	EXPECT_TRUE(grid.cell(1, 0, 0).isEmpty());
 }
 
