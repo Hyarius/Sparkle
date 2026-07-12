@@ -401,19 +401,35 @@ Two passes over the grid:
 
 1. **Plan** (`planVisiblePolygons`): for every non-empty cell and every face,
    decide against the neighbor (in-grid or via `IVoxelCellLookup` in world
-   coordinates): fully enclosed cells skip early (`cellIsFullyEnclosed`); an
-   opaque neighbor face that covers the shared plane culls the face
-   (`faceOcclusionByNeighbor`); partial cover triggers 2-D polygon subtraction on
-   the boundary plane (`visibleDifference` → `subtractConvex` → `clipHalfPlane`,
-   convex clipping with epsilon-cleaned output); transparent faces cull only
-   within the same `transparentOcclusionGroup` (or same shape instance) so
-   unrelated materials keep their interface.
+   coordinates): an opaque neighbor face that covers the shared plane culls the
+   face (`faceOcclusionByNeighbor`); partial cover triggers 2-D polygon
+   subtraction on the boundary plane (`subtractConvex` → `clipHalfPlane`, convex
+   clipping with epsilon-cleaned output); transparent faces cull only within the
+   same `transparentOcclusionGroup` (or same shape instance) so unrelated
+   materials keep their interface. Inner faces are suppressed when the cell is
+   sealed (`cellIsFullyEnclosed`) — only probed for shapes that actually own
+   inner faces, so full cubes never pay it. The plan stores descriptors
+   (polygon pointer + offset + alpha), never polygon copies.
 2. **Emit** (`MeshEmitter`): counts first (overflow-checked `checkedAdd`), then
    fills vertex/index buffers; opaque and transparent polygons go to separate
    meshes; transparent alpha = 1 − shape transparency.
 
-`mapWorldPlaneToLocal` translates a world boundary plane into the neighbor
-shape's local plane under its orientation/flip (truth-table tested).
+Throughput structures (all immutable or per-bake, safe under parallel
+`WorkerPool` bakes; output pinned byte-for-byte by
+`voxel_mesher_invariance_test.cpp`):
+
+- `spk::VoxelWorldToLocalPlaneTable` (`spk_voxel_orientation.hpp`): compile-time
+  48-entry table of `mapWorldPlaneToLocal` (which stays the source of truth,
+  truth-table tested) over `(orientation, flip, world plane)`; the hot path
+  indexes it instead of re-running the quarter-turn arithmetic.
+- `spk::VoxelFaceRemnantCache` (`spk_voxel_mesher_occlusion.hpp`): per-bake
+  memoization of partial-occlusion remnants keyed on the
+  `(source face, occluder face)` pointer pair — a recurring adjacency
+  (slope-against-cube…) is clipped once per bake instead of once per cell. The
+  cached remnants also back the plan descriptors for clipped faces.
+- Neighbor snapshot: in-bounds reads are flat-index reads; external cells sit in
+  six per-face boundary slabs (flat buffers sized to the face area) sampled once
+  from the world lookup before planning — no hashed world-position map.
 
 ### 6.3 Chunk bake pipeline
 

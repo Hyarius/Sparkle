@@ -1,27 +1,27 @@
 #include "structures/voxel/spk_voxel_mesher.hpp"
+#include "structures/voxel/spk_voxel_mesher_occlusion.hpp"
 #include "structures/voxel/spk_voxel_orientation.hpp"
 
-#include <algorithm>
 #include <array>
 #include <cstdint>
-#include <iterator>
 #include <limits>
 #include <optional>
 #include <stdexcept>
 #include <string>
-#include <unordered_map>
 #include <utility>
 #include <vector>
 
+// Throughput notes. Chunk bakes run concurrently on spk::WorkerPool (one task per
+// dirty chunk), so every acceleration structure here is either immutable
+// (VoxelWorldToLocalPlaneTable, built at compile time) or owned by one bake and
+// destroyed with it (VoxelFaceRemnantCache, the neighbor snapshot, the plan vectors).
+// None of it changes the emitted meshes: the golden-reference tests in
+// voxel_mesher_invariance_test.cpp pin the output byte-for-byte.
+
 namespace
 {
-	constexpr std::array WorldPlanes = {
-		spk::VoxelAxisPlane::PositiveX,
-		spk::VoxelAxisPlane::NegativeX,
-		spk::VoxelAxisPlane::PositiveY,
-		spk::VoxelAxisPlane::NegativeY,
-		spk::VoxelAxisPlane::PositiveZ,
-		spk::VoxelAxisPlane::NegativeZ};
+	constexpr std::size_t PlaneCount = static_cast<std::size_t>(spk::VoxelAxisPlane::Count);
+	// Indexed by the VoxelAxisPlane value of the world plane.
 	constexpr std::array OppositePlanes = {
 		spk::VoxelAxisPlane::NegativeX,
 		spk::VoxelAxisPlane::PositiveX,
@@ -36,12 +36,20 @@ namespace
 		spk::Vector3Int{0, -1, 0},
 		spk::Vector3Int{0, 0, 1},
 		spk::Vector3Int{0, 0, -1}};
+
+	// Immutable per-bake view of every cell an occlusion query can reach. In-bounds
+	// reads are direct flat-index reads. External cells are only ever queried one step
+	// outside the grid along one axis (every query starts from an in-bounds, non-empty
+	// cell and moves by one plane offset), so the six boundary slabs bound all reachable
+	// external cells: each face stores its observed world cells in a flat buffer sized
+	// to the face area instead of a hashed world-position map. An absent external cell
+	// reads as empty (no occlusion), and without a world lookup every external cell is
+	// absent.
 	class NeighborSnapshot
 	{
 	private:
 		const spk::VoxelGrid &_grid;
-		spk::Vector3Int _worldOrigin;
-		std::unordered_map<spk::Vector3Int, std::optional<spk::VoxelCell>> _externalCells;
+		std::array<std::vector<std::optional<spk::VoxelCell>>, PlaneCount> _externalSlabs;
 
 		[[nodiscard]] const spk::VoxelCell *_gridCell(const spk::Vector3Int &p_position) const
 		{
@@ -53,51 +61,71 @@ namespace
 			return &_grid.cells()[index];
 		}
 
+		// Flat index of a position's in-plane coordinates inside face p_faceIndex's slab.
+		[[nodiscard]] static std::size_t _slabIndex(
+			std::size_t p_faceIndex,
+			const spk::Vector3Int &p_position,
+			const spk::Vector3Int &p_size)
+		{
+			switch (p_faceIndex >> 1)
+			{
+			case 0: // +X / -X faces span (y, z)
+				return static_cast<std::size_t>(p_position.y) * static_cast<std::size_t>(p_size.z) +
+					   static_cast<std::size_t>(p_position.z);
+			case 1: // +Y / -Y faces span (x, z)
+				return static_cast<std::size_t>(p_position.x) * static_cast<std::size_t>(p_size.z) +
+					   static_cast<std::size_t>(p_position.z);
+			default: // +Z / -Z faces span (x, y)
+				return static_cast<std::size_t>(p_position.x) * static_cast<std::size_t>(p_size.y) +
+					   static_cast<std::size_t>(p_position.y);
+			}
+		}
+
 	public:
 		NeighborSnapshot(
 			const spk::VoxelGrid &p_grid,
 			const spk::IVoxelCellLookup *p_worldLookup,
 			const spk::Vector3Int &p_worldOrigin) :
-			_grid(p_grid),
-			_worldOrigin(p_worldOrigin)
+			_grid(p_grid)
 		{
-			if (p_worldLookup == nullptr)
+			const spk::Vector3Int &size = p_grid.size();
+			if (p_worldLookup == nullptr || size.x <= 0 || size.y <= 0 || size.z <= 0)
 			{
 				return;
 			}
 
-			std::size_t cellIndex = 0;
-			for (int y = 0; y < p_grid.size().y; ++y)
+			for (std::size_t faceIndex = 0; faceIndex < PlaneCount; ++faceIndex)
 			{
-				for (int z = 0; z < p_grid.size().z; ++z)
+				const std::size_t axis = faceIndex >> 1;
+				const int uCount = axis == 0 ? size.y : size.x;
+				const int vCount = axis == 2 ? size.y : size.z;
+				const int boundary = (faceIndex & 1) == 0
+										 ? (axis == 0 ? size.x : axis == 1 ? size.y
+																		   : size.z) -
+											   1
+										 : 0;
+
+				std::vector<std::optional<spk::VoxelCell>> &slab = _externalSlabs[faceIndex];
+				slab.resize(static_cast<std::size_t>(uCount) * static_cast<std::size_t>(vCount));
+
+				for (int u = 0; u < uCount; ++u)
 				{
-					for (int x = 0; x < p_grid.size().x; ++x)
+					for (int v = 0; v < vCount; ++v)
 					{
-						const spk::VoxelCell &cell = p_grid.cells()[cellIndex++];
-						if (cell.isEmpty())
+						const spk::Vector3Int position =
+							axis == 0	? spk::Vector3Int{boundary, u, v}
+							: axis == 1 ? spk::Vector3Int{u, boundary, v}
+										: spk::Vector3Int{u, v, boundary};
+						if (_gridCell(position)->isEmpty())
 						{
 							continue;
 						}
 
-						const spk::Vector3Int position{x, y, z};
-						for (const spk::Vector3Int &offset : PlaneOffsets)
+						const spk::Vector3Int worldPosition = p_worldOrigin + position + PlaneOffsets[faceIndex];
+						const spk::VoxelCell *observed = p_worldLookup->tryRenderableCell(worldPosition);
+						if (observed != nullptr)
 						{
-							const spk::Vector3Int neighborPosition = position + offset;
-							if (p_grid.isWithinBounds(neighborPosition))
-							{
-								continue;
-							}
-
-							const spk::Vector3Int worldPosition = p_worldOrigin + neighborPosition;
-							if (_externalCells.contains(worldPosition))
-							{
-								continue;
-							}
-
-							const spk::VoxelCell *observed = p_worldLookup->tryRenderableCell(worldPosition);
-							_externalCells.emplace(
-								worldPosition,
-								observed == nullptr ? std::optional<spk::VoxelCell>{} : std::optional<spk::VoxelCell>{*observed});
+							slab[_slabIndex(faceIndex, position, size)] = *observed;
 						}
 					}
 				}
@@ -111,12 +139,48 @@ namespace
 				return _gridCell(p_gridPosition);
 			}
 
-			const auto iterator = _externalCells.find(_worldOrigin + p_gridPosition);
-			if (iterator == _externalCells.end() || !iterator->second.has_value())
+			const spk::Vector3Int &size = _grid.size();
+			const bool xIn = p_gridPosition.x >= 0 && p_gridPosition.x < size.x;
+			const bool yIn = p_gridPosition.y >= 0 && p_gridPosition.y < size.y;
+			const bool zIn = p_gridPosition.z >= 0 && p_gridPosition.z < size.z;
+
+			std::size_t faceIndex = PlaneCount;
+			if (yIn && zIn && p_gridPosition.x == size.x)
+			{
+				faceIndex = 0;
+			}
+			else if (yIn && zIn && p_gridPosition.x == -1)
+			{
+				faceIndex = 1;
+			}
+			else if (xIn && zIn && p_gridPosition.y == size.y)
+			{
+				faceIndex = 2;
+			}
+			else if (xIn && zIn && p_gridPosition.y == -1)
+			{
+				faceIndex = 3;
+			}
+			else if (xIn && yIn && p_gridPosition.z == size.z)
+			{
+				faceIndex = 4;
+			}
+			else if (xIn && yIn && p_gridPosition.z == -1)
+			{
+				faceIndex = 5;
+			}
+			if (faceIndex == PlaneCount)
 			{
 				return nullptr;
 			}
-			return &*iterator->second;
+
+			const std::vector<std::optional<spk::VoxelCell>> &slab = _externalSlabs[faceIndex];
+			if (slab.empty())
+			{
+				return nullptr;
+			}
+			const std::optional<spk::VoxelCell> &cell = slab[_slabIndex(faceIndex, p_gridPosition, size)];
+			return cell.has_value() ? &*cell : nullptr;
 		}
 	};
 
@@ -126,9 +190,12 @@ namespace
 		const spk::VoxelShapeFace *partialOccluder = nullptr;
 	};
 
+	// Lightweight plan entry: the polygon is referenced, never copied. It lives either
+	// in the shape's precomputed transform variants or in the per-bake remnant cache,
+	// both of which outlive emission.
 	struct PlannedPolygon
 	{
-		spk::VoxelShapePolygon polygon;
+		const spk::VoxelShapePolygon *polygon = nullptr;
 		spk::Vector3 offset;
 		float alpha = 1.0f;
 	};
@@ -154,7 +221,7 @@ namespace
 		const NeighborSnapshot &p_snapshot,
 		const spk::VoxelRegistry &p_registry,
 		const spk::Vector3Int &p_position,
-		spk::VoxelAxisPlane p_worldPlane,
+		std::size_t p_worldPlaneIndex,
 		const spk::VoxelShape &p_shape,
 		spk::VoxelAxisPlane p_localPlane)
 	{
@@ -163,8 +230,7 @@ namespace
 			return {};
 		}
 
-		const std::size_t worldPlaneIndex = static_cast<std::size_t>(p_worldPlane);
-		const spk::VoxelCell *neighbor = p_snapshot.tryCell(p_position + PlaneOffsets[worldPlaneIndex]);
+		const spk::VoxelCell *neighbor = p_snapshot.tryCell(p_position + PlaneOffsets[p_worldPlaneIndex]);
 		if (neighbor == nullptr || neighbor->isEmpty())
 		{
 			return {};
@@ -177,7 +243,8 @@ namespace
 		}
 
 		const spk::VoxelAxisPlane neighborLocalPlane =
-			spk::mapWorldPlaneToLocal(OppositePlanes[worldPlaneIndex], neighbor->orientation, neighbor->flip);
+			spk::VoxelWorldToLocalPlaneTable[spk::voxelTransformVariantIndex(neighbor->orientation, neighbor->flip)]
+											[static_cast<std::size_t>(OppositePlanes[p_worldPlaneIndex])];
 		const auto &neighborFace = neighborShape.renderFaces().outer(neighborLocalPlane);
 		if (!neighborFace.has_value() || !neighborShape.outerFaceLiesOnCellBoundary(neighborLocalPlane))
 		{
@@ -190,126 +257,6 @@ namespace
 
 		return {
 			.partialOccluder = &neighborShape.transformedOuterFace(neighborLocalPlane, neighbor->orientation, neighbor->flip)};
-	}
-
-	[[nodiscard]] spk::Vector2 interpolateUV(
-		const spk::Vector2 &p_from,
-		const spk::Vector2 &p_to,
-		float p_interpolation) noexcept
-	{
-		return p_from + (p_to - p_from) * p_interpolation;
-	}
-
-	using VoxelShapeAxisAlignedPlane = spk::VoxelShapePolygon::AxisAlignedPlane;
-	using VoxelShapePolygon2D = spk::VoxelShapePolygon2D;
-
-	[[nodiscard]] spk::Vector3 restorePosition(
-		const spk::Vector2 &p_position,
-		VoxelShapeAxisAlignedPlane p_plane,
-		float p_coordinate)
-	{
-		switch (p_plane)
-		{
-		case VoxelShapeAxisAlignedPlane::XY:
-			return {p_position.x, p_position.y, p_coordinate};
-
-		case VoxelShapeAxisAlignedPlane::XZ:
-			return {p_position.x, p_coordinate, p_position.y};
-
-		case VoxelShapeAxisAlignedPlane::YZ:
-			return {p_coordinate, p_position.x, p_position.y};
-		}
-
-		throw std::logic_error("Unsupported Polygon3D projection plane");
-	}
-
-	[[nodiscard]] spk::VoxelShapePolygon restorePolygon3D(
-		const VoxelShapePolygon2D &p_polygon,
-		VoxelShapeAxisAlignedPlane p_plane,
-		float p_coordinate)
-	{
-		spk::VoxelShapePolygon::Builder builder;
-		builder.reserve(p_polygon.size());
-
-		for (const auto &vertex : p_polygon)
-		{
-			builder.addVertex({
-				.position = restorePosition(vertex.position, p_plane, p_coordinate),
-				.data = vertex.data});
-		}
-
-		return builder.bake();
-	}
-
-	[[nodiscard]] std::vector<spk::VoxelShapePolygon> visibleDifference(
-		const spk::VoxelShapeFace &p_face,
-		std::size_t p_polygonIndex,
-		const spk::VoxelShapeFace &p_occluder)
-	{
-		const std::span<const spk::VoxelShapePolygon> polygons = p_face.polygons();
-		const spk::VoxelShapePolygon &polygon = polygons[p_polygonIndex];
-
-		const spk::VoxelShapeFace::ProjectedPolygonCache &polygonProjections =
-			p_face.projectedPolygons();
-		const spk::VoxelShapeFace::ProjectedPolygonCache &occluderProjections =
-			p_occluder.projectedPolygons();
-
-		if (!polygonProjections.has_value() ||
-			p_polygonIndex >= polygonProjections->size() ||
-			!occluderProjections.has_value())
-		{
-			return {polygon};
-		}
-
-		const spk::VoxelShapePolygonProjection2D &polygonProjection =
-			polygonProjections->at(p_polygonIndex);
-		if (!polygonProjection.polygon.isConvex())
-		{
-			return {polygon};
-		}
-
-		for (const spk::VoxelShapePolygonProjection2D &occluderProjection : *occluderProjections)
-		{
-			if (occluderProjection.plane != polygonProjection.plane ||
-				!occluderProjection.polygon.isConvex())
-			{
-				return {polygon};
-			}
-		}
-
-		std::vector<spk::VoxelShapePolygon2D> visible = {polygonProjection.polygon};
-		for (const spk::VoxelShapePolygonProjection2D &occluderProjection : *occluderProjections)
-		{
-			std::vector<spk::VoxelShapePolygon2D> next;
-			for (const spk::VoxelShapePolygon2D &piece : visible)
-			{
-				std::vector<spk::VoxelShapePolygon2D> difference =
-					piece.subtractConvex(
-						occluderProjection.polygon,
-						interpolateUV);
-				next.insert(
-					next.end(),
-					std::make_move_iterator(difference.begin()),
-					std::make_move_iterator(difference.end()));
-			}
-
-			visible = std::move(next);
-			if (visible.empty())
-			{
-				break;
-			}
-		}
-
-		std::vector<spk::VoxelShapePolygon> result;
-		result.reserve(visible.size());
-		for (const spk::VoxelShapePolygon2D &visiblePolygon : visible)
-		{
-			result.push_back(restorePolygon3D(
-				visiblePolygon,
-				polygonProjection.plane,
-				polygonProjection.coordinate));
-		}
-		return result;
 	}
 
 	template <typename TFunction>
@@ -338,6 +285,7 @@ namespace
 		const spk::Vector3 &p_offset,
 		float p_alpha,
 		const FaceOcclusion &p_occlusion,
+		spk::VoxelFaceRemnantCache &p_remnantCache,
 		TFunction &&p_function)
 	{
 		if (p_occlusion.fullyOccluded)
@@ -350,14 +298,10 @@ namespace
 		}
 
 		bool emitted = false;
-		for (std::size_t polygonIndex = 0; polygonIndex < p_face.size(); ++polygonIndex)
+		for (const spk::VoxelShapePolygon &visible : p_remnantCache.remnants(p_face, *p_occlusion.partialOccluder))
 		{
-			for (const spk::VoxelShapePolygon &visible :
-				 visibleDifference(p_face, polygonIndex, *p_occlusion.partialOccluder))
-			{
-				p_function(visible, p_offset, p_alpha);
-				emitted = true;
-			}
+			p_function(visible, p_offset, p_alpha);
+			emitted = true;
 		}
 		return emitted;
 	}
@@ -368,7 +312,7 @@ namespace
 		const spk::Vector3Int &p_position,
 		const spk::VoxelShape &p_shape)
 	{
-		for (std::size_t planeIndex = 0; planeIndex < WorldPlanes.size(); ++planeIndex)
+		for (std::size_t planeIndex = 0; planeIndex < PlaneCount; ++planeIndex)
 		{
 			const spk::VoxelCell *neighbor = p_snapshot.tryCell(p_position + PlaneOffsets[planeIndex]);
 			if (neighbor == nullptr || neighbor->isEmpty())
@@ -382,7 +326,8 @@ namespace
 				return false;
 			}
 			const spk::VoxelAxisPlane neighborLocalPlane =
-				spk::mapWorldPlaneToLocal(OppositePlanes[planeIndex], neighbor->orientation, neighbor->flip);
+				spk::VoxelWorldToLocalPlaneTable[spk::voxelTransformVariantIndex(neighbor->orientation, neighbor->flip)]
+												[static_cast<std::size_t>(OppositePlanes[planeIndex])];
 			const auto &neighborFace = neighborShape.renderFaces().outer(neighborLocalPlane);
 			if (!neighborFace.has_value() ||
 				!neighborShape.outerFaceLiesOnCellBoundary(neighborLocalPlane) ||
@@ -404,6 +349,7 @@ namespace
 		const spk::VoxelGrid &p_grid,
 		const spk::VoxelRegistry &p_registry,
 		const NeighborSnapshot &p_snapshot,
+		spk::VoxelFaceRemnantCache &p_remnantCache,
 		TFunction &&p_function)
 	{
 		std::size_t cellIndex = 0;
@@ -428,10 +374,11 @@ namespace
 
 					const float alpha = shapeAlpha(shape);
 					const spk::VoxelShapeFaceSet &faces = shape.renderFaces();
-					for (std::size_t planeIndex = 0; planeIndex < WorldPlanes.size(); ++planeIndex)
+					const auto &worldToLocal =
+						spk::VoxelWorldToLocalPlaneTable[spk::voxelTransformVariantIndex(cell.orientation, cell.flip)];
+					for (std::size_t planeIndex = 0; planeIndex < PlaneCount; ++planeIndex)
 					{
-						const spk::VoxelAxisPlane localPlane =
-							spk::mapWorldPlaneToLocal(WorldPlanes[planeIndex], cell.orientation, cell.flip);
+						const spk::VoxelAxisPlane localPlane = worldToLocal[planeIndex];
 						if (!faces.outer(localPlane).has_value())
 						{
 							continue;
@@ -441,7 +388,7 @@ namespace
 							p_snapshot,
 							p_registry,
 							position,
-							WorldPlanes[planeIndex],
+							planeIndex,
 							shape,
 							localPlane);
 						forEachVisiblePolygon(
@@ -449,13 +396,17 @@ namespace
 							spk::Vector3(position),
 							alpha,
 							occlusion,
+							p_remnantCache,
 							p_function);
 					}
 
-					// Inner-only shapes retain their unconditional behavior. Mixed shapes suppress
-					// inner geometry only when all six boundary planes are actually sealed by
-					// complete, occlusion-compatible neighbor faces.
-					if (!shape.hasOuterFaces() || !cellIsFullyEnclosed(p_snapshot, p_registry, position, shape))
+					// Enclosure only gates inner-face emission, so shapes without inner
+					// faces (every full cube) never pay the six-neighbor probe.
+					// Inner-only shapes retain their unconditional behavior. Mixed shapes
+					// suppress inner geometry only when all six boundary planes are
+					// actually sealed by complete, occlusion-compatible neighbor faces.
+					if (!faces.innerFaces.empty() &&
+						(!shape.hasOuterFaces() || !cellIsFullyEnclosed(p_snapshot, p_registry, position, shape)))
 					{
 						for (std::size_t faceIndex = 0; faceIndex < faces.innerFaces.size(); ++faceIndex)
 						{
@@ -512,13 +463,51 @@ namespace spk
 		const spk::Vector3Int &p_worldOrigin)
 	{
 		const NeighborSnapshot snapshot(p_grid, p_worldLookup, p_worldOrigin);
+		spk::VoxelFaceRemnantCache remnantCache;
+
 		std::array<std::vector<PlannedPolygon>, 2> plans; // [0] opaque, [1] transparent
+		{
+			// Size the plan vectors once from the shapes' polygon counts. Occlusion culls
+			// entries and partial subtraction can split polygons, so this is an estimate,
+			// not a bound — but a close one, and only reallocation cost depends on it.
+			std::array<std::size_t, 2> estimates{};
+			for (const spk::VoxelCell &cell : p_grid.cells())
+			{
+				if (cell.isEmpty())
+				{
+					continue;
+				}
+				const spk::VoxelShape &shape = p_registry.shape(cell.id);
+				if (shape.transparency() >= 1.0f)
+				{
+					continue;
+				}
+				const spk::VoxelShapeFaceSet &faces = shape.renderFaces();
+				std::size_t polygons = 0;
+				for (const auto &outer : faces.outerShell)
+				{
+					if (outer.has_value())
+					{
+						polygons += outer->size();
+					}
+				}
+				for (const spk::VoxelShapeFace &inner : faces.innerFaces)
+				{
+					polygons += inner.size();
+				}
+				estimates[shape.isTransparent() ? 1 : 0] += polygons;
+			}
+			plans[0].reserve(estimates[0]);
+			plans[1].reserve(estimates[1]);
+		}
+
 		planVisiblePolygons(
 			p_grid,
 			p_registry,
 			snapshot,
+			remnantCache,
 			[&plans](const spk::VoxelShapePolygon &p_polygon, const spk::Vector3 &p_offset, float p_alpha) {
-				plans[p_alpha < 1.0f ? 1 : 0].push_back({p_polygon, p_offset, p_alpha});
+				plans[p_alpha < 1.0f ? 1 : 0].push_back({&p_polygon, p_offset, p_alpha});
 			});
 
 		struct MeshCounts
@@ -532,8 +521,8 @@ namespace spk
 		{
 			for (const PlannedPolygon &planned : plans[meshIndex])
 			{
-				checkedAdd(counts[meshIndex].vertices, planned.polygon.size(), "vertex");
-				const std::size_t triangleCount = planned.polygon.size() - 2;
+				checkedAdd(counts[meshIndex].vertices, planned.polygon->size(), "vertex");
+				const std::size_t triangleCount = planned.polygon->size() - 2;
 				if (triangleCount > std::numeric_limits<std::size_t>::max() / 3)
 				{
 					throw std::overflow_error("Voxel mesh index count overflow");
@@ -569,24 +558,25 @@ namespace spk
 			MeshEmitter &target = emitters[meshIndex];
 			for (const PlannedPolygon &planned : plans[meshIndex])
 			{
-				const std::size_t triangleCount = planned.polygon.size() - 2;
+				const spk::VoxelShapePolygon &polygon = *planned.polygon;
+				const std::size_t triangleCount = polygon.size() - 2;
 				const std::size_t indexCount = triangleCount * 3;
-				if (planned.polygon.size() > target.vertices.size() - target.vertexCursor ||
+				if (polygon.size() > target.vertices.size() - target.vertexCursor ||
 					indexCount > target.indexes.size() - target.indexCursor)
 				{
 					throw std::logic_error("Voxel mesh plan exceeds its allocated buffers");
 				}
 
 				const std::uint32_t first = static_cast<std::uint32_t>(target.vertexCursor);
-				for (const spk::VoxelShapeVertex &vertex : planned.polygon)
+				for (const spk::VoxelShapeVertex &vertex : polygon)
 				{
 					target.vertices[target.vertexCursor++] = {
 						vertex.position + planned.offset,
-						planned.polygon.normal(),
+						polygon.normal(),
 						vertex.data,
 						planned.alpha};
 				}
-				for (std::size_t index = 1; index + 1 < planned.polygon.size(); ++index)
+				for (std::size_t index = 1; index + 1 < polygon.size(); ++index)
 				{
 					target.indexes[target.indexCursor++] = first;
 					target.indexes[target.indexCursor++] = first + static_cast<std::uint32_t>(index);

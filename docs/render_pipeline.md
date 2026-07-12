@@ -138,3 +138,46 @@ Diagnostics expose type/scope/instance, debug and concrete type names, priority,
 declaration order, target/viewport, typed clear, contributor count, and command
 count. In the example, `SelectionMask` appears after the three main scene passes
 but before `WidgetOverlay`, regardless of feature registration order.
+
+## Voxel mesh baking
+
+`VoxelChunkRenderLogic` collects dirty chunk renderers each update and pushes one
+`VoxelChunkRenderer::buildMesh` task per chunk on the `spk::WorkerPool`; each task
+runs `spk::VoxelMesher::buildRenderMesh` and the results are published to the
+render side (probes: `Voxel/Bake (batch)`, `Voxel/Bake (chunk)`,
+`Voxel/Render assembly`).
+
+Because bakes run concurrently, every acceleration structure the mesher uses is
+either immutable or owned by a single bake:
+
+- **`spk::VoxelWorldToLocalPlaneTable`** (`spk_voxel_orientation.hpp`): the
+  world-plane → local-plane mapping over its full `(orientation, flip, plane)`
+  domain — 48 entries built at compile time from `spk::mapWorldPlaneToLocal`,
+  which remains the single source of truth. Read-only, shared by all threads.
+- **`spk::VoxelFaceRemnantCache`** (`spk_voxel_mesher_occlusion.hpp`): memoizes
+  the partial-occlusion remnant polygons per distinct
+  `(source face, occluder face)` pointer pair. Both faces are precomputed
+  transform variants at fixed addresses inside their initialized `VoxelShape`,
+  so the identity is stable. One cache instance is created per bake inside
+  `_buildRenderMesh` and destroyed with it — no synchronization, no sharing.
+  Memory is bounded by the distinct adjacency pairs of one chunk (the full
+  registry-wide cross product would grow quadratically with the shape count,
+  fluids register many states, and most pairs never occur in a given chunk;
+  the per-bake cache was chosen for that reason).
+- **Neighbor snapshot**: in-bounds neighbor reads are flat-index reads; external
+  cells live in six per-face slabs sized to the face area (external cells are
+  only ever queried one step outside the grid along one axis). An absent
+  external cell reads as empty; without a world lookup all external cells are
+  empty. Per-bake, immutable after construction.
+- **Plan vectors**: visible polygons are planned as lightweight descriptors
+  (polygon pointer + offset + alpha) into vectors reserved from a per-shape
+  polygon-count estimate. Referenced polygons live in the shape's transform
+  variants or in the bake's remnant cache, both of which outlive emission.
+
+Enclosure (`cellIsFullyEnclosed`) is only probed for shapes that actually own
+inner faces; full cubes skip it entirely.
+
+None of this changes the emitted geometry: the golden-reference tests in
+`voxel_mesher_invariance_test.cpp` pin the opaque and transparent meshes of a
+representative grid byte-for-byte, and `voxel_render_performance_test.cpp`
+guards the throughput (8×8 chunk square and single-chunk budgets).

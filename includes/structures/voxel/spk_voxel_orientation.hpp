@@ -3,6 +3,8 @@
 #include "structures/math/spk_vector3.hpp"
 #include "structures/voxel/spk_voxel_enums.hpp"
 
+#include <array>
+#include <cstddef>
 #include <stdexcept>
 
 namespace spk
@@ -196,4 +198,52 @@ namespace spk
 		}
 		return spk::VoxelAxisPlane::NegativeZ;
 	}
+
+	// Number of lattice transform variants a voxel cell can take (4 orientations x 2
+	// vertical flips). Shared by every per-variant lookup table.
+	inline constexpr std::size_t VoxelTransformVariantCount = 8;
+
+	// Dense index of one (orientation, flip) pair inside a per-variant table.
+	[[nodiscard]] constexpr std::size_t voxelTransformVariantIndex(
+		spk::VoxelOrientation p_orientation,
+		spk::VoxelFlip p_flip)
+	{
+		const std::size_t orientation = static_cast<std::size_t>(p_orientation);
+		const std::size_t flip = static_cast<std::size_t>(p_flip);
+		if (orientation >= 4 || flip >= 2)
+		{
+			throw std::invalid_argument("Invalid voxel face transform");
+		}
+		return orientation * 2 + flip;
+	}
+
+	// mapWorldPlaneToLocal only depends on (worldPlane, orientation, flip) — a 6 x 4 x 2
+	// domain — so the mesher's hot paths read this compile-time table instead of running
+	// the quarter-turn arithmetic per cell and per neighbor. mapWorldPlaneToLocal stays
+	// the single source of truth: the table is built from it at compile time.
+	// Usage: VoxelWorldToLocalPlaneTable[voxelTransformVariantIndex(o, f)][planeIndex].
+	inline constexpr auto VoxelWorldToLocalPlaneTable = [] {
+		constexpr std::size_t planeCount = static_cast<std::size_t>(spk::VoxelAxisPlane::Count);
+		std::array<std::array<spk::VoxelAxisPlane, planeCount>, VoxelTransformVariantCount> table{};
+		for (std::size_t orientation = 0; orientation < 4; ++orientation)
+		{
+			for (std::size_t flip = 0; flip < 2; ++flip)
+			{
+				for (std::size_t plane = 0; plane < planeCount; ++plane)
+				{
+					table[orientation * 2 + flip][plane] = mapWorldPlaneToLocal(
+						static_cast<spk::VoxelAxisPlane>(plane),
+						static_cast<spk::VoxelOrientation>(orientation),
+						static_cast<spk::VoxelFlip>(flip));
+				}
+			}
+		}
+		return table;
+	}();
+
+	// The identity transform maps every world plane to itself.
+	static_assert(
+		VoxelWorldToLocalPlaneTable
+			[voxelTransformVariantIndex(spk::VoxelOrientation::PositiveZ, spk::VoxelFlip::PositiveY)]
+			[static_cast<std::size_t>(spk::VoxelAxisPlane::NegativeX)] == spk::VoxelAxisPlane::NegativeX);
 }
