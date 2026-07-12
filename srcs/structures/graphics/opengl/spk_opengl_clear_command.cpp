@@ -17,7 +17,44 @@ namespace spk
 			return;
 		}
 
-		glClearColor(_color[0], _color[1], _color[2], _color[3]);
+		GLfloat previousClearColor[4]{};
+		GLboolean previousDepthMask = GL_TRUE;
+		GLint previousFrontStencilMask = 0;
+		GLint previousBackStencilMask = 0;
+
+		if ((_mask & GL_COLOR_BUFFER_BIT) != 0)
+		{
+			glGetFloatv(GL_COLOR_CLEAR_VALUE, previousClearColor);
+			glClearColor(_color[0], _color[1], _color[2], _color[3]);
+		}
+		if ((_mask & GL_DEPTH_BUFFER_BIT) != 0)
+		{
+			glGetBooleanv(GL_DEPTH_WRITEMASK, &previousDepthMask);
+			glDepthMask(GL_TRUE);
+		}
+		if ((_mask & GL_STENCIL_BUFFER_BIT) != 0)
+		{
+			glGetIntegerv(GL_STENCIL_WRITEMASK, &previousFrontStencilMask);
+			glGetIntegerv(GL_STENCIL_BACK_WRITEMASK, &previousBackStencilMask);
+			glStencilMaskSeparate(GL_FRONT, 0xFFFFFFFFu);
+			glStencilMaskSeparate(GL_BACK, 0xFFFFFFFFu);
+		}
+
 		glClear(_mask);
+
+		if ((_mask & GL_STENCIL_BUFFER_BIT) != 0)
+		{
+			glStencilMaskSeparate(GL_FRONT, static_cast<GLuint>(previousFrontStencilMask));
+			glStencilMaskSeparate(GL_BACK, static_cast<GLuint>(previousBackStencilMask));
+		}
+		if ((_mask & GL_DEPTH_BUFFER_BIT) != 0)
+		{
+			glDepthMask(previousDepthMask);
+		}
+		if ((_mask & GL_COLOR_BUFFER_BIT) != 0)
+		{
+			glClearColor(
+				previousClearColor[0], previousClearColor[1], previousClearColor[2], previousClearColor[3]);
+		}
 	}
 }

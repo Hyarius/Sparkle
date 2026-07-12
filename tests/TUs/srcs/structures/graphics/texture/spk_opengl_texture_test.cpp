@@ -34,7 +34,7 @@ TEST(OpenGLTextureTest, GpuTextureAfterSetPixelsHasValidGLId)
 	spk::Texture tex;
 	tex.setPixels(pixels, {4, 4}, spk::Texture::Format::RGBA);
 
-	spk::OpenGL::Texture& glTex = tex.gpu(context.renderContext());
+	spk::OpenGL::Texture &glTex = tex.gpu(context.renderContext());
 
 	EXPECT_NE(glTex.id(), 0u);
 	EXPECT_TRUE(tex.hasGpu(context.renderContext()));
@@ -83,7 +83,7 @@ TEST(OpenGLTextureTest, SetPixelsBumpsVersionAndInvalidatesCache)
 	tex.setPixels(pixels, {2, 2}, spk::Texture::Format::RGBA);
 	EXPECT_FALSE(tex.hasGpu(context.renderContext()));
 
-	spk::OpenGL::Texture& refreshedTexture = tex.gpu(context.renderContext());
+	spk::OpenGL::Texture &refreshedTexture = tex.gpu(context.renderContext());
 	EXPECT_NE(firstVersion, refreshedTexture.version());
 	EXPECT_EQ(refreshedTexture.version(), tex.version());
 	EXPECT_TRUE(tex.hasGpu(context.renderContext()));
@@ -155,7 +155,7 @@ TEST(OpenGLTextureTest, MovedFromTextureCannotUploadAndReportsNoGpu)
 	spk::Texture dst(std::move(src));
 	(void)dst;
 
-	EXPECT_THROW(auto& gpuValue = src.gpu(context.renderContext()), std::runtime_error);
+	EXPECT_THROW(auto &gpuValue = src.gpu(context.renderContext()), std::runtime_error);
 	EXPECT_FALSE(src.hasGpu(context.renderContext()));
 }
 
@@ -185,10 +185,9 @@ TEST(OpenGLTextureTest, GpuTextureCoversAllSupportedPixelFormats)
 		{spk::Texture::Format::BGR, 3},
 		{spk::Texture::Format::BGRA, 4},
 		{spk::Texture::Format::GreyLevel, 1},
-		{spk::Texture::Format::DualChannel, 2}
-	};
+		{spk::Texture::Format::DualChannel, 2}};
 
-	for (const FormatCase& fc : cases)
+	for (const FormatCase &fc : cases)
 	{
 		spk::Texture tex;
 		std::vector<uint8_t> pixels(fc.bytesPerPixel, 255);
@@ -251,4 +250,23 @@ TEST(OpenGLTextureTest, MoveAssignmentTransfersGpuCopies)
 	dst = std::move(src);
 
 	EXPECT_EQ(dst.gpu(context.renderContext()).id(), srcGlId);
+}
+
+TEST(OpenGLTextureTest, TextureConstructionRestoresPreviousBinding)
+{
+	sparkle_test::OpenGLTestContext context;
+	GLuint previousTexture = 0;
+	glGenTextures(1, &previousTexture);
+	glBindTexture(GL_TEXTURE_2D, previousTexture);
+
+	spk::Texture texture;
+	texture.setPixels(std::vector<uint8_t>(4, 255), {1, 1}, spk::Texture::Format::RGBA);
+	(void)texture.gpu(context.renderContext());
+
+	GLint binding = 0;
+	glGetIntegerv(GL_TEXTURE_BINDING_2D, &binding);
+	EXPECT_EQ(binding, static_cast<GLint>(previousTexture));
+
+	glBindTexture(GL_TEXTURE_2D, 0);
+	glDeleteTextures(1, &previousTexture);
 }

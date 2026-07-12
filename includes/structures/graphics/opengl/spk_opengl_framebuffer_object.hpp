@@ -16,6 +16,7 @@ namespace spk
 		private:
 			GLuint _framebufferId = 0;
 			GLuint _depthStencilRenderbuffer = 0;
+			GLenum _status = GL_FRAMEBUFFER_UNDEFINED;
 			bool _complete = false;
 
 		public:
@@ -29,6 +30,7 @@ namespace spk
 
 			[[nodiscard]] GLuint id() const noexcept;
 			[[nodiscard]] bool isComplete() const noexcept;
+			[[nodiscard]] GLenum status() const noexcept;
 
 			void bind() const;
 			static void bindDefault();

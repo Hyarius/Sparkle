@@ -52,5 +52,6 @@ namespace spk
 
 		[[nodiscard]] spk::GameEngine &gameEngine();
 		[[nodiscard]] const spk::GameEngine &gameEngine() const;
+		[[nodiscard]] const spk::FrameBufferObject &frameBuffer() const noexcept;
 	};
 }

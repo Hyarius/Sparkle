@@ -4,57 +4,30 @@ namespace spk
 {
 	namespace OpenGL
 	{
-		size_t Texture::_bytesPerPixel(spk::Texture::Format p_format)
-		{
-			switch (p_format)
-			{
-			case spk::Texture::Format::GreyLevel:
-				return 1;
-			case spk::Texture::Format::DualChannel:
-				return 2;
-			case spk::Texture::Format::RGB:
-			case spk::Texture::Format::BGR:
-				return 3;
-			case spk::Texture::Format::RGBA:
-			case spk::Texture::Format::BGRA:
-				return 4;
-			default:
-				return 0;
-			}
-		}
-
-		void Texture::_convertFormat(spk::Texture::Format p_format, GLint &p_internalFormat, GLenum &p_externalFormat)
+		TextureFormat Texture::formatDescriptor(spk::Texture::Format p_format) noexcept
 		{
 			switch (p_format)
 			{
 			case spk::Texture::Format::RGB:
-				p_internalFormat = GL_RGB;
-				p_externalFormat = GL_RGB;
-				break;
+				return {GL_RGB8, GL_RGB, GL_UNSIGNED_BYTE, false, false};
 			case spk::Texture::Format::RGBA:
-				p_internalFormat = GL_RGBA;
-				p_externalFormat = GL_RGBA;
-				break;
+				return {GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE, false, false};
 			case spk::Texture::Format::BGR:
-				p_internalFormat = GL_RGB;
-				p_externalFormat = GL_BGR;
-				break;
+				return {GL_RGB8, GL_BGR, GL_UNSIGNED_BYTE, false, false};
 			case spk::Texture::Format::BGRA:
-				p_internalFormat = GL_RGBA;
-				p_externalFormat = GL_BGRA;
-				break;
+				return {GL_RGBA8, GL_BGRA, GL_UNSIGNED_BYTE, false, false};
 			case spk::Texture::Format::GreyLevel:
-				p_internalFormat = GL_RED;
-				p_externalFormat = GL_RED;
-				break;
+				return {GL_R8, GL_RED, GL_UNSIGNED_BYTE, false, false};
 			case spk::Texture::Format::DualChannel:
-				p_internalFormat = GL_RG;
-				p_externalFormat = GL_RG;
-				break;
+				return {GL_RG8, GL_RG, GL_UNSIGNED_BYTE, false, false};
+			case spk::Texture::Format::Depth24:
+				return {GL_DEPTH_COMPONENT24, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, true, false};
+			case spk::Texture::Format::Depth32F:
+				return {GL_DEPTH_COMPONENT32F, GL_DEPTH_COMPONENT, GL_FLOAT, true, false};
+			case spk::Texture::Format::Depth24Stencil8:
+				return {GL_DEPTH24_STENCIL8, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, true, true};
 			default:
-				p_internalFormat = GL_NONE;
-				p_externalFormat = GL_NONE;
-				break;
+				return {};
 			}
 		}
 
@@ -73,6 +46,10 @@ namespace spk
 			case spk::Texture::Wrap::ClampToBorder:
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+				{
+					constexpr GLfloat borderColor[] = {1.0f, 1.0f, 1.0f, 1.0f};
+					glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+				}
 				break;
 			}
 
@@ -110,28 +87,41 @@ namespace spk
 				return;
 			}
 
-			GLint internalFormat = GL_NONE;
-			GLenum externalFormat = GL_NONE;
-			_convertFormat(sourceResource->format, internalFormat, externalFormat);
-			if (internalFormat == GL_NONE || externalFormat == GL_NONE)
+			const TextureFormat descriptor = formatDescriptor(sourceResource->format);
+			if (descriptor.internalFormat == GL_NONE || descriptor.externalFormat == GL_NONE || descriptor.elementType == GL_NONE)
 			{
 				return;
 			}
 
+			GLint previousBinding = 0;
+			glGetIntegerv(GL_TEXTURE_BINDING_2D, &previousBinding);
 			glGenTextures(1, &_id);
-			glBindTexture(GL_TEXTURE_2D, _id);
-			glTexImage2D(
-				GL_TEXTURE_2D,
-				0,
-				internalFormat,
-				static_cast<GLsizei>(sz.x),
-				static_cast<GLsizei>(sz.y),
-				0,
-				externalFormat,
-				GL_UNSIGNED_BYTE,
-				sourceResource->pixels.data());
-			_setupParameters(sourceResource->filtering, sourceResource->wrap, sourceResource->mipmap);
-			glBindTexture(GL_TEXTURE_2D, 0);
+			try
+			{
+				glBindTexture(GL_TEXTURE_2D, _id);
+				const void *pixels = sourceResource->contentSource == spk::Texture::ContentSource::PixelData &&
+											 sourceResource->pixels.empty() == false
+										 ? sourceResource->pixels.data()
+										 : nullptr;
+				glTexImage2D(
+					GL_TEXTURE_2D,
+					0,
+					descriptor.internalFormat,
+					static_cast<GLsizei>(sz.x),
+					static_cast<GLsizei>(sz.y),
+					0,
+					descriptor.externalFormat,
+					descriptor.elementType,
+					pixels);
+				_setupParameters(sourceResource->filtering, sourceResource->wrap, sourceResource->mipmap);
+				glBindTexture(GL_TEXTURE_2D, static_cast<GLuint>(previousBinding));
+			} catch (...)
+			{
+				glBindTexture(GL_TEXTURE_2D, static_cast<GLuint>(previousBinding));
+				glDeleteTextures(1, &_id);
+				_id = 0;
+				throw;
+			}
 		}
 
 		Texture::~Texture()

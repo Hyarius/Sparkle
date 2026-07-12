@@ -39,10 +39,7 @@ TEST(TextureTest, SetPixelsStoresDataAndMetadata)
 	spk::Texture tex;
 	auto pixels = makePixels(4, 4, 4);
 
-	tex.setPixels(pixels, {4, 4}, spk::Texture::Format::RGBA,
-		spk::Texture::Filtering::Linear,
-		spk::Texture::Wrap::Repeat,
-		spk::Texture::Mipmap::Enable);
+	tex.setPixels(pixels, {4, 4}, spk::Texture::Format::RGBA, spk::Texture::Filtering::Linear, spk::Texture::Wrap::Repeat, spk::Texture::Mipmap::Enable);
 
 	EXPECT_EQ(tex.size(), (spk::Vector2UInt{4, 4}));
 	EXPECT_EQ(tex.pixels(), pixels);
@@ -173,10 +170,7 @@ TEST(TextureTest, CopyConstructionSharesResource)
 {
 	spk::Texture src;
 	auto pixels = makePixels(2, 2, 4);
-	src.setPixels(pixels, {2, 2}, spk::Texture::Format::RGBA,
-		spk::Texture::Filtering::Linear,
-		spk::Texture::Wrap::Repeat,
-		spk::Texture::Mipmap::Enable);
+	src.setPixels(pixels, {2, 2}, spk::Texture::Format::RGBA, spk::Texture::Filtering::Linear, spk::Texture::Wrap::Repeat, spk::Texture::Mipmap::Enable);
 
 	spk::Texture dst(src);
 
@@ -230,10 +224,7 @@ TEST(TextureTest, ClonePreservesMetadataWithNewIdentity)
 {
 	spk::Texture src;
 	auto pixels = makePixels(2, 2, 4);
-	src.setPixels(pixels, {2, 2}, spk::Texture::Format::RGBA,
-		spk::Texture::Filtering::Linear,
-		spk::Texture::Wrap::Repeat,
-		spk::Texture::Mipmap::Enable);
+	src.setPixels(pixels, {2, 2}, spk::Texture::Format::RGBA, spk::Texture::Filtering::Linear, spk::Texture::Wrap::Repeat, spk::Texture::Mipmap::Enable);
 
 	spk::Texture dst = src.clone();
 
@@ -349,7 +340,9 @@ TEST(TextureTest, RawPointerOverloadsFillWithZeroesWhenDataIsNull)
 		spk::Texture::Mipmap::Disable);
 
 	EXPECT_EQ(withProperties.pixels().size(), 8u);
-	EXPECT_TRUE(std::ranges::all_of(withProperties.pixels(), [](uint8_t p_value) { return p_value == 0; }));
+	EXPECT_TRUE(std::ranges::all_of(withProperties.pixels(), [](uint8_t p_value) {
+		return p_value == 0;
+	}));
 	EXPECT_EQ(withProperties.filtering(), spk::Texture::Filtering::Linear);
 	EXPECT_EQ(withProperties.wrap(), spk::Texture::Wrap::Repeat);
 	EXPECT_EQ(withProperties.mipmap(), spk::Texture::Mipmap::Disable);
@@ -358,7 +351,9 @@ TEST(TextureTest, RawPointerOverloadsFillWithZeroesWhenDataIsNull)
 	withoutProperties.setPixels(nullptr, {1, 1}, spk::Texture::Format::BGRA);
 
 	EXPECT_EQ(withoutProperties.pixels().size(), 4u);
-	EXPECT_TRUE(std::ranges::all_of(withoutProperties.pixels(), [](uint8_t p_value) { return p_value == 0; }));
+	EXPECT_TRUE(std::ranges::all_of(withoutProperties.pixels(), [](uint8_t p_value) {
+		return p_value == 0;
+	}));
 }
 
 TEST(TextureTest, SectionInequalityDetectsDifferentAnchorAndSize)
@@ -440,4 +435,27 @@ TEST(TextureTest, SaveAsPngThrowsWhenTargetPathIsDirectory)
 	tex.setPixels(std::vector<uint8_t>{255, 0, 0, 255}, {1, 1}, spk::Texture::Format::RGBA);
 
 	EXPECT_THROW(tex.saveAsPng(std::filesystem::temp_directory_path()), std::runtime_error);
+}
+
+TEST(TextureTest, FormatClassificationDoesNotInferRolesFromByteCounts)
+{
+	EXPECT_TRUE(spk::Texture::isColorFormat(spk::Texture::Format::RGBA));
+	EXPECT_FALSE(spk::Texture::isDepthFormat(spk::Texture::Format::RGBA));
+	EXPECT_TRUE(spk::Texture::isDepthFormat(spk::Texture::Format::Depth24));
+	EXPECT_TRUE(spk::Texture::isDepthFormat(spk::Texture::Format::Depth32F));
+	EXPECT_TRUE(spk::Texture::isDepthStencilFormat(spk::Texture::Format::Depth24Stencil8));
+	EXPECT_FALSE(spk::Texture::isColorFormat(spk::Texture::Format::Depth24Stencil8));
+}
+
+TEST(TextureTest, CpuPixelUploadsRejectDepthRenderTargetFormats)
+{
+	spk::Texture texture;
+	const std::vector<std::uint8_t> pixels(4, 0);
+
+	EXPECT_THROW(
+		texture.setPixels(pixels, {1, 1}, spk::Texture::Format::Depth24),
+		std::invalid_argument);
+	EXPECT_THROW(
+		texture.setPixels(pixels, {1, 1}, spk::Texture::Format::Depth24Stencil8),
+		std::invalid_argument);
 }

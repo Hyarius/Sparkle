@@ -12,6 +12,17 @@
 
 namespace spk
 {
+	namespace
+	{
+		void validatePixelDataFormat(spk::Texture::Format p_format)
+		{
+			if (spk::Texture::isDepthFormat(p_format) || spk::Texture::isDepthStencilFormat(p_format))
+			{
+				throw std::invalid_argument("Depth formats are GPU render-target formats and cannot contain CPU pixel data");
+			}
+		}
+	}
+
 	std::deque<Texture::ID> &Texture::_availableIDs()
 	{
 		static std::deque<ID> ids;
@@ -260,6 +271,32 @@ namespace spk
 		return result;
 	}
 
+	bool Texture::isColorFormat(Format p_format) noexcept
+	{
+		switch (p_format)
+		{
+		case Format::RGB:
+		case Format::RGBA:
+		case Format::BGR:
+		case Format::BGRA:
+		case Format::GreyLevel:
+		case Format::DualChannel:
+			return true;
+		default:
+			return false;
+		}
+	}
+
+	bool Texture::isDepthFormat(Format p_format) noexcept
+	{
+		return p_format == Format::Depth24 || p_format == Format::Depth32F;
+	}
+
+	bool Texture::isDepthStencilFormat(Format p_format) noexcept
+	{
+		return p_format == Format::Depth24Stencil8;
+	}
+
 	void Texture::setPixels(
 		const std::vector<std::uint8_t> &p_data,
 		const spk::Vector2UInt &p_size,
@@ -268,6 +305,7 @@ namespace spk
 		Wrap p_wrap,
 		Mipmap p_mipmap)
 	{
+		validatePixelDataFormat(p_format);
 		auto resource = std::make_shared<Resource>();
 		resource->pixels = p_data;
 		resource->size = p_size;
@@ -284,6 +322,7 @@ namespace spk
 		const spk::Vector2UInt &p_size,
 		Format p_format)
 	{
+		validatePixelDataFormat(p_format);
 		std::shared_ptr<const Resource> currentResource = _resourceSnapshot();
 
 		auto resource = std::make_shared<Resource>();
@@ -305,6 +344,7 @@ namespace spk
 		Wrap p_wrap,
 		Mipmap p_mipmap)
 	{
+		validatePixelDataFormat(p_format);
 		auto resource = std::make_shared<Resource>();
 		resource->size = p_size;
 		resource->format = p_format;
@@ -330,6 +370,7 @@ namespace spk
 		const spk::Vector2UInt &p_size,
 		Format p_format)
 	{
+		validatePixelDataFormat(p_format);
 		std::shared_ptr<const Resource> currentResource = _resourceSnapshot();
 
 		auto resource = std::make_shared<Resource>();
@@ -364,9 +405,7 @@ namespace spk
 		resource->filtering = p_filtering;
 		resource->wrap = p_wrap;
 		resource->mipmap = Mipmap::Disable;
-
-		const size_t byteCount = p_size.x * p_size.y * _getBytesPerPixel(p_format);
-		resource->pixels.assign(byteCount, 0);
+		resource->contentSource = ContentSource::RenderTarget;
 
 		_publishResource(resource);
 	}
@@ -378,6 +417,7 @@ namespace spk
 		resource->pixels = currentResource->pixels;
 		resource->size = currentResource->size;
 		resource->format = currentResource->format;
+		resource->contentSource = currentResource->contentSource;
 		resource->filtering = p_filtering;
 		resource->wrap = p_wrap;
 		resource->mipmap = p_mipmap;
@@ -402,6 +442,10 @@ namespace spk
 
 	const std::vector<std::uint8_t> &Texture::pixels() const
 	{
+		if (_resourceData().contentSource == ContentSource::RenderTarget)
+		{
+			throw std::runtime_error("Render-target textures do not expose CPU pixel data");
+		}
 		return _resourceData().pixels;
 	}
 
@@ -413,6 +457,16 @@ namespace spk
 	Texture::Format Texture::format() const
 	{
 		return _resourceData().format;
+	}
+
+	Texture::ContentSource Texture::contentSource() const
+	{
+		return _resourceData().contentSource;
+	}
+
+	bool Texture::isRenderTarget() const
+	{
+		return contentSource() == ContentSource::RenderTarget;
 	}
 
 	Texture::Filtering Texture::filtering() const
@@ -433,6 +487,11 @@ namespace spk
 	void Texture::saveAsPng(const std::filesystem::path &p_path) const
 	{
 		std::shared_ptr<const Resource> resource = _resourceSnapshot();
+		if (resource->contentSource == ContentSource::RenderTarget ||
+			isDepthFormat(resource->format) || isDepthStencilFormat(resource->format))
+		{
+			throw std::runtime_error("Render-target and depth textures cannot be exported as PNG files.");
+		}
 
 		if (resource->pixels.empty() || resource->size.x == 0 || resource->size.y == 0)
 		{

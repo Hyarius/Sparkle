@@ -35,7 +35,16 @@ namespace spk
 			BGRA,
 			GreyLevel,
 			DualChannel,
+			Depth24,
+			Depth32F,
+			Depth24Stencil8,
 			Error
+		};
+
+		enum class ContentSource
+		{
+			PixelData,
+			RenderTarget
 		};
 
 		enum class Filtering
@@ -78,6 +87,7 @@ namespace spk
 			std::vector<std::uint8_t> pixels;
 			spk::Vector2UInt size{0, 0};
 			Format format = Format::Error;
+			ContentSource contentSource = ContentSource::PixelData;
 			Filtering filtering = Filtering::Nearest;
 			Wrap wrap = Wrap::ClampToEdge;
 			Mipmap mipmap = Mipmap::Enable;
@@ -114,9 +124,9 @@ namespace spk
 		void _publishResource(const std::shared_ptr<Resource> &p_resource);
 		static size_t _getBytesPerPixel(Format p_format);
 
-		// Allocate empty GPU storage of the given size to be used as a render
-		// target (no CPU upload, no mipmaps). Only spk::FrameBufferObject, which
-		// owns its color attachment, is allowed to turn a Texture into one.
+		// Publishes GPU-only storage metadata. No CPU pixel allocation is made.
+		// FrameBufferObject owns this operation so attachment resize and versioning
+		// remain coherent.
 		void allocateRenderTarget(
 			const spk::Vector2UInt &p_size,
 			Format p_format = Format::RGBA,
@@ -140,6 +150,10 @@ namespace spk
 		Texture &operator=(Texture &&p_other) noexcept;
 
 		[[nodiscard]] Texture clone() const;
+
+		[[nodiscard]] static bool isColorFormat(Format p_format) noexcept;
+		[[nodiscard]] static bool isDepthFormat(Format p_format) noexcept;
+		[[nodiscard]] static bool isDepthStencilFormat(Format p_format) noexcept;
 
 		void setPixels(
 			const std::vector<std::uint8_t> &p_data,
@@ -178,6 +192,8 @@ namespace spk
 		[[nodiscard]] const std::vector<std::uint8_t> &pixels() const;
 		[[nodiscard]] const spk::Vector2UInt &size() const;
 		[[nodiscard]] Format format() const;
+		[[nodiscard]] ContentSource contentSource() const;
+		[[nodiscard]] bool isRenderTarget() const;
 		[[nodiscard]] Filtering filtering() const;
 		[[nodiscard]] Wrap wrap() const;
 		[[nodiscard]] Mipmap mipmap() const;
