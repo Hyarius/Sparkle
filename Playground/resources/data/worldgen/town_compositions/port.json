@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "kind": "port",
+  "layout": {
+    "radiusColumns": 26,
+    "mainRoadWidth": 3,
+    "urbanRoadWidth": 1,
+    "minimumBuildingSpacing": 2,
+    "buildingAttemptsPerItem": 128,
+    "layoutAttempts": 32,
+    "routeTurnPenalty": 2,
+    "routeSlopePenalty": 20
+  },
+  "buildings": [
+    {"id": "creature-center", "role": "creatureCenter", "count": 1, "required": true, "placementPriority": 100},
+    {"id": "shop", "role": "shop", "count": 1, "required": true, "placementPriority": 90},
+    {"id": "port", "role": "port", "count": 1, "required": true, "placementPriority": 95},
+    {"id": "homes", "role": "home", "count": {"min": 2, "max": 4}, "required": true, "minimumSpacing": 4, "placementPriority": 10}
+  ],
+  "roadScenery": [
+    {"id": "lamps", "prefab": "town-light-pole", "count": {"min": 2, "max": 5}, "spacing": 8},
+    {"id": "benches", "prefab": "town-bench", "count": {"min": 1, "max": 3}, "spacing": 6}
+  ],
+  "groundScenery": [
+    {"id": "rocks", "prefab": "rock-cluster", "count": {"min": 2, "max": 5}, "spacing": 4}
+  ]
+}

@@ -174,5 +174,6 @@
 				0
 			]
 		}
-	]
+	],
+	"entrance": {"anchor": "door", "outwardFacing": "negativeZ", "clearApproach": {"min": [4, -1, -1], "max": [4, 0, 0]}}
 }

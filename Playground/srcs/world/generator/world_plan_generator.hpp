@@ -29,7 +29,7 @@ namespace pg::worldgen
 		const WorldGenConfig &cfg;
 		const PlanPlacementRules &placementRules;
 		const Registry<PrefabDefinition> &prefabs;
-		const TownBlueprintCatalog &townBlueprints;
+		const TownCompositionCatalog &townCompositions;
 		const Registry<InteriorDefinition> &interiors;
 		WorldPlan plan;
 		int size;
@@ -45,7 +45,7 @@ namespace pg::worldgen
 			const std::vector<PlanBiome> &p_biomes,
 			const PlanPlacementRules &p_placementRules,
 			const Registry<PrefabDefinition> &p_prefabs,
-			const TownBlueprintCatalog &p_townBlueprints,
+			const TownCompositionCatalog &p_townCompositions,
 			const Registry<InteriorDefinition> &p_interiors);
 
 		[[nodiscard]] Rng rngFor(const std::string &p_path) const
@@ -74,6 +74,7 @@ namespace pg::worldgen
 		void resolveGateways();
 		void placeEntities();
 		void assignPorts();
+		void reserveTownSites();
 
 		Rng roadRng{0};
 
@@ -83,6 +84,7 @@ namespace pg::worldgen
 		bool connectRoad(const Cell &p_from, const Cell &p_to);
 		[[nodiscard]] std::optional<Cell> nearestRoadCell(int p_row, int p_col, int p_maxRadius = 64) const;
 		void buildRoads();
+		void buildTownSpines();
 		void removeRoadSquares();
 		void addBoatLinks();
 		void markBridges();
@@ -98,7 +100,7 @@ namespace pg::worldgen
 		[[nodiscard]] std::string stairPlatformPrefabFor(int p_zone, bool p_onRoad) const;
 		[[nodiscard]] const std::vector<std::string> *entityPrefabsFor(PlanEntityKind p_kind, int p_zone) const;
 		[[nodiscard]] const PlanTown *townFor(int p_zone) const;
-		void composeBlueprintTown(const PlanEntity &p_entity, std::size_t p_entityIndex);
+		void planAndCommitTowns();
 
 		// ---------------- Claimed zones (world_plan_stairways.cpp) ----------------
 		// Every structural placement (stairways first — they have priority — then
@@ -285,7 +287,6 @@ namespace pg::worldgen
 
 		// ---------------- Buildings (world_plan_infrastructure.cpp) ----------------
 		void placeBuildings();
-		void placeTownScenery();
 
 		// ---------------- Scenery (world_plan_scenery.cpp) ----------------
 		void placeScenery();

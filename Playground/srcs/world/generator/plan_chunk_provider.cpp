@@ -85,7 +85,14 @@ namespace pg
 				{.surface = numericPool(definition.palette.surface),
 				 .subsurface = numericPool(definition.palette.subsurface),
 				 .deep = numericPool(definition.palette.deep),
-				 .road = std::move(road)});
+					 .road = std::move(road)});
+		}
+		for (const PlanTownRecord &town : _plan.towns)
+		{
+			for (const PlanPavedColumn &column : town.urbanRoadSurface)
+			{
+				_urbanRoadSurfaceY.emplace(std::pair{column.worldX, column.worldZ}, column.surfaceY);
+			}
 		}
 
 		for (const PrefabPlacement &placement : _plan.placements)
@@ -195,18 +202,13 @@ namespace pg
 			}
 		}
 
-		// Hand-authored/minimal plans used by consumers and tests may predate the
-		// town-road grid. Treat its absent default grid as an empty mask.
-		const auto townPaved = [&](int p_row, int p_col) {
-			if(_plan.townPath.contains(p_row,p_col)&&_plan.townPath.at(p_row,p_col)!=0)return true;for(const PlanTownRecord &town:_plan.towns)if(std::ranges::find(town.dockCells,std::pair{p_row,p_col})!=town.dockCells.end())return true;return false;
-		};
-		if (_plan.road.at(row, col) != 0 || townPaved(row, col))
+		const bool exactUrbanRoad = _urbanRoadSurfaceY.contains({p_worldX, p_worldZ});
+		if (_plan.road.at(row, col) != 0 || exactUrbanRoad)
 		{
 			const auto paved = [&](int p_row, int p_col) {
-				return _plan.road.contains(p_row, p_col) &&
-					(_plan.road.at(p_row, p_col) != 0 || townPaved(p_row, p_col));
+				return _plan.road.contains(p_row, p_col) && _plan.road.at(p_row, p_col) != 0;
 			};
-			if (inCross(paved(row - 1, col), paved(row + 1, col), paved(row, col - 1), paved(row, col + 1)))
+			if (exactUrbanRoad || inCross(paved(row - 1, col), paved(row + 1, col), paved(row, col - 1), paved(row, col + 1)))
 			{
 				// On bridges the deck sits at ground level on a solid pier; the water
 				// column underneath is filled, its neighbors keep flowing around it.

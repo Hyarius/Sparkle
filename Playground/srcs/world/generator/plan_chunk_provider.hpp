@@ -76,6 +76,9 @@ namespace pg
 		spk::VoxelRuntimeId _sand{};
 		spk::VoxelRuntimeId _stone{};
 		std::vector<ResolvedPlacement> _placements;
+		// Exact urban paving is indexed once when the immutable provider is built;
+		// chunk columns never scan every town record.
+		std::map<std::pair<int, int>, int> _urbanRoadSurfaceY;
 
 		[[nodiscard]] Column _column(int p_worldX, int p_worldZ) const;
 		void _stamp(spk::VoxelChunk &p_chunk, const ResolvedPlacement &p_placement) const;

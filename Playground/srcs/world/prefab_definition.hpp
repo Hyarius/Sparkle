@@ -22,9 +22,8 @@ namespace pg
 		spk::Vector3Int max{};
 	};
 
-	// Town content uses this explicit, planner-facing entrance contract. Existing
-	// biome town bindings authoritatively bind their `door` anchor to local -Z;
-	// later content can serialize a different contract in the prefab itself.
+	// Town content uses this explicit, planner-facing entrance contract.  The
+	// composition planner never derives one from a generic anchor name.
 	struct PrefabEntrance
 	{
 		std::string anchorName = "door";

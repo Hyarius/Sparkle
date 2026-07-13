@@ -51,10 +51,9 @@ namespace pg
 		for (const std::string &prefabId : townPrefabIds)
 		{
 			if(!loadedPrefabs.contains(prefabId)) throw std::runtime_error("town content references unknown prefab '"+prefabId+"'");
-			PrefabDefinition *prefab=&loadedPrefabs.getMutable(prefabId);
-			const PrefabAnchor *door=prefab->tryAnchor("door");
-			if(door==nullptr || door->position.z!=0) throw std::runtime_error("town prefab '"+prefabId+"' needs a door anchor on its local -Z exterior");
-			if(!prefab->entrance) prefab->entrance=PrefabEntrance{.anchorName="door",.outwardFacing=spk::VoxelOrientation::NegativeZ,.clearApproach={.min={door->position.x,door->position.y,door->position.z-1},.max={door->position.x,door->position.y+1,door->position.z}}};
+			const PrefabDefinition &prefab=loadedPrefabs.get(prefabId);
+			if(!prefab.entrance) throw std::runtime_error("town prefab '"+prefabId+"' needs an explicit entrance contract");
+			if(prefab.tryAnchor(prefab.entrance->anchorName)==nullptr) throw std::runtime_error("town prefab '"+prefabId+"' entrance references a missing anchor");
 		}
 		// Interiors reference room prefabs, so they load after prefabs; each prefab's
 		// own "interior" link is validated once both registries exist.
@@ -87,11 +86,15 @@ namespace pg
 		const spk::JSON::Value placementsJson = JsonLoader::parseFile(placementsFile);
 		JsonReader placementsReader(placementsJson, placementsFile);
 		PlanPlacementRules loadedPlacementRules = parsePlanPlacementRules(placementsReader, loadedPrefabs);
-		TownBlueprintCatalog loadedTownBlueprints;
-		spk::loadJsonDirectory(loadedTownBlueprints, p_dataDirectory / "worldgen" / "towns", [](std::string_view p_id, JsonReader &p_reader) {
-			TownBlueprint blueprint = parseTownBlueprint(p_reader);
-			blueprint.id = p_id;
-			return blueprint;
+		TownCompositionCatalog loadedTownCompositions;
+		spk::loadJsonDirectory(loadedTownCompositions, p_dataDirectory / "worldgen" / "town_compositions", [&loadedPrefabs](std::string_view p_id, JsonReader &p_reader) {
+			TownComposition composition = parseTownComposition(p_reader);
+			composition.id = p_id;
+			for (const TownSceneryRequest &request : composition.roadScenery)
+				if (!loadedPrefabs.contains(request.prefabId)) throw JsonError(p_reader.file(), p_reader.pathFor("roadScenery"), "unknown scenery prefab id '" + request.prefabId + "'");
+			for (const TownSceneryRequest &request : composition.groundScenery)
+				if (!loadedPrefabs.contains(request.prefabId)) throw JsonError(p_reader.file(), p_reader.pathFor("groundScenery"), "unknown scenery prefab id '" + request.prefabId + "'");
+			return composition;
 		});
 
 		_gameRules = std::move(loadedGameRules);
@@ -101,7 +104,7 @@ namespace pg
 		_prefabs = std::move(loadedPrefabs);
 		_interiors = std::move(loadedInteriors);
 		_placementRules = std::move(loadedPlacementRules);
-		_townBlueprints = std::move(loadedTownBlueprints);
+		_townCompositions = std::move(loadedTownCompositions);
 		std::cout << "Loaded " << _voxels.typeCount() << " voxel types containing "
 				  << _voxels.runtimeStateCount() << " runtime states, " << _biomes.size()
 				  << " biome definitions, " << _prefabs.size() << " prefabs, and " << _interiors.size()
@@ -115,5 +118,5 @@ namespace pg
 	const Registry<PrefabDefinition> &Registries::prefabs() const noexcept { return _prefabs; }
 	const Registry<InteriorDefinition> &Registries::interiors() const noexcept { return _interiors; }
 	const PlanPlacementRules &Registries::placementRules() const noexcept { return _placementRules; }
-	const TownBlueprintCatalog &Registries::townBlueprints() const noexcept { return _townBlueprints; }
+	const TownCompositionCatalog &Registries::townCompositions() const noexcept { return _townCompositions; }
 }

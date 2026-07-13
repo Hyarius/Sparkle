@@ -6,7 +6,7 @@
 #include "voxel/voxel_registry.hpp"
 #include "world/biome_definition.hpp"
 #include "world/generator/world_plan.hpp"
-#include "world/generator/town_blueprint.hpp"
+#include "world/generator/town_composition.hpp"
 #include "world/interior_definition.hpp"
 #include "world/prefab_definition.hpp"
 
@@ -24,7 +24,7 @@ namespace pg
 		Registry<PrefabDefinition> _prefabs;
 		Registry<InteriorDefinition> _interiors;
 		PlanPlacementRules _placementRules;
-		TownBlueprintCatalog _townBlueprints;
+		TownCompositionCatalog _townCompositions;
 
 	public:
 		void loadAll(const std::filesystem::path &p_dataDirectory);
@@ -42,6 +42,6 @@ namespace pg
 		// Which prefab worldgen inserts for stairways and per entity kind
 		// (resources/data/worldgen/placements.json).
 		[[nodiscard]] const PlanPlacementRules &placementRules() const noexcept;
-		[[nodiscard]] const TownBlueprintCatalog &townBlueprints() const noexcept;
+		[[nodiscard]] const TownCompositionCatalog &townCompositions() const noexcept;
 	};
 }

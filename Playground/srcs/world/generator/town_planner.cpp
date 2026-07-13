@@ -1,173 +1,656 @@
 #include "world/generator/town_planner.hpp"
+
 #include "world/generator/world_plan_math.hpp"
 #include "world/prefab_placement_math.hpp"
+
 #include "structures/voxel/spk_voxel_orientation.hpp"
 
+#include <algorithm>
+#include <array>
+#include <cmath>
+#include <map>
+#include <queue>
 #include <set>
+#include <tuple>
 
 namespace pg
 {
+	namespace
+	{
+		struct BuildingInstance
+		{
+			std::string id;
+			TownBuildingRole role = TownBuildingRole::None;
+			bool required = true;
+			int spacing = 0;
+			int priority = 0;
+			std::string prefabId;
+			const PrefabDefinition *prefab = nullptr;
+		};
+
+		struct RouteResult
+		{
+			int cost = 0;
+			std::vector<TownColumn> path;
+		};
+
+		[[nodiscard]] bool isSettlement(PlanEntityKind p_kind)
+		{
+			return p_kind == PlanEntityKind::City || p_kind == PlanEntityKind::Gym || p_kind == PlanEntityKind::PortCity;
+		}
+
+		[[nodiscard]] TownCompositionKind compositionKindFor(PlanEntityKind p_kind)
+		{
+			return p_kind == PlanEntityKind::Gym ? TownCompositionKind::Gym : p_kind == PlanEntityKind::PortCity ? TownCompositionKind::Port : TownCompositionKind::City;
+		}
+
+		[[nodiscard]] TownBuildingRole roleFor(PlanEntityKind p_kind)
+		{
+			return p_kind == PlanEntityKind::Gym ? TownBuildingRole::Gym : p_kind == PlanEntityKind::PortCity ? TownBuildingRole::Port : TownBuildingRole::CreatureCenter;
+		}
+
+		[[nodiscard]] spk::Vector3Int outwardFor(int p_turns, spk::VoxelOrientation p_canonical)
+		{
+			spk::Vector3Int direction{};
+			switch (p_canonical)
+			{
+			case spk::VoxelOrientation::PositiveX: direction = {1, 0, 0}; break;
+			case spk::VoxelOrientation::NegativeX: direction = {-1, 0, 0}; break;
+			case spk::VoxelOrientation::PositiveZ: direction = {0, 0, 1}; break;
+			case spk::VoxelOrientation::NegativeZ: direction = {0, 0, -1}; break;
+			}
+			return spk::rotateQuarterTurns(direction, p_turns);
+		}
+
+		[[nodiscard]] PlanClaim placementClaim(const PrefabDefinition &p_prefab, const PrefabPlacement &p_placement)
+		{
+			const int turns = spk::quarterTurnsOf(p_placement.orientation);
+			const spk::Vector3Int pivot = p_prefab.prefab.pivot();
+			const spk::Vector3Int localMin = p_prefab.clearance ? p_prefab.clearance->min : p_prefab.prefab.minBounds();
+			const spk::Vector3Int localMax = p_prefab.clearance ? p_prefab.clearance->max : p_prefab.prefab.maxBounds();
+			const spk::Vector3Int a = spk::rotateQuarterTurns(localMin - pivot, turns);
+			const spk::Vector3Int b = spk::rotateQuarterTurns(localMax - pivot, turns);
+			return {.min = p_placement.anchor + spk::Vector3Int{std::min(a.x, b.x), std::min(a.y, b.y), std::min(a.z, b.z)},
+				.max = p_placement.anchor + spk::Vector3Int{std::max(a.x, b.x), std::max(a.y, b.y), std::max(a.z, b.z)}};
+		}
+
+		[[nodiscard]] bool overlaps(const PlanClaim &p_first, const PlanClaim &p_second)
+		{
+			return p_first.min.x <= p_second.max.x && p_first.max.x >= p_second.min.x &&
+				p_first.min.y <= p_second.max.y && p_first.max.y >= p_second.min.y &&
+				p_first.min.z <= p_second.max.z && p_first.max.z >= p_second.min.z;
+		}
+
+		[[nodiscard]] std::vector<TownColumn> columnsIn(const TownWorkspace &p_workspace, const PlanClaim &p_claim)
+		{
+			std::vector<TownColumn> result;
+			for (int z = p_claim.min.z; z <= p_claim.max.z; ++z)
+			{
+				for (int x = p_claim.min.x; x <= p_claim.max.x; ++x)
+				{
+					try { result.push_back(p_workspace.townFromWorld({x, z})); }
+					catch (const std::out_of_range &) { return {}; }
+				}
+			}
+			return result;
+		}
+
+		[[nodiscard]] std::vector<TownColumn> solidColumns(const TownWorkspace &p_workspace, const ResolvedPlacementBox &p_box)
+		{
+			return columnsIn(p_workspace, {.min = p_box.worldMin, .max = p_box.worldMin + p_box.extents - spk::Vector3Int{1, 1, 1}});
+		}
+
+		[[nodiscard]] const std::string *prefabForRole(const PlanTown &p_town, TownBuildingRole p_role, worldgen::Rng &p_rng)
+		{
+			switch (p_role)
+			{
+			case TownBuildingRole::CreatureCenter: return &p_town.creatureCenter;
+			case TownBuildingRole::Shop: return &p_town.shop;
+			case TownBuildingRole::Gym: return &p_town.gym;
+			case TownBuildingRole::Port: return &p_town.port;
+			case TownBuildingRole::Home:
+				if (!p_town.homes.empty()) return &p_town.homes[static_cast<std::size_t>(p_rng.below(static_cast<int>(p_town.homes.size())))];
+				break;
+			case TownBuildingRole::None: break;
+			}
+			return nullptr;
+		}
+
+		[[nodiscard]] std::optional<std::vector<BuildingInstance>> expandInstances(
+			const TownComposition &p_composition,
+			const PlanTown &p_biomeTown,
+			const Registry<PrefabDefinition> &p_prefabs,
+			std::uint64_t p_seed,
+			std::size_t p_entityIndex,
+			TownRejection &p_rejection)
+		{
+			std::vector<BuildingInstance> result;
+			const std::string prefix = "town/" + std::to_string(p_entityIndex) + "/buildings/";
+			for (const TownBuildingRequest &request : p_composition.buildings)
+			{
+				worldgen::Rng countRng(worldgen::deriveSeed(p_seed, prefix + request.id + "/count"));
+				const int count = request.count.minimum + (request.count.maximum > request.count.minimum ? countRng.below(request.count.maximum - request.count.minimum + 1) : 0);
+				for (int index = 0; index < count; ++index)
+				{
+					const std::string id = request.id + "/" + std::to_string(index);
+					worldgen::Rng prefabRng(worldgen::deriveSeed(p_seed, prefix + id + "/prefab"));
+					const std::string *prefabId = prefabForRole(p_biomeTown, request.role, prefabRng);
+					const PrefabDefinition *prefab = prefabId == nullptr ? nullptr : p_prefabs.tryGet(*prefabId);
+					if (prefab == nullptr || !prefab->entrance || prefab->tryAnchor(prefab->entrance->anchorName) == nullptr)
+					{
+						p_rejection = {.category = TownRejectCategory::MissingContent, .componentId = id, .message = "required town role has no prefab entrance contract"};
+						return std::nullopt;
+					}
+					result.push_back({.id = id, .role = request.role, .required = request.required, .spacing = request.minimumSpacing, .priority = request.placementPriority, .prefabId = *prefabId, .prefab = prefab});
+				}
+			}
+			return result;
+		}
+
+		[[nodiscard]] int clearanceArea(const BuildingInstance &p_instance)
+		{
+			const spk::Vector3Int low = p_instance.prefab->clearance ? p_instance.prefab->clearance->min : p_instance.prefab->prefab.minBounds();
+			const spk::Vector3Int high = p_instance.prefab->clearance ? p_instance.prefab->clearance->max : p_instance.prefab->prefab.maxBounds();
+			return (high.x - low.x + 1) * (high.z - low.z + 1);
+		}
+
+		void sortInstances(std::vector<BuildingInstance> &p_instances, std::uint64_t p_seed, std::size_t p_entityIndex)
+		{
+			std::sort(p_instances.begin(), p_instances.end(), [&](const BuildingInstance &p_left, const BuildingInstance &p_right) {
+				const auto rank = [](const BuildingInstance &instance) { return std::tuple{instance.required ? 0 : 1, -instance.priority, -clearanceArea(instance)}; };
+				if (rank(p_left) != rank(p_right)) return rank(p_left) < rank(p_right);
+				const std::uint64_t leftKey = worldgen::deriveSeed(p_seed, "town/" + std::to_string(p_entityIndex) + "/order/" + p_left.id);
+				const std::uint64_t rightKey = worldgen::deriveSeed(p_seed, "town/" + std::to_string(p_entityIndex) + "/order/" + p_right.id);
+				return leftKey != rightKey ? leftKey < rightKey : p_left.id < p_right.id;
+			});
+		}
+
+		[[nodiscard]] bool validSurface(const TownWorkspace &p_workspace, TownColumn p_column, int p_height)
+		{
+			return p_workspace.contains(p_column) && p_workspace.has(p_column, TownWorkspaceLayer::Land) &&
+				!p_workspace.has(p_column, TownWorkspaceLayer::TerrainBlocked) && p_workspace.surfaceHeight(p_column) == p_height;
+		}
+
+		[[nodiscard]] std::optional<ResolvedTownEntrance> validateAndPlaceBuilding(
+			TownWorkspace &p_workspace,
+			const WorldPlan &p_plan,
+			const BuildingInstance &p_instance,
+			const PrefabPlacement &p_placement,
+			std::vector<PlanClaim> &p_claims,
+			TownRejection &p_rejection)
+		{
+			const PrefabEntrance &entrance = *p_instance.prefab->entrance;
+			const PrefabAnchor *door = p_instance.prefab->tryAnchor(entrance.anchorName);
+			const int turns = spk::quarterTurnsOf(p_placement.orientation);
+			const ResolvedPlacementBox box = resolvePlacement(p_instance.prefab->prefab, p_placement);
+			const spk::Vector3Int threshold = box.destination + spk::rotateQuarterTurns(door->position - p_instance.prefab->prefab.pivot(), turns);
+			const spk::Vector3Int outward = outwardFor(turns, entrance.outwardFacing);
+			const PlanClaim claim = placementClaim(*p_instance.prefab, p_placement);
+			const std::vector<TownColumn> solids = solidColumns(p_workspace, box);
+			const std::vector<TownColumn> clearance = columnsIn(p_workspace, claim);
+			if (solids.empty() || clearance.empty())
+			{
+				p_rejection = {.category = TownRejectCategory::BuildingPlacement, .componentId = p_instance.id, .message = "building footprint leaves town boundary"};
+				return std::nullopt;
+			}
+			const TownColumn thresholdColumn = p_workspace.townFromWorld({threshold.x, threshold.z});
+			const int surface = p_workspace.surfaceHeight(thresholdColumn);
+			if (threshold.y != surface)
+			{
+				p_rejection = {.category = TownRejectCategory::DoorClearance, .componentId = p_instance.id, .worldColumn = WorldColumn{threshold.x, threshold.z}, .message = "door threshold is not flush with terrain"};
+				return std::nullopt;
+			}
+			for (TownColumn column : clearance)
+			{
+				if (!validSurface(p_workspace, column, surface) || p_workspace.has(column, TownWorkspaceLayer::MainRoad) ||
+					p_workspace.has(column, TownWorkspaceLayer::BuildingClearance) || p_workspace.has(column, TownWorkspaceLayer::BuildingSolid) || p_workspace.has(column, TownWorkspaceLayer::RoadsideReserved))
+				{
+					p_rejection = {.category = TownRejectCategory::BuildingPlacement, .componentId = p_instance.id, .worldColumn = p_workspace.worldFromTown(column), .message = "building clearance is not dry, level, or clear"};
+					return std::nullopt;
+				}
+			}
+			for (const PlanClaim &other : p_claims)
+				if (overlaps(claim, other))
+				{
+					p_rejection = {.category = TownRejectCategory::BuildingPlacement, .componentId = p_instance.id, .message = "building claim overlaps another claim"};
+					return std::nullopt;
+				}
+			for (const PlanClaim &other : p_plan.townClaims)
+				if (overlaps(claim, other))
+				{
+					p_rejection = {.category = TownRejectCategory::BuildingPlacement, .componentId = p_instance.id, .message = "building claim overlaps committed town infrastructure"};
+					return std::nullopt;
+				}
+
+			std::set<TownColumn> approach;
+			int longestApproach = 0;
+			for (int z = entrance.clearApproach.min.z; z <= entrance.clearApproach.max.z; ++z)
+				for (int y = entrance.clearApproach.min.y; y <= entrance.clearApproach.max.y; ++y)
+					for (int x = entrance.clearApproach.min.x; x <= entrance.clearApproach.max.x; ++x)
+					{
+						const spk::Vector3Int world = box.destination + spk::rotateQuarterTurns(spk::Vector3Int{x, y, z} - p_instance.prefab->prefab.pivot(), turns);
+						if (world.x == threshold.x && world.z == threshold.z) continue;
+						TownColumn column{};
+						try { column = p_workspace.townFromWorld({world.x, world.z}); }
+						catch (const std::out_of_range &) { p_rejection = {.category = TownRejectCategory::DoorClearance, .componentId = p_instance.id, .message = "door approach leaves town boundary"}; return std::nullopt; }
+						if (!validSurface(p_workspace, column, surface) || p_workspace.has(column, TownWorkspaceLayer::MainRoad) || p_workspace.has(column, TownWorkspaceLayer::BuildingSolid) || p_workspace.has(column, TownWorkspaceLayer::BuildingClearance))
+						{
+							p_rejection = {.category = TownRejectCategory::DoorClearance, .componentId = p_instance.id, .worldColumn = p_workspace.worldFromTown(column), .message = "door approach is blocked"};
+							return std::nullopt;
+						}
+						approach.insert(column);
+						longestApproach = std::max(longestApproach, std::abs(world.x - threshold.x) + std::abs(world.z - threshold.z));
+					}
+			if (approach.empty())
+			{
+				p_rejection = {.category = TownRejectCategory::DoorClearance, .componentId = p_instance.id, .message = "entrance contract has no clear approach columns"};
+				return std::nullopt;
+			}
+			TownColumn connection{};
+			try { connection = p_workspace.townFromWorld({threshold.x + outward.x * (longestApproach + 1), threshold.z + outward.z * (longestApproach + 1)}); }
+			catch (const std::out_of_range &) { p_rejection = {.category = TownRejectCategory::DoorClearance, .componentId = p_instance.id, .message = "connection point leaves town boundary"}; return std::nullopt; }
+			if (!validSurface(p_workspace, connection, surface) || p_workspace.has(connection, TownWorkspaceLayer::BuildingSolid) || p_workspace.has(connection, TownWorkspaceLayer::BuildingClearance) || p_workspace.has(connection, TownWorkspaceLayer::DoorApproach))
+			{
+				p_rejection = {.category = TownRejectCategory::DoorClearance, .componentId = p_instance.id, .worldColumn = p_workspace.worldFromTown(connection), .message = "connection point is not routeable"};
+				return std::nullopt;
+			}
+			// Reserve one guaranteed three-column lane from this connection point to the
+			// existing main spine.  It is a placement-time feasibility reservation, not
+			// an urban road: actual routes are still computed only after every building
+			// has been accepted.  Later buildings cannot consume the only viable lane.
+			std::vector<TownColumn> lane;
+			bool reachedMainRoad = false;
+			for (int step = 0; step < p_workspace.width() && !reachedMainRoad; ++step)
+			{
+				const TownColumn center{connection.x + outward.x * step, connection.z + outward.z * step};
+				for (int offset = -1; offset <= 1; ++offset)
+				{
+					const TownColumn column{center.x - outward.z * offset, center.z + outward.x * offset};
+					if (!validSurface(p_workspace, column, surface) || p_workspace.has(column, TownWorkspaceLayer::BuildingSolid) || p_workspace.has(column, TownWorkspaceLayer::BuildingClearance) || p_workspace.has(column, TownWorkspaceLayer::DoorThreshold) || p_workspace.has(column, TownWorkspaceLayer::DoorApproach))
+					{
+						p_rejection = {.category = TownRejectCategory::DoorClearance, .componentId = p_instance.id, .worldColumn = p_workspace.contains(column) ? std::optional<WorldColumn>{p_workspace.worldFromTown(column)} : std::nullopt, .message = "connection has no clear three-column lane to the main road"};
+						return std::nullopt;
+					}
+					lane.push_back(column);
+				}
+				reachedMainRoad = p_workspace.contains(center) && p_workspace.has(center, TownWorkspaceLayer::MainRoad);
+			}
+			if (!reachedMainRoad)
+			{
+				p_rejection = {.category = TownRejectCategory::DoorClearance, .componentId = p_instance.id, .message = "connection does not face a reachable main-road lane"};
+				return std::nullopt;
+			}
+			for (TownColumn column : lane) if (!p_workspace.has(column, TownWorkspaceLayer::MainRoad)) p_workspace.add(column, TownWorkspaceLayer::RoadsideReserved);
+			for (TownColumn column : clearance) p_workspace.add(column, TownWorkspaceLayer::BuildingClearance);
+			for (TownColumn column : solids) if (!(column == thresholdColumn)) p_workspace.add(column, TownWorkspaceLayer::BuildingSolid);
+			p_workspace.add(thresholdColumn, TownWorkspaceLayer::DoorThreshold);
+			for (TownColumn column : approach) p_workspace.add(column, TownWorkspaceLayer::DoorApproach);
+			p_claims.push_back(claim);
+			return ResolvedTownEntrance{.buildingInstanceId = p_instance.id, .threshold = threshold, .outward = outward, .approachColumns = {approach.begin(), approach.end()}, .connectionPoint = connection};
+		}
+
+		[[nodiscard]] std::optional<RouteResult> findRoute(const TownWorkspace &p_workspace, TownColumn p_start, int p_turnPenalty)
+		{
+			const int width = p_workspace.width();
+			const int stateCount = width * width * 5;
+			const auto state = [width](TownColumn p_column, int p_direction) { return ((p_column.z * width + p_column.x) * 5) + p_direction; };
+			const auto fromState = [width](int p_state) { const int cell = p_state / 5; return TownColumn{cell % width, cell / width}; };
+			const auto isGoal = [&](TownColumn p_column) { return p_workspace.has(p_column, TownWorkspaceLayer::MainRoad) || p_workspace.has(p_column, TownWorkspaceLayer::UrbanRoadSurface); };
+			using Node = std::tuple<int, int, int>;
+			std::priority_queue<Node, std::vector<Node>, std::greater<>> open;
+			std::vector<int> best(static_cast<std::size_t>(stateCount), std::numeric_limits<int>::max());
+			std::vector<int> previous(static_cast<std::size_t>(stateCount), -1);
+			const int start = state(p_start, 4);
+			const int routeLevel = p_workspace.surfaceHeight(p_start);
+			best[start] = 0;
+			open.push({0, 0, start});
+			const std::array directions = {TownColumn{0, -1}, TownColumn{1, 0}, TownColumn{0, 1}, TownColumn{-1, 0}};
+			while (!open.empty())
+			{
+				const auto [priority, cost, current] = open.top();
+				(void)priority;
+				open.pop();
+				if (cost != best[current]) continue;
+				const TownColumn column = fromState(current);
+				if (!(column == p_start) && isGoal(column))
+				{
+					std::vector<TownColumn> path;
+					for (int cursor = current; cursor >= 0; cursor = previous[cursor]) path.push_back(fromState(cursor));
+					std::reverse(path.begin(), path.end());
+					return RouteResult{.cost = cost, .path = std::move(path)};
+				}
+				const int incoming = current % 5;
+				for (int direction = 0; direction < 4; ++direction)
+				{
+					const TownColumn next{column.x + directions[direction].x, column.z + directions[direction].z};
+					if (!p_workspace.contains(next) || p_workspace.surfaceHeight(next) != routeLevel || p_workspace.has(next, TownWorkspaceLayer::TerrainBlocked) || p_workspace.has(next, TownWorkspaceLayer::RouteBlocked) || p_workspace.has(next, TownWorkspaceLayer::BuildingSolid) || p_workspace.has(next, TownWorkspaceLayer::BuildingClearance) || p_workspace.has(next, TownWorkspaceLayer::DoorThreshold) || p_workspace.has(next, TownWorkspaceLayer::DoorApproach) || p_workspace.has(next, TownWorkspaceLayer::Dock)) continue;
+					const int nextState = state(next, direction);
+					const bool road = p_workspace.has(next, TownWorkspaceLayer::MainRoad) || p_workspace.has(next, TownWorkspaceLayer::UrbanRoadSurface);
+					const int nextCost = cost + (road ? 1 : 10) + (incoming != 4 && incoming != direction ? p_turnPenalty : 0);
+					if (nextCost < best[nextState])
+					{
+						best[nextState] = nextCost;
+						previous[nextState] = current;
+						open.push({nextCost, nextCost, nextState});
+					}
+				}
+			}
+			return std::nullopt;
+		}
+
+		[[nodiscard]] std::vector<TownColumn> expandRoad(const std::vector<TownColumn> &p_path, int p_width, const ResolvedTownEntrance &p_entrance)
+		{
+			std::set<TownColumn> result;
+			const int radius = p_width / 2;
+			for (std::size_t index = 0; index < p_path.size(); ++index)
+			{
+				TownColumn direction{};
+				if (index + 1 < p_path.size()) direction = {p_path[index + 1].x - p_path[index].x, p_path[index + 1].z - p_path[index].z};
+				else if (index > 0) direction = {p_path[index].x - p_path[index - 1].x, p_path[index].z - p_path[index - 1].z};
+				const TownColumn lateral = p_path[index] == p_entrance.connectionPoint
+					? TownColumn{-p_entrance.outward.z, p_entrance.outward.x}
+					: TownColumn{-direction.z, direction.x};
+				for (int offset = -radius; offset <= radius; ++offset)
+					result.insert({p_path[index].x + lateral.x * offset, p_path[index].z + lateral.z * offset});
+			}
+			return {result.begin(), result.end()};
+		}
+
+		[[nodiscard]] bool validateRoadSurface(const TownWorkspace &p_workspace, const std::vector<TownColumn> &p_surface, const ResolvedTownEntrance &p_entrance, std::string *p_reason = nullptr)
+		{
+			const int routeHeight = p_workspace.surfaceHeight(p_entrance.connectionPoint);
+			for (TownColumn column : p_surface)
+			{
+				if (!validSurface(p_workspace, column, routeHeight) || p_workspace.has(column, TownWorkspaceLayer::BuildingSolid) || p_workspace.has(column, TownWorkspaceLayer::DoorThreshold) || p_workspace.has(column, TownWorkspaceLayer::DoorApproach) || p_workspace.has(column, TownWorkspaceLayer::BuildingClearance))
+				{
+					if (p_reason != nullptr) *p_reason = "at " + std::to_string(column.x) + "," + std::to_string(column.z) + (p_workspace.contains(column) ? " layers=" + std::to_string(p_workspace.layers(column)) : " outside workspace");
+					return false;
+				}
+			}
+			return true;
+		}
+
+		[[nodiscard]] std::optional<TownRejection> routeEntrances(TownWorkspace &p_workspace, TownCandidate &p_candidate, const TownComposition &p_composition, int &p_expansions)
+		{
+			std::set<std::string> remaining;
+			for (const ResolvedTownEntrance &entrance : p_candidate.entrances) remaining.insert(entrance.buildingInstanceId);
+			while (!remaining.empty())
+			{
+				const ResolvedTownEntrance *chosenEntrance = nullptr;
+				std::optional<RouteResult> chosenRoute;
+				for (const ResolvedTownEntrance &entrance : p_candidate.entrances)
+				{
+					if (!remaining.contains(entrance.buildingInstanceId)) continue;
+					const std::optional<RouteResult> route = findRoute(p_workspace, entrance.connectionPoint, p_composition.layout.routeTurnPenalty);
+					if (!route) continue;
+					if (!chosenRoute || std::tie(route->cost, entrance.buildingInstanceId, route->path) < std::tie(chosenRoute->cost, chosenEntrance->buildingInstanceId, chosenRoute->path)) { chosenEntrance = &entrance; chosenRoute = route; }
+				}
+				if (!chosenRoute || chosenEntrance == nullptr)
+					return TownRejection{.category = TownRejectCategory::RouteUnavailable, .componentId = *remaining.begin(), .message = "no route from required connection point to the growing road network"};
+				std::vector<TownColumn> surface = expandRoad(chosenRoute->path, p_composition.layout.urbanRoadWidth, *chosenEntrance);
+				std::string widthReason;
+				bool widthValid = validateRoadSurface(p_workspace, surface, *chosenEntrance, &widthReason);
+				for (int retry = 0; retry < 16 && !widthValid; ++retry)
+				{
+					for (TownColumn column : surface)
+						if (p_workspace.contains(column) && !p_workspace.has(column, TownWorkspaceLayer::MainRoad) && !p_workspace.has(column, TownWorkspaceLayer::UrbanRoadSurface)) p_workspace.add(column, TownWorkspaceLayer::RouteBlocked);
+					chosenRoute = findRoute(p_workspace, chosenEntrance->connectionPoint, p_composition.layout.routeTurnPenalty);
+					if (!chosenRoute) break;
+					surface = expandRoad(chosenRoute->path, p_composition.layout.urbanRoadWidth, *chosenEntrance);
+					widthValid = validateRoadSurface(p_workspace, surface, *chosenEntrance, &widthReason);
+				}
+				if (!chosenRoute || !widthValid)
+					return TownRejection{.category = TownRejectCategory::RoadWidthConflict, .componentId = chosenEntrance->buildingInstanceId, .message = "route centerline cannot support its full configured width " + widthReason};
+				for (TownColumn column : chosenRoute->path) p_workspace.add(column, TownWorkspaceLayer::UrbanRoadCenterline);
+				for (TownColumn column : surface)
+				{
+					p_workspace.add(column, TownWorkspaceLayer::UrbanRoadSurface);
+					const WorldColumn world = p_workspace.worldFromTown(column);
+					p_candidate.urbanRoadSurface.push_back({.worldX = world.x, .worldZ = world.z, .surfaceY = p_workspace.surfaceHeight(column)});
+				}
+				UrbanRouteRecord record{.buildingInstanceId = chosenEntrance->buildingInstanceId, .cost = chosenRoute->cost};
+				for (TownColumn column : chosenRoute->path) { const WorldColumn world = p_workspace.worldFromTown(column); record.centerline.emplace_back(world.x, world.z); }
+				p_candidate.routes.push_back(std::move(record));
+				remaining.erase(chosenEntrance->buildingInstanceId);
+				p_expansions += static_cast<int>(chosenRoute->path.size());
+			}
+			std::sort(p_candidate.urbanRoadSurface.begin(), p_candidate.urbanRoadSurface.end());
+			p_candidate.urbanRoadSurface.erase(std::unique(p_candidate.urbanRoadSurface.begin(), p_candidate.urbanRoadSurface.end()), p_candidate.urbanRoadSurface.end());
+			return std::nullopt;
+		}
+
+		[[nodiscard]] bool sceneryCellEligible(const TownWorkspace &p_workspace, TownColumn p_column, bool p_roadside)
+		{
+			if (!p_workspace.has(p_column, TownWorkspaceLayer::Land) || p_workspace.has(p_column, TownWorkspaceLayer::TerrainBlocked)) return false;
+			const std::uint32_t forbidden = townLayer(TownWorkspaceLayer::MainRoad) | townLayer(TownWorkspaceLayer::UrbanRoadSurface) | townLayer(TownWorkspaceLayer::BuildingSolid) | townLayer(TownWorkspaceLayer::BuildingClearance) | townLayer(TownWorkspaceLayer::DoorThreshold) | townLayer(TownWorkspaceLayer::DoorApproach) | townLayer(TownWorkspaceLayer::Dock) | townLayer(TownWorkspaceLayer::Stair) | townLayer(TownWorkspaceLayer::RoadsideReserved) | townLayer(TownWorkspaceLayer::RoadScenery) | townLayer(TownWorkspaceLayer::GroundScenery);
+			if ((p_workspace.layers(p_column) & forbidden) != 0) return false;
+			if (!p_roadside) return true;
+			for (const TownColumn delta : std::array{TownColumn{0, -1}, TownColumn{1, 0}, TownColumn{0, 1}, TownColumn{-1, 0}})
+			{
+				const TownColumn neighbor{p_column.x + delta.x, p_column.z + delta.z};
+				if (p_workspace.contains(neighbor) && (p_workspace.has(neighbor, TownWorkspaceLayer::MainRoad) || p_workspace.has(neighbor, TownWorkspaceLayer::UrbanRoadSurface))) return true;
+			}
+			return false;
+		}
+
+		[[nodiscard]] std::optional<TownRejection> placeScenery(
+			TownWorkspace &p_workspace,
+			TownCandidate &p_candidate,
+			const std::vector<TownSceneryRequest> &p_requests,
+			bool p_roadside,
+			const Registry<PrefabDefinition> &p_prefabs,
+			std::uint64_t p_seed)
+		{
+			std::vector<std::pair<TownColumn, int>> placed;
+			for (const TownSceneryRequest &request : p_requests)
+			{
+				const PrefabDefinition *prefab = p_prefabs.tryGet(request.prefabId);
+				if (prefab == nullptr) return TownRejection{.category = p_roadside ? TownRejectCategory::RoadSceneryUnavailable : TownRejectCategory::GroundSceneryUnavailable, .componentId = request.id, .message = "composition references an unknown scenery prefab"};
+				worldgen::Rng countRng(worldgen::deriveSeed(p_seed, "town/" + std::to_string(p_candidate.macroEntityIndex) + (p_roadside ? "/road-scenery/" : "/ground-scenery/") + request.id + "/count"));
+				const int requested = request.count.minimum + (request.count.maximum > request.count.minimum ? countRng.below(request.count.maximum - request.count.minimum + 1) : 0);
+				int placedCount = 0;
+				worldgen::Rng orderRng(worldgen::deriveSeed(p_seed, "town/" + std::to_string(p_candidate.macroEntityIndex) + (p_roadside ? "/road-scenery/" : "/ground-scenery/") + request.id));
+				std::vector<TownColumn> candidates;
+				for (int z = 0; z < p_workspace.width(); ++z) for (int x = 0; x < p_workspace.width(); ++x) if (sceneryCellEligible(p_workspace, {x, z}, p_roadside)) candidates.push_back({x, z});
+				orderRng.shuffle(candidates);
+				for (TownColumn column : candidates)
+				{
+					if (placedCount >= requested) break;
+					const bool spaced = std::ranges::all_of(placed, [&](const auto &other) { const int dx = column.x - other.first.x, dz = column.z - other.first.z, spacing = std::max(request.spacing, other.second); return dx * dx + dz * dz >= spacing * spacing; });
+					if (!spaced) continue;
+					const WorldColumn world = p_workspace.worldFromTown(column);
+					PrefabPlacement placement{.prefabId = request.prefabId, .anchor = {world.x, p_workspace.surfaceHeight(column) + 1, world.z}, .orientation = spk::orientationFromQuarterTurns(orderRng.below(4)), .foundation = false};
+					const PlanClaim claim = placementClaim(*prefab, placement);
+					const std::vector<TownColumn> footprint = columnsIn(p_workspace, claim);
+					if (footprint.empty() || !std::ranges::all_of(footprint, [&](TownColumn cell) { return sceneryCellEligible(p_workspace, cell, p_roadside) && p_workspace.surfaceHeight(cell) == p_workspace.surfaceHeight(column); })) continue;
+					if (std::ranges::any_of(p_candidate.buildingClaims, [&](const PlanClaim &other) { return overlaps(claim, other); }) || std::ranges::any_of(p_candidate.sceneryClaims, [&](const PlanClaim &other) { return overlaps(claim, other); })) continue;
+					for (TownColumn cell : footprint) p_workspace.add(cell, p_roadside ? TownWorkspaceLayer::RoadScenery : TownWorkspaceLayer::GroundScenery);
+					p_candidate.sceneryClaims.push_back(claim);
+					(p_roadside ? p_candidate.roadScenery : p_candidate.groundScenery).push_back(std::move(placement));
+					placed.emplace_back(column, request.spacing);
+					++placedCount;
+				}
+				if (request.required && placedCount < request.count.minimum)
+					return TownRejection{.category = p_roadside ? TownRejectCategory::RoadSceneryUnavailable : TownRejectCategory::GroundSceneryUnavailable, .componentId = request.id, .message = "required scenery minimum cannot fit after roads and approaches"};
+			}
+			return std::nullopt;
+		}
+
+		[[nodiscard]] std::optional<TownRejection> planPortDock(const TownWorkspace &p_workspace, TownCandidate &p_candidate)
+		{
+			const TownWorldBounds bounds = p_workspace.bounds();
+			for (int z = 0; z < p_workspace.width(); ++z)
+				for (int x = 0; x < p_workspace.width(); ++x)
+				{
+					const TownColumn cell{x, z};
+					if (!p_workspace.has(cell, TownWorkspaceLayer::Water)) continue;
+					bool edge = x == 0 || z == 0 || x + 1 == p_workspace.width() || z + 1 == p_workspace.width();
+					if (!edge) continue;
+					const WorldColumn world = p_workspace.worldFromTown(cell);
+					const PlanCell macro = p_workspace.planCellFromWorld(world);
+					p_candidate.dockCells.emplace_back(macro.row, macro.col);
+					p_candidate.boardingEndpoint = spk::Vector3Int{world.x, 1, world.z};
+					p_candidate.dockClaims.push_back({.min = {world.x, 0, world.z}, .max = {world.x, 2, world.z}});
+					return std::nullopt;
+				}
+			return TownRejection{.category = TownRejectCategory::WaterfrontMismatch, .componentId = "dock", .message = "port reservation has no reachable waterfront column"};
+		}
+
+		void collectBoundaryCells(const TownWorkspace &p_workspace, TownCandidate &p_candidate)
+		{
+			std::set<std::pair<int, int>> boundary;
+			for (int z = 0; z < p_workspace.width(); ++z)
+				for (int x = 0; x < p_workspace.width(); ++x)
+				{
+					const PlanCell cell = p_workspace.planCellFromWorld(p_workspace.worldFromTown({x, z}));
+					if (cell.row >= 0 && cell.col >= 0 && cell.row < 4096 && cell.col < 4096) boundary.emplace(cell.row, cell.col);
+				}
+			p_candidate.boundaryCells.assign(boundary.begin(), boundary.end());
+		}
+	}
+
+	TownPlanningError::TownPlanningError(std::size_t p_macroEntityIndex, std::string p_compositionId, TownRejection p_rejection, std::map<std::string, int> p_counts, std::string p_message) :
+		std::runtime_error(std::move(p_message)), macroEntityIndex(p_macroEntityIndex), compositionId(std::move(p_compositionId)), rejection(std::move(p_rejection)), rejectionCounts(std::move(p_counts)) {}
+
 	TownMutationSnapshot snapshotTownMutation(const WorldPlan &p_plan) noexcept
 	{
-		std::size_t pathCells=0;for(int row=0;row<p_plan.townPath.size();++row)for(int col=0;col<p_plan.townPath.size();++col)pathCells+=p_plan.townPath.at(row,col)!=0;
-		return {.placements = p_plan.placements.size(), .stairways = p_plan.stairways.size(), .portals = p_plan.portals.size(), .towns = p_plan.towns.size(), .claims = p_plan.townClaims.size(), .boatLinks=p_plan.boatLinks.size(),.townPathCells=pathCells, .warnings = p_plan.stats.warnings.size()};
+		return {.placements = p_plan.placements.size(), .stairways = p_plan.stairways.size(), .portals = p_plan.portals.size(), .towns = p_plan.towns.size(), .claims = p_plan.townClaims.size(), .boatLinks = p_plan.boatLinks.size(), .warnings = p_plan.stats.warnings.size()};
 	}
-	bool matchesTownMutationSnapshot(const WorldPlan &p_plan, TownMutationSnapshot p_snapshot) noexcept
+
+	bool matchesTownMutationSnapshot(const WorldPlan &p_plan, TownMutationSnapshot p_snapshot) noexcept { return snapshotTownMutation(p_plan) == p_snapshot; }
+
+	TownPlanResult planTown(const WorldPlan &p_plan, const PlanTownSite &p_site, const TownComposition &p_composition, const Registry<PrefabDefinition> &p_prefabs, const PlanTown &p_biomeTown, std::uint64_t p_worldSeed)
 	{
-		return snapshotTownMutation(p_plan) == p_snapshot;
-	}
-	std::vector<LocalCell> enumerateTownOrigins(LocalCell p_center, int p_radius)
-	{
-		std::vector<LocalCell> result;
-		if (p_radius < 0) return result;
-		result.push_back(p_center);
-		for (int radius = 1; radius <= p_radius; ++radius)
+		TownPlanResult result;
+		if (!isSettlement(p_site.kind) || p_composition.kind != compositionKindFor(p_site.kind))
 		{
-			for (int col = -radius; col <= radius; ++col) result.push_back({p_center.row - radius, p_center.col + col});
-			for (int row = -radius + 1; row <= radius; ++row) result.push_back({p_center.row + row, p_center.col + radius});
-			for (int col = radius - 1; col >= -radius; --col) result.push_back({p_center.row + radius, p_center.col + col});
-			for (int row = radius - 1; row >= -radius + 1; --row) result.push_back({p_center.row + row, p_center.col - radius});
+			result.rejection = TownRejection{.category = TownRejectCategory::SiteTerrain, .componentId = p_site.compositionId, .message = "site kind and composition kind differ"};
+			return result;
+		}
+		TownRejection contentFailure;
+		const std::optional<std::vector<BuildingInstance>> expanded = expandInstances(p_composition, p_biomeTown, p_prefabs, p_worldSeed, p_site.macroEntityIndex, contentFailure);
+		if (!expanded) { result.rejection = contentFailure; return result; }
+		for (int attempt = 0; attempt < p_composition.layout.layoutAttempts; ++attempt)
+		{
+			++result.layoutAttempts;
+			TownWorkspace workspace(p_plan, p_site, p_composition);
+			TownCandidate candidate{.compositionId = p_composition.id, .macroEntityIndex = p_site.macroEntityIndex, .kind = p_site.kind, .bounds = workspace.bounds(), .centerRow = p_site.centerRow, .centerCol = p_site.centerCol, .mainRoadSurface = workspace.mainRoadSurface()};
+			collectBoundaryCells(workspace, candidate);
+			if (candidate.mainRoadSurface.empty())
+			{
+				result.rejection = TownRejection{.category = TownRejectCategory::SiteTerrain, .componentId = p_composition.id, .layoutAttempt = attempt, .message = "global town spine did not project into workspace"};
+				continue;
+			}
+			std::vector<BuildingInstance> instances = *expanded;
+			sortInstances(instances, worldgen::deriveSeed(p_worldSeed, "town/" + std::to_string(p_site.macroEntityIndex) + "/layout/" + std::to_string(attempt)), p_site.macroEntityIndex);
+			TownRejection failure;
+			bool requiredFailed = false;
+			for (const BuildingInstance &instance : instances)
+			{
+				bool placed = false;
+				const PrefabAnchor *door = instance.prefab->tryAnchor(instance.prefab->entrance->anchorName);
+				struct BuildingCandidate
+				{
+					TownColumn threshold;
+					int turns = 0;
+				};
+				std::vector<BuildingCandidate> buildingCandidates;
+				std::set<std::tuple<int, int, int>> seenCandidates;
+				const int workspaceCenter = workspace.width() / 2;
+				const int compactRoadReach = std::min(20, std::max(8, p_site.radiusColumns - 12));
+				const int maximumDoorDistance = std::min(16, std::max(6, p_site.radiusColumns - 10));
+				const auto addCandidatesBesideRoad = [&](bool p_compactOnly) {
+					for (TownColumn road : workspace.columnsWith(TownWorkspaceLayer::MainRoad))
+					{
+						if (p_compactOnly && std::abs(road.x - workspaceCenter) + std::abs(road.z - workspaceCenter) > compactRoadReach)
+							continue;
+						for (const TownColumn outward : std::array{TownColumn{0, -1}, TownColumn{1, 0}, TownColumn{0, 1}, TownColumn{-1, 0}})
+							for (int distance = 4; distance <= maximumDoorDistance; ++distance)
+							{
+								const TownColumn threshold{road.x - outward.x * distance, road.z - outward.z * distance};
+								if (!workspace.contains(threshold) || workspace.surfaceHeight(threshold) != workspace.surfaceHeight(road)) continue;
+								for (int turns = 0; turns < 4; ++turns)
+								{
+									const spk::Vector3Int facade = outwardFor(turns, instance.prefab->entrance->outwardFacing);
+									if (facade.x != outward.x || facade.z != outward.z) continue;
+									if (seenCandidates.insert({threshold.x, threshold.z, turns}).second)
+										buildingCandidates.push_back({.threshold = threshold, .turns = turns});
+								}
+							}
+					}
+				};
+				// Buildings are addressed from the spine outward.  This makes the
+				// settlement read as a compact street block rather than a handful of
+				// isolated structures scattered across the reservation.  A broader
+				// in-bounds road pass is retained solely as a deterministic fallback
+				// for a short or off-centre incoming road.
+				addCandidatesBesideRoad(true);
+				if (buildingCandidates.empty()) addCandidatesBesideRoad(false);
+				worldgen::Rng candidateRng(worldgen::deriveSeed(p_worldSeed, "town/" + std::to_string(p_site.macroEntityIndex) + "/layout/" + std::to_string(attempt) + "/buildings/" + instance.id + "/candidates"));
+				candidateRng.shuffle(buildingCandidates);
+				for (int candidateIndex = 0; candidateIndex < std::min<int>(p_composition.layout.buildingAttemptsPerItem, static_cast<int>(buildingCandidates.size())); ++candidateIndex)
+				{
+					++result.buildingCandidates;
+					const BuildingCandidate &candidateAddress = buildingCandidates[candidateIndex];
+					const WorldColumn thresholdWorld = workspace.worldFromTown(candidateAddress.threshold);
+					const int x = thresholdWorld.x;
+					const int z = thresholdWorld.z;
+					const int turns = candidateAddress.turns;
+					const spk::Vector3Int delta = spk::rotateQuarterTurns(door->position - instance.prefab->prefab.pivot(), turns);
+					PrefabPlacement placement{.prefabId = instance.prefabId, .anchor = {x - delta.x, workspace.surfaceHeight(candidateAddress.threshold) - delta.y, z - delta.z}, .orientation = spk::orientationFromQuarterTurns(turns), .foundation = true, .anchorToPivot = true, .townRole = instance.role};
+					if (const std::optional<ResolvedTownEntrance> entrance = validateAndPlaceBuilding(workspace, p_plan, instance, placement, candidate.buildingClaims, failure))
+					{
+						candidate.buildings.push_back(std::move(placement));
+						candidate.entrances.push_back(*entrance);
+						placed = true;
+						break;
+					}
+				}
+				if (!placed && instance.required) { requiredFailed = true; failure.layoutAttempt = attempt; break; }
+			}
+			if (requiredFailed)
+			{
+				if (failure.message.empty()) failure = {.category = TownRejectCategory::BuildingPlacement, .componentId = "building", .layoutAttempt = attempt, .message = "bounded building placement attempts exhausted"};
+				result.rejection = failure;
+				continue;
+			}
+			if (const std::optional<TownRejection> routeFailure = routeEntrances(workspace, candidate, p_composition, result.routeExpansions))
+			{
+				result.rejection = *routeFailure;
+				result.rejection->layoutAttempt = attempt;
+				continue;
+			}
+			if (p_site.kind == PlanEntityKind::PortCity)
+			{
+				if (const std::optional<TownRejection> dockFailure = planPortDock(workspace, candidate)) { result.rejection = *dockFailure; result.rejection->layoutAttempt = attempt; continue; }
+			}
+			if (const std::optional<TownRejection> sceneryFailure = placeScenery(workspace, candidate, p_composition.roadScenery, true, p_prefabs, p_worldSeed)) { result.rejection = *sceneryFailure; result.rejection->layoutAttempt = attempt; continue; }
+			if (const std::optional<TownRejection> sceneryFailure = placeScenery(workspace, candidate, p_composition.groundScenery, false, p_prefabs, p_worldSeed)) { result.rejection = *sceneryFailure; result.rejection->layoutAttempt = attempt; continue; }
+			result.candidate = std::move(candidate);
+			return result;
 		}
 		return result;
 	}
 
-	bool hasValidGlobalRoadArrival(const WorldPlan &p_plan, const TownCandidate &p_candidate) noexcept
+	std::string renderTownWorkspaceAscii(const TownWorkspace &p_workspace)
 	{
-		const LocalCell entrance = p_candidate.entranceCell;
-		if (!p_plan.road.contains(entrance.row, entrance.col) || p_plan.road.at(entrance.row, entrance.col) == 0)
+		std::string result;
+		for (int z = 0; z < p_workspace.width(); ++z)
 		{
-			return false;
-		}
-		if (std::ranges::find(p_candidate.pathCells, entrance) == p_candidate.pathCells.end())
-		{
-			return false;
-		}
-		return true;
-	}
-
-	TownPlanResult resolveFlatTownCandidate(const WorldPlan &p_plan, const TownBlueprint &p_blueprint, int p_originRow, int p_originCol, int p_quarterTurns)
-	{
-		TownCandidate candidate{.blueprintId = p_blueprint.id, .quarterTurns = p_quarterTurns, .originRow = p_originRow, .originCol = p_originCol};
-		const LocalRect rotatedBounds = rotateTownRect(p_blueprint.bounds, p_blueprint.bounds, p_quarterTurns);
-		int expectedHeight = -1;
-		const auto resolve = [&](LocalCell p_local) { return LocalCell{p_originRow + p_local.row - rotatedBounds.min.row, p_originCol + p_local.col - rotatedBounds.min.col}; };
-		const auto entrance = std::ranges::find_if(
-			p_blueprint.endpoints,
-			[](const LocalEndpoint &p_endpoint) { return p_endpoint.id == "town-entrance"; });
-		if (entrance == p_blueprint.endpoints.end())
-		{
-			return {.rejection = TownRejection{TownRejectCategory::Disconnected, "town-entrance", {}}};
-		}
-		candidate.entranceCell = resolve(rotateTownCell(entrance->cell, p_blueprint.bounds, p_quarterTurns));
-		for (LocalCell boundary : p_blueprint.boundary)
-		{
-			const LocalCell world = resolve(rotateTownCell(boundary, p_blueprint.bounds, p_quarterTurns));
-			if (!p_plan.land.contains(world.row, world.col)) return {.rejection = TownRejection{TownRejectCategory::OutOfBounds, "boundary", world}};
-			if (p_plan.land.at(world.row, world.col) == 0 || p_plan.water.at(world.row, world.col) != 0) return {.rejection = TownRejection{TownRejectCategory::Water, "boundary", world}};
-			if (expectedHeight < 0) expectedHeight = p_plan.height.at(world.row, world.col);
-		}
-		if(!p_blueprint.terraces.empty())
-		{
-			std::optional<int> base;
-			for(const TownTerraceTemplate &terrace:p_blueprint.terraces) for(LocalCell local:terrace.cells){LocalCell world=resolve(rotateTownCell(local,p_blueprint.bounds,p_quarterTurns));if(!p_plan.land.contains(world.row,world.col)||p_plan.land.at(world.row,world.col)==0||p_plan.water.at(world.row,world.col)!=0)return {.rejection=TownRejection{TownRejectCategory::Water,terrace.id,world}};if(terrace.levelOffset==0&&!base)base=p_plan.height.at(world.row,world.col);}
-			if(!base)return {.rejection=TownRejection{TownRejectCategory::TerraceHeight,"terraces",{}}};
-			for(const TownTerraceTemplate &terrace:p_blueprint.terraces)for(LocalCell local:terrace.cells){LocalCell world=resolve(rotateTownCell(local,p_blueprint.bounds,p_quarterTurns));if(p_plan.height.at(world.row,world.col)!=*base+terrace.levelOffset)return {.rejection=TownRejection{TownRejectCategory::TerraceHeight,terrace.id,world}};}
-		}
-		for (LocalCell local : p_blueprint.boundary) candidate.boundaryCells.push_back(resolve(rotateTownCell(local, p_blueprint.bounds, p_quarterTurns)));
-		for(const PlanTownRecord &town:p_plan.towns)for(const auto &[row,col]:town.boundaryCells)if(std::ranges::find(candidate.boundaryCells,LocalCell{row,col})!=candidate.boundaryCells.end())return {.rejection=TownRejection{TownRejectCategory::ClaimConflict,"boundary",{row,col}}};
-		std::set<std::pair<int, int>> paths; for (const TownPathTemplate &path : p_blueprint.paths) for (LocalCell local : path.surface) { const LocalCell world = resolve(rotateTownCell(local, p_blueprint.bounds, p_quarterTurns)); if (paths.insert({world.row, world.col}).second) candidate.pathCells.push_back(world); }
-		if (!candidate.pathCells.empty()) expectedHeight=p_plan.height.at(candidate.pathCells.front().row,candidate.pathCells.front().col);
-		for (const LocalCell &world : candidate.pathCells) if (!p_plan.land.contains(world.row,world.col) || p_plan.land.at(world.row,world.col) == 0 || p_plan.water.at(world.row,world.col) != 0) return {.rejection = TownRejection{TownRejectCategory::Water,"path",world}}; else if(p_blueprint.terraces.empty() && p_blueprint.kind!=TownBlueprintKind::Port && p_plan.height.at(world.row,world.col)!=expectedHeight) return {.rejection=TownRejection{TownRejectCategory::TerraceHeight,"path",world}};
-		std::set<std::pair<int,int>> decorations; for (const TownDecorationZone &zone : p_blueprint.decorationZones) for (LocalCell local : zone.cells) { LocalCell world = resolve(rotateTownCell(local,p_blueprint.bounds,p_quarterTurns)); if (decorations.insert({world.row,world.col}).second) candidate.decorationCells.push_back(world); }
-		if (p_blueprint.waterfront) { for (LocalCell local : p_blueprint.waterfront->dock) { LocalCell world=resolve(rotateTownCell(local,p_blueprint.bounds,p_quarterTurns)); if (!p_plan.land.contains(world.row,world.col)) return {.rejection=TownRejection{TownRejectCategory::WaterfrontMismatch,"dock",world}};candidate.dockCells.push_back(world); } LocalCell boarding=resolve(rotateTownCell(p_blueprint.waterfront->boarding,p_blueprint.bounds,p_quarterTurns));if(p_plan.land.at(boarding.row,boarding.col)!=0&&p_plan.water.at(boarding.row,boarding.col)==0)return {.rejection=TownRejection{TownRejectCategory::WaterfrontMismatch,"boarding",boarding}}; const int blocks=p_plan.config.blocksPerCell, offset=p_plan.worldOffset(); candidate.boardingEndpoint=spk::Vector3Int{offset+boarding.col*blocks+blocks/2,p_plan.surfaceY(expectedHeight)+1,offset+boarding.row*blocks+blocks/2};for(const LocalCell &dock:candidate.dockCells)candidate.dockClaims.push_back({.min={offset+dock.col*blocks,candidate.boardingEndpoint->y-1,offset+dock.row*blocks},.max={offset+(dock.col+1)*blocks-1,candidate.boardingEndpoint->y,offset+(dock.row+1)*blocks-1}}); }
-		return {.candidate = std::move(candidate)};
-	}
-
-	TownPlanResult resolveFlatTownCandidate(const WorldPlan &p_plan, const TownBlueprint &p_blueprint, const TownContentContext &p_content, int p_originRow, int p_originCol, int p_quarterTurns)
-	{
-		TownPlanResult result = resolveFlatTownCandidate(p_plan, p_blueprint, p_originRow, p_originCol, p_quarterTurns);
-		if (!result.candidate) return result;
-		TownCandidate &candidate = *result.candidate;
-		for(std::size_t first=0; first<p_blueprint.lots.size(); ++first) for(std::size_t second=first+1; second<p_blueprint.lots.size(); ++second) if(p_blueprint.lots[first].reservation.min==p_blueprint.lots[second].reservation.min && p_blueprint.lots[first].reservation.max==p_blueprint.lots[second].reservation.max) return {.rejection=TownRejection{TownRejectCategory::ClaimConflict,p_blueprint.lots[second].id,p_blueprint.lots[second].reservation.min}};
-		const auto prefabFor = [&](TownBlueprintRole role, const std::string &lotId) -> std::string {
-			switch (role) { case TownBlueprintRole::CreatureCenter: return p_content.town.creatureCenter; case TownBlueprintRole::Shop: return p_content.town.shop; case TownBlueprintRole::Gym: return p_content.town.gym; case TownBlueprintRole::Port: return p_content.town.port; case TownBlueprintRole::Home: { if (p_content.town.homes.empty()) return {}; worldgen::Rng rng(worldgen::deriveSeed(p_content.worldSeed, "town/" + p_content.stableEntityId + "/" + p_blueprint.id + "/" + lotId)); return p_content.town.homes[static_cast<std::size_t>(rng.below(static_cast<int>(p_content.town.homes.size())))]; } } return {}; };
-		const int blocks = p_plan.config.blocksPerCell; const int offset = p_plan.worldOffset();
-		const LocalRect candidateBounds = rotateTownRect(p_blueprint.bounds, p_blueprint.bounds, p_quarterTurns);
-		const auto worldOf = [&](LocalCell p_local) {
-			p_local = rotateTownCell(p_local, p_blueprint.bounds, p_quarterTurns);
-			return LocalCell{p_originRow + p_local.row - candidateBounds.min.row, p_originCol + p_local.col - candidateBounds.min.col};
-		};
-		for (const TownLotTemplate &lot : p_blueprint.lots)
-		{
-			const std::string prefabId = prefabFor(lot.role, lot.id);
-			const PrefabDefinition *prefab = prefabId.empty() ? nullptr : p_content.prefabs.tryGet(prefabId);
-			if (prefab == nullptr) return {.rejection = TownRejection{TownRejectCategory::MissingPrefab, lot.id, {}}};
-			const PrefabEntrance *entrance=prefab->entrance ? &*prefab->entrance : nullptr;
-			const PrefabAnchor *door = entrance ? prefab->tryAnchor(entrance->anchorName) : nullptr;
-			if (door == nullptr || entrance->outwardFacing!=spk::VoxelOrientation::NegativeZ || door->position.z != 0) return {.rejection = TownRejection{TownRejectCategory::DoorMismatch, lot.id, {}}};
-			const LocalRect rotated = rotateTownRect(lot.reservation, p_blueprint.bounds, p_quarterTurns);
-			const LocalRect rotatedBounds = rotateTownRect(p_blueprint.bounds,p_blueprint.bounds,p_quarterTurns);
-			const auto endpoint = std::ranges::find_if(p_blueprint.endpoints,[&](const LocalEndpoint &p_endpoint){return p_endpoint.id==lot.approach;});
-			if (endpoint == p_blueprint.endpoints.end()) return {.rejection=TownRejection{TownRejectCategory::Disconnected,lot.id,{}}};
-			const LocalCell doorCell=rotateTownCell(endpoint->cell,p_blueprint.bounds,p_quarterTurns);
-			const int row = p_originRow + doorCell.row-rotatedBounds.min.row;
-			const int col = p_originCol + doorCell.col-rotatedBounds.min.col;
-			if (!p_plan.land.contains(row, col)) return {.rejection = TownRejection{TownRejectCategory::OutOfBounds, lot.id, {row,col}}};
-			// Face the building toward the authored street segment at its approach.
-			// Lots around the same square deliberately face different directions, so
-			// inheriting the town's rotation would only be correct for one facade.
-			int buildingTurns = p_quarterTurns;
-			for (const TownPathTemplate &path : p_blueprint.paths)
+			for (int x = 0; x < p_workspace.width(); ++x)
 			{
-				if (path.from != lot.approach && path.to != lot.approach)
-				{
-					continue;
-				}
-				std::vector<LocalCell> surface;
-				for (LocalCell local : path.surface)
-				{
-					surface.push_back(worldOf(local));
-				}
-				const auto doorOnSurface = std::ranges::find(surface, LocalCell{row, col});
-				if (doorOnSurface == surface.end() || surface.size() < 2)
-				{
-					continue;
-				}
-				const std::size_t index = static_cast<std::size_t>(doorOnSurface - surface.begin());
-				const LocalCell neighbour = index == 0 ? surface[1] : surface[index - 1];
-				const int dr = neighbour.row - row;
-				const int dc = neighbour.col - col;
-				if (std::abs(dr) + std::abs(dc) != 1)
-				{
-					return {.rejection = TownRejection{TownRejectCategory::Disconnected, lot.id, {row, col}}};
-				}
-				// The canonical prefab door faces local -Z. These turns rotate it
-				// toward north, west, south, and east respectively.
-				buildingTurns = dr < 0 ? 0 : dc < 0 ? 1 : dr > 0 ? 2 : 3;
-				break;
+				const TownColumn column{x, z};
+				char glyph = p_workspace.has(column, TownWorkspaceLayer::Water) ? '~' : '.';
+				if (p_workspace.has(column, TownWorkspaceLayer::MainRoad)) glyph = 'M';
+				if (p_workspace.has(column, TownWorkspaceLayer::UrbanRoadSurface)) glyph = 'R';
+				if (p_workspace.has(column, TownWorkspaceLayer::BuildingSolid)) glyph = '#';
+				if (p_workspace.has(column, TownWorkspaceLayer::DoorThreshold)) glyph = 'D';
+				if (p_workspace.has(column, TownWorkspaceLayer::DoorApproach)) glyph = 'a';
+				if (p_workspace.has(column, TownWorkspaceLayer::RoadScenery)) glyph = 'r';
+				if (p_workspace.has(column, TownWorkspaceLayer::GroundScenery)) glyph = 'g';
+				result += glyph;
 			}
-			const spk::VoxelOrientation orientation=spk::orientationFromQuarterTurns(buildingTurns); const spk::Vector3Int doorDelta=spk::rotateQuarterTurns(door->position-prefab->prefab.pivot(),buildingTurns);
-			int doorX=offset+col*blocks+blocks/2,doorZ=offset+row*blocks+blocks/2;switch(orientation){case spk::VoxelOrientation::PositiveZ:doorZ=offset+row*blocks;break;case spk::VoxelOrientation::NegativeZ:doorZ=offset+(row+1)*blocks-1;break;case spk::VoxelOrientation::PositiveX:doorX=offset+col*blocks;break;case spk::VoxelOrientation::NegativeX:doorX=offset+(col+1)*blocks-1;break;}
-			// The authored door anchor is the exterior floor block (local y = -1),
-			// matching legacy/default placement where the prefab's y=0 layer starts at
-			// surface+1. Aligning it to surface+1 would lift the whole building one block.
-			const spk::Vector3Int desiredDoor{doorX, p_plan.surfaceY(p_plan.height.at(row,col)), doorZ};
-			PrefabPlacement placement{.prefabId = prefabId, .anchor = desiredDoor-doorDelta, .orientation = orientation, .foundation = true, .anchorToPivot = true};
-			switch(lot.role){case TownBlueprintRole::CreatureCenter:placement.townRole=TownBuildingRole::CreatureCenter;break;case TownBlueprintRole::Shop:placement.townRole=TownBuildingRole::Shop;break;case TownBlueprintRole::Gym:placement.townRole=TownBuildingRole::Gym;break;case TownBlueprintRole::Port:placement.townRole=TownBuildingRole::Port;break;case TownBlueprintRole::Home:placement.townRole=TownBuildingRole::Home;break;}
-			const ResolvedPlacementBox box = resolvePlacement(prefab->prefab, placement); const spk::Vector3Int pivot = prefab->prefab.pivot(); const spk::Vector3Int low = prefab->clearance ? prefab->clearance->min : prefab->prefab.minBounds(); const spk::Vector3Int high = prefab->clearance ? prefab->clearance->max : prefab->prefab.maxBounds(); const int turns = spk::quarterTurnsOf(placement.orientation); const auto a = spk::rotateQuarterTurns(low-pivot,turns); const auto b = spk::rotateQuarterTurns(high-pivot,turns); PlanClaim claim{box.destination + spk::Vector3Int{std::min(a.x,b.x),std::min(a.y,b.y),std::min(a.z,b.z)}, box.destination + spk::Vector3Int{std::max(a.x,b.x),std::max(a.y,b.y),std::max(a.z,b.z)}};
-			const int reservationMinRow=p_originRow+rotated.min.row-rotatedBounds.min.row,reservationMaxRow=p_originRow+rotated.max.row-rotatedBounds.min.row,reservationMinCol=p_originCol+rotated.min.col-rotatedBounds.min.col,reservationMaxCol=p_originCol+rotated.max.col-rotatedBounds.min.col;if(p_plan.cellIndexFromWorld(claim.min.z)<reservationMinRow||p_plan.cellIndexFromWorld(claim.max.z)>reservationMaxRow||p_plan.cellIndexFromWorld(claim.min.x)<reservationMinCol||p_plan.cellIndexFromWorld(claim.max.x)>reservationMaxCol)return {.rejection=TownRejection{TownRejectCategory::ClaimConflict,lot.id,{row,col}}};
-			const auto overlaps=[&](const PlanClaim &other){return claim.min.x <= other.max.x && claim.max.x >= other.min.x && claim.min.y <= other.max.y && claim.max.y >= other.min.y && claim.min.z <= other.max.z && claim.max.z >= other.min.z;};
-			for(int footprintRow=p_plan.cellIndexFromWorld(claim.min.z); footprintRow<=p_plan.cellIndexFromWorld(claim.max.z); ++footprintRow) for(int footprintCol=p_plan.cellIndexFromWorld(claim.min.x); footprintCol<=p_plan.cellIndexFromWorld(claim.max.x); ++footprintCol) if(!p_plan.land.contains(footprintRow,footprintCol) || p_plan.land.at(footprintRow,footprintCol)==0 || p_plan.water.at(footprintRow,footprintCol)!=0 || p_plan.height.at(footprintRow,footprintCol)!=p_plan.height.at(row,col)) return {.rejection=TownRejection{TownRejectCategory::TerraceHeight,lot.id,{footprintRow,footprintCol}}};
-			for (const PlanClaim &other : candidate.buildingClaims) if (overlaps(other)) return {.rejection = TownRejection{TownRejectCategory::ClaimConflict, lot.id, {row,col}}};
-			for (const PlanClaim &other : p_plan.townClaims) if (overlaps(other)) return {.rejection = TownRejection{TownRejectCategory::ClaimConflict, lot.id, {row,col}}};
-			candidate.buildings.push_back(std::move(placement)); candidate.buildingClaims.push_back(claim);
-		}
-		for(const TownStairTemplate &stair:p_blueprint.stairs)
-		{
-			if(p_content.roadStairPrefabs==nullptr||p_content.roadStairPrefabs->empty())return {.rejection=TownRejection{TownRejectCategory::MissingPrefab,stair.id,{}}};
-			const auto lowerEndpoint=std::ranges::find_if(p_blueprint.endpoints,[&](const LocalEndpoint &endpoint){return endpoint.id==stair.lower;});const auto upperEndpoint=std::ranges::find_if(p_blueprint.endpoints,[&](const LocalEndpoint &endpoint){return endpoint.id==stair.upper;});
-			const LocalRect rotatedBounds=rotateTownRect(p_blueprint.bounds,p_blueprint.bounds,p_quarterTurns);const auto worldOf=[&](LocalCell local){local=rotateTownCell(local,p_blueprint.bounds,p_quarterTurns);return LocalCell{p_originRow+local.row-rotatedBounds.min.row,p_originCol+local.col-rotatedBounds.min.col};};const LocalCell lower=worldOf(lowerEndpoint->cell),upper=worldOf(upperEndpoint->cell);const int delta=p_plan.height.at(upper.row,upper.col)-p_plan.height.at(lower.row,lower.col);if(delta!=stair.expectedLevelDelta||std::abs(upper.row-lower.row)+std::abs(upper.col-lower.col)!=1)return {.rejection=TownRejection{TownRejectCategory::TerraceHeight,stair.id,upper}};
-			spk::VoxelOrientation orientation=upper.row<lower.row?spk::VoxelOrientation::NegativeZ:upper.row>lower.row?spk::VoxelOrientation::PositiveZ:upper.col<lower.col?spk::VoxelOrientation::NegativeX:spk::VoxelOrientation::PositiveX;const int blocks=p_plan.config.blocksPerCell,offset=p_plan.worldOffset();PrefabPlacement placement{.prefabId=p_content.roadStairPrefabs->front(),.anchor={offset+lower.col*blocks+blocks/2,p_plan.surfaceY(p_plan.height.at(lower.row,lower.col))+1,offset+lower.row*blocks+blocks/2},.orientation=orientation,.foundation=true};PlanStairway record{.topAnchor={offset+upper.col*blocks+blocks/2,p_plan.surfaceY(p_plan.height.at(upper.row,upper.col))+1,offset+upper.row*blocks+blocks/2},.bottomAnchor=placement.anchor,.plateauCell={upper.col,0,upper.row},.centerPath={placement.anchor},.lowRow=lower.row,.lowCol=lower.col,.steps=delta,.road=true};record.centerPath.push_back(record.topAnchor);auto planned=planStair({.placements={placement},.record=record},{.plan=p_plan,.prefabs=p_content.prefabs});if(!planned)return {.rejection=TownRejection{TownRejectCategory::ClaimConflict,stair.id,lower}};for(const PlanClaim &claim:planned->claims){for(const PlanClaim &building:candidate.buildingClaims)if(claim.min.x<=building.max.x&&claim.max.x>=building.min.x&&claim.min.z<=building.max.z&&claim.max.z>=building.min.z)return {.rejection=TownRejection{TownRejectCategory::ClaimConflict,stair.id,lower}};planned->record.footprints.push_back({claim.min.x,claim.max.x,claim.min.z,claim.max.z});}candidate.stairs.push_back(std::move(*planned));
+			result += '\n';
 		}
 		return result;
 	}

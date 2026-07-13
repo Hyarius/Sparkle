@@ -233,7 +233,7 @@ namespace pg
 			planBiomesFrom(p_registries.biomes()),
 			p_registries.placementRules(),
 			p_registries.prefabs(),
-			p_registries.townBlueprints(),
+			p_registries.townCompositions(),
 			p_registries.interiors()));
 		std::cout << _worldPlan->report();
 

@@ -159,6 +159,28 @@ bushes obey biome `encounterRules` density), settlement/gym footprints stamp **p
 generated interior's portal (D37). Fully deterministic: same seed + coords ⇒ same chunk, no
 cross-chunk order dependence.
 
+## Town composition planning
+
+Settlements use data-driven compositions from
+`resources/data/worldgen/town_compositions/` (`city`, `gym`, and `port`), not
+authored macro-grid blueprints. A composition declares role counts, compact
+layout limits, road width, and scenery requests; the biome binds those roles to
+its own prefabs.
+
+Generation reserves the settlement envelope before roads are built, continues
+the incoming macro road through its centre as the town spine, then plans in a
+transactional voxel-column workspace. Buildings are addressed beside that spine
+with a clear entrance approach and a protected three-column lane. Each entrance
+is then connected by a cardinal A* route, expanded to the configured road width,
+and checked against every building, approach, claim, and prior town. A failed
+layout attempt is discarded wholesale.
+
+The committed `PlanTownRecord` is the sole town authority: it stores exact
+paved columns, building entrances, routes, scenery placements, and claims.
+`townPath` is only a coarse compatibility cache for macro consumers; chunk
+realization paints the exact paved columns. This keeps towns dense around their
+main street while preventing roads from cutting through buildings or doorways.
+
 ## Dependencies
 
 Uses: voxel core, `spk::Perlin/PoissonDisk/CellularAutomata`, registries, EventCenter,

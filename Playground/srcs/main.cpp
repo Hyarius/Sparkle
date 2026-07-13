@@ -222,7 +222,7 @@ int main(int argc, char **argv)
 				pg::planBiomesFrom(registries.biomes()),
 				registries.placementRules(),
 				registries.prefabs(),
-				registries.townBlueprints(),
+				registries.townCompositions(),
 				registries.interiors());
 			return checkComposedStairways(registries, plan);
 		}
@@ -238,7 +238,7 @@ int main(int argc, char **argv)
 				pg::planBiomesFrom(registries.biomes()),
 				registries.placementRules(),
 				registries.prefabs(),
-				registries.townBlueprints(),
+				registries.townCompositions(),
 				registries.interiors());
 			std::cout << plan.report();
 			const std::filesystem::path mapPath =

@@ -387,12 +387,13 @@ namespace pg
 				canvas.fillRect(col * scale + scale / 2 - 2, titleBar + row * scale + scale / 2 - 2, 5, 5, color);
 			}
 		}
-		// Resolved town ownership: boundaries and authored streets come from the
+		// Resolved town ownership and exact streets come from the
 		// committed records, never from connected-component inference.
 		for (const PlanTownRecord &town : p_plan.towns)
 		{
 			for (const auto &[row,col] : town.boundaryCells) canvas.fillRect(col*scale+1,titleBar+row*scale+1,scale-2,scale-2,fromHex(0x7B4AA8));
-			for (const auto &[row,col] : town.pathCells) canvas.fillRect(col*scale+scale/2-2,titleBar+row*scale+scale/2-2,5,5,fromHex(0xD88A2D));
+			for (const PlanPavedColumn &road : town.mainRoadSurface) { const int row=p_plan.cellIndexFromWorld(road.worldZ), col=p_plan.cellIndexFromWorld(road.worldX); canvas.fillRect(col*scale+scale/2-2,titleBar+row*scale+scale/2-2,5,5,fromHex(0xD88A2D)); }
+			for (const PlanPavedColumn &road : town.urbanRoadSurface) { const int row=p_plan.cellIndexFromWorld(road.worldZ), col=p_plan.cellIndexFromWorld(road.worldX); canvas.fillRect(col*scale+scale/2-1,titleBar+row*scale+scale/2-1,3,3,fromHex(0xFFD166)); }
 			for(const auto &[row,col]:town.dockCells)canvas.fillRect(col*scale+2,titleBar+row*scale+2,scale-4,scale-4,fromHex(0x9A6A35));
 			if(town.boardingEndpoint) { const int col=p_plan.cellIndexFromWorld(town.boardingEndpoint->x), row=p_plan.cellIndexFromWorld(town.boardingEndpoint->z); canvas.fillDiamond(col*scale+scale/2,titleBar+row*scale+scale/2,4,fromHex(0x2BE3E3)); }
 		}

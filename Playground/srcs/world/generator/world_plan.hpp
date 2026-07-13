@@ -5,7 +5,7 @@
 #include "structures/graphics/geometry/spk_color.hpp"
 #include "structures/math/spk_vector3.hpp"
 #include "structures/voxel/spk_voxel_enums.hpp"
-#include "world/generator/town_blueprint.hpp"
+#include "world/generator/town_composition.hpp"
 
 #include <cstdint>
 #include <limits>
@@ -13,6 +13,7 @@
 #include <optional>
 #include <stdexcept>
 #include <string>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -86,16 +87,6 @@ namespace pg
 		RarePoi,
 		UncommonPoi,
 		NormalPoi
-	};
-
-	enum class TownBuildingRole : std::uint8_t
-	{
-		None,
-		CreatureCenter,
-		Shop,
-		Gym,
-		Port,
-		Home
 	};
 
 	struct PlanScenery
@@ -268,22 +259,74 @@ namespace pg
 		spk::Vector3Int to{};
 	};
 
-	// Resolved town ownership record. Consumers must use this rather than infer a
-	// settlement from the flat town-road mask or placement list.
+	// A town site is reserved before the global road graph is built.  It owns the
+	// stable settlement center and an extent, not a building layout.
+	struct PlanTownSite
+	{
+		std::size_t macroEntityIndex = 0;
+		PlanEntityKind kind = PlanEntityKind::City;
+		std::string compositionId;
+		int centerRow = 0;
+		int centerCol = 0;
+		int radiusColumns = 0;
+	};
+
+	struct PlanPavedColumn
+	{
+		int worldX = 0;
+		int worldZ = 0;
+		int surfaceY = 0;
+		friend bool operator==(const PlanPavedColumn &, const PlanPavedColumn &) = default;
+		friend bool operator<(const PlanPavedColumn &p_left, const PlanPavedColumn &p_right)
+		{
+			return std::tie(p_left.worldZ, p_left.worldX, p_left.surfaceY) < std::tie(p_right.worldZ, p_right.worldX, p_right.surfaceY);
+		}
+	};
+
+	struct ResolvedTownEntranceRecord
+	{
+		std::string buildingInstanceId;
+		spk::Vector3Int threshold{};
+		spk::Vector3Int outward{};
+		std::vector<std::pair<int, int>> approachColumns;
+		std::pair<int, int> connectionPoint{};
+	};
+
+	struct UrbanRouteRecord
+	{
+		std::string buildingInstanceId;
+		int cost = 0;
+		std::vector<std::pair<int, int>> centerline;
+	};
+
+	struct TownWorldBounds
+	{
+		int minX = 0;
+		int maxX = -1;
+		int minZ = 0;
+		int maxZ = -1;
+	};
+
+	// Exact paved columns, resolved entrances, and placement ownership are the
+	// authority for a committed town.  No consumer should infer these from the
+	// macro townPath compatibility cache.
 	struct PlanTownRecord
 	{
 		PlanEntityKind kind = PlanEntityKind::City;
 		std::size_t macroEntityIndex = 0;
-		std::string blueprintId;
-		int quarterTurns = 0;
-		int originRow = 0;
-		int originCol = 0;
-		std::pair<int, int> entranceCell{};
+		std::string compositionId;
+		TownWorldBounds bounds{};
+		int centerRow = 0;
+		int centerCol = 0;
 		std::vector<std::pair<int, int>> boundaryCells;
-		std::vector<std::pair<int, int>> pathCells;
-		std::vector<std::pair<int, int>> decorationCells;
+		std::vector<PlanPavedColumn> mainRoadSurface;
+		std::vector<PlanPavedColumn> urbanRoadSurface;
+		std::vector<ResolvedTownEntranceRecord> entrances;
+		std::vector<UrbanRouteRecord> routes;
 		std::vector<std::pair<int, int>> dockCells;
 		std::vector<std::size_t> buildingPlacementIndices;
+		std::vector<std::size_t> roadSceneryPlacementIndices;
+		std::vector<std::size_t> groundSceneryPlacementIndices;
 		std::optional<spk::Vector3Int> boardingEndpoint;
 		std::vector<std::size_t> boatLinkIndices;
 	};
@@ -358,7 +401,7 @@ namespace pg
 		int maxWildStairLevels = 3; // [1, maxComposedStairLevels]
 		int maxComposedStairLevels = 6; // [1, maxHeightLevel]
 
-		// Maximum deterministic relocation distance for a complete town blueprint.
+		// Maximum deterministic relocation distance for a town composition site.
 		int townSearchRadiusCells = 18;
 		// Whole-world retries after a typed atomic town-planning failure. Attempt zero
 		// always uses masterSeed; later attempts use stable derived seeds.
@@ -403,7 +446,9 @@ namespace pg
 		int interiorRoomPlacements = 0;	 // room prefabs stamped in the interior band
 		int placementConflicts = 0;		 // claimed-zone collisions resolved by nudging or overriding
 		int skippedPoiPlacements = 0;	 // POI prefabs dropped because no clear zone was found
-		int blueprintTownWriters = 0;
+		int townLayoutAttempts = 0;
+		int townBuildingCandidates = 0;
+		int townRouteExpansions = 0;
 		std::vector<std::string> warnings;
 	};
 
@@ -420,15 +465,14 @@ namespace pg
 		PlanGrid<std::uint8_t> water; // river or lake
 		PlanGrid<std::uint8_t> lake;  // kept lake cells
 		PlanGrid<std::uint8_t> road;
-		// Fine town streets reuse the regular road rendering, but are not part of
-		// the inter-settlement graph used for routing and boat links.
-		// Derived realization cache populated only by commitTownCandidate; ownership,
-		// connectivity, and exclusion come from PlanTownRecord.
+		// Compatibility preview cache derived from exact town pavement.  It is not
+		// used for town ownership, routing, or voxel realization.
 		PlanGrid<std::uint8_t> townPath;
 		PlanGrid<std::uint8_t> bridge; // road over water
 
 		std::vector<PlanZone> zones;
 		std::vector<PlanEntity> entities;
+		std::vector<PlanTownSite> townSites;
 		std::vector<PlanGateway> gateways;
 		std::vector<std::pair<PlanEntity, PlanEntity>> boatLinks;
 		std::vector<PrefabPlacement> placements;
@@ -515,6 +559,6 @@ namespace pg
 		const std::vector<PlanBiome> &p_biomes,
 		const PlanPlacementRules &p_placementRules,
 		const Registry<PrefabDefinition> &p_prefabs,
-		const TownBlueprintCatalog &p_townBlueprints,
+		const TownCompositionCatalog &p_townCompositions,
 		const Registry<InteriorDefinition> &p_interiors);
 }

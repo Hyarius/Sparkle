@@ -26,12 +26,12 @@ namespace pg::worldgen
 		const std::vector<PlanBiome> &p_biomes,
 		const PlanPlacementRules &p_placementRules,
 		const Registry<PrefabDefinition> &p_prefabs,
-		const TownBlueprintCatalog &p_townBlueprints,
+		const TownCompositionCatalog &p_townCompositions,
 		const Registry<InteriorDefinition> &p_interiors) :
 		cfg(p_config),
 		placementRules(p_placementRules),
 		prefabs(p_prefabs),
-		townBlueprints(p_townBlueprints),
+		townCompositions(p_townCompositions),
 		interiors(p_interiors),
 		size(p_config.size)
 	{
@@ -109,6 +109,10 @@ namespace pg::worldgen
 
 	WorldPlan Generator::run() &&
 	{
+		const auto requireTownSiteIds = [&] {
+			for (const PlanTownSite &site : plan.townSites)
+				if (site.compositionId.empty()) throw std::logic_error("town site composition id was lost between generation stages");
+		};
 		buildWorldGraph();
 		buildLandmass();
 		assignZones();
@@ -116,14 +120,22 @@ namespace pg::worldgen
 		generateWater();
 		resolveGateways();
 		placeEntities();
+		reserveTownSites();
+		requireTownSiteIds();
 		buildRoads();
+		requireTownSiteIds();
+		buildTownSpines();
+		requireTownSiteIds();
 		addBoatLinks();
+		requireTownSiteIds();
 		markBridges();
+		requireTownSiteIds();
 		prefabPickRng = rngFor("world/prefab_picks");
+		requireTownSiteIds();
+		planAndCommitTowns();
 		placeStairways();
 		placeBuildings();
 		placeWildStairways();
-		placeTownScenery();
 		placeScenery();
 		computeStats();
 		validateWorldPlanTowns(plan);
@@ -267,7 +279,7 @@ namespace pg
 		const std::vector<PlanBiome> &p_biomes,
 		const PlanPlacementRules &p_placementRules,
 		const Registry<PrefabDefinition> &p_prefabs,
-		const TownBlueprintCatalog &p_townBlueprints,
+		const TownCompositionCatalog &p_townCompositions,
 		const Registry<InteriorDefinition> &p_interiors)
 	{
 		// This is the public allocation boundary. Keep validation ahead of Generator's
@@ -279,7 +291,7 @@ namespace pg
 			if(attempt>0)resolved.masterSeed=worldgen::deriveSeed(p_config.masterSeed,"world/town_retry/"+std::to_string(attempt));
 			try
 			{
-				WorldPlan plan=worldgen::Generator(resolved,p_biomes,p_placementRules,p_prefabs,p_townBlueprints,p_interiors).run();
+				WorldPlan plan=worldgen::Generator(resolved,p_biomes,p_placementRules,p_prefabs,p_townCompositions,p_interiors).run();
 				if(attempt>0)plan.stats.warnings.push_back("requested seed "+std::to_string(p_config.masterSeed)+" required "+std::to_string(attempt)+" deterministic town-generation retry/retries; resolved seed="+std::to_string(resolved.masterSeed));
 				return plan;
 			}

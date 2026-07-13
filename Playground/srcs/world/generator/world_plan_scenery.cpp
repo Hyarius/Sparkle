@@ -1,5 +1,4 @@
 #include "world/generator/world_plan_generator.hpp"
-#include "world/generator/path_surface.hpp"
 
 #include "structures/voxel/spk_voxel_orientation.hpp"
 
@@ -12,182 +11,6 @@
 
 namespace pg::worldgen
 {
-	void Generator::placeTownScenery()
-	{
-		struct PlacedDecor
-		{
-			int worldX = 0;
-			int worldZ = 0;
-			int spacing = 1;
-		};
-
-		const int blocks = cfg.blocksPerCell;
-		const int offset = plan.worldOffset();
-		for (const PlanTownRecord &town : plan.towns)
-		{
-			// The resolved origin is the blueprint bounding-box corner and may be on
-			// water for a rotated port. Town ownership stays with its macro entity.
-			const int zoneId = town.macroEntityIndex < plan.entities.size()
-				? plan.entities[town.macroEntityIndex].zone
-				: -1;
-			if (zoneId < 0)
-			{
-				continue;
-			}
-			const std::vector<PlanScenery> &scenery = plan.biomes[plan.zones[zoneId].biomeIndex].townScenery;
-			if (scenery.empty())
-			{
-				continue;
-			}
-
-			std::set<std::pair<int, int>> decorationCells;
-			const std::set<std::pair<int, int>> pathCells(town.pathCells.begin(), town.pathCells.end());
-			const std::set<std::pair<int, int>> boundaryCells(town.boundaryCells.begin(), town.boundaryCells.end());
-			std::vector<Cell> candidates;
-			for (const auto &[row, col] : town.decorationCells)
-			{
-				decorationCells.emplace(row, col);
-				if (plan.land.contains(row, col) && isLand(row, col) && plan.water.at(row, col) == 0 &&
-					plan.townPath.at(row, col) == 0)
-				{
-					candidates.push_back({row, col});
-				}
-			}
-			std::vector<Cell> roadsideCandidates;
-			for (const auto &[row, col] : town.pathCells)
-			{
-				if (plan.land.contains(row, col) && isLand(row, col) && plan.water.at(row, col) == 0)
-				{
-					roadsideCandidates.push_back({row, col});
-				}
-			}
-
-			Rng rng = rngFor("town:" + std::to_string(town.macroEntityIndex) + "/scenery");
-			std::vector<PlacedDecor> placed;
-			const auto hasEnoughSpacing = [&](int p_worldX, int p_worldZ, int p_spacing) {
-				return std::ranges::all_of(placed, [&](const PlacedDecor &other) {
-					const int dx = p_worldX - other.worldX;
-					const int dz = p_worldZ - other.worldZ;
-					const int required = std::max(p_spacing, other.spacing);
-					return dx * dx + dz * dz >= required * required;
-				});
-			};
-			const auto footprintIsInCells = [&](const ResolvedPlacementBox &p_box, const std::set<std::pair<int, int>> &p_cells) {
-				const int minCol = plan.cellIndexFromWorld(p_box.worldMin.x);
-				const int maxCol = plan.cellIndexFromWorld(p_box.worldMin.x + p_box.extents.x - 1);
-				const int minRow = plan.cellIndexFromWorld(p_box.worldMin.z);
-				const int maxRow = plan.cellIndexFromWorld(p_box.worldMin.z + p_box.extents.z - 1);
-				for (int row = minRow; row <= maxRow; ++row)
-				{
-					for (int col = minCol; col <= maxCol; ++col)
-					{
-						if (!p_cells.contains({row, col}) ||
-							plan.height.at(row, col) != plan.height.at(minRow, minCol))
-						{
-							return false;
-						}
-					}
-				}
-				return true;
-			};
-			const auto isTownPathSurface = [&](int p_worldX, int p_worldZ) {
-				const int row = plan.cellIndexFromWorld(p_worldZ);
-				const int col = plan.cellIndexFromWorld(p_worldX);
-				if (!pathCells.contains({row, col}))
-				{
-					return false;
-				}
-				const int localX = p_worldX - (offset + col * blocks);
-				const int localZ = p_worldZ - (offset + row * blocks);
-				return isCenteredPathSurface(
-					blocks,
-					localX,
-					localZ,
-					pathCells.contains({row - 1, col}),
-					pathCells.contains({row + 1, col}),
-					pathCells.contains({row, col - 1}),
-					pathCells.contains({row, col + 1}));
-			};
-			const auto footprintIsRoadside = [&](const ResolvedPlacementBox &p_box) {
-				bool touchesPath = false;
-				for (int z = p_box.worldMin.z; z < p_box.worldMin.z + p_box.extents.z; ++z)
-				{
-					for (int x = p_box.worldMin.x; x < p_box.worldMin.x + p_box.extents.x; ++x)
-					{
-						if (isTownPathSurface(x, z))
-						{
-							return false;
-						}
-						touchesPath = touchesPath || isTownPathSurface(x - 1, z) || isTownPathSurface(x + 1, z) ||
-							isTownPathSurface(x, z - 1) || isTownPathSurface(x, z + 1);
-					}
-				}
-				return touchesPath;
-			};
-
-			// A town has only a handful of authored decoration cells, so wilderness-style
-			// Bernoulli sampling made empty settlements the usual result. Every positive
-			// decor entry gets one deterministic request; density controls only additional
-			// instances. A density of zero still disables the entry completely.
-			for (const PlanScenery &entry : scenery)
-			{
-				if (entry.density <= 0.0)
-				{
-					continue;
-				}
-				const std::vector<Cell> &eligibleCells = entry.roadside ? roadsideCandidates : candidates;
-				if (eligibleCells.empty())
-				{
-					continue;
-				}
-				const int requestCount = 1 + rng.poisson(entry.density * static_cast<double>(eligibleCells.size()));
-				for (int request = 0; request < requestCount; ++request)
-				{
-					std::vector<Cell> orderedCandidates = eligibleCells;
-					rng.shuffle(orderedCandidates);
-					bool committed = false;
-					for (const Cell &cell : orderedCandidates)
-					{
-						for (int attempt = 0; attempt < 64; ++attempt)
-						{
-							const int turns = rng.below(4);
-							const int worldX = offset + cell.col * blocks + rng.below(blocks);
-							const int worldZ = offset + cell.row * blocks + rng.below(blocks);
-							if (!hasEnoughSpacing(worldX, worldZ, entry.spacing))
-							{
-								continue;
-							}
-							PrefabPlacement placement{
-								.prefabId = entry.prefabId,
-								.anchor = {worldX, plan.surfaceY(plan.height.at(cell.row, cell.col)) + 1, worldZ},
-								.orientation = spk::orientationFromQuarterTurns(turns),
-								.foundation = false};
-							const std::optional<ResolvedPlacementBox> box = resolveBox(placement);
-							const std::optional<Claim> claim = claimBoxFor(placement);
-							if (!box.has_value() || !claim.has_value() ||
-								!footprintIsInCells(*box, entry.roadside ? boundaryCells : decorationCells) ||
-								(entry.roadside && !footprintIsRoadside(*box)) ||
-								!zoneIsFree(*claim))
-							{
-								continue;
-							}
-							plan.placements.push_back(std::move(placement));
-							hardClaims.push_back(*claim);
-							placed.push_back({worldX, worldZ, entry.spacing});
-							++plan.stats.sceneryPlacements;
-							committed = true;
-							break;
-						}
-						if (committed)
-						{
-							break;
-						}
-					}
-				}
-			}
-		}
-	}
-
 	// Scenery is biome dressing rather than a world entity. Density is the expected
 	// number of instances requested per suitable plan cell; Poisson sampling keeps
 	// fractional densities meaningful while allowing values above one. Placements
@@ -203,7 +26,9 @@ namespace pg::worldgen
 		{
 			blockedCells.insert({cell.row, cell.col});
 		}
-		for(const PlanTownRecord &town:plan.towns) for(const auto &[row,col]:town.boundaryCells) blockedCells.insert({row,col});
+		for (const PlanTownRecord &town : plan.towns)
+			for (const auto &[row, col] : town.boundaryCells)
+				blockedCells.insert({row, col});
 
 		const int blocks = cfg.blocksPerCell;
 		const int offset = plan.worldOffset();

@@ -214,6 +214,79 @@ namespace pg::worldgen
 		}
 	}
 
+	void Generator::reserveTownSites()
+	{
+		for (std::size_t index = 0; index < plan.entities.size(); ++index)
+		{
+			PlanEntity &entity = plan.entities[index];
+			if (entity.kind != PlanEntityKind::City && entity.kind != PlanEntityKind::Gym && entity.kind != PlanEntityKind::PortCity)
+				continue;
+			const TownCompositionKind wanted = entity.kind == PlanEntityKind::Gym ? TownCompositionKind::Gym : entity.kind == PlanEntityKind::PortCity ? TownCompositionKind::Port : TownCompositionKind::City;
+			const std::vector<std::string> ids = townCompositions.ids();
+			const auto compatible = std::find_if(ids.begin(), ids.end(), [&](const std::string &id) { return townCompositions.get(id).kind == wanted; });
+			if (compatible == ids.end())
+				throw std::runtime_error("town site reservation failed: no compatible composition for settlement kind");
+			const TownComposition &composition = townCompositions.get(*compatible);
+			// The entity becomes stable at reservation time, before roads are built.
+			// Move an initially sampled macro marker only when necessary to obtain the
+			// flat, dry foundation envelope required by voxel-scale town buildings.
+			const int envelope = (composition.layout.radiusColumns + cfg.blocksPerCell - 1) / cfg.blocksPerCell;
+			std::optional<Cell> reservedCenter;
+			// Keep normal towns close to their sampled marker and in-zone.  Tiny or
+			// fragmented maps may not contain a whole composition envelope there, so
+			// use a deterministic world-wide dry-land fallback instead of aborting
+			// generation before local voxel planning has a chance to solve it.
+			for (int pass = 0; pass < 2 && !reservedCenter; ++pass)
+			{
+				const int searchRadius = pass == 0 ? cfg.townSearchRadiusCells : size;
+				for (int radius = 0; radius <= searchRadius && !reservedCenter; ++radius)
+				{
+					for (int dr = -radius; dr <= radius && !reservedCenter; ++dr)
+					{
+						for (int dc = -radius; dc <= radius; ++dc)
+						{
+							if (std::max(std::abs(dr), std::abs(dc)) != radius) continue;
+							const int row = entity.row + dr, col = entity.col + dc;
+							if (row < 0 || col < 0 || row >= size || col >= size || row - envelope < 0 || col - envelope < 0 || row + envelope >= size || col + envelope >= size || (pass == 0 && plan.zone.at(row, col) != entity.zone)) continue;
+							// Reservation establishes ownership and world bounds only.  Terrain
+							// suitability is deliberately resolved later at voxel resolution by
+							// the transactional town workspace; demanding a macro-scale flat
+							// square here makes small, varied maps reject valid compact layouts.
+							if (!isLand(row, col) || plan.water.at(row, col) != 0) continue;
+							if (entity.kind == PlanEntityKind::Gym && distOcean.at(row, col) <= cfg.coastDistCells) continue;
+							bool separated = true;
+							for (std::size_t otherIndex = 0; otherIndex < plan.entities.size(); ++otherIndex)
+							{
+								if (otherIndex == index) continue;
+								const PlanEntity &other = plan.entities[otherIndex];
+								const bool otherSettlement = other.kind == PlanEntityKind::City || other.kind == PlanEntityKind::Gym || other.kind == PlanEntityKind::PortCity;
+								// Town workspaces are inclusive squares.  Manhattan distance permits
+								// diagonal overlap and a one-column seam at exactly two radii, so
+								// reserve a strictly disjoint Chebyshev envelope instead.
+								if (otherSettlement && std::max(std::abs(other.row - row), std::abs(other.col - col)) <= envelope * 2) { separated = false; break; }
+							}
+							if (separated) reservedCenter = Cell{row, col};
+						}
+					}
+				}
+			}
+			if (!reservedCenter)
+				throw TownPlanningError(index, *compatible, {.category = TownRejectCategory::SiteTerrain, .componentId = *compatible, .message = "no flat dry reservation envelope near settlement marker"}, {}, "town site reservation cannot find a flat foundation envelope");
+			entity.row = reservedCenter->row;
+			entity.col = reservedCenter->col;
+			const int centerX = plan.worldOffset() + entity.col * cfg.blocksPerCell + cfg.blocksPerCell / 2;
+			const int centerZ = plan.worldOffset() + entity.row * cfg.blocksPerCell + cfg.blocksPerCell / 2;
+			const int worldMaximum = plan.worldOffset() + cfg.size * cfg.blocksPerCell - 1;
+			if (centerX - composition.layout.radiusColumns < plan.worldOffset() || centerX + composition.layout.radiusColumns > worldMaximum ||
+				centerZ - composition.layout.radiusColumns < plan.worldOffset() || centerZ + composition.layout.radiusColumns > worldMaximum ||
+				!isLand(entity.row, entity.col) || plan.water.at(entity.row, entity.col) != 0)
+			{
+				throw TownPlanningError(index, *compatible, {.category = TownRejectCategory::SiteOutOfBounds, .componentId = *compatible, .message = "settlement center cannot reserve the composition boundary"}, {}, "town site reservation is outside dry world bounds");
+			}
+			plan.townSites.push_back({.macroEntityIndex = index, .kind = entity.kind, .compositionId = *compatible, .centerRow = entity.row, .centerCol = entity.col, .radiusColumns = composition.layout.radiusColumns});
+		}
+	}
+
 	// ---------------- Stage F: roads ----------------
 	// Roads stay one cell wide: a cell may not be laid if it would fill a 2x2 block
 	// of road (four road units meeting in a square). Because riding on top of an
@@ -562,6 +635,37 @@ namespace pg::worldgen
 		removeRoadSquares();
 	}
 
+	void Generator::buildTownSpines()
+	{
+		// A settlement is already a road endpoint.  Continue its road through the
+		// reserved town envelope before any building placement chooses an address.
+		for (const PlanTownSite &site : plan.townSites)
+		{
+			const int cells = std::max(1, (site.radiusColumns + cfg.blocksPerCell - 1) / cfg.blocksPerCell);
+			const std::array<Cell, 4> directions = {{{-1, 0}, {0, 1}, {1, 0}, {0, -1}}};
+			std::vector<Cell> arrivals;
+			for (Cell direction : directions)
+			{
+				const int row = site.centerRow + direction.row;
+				const int col = site.centerCol + direction.col;
+				if (plan.road.contains(row, col) && plan.road.at(row, col) != 0) arrivals.push_back(direction);
+			}
+			if (arrivals.empty()) arrivals.push_back({-1, 0});
+			for (const Cell arrival : arrivals)
+			{
+				const Cell direction{-arrival.row, -arrival.col};
+				for (int step = 1; step <= cells; ++step)
+				{
+					const int row = site.centerRow + direction.row * step;
+					const int col = site.centerCol + direction.col * step;
+					if (!plan.road.contains(row, col) || !isLand(row, col) || plan.water.at(row, col) != 0) break;
+					plan.road.at(row, col) = 1;
+				}
+			}
+			plan.road.at(site.centerRow, site.centerCol) = 1;
+		}
+	}
+
 	// Guarantees roads stay one cell wide. The A* guard keeps parallel paths from
 	// thickening, but the diagonal-elbow reconstruction and forced junctions can still
 	// leave a stray 2x2 block; this erases the redundant corner of each one. A cell is
@@ -757,38 +861,43 @@ namespace pg::worldgen
 		return biome.town.has_value() ? &*biome.town : nullptr;
 	}
 
-	void Generator::composeBlueprintTown(const PlanEntity &p_entity, std::size_t p_entityIndex)
+	void Generator::planAndCommitTowns()
 	{
-		const PlanTown *town = townFor(p_entity.zone);
-		if (town == nullptr)
+		// commitTownCandidate swaps a fully merged WorldPlan into place, so planning
+		// must iterate a stable snapshot rather than references into plan.townSites.
+		const std::vector<PlanTownSite> sites = plan.townSites;
+		for (const PlanTownSite &site : sites)
 		{
-			throw std::runtime_error("town planning failed: settlement biome has no town content");
-		}
-		const TownBlueprintKind wanted = p_entity.kind == PlanEntityKind::City ? TownBlueprintKind::City : p_entity.kind == PlanEntityKind::Gym ? TownBlueprintKind::Gym : TownBlueprintKind::Port;
-		std::vector<const TownBlueprint *> compatible;
-		for (const std::string &id : townBlueprints.ids()) { const TownBlueprint &blueprint=townBlueprints.get(id); if (blueprint.kind==wanted) compatible.push_back(&blueprint); }
-		TownRejection last{};
-		std::map<std::string,int> rejectionCounts;
-		for (LocalCell origin : enumerateTownOrigins({p_entity.row,p_entity.col},cfg.townSearchRadiusCells)) for (const TownBlueprint *blueprint : compatible) for (int rotation : blueprint->allowedQuarterTurns)
-		{
-			const PlanBiome &biome=plan.biomes[plan.zones[p_entity.zone].biomeIndex];
-			TownPlanResult attempt=resolveFlatTownCandidate(plan,*blueprint,{.prefabs=prefabs,.town=*town,.worldSeed=cfg.masterSeed,.stableEntityId=std::to_string(p_entityIndex),.roadStairPrefabs=&biome.roadStairLengths},origin.row,origin.col,rotation);
-			if (!attempt.candidate) { last=*attempt.rejection;++rejectionCounts[attempt.rejection->componentId]; continue; }
-			TownCandidate &candidate=*attempt.candidate; candidate.kind=p_entity.kind; candidate.macroEntityIndex=p_entityIndex;
-			if (!hasValidGlobalRoadArrival(plan, candidate))
+			if (site.macroEntityIndex >= plan.entities.size()) throw std::logic_error("town site has an invalid settlement owner");
+			if (site.compositionId.empty()) throw std::logic_error("town site has no selected composition id");
+			const PlanEntity &entity = plan.entities[site.macroEntityIndex];
+			const PlanTown *town = townFor(entity.zone);
+			if (town == nullptr) throw std::runtime_error("town planning failed: settlement biome has no town content");
+			const TownComposition &composition = townCompositions.get(site.compositionId);
+			TownPlanResult attempt = planTown(plan, site, composition, prefabs, *town, cfg.masterSeed);
+			plan.stats.townLayoutAttempts += attempt.layoutAttempts;
+			plan.stats.townBuildingCandidates += attempt.buildingCandidates;
+			plan.stats.townRouteExpansions += attempt.routeExpansions;
+			if (!attempt.candidate)
 			{
-				last = TownRejection{TownRejectCategory::Disconnected, "town-entrance", candidate.entranceCell};
-				++rejectionCounts[last.componentId];
-				continue;
+				const TownRejection rejection = attempt.rejection.value_or(TownRejection{.category = TownRejectCategory::CommitInvariant, .componentId = composition.id, .message = "layout attempts exhausted"});
+				throw TownPlanningError(site.macroEntityIndex, composition.id, rejection, {{rejection.componentId, 1}}, "town planning failed after bounded local layout attempts: " + rejection.message);
 			}
-			if(p_entity.kind==PlanEntityKind::PortCity) for(std::size_t link=0;link<plan.boatLinks.size();++link) { const auto matches=[&](const PlanEntity &other){return other.kind==p_entity.kind && other.row==p_entity.row && other.col==p_entity.col;}; if(matches(plan.boatLinks[link].first)||matches(plan.boatLinks[link].second)) candidate.boatLinkIndices.push_back(link); }
-			commitTownCandidate(plan,candidate);
-			for (const PlanClaim &claim : candidate.buildingClaims) hardClaims.push_back({claim.min,claim.max});for(const PlanClaim &claim:candidate.dockClaims)hardClaims.push_back({claim.min,claim.max}); for(const auto &stair:candidate.stairs)for(const PlanClaim &claim:stair.claims)hardClaims.push_back({claim.min,claim.max});
-			for (std::size_t index=plan.towns.back().buildingPlacementIndices.front(); index<plan.placements.size(); ++index) composeInterior(plan.placements[index]);
-			++plan.stats.blueprintTownWriters;
-			return;
+			TownCandidate candidate = std::move(*attempt.candidate);
+			if (entity.kind == PlanEntityKind::PortCity)
+			{
+				for (std::size_t link = 0; link < plan.boatLinks.size(); ++link)
+				{
+					const auto matches = [&](const PlanEntity &other) { return other.kind == entity.kind && other.row == entity.row && other.col == entity.col; };
+					if (matches(plan.boatLinks[link].first) || matches(plan.boatLinks[link].second)) candidate.boatLinkIndices.push_back(link);
+				}
+			}
+			commitTownCandidate(plan, candidate);
+			for (const PlanClaim &claim : candidate.buildingClaims) hardClaims.push_back({claim.min, claim.max});
+			for (const PlanClaim &claim : candidate.dockClaims) hardClaims.push_back({claim.min, claim.max});
+			for (const PlanClaim &claim : candidate.sceneryClaims) hardClaims.push_back({claim.min, claim.max});
+			for (std::size_t placement : plan.towns.back().buildingPlacementIndices) composeInterior(plan.placements[placement]);
 		}
-		std::string summary;for(const auto &[component,count]:rejectionCounts)summary+=" "+component+"="+std::to_string(count);throw TownPlanningError(p_entityIndex,last,"town planning failed for macro entity " + std::to_string(p_entityIndex) + " kind=" + std::to_string(static_cast<int>(p_entity.kind)) + " at (" + std::to_string(p_entity.row) + "," + std::to_string(p_entity.col) + ") after deterministic candidate search; component=" + last.componentId+"; rejections:"+summary);
 	}
 
 	void Generator::placeBuildings()
@@ -801,7 +910,8 @@ namespace pg::worldgen
 			if (entity.kind == PlanEntityKind::Gym || entity.kind == PlanEntityKind::City ||
 				entity.kind == PlanEntityKind::PortCity)
 			{
-				composeBlueprintTown(entity,entityIndex);
+				// Settlements were planned transactionally after their global road spine.
+				// This stage stamps only ordinary POIs and must not create a second town writer.
 				continue;
 			}
 			const std::vector<std::string> *pool = entityPrefabsFor(entity.kind, entity.zone);

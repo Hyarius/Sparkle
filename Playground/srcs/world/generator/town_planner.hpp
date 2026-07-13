@@ -1,10 +1,9 @@
 #pragma once
 
-#include "world/generator/town_blueprint.hpp"
-#include "world/generator/world_plan.hpp"
-#include "world/generator/stair_planner.hpp"
+#include "world/generator/town_workspace.hpp"
 #include "world/prefab_definition.hpp"
 
+#include <map>
 #include <optional>
 #include <stdexcept>
 #include <string>
@@ -12,56 +11,103 @@
 
 namespace pg
 {
-	enum class TownRejectCategory { OutOfBounds, Water, TerraceHeight, MissingPrefab, DoorMismatch, ClaimConflict, Disconnected, WaterfrontMismatch };
-	struct TownRejection { TownRejectCategory category{}; std::string componentId; LocalCell cell{}; };
+	enum class TownRejectCategory
+	{
+		SiteOutOfBounds,
+		SiteTerrain,
+		MissingContent,
+		BuildingPlacement,
+		DoorClearance,
+		RouteUnavailable,
+		RoadWidthConflict,
+		StairUnavailable,
+		RoadSceneryUnavailable,
+		GroundSceneryUnavailable,
+		WaterfrontMismatch,
+		CommitInvariant
+	};
+
+	struct TownRejection
+	{
+		TownRejectCategory category = TownRejectCategory::CommitInvariant;
+		std::string componentId;
+		std::optional<WorldColumn> worldColumn;
+		int layoutAttempt = 0;
+		std::string message;
+	};
+
 	class TownPlanningError : public std::runtime_error
 	{
 	public:
-		std::size_t macroEntityIndex;
+		std::size_t macroEntityIndex = 0;
+		std::string compositionId;
 		TownRejection rejection;
-		TownPlanningError(std::size_t p_macroEntityIndex, TownRejection p_rejection, std::string p_message) : std::runtime_error(std::move(p_message)), macroEntityIndex(p_macroEntityIndex), rejection(std::move(p_rejection)) {}
+		std::map<std::string, int> rejectionCounts;
+		TownPlanningError(std::size_t p_macroEntityIndex, std::string p_compositionId, TownRejection p_rejection, std::map<std::string, int> p_counts, std::string p_message);
 	};
+
+	struct ResolvedTownEntrance
+	{
+		std::string buildingInstanceId;
+		spk::Vector3Int threshold{};
+		spk::Vector3Int outward{};
+		std::vector<TownColumn> approachColumns;
+		TownColumn connectionPoint{};
+	};
+
 	struct TownCandidate
 	{
-		std::string blueprintId;
-		int quarterTurns = 0;
-		int originRow = 0;
-		int originCol = 0;
-		PlanEntityKind kind = PlanEntityKind::City;
+		std::string compositionId;
 		std::size_t macroEntityIndex = 0;
-		LocalCell entranceCell{};
-		std::vector<LocalCell> boundaryCells;
-		std::vector<LocalCell> pathCells;
-		std::vector<LocalCell> decorationCells;
-		std::vector<LocalCell> dockCells;
+		PlanEntityKind kind = PlanEntityKind::City;
+		TownWorldBounds bounds{};
+		int centerRow = 0;
+		int centerCol = 0;
+		std::vector<std::pair<int, int>> boundaryCells;
+		std::vector<PlanPavedColumn> mainRoadSurface;
 		std::vector<PrefabPlacement> buildings;
 		std::vector<PlanClaim> buildingClaims;
+		std::vector<ResolvedTownEntrance> entrances;
+		std::vector<PlanPavedColumn> urbanRoadSurface;
+		std::vector<UrbanRouteRecord> routes;
+		std::vector<PrefabPlacement> roadScenery;
+		std::vector<PrefabPlacement> groundScenery;
+		std::vector<PlanClaim> sceneryClaims;
+		std::vector<std::pair<int, int>> dockCells;
 		std::vector<PlanClaim> dockClaims;
-		std::vector<StairCandidate> stairs;
 		std::optional<spk::Vector3Int> boardingEndpoint;
 		std::vector<std::size_t> boatLinkIndices;
 	};
-	struct TownPlanResult { std::optional<TownCandidate> candidate; std::optional<TownRejection> rejection; };
-	struct TownContentContext
+
+	struct TownPlanResult
 	{
-		const Registry<PrefabDefinition> &prefabs;
-		const PlanTown &town;
-		std::uint64_t worldSeed = 0;
-		std::string stableEntityId;
-		const std::vector<std::string> *roadStairPrefabs = nullptr;
+		std::optional<TownCandidate> candidate;
+		std::optional<TownRejection> rejection;
+		int layoutAttempts = 0;
+		int buildingCandidates = 0;
+		int routeExpansions = 0;
 	};
-	struct TownMutationSnapshot { std::size_t placements = 0; std::size_t stairways = 0; std::size_t portals = 0; std::size_t towns = 0; std::size_t claims = 0; std::size_t boatLinks = 0; std::size_t townPathCells = 0; std::size_t warnings = 0; friend bool operator==(const TownMutationSnapshot &, const TownMutationSnapshot &) = default; };
+
+	struct TownMutationSnapshot
+	{
+		std::size_t placements = 0;
+		std::size_t stairways = 0;
+		std::size_t portals = 0;
+		std::size_t towns = 0;
+		std::size_t claims = 0;
+		std::size_t boatLinks = 0;
+		std::size_t warnings = 0;
+		friend bool operator==(const TownMutationSnapshot &, const TownMutationSnapshot &) = default;
+	};
+
 	[[nodiscard]] TownMutationSnapshot snapshotTownMutation(const WorldPlan &p_plan) noexcept;
 	[[nodiscard]] bool matchesTownMutationSnapshot(const WorldPlan &p_plan, TownMutationSnapshot p_snapshot) noexcept;
-	// Stable square-ring enumeration: center first, then each increasing radius
-	// clockwise from the north-west corner. Candidate failures never affect order.
-	[[nodiscard]] std::vector<LocalCell> enumerateTownOrigins(LocalCell p_center, int p_radius);
-	// A resolved town must meet the pre-existing inter-settlement road at its
-	// authored entrance.
-	[[nodiscard]] bool hasValidGlobalRoadArrival(const WorldPlan &p_plan, const TownCandidate &p_candidate) noexcept;
-
-	// Pure first-stage resolver: it transforms authored masks and validates the
-	// dry, level plan-cell envelope without mutating WorldPlan.
-	[[nodiscard]] TownPlanResult resolveFlatTownCandidate(const WorldPlan &p_plan, const TownBlueprint &p_blueprint, int p_originRow, int p_originCol, int p_quarterTurns);
-	[[nodiscard]] TownPlanResult resolveFlatTownCandidate(const WorldPlan &p_plan, const TownBlueprint &p_blueprint, const TownContentContext &p_content, int p_originRow, int p_originCol, int p_quarterTurns);
+	[[nodiscard]] TownPlanResult planTown(
+		const WorldPlan &p_plan,
+		const PlanTownSite &p_site,
+		const TownComposition &p_composition,
+		const Registry<PrefabDefinition> &p_prefabs,
+		const PlanTown &p_biomeTown,
+		std::uint64_t p_worldSeed);
+	[[nodiscard]] std::string renderTownWorkspaceAscii(const TownWorkspace &p_workspace);
 }

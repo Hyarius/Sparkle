@@ -69,7 +69,7 @@ namespace pg::worldgen
 		// The door cell is the floor block inside the doorway (anchored at local
 		// y = -1); the return portal drops the player one cell outside it, on the
 		// same flattened plateau. Resolve the anchor and outward vector through the
-		// committed building rotation; town blueprints may use any quarter turn.
+		// committed building rotation; town compositions may use any quarter turn.
 		const spk::Vector3Int buildingPivot = building->prefab.pivot();
 		const int buildingTurns=spk::quarterTurnsOf(p_buildingPlacement.orientation);
 		const spk::Vector3Int doorWorld=buildingBox->destination+spk::rotateQuarterTurns(door->position-buildingPivot,buildingTurns);
