@@ -61,9 +61,9 @@ reshuffles earlier stages. The stages:
 6. **resolveGateways** — for each zone border, the cell nearest the border centroid
    becomes the primary gateway (sometimes a secondary far one).
 7. **placeEntities** — derives each zone's settlement target from its biome's usable
-   land area and `worldgen.towns.distanceCells`, always reserves a gym, and reserves a
-   waterfront port when `worldgen.towns.requiresPort` is set; POIs use their normal
-   blocking and spacing rules.
+   land area and `worldgen.towns.densityDistanceCells`, enforces its independent
+   `minimumDistanceCells`, always reserves a gym, and reserves a waterfront port when
+   `worldgen.towns.requiresPort` is set; POIs use their normal blocking and spacing rules.
 8. **buildRoads** — per zone, A* (`findPath`) from the hub (the gym) to every other
    settlement and a few POIs, then across primary gateways. Step costs penalize
    water (bridges) and height steps; a "no 2×2 road square" invariant is enforced

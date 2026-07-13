@@ -8,9 +8,11 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <cstdint>
 #include <cstdlib>
 #include <filesystem>
 #include <memory>
+#include <string>
 
 namespace
 {
@@ -62,7 +64,9 @@ TEST(BiomeTownDistribution, ShippedBiomesProvideSpacingAndTheCoastRequiresAPort)
 	ASSERT_FALSE(biomes.empty());
 	for (const pg::PlanBiome &biome : biomes)
 	{
-		EXPECT_GT(biome.townDistanceCells, 0.0) << biome.id;
+		EXPECT_GT(biome.townDensityDistanceCells, 0.0) << biome.id;
+		EXPECT_GT(biome.minimumTownDistanceCells, 0.0) << biome.id;
+		EXPECT_LE(biome.minimumTownDistanceCells, biome.townDensityDistanceCells) << biome.id;
 	}
 	const auto coast = std::find_if(biomes.begin(), biomes.end(), [](const pg::PlanBiome &biome) { return biome.id == "coast"; });
 	ASSERT_NE(coast, biomes.end());
@@ -71,30 +75,36 @@ TEST(BiomeTownDistribution, ShippedBiomesProvideSpacingAndTheCoastRequiresAPort)
 
 TEST(WorldGeneration, ReservesEveryGymAndConfiguredBiomePort)
 {
-	pg::WorldGenConfig config;
-	config.masterSeed = 1;
-	config.size = 128;
 	const pg::Registries &registries = loadedRegistries();
-	const pg::WorldPlan plan = pg::generateWorldPlan(
-		config,
-		pg::planBiomesFrom(registries.biomes()),
-		registries.placementRules(),
-		registries.prefabs(),
-		registries.townCompositions(),
-		registries.interiors());
-	for (const pg::PlanZone &zone : plan.zones)
+	for (const std::uint64_t seed : {std::uint64_t{1}, std::uint64_t{97844}})
 	{
-		const pg::PlanBiome &biome = plan.biomes[zone.biomeIndex];
-		int gyms = 0;
-		int ports = 0;
-		for (const pg::PlanEntity &entity : plan.entities)
+		pg::WorldGenConfig config;
+		config.masterSeed = seed;
+		config.size = 248;
+		const pg::WorldPlan plan = pg::generateWorldPlan(
+			config,
+			pg::planBiomesFrom(registries.biomes()),
+			registries.placementRules(),
+			registries.prefabs(),
+			registries.townCompositions(),
+			registries.interiors());
+		EXPECT_FALSE(std::ranges::any_of(plan.stats.warnings, [](const std::string &warning) {
+			return warning.contains("settlement target");
+		})) << seed;
+		for (const pg::PlanZone &zone : plan.zones)
 		{
-			if (entity.zone != zone.id) continue;
-			gyms += entity.kind == pg::PlanEntityKind::Gym ? 1 : 0;
-			ports += entity.kind == pg::PlanEntityKind::PortCity ? 1 : 0;
+			const pg::PlanBiome &biome = plan.biomes[zone.biomeIndex];
+			int gyms = 0;
+			int ports = 0;
+			for (const pg::PlanEntity &entity : plan.entities)
+			{
+				if (entity.zone != zone.id) continue;
+				gyms += entity.kind == pg::PlanEntityKind::Gym ? 1 : 0;
+				ports += entity.kind == pg::PlanEntityKind::PortCity ? 1 : 0;
+			}
+			EXPECT_EQ(gyms, 1) << biome.id << " seed " << seed;
+			EXPECT_EQ(ports, biome.requiresPort ? 1 : 0) << biome.id << " seed " << seed;
 		}
-		EXPECT_EQ(gyms, 1) << biome.id;
-		EXPECT_EQ(ports, biome.requiresPort ? 1 : 0) << biome.id;
 	}
 }
 

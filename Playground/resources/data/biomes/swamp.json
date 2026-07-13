@@ -17,7 +17,7 @@
 		"heightShift": -1.0,
 		"peak": false,
 		"mapColor": "#6B8F3F",
-		"towns": { "distanceCells": 30, "requiresPort": false },
+		"towns": { "densityDistanceCells": 30, "minimumDistanceCells": 20, "requiresPort": false },
 		"wildStairs": {
 			"allowCrossZone": true,
 			"maxLevels": 6,

@@ -101,23 +101,26 @@ namespace pg::worldgen
 				continue;
 			}
 			const double area = static_cast<double>(cells.size());
-			const double spacingArea = biome.townDistanceCells * biome.townDistanceCells;
+			const double spacingArea = biome.townDensityDistanceCells * biome.townDensityDistanceCells;
 			const double derivedTownCount = std::ceil(area / spacingArea);
 			if (derivedTownCount > static_cast<double>(WorldGenConfig::MaximumPerZoneCount))
 			{
 				throw std::runtime_error(
 					"zone " + std::to_string(zone.id) + " biome '" + biome.id + "' derives " +
 					std::to_string(static_cast<int>(derivedTownCount)) +
-					" towns; increase worldgen.towns.distanceCells");
+					" towns; increase worldgen.towns.densityDistanceCells");
 			}
 			const int requiredTowns = 1 + (biome.requiresPort ? 1 : 0); // every biome has a gym
 			const int townTarget = std::max(requiredTowns, static_cast<int>(derivedTownCount));
+			const auto isSettlement = [](PlanEntityKind p_kind) {
+				return p_kind == PlanEntityKind::Gym || p_kind == PlanEntityKind::City ||
+					p_kind == PlanEntityKind::PortCity;
+			};
 			const auto settlementDistanceFor = [&](int p_zone) {
-				return plan.biomes[plan.zones[p_zone].biomeIndex].townDistanceCells;
+				return plan.biomes[plan.zones[p_zone].biomeIndex].minimumTownDistanceCells;
 			};
 			const auto placementOk = [&](int p_row, int p_col, PlanEntityKind p_kind, double p_block, bool p_enforceTownDistance) {
-				const bool isSettlement = p_kind == PlanEntityKind::Gym || p_kind == PlanEntityKind::City ||
-										  p_kind == PlanEntityKind::PortCity;
+				const bool candidateIsSettlement = isSettlement(p_kind);
 				for (const PlanEntity &entity : plan.entities)
 				{
 					const double distance = std::hypot(p_row - entity.row, p_col - entity.col);
@@ -129,15 +132,24 @@ namespace pg::worldgen
 					{
 						return false;
 					}
-					const bool otherSettlement = entity.kind == PlanEntityKind::Gym || entity.kind == PlanEntityKind::City ||
-											 entity.kind == PlanEntityKind::PortCity;
-					if (p_enforceTownDistance && isSettlement && otherSettlement &&
-						distance < std::max(biome.townDistanceCells, settlementDistanceFor(entity.zone)))
+					if (p_enforceTownDistance && candidateIsSettlement && isSettlement(entity.kind) &&
+						distance < std::max(biome.minimumTownDistanceCells, settlementDistanceFor(entity.zone)))
 					{
 						return false;
 					}
 				}
 				return true;
+			};
+			const auto nearestSettlementDistance = [&](const Cell &p_candidate) {
+				double result = INF;
+				for (const PlanEntity &entity : plan.entities)
+				{
+					if (isSettlement(entity.kind))
+					{
+						result = std::min(result, std::hypot(p_candidate.row - entity.row, p_candidate.col - entity.col));
+					}
+				}
+				return result;
 			};
 
 			enum class CoastRule
@@ -149,22 +161,29 @@ namespace pg::worldgen
 				int got = 0;
 				std::vector<Cell> order = cells;
 				rng.shuffle(order);
-				int tries = 0;
-				const int maxTries = std::max(4000, static_cast<int>(order.size()));
-				while (got < p_count && tries < maxTries)
+				while (got < p_count)
 				{
-					const Cell &candidate = order[tries % order.size()];
-					++tries;
-					const double dCoast = distOcean.at(candidate.row, candidate.col);
-					if (p_rule == CoastRule::Coastal && dCoast > cfg.coastDistCells)
+					std::optional<Cell> selected;
+					double bestNearestSettlement = -1.0;
+					for (const Cell &candidate : order)
 					{
-						continue;
+						const double dCoast = distOcean.at(candidate.row, candidate.col);
+						if (p_rule == CoastRule::Coastal && dCoast > cfg.coastDistCells) continue;
+						if (!placementOk(candidate.row, candidate.col, p_kind, p_block, p_enforceTownDistance)) continue;
+						if (!isSettlement(p_kind))
+						{
+							selected = candidate;
+							break;
+						}
+						const double nearest = nearestSettlementDistance(candidate);
+						if (!selected || nearest > bestNearestSettlement)
+						{
+							selected = candidate;
+							bestNearestSettlement = nearest;
+						}
 					}
-					if (!placementOk(candidate.row, candidate.col, p_kind, p_block, p_enforceTownDistance))
-					{
-						continue;
-					}
-					plan.entities.push_back({.kind = p_kind, .row = candidate.row, .col = candidate.col, .zone = zone.id, .continent = zoneContinent.contains(zone.id) ? zoneContinent[zone.id] : 1});
+					if (!selected) break;
+					plan.entities.push_back({.kind = p_kind, .row = selected->row, .col = selected->col, .zone = zone.id, .continent = zoneContinent.contains(zone.id) ? zoneContinent[zone.id] : 1});
 					++got;
 				}
 				return got;
@@ -188,7 +207,7 @@ namespace pg::worldgen
 			{
 				plan.stats.warnings.push_back(
 					"zone " + std::to_string(zone.id) + ": settlement target " + std::to_string(cities + requiredTowns) +
-					"/" + std::to_string(townTarget) + " after preserving configured town distance");
+					"/" + std::to_string(townTarget) + " after preserving configured minimum town distance");
 			}
 
 			sample(PlanEntityKind::RarePoi, cfg.rarePoiPerZone, cfg.blockRare, CoastRule::Any);

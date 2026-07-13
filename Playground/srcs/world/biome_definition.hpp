@@ -72,12 +72,13 @@ namespace pg
 	};
 
 	// Macro-settlement density is owned by the biome rather than by a global
-	// per-zone quota.  distanceCells is measured between settlement markers in
-	// macro plan cells; the generator derives the total settlement count from
-	// the biome area's usable land.
+	// per-zone quota. densityDistanceCells determines the target count from the
+	// biome area; minimumDistanceCells controls how close settlement markers may
+	// be when that target is placed.
 	struct BiomeTownDistribution
 	{
-		double distanceCells = 0.0;
+		double densityDistanceCells = 0.0;
+		double minimumDistanceCells = 0.0;
 		bool requiresPort = false;
 	};
 

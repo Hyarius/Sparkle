@@ -121,9 +121,10 @@ namespace pg
 		// placement.
 		std::map<PlanEntityKind, std::vector<std::string>> entityPrefabs;
 		std::optional<PlanTown> town;
-		// Required per-biome settlement distribution.  The area divided by this
-		// spacing squared determines the total number of settlements in a zone.
-		double townDistanceCells = 0.0;
+		// Required per-biome settlement distribution. The density distance derives
+		// a zone's target count; the minimum distance constrains its markers.
+		double townDensityDistanceCells = 0.0;
+		double minimumTownDistanceCells = 0.0;
 		bool requiresPort = false;
 		// Decorative structures scattered on clear land in this biome. Unlike POIs these
 		// have no gameplay role and may be multi-voxel prefabs such as trees or plants.
@@ -374,7 +375,7 @@ namespace pg
 		int lakeMaxSize = 40; // [lakeMinSize, size * size]
 
 		// POI quotas (per zone), each in [0, MaximumPerZoneCount]. Settlement
-		// counts are instead derived from each biome's townDistanceCells.
+		// counts are instead derived from each biome's townDensityDistanceCells.
 		int normalPoiPerZone = 5;
 		int uncommonPoiPerZone = 2;
 		int rarePoiPerZone = 2;

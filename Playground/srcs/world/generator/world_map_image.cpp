@@ -9,11 +9,26 @@
 
 #include <stb_image_write.h>
 
+#include <Windows.h>
+
 // Self-contained raster renderer: RGB byte canvas + tiny 5x7 bitmap font + a handful of
 // marker shapes, saved through stb_image_write (whose implementation Sparkle compiles).
 
 namespace
 {
+	[[nodiscard]] std::filesystem::path executableDirectory()
+	{
+		wchar_t buffer[MAX_PATH];
+		const DWORD length = ::GetModuleFileNameW(nullptr, buffer, MAX_PATH);
+		// A zero return or a full buffer means the path could not be retrieved reliably;
+		// the working directory is the best remaining approximation.
+		if (length == 0 || length >= MAX_PATH)
+		{
+			return std::filesystem::current_path();
+		}
+		return std::filesystem::path(buffer, buffer + length).parent_path();
+	}
+
 	struct Color
 	{
 		std::uint8_t r = 0;
@@ -328,6 +343,11 @@ namespace
 
 namespace pg
 {
+	std::filesystem::path worldMapOutputPath(std::uint64_t p_seed)
+	{
+		return executableDirectory() / ("world_map_" + std::to_string(p_seed) + ".png");
+	}
+
 	bool writeWorldMapPng(const WorldPlan &p_plan, const std::filesystem::path &p_path)
 	{
 		const int size = p_plan.config.size;

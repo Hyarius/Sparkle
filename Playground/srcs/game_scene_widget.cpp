@@ -377,8 +377,7 @@ namespace pg
 
 		if (p_options.writeWorldMapPreview)
 		{
-			const std::filesystem::path mapPath =
-				std::filesystem::path(PG_RESOURCE_DIR).parent_path() / "world_map.png";
+			const std::filesystem::path mapPath = pg::worldMapOutputPath(_worldSeed);
 			if (writeWorldMapPng(*_worldPlan, mapPath))
 			{
 				std::cout << "world map written to " << mapPath.generic_string() << std::endl;

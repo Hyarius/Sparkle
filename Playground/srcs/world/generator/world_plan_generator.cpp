@@ -45,9 +45,10 @@ namespace pg::worldgen
 		plan.biomes = p_biomes;
 		for (const PlanBiome &biome : plan.biomes)
 		{
-			if (!std::isfinite(biome.townDistanceCells) || biome.townDistanceCells <= 0.0)
+			if (!std::isfinite(biome.townDensityDistanceCells) || biome.townDensityDistanceCells <= 0.0 ||
+				!std::isfinite(biome.minimumTownDistanceCells) || biome.minimumTownDistanceCells <= 0.0)
 			{
-				throw std::invalid_argument("world generation biome '" + biome.id + "' needs a positive townDistanceCells");
+				throw std::invalid_argument("world generation biome '" + biome.id + "' needs positive town density and minimum distances");
 			}
 		}
 		plan.land = Mask(size, 0);
@@ -172,7 +173,8 @@ namespace pg
 			biome.wildStairMaxLevels = definition.worldgen->wildStairs.maxLevels;
 			biome.wildStairSpacingCells = definition.worldgen->wildStairs.spacingCells;
 			biome.wildStairCandidateRatio = definition.worldgen->wildStairs.candidateRatio;
-			biome.townDistanceCells = definition.worldgen->towns.distanceCells;
+			biome.townDensityDistanceCells = definition.worldgen->towns.densityDistanceCells;
+			biome.minimumTownDistanceCells = definition.worldgen->towns.minimumDistanceCells;
 			biome.requiresPort = definition.worldgen->towns.requiresPort;
 			for (const BiomeScenery &scenery : definition.worldgen->scenery)
 			{

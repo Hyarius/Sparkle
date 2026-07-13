@@ -241,8 +241,7 @@ int main(int argc, char **argv)
 				registries.townCompositions(),
 				registries.interiors());
 			std::cout << plan.report();
-			const std::filesystem::path mapPath =
-				std::filesystem::path(PG_RESOURCE_DIR).parent_path() / "world_map.png";
+			const std::filesystem::path mapPath = pg::worldMapOutputPath(worldSeed);
 			if (!pg::writeWorldMapPng(plan, mapPath))
 			{
 				std::cerr << "failed to write " << mapPath.generic_string() << std::endl;

@@ -155,11 +155,23 @@ namespace pg
 			}
 			{
 				JsonReader townsReader = worldgenReader.child("towns");
-				townsReader.forbidUnknown({"distanceCells", "requiresPort"});
-				traits.towns.distanceCells = requireFiniteDouble(townsReader, "distanceCells");
-				if (traits.towns.distanceCells <= 0.0)
+				townsReader.forbidUnknown({"densityDistanceCells", "minimumDistanceCells", "distanceCells", "requiresPort"});
+				if (townsReader.contains("densityDistanceCells") && townsReader.contains("distanceCells"))
 				{
-					throw JsonError(townsReader.file(), townsReader.pathFor("distanceCells"), "distanceCells must be greater than zero");
+					throw JsonError(townsReader.file(), townsReader.pathFor("densityDistanceCells"), "use densityDistanceCells instead of the legacy distanceCells, not both");
+				}
+				const std::string densityKey = townsReader.contains("densityDistanceCells") ? "densityDistanceCells" : "distanceCells";
+				traits.towns.densityDistanceCells = requireFiniteDouble(townsReader, densityKey);
+				traits.towns.minimumDistanceCells = townsReader.contains("minimumDistanceCells")
+					? requireFiniteDouble(townsReader, "minimumDistanceCells")
+					: traits.towns.densityDistanceCells;
+				if (traits.towns.densityDistanceCells <= 0.0)
+				{
+					throw JsonError(townsReader.file(), townsReader.pathFor(densityKey), "densityDistanceCells must be greater than zero");
+				}
+				if (traits.towns.minimumDistanceCells <= 0.0)
+				{
+					throw JsonError(townsReader.file(), townsReader.pathFor("minimumDistanceCells"), "minimumDistanceCells must be greater than zero");
 				}
 				traits.towns.requiresPort = townsReader.optional<bool>("requiresPort", false);
 			}

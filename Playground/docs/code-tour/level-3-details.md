@@ -161,14 +161,16 @@ cell.
 ### 2.7 placeEntities
 
 Per zone: candidate cells = in-zone, dry land. The biome's required
-`worldgen.towns.distanceCells` turns usable land area into a settlement target:
-`ceil(placeableCells / distanceCells²)`. The target includes mandatory roles: every
-zone gets one gym, and a biome with `worldgen.towns.requiresPort` gets one waterfront
-port town. The remaining target slots are ordinary cities. Settlement markers honour
-the larger configured distance of the two biomes at a boundary; POIs still use their
-global blocking and spread rules. A gym uses any dry cell so a placeable zone never
-loses its gym. A required port is an error rather than a
-silently dropped quota when its area has no coastal site.
+`worldgen.towns.densityDistanceCells` turns usable land area into a settlement target:
+`ceil(placeableCells / densityDistanceCells²)`. Its independent
+`minimumDistanceCells` is the marker separation actually enforced. The target includes
+mandatory roles: every zone gets one gym, and a biome with
+`worldgen.towns.requiresPort` gets one waterfront port town. The remaining target slots
+are ordinary cities. Settlement markers honour the larger configured minimum distance
+of the two biomes at a boundary and use farthest-point selection instead of accepting
+the first shuffled candidate; POIs still use their global blocking and spread rules. A
+gym uses any dry cell so a placeable zone never loses its gym. A required port is an
+error rather than a silently dropped quota when its area has no coastal site.
 
 ### 2.8 buildRoads + findPath + stepCost + removeRoadSquares
 

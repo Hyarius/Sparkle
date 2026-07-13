@@ -185,12 +185,13 @@ main street while preventing roads from cutting through buildings or doorways.
 
 ### Biome settlement density
 
-Each worldgen biome declares `worldgen.towns.distanceCells`. For each biome zone,
-generation counts usable dry land cells and derives its settlement target as
-`ceil(area / distanceCells²)`. The target includes one gym, plus one port when
-`worldgen.towns.requiresPort` is true; any remaining target slots become ordinary
-cities. The gym may use any dry cell so every placeable zone has one. A required port
-must reserve a waterfront town site; world
+Each worldgen biome declares `worldgen.towns.densityDistanceCells` and
+`minimumDistanceCells`. For each biome zone, generation counts usable dry land cells
+and derives its settlement target as `ceil(area / densityDistanceCells²)`, while
+`minimumDistanceCells` is the actual separation enforced during placement. The target
+includes one gym, plus one port when `worldgen.towns.requiresPort` is true; any
+remaining target slots become ordinary cities. The gym may use any dry cell so every
+placeable zone has one. A required port must reserve a waterfront town site; world
 generation reports an error rather than silently omitting it when the biome area has
 no viable coast.
 
