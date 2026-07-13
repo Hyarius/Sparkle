@@ -218,6 +218,10 @@ namespace pg
 		{
 			throw std::runtime_error("Scene lighting feature is unavailable");
 		}
+		// Single-tap shadow test (no PCF averaging): hard, texel-sharp shadow edges.
+		spk::DirectionalShadowSettings shadowSettings = _lighting->directionalShadowSettings();
+		shadowSettings.pcfRadius = 0;
+		_lighting->setDirectionalShadowSettings(shadowSettings);
 		_dayTimeLogic = &engine.add<DayTimeManagementLogic>(_sunEntity, *_lighting);
 
 		// Once-per-seed world skeleton: generate, report, and dump the preview map at the
