@@ -34,7 +34,10 @@ namespace pg
 		std::map<std::string, spk::VoxelTypeId> _stringToType;
 
 	public:
-		void load(const ShapeCatalog &p_shapes, const std::filesystem::path &p_voxelsDirectory);
+		void load(
+			const ShapeCatalog &p_shapes,
+			const VoxelFamilyCatalog &p_families,
+			const std::filesystem::path &p_voxelsDirectory);
 
 		// Type-level access (semantic voxel identity).
 		[[nodiscard]] const VoxelDefinition &get(const std::string &p_id) const;

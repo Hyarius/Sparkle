@@ -2,7 +2,7 @@
   "version": 2,
   "traversal": "solid",
   "tags": ["ground", "swamp"],
-  "shape": "cube",
+  "family": "terrain",
   "textures": {
     "top": [3, 0],
     "bottom": [2, 0],

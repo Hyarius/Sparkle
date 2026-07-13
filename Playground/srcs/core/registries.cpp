@@ -25,8 +25,17 @@ namespace pg
 			definition.id = p_id;
 			return definition;
 		});
+		VoxelFamilyCatalog loadedVoxelFamilies;
+		spk::loadJsonDirectory(
+			loadedVoxelFamilies,
+			p_dataDirectory / "voxel_families",
+			[&loadedShapes](std::string_view p_id, JsonReader &p_reader) {
+				VoxelFamilyDefinition definition = parseVoxelFamilyDefinition(p_reader, loadedShapes);
+				definition.id = p_id;
+				return definition;
+			});
 		VoxelRegistry loadedVoxels;
-		loadedVoxels.load(loadedShapes, p_dataDirectory / "voxels");
+		loadedVoxels.load(loadedShapes, loadedVoxelFamilies, p_dataDirectory / "voxels");
 		// Prefabs load before biomes: a biome's worldgen block may reference prefabs.
 		Registry<PrefabDefinition> loadedPrefabs;
 		spk::loadJsonDirectory(loadedPrefabs, p_dataDirectory / "prefabs", [&loadedVoxels](std::string_view p_id, JsonReader &p_reader) {
@@ -99,6 +108,7 @@ namespace pg
 
 		_gameRules = std::move(loadedGameRules);
 		_shapes = std::move(loadedShapes);
+		_voxelFamilies = std::move(loadedVoxelFamilies);
 		_voxels = std::move(loadedVoxels);
 		_biomes = std::move(loadedBiomes);
 		_prefabs = std::move(loadedPrefabs);
@@ -113,6 +123,7 @@ namespace pg
 
 	const GameRules &Registries::gameRules() const noexcept { return _gameRules; }
 	const ShapeCatalog &Registries::shapes() const noexcept { return _shapes; }
+	const VoxelFamilyCatalog &Registries::voxelFamilies() const noexcept { return _voxelFamilies; }
 	const VoxelRegistry &Registries::voxels() const noexcept { return _voxels; }
 	const Registry<BiomeDefinition> &Registries::biomes() const noexcept { return _biomes; }
 	const Registry<PrefabDefinition> &Registries::prefabs() const noexcept { return _prefabs; }

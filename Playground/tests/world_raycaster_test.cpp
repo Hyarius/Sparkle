@@ -2,6 +2,7 @@
 
 #include "core/paths.hpp"
 #include "voxel/shape_catalog.hpp"
+#include "voxel/voxel_family_definition.hpp"
 #include "voxel/voxel_registry.hpp"
 #include "world/voxel_world.hpp"
 
@@ -22,8 +23,18 @@ TEST(VoxelRayCastPlaygroundPolicy, IgnoresPassableVoxelsAndSelectsSolidVoxels)
 			return definition;
 		});
 	pg::VoxelRegistry registry;
-	registry.load(shapes, pg::resourceRoot() / "data" / "voxels");
-	pg::VoxelWorld world(registry, [](spk::VoxelChunk &) {});
+	pg::VoxelFamilyCatalog families;
+	spk::loadJsonDirectory(
+		families,
+		pg::resourceRoot() / "data" / "voxel_families",
+		[&shapes](std::string_view p_id, pg::JsonReader &p_reader) {
+			pg::VoxelFamilyDefinition definition = pg::parseVoxelFamilyDefinition(p_reader, shapes);
+			definition.id = p_id;
+			return definition;
+		});
+	registry.load(shapes, families, pg::resourceRoot() / "data" / "voxels");
+	pg::VoxelWorld world(registry, [](spk::VoxelChunk &) {
+	});
 	world.loadChunk({0, 0, 0});
 	ASSERT_TRUE(world.setCell({1, 0, 0}, {.id = registry.numericId("bush")}));
 	ASSERT_TRUE(world.setCell({2, 0, 0}, {.id = registry.numericId("stone-block")}));

@@ -35,7 +35,16 @@ namespace
 					definition.id = p_id;
 					return definition;
 				});
-			registry.load(shapes, pg::resourceRoot() / "data" / "voxels");
+			pg::VoxelFamilyCatalog families;
+			spk::loadJsonDirectory(
+				families,
+				pg::resourceRoot() / "data" / "voxel_families",
+				[&shapes](std::string_view p_id, pg::JsonReader &p_reader) {
+					pg::VoxelFamilyDefinition definition = pg::parseVoxelFamilyDefinition(p_reader, shapes);
+					definition.id = p_id;
+					return definition;
+				});
+			registry.load(shapes, families, pg::resourceRoot() / "data" / "voxels");
 
 			const spk::VoxelRuntimeId floor = registry.numericId("stone-block");
 			const spk::VoxelRuntimeId source = registry.numericId("water");

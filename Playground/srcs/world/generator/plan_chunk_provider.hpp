@@ -8,6 +8,7 @@
 
 #include <cstdint>
 #include <map>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -23,9 +24,9 @@ namespace pg
 	struct PrefabDefinition;
 
 	// Realizes a WorldPlan as voxels, one chunk at a time:
-	//  - every plan cell becomes a flat blocksPerCell x blocksPerCell plateau whose
-	//    surface sits at groundLevelTop + level * blocksPerLevel (the 3-block strata),
-	//    topped with the biome surface block over subsurface/deep layers;
+	//  - every plan cell becomes a blocksPerCell x blocksPerCell height plate centered
+	//    on groundLevelTop + level * blocksPerLevel (the 3-block strata), with subtle
+	//    deterministic +/-1 voxel Perlin relief and material-matched slab transitions;
 	//  - rivers carve a channel along the cell's water connections, lakes flood the
 	//    whole cell, the ocean surrounds the landmass;
 	//  - road cells get a 3-wide paved strip toward each connected road neighbor,
@@ -64,8 +65,9 @@ namespace pg
 			spk::VoxelRuntimeId surfaceId{};
 			spk::VoxelRuntimeId subsurfaceId{};
 			spk::VoxelRuntimeId deepId{};
-			int waterY = -1;		 // water block at this height (-1: none)
-			int subsurfaceDepth = 3; // blocks of subsurface under the surface block
+			spk::VoxelRuntimeId slabId{}; // optional half-height cap at groundTop + 1
+			int waterY = -1;			  // water block at this height (-1: none)
+			int subsurfaceDepth = 3;	  // blocks of subsurface under the surface block
 		};
 
 		const WorldPlan &_plan;
@@ -75,6 +77,7 @@ namespace pg
 		spk::VoxelRuntimeId _water{};
 		spk::VoxelRuntimeId _sand{};
 		spk::VoxelRuntimeId _stone{};
+		std::map<spk::VoxelRuntimeId, spk::VoxelRuntimeId> _slabByBase;
 		std::vector<ResolvedPlacement> _placements;
 		// Town buildings have a level door selected by the planner. Their complete
 		// content footprints are cut or filled to that level before prefab stamping,
@@ -83,7 +86,13 @@ namespace pg
 		// Exact urban paving is indexed once when the immutable provider is built;
 		// chunk columns never scan every town record.
 		std::map<std::pair<int, int>, int> _urbanRoadSurfaceY;
+		// Authored prefab/town/stair columns and a one-column guard ring stay at their
+		// planned elevation. This keeps doors, foundations and macro stair exits exact.
+		std::set<std::pair<int, int>> _terrainVariationBlocked;
+		std::vector<std::uint64_t> _heightNoiseSeeds;
+		std::uint64_t _terrainTransitionNoiseSeed = 0;
 
+		[[nodiscard]] int _terrainOffset(int p_worldX, int p_worldZ) const;
 		[[nodiscard]] Column _column(int p_worldX, int p_worldZ) const;
 		void _stamp(spk::VoxelChunk &p_chunk, const ResolvedPlacement &p_placement) const;
 

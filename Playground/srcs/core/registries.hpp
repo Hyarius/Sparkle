@@ -3,10 +3,11 @@
 #include "core/game_rules.hpp"
 #include "core/registry.hpp"
 #include "voxel/shape_catalog.hpp"
+#include "voxel/voxel_family_definition.hpp"
 #include "voxel/voxel_registry.hpp"
 #include "world/biome_definition.hpp"
-#include "world/generator/world_plan.hpp"
 #include "world/generator/town_composition.hpp"
+#include "world/generator/world_plan.hpp"
 #include "world/interior_definition.hpp"
 #include "world/prefab_definition.hpp"
 
@@ -19,6 +20,7 @@ namespace pg
 	private:
 		GameRules _gameRules;
 		ShapeCatalog _shapes;
+		VoxelFamilyCatalog _voxelFamilies;
 		VoxelRegistry _voxels;
 		Registry<BiomeDefinition> _biomes;
 		Registry<PrefabDefinition> _prefabs;
@@ -33,6 +35,7 @@ namespace pg
 		// Data-driven voxel geometry (resources/data/shapes), the factory the voxel
 		// registry instantiates its render shapes from.
 		[[nodiscard]] const ShapeCatalog &shapes() const noexcept;
+		[[nodiscard]] const VoxelFamilyCatalog &voxelFamilies() const noexcept;
 		[[nodiscard]] const VoxelRegistry &voxels() const noexcept;
 		[[nodiscard]] const Registry<BiomeDefinition> &biomes() const noexcept;
 		[[nodiscard]] const Registry<PrefabDefinition> &prefabs() const noexcept;

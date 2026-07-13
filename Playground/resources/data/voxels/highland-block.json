@@ -2,7 +2,7 @@
   "version": 2,
   "traversal": "solid",
   "tags": ["ground", "highland"],
-  "shape": "cube",
+  "family": "terrain",
   "textures": {
     "top": [6, 0],
     "bottom": [3, 0],

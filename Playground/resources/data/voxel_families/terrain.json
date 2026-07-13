@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "baseShape": "cube",
+  "variants": [
+    {
+      "name": "slab",
+      "shape": "slab",
+      "textures": { "top": "top", "bottom": "bottom", "side": "side" }
+    },
+    {
+      "name": "stair",
+      "shape": "stair",
+      "textures": {
+        "top": "top", "riser": "side", "back": "side", "bottom": "bottom",
+        "sideLeft": "side", "sideRight": "side"
+      }
+    },
+    {
+      "name": "slope",
+      "shape": "slope",
+      "textures": {
+        "slope": "top", "back": "side", "bottom": "bottom",
+        "sideLeft": "side", "sideRight": "side"
+      }
+    }
+  ]
+}

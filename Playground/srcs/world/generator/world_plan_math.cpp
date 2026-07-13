@@ -2,6 +2,8 @@
 
 #include "core/deterministic_random.hpp"
 
+#include <array>
+#include <cmath>
 #include <deque>
 #include <limits>
 #include <utility>
@@ -44,6 +46,92 @@ namespace pg::worldgen
 			}
 		}
 		return result;
+	}
+
+	double perlinNoise(
+		std::uint64_t p_seed,
+		double p_worldX,
+		double p_worldZ,
+		double p_featureSize)
+	{
+		if (!std::isfinite(p_featureSize) || p_featureSize <= 0.0)
+		{
+			return 0.0;
+		}
+
+		const double x = p_worldX / p_featureSize;
+		const double z = p_worldZ / p_featureSize;
+		const auto x0 = static_cast<std::int64_t>(std::floor(x));
+		const auto z0 = static_cast<std::int64_t>(std::floor(z));
+		const double tx = x - static_cast<double>(x0);
+		const double tz = z - static_cast<double>(z0);
+		const auto fade = [](double p_value) {
+			return p_value * p_value * p_value * (p_value * (p_value * 6.0 - 15.0) + 10.0);
+		};
+		const auto interpolate = [](double p_from, double p_to, double p_amount) {
+			return p_from + (p_to - p_from) * p_amount;
+		};
+		const auto gradientDot = [p_seed](std::int64_t p_x, std::int64_t p_z, double p_dx, double p_dz) {
+			// Axis and diagonal gradients keep the sampler inexpensive while the
+			// avalanche removes visible correlation between neighboring lattice cells.
+			static constexpr double diagonal = 0.70710678118654752440;
+			static constexpr std::array<std::pair<double, double>, 8> gradients = {
+				std::pair{1.0, 0.0},
+				std::pair{-1.0, 0.0},
+				std::pair{0.0, 1.0},
+				std::pair{0.0, -1.0},
+				std::pair{diagonal, diagonal},
+				std::pair{-diagonal, diagonal},
+				std::pair{diagonal, -diagonal},
+				std::pair{-diagonal, -diagonal}};
+			std::uint64_t hash = static_cast<std::uint64_t>(p_x);
+			hash ^= deterministic::avalanche(static_cast<std::uint64_t>(p_z) + 0x9e3779b97f4a7c15ULL);
+			hash = deterministic::avalanche(hash ^ p_seed);
+			const auto &[gx, gz] = gradients[hash & 7U];
+			return gx * p_dx + gz * p_dz;
+		};
+
+		const double top = interpolate(
+			gradientDot(x0, z0, tx, tz),
+			gradientDot(x0 + 1, z0, tx - 1.0, tz),
+			fade(tx));
+		const double bottom = interpolate(
+			gradientDot(x0, z0 + 1, tx, tz - 1.0),
+			gradientDot(x0 + 1, z0 + 1, tx - 1.0, tz - 1.0),
+			fade(tx));
+		// The theoretical extrema of this gradient set fit comfortably inside this
+		// normalization. Clamp protects the public contract from round-off drift.
+		return std::clamp(interpolate(top, bottom, fade(tz)) * 1.4142135623730950488, -1.0, 1.0);
+	}
+
+	double fractalPerlinNoise(
+		std::uint64_t p_seed,
+		double p_worldX,
+		double p_worldZ,
+		double p_featureSize,
+		int p_octaves,
+		double p_persistence)
+	{
+		if (!std::isfinite(p_featureSize) || p_featureSize <= 0.0 || !std::isfinite(p_persistence) ||
+			p_persistence <= 0.0 || p_octaves <= 0)
+		{
+			return 0.0;
+		}
+
+		double total = 0.0;
+		double amplitude = 1.0;
+		double amplitudeSum = 0.0;
+		double featureSize = p_featureSize;
+		for (int octave = 0; octave < p_octaves; ++octave)
+		{
+			const std::uint64_t octaveSeed = deterministic::avalanche(
+				p_seed + static_cast<std::uint64_t>(octave) * 0x9e3779b97f4a7c15ULL);
+			total += perlinNoise(octaveSeed, p_worldX, p_worldZ, featureSize) * amplitude;
+			amplitudeSum += amplitude;
+			amplitude *= p_persistence;
+			featureSize *= 0.5;
+		}
+		return std::clamp(total / amplitudeSum, -1.0, 1.0);
 	}
 
 	PlanGrid<int> distanceTo(const Mask &p_mask)

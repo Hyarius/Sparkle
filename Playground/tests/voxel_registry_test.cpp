@@ -3,6 +3,7 @@
 #include "core/paths.hpp"
 #include "voxel/shape_catalog.hpp"
 #include "voxel/voxel_definition.hpp"
+#include "voxel/voxel_family_definition.hpp"
 #include "voxel/voxel_registry.hpp"
 
 #include "structures/voxel/spk_voxel_mesher.hpp"
@@ -34,13 +35,30 @@ namespace
 		return shapes;
 	}
 
+	[[nodiscard]] const pg::VoxelFamilyCatalog &loadedFamilies()
+	{
+		static const pg::VoxelFamilyCatalog families = [] {
+			pg::VoxelFamilyCatalog result;
+			spk::loadJsonDirectory(
+				result,
+				pg::resourceRoot() / "data" / "voxel_families",
+				[](std::string_view p_id, pg::JsonReader &p_reader) {
+					pg::VoxelFamilyDefinition definition = pg::parseVoxelFamilyDefinition(p_reader, loadedShapes());
+					definition.id = p_id;
+					return definition;
+				});
+			return result;
+		}();
+		return families;
+	}
+
 	// The full resource catalog, loaded once: also proves every shipped voxel file still
 	// parses under the type/state model.
 	[[nodiscard]] const pg::VoxelRegistry &loadedVoxels()
 	{
 		static const pg::VoxelRegistry registry = [] {
 			pg::VoxelRegistry result;
-			result.load(loadedShapes(), pg::resourceRoot() / "data" / "voxels");
+			result.load(loadedShapes(), loadedFamilies(), pg::resourceRoot() / "data" / "voxels");
 			return result;
 		}();
 		return registry;
@@ -50,23 +68,23 @@ namespace
 	{
 		const spk::JSON::Value value = spk::JSON::Value::fromString(p_json);
 		pg::JsonReader reader(value, "<test>");
-		return pg::parseVoxelDefinition(reader, loadedShapes());
+		return pg::parseVoxelDefinition(reader, loadedShapes(), loadedFamilies());
 	}
 
-TEST(VoxelLightingDefinition, ParsesPointLightWithSparkleColor)
-{
-	const pg::ParsedVoxel voxel = parseFromText(R"({
+	TEST(VoxelLightingDefinition, ParsesPointLightWithSparkleColor)
+	{
+		const pg::ParsedVoxel voxel = parseFromText(R"({
         "version": 2, "traversal": "solid", "tags": [], "shape": "cube",
         "light": { "type": "point", "color": "#3366CC80", "power": 8.0, "reach": 12.0 },
         "textures": { "top": [0,0], "bottom": [0,0], "side": [0,0] }
     })");
-	ASSERT_TRUE(voxel.light.has_value());
-	EXPECT_EQ(voxel.light->type, pg::VoxelLightType::Point);
-	EXPECT_FLOAT_EQ(voxel.light->color.r, 0x33 / 255.0f);
-	EXPECT_FLOAT_EQ(voxel.light->color.a, 0x80 / 255.0f);
-	EXPECT_FLOAT_EQ(voxel.light->power, 8.0f);
-	EXPECT_FLOAT_EQ(voxel.light->reach, 12.0f);
-}
+		ASSERT_TRUE(voxel.light.has_value());
+		EXPECT_EQ(voxel.light->type, pg::VoxelLightType::Point);
+		EXPECT_FLOAT_EQ(voxel.light->color.r, 0x33 / 255.0f);
+		EXPECT_FLOAT_EQ(voxel.light->color.a, 0x80 / 255.0f);
+		EXPECT_FLOAT_EQ(voxel.light->power, 8.0f);
+		EXPECT_FLOAT_EQ(voxel.light->reach, 12.0f);
+	}
 
 	// A scratch voxel directory for end-to-end load() tests.
 	class VoxelDirectory
@@ -520,7 +538,7 @@ TEST(VoxelRegistryStates, MultiStateVoxelResolvesExplicitStates)
 	VoxelDirectory directory;
 	directory.add("two-state-bush", kTwoStateBush);
 	pg::VoxelRegistry registry;
-	registry.load(loadedShapes(), directory.path());
+	registry.load(loadedShapes(), loadedFamilies(), directory.path());
 
 	EXPECT_EQ(registry.typeCount(), 1u);
 	EXPECT_EQ(registry.runtimeStateCount(), 2u);
@@ -556,6 +574,24 @@ TEST(VoxelRegistryStates, MultiStateVoxelResolvesExplicitStates)
 
 	// Unknown states are rejected.
 	EXPECT_THROW((void)registry.runtimeId("two-state-bush", spk::VoxelStateId{2}), std::out_of_range);
+}
+
+TEST(VoxelRegistryStates, PlaygroundFamilyExpandsOneMaterialIntoShapeStates)
+{
+	const pg::VoxelRegistry &registry = loadedVoxels();
+	const pg::VoxelDefinition &grass = registry.get("grass-block");
+	ASSERT_EQ(grass.states.size(), 4u);
+	EXPECT_EQ(grass.states[0].name, "default");
+	EXPECT_EQ(grass.states[1].name, "slab");
+	EXPECT_EQ(grass.states[2].name, "stair");
+	EXPECT_EQ(grass.states[3].name, "slope");
+	EXPECT_FLOAT_EQ(grass.states[0].heights.positiveY.stationary, 1.0f);
+	EXPECT_FLOAT_EQ(grass.states[1].heights.positiveY.stationary, 0.5f);
+	EXPECT_EQ(registry.definition(grass.states[1].runtimeId).typeId, grass.typeId);
+
+	const pg::VoxelDefinition &road = registry.get("forest-road");
+	ASSERT_NE(road.tryState("slab"), nullptr);
+	EXPECT_EQ(registry.definition(road.tryState("slab")->runtimeId).id, "forest-road");
 }
 
 // ---------------------------------------------------------------------------

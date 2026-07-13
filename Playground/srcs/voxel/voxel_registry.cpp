@@ -30,14 +30,17 @@ namespace
 
 namespace pg
 {
-	void VoxelRegistry::load(const ShapeCatalog &p_shapes, const std::filesystem::path &p_voxelsDirectory)
+	void VoxelRegistry::load(
+		const ShapeCatalog &p_shapes,
+		const VoxelFamilyCatalog &p_families,
+		const std::filesystem::path &p_voxelsDirectory)
 	{
 		// Reuse the generic registry for file discovery, sorted-id ordering and duplicate-id
 		// checks, then register each parsed voxel as ONE spk voxel type whose states are its
 		// authored (or, for fluids, generated) render shapes.
 		Registry<ParsedVoxel> parsed;
-		spk::loadJsonDirectory(parsed, p_voxelsDirectory, [&p_shapes](std::string_view p_id, JsonReader &p_reader) {
-			ParsedVoxel voxel = parseVoxelDefinition(p_reader, p_shapes);
+		spk::loadJsonDirectory(parsed, p_voxelsDirectory, [&p_shapes, &p_families](std::string_view p_id, JsonReader &p_reader) {
+			ParsedVoxel voxel = parseVoxelDefinition(p_reader, p_shapes, p_families);
 			voxel.id = p_id;
 			return voxel;
 		});

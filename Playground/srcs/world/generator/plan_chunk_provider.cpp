@@ -3,9 +3,10 @@
 #include "core/deterministic_random.hpp"
 #include "core/registries.hpp"
 #include "voxel/voxel_registry.hpp"
+#include "world/generator/path_surface.hpp"
+#include "world/generator/world_plan_math.hpp"
 #include "world/prefab_definition.hpp"
 #include "world/prefab_placement_math.hpp"
-#include "world/generator/path_surface.hpp"
 
 #include "structures/voxel/spk_voxel_chunk.hpp"
 
@@ -57,6 +58,20 @@ namespace pg
 		_water = voxels.runtimeId("water");
 		_sand = voxels.runtimeId("sand-block");
 		_stone = voxels.runtimeId("stone-block");
+		for (const std::string &voxelId : voxels.ids())
+		{
+			const VoxelDefinition &definition = voxels.get(voxelId);
+			if (const VoxelStateDefinition *slab = definition.tryState("slab"); slab != nullptr)
+			{
+				_slabByBase.emplace(definition.defaultState().runtimeId, slab->runtimeId);
+			}
+		}
+		_heightNoiseSeeds.reserve(static_cast<std::size_t>(_plan.config.maxHeightLevel) + 1);
+		for (int level = 0; level <= _plan.config.maxHeightLevel; ++level)
+		{
+			_heightNoiseSeeds.push_back(worldgen::deriveSeed(_plan.config.masterSeed, "world/terrain-detail/height-plate/" + std::to_string(level)));
+		}
+		_terrainTransitionNoiseSeed = worldgen::deriveSeed(_plan.config.masterSeed, "world/terrain-detail/transition-width");
 		_fallbackBlocks = {
 			.surface = {{_stone, 1.0}},
 			.subsurface = {{_stone, 1.0}},
@@ -85,7 +100,7 @@ namespace pg
 				{.surface = numericPool(definition.palette.surface),
 				 .subsurface = numericPool(definition.palette.subsurface),
 				 .deep = numericPool(definition.palette.deep),
-					 .road = std::move(road)});
+				 .road = std::move(road)});
 		}
 		for (const PlanTownRecord &town : _plan.towns)
 		{
@@ -96,11 +111,15 @@ namespace pg
 			for (const std::size_t index : town.buildingPlacementIndices)
 			{
 				if (index >= _plan.placements.size())
+				{
 					throw std::logic_error("town building placement index is invalid during realization");
+				}
 				const PrefabPlacement &placement = _plan.placements[index];
 				const PrefabDefinition *prefab = p_registries.prefabs().tryGet(placement.prefabId);
 				if (prefab == nullptr)
+				{
 					throw std::logic_error("town building references an unknown prefab during realization");
+				}
 				const ResolvedPlacementBox box = resolvePlacement(prefab->prefab, placement);
 				// Town doors are planned at the prefab's lowest authored layer. Flatten
 				// its full content rectangle to that layer so the later prefab stamp
@@ -112,9 +131,34 @@ namespace pg
 					{
 						const auto [found, inserted] = _townBuildingGroundTop.emplace(std::pair{box.worldMin.x + dx, box.worldMin.z + dz}, groundTop);
 						if (!inserted && found->second != groundTop)
+						{
 							throw std::logic_error("overlapping town building terrain terraces disagree");
+						}
 					}
 				}
+			}
+		}
+
+		const auto blockVariation = [&](int p_minX, int p_maxX, int p_minZ, int p_maxZ) {
+			for (int z = p_minZ - 1; z <= p_maxZ + 1; ++z)
+			{
+				for (int x = p_minX - 1; x <= p_maxX + 1; ++x)
+				{
+					_terrainVariationBlocked.emplace(x, z);
+				}
+			}
+		};
+		for (const auto &[position, unused] : _urbanRoadSurfaceY)
+		{
+			(void)unused;
+			blockVariation(position.first, position.first, position.second, position.second);
+		}
+		for (const PlanStairway &stairway : _plan.stairways)
+		{
+			if (stairway.pavedApproach.has_value())
+			{
+				const PlanStairRect &rect = *stairway.pavedApproach;
+				blockVariation(rect.minX, rect.maxX, rect.minZ, rect.maxZ);
 			}
 		}
 
@@ -129,28 +173,127 @@ namespace pg
 			}
 			// Shared with the world planner (prefab_placement_math.hpp): the plan's
 			// claimed zones and stair footprints reason about exactly this box.
-			const ResolvedPlacementBox box = resolvePlacement(prefab->prefab, placement);
-			int realizationMinY = box.worldMin.y;
+			ResolvedPlacementBox box = resolvePlacement(prefab->prefab, placement);
 			if (placement.foundation)
 			{
-				for (int dz = 0; dz < box.extents.z; ++dz)
-				{
-					for (int dx = 0; dx < box.extents.x; ++dx)
-					{
-						const Column column = _column(box.worldMin.x + dx, box.worldMin.z + dz);
-						realizationMinY = std::min(realizationMinY, column.groundTop + 1);
-					}
-				}
+				// Structural prefabs are part of authored traversal: retain their planned
+				// height and flatten their footprint so doors and stairs remain exact.
+				blockVariation(
+					box.worldMin.x,
+					box.worldMin.x + box.extents.x - 1,
+					box.worldMin.z,
+					box.worldMin.z + box.extents.z - 1);
+			}
+			else
+			{
+				// Scenery follows the Perlin-shaped terrain at its anchor. It deliberately
+				// does not flatten its footprint, so it no longer erases terrain relief.
+				const int realizedAnchorY = surfaceHeight(placement.anchor.x, placement.anchor.z) + 1;
+				const int deltaY = realizedAnchorY - placement.anchor.y;
+				box.worldMin.y += deltaY;
+				box.destination.y += deltaY;
 			}
 			_placements.push_back(
 				{.definition = prefab,
 				 .worldMin = box.worldMin,
 				 .rotatedSize = box.extents,
 				 .destination = box.destination,
-				 .realizationMinY = realizationMinY,
+				 .realizationMinY = box.worldMin.y,
 				 .orientation = placement.orientation,
 				 .foundation = placement.foundation});
 		}
+
+		// Resolve foundation depths only after every placement has contributed its
+		// flat guard area; _column() can now safely sample terrain variation.
+		for (ResolvedPlacement &placement : _placements)
+		{
+			if (!placement.foundation)
+			{
+				continue;
+			}
+			for (int dz = 0; dz < placement.rotatedSize.z; ++dz)
+			{
+				for (int dx = 0; dx < placement.rotatedSize.x; ++dx)
+				{
+					const Column column = _column(placement.worldMin.x + dx, placement.worldMin.z + dz);
+					placement.realizationMinY = std::min(placement.realizationMinY, column.groundTop + 1);
+				}
+			}
+		}
+	}
+
+	int PlanChunkProvider::_terrainOffset(int p_worldX, int p_worldZ) const
+	{
+		const WorldGenConfig &cfg = _plan.config;
+		const int row = _plan.cellIndexFromWorld(p_worldZ);
+		const int col = _plan.cellIndexFromWorld(p_worldX);
+		if (!_plan.land.contains(row, col) || _plan.land.at(row, col) == 0 ||
+			_plan.height.at(row, col) < 0 || _plan.water.at(row, col) != 0 ||
+			_plan.lake.at(row, col) != 0 || cfg.terrainVariationThreshold >= 1.0 ||
+			_terrainVariationBlocked.contains({p_worldX, p_worldZ}))
+		{
+			return 0;
+		}
+
+		// Relief is continuous across adjacent cells of the same height plate, making
+		// the large Perlin features span more than one macro cell. Keep a two-block
+		// flat guard only where the neighboring cell changes plate (or is water), so
+		// macro cliffs and authored cross-plate stair connections stay exact.
+		const int level = _plan.height.at(row, col);
+		const int localX = p_worldX - (_plan.worldOffset() + col * cfg.blocksPerCell);
+		const int localZ = p_worldZ - (_plan.worldOffset() + row * cfg.blocksPerCell);
+		const auto sharesHeightPlate = [&](int p_row, int p_col) {
+			return _plan.land.contains(p_row, p_col) && _plan.land.at(p_row, p_col) != 0 &&
+				_plan.height.at(p_row, p_col) == level && _plan.water.at(p_row, p_col) == 0 &&
+				_plan.lake.at(p_row, p_col) == 0;
+		};
+		if ((localX <= 1 && !sharesHeightPlate(row, col - 1)) ||
+			(localX >= cfg.blocksPerCell - 2 && !sharesHeightPlate(row, col + 1)) ||
+			(localZ <= 1 && !sharesHeightPlate(row - 1, col)) ||
+			(localZ >= cfg.blocksPerCell - 2 && !sharesHeightPlate(row + 1, col)))
+		{
+			return 0;
+		}
+
+		if (level < 0 || static_cast<std::size_t>(level) >= _heightNoiseSeeds.size())
+		{
+			return 0;
+		}
+		const std::uint64_t seed = _heightNoiseSeeds[static_cast<std::size_t>(level)];
+		const auto quantized = [&](int p_x, int p_z) {
+			const double noise = worldgen::fractalPerlinNoise(
+				seed,
+				static_cast<double>(p_x),
+				static_cast<double>(p_z),
+				cfg.terrainVariationFeatureBlocks,
+				cfg.terrainVariationOctaves,
+				cfg.terrainVariationPersistence);
+			if (noise > cfg.terrainVariationThreshold)
+			{
+				return 1;
+			}
+			if (noise < -cfg.terrainVariationThreshold)
+			{
+				return -1;
+			}
+			return 0;
+		};
+		const int result = quantized(p_worldX, p_worldZ);
+		if (result == 0)
+		{
+			return 0;
+		}
+
+		// Even at unusually small configured feature sizes, never let adjacent
+		// samples jump directly from -1 to +1: a half slab can bridge one voxel only.
+		for (const auto &[dx, dz] : {std::pair{1, 0}, {-1, 0}, {0, 1}, {0, -1}})
+		{
+			if (quantized(p_worldX + dx, p_worldZ + dz) == -result)
+			{
+				return 0;
+			}
+		}
+		return result;
 	}
 
 	PlanChunkProvider::Column PlanChunkProvider::_column(int p_worldX, int p_worldZ) const
@@ -174,8 +317,24 @@ namespace pg
 		}
 		if (isOceanCell(row, col))
 		{
-			const PlanTownRecord *dockTown=nullptr;for(const PlanTownRecord &town:_plan.towns)if(std::ranges::find(town.dockCells,std::pair{row,col})!=town.dockCells.end()){dockTown=&town;break;}
-			if(dockTown!=nullptr&&dockTown->boardingEndpoint){column.groundTop=dockTown->boardingEndpoint->y-1;column.surfaceId=pickVoxel(_fallbackBlocks.road,p_worldX,p_worldZ,cfg.masterSeed,kRoadSalt);column.subsurfaceId=_sand;column.deepId=_stone;column.waterY=-1;return column;}
+			const PlanTownRecord *dockTown = nullptr;
+			for (const PlanTownRecord &town : _plan.towns)
+			{
+				if (std::ranges::find(town.dockCells, std::pair{row, col}) != town.dockCells.end())
+				{
+					dockTown = &town;
+					break;
+				}
+			}
+			if (dockTown != nullptr && dockTown->boardingEndpoint)
+			{
+				column.groundTop = dockTown->boardingEndpoint->y - 1;
+				column.surfaceId = pickVoxel(_fallbackBlocks.road, p_worldX, p_worldZ, cfg.masterSeed, kRoadSalt);
+				column.subsurfaceId = _sand;
+				column.deepId = _stone;
+				column.waterY = -1;
+				return column;
+			}
 			column.groundTop = 1;
 			column.surfaceId = _sand;
 			column.subsurfaceId = _sand;
@@ -185,9 +344,12 @@ namespace pg
 		}
 
 		const int level = _plan.height.at(row, col);
-		int surface = _plan.surfaceY(level);
+		const int terrainOffset = _terrainOffset(p_worldX, p_worldZ);
+		int surface = _plan.surfaceY(level) + terrainOffset;
 		if (const auto terraced = _townBuildingGroundTop.find({p_worldX, p_worldZ}); terraced != _townBuildingGroundTop.end())
+		{
 			surface = terraced->second;
+		}
 		const int zone = _plan.zone.at(row, col);
 		const BiomeBlocks &blocksOfBiome =
 			zone >= 0 ? _biomeBlocks[_plan.zones[zone].biomeIndex] : _fallbackBlocks;
@@ -260,6 +422,51 @@ namespace pg
 				break;
 			}
 		}
+
+		// Feather the lower side of every one-voxel noise edge with a short apron of
+		// half slabs. Its width is selected from a broad independent Perlin field, so
+		// each transition becomes an organic band instead of a one-block hard seam.
+		// The cap is derived from the already-picked surface/road material, preserving
+		// both weighted-pool selection and semantic voxel identity.
+		if (column.waterY < 0 && !_terrainVariationBlocked.contains({p_worldX, p_worldZ}))
+		{
+			const auto transitionWidth = [&](int p_edgeX, int p_edgeZ) {
+				const double noise = worldgen::fractalPerlinNoise(
+					_terrainTransitionNoiseSeed,
+					static_cast<double>(p_edgeX),
+					static_cast<double>(p_edgeZ),
+					cfg.terrainVariationFeatureBlocks,
+					cfg.terrainVariationOctaves,
+					cfg.terrainVariationPersistence);
+				const double normalized = std::clamp((noise + 1.0) * 0.5, 0.0, 1.0);
+				return 1 + std::min(
+					cfg.terrainVariationTransitionBlocks - 1,
+					static_cast<int>(normalized * static_cast<double>(cfg.terrainVariationTransitionBlocks)));
+			};
+			bool insideHigherApron = false;
+			for (const auto &[dx, dz] : {std::pair{1, 0}, {-1, 0}, {0, 1}, {0, -1}})
+			{
+				for (int distance = 1; distance <= cfg.terrainVariationTransitionBlocks; ++distance)
+				{
+					const int edgeX = p_worldX + dx * distance;
+					const int edgeZ = p_worldZ + dz * distance;
+					if (_terrainOffset(edgeX, edgeZ) != terrainOffset + 1)
+					{
+						continue;
+					}
+					insideHigherApron |= distance <= transitionWidth(edgeX, edgeZ);
+					break;
+				}
+			}
+			if (insideHigherApron)
+			{
+				const auto slab = _slabByBase.find(column.surfaceId);
+				if (slab != _slabByBase.end())
+				{
+					column.slabId = slab->second;
+				}
+			}
+		}
 		return column;
 	}
 
@@ -300,6 +507,10 @@ namespace pg
 						else if (worldY == column.waterY)
 						{
 							value.id = _water;
+						}
+						else if (worldY == column.groundTop + 1 && column.slabId.isValid())
+						{
+							value.id = column.slabId;
 						}
 						else
 						{
@@ -418,7 +629,8 @@ namespace pg
 
 	int PlanChunkProvider::surfaceHeight(int p_worldX, int p_worldZ) const
 	{
-		return _column(p_worldX, p_worldZ).groundTop;
+		const Column column = _column(p_worldX, p_worldZ);
+		return column.groundTop + (column.slabId.isValid() ? 1 : 0);
 	}
 
 	int PlanChunkProvider::maxHeight() const noexcept

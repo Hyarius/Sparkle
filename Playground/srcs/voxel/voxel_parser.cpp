@@ -157,6 +157,13 @@ namespace
 				p_reader.pathFor("states"),
 				"'fluid' and authored 'states' cannot coexist (fluid states are generated)");
 		}
+		if (p_reader.contains("family"))
+		{
+			throw pg::JsonError(
+				p_reader.file(),
+				p_reader.pathFor("family"),
+				"fluid states are engine-generated and cannot use a voxel family");
+		}
 		if (p_traversal != pg::VoxelTraversal::Passable)
 		{
 			throw pg::JsonError(
@@ -293,13 +300,45 @@ namespace
 		}
 		return states;
 	}
+
+	// A Playground voxel-family recipe expands one material into named shape states.
+	// State 0 remains the family base shape and recipe variants follow in JSON order.
+	[[nodiscard]] std::vector<pg::ParsedVoxelState> makeFamilyStates(
+		const pg::ShapeDefinition &p_baseShape,
+		const spk::VoxelShape::TextureSlots &p_baseTextures,
+		const pg::ShapeCatalog &p_shapes,
+		const pg::VoxelFamilyDefinition &p_family,
+		float p_transparency)
+	{
+		std::vector<pg::ParsedVoxelState> states;
+		states.push_back(makeState(spk::VoxelStateId{}, "default", p_baseShape, p_baseTextures, p_transparency));
+		for (const pg::VoxelFamilyVariant &familyVariant : p_family.variants)
+		{
+			const pg::ShapeDefinition &variant = p_shapes.get(familyVariant.shapeId);
+			spk::VoxelShape::TextureSlots textures;
+			for (const auto &[targetSlot, sourceSlot] : familyVariant.textureMapping)
+			{
+				textures.emplace(targetSlot, p_baseTextures.at(sourceSlot));
+			}
+			states.push_back(makeState(
+				spk::VoxelStateId{static_cast<std::uint16_t>(states.size())},
+				familyVariant.name,
+				variant,
+				std::move(textures),
+				p_transparency));
+		}
+		return states;
+	}
 }
 
 namespace pg
 {
-	ParsedVoxel parseVoxelDefinition(JsonReader &p_reader, const ShapeCatalog &p_shapes)
+	ParsedVoxel parseVoxelDefinition(
+		JsonReader &p_reader,
+		const ShapeCatalog &p_shapes,
+		const VoxelFamilyCatalog &p_families)
 	{
-		p_reader.forbidUnknown({"version", "traversal", "tags", "transparency", "shape", "textures", "states", "fluid", "light"});
+		p_reader.forbidUnknown({"version", "traversal", "tags", "transparency", "shape", "family", "textures", "states", "fluid", "light"});
 
 		const int version = p_reader.require<int>("version");
 		if (version != 2 && version != 3)
@@ -343,11 +382,31 @@ namespace pg
 			return result;
 		}
 
-		const ShapeDefinition &shape = resolveShape(p_reader, p_shapes);
+		if (p_reader.contains("shape") == p_reader.contains("family"))
+		{
+			throw JsonError(p_reader.file(), p_reader.path(), "ordinary voxels require exactly one of 'shape' or 'family'");
+		}
+		const VoxelFamilyDefinition *family = nullptr;
+		const ShapeDefinition *shape = nullptr;
+		if (p_reader.contains("family"))
+		{
+			const std::string familyId = p_reader.require<std::string>("family");
+			family = p_families.tryGet(familyId);
+			if (family == nullptr)
+			{
+				throw JsonError(p_reader.file(), p_reader.pathFor("family"), "unknown voxel family '" + familyId + "'");
+			}
+			shape = &p_shapes.get(family->baseShapeId);
+		}
+		else
+		{
+			shape = &resolveShape(p_reader, p_shapes);
+		}
 
 		if (version == 2)
 		{
-			// A version 2 file is one voxel type with one state: id 0, name "default".
+			// A version 2 file always has the default state and can derive named geometry
+			// variants from a cube while keeping one semantic type/material definition.
 			if (p_reader.contains("states"))
 			{
 				throw JsonError(
@@ -356,10 +415,17 @@ namespace pg
 					"'states' requires version 3 (version 2 voxels author one top-level 'textures' block)");
 			}
 			JsonReader texturesReader = p_reader.child("textures");
-			spk::VoxelShape::TextureSlots textures = readTextures(texturesReader, shape);
+			spk::VoxelShape::TextureSlots textures = readTextures(texturesReader, *shape);
 
 			ParsedRegularVoxel regular;
-			regular.states.push_back(makeState(spk::VoxelStateId{}, "default", shape, std::move(textures), transparency));
+			if (family != nullptr)
+			{
+				regular.states = makeFamilyStates(*shape, textures, p_shapes, *family, transparency);
+			}
+			else
+			{
+				regular.states.push_back(makeState(spk::VoxelStateId{}, "default", *shape, std::move(textures), transparency));
+			}
 			result.rendering = std::move(regular);
 			return result;
 		}
@@ -372,11 +438,18 @@ namespace pg
 				p_reader.pathFor("textures"),
 				"version 3 voxels author textures per state ('textures' belongs inside 'states')");
 		}
+		if (family != nullptr)
+		{
+			throw JsonError(
+				p_reader.file(),
+				p_reader.pathFor("family"),
+				"voxel families use version 2 material textures; version 3 authors same-shape states");
+		}
 		if (!p_reader.contains("states"))
 		{
 			throw JsonError(p_reader.file(), p_reader.pathFor("states"), "version 3 voxels require a 'states' array");
 		}
-		result.rendering = ParsedRegularVoxel{.states = parseStates(p_reader, shape, transparency)};
+		result.rendering = ParsedRegularVoxel{.states = parseStates(p_reader, *shape, transparency)};
 		return result;
 	}
 }

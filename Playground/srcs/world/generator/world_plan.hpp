@@ -182,7 +182,7 @@ namespace pg
 		std::string prefabId;
 		spk::Vector3Int anchor{};
 		spk::VoxelOrientation orientation = spk::VoxelOrientation::PositiveZ;
-		bool foundation = false;
+		bool foundation = false; // also opts out of terrain-following placement
 		// Default placements center the rotated footprint on anchor.x/z and place its
 		// lowest authored layer at anchor.y. Pivot-anchored placements instead land the
 		// prefab's authored pivot exactly on anchor; multi-level stairs use this to pin
@@ -413,6 +413,16 @@ namespace pg
 		int blocksPerCell = 8; // [4, MaximumBlocksPerCell]
 		int blocksPerLevel = 3; // [1, min(MaximumBlocksPerLevel, blocksPerCell)]
 		int groundLevelTop = 3; // [-MaximumGroundMagnitude, MaximumGroundMagnitude]
+		// Broad, multi-octave voxel-scale relief. Samples above/below the threshold
+		// move a column by exactly one voxel; half-height slabs form the transition belt.
+		double terrainVariationFeatureBlocks = 96.0; // finite (0, 4096]
+		int terrainVariationOctaves = 3; // [1, 8]
+		double terrainVariationPersistence = 0.55; // finite (0, 1]
+		double terrainVariationThreshold = 0.22; // finite [0, 1]; 1 disables variation
+		// The lower side of a one-voxel relief edge receives a noise-shaped apron of
+		// half slabs. One block is always enough to traverse it; extra width softens
+		// the visual transition without altering the full-block elevation.
+		int terrainVariationTransitionBlocks = 3; // [1, 8]
 
 		// Interiors: composed room layouts live in a reserved band of columns past the
 		// east edge of the world (terrain realization leaves the band void), one square

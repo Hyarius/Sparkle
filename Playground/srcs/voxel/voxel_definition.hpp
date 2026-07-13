@@ -3,23 +3,30 @@
 #include "core/json.hpp"
 #include "voxel/shape_catalog.hpp"
 #include "voxel/voxel_data.hpp"
+#include "voxel/voxel_family_definition.hpp"
 #include "voxel/voxel_traversal_data.hpp"
 
+#include "structures/graphics/geometry/spk_color.hpp"
 #include "structures/voxel/spk_voxel_fluid.hpp"
 #include "structures/voxel/spk_voxel_ids.hpp"
 #include "structures/voxel/spk_voxel_shape.hpp"
-#include "structures/graphics/geometry/spk_color.hpp"
 
 #include <memory>
 #include <optional>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <variant>
 #include <vector>
 
 namespace pg
 {
-	enum class VoxelLightType { Directional, Point, Spot };
+	enum class VoxelLightType
+	{
+		Directional,
+		Point,
+		Spot
+	};
 	struct VoxelLightDefinition
 	{
 		VoxelLightType type = VoxelLightType::Point;
@@ -71,6 +78,18 @@ namespace pg
 			return *result;
 		}
 
+		[[nodiscard]] const VoxelStateDefinition *tryState(std::string_view p_name) const noexcept
+		{
+			for (const VoxelStateDefinition &candidate : states)
+			{
+				if (candidate.name == p_name)
+				{
+					return &candidate;
+				}
+			}
+			return nullptr;
+		}
+
 		[[nodiscard]] const VoxelStateDefinition &defaultState() const
 		{
 			return state(spk::VoxelStateId{});
@@ -106,9 +125,9 @@ namespace pg
 	// one of ordinary authored states or a generated fluid (never both). VoxelRegistry
 	// registers either as one spk voxel type and keeps the definitions on its side.
 	//
-	// Version 2 files author a single top-level "textures" block and become one state
-	// (id 0, name "default"); version 3 files author an explicit "states" array, or a
-	// "fluid" block with type-level "textures" (top/bottom/side).
+	// Version 2 files author a top-level "textures" block. They become state 0 ("default")
+	// and may request procedural shape variants that reuse those material textures.
+	// Version 3 files author an explicit same-shape "states" array, or a "fluid" block.
 	struct ParsedVoxel
 	{
 		std::string id;
@@ -118,5 +137,8 @@ namespace pg
 		std::variant<ParsedRegularVoxel, ParsedFluidVoxel> rendering;
 	};
 
-	[[nodiscard]] ParsedVoxel parseVoxelDefinition(JsonReader &p_reader, const ShapeCatalog &p_shapes);
+	[[nodiscard]] ParsedVoxel parseVoxelDefinition(
+		JsonReader &p_reader,
+		const ShapeCatalog &p_shapes,
+		const VoxelFamilyCatalog &p_families);
 }

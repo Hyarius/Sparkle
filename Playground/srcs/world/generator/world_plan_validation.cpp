@@ -254,6 +254,33 @@ namespace pg
 				p_config.groundLevelTop <= Config::MaximumGroundMagnitude,
 			"groundLevelTop",
 			"is outside the supported world-height range");
+		finiteRange(
+			"terrainVariationFeatureBlocks",
+			p_config.terrainVariationFeatureBlocks,
+			0.0,
+			4096.0,
+			false,
+			true);
+		require(
+			p_config.terrainVariationOctaves >= 1 && p_config.terrainVariationOctaves <= 8,
+			"terrainVariationOctaves",
+			"must be between 1 and 8");
+		finiteRange(
+			"terrainVariationPersistence",
+			p_config.terrainVariationPersistence,
+			0.0,
+			1.0,
+			false,
+			true);
+		finiteRange(
+			"terrainVariationThreshold",
+			p_config.terrainVariationThreshold,
+			0.0,
+			1.0);
+		require(
+			p_config.terrainVariationTransitionBlocks >= 1 && p_config.terrainVariationTransitionBlocks <= 8,
+			"terrainVariationTransitionBlocks",
+			"must be between 1 and 8");
 		require(
 			p_config.interiorRegionGap >= 0 && p_config.interiorRegionGap <= Config::MaximumInteriorGap,
 			"interiorRegionGap",

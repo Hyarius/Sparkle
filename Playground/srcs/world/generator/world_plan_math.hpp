@@ -84,6 +84,27 @@ namespace pg::worldgen
 	// smoothstep on the fractional part (port of _value_noise).
 	[[nodiscard]] Field valueNoise(Rng &p_rng, int p_size, double p_scale);
 
+	// Seamless deterministic 2D Perlin noise. Coordinates are world-space voxel
+	// columns and p_featureSize is the average width of a noise feature. The result
+	// is centered on zero and remains in [-1, 1]. Unlike valueNoise(), this sampler
+	// does not need a precomputed square field, so chunk realization can query any
+	// world column independently and still agree at chunk boundaries.
+	[[nodiscard]] double perlinNoise(
+		std::uint64_t p_seed,
+		double p_worldX,
+		double p_worldZ,
+		double p_featureSize);
+
+	// Normalized fractal Brownian motion (fBm) built from Perlin octaves. The first
+	// octave owns the large landform; each successive octave halves the feature size.
+	[[nodiscard]] double fractalPerlinNoise(
+		std::uint64_t p_seed,
+		double p_worldX,
+		double p_worldZ,
+		double p_featureSize,
+		int p_octaves,
+		double p_persistence);
+
 	// Multi-source BFS distance (orthogonal steps) to the True cells of the mask.
 	[[nodiscard]] PlanGrid<int> distanceTo(const Mask &p_mask);
 

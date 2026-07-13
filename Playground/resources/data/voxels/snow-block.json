@@ -2,7 +2,7 @@
   "version": 2,
   "traversal": "solid",
   "tags": ["ground", "snow"],
-  "shape": "cube",
+  "family": "terrain",
   "textures": {
     "top": [5, 0],
     "bottom": [3, 0],
