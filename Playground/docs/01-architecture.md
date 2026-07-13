@@ -39,7 +39,8 @@ The runtime architecture of the Erelia port, in Sparkle terms. Read
 `main()` (SparklePlayground):
 
 1. Create `spk::GraphicalApplication` + `spk::Window`.
-2. Load all **registries** from `PG_RESOURCE_DIR "/data"` (fail fast on any error, D10).
+2. Load all **registries** from `pg::resourceRoot() / "data"` — the `--resource-path`
+   CLI override, else `resources/` next to the exe (fail fast on any error, D10).
 3. Create `pg::GameContext` (seed → `WorldContext`, `PlayerData`).
 4. Create `pg::GameSceneWidget` (hosts the `spk::GameEngine`), build the world scene
    (world entity, player entity, camera entity), register logics.

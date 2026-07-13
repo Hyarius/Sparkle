@@ -1,10 +1,12 @@
 #include <cstdint>
+#include <filesystem>
 #include <iostream>
 #include <sparkle.hpp>
 #include <stdexcept>
 #include <string>
 
 #include "core/game_context.hpp"
+#include "core/paths.hpp"
 #include "core/random_seed.hpp"
 #include "core/registries.hpp"
 #include "game_scene_widget.hpp"
@@ -183,6 +185,10 @@ int main(int argc, char **argv)
 		parser.addOption("--map-only", {.type = CliOption::Type::Flag, .help = "write the world map PNG and exit"}, false);
 		parser.addOption(
 			"--check-stairs", {.type = CliOption::Type::Flag, .help = "verify composed stairways headless and exit"}, false);
+		parser.addOption(
+			"--resource-path",
+			{.type = CliOption::Type::String, .help = "resource folder (default: 'resources' next to the executable)"},
+			std::string{});
 
 		try
 		{
@@ -202,6 +208,19 @@ int main(int argc, char **argv)
 		const bool checkStairs = cli.optional<bool>("check-stairs", false);
 		std::cout << "World seed: " << worldSeed << (generatedSeed ? " (generated)" : "") << std::endl;
 
+		const std::string requestedResourcePath = cli.optional<std::string>("resource-path", "");
+		if (!requestedResourcePath.empty())
+		{
+			// Absolute so the override stays valid whatever the working directory becomes.
+			pg::setResourceRootOverride(std::filesystem::absolute(requestedResourcePath));
+		}
+		if (!std::filesystem::is_directory(pg::resourceRoot()))
+		{
+			std::cerr << "resources not found at " << pg::resourceRoot().generic_string()
+					  << " (pass --resource-path <dir> or place a 'resources' folder next to the executable)" << std::endl;
+			return 1;
+		}
+
 		// Validate CLI world-generation requests before loading registries or entering
 		// any allocation-heavy generation path. generateWorldPlan repeats this same
 		// authoritative check for non-CLI callers.
@@ -214,7 +233,7 @@ int main(int argc, char **argv)
 		}
 
 		pg::Registries registries;
-		registries.loadAll(std::filesystem::path(PG_RESOURCE_DIR) / "data");
+		registries.loadAll(pg::resourceRoot() / "data");
 
 		if (checkStairs)
 		{

@@ -1,3 +1,4 @@
+#include "core/paths.hpp"
 #include "core/registries.hpp"
 #include "world/generator/town_commit.hpp"
 #include "world/generator/town_composition.hpp"
@@ -20,7 +21,7 @@ namespace
 	{
 		static const std::unique_ptr<pg::Registries> registries = [] {
 			auto value = std::make_unique<pg::Registries>();
-			value->loadAll(std::filesystem::path(PG_RESOURCE_DIR) / "data");
+			value->loadAll(pg::resourceRoot() / "data");
 			return value;
 		}();
 		return *registries;
@@ -105,6 +106,26 @@ TEST(WorldGeneration, ReservesEveryGymAndConfiguredBiomePort)
 			EXPECT_EQ(gyms, 1) << biome.id << " seed " << seed;
 			EXPECT_EQ(ports, biome.requiresPort ? 1 : 0) << biome.id << " seed " << seed;
 		}
+	}
+}
+
+TEST(WorldGeneration, BuildsTownsForTerrainAndWaterfrontRegressionSeeds)
+{
+	const pg::Registries &registries = loadedRegistries();
+	// These previously exhausted every local town-layout attempt despite having
+	// a valid nearby construction site.
+	for (const std::uint64_t seed : {std::uint64_t{2}, std::uint64_t{16}, std::uint64_t{84985}, std::uint64_t{849854}, std::uint64_t{8498545}})
+	{
+		pg::WorldGenConfig config;
+		config.masterSeed = seed;
+		config.size = 248;
+		EXPECT_NO_THROW(static_cast<void>(pg::generateWorldPlan(
+			config,
+			pg::planBiomesFrom(registries.biomes()),
+			registries.placementRules(),
+			registries.prefabs(),
+			registries.townCompositions(),
+			registries.interiors()))) << seed;
 	}
 }
 

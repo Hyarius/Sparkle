@@ -10,7 +10,7 @@ participant "ExplorationMode" as Explo
 
 User -> Main : launch SparklePlayground
 Main -> Main : create Application + Window
-Main -> Reg : load(PG_RESOURCE_DIR/data)\nconfig→voxels→…→biomes→maps
+Main -> Reg : load(resourceRoot()/data)\nconfig→voxels→…→biomes→maps
 note right : any JSON error aborts startup\nwith file + field context (D10)
 Main -> Ctx : create (seed → WorldContext, PlayerData)
 Main -> Scene : create + activate

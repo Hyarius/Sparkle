@@ -25,7 +25,7 @@ private:
 
 Rules proven by the existing command:
 - Load the `spk::Program` lazily in a static accessor (one GL program per command type),
-  sources read from `PG_RESOURCE_DIR "/shaders/…"`.
+  sources read from `pg::resourceRoot() / "shaders" / …`.
 - The command owns its per-draw GPU objects (`spk::UniformBufferObject`,
   `spk::SamplerObject`); upload in `execute`.
 - **Restore GL state** you change (depth test, culling, blend): query-save → set → draw →

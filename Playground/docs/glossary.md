@@ -91,7 +91,7 @@ docs, use these exact names. Unity-reference names that differ are noted as *(Un
 | **`pg::ObservableResource`** | current/max int pair with change notification (to build; mirrors Unity). |
 | **`pg::EventCenter`** | Typed pub-sub bus for cross-system events (to build over ContractProvider). |
 | **Definition registry** | `pg::Registry<T>`: id → immutable definition, loaded from `resources/data/<domain>/`. |
-| **`PG_RESOURCE_DIR`** | Compile definition giving the absolute path of `Playground/resources`. |
+| **`pg::resourceRoot()`** | Runtime resource lookup (`core/paths.hpp`): the `--resource-path` CLI override when given, else `resources/` next to the executable. The tests' `main()` pins it to the source tree (`PG_TEST_RESOURCE_DIR`, test-only define). Replaced the `PG_RESOURCE_DIR` compile definition. |
 | **PlaygroundCore / SparklePlayground / PlaygroundTests** | Static lib with all `pg::` code / thin game exe / gtest exe (D17). |
 | **EreliaTools** | The single tool-suite executable with editor tabs (D15). |
 | **Promotion** | Lifting a proven `pg::` feature into `spk::`, as its own signed-off step (D18). |

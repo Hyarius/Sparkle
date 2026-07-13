@@ -4,6 +4,7 @@
 #include <stdexcept>
 
 #include "core/game_context.hpp"
+#include "core/paths.hpp"
 #include "core/registries.hpp"
 #include "game_scene_widget.hpp"
 #include "world/voxel_world.hpp"
@@ -15,7 +16,7 @@ namespace
 	{
 		static pg::Registries registries;
 		static const bool loaded = [] {
-			registries.loadAll(std::filesystem::path(PG_RESOURCE_DIR) / "data");
+			registries.loadAll(pg::resourceRoot() / "data");
 			return true;
 		}();
 		(void)loaded;

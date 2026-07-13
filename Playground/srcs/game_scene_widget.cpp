@@ -11,6 +11,7 @@
 #include <string>
 #include <unordered_set>
 
+#include "core/paths.hpp"
 #include "core/registries.hpp"
 #include "logics/actor_path_logic.hpp"
 #include "logics/camera_controller_logic.hpp"
@@ -37,10 +38,6 @@
 #include "world/generator/world_plan.hpp"
 #include "world/voxel_world.hpp"
 #include "world/world_navigation.hpp"
-
-#ifndef PG_RESOURCE_DIR
-#	define PG_RESOURCE_DIR "."
-#endif
 
 namespace
 {
@@ -180,8 +177,8 @@ namespace pg
 		const Registries &p_registries,
 		const GameSceneConstructionOptions &p_options)
 	{
-		_texture.loadFromFile(std::filesystem::path(PG_RESOURCE_DIR) / "textures" / "voxels.png", {8u, 8u});
-		_maskTexture.loadFromFile(std::filesystem::path(PG_RESOURCE_DIR) / "textures" / "mask.png", {4u, 4u});
+		_texture.loadFromFile(pg::resourceRoot() / "textures" / "voxels.png", {8u, 8u});
+		_maskTexture.loadFromFile(pg::resourceRoot() / "textures" / "mask.png", {4u, 4u});
 
 		spk::GameEngine &engine = gameEngine();
 		// Stream and bake first, then submit all opaque chunk and actor geometry. The

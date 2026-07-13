@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include "core/paths.hpp"
 #include "voxel/voxel_registry.hpp"
 #include "world/voxel_world.hpp"
 
@@ -28,13 +29,13 @@ namespace
 			pg::ShapeCatalog shapes;
 			spk::loadJsonDirectory(
 				shapes,
-				std::filesystem::path(PG_RESOURCE_DIR) / "data" / "shapes",
+				pg::resourceRoot() / "data" / "shapes",
 				[](std::string_view p_id, pg::JsonReader &p_reader) {
 					pg::ShapeDefinition definition = pg::parseShapeDefinition(p_reader);
 					definition.id = p_id;
 					return definition;
 				});
-			registry.load(shapes, std::filesystem::path(PG_RESOURCE_DIR) / "data" / "voxels");
+			registry.load(shapes, pg::resourceRoot() / "data" / "voxels");
 
 			const spk::VoxelRuntimeId floor = registry.numericId("stone-block");
 			const spk::VoxelRuntimeId source = registry.numericId("water");

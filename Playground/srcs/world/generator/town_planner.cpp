@@ -171,6 +171,17 @@ namespace pg
 				!p_workspace.has(p_column, TownWorkspaceLayer::TerrainBlocked) && p_workspace.surfaceHeight(p_column) == p_height;
 		}
 
+		// Town building footprints are deterministically terraced by PlanChunkProvider
+		// at their selected door level. Requiring a prefab to sit inside one macro-cell
+		// height rejects ordinary sites as soon as a 9-column building crosses an 8-column
+		// cell boundary. Doors, approaches, and roads still use validSurface() and remain
+		// exactly level; only the building foundation may cut/fill dry, clear land.
+		[[nodiscard]] bool validBuildingSurface(const TownWorkspace &p_workspace, TownColumn p_column)
+		{
+			return p_workspace.contains(p_column) && p_workspace.has(p_column, TownWorkspaceLayer::Land) &&
+				!p_workspace.has(p_column, TownWorkspaceLayer::TerrainBlocked);
+		}
+
 		[[nodiscard]] std::optional<ResolvedTownEntrance> validateAndPlaceBuilding(
 			TownWorkspace &p_workspace,
 			const WorldPlan &p_plan,
@@ -202,10 +213,10 @@ namespace pg
 			}
 			for (TownColumn column : clearance)
 			{
-				if (!validSurface(p_workspace, column, surface) || p_workspace.has(column, TownWorkspaceLayer::MainRoad) ||
+				if (!validBuildingSurface(p_workspace, column) || p_workspace.has(column, TownWorkspaceLayer::MainRoad) ||
 					p_workspace.has(column, TownWorkspaceLayer::BuildingClearance) || p_workspace.has(column, TownWorkspaceLayer::BuildingSolid) || p_workspace.has(column, TownWorkspaceLayer::RoadsideReserved))
 				{
-					p_rejection = {.category = TownRejectCategory::BuildingPlacement, .componentId = p_instance.id, .worldColumn = p_workspace.worldFromTown(column), .message = "building clearance is not dry, level, or clear"};
+					p_rejection = {.category = TownRejectCategory::BuildingPlacement, .componentId = p_instance.id, .worldColumn = p_workspace.worldFromTown(column), .message = "building clearance is not dry or clear"};
 					return std::nullopt;
 				}
 			}

@@ -6,7 +6,7 @@ Promotions are the project's second goal (D06/D18) — and the only sanctioned w
 ## Checklist
 
 1. **Eligibility** — the feature is proven in the game (used by shipped steps, stable API,
-   no `pg::`-specific assumptions: no game types, no `PG_RESOURCE_DIR` reliance, no
+   no `pg::`-specific assumptions: no game types, no `pg::resourceRoot()` reliance, no
    EventCenter coupling).
 2. **Propose** — short message to the user: what moves, target headers, API changes made
    while lifting, what stays behind in `pg::`. Wait for the go-ahead.

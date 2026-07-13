@@ -17,7 +17,7 @@ vcpkg runs through the preset toolchain automatically; adding a dependency = edi
 | Tag | Command |
 |---|---|
 | `[build]` | `cmake --build build/playground --target SparklePlayground` |
-| `[run]` | `./build/playground/Playground/SparklePlayground.exe` (path may vary by generator — check the build output; resources resolve via `PG_RESOURCE_DIR`, cwd doesn't matter) |
+| `[run]` | `./build/playground/Playground/SparklePlayground.exe --resource-path Playground/resources` (path may vary by generator — check the build output; without `--resource-path`, resources resolve to `resources/` next to the exe; cwd doesn't matter for anything else) |
 | `[test]` | `cmake --build build/playground --target PlaygroundTests && ./build/playground/Playground/PlaygroundTests.exe` |
 | `[tools]` | `cmake --build build/playground --target EreliaTools && ./build/playground/Playground/EreliaTools.exe` |
 | `[spk-test]` | `cmake --build build/test --target SparkleTests && ctest --test-dir build/test` (required green for promotion steps; run after any `spk::` change) |

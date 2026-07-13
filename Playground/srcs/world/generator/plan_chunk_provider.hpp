@@ -76,6 +76,10 @@ namespace pg
 		spk::VoxelRuntimeId _sand{};
 		spk::VoxelRuntimeId _stone{};
 		std::vector<ResolvedPlacement> _placements;
+		// Town buildings have a level door selected by the planner. Their complete
+		// content footprints are cut or filled to that level before prefab stamping,
+		// making foundation placement safe across macro-cell height boundaries.
+		std::map<std::pair<int, int>, int> _townBuildingGroundTop;
 		// Exact urban paving is indexed once when the immutable provider is built;
 		// chunk columns never scan every town record.
 		std::map<std::pair<int, int>, int> _urbanRoadSurfaceY;

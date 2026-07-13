@@ -93,6 +93,29 @@ namespace pg
 			{
 				_urbanRoadSurfaceY.emplace(std::pair{column.worldX, column.worldZ}, column.surfaceY);
 			}
+			for (const std::size_t index : town.buildingPlacementIndices)
+			{
+				if (index >= _plan.placements.size())
+					throw std::logic_error("town building placement index is invalid during realization");
+				const PrefabPlacement &placement = _plan.placements[index];
+				const PrefabDefinition *prefab = p_registries.prefabs().tryGet(placement.prefabId);
+				if (prefab == nullptr)
+					throw std::logic_error("town building references an unknown prefab during realization");
+				const ResolvedPlacementBox box = resolvePlacement(prefab->prefab, placement);
+				// Town doors are planned at the prefab's lowest authored layer. Flatten
+				// its full content rectangle to that layer so the later prefab stamp
+				// cannot leave a cliff through a room or a floating foundation.
+				const int groundTop = box.worldMin.y;
+				for (int dz = 0; dz < box.extents.z; ++dz)
+				{
+					for (int dx = 0; dx < box.extents.x; ++dx)
+					{
+						const auto [found, inserted] = _townBuildingGroundTop.emplace(std::pair{box.worldMin.x + dx, box.worldMin.z + dz}, groundTop);
+						if (!inserted && found->second != groundTop)
+							throw std::logic_error("overlapping town building terrain terraces disagree");
+					}
+				}
+			}
 		}
 
 		for (const PrefabPlacement &placement : _plan.placements)
@@ -162,7 +185,9 @@ namespace pg
 		}
 
 		const int level = _plan.height.at(row, col);
-		const int surface = _plan.surfaceY(level);
+		int surface = _plan.surfaceY(level);
+		if (const auto terraced = _townBuildingGroundTop.find({p_worldX, p_worldZ}); terraced != _townBuildingGroundTop.end())
+			surface = terraced->second;
 		const int zone = _plan.zone.at(row, col);
 		const BiomeBlocks &blocksOfBiome =
 			zone >= 0 ? _biomeBlocks[_plan.zones[zone].biomeIndex] : _fallbackBlocks;

@@ -10,6 +10,13 @@ file(GLOB_RECURSE PLAYGROUND_TEST_SOURCES
 add_executable(PlaygroundTests ${PLAYGROUND_TEST_SOURCES})
 add_dependencies(PlaygroundTests SparklePlayground)
 
+# Tests run only on machines that have the checkout, so their main() pins the resource
+# lookup straight at the live source tree — no deploy step, data edits apply instantly.
+target_compile_definitions(PlaygroundTests
+	PRIVATE
+		PG_TEST_RESOURCE_DIR="${PROJECT_SOURCE_DIR}/resources"
+)
+
 target_link_libraries(PlaygroundTests
 	PRIVATE
 		PlaygroundCore

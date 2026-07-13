@@ -237,6 +237,18 @@ namespace pg::worldgen
 			if (!resolvedRadius)
 				throw TownPlanningError(index, *compatible, sizingFailure, {{sizingFailure.componentId, 1}}, "town site reservation cannot derive a composition envelope: " + sizingFailure.message);
 			const int townRadius = *resolvedRadius;
+			const auto hasDryFootprint = [&](int p_row, int p_col, int p_radiusColumns) {
+				const int centerX = plan.worldOffset() + p_col * cfg.blocksPerCell + cfg.blocksPerCell / 2;
+				const int centerZ = plan.worldOffset() + p_row * cfg.blocksPerCell + cfg.blocksPerCell / 2;
+				const int firstRow = plan.cellIndexFromWorld(centerZ - p_radiusColumns);
+				const int lastRow = plan.cellIndexFromWorld(centerZ + p_radiusColumns);
+				const int firstCol = plan.cellIndexFromWorld(centerX - p_radiusColumns);
+				const int lastCol = plan.cellIndexFromWorld(centerX + p_radiusColumns);
+				for (int row = firstRow; row <= lastRow; ++row)
+					for (int col = firstCol; col <= lastCol; ++col)
+						if (!isLand(row, col) || plan.water.at(row, col) != 0) return false;
+				return true;
+			};
 			const auto hasWaterfront = [&](int p_row, int p_col) {
 				const int centerX = plan.worldOffset() + p_col * cfg.blocksPerCell + cfg.blocksPerCell / 2;
 				const int centerZ = plan.worldOffset() + p_row * cfg.blocksPerCell + cfg.blocksPerCell / 2;
@@ -269,11 +281,14 @@ namespace pg::worldgen
 							if (std::max(std::abs(dr), std::abs(dc)) != radius) continue;
 							const int row = entity.row + dr, col = entity.col + dc;
 							if (row < 0 || col < 0 || row >= size || col >= size || row - envelope < 0 || col - envelope < 0 || row + envelope >= size || col + envelope >= size || (pass == 0 && plan.zone.at(row, col) != entity.zone)) continue;
-							// Reservation establishes ownership and world bounds only.  Terrain
-							// suitability is deliberately resolved later at voxel resolution by
-							// the transactional town workspace; demanding a macro-scale flat
-							// square here makes small, varied maps reject valid compact layouts.
+							// Building foundations can safely terrace height changes at voxel scale,
+							// but no local layout can make a required building dry if its reservation
+							// already spans water. Normal towns therefore require a dry full envelope.
+							// Ports retain one outer macro-cell ring for their dock while preserving a
+							// dry central construction core.
 							if (!isLand(row, col) || plan.water.at(row, col) != 0) continue;
+							const int dryRadius = entity.kind == PlanEntityKind::PortCity ? std::max(0, townRadius - cfg.blocksPerCell) : townRadius;
+							if (!hasDryFootprint(row, col, dryRadius)) continue;
 							if (entity.kind == PlanEntityKind::PortCity && !hasWaterfront(row, col)) continue;
 							bool separated = true;
 							for (std::size_t otherIndex = 0; otherIndex < plan.entities.size(); ++otherIndex)
@@ -704,6 +719,11 @@ namespace pg::worldgen
 		const auto isRoad = [&](int p_r, int p_c) {
 			return p_r >= 0 && p_c >= 0 && p_r < size && p_c < size && plan.road.at(p_r, p_c) != 0;
 		};
+		const auto isTownCenter = [&](int p_row, int p_col) {
+			return std::ranges::any_of(plan.townSites, [&](const PlanTownSite &site) {
+				return site.centerRow == p_row && site.centerCol == p_col;
+			});
+		};
 		bool changed = true;
 		while (changed)
 		{
@@ -726,7 +746,7 @@ namespace pg::worldgen
 					}};
 					for (const auto &corner : corners)
 					{
-						if (!isRoad(corner[2], corner[3]) && !isRoad(corner[4], corner[5]))
+						if (!isTownCenter(corner[0], corner[1]) && !isRoad(corner[2], corner[3]) && !isRoad(corner[4], corner[5]))
 						{
 							plan.road.at(corner[0], corner[1]) = 0;
 							changed = true;

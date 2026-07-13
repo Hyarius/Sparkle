@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include "core/paths.hpp"
 #include "voxel/shape_catalog.hpp"
 
 #include "structures/voxel/spk_cross_plane_voxel_shape.hpp"
@@ -33,7 +34,7 @@ namespace
 			{
 				spk::loadJsonDirectory(
 					_catalog,
-					std::filesystem::path(PG_RESOURCE_DIR) / "data" / "shapes",
+					pg::resourceRoot() / "data" / "shapes",
 					[](std::string_view p_id, pg::JsonReader &p_reader) {
 						pg::ShapeDefinition definition = pg::parseShapeDefinition(p_reader);
 						definition.id = p_id;

@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include "core/paths.hpp"
 #include "voxel/shape_catalog.hpp"
 #include "voxel/voxel_definition.hpp"
 #include "voxel/voxel_registry.hpp"
@@ -22,7 +23,7 @@ namespace
 			pg::ShapeCatalog result;
 			spk::loadJsonDirectory(
 				result,
-				std::filesystem::path(PG_RESOURCE_DIR) / "data" / "shapes",
+				pg::resourceRoot() / "data" / "shapes",
 				[](std::string_view p_id, pg::JsonReader &p_reader) {
 					pg::ShapeDefinition definition = pg::parseShapeDefinition(p_reader);
 					definition.id = p_id;
@@ -39,7 +40,7 @@ namespace
 	{
 		static const pg::VoxelRegistry registry = [] {
 			pg::VoxelRegistry result;
-			result.load(loadedShapes(), std::filesystem::path(PG_RESOURCE_DIR) / "data" / "voxels");
+			result.load(loadedShapes(), pg::resourceRoot() / "data" / "voxels");
 			return result;
 		}();
 		return registry;

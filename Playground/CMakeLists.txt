@@ -20,14 +20,12 @@ target_include_directories(PlaygroundCore
 		"${CMAKE_CURRENT_SOURCE_DIR}/srcs"
 )
 
-# Absolute path to the Playground resources so every consumer can load them
-# regardless of the working directory it is launched from.
-target_compile_definitions(PlaygroundCore
-	PUBLIC
-		PG_RESOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/resources"
-)
-
 target_compile_features(PlaygroundCore PUBLIC cxx_std_23)
+
+# Resources are resolved at runtime by pg::resourceRoot(): the --resource-path CLI
+# override when given (the development workflow — point it at this source tree), else a
+# "resources" folder next to the executable. Nothing is copied at build time; the test
+# binary pins its lookup to the source tree instead (see tests/CMakeLists.txt).
 
 if(SPARKLE_BUILD_PLAYGROUND OR SPARKLE_BUILD_TESTS)
 	add_executable(SparklePlayground "${CMAKE_CURRENT_SOURCE_DIR}/srcs/main.cpp")
