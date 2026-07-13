@@ -143,8 +143,7 @@ namespace pg::worldgen
 			enum class CoastRule
 			{
 				Any,
-				Coastal,
-				Inland
+				Coastal
 			};
 			const auto sample = [&](PlanEntityKind p_kind, int p_count, double p_block, CoastRule p_rule, bool p_enforceTownDistance = true) {
 				int got = 0;
@@ -158,10 +157,6 @@ namespace pg::worldgen
 					++tries;
 					const double dCoast = distOcean.at(candidate.row, candidate.col);
 					if (p_rule == CoastRule::Coastal && dCoast > cfg.coastDistCells)
-					{
-						continue;
-					}
-					if (p_rule == CoastRule::Inland && dCoast <= cfg.coastDistCells)
 					{
 						continue;
 					}
@@ -183,8 +178,7 @@ namespace pg::worldgen
 					"zone " + std::to_string(zone.id) + " biome '" + biome.id + "'" +
 					" requires a port but has no coastal settlement site");
 			}
-			int gyms = sample(PlanEntityKind::Gym, 1, cfg.blockGym, CoastRule::Inland);
-			if (gyms == 0) gyms = sample(PlanEntityKind::Gym, 1, cfg.blockGym, CoastRule::Any);
+			int gyms = sample(PlanEntityKind::Gym, 1, cfg.blockGym, CoastRule::Any);
 			if (gyms == 0) gyms = sample(PlanEntityKind::Gym, 1, 0.0, CoastRule::Any, false);
 			if (gyms != 1) throw std::logic_error("a placeable biome zone could not reserve its mandatory gym");
 

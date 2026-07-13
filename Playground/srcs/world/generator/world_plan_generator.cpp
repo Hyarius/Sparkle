@@ -74,13 +74,6 @@ namespace pg::worldgen
 				stats.riverCells += (plan.water.at(i, j) != 0 && plan.lake.at(i, j) == 0 && isLand(i, j)) ? 1 : 0;
 			}
 		}
-		for (const PlanEntity &entity : plan.entities)
-		{
-			if (entity.kind == PlanEntityKind::Gym && distOcean.at(entity.row, entity.col) <= cfg.coastDistCells)
-			{
-				++stats.gymOnCoast;
-			}
-		}
 		stats.roadDiagonalSteps = countDiagonalOnly(plan.road);
 		for (int i = 0; i + 1 < size; ++i)
 		{
@@ -269,7 +262,6 @@ namespace pg
 			<< " POIs skipped)\n";
 		out << "prefab placements.... " << placements.size() << "\n";
 		out << "----------------------------------------------------------------\n";
-		out << "gym on coast......... " << stats.gymOnCoast << "  (inland fallback only)\n";
 		out << "road diagonal steps.. " << stats.roadDiagonalSteps << "  (MUST be 0)\n";
 		out << "river diagonal steps. " << stats.riverDiagonalSteps << "  (MUST be 0)\n";
 		if (!stats.warnings.empty())

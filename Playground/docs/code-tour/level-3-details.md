@@ -166,8 +166,8 @@ Per zone: candidate cells = in-zone, dry land. The biome's required
 zone gets one gym, and a biome with `worldgen.towns.requiresPort` gets one waterfront
 port town. The remaining target slots are ordinary cities. Settlement markers honour
 the larger configured distance of the two biomes at a boundary; POIs still use their
-global blocking and spread rules. A gym prefers inland land, but falls back to any dry
-cell so a placeable zone never loses its gym. A required port is an error rather than a
+global blocking and spread rules. A gym uses any dry cell so a placeable zone never
+loses its gym. A required port is an error rather than a
 silently dropped quota when its area has no coastal site.
 
 ### 2.8 buildRoads + findPath + stepCost + removeRoadSquares

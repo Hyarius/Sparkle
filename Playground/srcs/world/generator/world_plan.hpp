@@ -427,7 +427,6 @@ namespace pg
 		int roadComponents = 0;
 		int roadSquares = 0; // 2x2 blocks of road cells (MUST be 0: roads stay one cell wide)
 		int boatLinks = 0;
-		int gymOnCoast = 0;
 		int roadDiagonalSteps = 0;
 		int riverDiagonalSteps = 0;
 		int primaryGateways = 0;

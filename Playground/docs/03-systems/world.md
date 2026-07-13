@@ -189,8 +189,8 @@ Each worldgen biome declares `worldgen.towns.distanceCells`. For each biome zone
 generation counts usable dry land cells and derives its settlement target as
 `ceil(area / distanceCells²)`. The target includes one gym, plus one port when
 `worldgen.towns.requiresPort` is true; any remaining target slots become ordinary
-cities. The gym prefers inland land but falls back to any dry cell so every
-placeable zone has one. A required port must reserve a waterfront town site; world
+cities. The gym may use any dry cell so every placeable zone has one. A required port
+must reserve a waterfront town site; world
 generation reports an error rather than silently omitting it when the biome area has
 no viable coast.
 
