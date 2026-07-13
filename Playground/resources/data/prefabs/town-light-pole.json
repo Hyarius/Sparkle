@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "palette": { "p": "wall-stone", "l": "glowing-voxel" },
+  "fill": [
+    { "min": [0, 0, 0], "max": [0, 2, 0], "voxel": "p" }
+  ],
+  "cells": [
+    { "at": [0, 3, 0], "voxel": "l" }
+  ]
+}

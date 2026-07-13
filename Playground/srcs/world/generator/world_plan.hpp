@@ -87,12 +87,31 @@ namespace pg
 		NormalPoi
 	};
 
+	enum class TownBuildingRole : std::uint8_t
+	{
+		None,
+		CreatureCenter,
+		Shop,
+		Gym,
+		Port,
+		Home
+	};
+
 	struct PlanScenery
 	{
 		std::string prefabId;
 		double density = 0.0; // expected instances per suitable world-plan cell
 		int spacing = 1;	  // minimum center distance in voxel columns
 		spk::Vector3Int prefabSize{};
+	};
+
+	struct PlanTown
+	{
+		std::string creatureCenter;
+		std::string shop;
+		std::string gym;
+		std::string port;
+		std::vector<std::string> homes;
 	};
 
 	// One world-generation biome, instantiated from a biome definition JSON
@@ -108,9 +127,11 @@ namespace pg
 		// Per-biome entity prefab pools; the generator picks one entry at random per
 		// placement.
 		std::map<PlanEntityKind, std::vector<std::string>> entityPrefabs;
+		std::optional<PlanTown> town;
 		// Decorative structures scattered on clear land in this biome. Unlike POIs these
 		// have no gameplay role and may be multi-voxel prefabs such as trees or plants.
 		std::vector<PlanScenery> scenery;
+		std::vector<PlanScenery> townScenery;
 		bool wildStairsConfigured = false;
 		std::optional<bool> wildStairAllowCrossZone;
 		std::optional<int> wildStairsMaxPerZone;
@@ -168,6 +189,7 @@ namespace pg
 		// prefab's authored pivot exactly on anchor; multi-level stairs use this to pin
 		// their top exit to the high plateau regardless of footprint size or rotation.
 		bool anchorToPivot = false;
+		TownBuildingRole townRole = TownBuildingRole::None;
 	};
 
 	// Which prefabs the generator inserts where, loaded from
@@ -251,7 +273,7 @@ namespace pg
 		static constexpr int MinimumInteriorSlotBlocks = 8;
 		static constexpr int MaximumInteriorSlotBlocks = 4096;
 
-		int size = 124; // [MinimumPlanSize, MaximumPlanSize] plan cells per side
+		int size = 248; // [MinimumPlanSize, MaximumPlanSize] plan cells per side
 		int zoneCount = 8; // [1, min(MaximumZoneCount, size * size)]
 		std::uint64_t masterSeed = 1234; // the complete uint64_t domain is valid
 
@@ -362,6 +384,9 @@ namespace pg
 		PlanGrid<std::uint8_t> water; // river or lake
 		PlanGrid<std::uint8_t> lake;  // kept lake cells
 		PlanGrid<std::uint8_t> road;
+		// Fine town streets reuse the regular road rendering, but are not part of
+		// the inter-settlement graph used for routing and boat links.
+		PlanGrid<std::uint8_t> townRoad;
 		PlanGrid<std::uint8_t> bridge; // road over water
 
 		std::vector<PlanZone> zones;

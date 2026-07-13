@@ -287,14 +287,6 @@ namespace pg
 			throw std::runtime_error("generated spawn column has no standable cell");
 		}
 		spawnCell = *standableSpawn;
-		// A deliberately obvious point-light fixture for checking local attenuation.
-		const spk::Vector3Int glowingVoxelCell = spawnCell + spk::Vector3Int{3, 1, 0};
-		_stagedWorld->setCell(glowingVoxelCell, {p_registries.voxels().runtimeId("glowing-voxel")});
-		const auto addGlowingFixture = [&](const std::string &id, const spk::Vector3Int &cell) {
-			_stagedWorld->setCell(cell, {p_registries.voxels().runtimeId(id)});
-		};
-		addGlowingFixture("glowing-blue-voxel", glowingVoxelCell + spk::Vector3Int{0, 0, 5});
-		addGlowingFixture("glowing-green-voxel", glowingVoxelCell + spk::Vector3Int{0, 0, -5});
 		_camera->setTarget(spk::Vector3(spawnCell));
 		_camera->setPosition(spk::Vector3(spawnCell) + spk::Vector3{46.0f, 56.0f, -90.0f});
 

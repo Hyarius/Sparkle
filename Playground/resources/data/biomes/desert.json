@@ -23,6 +23,8 @@
 			"candidateRatio": 1.0
 		},
 		"prefabs": {
+			"townScenery": [ { "prefab": "town-light-pole", "density": 0.08, "spacing": 5 }, { "prefab": "town-bench", "density": 0.05, "spacing": 4 } ],
+			"town": { "creatureCenter": "desert-creature-center", "shop": "desert-shop", "gym": "desert-gym", "port": "desert-port", "homes": ["desert-house", "desert-hut"] },
 			"scenery": [
 				{ "prefab": "cactus-tall", "density": 0.35, "spacing": 3 },
 				{ "prefab": "cactus-grove", "density": 0.08, "spacing": 6 },

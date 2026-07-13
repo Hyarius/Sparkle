@@ -24,6 +24,8 @@
 			"candidateRatio": 1.0
 		},
 		"prefabs": {
+			"townScenery": [ { "prefab": "town-light-pole", "density": 0.08, "spacing": 5 }, { "prefab": "town-bench", "density": 0.05, "spacing": 4 } ],
+			"town": { "creatureCenter": "swamp-creature-center", "shop": "swamp-shop", "gym": "swamp-gym", "port": "swamp-port", "homes": ["swamp-house", "swamp-hut"] },
 			"scenery": [
 				{ "prefab": "willow-tree", "density": 0.15, "spacing": 7 },
 				{ "prefab": "dead-tree", "density": 0.08, "spacing": 6 },

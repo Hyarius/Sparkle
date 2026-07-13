@@ -24,6 +24,8 @@
 			"candidateRatio": 1.0
 		},
 		"prefabs": {
+			"townScenery": [ { "prefab": "town-light-pole", "density": 0.08, "spacing": 5 }, { "prefab": "town-bench", "density": 0.05, "spacing": 4 } ],
+			"town": { "creatureCenter": "meadow-creature-center", "shop": "meadow-shop", "gym": "meadow-gym", "port": "meadow-port", "homes": ["meadow-house", "meadow-hut"] },
 			"scenery": [
 				{ "prefab": "oak-tree", "density": 0.08, "spacing": 7 },
 				{ "prefab": "birch-tree", "density": 0.06, "spacing": 7 },

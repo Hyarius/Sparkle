@@ -58,6 +58,18 @@ namespace pg
 		std::optional<double> candidateRatio; // 0..1 chance to keep each suitable cliff candidate
 	};
 
+	// A settlement is composed from separate buildings rather than being one large
+	// prefab.  The first two roles are mandatory for every settlement; gym and port
+	// are added for their respective settlement entity kinds.
+	struct BiomeTown
+	{
+		std::string creatureCenter;
+		std::string shop;
+		std::string gym;
+		std::string port;
+		std::vector<std::string> homes;
+	};
+
 	// Optional per-biome knobs for the macro world generator. Biomes without this block
 	// (interiors such as caves) are never picked when zones are assigned.
 	struct BiomeWorldgenTraits
@@ -72,6 +84,8 @@ namespace pg
 		std::map<std::string, std::vector<std::string>> prefabs;
 		// Each scenery entry has its own expected count and voxel-level spacing.
 		std::vector<BiomeScenery> scenery;
+		std::vector<BiomeScenery> townScenery;
+		std::optional<BiomeTown> town;
 		BiomeWildStairs wildStairs;
 		// Climb prefab ids synthesized at load from the palette's stair/slope voxels
 		// (see synthesizeClimbPrefabs). The flight pools carry several pre-mixed variants

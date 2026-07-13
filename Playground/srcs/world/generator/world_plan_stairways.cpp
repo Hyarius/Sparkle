@@ -177,7 +177,7 @@ namespace pg::worldgen
 				switch (p_roadRule)
 				{
 				case RoadRule::Require:
-					if (plan.road.at(row, col) == 0)
+					if (plan.road.at(row, col) == 0 && plan.townRoad.at(row, col) == 0)
 					{
 						return false;
 					}
@@ -189,7 +189,7 @@ namespace pg::worldgen
 					}
 					break;
 				case RoadRule::Forbid:
-					if (plan.road.at(row, col) != 0 || plan.zone.at(row, col) != p_lowZone)
+					if ((plan.road.at(row, col) != 0 || plan.townRoad.at(row, col) != 0) || plan.zone.at(row, col) != p_lowZone)
 					{
 						return false;
 					}
@@ -255,14 +255,21 @@ namespace pg::worldgen
 			footprints.push_back(reserved);
 		}
 		// Stairways are placed first and have priority: they claim their zones
-		// unconditionally, and everything placed later must keep clear of them.
+		// before buildings. Town stairways are planned after their buildings, so
+		// they must also prove that their own structure does not overwrite one.
+		std::vector<Claim> placementClaims;
 		for (const PrefabPlacement &placement : p_candidate.placements)
 		{
 			if (const std::optional<Claim> claim = claimBoxFor(placement); claim.has_value())
 			{
-				hardClaims.push_back(*claim);
+				if (!zoneIsFree(*claim))
+				{
+					return false;
+				}
+				placementClaims.push_back(*claim);
 			}
 		}
+		hardClaims.insert(hardClaims.end(), placementClaims.begin(), placementClaims.end());
 		hardClaims.insert(hardClaims.end(), p_candidate.claims.begin(), p_candidate.claims.end());
 
 		PlanStairway &record = p_candidate.record;
@@ -688,6 +695,31 @@ namespace pg::worldgen
 					const int nr = i + dr;
 					const int nc = j + dc;
 					if (nr >= size || nc >= size || plan.road.at(nr, nc) == 0 || !isLand(nr, nc) ||
+						plan.bridge.at(nr, nc) != 0)
+					{
+						continue;
+					}
+					plan.stats.stairPlacements += emitStairChain(i, j, dr, dc, true);
+				}
+			}
+		}
+	}
+
+	void Generator::placeTownStairways()
+	{
+		for (int i = 0; i < size; ++i)
+		{
+			for (int j = 0; j < size; ++j)
+			{
+				if (plan.townRoad.at(i, j) == 0 || !isLand(i, j) || plan.bridge.at(i, j) != 0)
+				{
+					continue;
+				}
+				for (const auto &[dr, dc] : {std::pair{0, 1}, {1, 0}})
+				{
+					const int nr = i + dr;
+					const int nc = j + dc;
+					if (nr >= size || nc >= size || plan.townRoad.at(nr, nc) == 0 || !isLand(nr, nc) ||
 						plan.bridge.at(nr, nc) != 0)
 					{
 						continue;

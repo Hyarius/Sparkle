@@ -14,6 +14,7 @@
 #include "core/registries.hpp"
 #include "world/generator/plan_chunk_provider.hpp"
 #include "world/generator/world_plan.hpp"
+#include "world/prefab_placement_math.hpp"
 
 #include "structures/voxel/spk_voxel_chunk.hpp"
 
@@ -304,6 +305,79 @@ TEST(WorldPlanValidation, DefaultGenerationIsDeterministic)
 		second.land.at(config.size / 2, config.size / 2));
 	EXPECT_EQ(first.zone.at(config.size / 2, config.size / 2),
 		second.zone.at(config.size / 2, config.size / 2));
+}
+
+TEST(WorldPlanValidation, SettlementsComposeTheirRequiredTownBuildings)
+{
+	const pg::Registries &registries = loadedRegistries();
+	Config config;
+	config.masterSeed = 42;
+	const pg::WorldPlan plan = pg::generateWorldPlan(
+		config,
+		pg::planBiomesFrom(registries.biomes()),
+		registries.placementRules(),
+		registries.prefabs(),
+		registries.interiors());
+
+	int settlements = 0;
+	int gyms = 0;
+	int ports = 0;
+	for (const pg::PlanEntity &entity : plan.entities)
+	{
+		const bool settlement = entity.kind == pg::PlanEntityKind::City || entity.kind == pg::PlanEntityKind::Gym ||
+			entity.kind == pg::PlanEntityKind::PortCity;
+		settlements += settlement ? 1 : 0;
+		gyms += entity.kind == pg::PlanEntityKind::Gym ? 1 : 0;
+		ports += entity.kind == pg::PlanEntityKind::PortCity ? 1 : 0;
+	}
+	const auto roleCount = [&](pg::TownBuildingRole p_role) {
+		return static_cast<int>(std::ranges::count_if(plan.placements, [&](const pg::PrefabPlacement &placement) {
+			return placement.townRole == p_role;
+		}));
+	};
+	EXPECT_EQ(roleCount(pg::TownBuildingRole::CreatureCenter), settlements);
+	EXPECT_EQ(roleCount(pg::TownBuildingRole::Shop), settlements);
+	EXPECT_EQ(roleCount(pg::TownBuildingRole::Gym), gyms);
+	EXPECT_EQ(roleCount(pg::TownBuildingRole::Port), ports);
+	EXPECT_GT(roleCount(pg::TownBuildingRole::Home), 0);
+	for (const pg::PrefabPlacement &placement : plan.placements)
+	{
+		if (placement.townRole == pg::TownBuildingRole::None)
+		{
+			continue;
+		}
+		const pg::PrefabDefinition &prefab = registries.prefabs().get(placement.prefabId);
+		const pg::ResolvedPlacementBox box = pg::resolvePlacement(prefab.prefab, placement);
+		const int minRow = plan.cellIndexFromWorld(box.worldMin.z);
+		const int maxRow = plan.cellIndexFromWorld(box.worldMin.z + box.extents.z - 1);
+		const int minCol = plan.cellIndexFromWorld(box.worldMin.x);
+		const int maxCol = plan.cellIndexFromWorld(box.worldMin.x + box.extents.x - 1);
+		for (int row = minRow; row <= maxRow; ++row)
+		{
+			for (int col = minCol; col <= maxCol; ++col)
+			{
+				EXPECT_NE(plan.land.at(row, col), 0);
+				EXPECT_EQ(plan.water.at(row, col), 0) << "town prefab must not occupy a river or lake";
+				EXPECT_EQ(plan.height.at(row, col), plan.height.at(minRow, minCol))
+					<< "town prefab must stand on level terrain";
+			}
+		}
+	}
+
+	int pavedTownCells = 0;
+	for (int row = 0; row < config.size; ++row)
+	{
+		for (int col = 0; col < config.size; ++col)
+		{
+			if (plan.townRoad.at(row, col) != 0)
+			{
+				++pavedTownCells;
+				EXPECT_NE(plan.land.at(row, col), 0);
+				EXPECT_EQ(plan.water.at(row, col), 0) << "town path must not pave a river or lake";
+			}
+		}
+	}
+	EXPECT_GT(pavedTownCells, 0);
 }
 
 TEST(WorldPlanValidation, UsesRoadSwitchbackBeforePerpendicularFallback)

@@ -8,7 +8,8 @@ namespace spk { class SceneLightingRenderFeature; }
 
 namespace pg
 {
-	// Drives the Playground sun through 24 artistic hours every 60 real seconds.
+	// Drives the Playground sun through 24 artistic hours every 60 real seconds,
+	// with an asymmetric cycle: daylight 08:00 -> 21:00, night the remaining 11 h.
 	class DayTimeManagementLogic final : public spk::ComponentLogic<spk::Light3D>
 	{
 	private:

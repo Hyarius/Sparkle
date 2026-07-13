@@ -11,6 +11,66 @@
 
 namespace pg::worldgen
 {
+	void Generator::placeTownScenery()
+	{
+		const int blocks = cfg.blocksPerCell;
+		const int offset = plan.worldOffset();
+		constexpr std::array<std::pair<int, int>, 4> neighbors = {{{-1, 0}, {0, -1}, {0, 1}, {1, 0}}};
+		for (const PlanZone &zone : plan.zones)
+		{
+			const std::vector<PlanScenery> &scenery = plan.biomes[zone.biomeIndex].townScenery;
+			if (scenery.empty())
+			{
+				continue;
+			}
+			std::vector<Cell> candidates;
+			for (int row = 0; row < size; ++row)
+			{
+				for (int col = 0; col < size; ++col)
+				{
+					if (plan.zone.at(row, col) != zone.id || !isLand(row, col) || plan.water.at(row, col) != 0 || plan.townRoad.at(row, col) != 0)
+					{
+						continue;
+					}
+					const bool besideTownRoad = std::ranges::any_of(neighbors, [&](const auto &p_delta) {
+						const int nr = row + p_delta.first;
+						const int nc = col + p_delta.second;
+						return plan.townRoad.contains(nr, nc) && plan.townRoad.at(nr, nc) != 0;
+					});
+					if (besideTownRoad)
+					{
+						candidates.push_back({row, col});
+					}
+				}
+			}
+			Rng rng = rngFor("zone:" + std::to_string(zone.id) + "/town_scenery");
+			rng.shuffle(candidates);
+			for (const Cell &cell : candidates)
+			{
+				for (const PlanScenery &entry : scenery)
+				{
+					if (rng.poisson(entry.density) == 0)
+					{
+						continue;
+					}
+					const int turns = rng.below(4);
+					PrefabPlacement placement{.prefabId = entry.prefabId,
+						.anchor = {offset + cell.col * blocks + blocks / 2, plan.surfaceY(plan.height.at(cell.row, cell.col)) + 1, offset + cell.row * blocks + blocks / 2},
+						.orientation = spk::orientationFromQuarterTurns(turns), .foundation = false};
+					const std::optional<Claim> claim = claimBoxFor(placement);
+					if (!claim.has_value() || !zoneIsFree(*claim))
+					{
+						continue;
+					}
+					plan.placements.push_back(std::move(placement));
+					hardClaims.push_back(*claim);
+					++plan.stats.sceneryPlacements;
+					break;
+				}
+			}
+		}
+	}
+
 	// Scenery is biome dressing rather than a world entity. Density is the expected
 	// number of instances requested per suitable plan cell; Poisson sampling keeps
 	// fractional densities meaningful while allowing values above one. Placements

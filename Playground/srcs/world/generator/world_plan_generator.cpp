@@ -45,6 +45,7 @@ namespace pg::worldgen
 		plan.water = Mask(size, 0);
 		plan.lake = Mask(size, 0);
 		plan.road = Mask(size, 0);
+		plan.townRoad = Mask(size, 0);
 		plan.bridge = Mask(size, 0);
 	}
 
@@ -119,6 +120,9 @@ namespace pg::worldgen
 		placeStairways();
 		placeWildStairways();
 		placeBuildings();
+		placeTownStairways();
+		placeTownScenery();
+		reserveTownAreas();
 		placeScenery();
 		computeStats();
 		return std::move(plan);
@@ -157,6 +161,10 @@ namespace pg
 			{
 				biome.scenery.push_back({.prefabId = scenery.prefabId, .density = scenery.density, .spacing = scenery.spacing, .prefabSize = scenery.prefabSize});
 			}
+			for (const BiomeScenery &scenery : definition.worldgen->townScenery)
+			{
+				biome.townScenery.push_back({.prefabId = scenery.prefabId, .density = scenery.density, .spacing = scenery.spacing, .prefabSize = scenery.prefabSize});
+			}
 			for (const auto &[slot, pool] : definition.worldgen->prefabs)
 			{
 				for (const auto &[key, kind] : planEntityKeyTable())
@@ -167,6 +175,15 @@ namespace pg
 						break;
 					}
 				}
+			}
+			if (definition.worldgen->town.has_value())
+			{
+				const BiomeTown &town = *definition.worldgen->town;
+				biome.town = PlanTown{.creatureCenter = town.creatureCenter,
+					.shop = town.shop,
+					.gym = town.gym,
+					.port = town.port,
+					.homes = town.homes};
 			}
 			result.push_back(std::move(biome));
 		}

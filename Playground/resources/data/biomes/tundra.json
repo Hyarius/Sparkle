@@ -23,6 +23,8 @@
 			"candidateRatio": 1.0
 		},
 		"prefabs": {
+			"townScenery": [ { "prefab": "town-light-pole", "density": 0.08, "spacing": 5 }, { "prefab": "town-bench", "density": 0.05, "spacing": 4 } ],
+			"town": { "creatureCenter": "tundra-creature-center", "shop": "tundra-shop", "gym": "tundra-gym", "port": "tundra-port", "homes": ["tundra-house", "tundra-hut"] },
 			"scenery": [
 				{ "prefab": "snow-pine", "density": 0.14, "spacing": 7 },
 				{ "prefab": "snow-rock-cluster", "density": 0.3, "spacing": 4 },

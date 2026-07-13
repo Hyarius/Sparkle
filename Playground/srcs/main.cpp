@@ -178,7 +178,7 @@ int main(int argc, char **argv)
 		spk::CommandLineParser parser;
 		using CliOption = spk::CommandLineParser::Option;
 		parser.addOption("--seed", {.type = CliOption::Type::String, .help = "world master seed"}, std::string{"1"});
-		parser.addOption("--size", {.type = CliOption::Type::Integer, .help = "world size in plan cells"}, std::int64_t{124});
+		parser.addOption("--size", {.type = CliOption::Type::Integer, .help = "world size in plan cells"}, std::int64_t{248});
 		parser.addOption("--map-only", {.type = CliOption::Type::Flag, .help = "write the world map PNG and exit"}, false);
 		parser.addOption(
 			"--check-stairs", {.type = CliOption::Type::Flag, .help = "verify composed stairways headless and exit"}, false);
@@ -194,7 +194,7 @@ int main(int argc, char **argv)
 
 		const spk::JSON::Reader cli(parser.arguments(), "<cli>");
 		const std::uint64_t worldSeed = std::stoull(cli.optional<std::string>("seed", "1"));
-		const int worldSize = cli.optional<int>("size", 124);
+		const int worldSize = cli.optional<int>("size", 248);
 		const bool mapOnly = cli.optional<bool>("map-only", false);
 		const bool checkStairs = cli.optional<bool>("check-stairs", false);
 

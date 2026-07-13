@@ -95,6 +95,7 @@ namespace pg::worldgen
 		std::string pickStairLength(int p_zone, bool p_onRoad);
 		[[nodiscard]] std::string stairPlatformPrefabFor(int p_zone, bool p_onRoad) const;
 		[[nodiscard]] const std::vector<std::string> *entityPrefabsFor(PlanEntityKind p_kind, int p_zone) const;
+		[[nodiscard]] const PlanTown *townFor(int p_zone) const;
 
 		// ---------------- Claimed zones (world_plan_stairways.cpp) ----------------
 		// Every structural placement (stairways first — they have priority — then
@@ -271,6 +272,7 @@ namespace pg::worldgen
 			bool p_onRoad,
 			std::optional<int> p_wildMaximumLevels = std::nullopt);
 		void placeStairways();
+		void placeTownStairways();
 		void placeWildStairways();
 
 		// ---------------- Interiors (world_plan_interiors.cpp) ----------------
@@ -281,6 +283,9 @@ namespace pg::worldgen
 
 		// ---------------- Buildings (world_plan_infrastructure.cpp) ----------------
 		void placeBuildings();
+		void composeTown(const PlanEntity &p_entity);
+		void reserveTownAreas();
+		void placeTownScenery();
 
 		// ---------------- Scenery (world_plan_scenery.cpp) ----------------
 		void placeScenery();

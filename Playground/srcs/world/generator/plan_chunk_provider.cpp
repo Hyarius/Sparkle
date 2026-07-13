@@ -208,10 +208,11 @@ namespace pg
 			}
 		}
 
-		if (_plan.road.at(row, col) != 0)
+		if (_plan.road.at(row, col) != 0 || _plan.townRoad.at(row, col) != 0)
 		{
 			const auto paved = [&](int p_row, int p_col) {
-				return _plan.road.contains(p_row, p_col) && _plan.road.at(p_row, p_col) != 0;
+				return _plan.road.contains(p_row, p_col) &&
+					(_plan.road.at(p_row, p_col) != 0 || _plan.townRoad.at(p_row, p_col) != 0);
 			};
 			if (inCross(paved(row - 1, col), paved(row + 1, col), paved(row, col - 1), paved(row, col + 1)))
 			{

@@ -153,7 +153,39 @@ namespace pg
 			{
 				JsonReader prefabsReader = worldgenReader.child("prefabs");
 				prefabsReader.forbidUnknown(
-					{"scenery", "gym", "city", "portCity", "normalPoi", "uncommonPoi", "rarePoi"});
+					{"scenery", "townScenery", "town", "gym", "city", "portCity", "normalPoi", "uncommonPoi", "rarePoi"});
+				if (prefabsReader.contains("town"))
+				{
+					JsonReader townReader = prefabsReader.child("town");
+					townReader.forbidUnknown({"creatureCenter", "shop", "gym", "port", "homes"});
+					BiomeTown town;
+					const auto requiredPrefab = [&](const std::string &p_key, bool p_required) {
+						if (!townReader.contains(p_key))
+						{
+							if (p_required)
+							{
+								throw JsonError(townReader.file(), townReader.pathFor(p_key), "missing required town building");
+							}
+							return std::string{};
+						}
+						const std::string id = requireNonEmptyString(townReader, p_key);
+						if (p_prefabs.tryGet(id) == nullptr)
+						{
+							throw JsonError(townReader.file(), townReader.pathFor(p_key), "unknown prefab id '" + id + "'");
+						}
+						return id;
+					};
+					town.creatureCenter = requiredPrefab("creatureCenter", true);
+					town.shop = requiredPrefab("shop", true);
+					town.gym = requiredPrefab("gym", true);
+					town.port = requiredPrefab("port", true);
+					town.homes = parsePrefabPool(*townReader.value().find("homes"), townReader.file(), townReader.pathFor("homes"), p_prefabs);
+					if (town.homes.empty())
+					{
+						throw JsonError(townReader.file(), townReader.pathFor("homes"), "town needs at least one home prefab");
+					}
+					traits.town = std::move(town);
+				}
 				if (prefabsReader.contains("scenery"))
 				{
 					const spk::JSON::Value *sceneryValue = prefabsReader.value().find("scenery");
@@ -202,9 +234,34 @@ namespace pg
 						}
 					}
 				}
+				if (prefabsReader.contains("townScenery"))
+				{
+					std::set<std::string> prefabIds;
+					for (JsonReader sceneryReader : prefabsReader.childArray("townScenery"))
+					{
+						sceneryReader.forbidUnknown({"prefab", "density", "spacing"});
+						BiomeScenery scenery{.prefabId = requireNonEmptyString(sceneryReader, "prefab"), .density = sceneryReader.require<double>("density")};
+						const PrefabDefinition *prefab = p_prefabs.tryGet(scenery.prefabId);
+						if (prefab == nullptr)
+						{
+							throw JsonError(p_reader.file(), sceneryReader.pathFor("prefab"), "unknown prefab id '" + scenery.prefabId + "'");
+						}
+						scenery.prefabSize = prefab->size();
+						scenery.spacing = sceneryReader.optional<int>("spacing", std::max(scenery.prefabSize.x, scenery.prefabSize.z));
+						if (scenery.density < 0.0 || scenery.spacing < 1)
+						{
+							throw JsonError(p_reader.file(), sceneryReader.pathFor("density"), "town scenery needs non-negative density and positive spacing");
+						}
+						if (!prefabIds.insert(scenery.prefabId).second)
+						{
+							throw JsonError(p_reader.file(), sceneryReader.pathFor("prefab"), "duplicate town scenery prefab id '" + scenery.prefabId + "'");
+						}
+						traits.townScenery.push_back(std::move(scenery));
+					}
+				}
 				for (const auto &[slot, value] : prefabsReader.value().asObject())
 				{
-					if (slot == "scenery" || value.isNull())
+					if (slot == "scenery" || slot == "townScenery" || slot == "town" || value.isNull())
 					{
 						continue;
 					}

@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "palette": { "w": "wall-stone", "s": "slab-stone" },
+  "fill": [
+    { "min": [0, 0, 0], "max": [2, 0, 0], "voxel": "s" },
+    { "min": [0, 1, 0], "max": [2, 1, 0], "voxel": "w" }
+  ]
+}

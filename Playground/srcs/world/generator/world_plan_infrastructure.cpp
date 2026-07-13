@@ -5,6 +5,7 @@
 #include <cmath>
 #include <limits>
 #include <map>
+#include <set>
 #include <optional>
 #include <queue>
 #include <tuple>
@@ -744,12 +745,228 @@ namespace pg::worldgen
 		return found != placementRules.entityPrefabs.end() ? &found->second : nullptr;
 	}
 
+	const PlanTown *Generator::townFor(int p_zone) const
+	{
+		if (p_zone < 0 || p_zone >= static_cast<int>(plan.zones.size()))
+		{
+			return nullptr;
+		}
+		const PlanBiome &biome = plan.biomes[plan.zones[p_zone].biomeIndex];
+		return biome.town.has_value() ? &*biome.town : nullptr;
+	}
+
+	void Generator::composeTown(const PlanEntity &p_entity)
+	{
+		const PlanTown *town = townFor(p_entity.zone);
+		if (town == nullptr)
+		{
+			plan.stats.warnings.push_back("settlement has no town definition for its biome");
+			return;
+		}
+
+		struct Building
+		{
+			TownBuildingRole role;
+			std::string prefab;
+			int rowOffset;
+			int colOffset;
+		};
+		std::vector<Building> buildings = {
+			// Current town prefabs expose their door on local -Z.  Keep every
+			// building south of the hub so its road approaches that door side,
+			// instead of drawing a decorative connection to a wall or its roof.
+			{TownBuildingRole::CreatureCenter, town->creatureCenter, 2, -2},
+			{TownBuildingRole::Shop, town->shop, 2, 2}};
+		if (p_entity.kind == PlanEntityKind::Gym)
+		{
+			buildings.push_back({TownBuildingRole::Gym, town->gym, 4, 0});
+		}
+		if (p_entity.kind == PlanEntityKind::PortCity)
+		{
+			// The south edge is a stable first layout.  A later coastline-aware layout
+			// can move this slot without changing the port role or travel binding.
+			buildings.push_back({TownBuildingRole::Port, town->port, 4, 0});
+		}
+		const std::array<std::pair<int, int>, 4> homeSlots = {{{4, -3}, {4, -1}, {4, 1}, {4, 3}}};
+		for (const auto &[rowOffset, colOffset] : homeSlots)
+		{
+			buildings.push_back({TownBuildingRole::Home, pickPrefab(town->homes), rowOffset, colOffset});
+		}
+
+		const int blocks = cfg.blocksPerCell;
+		const int offset = plan.worldOffset();
+		// A town path is only allowed over existing dry terrain.  In particular it
+		// must route around rivers instead of turning their cells into road during
+		// chunk realization.
+		const auto dryPathTo = [&](int p_targetRow, int p_targetCol) {
+			using PathCell = std::pair<int, int>;
+			constexpr int LocalSearchRadius = 18;
+			const auto passable = [&](int p_row, int p_col) {
+				return plan.land.contains(p_row, p_col) && isLand(p_row, p_col) && plan.water.at(p_row, p_col) == 0 &&
+					std::abs(p_row - p_entity.row) <= LocalSearchRadius &&
+					std::abs(p_col - p_entity.col) <= LocalSearchRadius;
+			};
+			std::vector<PathCell> empty;
+			const PathCell doorApproach{p_targetRow - 1, p_targetCol};
+			if (!passable(p_targetRow, p_targetCol) || !passable(doorApproach.first, doorApproach.second) ||
+				!passable(p_entity.row, p_entity.col))
+			{
+				return empty;
+			}
+			PlanGrid<std::uint8_t> visited(size, 0);
+			PlanGrid<PathCell> previous(size, {-1, -1});
+			std::queue<PathCell> open;
+			open.push({p_entity.row, p_entity.col});
+			visited.at(p_entity.row, p_entity.col) = 1;
+			constexpr std::array<PathCell, 4> Neighbors = {{{-1, 0}, {0, -1}, {0, 1}, {1, 0}}};
+			while (!open.empty())
+			{
+				const PathCell current = open.front();
+				open.pop();
+				if (current == doorApproach)
+				{
+					std::vector<PathCell> path;
+					for (PathCell step = current; step != PathCell{p_entity.row, p_entity.col}; step = previous.at(step.first, step.second))
+					{
+						path.push_back(step);
+					}
+					path.push_back({p_entity.row, p_entity.col});
+					std::ranges::reverse(path);
+					path.push_back({p_targetRow, p_targetCol}); // the north-facing door strip
+					return path;
+				}
+				for (const PathCell &delta : Neighbors)
+				{
+					const PathCell next{current.first + delta.first, current.second + delta.second};
+					if (passable(next.first, next.second) && visited.at(next.first, next.second) == 0)
+					{
+						visited.at(next.first, next.second) = 1;
+						previous.at(next.first, next.second) = current;
+						open.push(next);
+					}
+				}
+			}
+			return empty;
+		};
+		const auto hasLevelDryFootprint = [&](const Claim &p_claim, int p_height) {
+			const int minRow = plan.cellIndexFromWorld(p_claim.min.z);
+			const int maxRow = plan.cellIndexFromWorld(p_claim.max.z);
+			const int minCol = plan.cellIndexFromWorld(p_claim.min.x);
+			const int maxCol = plan.cellIndexFromWorld(p_claim.max.x);
+			for (int row = minRow; row <= maxRow; ++row)
+			{
+				for (int col = minCol; col <= maxCol; ++col)
+				{
+					if (!plan.land.contains(row, col) || !isLand(row, col) || plan.water.at(row, col) != 0 ||
+						plan.height.at(row, col) != p_height)
+					{
+						return false;
+					}
+				}
+			}
+			return true;
+		};
+
+		// A town is a single candidate: collect every resolved lot, door route and
+		// claim before changing the plan.  This is the first transactional boundary
+		// of the blueprint system; partial villages are never committed.
+		std::set<std::pair<int, int>> occupiedSlots;
+		std::vector<PrefabPlacement> plannedBuildings;
+		std::vector<Claim> plannedClaims;
+		std::vector<std::pair<int, int>> plannedRoad;
+		for (const Building &building : buildings)
+		{
+			std::vector<std::pair<int, int>> candidates = {{p_entity.row + building.rowOffset, p_entity.col + building.colOffset}};
+			// Town entities can occur near a coast, river, or zone boundary. Search a
+			// stable local area when the template slot is unusable; required services
+			// are never simply dropped because their first slot is wet.
+			for (int radius = 1; radius <= 16; ++radius)
+			{
+				for (int rowOffset = -radius; rowOffset <= radius; ++rowOffset)
+				{
+					for (int colOffset = -radius; colOffset <= radius; ++colOffset)
+					{
+						if (std::max(std::abs(rowOffset), std::abs(colOffset)) == radius)
+						{
+							candidates.emplace_back(p_entity.row + rowOffset, p_entity.col + colOffset);
+						}
+					}
+				}
+			}
+			std::optional<PrefabPlacement> selected;
+			std::optional<Claim> selectedClaim;
+			std::pair<int, int> selectedCell;
+			std::vector<std::pair<int, int>> selectedPath;
+			for (const auto &[row, col] : candidates)
+			{
+				if (row <= p_entity.row || !plan.height.contains(row, col) || !isLand(row, col) || plan.water.at(row, col) != 0 ||
+					occupiedSlots.contains({row, col}))
+				{
+					continue;
+				}
+				PrefabPlacement candidate{
+					.prefabId = building.prefab,
+					.anchor = {offset + col * blocks + blocks / 2, plan.surfaceY(plan.height.at(row, col)) + 1,
+						offset + row * blocks + blocks / 2},
+					.orientation = spk::VoxelOrientation::PositiveZ,
+					.foundation = true,
+					.townRole = building.role};
+				const std::optional<Claim> claim = claimBoxFor(candidate);
+				if (!claim.has_value() || !hasLevelDryFootprint(*claim, plan.height.at(row, col)) || !zoneIsFree(*claim) ||
+					std::ranges::any_of(plannedClaims, [&](const Claim &p_planned) { return claimsOverlap(*claim, p_planned); }))
+				{
+					continue;
+				}
+				std::vector<std::pair<int, int>> path = dryPathTo(row, col);
+				if (path.empty())
+				{
+					continue;
+				}
+				selected = std::move(candidate);
+				selectedClaim = claim;
+				selectedCell = {row, col};
+				selectedPath = std::move(path);
+				break;
+			}
+			if (!selected.has_value())
+			{
+				++plan.stats.placementConflicts;
+				plan.stats.warnings.push_back("town blueprint rejected: building '" + building.prefab + "' has no valid lot");
+				return;
+			}
+			occupiedSlots.insert(selectedCell);
+			plannedRoad.insert(plannedRoad.end(), selectedPath.begin(), selectedPath.end());
+			plannedBuildings.push_back(std::move(*selected));
+			if (selectedClaim.has_value())
+			{
+				plannedClaims.push_back(*selectedClaim);
+			}
+		}
+
+		for (const auto &[row, col] : plannedRoad)
+		{
+			plan.townRoad.at(row, col) = 1;
+		}
+		hardClaims.insert(hardClaims.end(), plannedClaims.begin(), plannedClaims.end());
+		for (PrefabPlacement &building : plannedBuildings)
+		{
+			plan.placements.push_back(std::move(building));
+			composeInterior(plan.placements.back());
+		}
+	}
+
 	void Generator::placeBuildings()
 	{
 		const int blocks = cfg.blocksPerCell;
 		const int offset = plan.worldOffset();
 		for (const PlanEntity &entity : plan.entities)
 		{
+			if (entity.kind == PlanEntityKind::Gym || entity.kind == PlanEntityKind::City ||
+				entity.kind == PlanEntityKind::PortCity)
+			{
+				composeTown(entity);
+				continue;
+			}
 			const std::vector<std::string> *pool = entityPrefabsFor(entity.kind, entity.zone);
 			if (pool == nullptr || pool->empty())
 			{
@@ -830,6 +1047,62 @@ namespace pg::worldgen
 				hardClaims.push_back(*chosenClaim);
 			}
 			composeInterior(plan.placements.back());
+		}
+	}
+
+	void Generator::reserveTownAreas()
+	{
+		// Buildings already claimed their individual boxes.  Reserve the entire
+		// connected town-road footprint as well, including its empty lots, so the
+		// later scenery stage cannot put trees, rocks, or bushes in a village.
+		PlanGrid<std::uint8_t> visited(size, 0);
+		constexpr std::array<std::pair<int, int>, 4> neighbors = {{{-1, 0}, {0, -1}, {0, 1}, {1, 0}}};
+		const int blocks = cfg.blocksPerCell;
+		const int offset = plan.worldOffset();
+		for (int startRow = 0; startRow < size; ++startRow)
+		{
+			for (int startCol = 0; startCol < size; ++startCol)
+			{
+				if (plan.townRoad.at(startRow, startCol) == 0 || visited.at(startRow, startCol) != 0)
+				{
+					continue;
+				}
+				int minRow = startRow;
+				int maxRow = startRow;
+				int minCol = startCol;
+				int maxCol = startCol;
+				int minSurface = plan.surfaceY(plan.height.at(startRow, startCol));
+				int maxSurface = minSurface;
+				std::queue<std::pair<int, int>> open;
+				open.push({startRow, startCol});
+				visited.at(startRow, startCol) = 1;
+				while (!open.empty())
+				{
+					const auto [row, col] = open.front();
+					open.pop();
+					minRow = std::min(minRow, row);
+					maxRow = std::max(maxRow, row);
+					minCol = std::min(minCol, col);
+					maxCol = std::max(maxCol, col);
+					const int surface = plan.surfaceY(plan.height.at(row, col));
+					minSurface = std::min(minSurface, surface);
+					maxSurface = std::max(maxSurface, surface);
+					for (const auto &[rowDelta, colDelta] : neighbors)
+					{
+						const int nextRow = row + rowDelta;
+						const int nextCol = col + colDelta;
+						if (plan.townRoad.contains(nextRow, nextCol) && plan.townRoad.at(nextRow, nextCol) != 0 &&
+							visited.at(nextRow, nextCol) == 0)
+						{
+							visited.at(nextRow, nextCol) = 1;
+							open.push({nextRow, nextCol});
+						}
+					}
+				}
+				hardClaims.push_back({
+					.min = {offset + minCol * blocks, minSurface - 16, offset + minRow * blocks},
+					.max = {offset + (maxCol + 1) * blocks - 1, maxSurface + 64, offset + (maxRow + 1) * blocks - 1}});
+			}
 		}
 	}
 }

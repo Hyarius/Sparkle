@@ -16,10 +16,21 @@ namespace pg
 	{
 		if (light.entity() != &_sunEntity) return;
 		_timeOfDayHours = std::fmod(_timeOfDayHours + static_cast<float>(p_tick.deltaTime.seconds()) * (24.0f / 60.0f), 24.0f);
-		const float elevation = std::sin((_timeOfDayHours - 6.0f) * std::numbers::pi_v<float> / 12.0f);
+		// Daylight runs 08:00 -> 21:00 (13 h day, 11 h night): the clock is warped
+		// onto the symmetric solar curve so sunrise/sunset land on those hours while
+		// elevation and azimuth stay continuous across both transitions.
+		constexpr float sunriseHour = 8.0f;
+		constexpr float sunsetHour = 21.0f;
+		constexpr float dayLengthHours = sunsetHour - sunriseHour;
+		constexpr float nightLengthHours = 24.0f - dayLengthHours;
+		const bool isDaytime = (_timeOfDayHours >= sunriseHour) && (_timeOfDayHours < sunsetHour);
+		const float solarHours = isDaytime
+			? 6.0f + (_timeOfDayHours - sunriseHour) * (12.0f / dayLengthHours)
+			: 18.0f + std::fmod(_timeOfDayHours - sunsetHour + 24.0f, 24.0f) * (12.0f / nightLengthHours);
+		const float elevation = std::sin((solarHours - 6.0f) * std::numbers::pi_v<float> / 12.0f);
 		const float daylight = std::max(elevation, 0.0f);
 		const float horizontal = std::max(0.08f, std::sqrt(std::max(1.0f - elevation * elevation, 0.0f)));
-		const float azimuth = (_timeOfDayHours - 12.0f) * std::numbers::pi_v<float> / 12.0f;
+		const float azimuth = (solarHours - 12.0f) * std::numbers::pi_v<float> / 12.0f;
 		// Keep the streamed world readable throughout the fast preview cycle.
 		// This is an artistic exposure curve, not physically calibrated radiance.
 		light.intensity() = 0.72f * daylight;
