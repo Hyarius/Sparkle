@@ -5,6 +5,7 @@
 #include <string>
 
 #include "core/game_context.hpp"
+#include "core/random_seed.hpp"
 #include "core/registries.hpp"
 #include "game_scene_widget.hpp"
 #include "world/generator/plan_chunk_provider.hpp"
@@ -177,7 +178,7 @@ int main(int argc, char **argv)
 	{
 		spk::CommandLineParser parser;
 		using CliOption = spk::CommandLineParser::Option;
-		parser.addOption("--seed", {.type = CliOption::Type::String, .help = "world master seed"}, std::string{"1"});
+		parser.addOption("--seed", {.type = CliOption::Type::String, .help = "world master seed (random when omitted)"}, std::string{});
 		parser.addOption("--size", {.type = CliOption::Type::Integer, .help = "world size in plan cells"}, std::int64_t{248});
 		parser.addOption("--map-only", {.type = CliOption::Type::Flag, .help = "write the world map PNG and exit"}, false);
 		parser.addOption(
@@ -193,10 +194,13 @@ int main(int argc, char **argv)
 		}
 
 		const spk::JSON::Reader cli(parser.arguments(), "<cli>");
-		const std::uint64_t worldSeed = std::stoull(cli.optional<std::string>("seed", "1"));
+		const std::string requestedSeed = cli.optional<std::string>("seed", "");
+		const bool generatedSeed = requestedSeed.empty();
+		const std::uint64_t worldSeed = generatedSeed ? pg::randomWorldSeed() : std::stoull(requestedSeed);
 		const int worldSize = cli.optional<int>("size", 248);
 		const bool mapOnly = cli.optional<bool>("map-only", false);
 		const bool checkStairs = cli.optional<bool>("check-stairs", false);
+		std::cout << "World seed: " << worldSeed << (generatedSeed ? " (generated)" : "") << std::endl;
 
 		// Validate CLI world-generation requests before loading registries or entering
 		// any allocation-heavy generation path. generateWorldPlan repeats this same

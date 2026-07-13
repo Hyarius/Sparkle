@@ -70,7 +70,8 @@ load time (chapter 1); flow is transient and regenerates after chunk reload.
 
 ## 9. Headless tools & diagnostics
 
-`SparklePlayground --map-only` generates a plan and writes `world_map.png` without a
+`SparklePlayground --map-only` generates a plan and writes `world_map_<seed>.png`
+next to the executable without a
 window; `--check-stairs` re-derives every composed staircase from the plan and
 walk-tests it voxel by voxel. In game, F7 toggles a debug overlay with positions,
 chunk counts, frame timings and the profiler table (bake timings etc.).

@@ -28,6 +28,7 @@ TEST(GameSceneWidgetLifetimeTest, ConstructionFailureAfterChunkWarmupLeavesConte
 	pg::GameContext context;
 	bool checkpointReached = false;
 	pg::GameSceneConstructionOptions options;
+	options.worldSeed = 1;
 	options.writeWorldMapPreview = false;
 	options.afterInitialWorldReady = [&](const pg::VoxelWorld &p_world, const pg::WorldNavigation &) {
 		checkpointReached = true;
@@ -59,6 +60,7 @@ TEST(GameSceneWidgetLifetimeTest, SuccessfulDestructionClearsLoadedWorldBeforeEn
 	pg::GameContext context;
 	bool checkpointReached = false;
 	pg::GameSceneConstructionOptions options;
+	options.worldSeed = 1;
 	options.writeWorldMapPreview = false;
 	options.afterInitialWorldReady = [&](const pg::VoxelWorld &p_world, const pg::WorldNavigation &) {
 		checkpointReached = true;

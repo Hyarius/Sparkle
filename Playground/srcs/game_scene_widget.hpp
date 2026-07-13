@@ -13,6 +13,7 @@
 
 #include "components/actor.hpp"
 #include "core/game_context.hpp"
+#include "core/random_seed.hpp"
 #include "structures/game_engine/spk_camera_3d.hpp"
 #include "structures/game_engine/spk_entity_3d.hpp"
 #include "structures/game_engine/spk_light_3d.hpp"
@@ -43,7 +44,7 @@ namespace pg
 
 	struct GameSceneConstructionOptions
 	{
-		std::uint64_t worldSeed = 1;
+		std::uint64_t worldSeed = randomWorldSeed();
 		bool writeWorldMapPreview = true;
 		// Optional diagnostics/failure-injection checkpoint. It runs after the initial
 		// chunks and navigation exist but before either object is published to GameContext.
@@ -55,7 +56,7 @@ namespace pg
 	private:
 		GameContext &_context;
 		bool _previousExplorationActive = false;
-		std::uint64_t _worldSeed = 1;
+		std::uint64_t _worldSeed = 0;
 		std::shared_ptr<const WorldPlan> _worldPlan;
 		std::unique_ptr<PlanChunkProvider> _terrainProvider;
 		// Scene construction is transactional: these objects remain widget-owned until
@@ -126,7 +127,7 @@ namespace pg
 			spk::Widget *p_parent,
 			GameContext &p_context,
 			const Registries &p_registries,
-			std::uint64_t p_worldSeed = 1);
+			std::uint64_t p_worldSeed = randomWorldSeed());
 		GameSceneWidget(
 			const std::string &p_name,
 			spk::Widget *p_parent,

@@ -11,8 +11,9 @@ Files: `srcs/main.cpp`, `srcs/core/registries.cpp`, `srcs/core/json.hpp` (aliase
 `srcs/core/registry.hpp`, `srcs/voxel/voxel_registry.cpp`, `srcs/voxel/voxel_parser.cpp`,
 the `world/*_parser.cpp` files, `world/generator/climb_prefabs.cpp`.
 
-1. `main()` parses `--seed`, `--size`, `--map-only`, `--check-stairs`; validates the
-   requested worldgen config early.
+1. `main()` parses `--seed`, `--size`, `--map-only`, `--check-stairs`; an omitted seed
+   is generated randomly and printed so the world can be reproduced; it then validates
+   the requested worldgen config early.
 2. `Registries::loadAll(data/)` loads, in dependency order:
    - **game rules** (`config/game-rules.json`),
    - **voxels** (`voxels/*.json`) → `pg::VoxelRegistry` builds *two lockstep views*:
@@ -238,7 +239,8 @@ Files: `srcs/main.cpp` (harness), `world/generator/world_map_image.cpp`,
 
 - `--map-only`: generate plan → print `report()` → `writeWorldMapPng()` renders the
   plan (zones shaded by height, water, roads, stair rects, entity label boxes with a
-  built-in 5×7 pixel font) to `Playground/world_map.png`.
+  built-in 5×7 pixel font) to `world_map_<seed>.png` next to the executable, so maps
+  from different seeds can be kept side by side.
 - `--check-stairs`: `checkComposedStairways()` re-detects composed staircase groups
   from the flat placement list (strict lattice test), then walk-tests each one by
   sampling realized voxels through a private chunk cache (`VoxelSampler`): top

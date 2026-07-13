@@ -113,4 +113,5 @@ actually detours the path.
 staircase and verifies, on the actual stamped voxels, that the top platform is flush
 against exactly one cliff side, the strip descends at most one voxel per cell from the
 high stand height to the low one, and the approach band is flat clear ground end to
-end — paved with a road block for road climbs.
+end — paved with a road block for road climbs. When `--seed` is omitted, the command
+prints its generated seed so the same check can be repeated.

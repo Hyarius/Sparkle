@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/random_seed.hpp"
 #include "core/registry.hpp"
 #include "structures/container/spk_grid_2d.hpp"
 #include "structures/graphics/geometry/spk_color.hpp"
@@ -352,7 +353,7 @@ namespace pg
 
 		int size = 248; // [MinimumPlanSize, MaximumPlanSize] plan cells per side
 		int zoneCount = 8; // [1, min(MaximumZoneCount, size * size)]
-		std::uint64_t masterSeed = 1234; // the complete uint64_t domain is valid
+		std::uint64_t masterSeed = randomWorldSeed(); // the complete uint64_t domain is valid
 
 		// Territory / landmass
 		double landThreshold = 0.42; // finite, strictly between 0 and 1

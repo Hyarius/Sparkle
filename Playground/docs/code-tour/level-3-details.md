@@ -521,7 +521,8 @@ and at least one exists.
 
 Renders per-cell pixels (zone color shaded by height, water/lake blues, road,
 bridge, stair rects in road color), then entity label boxes using a built-in 5×7
-bitmap font, and writes the PNG (8× upscale) to `Playground/world_map.png`.
+bitmap font, and writes the PNG (8× upscale) to `world_map_<seed>.png` next to the
+executable (`worldMapOutputPath()`).
 
 ### 9.3 Profiler & overlay
 
