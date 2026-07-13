@@ -1,4 +1,5 @@
 #include "world/generator/world_plan_generator.hpp"
+#include "world/generator/stair_planner.hpp"
 
 #include "structures/voxel/spk_voxel_orientation.hpp"
 
@@ -177,7 +178,7 @@ namespace pg::worldgen
 				switch (p_roadRule)
 				{
 				case RoadRule::Require:
-					if (plan.road.at(row, col) == 0 && plan.townRoad.at(row, col) == 0)
+					if (plan.road.at(row, col) == 0 && plan.townPath.at(row, col) == 0)
 					{
 						return false;
 					}
@@ -189,7 +190,7 @@ namespace pg::worldgen
 					}
 					break;
 				case RoadRule::Forbid:
-					if ((plan.road.at(row, col) != 0 || plan.townRoad.at(row, col) != 0) || plan.zone.at(row, col) != p_lowZone)
+					if ((plan.road.at(row, col) != 0 || plan.townPath.at(row, col) != 0) || plan.zone.at(row, col) != p_lowZone)
 					{
 						return false;
 					}
@@ -206,6 +207,13 @@ namespace pg::worldgen
 	// to the plan as one contiguous run, and records the staircase.
 	bool Generator::tryCommitStairCandidate(const StairSite &p_site, StairCandidate &&p_candidate)
 	{
+		// Resolve exact prefab claims through the shared pure planner before this
+		// legacy adapter validates terrain and commits its existing layout record.
+		const auto planned = pg::planStair(
+			pg::StairRequest{.placements = p_candidate.placements, .record = p_candidate.record},
+			pg::StairPlanningContext{.plan = plan, .prefabs = prefabs});
+		if (!planned.has_value())
+			return false;
 		// Straight ramps crossing on the road network must stay on road cells,
 		// composed road climbs may also use clear terrain beside the road, and
 		// wild stairways must not touch roads at all.
@@ -695,31 +703,6 @@ namespace pg::worldgen
 					const int nr = i + dr;
 					const int nc = j + dc;
 					if (nr >= size || nc >= size || plan.road.at(nr, nc) == 0 || !isLand(nr, nc) ||
-						plan.bridge.at(nr, nc) != 0)
-					{
-						continue;
-					}
-					plan.stats.stairPlacements += emitStairChain(i, j, dr, dc, true);
-				}
-			}
-		}
-	}
-
-	void Generator::placeTownStairways()
-	{
-		for (int i = 0; i < size; ++i)
-		{
-			for (int j = 0; j < size; ++j)
-			{
-				if (plan.townRoad.at(i, j) == 0 || !isLand(i, j) || plan.bridge.at(i, j) != 0)
-				{
-					continue;
-				}
-				for (const auto &[dr, dc] : {std::pair{0, 1}, {1, 0}})
-				{
-					const int nr = i + dr;
-					const int nc = j + dc;
-					if (nr >= size || nc >= size || plan.townRoad.at(nr, nc) == 0 || !isLand(nr, nc) ||
 						plan.bridge.at(nr, nc) != 0)
 					{
 						continue;

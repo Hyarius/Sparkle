@@ -13,7 +13,7 @@ namespace pg
 {
 	PrefabDefinition parsePrefabDefinition(JsonReader &p_reader, const VoxelRegistry &p_voxels)
 	{
-		p_reader.forbidUnknown({"version", "pivot", "palette", "fill", "cells", "stairRuns", "anchors", "carve", "clearance", "interior"});
+		p_reader.forbidUnknown({"version", "pivot", "palette", "fill", "cells", "stairRuns", "anchors", "carve", "clearance", "entrance", "interior"});
 		if (p_reader.require<int>("version") != 1)
 		{
 			throw JsonError(p_reader.file(), p_reader.pathFor("version"), "unsupported prefab version");
@@ -227,6 +227,22 @@ namespace pg
 				}
 				result.prefab.addAnchor(std::move(anchor.name), anchor.position);
 			}
+		}
+		if (p_reader.contains("entrance"))
+		{
+			JsonReader entranceReader = p_reader.child("entrance");
+			entranceReader.forbidUnknown({"anchor", "outwardFacing", "clearApproach"});
+			PrefabEntrance entrance;
+			entrance.anchorName = entranceReader.optional<std::string>("anchor", "door");
+			entrance.outwardFacing = detail::parseOrientation(entranceReader, "outwardFacing");
+			JsonReader approach = entranceReader.child("clearApproach");
+			approach.forbidUnknown({"min", "max"});
+			entrance.clearApproach = {.min = detail::parseVector3(approach, "min"), .max = detail::parseVector3(approach, "max")};
+			if (entrance.clearApproach.min.x > entrance.clearApproach.max.x || entrance.clearApproach.min.y > entrance.clearApproach.max.y || entrance.clearApproach.min.z > entrance.clearApproach.max.z)
+				throw JsonError(approach.file(), approach.pathFor("min"), "entrance approach minimum exceeds maximum");
+			if (result.tryAnchor(entrance.anchorName) == nullptr)
+				throw JsonError(entranceReader.file(), entranceReader.pathFor("anchor"), "entrance references a missing anchor");
+			result.entrance = std::move(entrance);
 		}
 		return result;
 	}

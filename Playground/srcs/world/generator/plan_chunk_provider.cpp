@@ -5,6 +5,7 @@
 #include "voxel/voxel_registry.hpp"
 #include "world/prefab_definition.hpp"
 #include "world/prefab_placement_math.hpp"
+#include "world/generator/path_surface.hpp"
 
 #include "structures/voxel/spk_voxel_chunk.hpp"
 
@@ -143,6 +144,8 @@ namespace pg
 		}
 		if (isOceanCell(row, col))
 		{
+			const PlanTownRecord *dockTown=nullptr;for(const PlanTownRecord &town:_plan.towns)if(std::ranges::find(town.dockCells,std::pair{row,col})!=town.dockCells.end()){dockTown=&town;break;}
+			if(dockTown!=nullptr&&dockTown->boardingEndpoint){column.groundTop=dockTown->boardingEndpoint->y-1;column.surfaceId=pickVoxel(_fallbackBlocks.road,p_worldX,p_worldZ,cfg.masterSeed,kRoadSalt);column.subsurfaceId=_sand;column.deepId=_stone;column.waterY=-1;return column;}
 			column.groundTop = 1;
 			column.surfaceId = _sand;
 			column.subsurfaceId = _sand;
@@ -164,25 +167,9 @@ namespace pg
 		// Local position inside the plan cell + membership in the 3-wide central strip.
 		const int localX = p_worldX - (offset + col * blocks);
 		const int localZ = p_worldZ - (offset + row * blocks);
-		const int strip = blocks / 2 - 1;
-		const bool inStripX = localX >= strip && localX <= strip + 2;
-		const bool inStripZ = localZ >= strip && localZ <= strip + 2;
-
 		// A strip cross: the center pad plus one arm toward each connected neighbor.
 		const auto inCross = [&](bool p_north, bool p_south, bool p_west, bool p_east) {
-			if (inStripX && inStripZ)
-			{
-				return true;
-			}
-			if (inStripX && ((p_north && localZ <= strip + 2) || (p_south && localZ >= strip)))
-			{
-				return true;
-			}
-			if (inStripZ && ((p_west && localX <= strip + 2) || (p_east && localX >= strip)))
-			{
-				return true;
-			}
-			return false;
+			return isCenteredPathSurface(blocks, localX, localZ, p_north, p_south, p_west, p_east);
 		};
 
 		const bool isLake = _plan.lake.at(row, col) != 0;
@@ -208,11 +195,16 @@ namespace pg
 			}
 		}
 
-		if (_plan.road.at(row, col) != 0 || _plan.townRoad.at(row, col) != 0)
+		// Hand-authored/minimal plans used by consumers and tests may predate the
+		// town-road grid. Treat its absent default grid as an empty mask.
+		const auto townPaved = [&](int p_row, int p_col) {
+			if(_plan.townPath.contains(p_row,p_col)&&_plan.townPath.at(p_row,p_col)!=0)return true;for(const PlanTownRecord &town:_plan.towns)if(std::ranges::find(town.dockCells,std::pair{p_row,p_col})!=town.dockCells.end())return true;return false;
+		};
+		if (_plan.road.at(row, col) != 0 || townPaved(row, col))
 		{
 			const auto paved = [&](int p_row, int p_col) {
 				return _plan.road.contains(p_row, p_col) &&
-					(_plan.road.at(p_row, p_col) != 0 || _plan.townRoad.at(p_row, p_col) != 0);
+					(_plan.road.at(p_row, p_col) != 0 || townPaved(p_row, p_col));
 			};
 			if (inCross(paved(row - 1, col), paved(row + 1, col), paved(row, col - 1), paved(row, col + 1)))
 			{

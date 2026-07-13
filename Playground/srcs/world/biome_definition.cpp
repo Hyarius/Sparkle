@@ -173,6 +173,12 @@ namespace pg
 						{
 							throw JsonError(townReader.file(), townReader.pathFor(p_key), "unknown prefab id '" + id + "'");
 						}
+						const PrefabDefinition &prefab = p_prefabs.get(id);
+						const PrefabAnchor *door = prefab.tryAnchor("door");
+						if (door == nullptr || door->position.z != 0)
+						{
+							throw JsonError(townReader.file(), townReader.pathFor(p_key), "town prefab needs a local -Z 'door' anchor");
+						}
 						return id;
 					};
 					town.creatureCenter = requiredPrefab("creatureCenter", true);
@@ -183,6 +189,12 @@ namespace pg
 					if (town.homes.empty())
 					{
 						throw JsonError(townReader.file(), townReader.pathFor("homes"), "town needs at least one home prefab");
+					}
+					for (const std::string &homeId : town.homes)
+					{
+						const PrefabAnchor *door = p_prefabs.get(homeId).tryAnchor("door");
+						if (door == nullptr || door->position.z != 0)
+							throw JsonError(townReader.file(), townReader.pathFor("homes"), "town home prefab needs a local -Z 'door' anchor");
 					}
 					traits.town = std::move(town);
 				}
@@ -239,8 +251,16 @@ namespace pg
 					std::set<std::string> prefabIds;
 					for (JsonReader sceneryReader : prefabsReader.childArray("townScenery"))
 					{
-						sceneryReader.forbidUnknown({"prefab", "density", "spacing"});
+						sceneryReader.forbidUnknown({"prefab", "density", "spacing", "placement"});
 						BiomeScenery scenery{.prefabId = requireNonEmptyString(sceneryReader, "prefab"), .density = sceneryReader.require<double>("density")};
+						const std::string placement = sceneryReader.optional<std::string>("placement", "anywhere");
+						if (placement != "anywhere" && placement != "roadside")
+						{
+							throw JsonError(
+								p_reader.file(), sceneryReader.pathFor("placement"),
+								"town scenery placement must be 'anywhere' or 'roadside'");
+						}
+						scenery.roadside = placement == "roadside";
 						const PrefabDefinition *prefab = p_prefabs.tryGet(scenery.prefabId);
 						if (prefab == nullptr)
 						{

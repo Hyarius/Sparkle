@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "kind": "port",
+  "bounds": {"min": [0, 0], "max": [5, 12]},
+  "rotations": [0, 1, 2, 3],
+  "endpoints": [
+    {"id": "town-entrance", "cell": [5, 6]},
+    {"id": "square", "cell": [2, 6]},
+    {"id": "center-door", "cell": [4, 1]},
+    {"id": "home-a-door", "cell": [4, 3]},
+    {"id": "port-door", "cell": [4, 6]},
+    {"id": "home-b-door", "cell": [4, 9]},
+    {"id": "shop-door", "cell": [4, 11]}
+  ],
+  "lots": [
+    {"id": "center", "role": "creatureCenter", "reservation": {"min": [4, 0], "max": [5, 2]}, "approach": "center-door"},
+    {"id": "home-a", "role": "home", "reservation": {"min": [4, 2], "max": [5, 4]}, "approach": "home-a-door"},
+    {"id": "port", "role": "port", "reservation": {"min": [4, 5], "max": [5, 7]}, "approach": "port-door"},
+    {"id": "home-b", "role": "home", "reservation": {"min": [4, 8], "max": [5, 10]}, "approach": "home-b-door"},
+    {"id": "shop", "role": "shop", "reservation": {"min": [4, 10], "max": [5, 12]}, "approach": "shop-door"}
+  ],
+  "paths": [
+    {"id": "approach", "from": "town-entrance", "to": "square", "surface": [[5, 6], [4, 6], [3, 6], [2, 6]]},
+    {"id": "west-main", "from": "square", "to": "center-door", "surface": [[2, 6], [2, 5], [2, 4], [2, 3], [2, 2], [2, 1], [3, 1], [4, 1]]},
+    {"id": "home-a", "from": "center-door", "to": "home-a-door", "surface": [[4, 1], [3, 1], [2, 1], [2, 2], [2, 3], [3, 3], [4, 3]]},
+    {"id": "port", "from": "square", "to": "port-door", "surface": [[2, 6], [3, 6], [4, 6]]},
+    {"id": "east-main", "from": "square", "to": "shop-door", "surface": [[2, 6], [2, 7], [2, 8], [2, 9], [2, 10], [2, 11], [3, 11], [4, 11]]},
+    {"id": "home-b", "from": "shop-door", "to": "home-b-door", "surface": [[4, 11], [3, 11], [2, 11], [2, 10], [2, 9], [3, 9], [4, 9]]}
+  ],
+  "decorationZones": [
+    {"id": "waterfront-decor", "cells": [[2, 0], [2, 12], [3, 0], [3, 12]]}
+  ],
+  "waterfront": {"dock": [[1, 6], [0, 6]], "boarding": [0, 6]},
+  "boundary": [
+    [2,0],[2,1],[2,2],[2,3],[2,4],[2,5],[2,6],[2,7],[2,8],[2,9],[2,10],[2,11],[2,12],
+    [3,0],[3,1],[3,2],[3,3],[3,4],[3,5],[3,6],[3,7],[3,8],[3,9],[3,10],[3,11],[3,12],
+    [4,0],[4,1],[4,2],[4,3],[4,4],[4,5],[4,6],[4,7],[4,8],[4,9],[4,10],[4,11],[4,12],
+    [5,0],[5,1],[5,2],[5,3],[5,4],[5,5],[5,6],[5,7],[5,8],[5,9],[5,10],[5,11],[5,12]
+  ]
+}

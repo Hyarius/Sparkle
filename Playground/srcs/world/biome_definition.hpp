@@ -46,6 +46,7 @@ namespace pg
 		double density = 0.0; // expected instances per suitable world-plan cell
 		int spacing = 1;	  // minimum center distance in voxel columns
 		spk::Vector3Int prefabSize{};
+		bool roadside = false; // town-only policy: footprint touches, but never covers, a rendered path edge
 	};
 
 	struct BiomeWildStairs

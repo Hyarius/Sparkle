@@ -7,16 +7,23 @@
 #include <filesystem>
 #include <functional>
 #include <limits>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "core/registries.hpp"
 #include "world/generator/plan_chunk_provider.hpp"
+#include "world/generator/path_surface.hpp"
+#include "world/generator/town_blueprint.hpp"
+#include "world/generator/town_planner.hpp"
+#include "world/generator/stair_planner.hpp"
+#include "world/generator/town_commit.hpp"
 #include "world/generator/world_plan.hpp"
 #include "world/prefab_placement_math.hpp"
 
 #include "structures/voxel/spk_voxel_chunk.hpp"
+#include "structures/voxel/spk_voxel_orientation.hpp"
 
 namespace
 {
@@ -144,6 +151,10 @@ TEST(WorldPlanValidation, RejectsEveryIntegerFieldOutsideItsDocumentedRange)
 		{"maxWildStairLevels", [](Config &p) { p.maxWildStairLevels = p.maxComposedStairLevels + 1; }},
 		{"maxComposedStairLevels", [](Config &p) { p.maxComposedStairLevels = 0; }},
 		{"maxComposedStairLevels", [](Config &p) { p.maxComposedStairLevels = p.maxHeightLevel + 1; }},
+		{"townSearchRadiusCells", [](Config &p) { p.townSearchRadiusCells = -1; }},
+		{"townSearchRadiusCells", [](Config &p) { p.townSearchRadiusCells = Config::MaximumPlanSize + 1; }},
+		{"maxTownWorldRetries", [](Config &p) { p.maxTownWorldRetries = -1; }},
+		{"maxTownWorldRetries", [](Config &p) { p.maxTownWorldRetries = 65; }},
 		{"blocksPerCell", [](Config &p) { p.blocksPerCell = 3; }},
 		{"blocksPerCell", [](Config &p) { p.blocksPerCell = Config::MaximumBlocksPerCell + 1; }},
 		{"blocksPerLevel", [](Config &p) { p.blocksPerLevel = 0; }},
@@ -295,6 +306,7 @@ TEST(WorldPlanValidation, DefaultGenerationIsDeterministic)
 			pg::planBiomesFrom(registries.biomes()),
 			registries.placementRules(),
 			registries.prefabs(),
+			registries.townBlueprints(),
 			registries.interiors());
 	};
 
@@ -307,6 +319,230 @@ TEST(WorldPlanValidation, DefaultGenerationIsDeterministic)
 		second.zone.at(config.size / 2, config.size / 2));
 }
 
+TEST(WorldPlanValidation, TownFailureRetriesTheWholeWorldDeterministically)
+{
+	const pg::Registries &registries=loadedRegistries();Config config;config.masterSeed=13;const auto generate=[&]{return pg::generateWorldPlan(config,pg::planBiomesFrom(registries.biomes()),registries.placementRules(),registries.prefabs(),registries.townBlueprints(),registries.interiors());};const pg::WorldPlan first=generate(),second=generate();EXPECT_NE(first.config.masterSeed,config.masterSeed);EXPECT_EQ(first.config.masterSeed,second.config.masterSeed);EXPECT_EQ(first.report(),second.report());EXPECT_TRUE(std::ranges::any_of(first.stats.warnings,[](const std::string &warning){return warning.find("deterministic town-generation retry")!=std::string::npos;}));
+}
+
+TEST(WorldPlanValidation, EverySettlementUsesExactlyOneBlueprintWriter)
+{
+	const pg::Registries &registries = loadedRegistries();
+	Config config;
+	config.masterSeed = 42;
+	const pg::WorldPlan plan = pg::generateWorldPlan(
+		config,
+		pg::planBiomesFrom(registries.biomes()),
+		registries.placementRules(),
+		registries.prefabs(),
+		registries.townBlueprints(),
+		registries.interiors());
+
+	const int settlements = static_cast<int>(std::ranges::count_if(plan.entities, [](const pg::PlanEntity &p_entity) {
+		return p_entity.kind == pg::PlanEntityKind::City || p_entity.kind == pg::PlanEntityKind::Gym ||
+			p_entity.kind == pg::PlanEntityKind::PortCity;
+	}));
+	ASSERT_GT(settlements, 0);
+	EXPECT_EQ(plan.stats.blueprintTownWriters, settlements);
+	EXPECT_EQ(plan.towns.size(), static_cast<std::size_t>(settlements));
+}
+
+TEST(TownBlueprint, RotatesNonSquareCellsAndRectanglesInEveryQuarterTurn)
+{
+	const pg::LocalRect bounds{{0, 0}, {1, 2}};
+	EXPECT_EQ(pg::rotateTownCell({0, 0}, bounds, 0), (pg::LocalCell{0, 0}));
+	EXPECT_EQ(pg::rotateTownCell({0, 0}, bounds, 1), (pg::LocalCell{0, 1}));
+	EXPECT_EQ(pg::rotateTownCell({0, 0}, bounds, 2), (pg::LocalCell{1, 2}));
+	EXPECT_EQ(pg::rotateTownCell({0, 0}, bounds, 3), (pg::LocalCell{2, 0}));
+	EXPECT_EQ(pg::rotateTownRect(bounds, bounds, 1).max, (pg::LocalCell{2, 1}));
+	EXPECT_EQ(pg::rotateTownRect(bounds, bounds, 3).max, (pg::LocalCell{2, 1}));
+}
+
+TEST(TownBlueprint, CityPlazaFlatLoadsWithConnectedRequiredDoorApproaches)
+{
+	const pg::TownBlueprint &blueprint = loadedRegistries().townBlueprints().get("city-plaza-flat");
+	EXPECT_EQ(blueprint.kind, pg::TownBlueprintKind::City);
+	EXPECT_EQ(blueprint.allowedQuarterTurns, (std::vector<int>{0, 1, 2, 3}));
+	EXPECT_EQ(blueprint.lots.size(), 5u);
+	EXPECT_FALSE(pg::renderTownBlueprintAscii(blueprint, 1).empty());
+}
+
+TEST(TownPlanner, FlatCandidateResolutionIsPureAndDeterministic)
+{
+	pg::WorldPlan plan;
+	plan.config.size = 16;
+	plan.land = pg::PlanGrid<std::uint8_t>(16, 1); plan.water = pg::PlanGrid<std::uint8_t>(16, 0); plan.height = pg::PlanGrid<std::int8_t>(16, 2);
+	const pg::TownBlueprint &blueprint = loadedRegistries().townBlueprints().get("city-plaza-flat");
+	const pg::TownPlanResult first = pg::resolveFlatTownCandidate(plan, blueprint, 3, 3, 0);
+	const pg::TownPlanResult second = pg::resolveFlatTownCandidate(plan, blueprint, 3, 3, 0);
+	ASSERT_TRUE(first.candidate.has_value()); ASSERT_TRUE(second.candidate.has_value());
+	EXPECT_EQ(first.candidate->pathCells, second.candidate->pathCells);
+	EXPECT_EQ(plan.water.at(3, 3), 0);
+}
+
+TEST(TownPlanner, RequiresTheAuthoredEntranceToMeetTheGlobalRoad)
+{
+	pg::WorldPlan plan;
+	plan.config.size = 16;
+	plan.land = pg::PlanGrid<std::uint8_t>(16, 1);
+	plan.water = pg::PlanGrid<std::uint8_t>(16, 0);
+	plan.height = pg::PlanGrid<std::int8_t>(16, 2);
+	plan.road = pg::PlanGrid<std::uint8_t>(16, 0);
+	const auto result = pg::resolveFlatTownCandidate(
+		plan, loadedRegistries().townBlueprints().get("city-plaza-flat"), 3, 3, 0);
+	ASSERT_TRUE(result.candidate.has_value());
+	EXPECT_EQ(result.candidate->entranceCell, (pg::LocalCell{3, 6}));
+	EXPECT_FALSE(pg::hasValidGlobalRoadArrival(plan, *result.candidate));
+
+	plan.road.at(3, 6) = 1;
+	EXPECT_TRUE(pg::hasValidGlobalRoadArrival(plan, *result.candidate));
+}
+
+TEST(TownPlanner, WaterRejectionHasNoObservablePlanMutation)
+{
+	pg::WorldPlan plan;
+	plan.config.size = 16;
+	plan.land = pg::PlanGrid<std::uint8_t>(16, 1); plan.water = pg::PlanGrid<std::uint8_t>(16, 0); plan.height = pg::PlanGrid<std::int8_t>(16, 2);
+	plan.water.at(3, 3) = 1;
+	const pg::TownMutationSnapshot before = pg::snapshotTownMutation(plan);
+	const auto result = pg::resolveFlatTownCandidate(plan, loadedRegistries().townBlueprints().get("city-plaza-flat"), 3, 3, 0);
+	ASSERT_TRUE(result.rejection.has_value());
+	EXPECT_EQ(result.rejection->category, pg::TownRejectCategory::Water);
+	EXPECT_TRUE(pg::matchesTownMutationSnapshot(plan, before));
+}
+
+TEST(TownPlanner, ContentResolutionIsDeterministicAndReportsPrefabAndDoorFailures)
+{
+	pg::WorldPlan plan;
+	plan.config.size = 16;
+	plan.land = pg::PlanGrid<std::uint8_t>(16, 1); plan.water = pg::PlanGrid<std::uint8_t>(16, 0); plan.height = pg::PlanGrid<std::int8_t>(16, 2);
+	pg::TownBlueprint blueprint = loadedRegistries().townBlueprints().get("city-plaza-flat");
+	blueprint.lots = {blueprint.lots.front()}; // one lot isolates prefab resolution from inter-lot claims
+	const std::vector<pg::PlanBiome> biomes = pg::planBiomesFrom(loadedRegistries().biomes());
+	const pg::PlanBiome &biome = biomes.front();
+	ASSERT_TRUE(biome.town.has_value());
+	const pg::TownContentContext valid{.prefabs = loadedRegistries().prefabs(), .town = *biome.town, .worldSeed = 1234, .stableEntityId = "city:1"};
+	const auto first = pg::resolveFlatTownCandidate(plan, blueprint, valid, 3, 3, 0);
+	const auto second = pg::resolveFlatTownCandidate(plan, blueprint, valid, 3, 3, 0);
+	ASSERT_TRUE(first.candidate.has_value()); ASSERT_TRUE(second.candidate.has_value());
+	ASSERT_EQ(first.candidate->buildings.size(), 1u);
+	EXPECT_EQ(first.candidate->buildings.front().prefabId, second.candidate->buildings.front().prefabId);
+	EXPECT_EQ(first.candidate->buildings.front().orientation, spk::VoxelOrientation::NegativeX)
+		<< "the center west of the street must face east toward its approach";
+
+	pg::PlanTown missing = *biome.town; missing.creatureCenter = "does-not-exist";
+	const auto missingResult = pg::resolveFlatTownCandidate(plan, blueprint, {.prefabs = loadedRegistries().prefabs(), .town = missing}, 3, 3, 0);
+	ASSERT_TRUE(missingResult.rejection.has_value());
+	EXPECT_EQ(missingResult.rejection->category, pg::TownRejectCategory::MissingPrefab);
+
+	pg::PlanTown doorless = *biome.town; doorless.creatureCenter = "town-light-pole";
+	const auto doorResult = pg::resolveFlatTownCandidate(plan, blueprint, {.prefabs = loadedRegistries().prefabs(), .town = doorless}, 3, 3, 0);
+	ASSERT_TRUE(doorResult.rejection.has_value());
+	EXPECT_EQ(doorResult.rejection->category, pg::TownRejectCategory::DoorMismatch);
+}
+
+TEST(TownPlanner, PortBuildingsFaceTheirIndividualStreetApproaches)
+{
+	const pg::Registries &registries = loadedRegistries();
+	pg::WorldPlan plan;
+	plan.config.size = 16;
+	plan.land = pg::PlanGrid<std::uint8_t>(16, 1);
+	plan.water = pg::PlanGrid<std::uint8_t>(16, 0);
+	plan.height = pg::PlanGrid<std::int8_t>(16, 2);
+	plan.land.at(3, 9) = 0;
+	const std::vector<pg::PlanBiome> biomes = pg::planBiomesFrom(registries.biomes());
+	const pg::PlanBiome &biome = biomes.front();
+	ASSERT_TRUE(biome.town.has_value());
+	const auto result = pg::resolveFlatTownCandidate(
+		plan,
+		registries.townBlueprints().get("port-plaza-flat"),
+		{.prefabs = registries.prefabs(), .town = *biome.town, .worldSeed = 9, .stableEntityId = "port"},
+		3,
+		3,
+		0);
+	ASSERT_TRUE(result.candidate.has_value())
+		<< "category=" << static_cast<int>(result.rejection->category)
+		<< " component=" << result.rejection->componentId;
+	ASSERT_EQ(result.candidate->buildings.size(), 5u);
+	for (const pg::PrefabPlacement &building : result.candidate->buildings)
+	{
+		EXPECT_EQ(building.orientation, spk::VoxelOrientation::PositiveZ);
+	}
+}
+
+TEST(TownPlanner, SlopeRejectionIsPure)
+{
+	pg::WorldPlan plan;
+	plan.config.size = 16;
+	plan.land = pg::PlanGrid<std::uint8_t>(16, 1); plan.water = pg::PlanGrid<std::uint8_t>(16, 0); plan.height = pg::PlanGrid<std::int8_t>(16, 2);
+	plan.height.at(7, 6) = 3;
+	const auto result = pg::resolveFlatTownCandidate(plan, loadedRegistries().townBlueprints().get("city-plaza-flat"), 3, 3, 0);
+	ASSERT_TRUE(result.rejection.has_value());
+	EXPECT_EQ(result.rejection->category, pg::TownRejectCategory::TerraceHeight);
+}
+
+TEST(TownPlanner, SiteEnumerationIsStableCenterOutRingOrder)
+{
+	const std::vector<pg::LocalCell> origins = pg::enumerateTownOrigins({10, 10}, 1);
+	EXPECT_EQ(origins, (std::vector<pg::LocalCell>{{10,10}, {9,9}, {9,10}, {9,11}, {10,11}, {11,11}, {11,10}, {11,9}, {10,9}}));
+	EXPECT_EQ(pg::enumerateTownOrigins({0, 0}, 2).size(), 25u);
+}
+
+TEST(TownPlanner, OutOfBoundsAndOverlappingLotsAreRejectedWithoutCommit)
+{
+	pg::WorldPlan plan;
+	plan.config.size = 16;
+	plan.land = pg::PlanGrid<std::uint8_t>(16, 1); plan.water = pg::PlanGrid<std::uint8_t>(16, 0); plan.height = pg::PlanGrid<std::int8_t>(16, 2);
+	const pg::TownBlueprint &source = loadedRegistries().townBlueprints().get("city-plaza-flat");
+	const auto outOfBounds = pg::resolveFlatTownCandidate(plan, source, -1, -1, 0);
+	ASSERT_TRUE(outOfBounds.rejection.has_value());
+	EXPECT_EQ(outOfBounds.rejection->category, pg::TownRejectCategory::OutOfBounds);
+
+	const std::vector<pg::PlanBiome> biomes = pg::planBiomesFrom(loadedRegistries().biomes());
+	pg::TownBlueprint overlap = source;
+	overlap.lots = {source.lots[0], source.lots[1]};
+	overlap.lots[1].reservation = overlap.lots[0].reservation;
+	const pg::TownContentContext content{.prefabs = loadedRegistries().prefabs(), .town = *biomes.front().town, .worldSeed = 1, .stableEntityId = "claim-test"};
+	const auto conflict = pg::resolveFlatTownCandidate(plan, overlap, content, 3, 3, 0);
+	ASSERT_TRUE(conflict.rejection.has_value());
+	EXPECT_EQ(conflict.rejection->category, pg::TownRejectCategory::ClaimConflict);
+	EXPECT_TRUE(plan.placements.empty());
+}
+
+TEST(TownCommit, CommitsResolvedArtifactsAtomically)
+{
+	pg::WorldPlan plan;
+	plan.config.size = 4;
+	plan.townPath = pg::PlanGrid<std::uint8_t>(4, 0);
+	pg::TownCandidate candidate{.blueprintId = "test", .originRow = 1, .originCol = 1, .boundaryCells = {{1,1}}, .pathCells = {{1,1}}};
+	pg::commitTownCandidate(plan, candidate);
+	ASSERT_EQ(plan.towns.size(), 1u);
+	EXPECT_EQ(plan.towns.front().blueprintId, "test");
+	EXPECT_EQ(plan.townPath.at(1, 1), 1);
+	EXPECT_THROW(pg::commitTownCandidate(plan, candidate), std::logic_error);
+	EXPECT_EQ(plan.towns.size(), 1u);
+	pg::TownCandidate invalid{.blueprintId="invalid",.originRow=2,.originCol=2,.pathCells={{99,99}}};const pg::TownMutationSnapshot before=pg::snapshotTownMutation(plan);EXPECT_THROW(pg::commitTownCandidate(plan,invalid),std::out_of_range);EXPECT_TRUE(pg::matchesTownMutationSnapshot(plan,before));
+}
+
+TEST(StairPlanner, PlanningIsPureAndRepeatable)
+{
+	const pg::Registries &registries = loadedRegistries();
+	pg::WorldPlan plan;
+	const pg::StairRequest request{.placements = {{.prefabId = "stair-platform", .anchor = {0, 4, 0}, .foundation = true}}};
+	const pg::StairPlanningContext context{.plan = plan, .prefabs = registries.prefabs()};
+	const auto first = pg::planStair(request, context);
+	const auto second = pg::planStair(request, context);
+	ASSERT_TRUE(first.has_value()); ASSERT_TRUE(second.has_value());
+	EXPECT_EQ(first->claims, second->claims);
+	EXPECT_TRUE(plan.placements.empty());
+	EXPECT_TRUE(plan.stairways.empty());
+}
+
+TEST(TownPlanner, AuthoredGymTerraceUsesThePureStairPlanner)
+{
+	const pg::Registries &registries=loadedRegistries(); pg::WorldPlan plan; plan.config.size=16;plan.land=pg::PlanGrid<std::uint8_t>(16,1);plan.water=pg::PlanGrid<std::uint8_t>(16,0);plan.height=pg::PlanGrid<std::int8_t>(16,2);plan.townPath=pg::PlanGrid<std::uint8_t>(16,0);for(int row=7;row<16;++row)for(int col=0;col<16;++col)plan.height.at(row,col)=3;
+	const std::vector<pg::PlanBiome> biomes=pg::planBiomesFrom(registries.biomes());const pg::PlanBiome &biome=biomes.front();ASSERT_TRUE(biome.town);const pg::TownMutationSnapshot before=pg::snapshotTownMutation(plan);const auto result=pg::resolveFlatTownCandidate(plan,registries.townBlueprints().get("gym-terrace"),{.prefabs=registries.prefabs(),.town=*biome.town,.worldSeed=44,.stableEntityId="terrace",.roadStairPrefabs=&biome.roadStairLengths},3,3,0);ASSERT_TRUE(result.candidate.has_value()) << (result.rejection?result.rejection->componentId:"");ASSERT_EQ(result.candidate->stairs.size(),1u);EXPECT_EQ(result.candidate->stairs.front().record.steps,1);EXPECT_TRUE(pg::matchesTownMutationSnapshot(plan,before));
+}
+
 TEST(WorldPlanValidation, SettlementsComposeTheirRequiredTownBuildings)
 {
 	const pg::Registries &registries = loadedRegistries();
@@ -317,6 +553,7 @@ TEST(WorldPlanValidation, SettlementsComposeTheirRequiredTownBuildings)
 		pg::planBiomesFrom(registries.biomes()),
 		registries.placementRules(),
 		registries.prefabs(),
+		registries.townBlueprints(),
 		registries.interiors());
 
 	int settlements = 0;
@@ -348,6 +585,16 @@ TEST(WorldPlanValidation, SettlementsComposeTheirRequiredTownBuildings)
 		}
 		const pg::PrefabDefinition &prefab = registries.prefabs().get(placement.prefabId);
 		const pg::ResolvedPlacementBox box = pg::resolvePlacement(prefab.prefab, placement);
+		const pg::PrefabAnchor *door = prefab.tryAnchor("door");
+		ASSERT_NE(door, nullptr);
+		const spk::Vector3Int doorWorld = box.destination + spk::rotateQuarterTurns(
+			door->position - prefab.prefab.pivot(), spk::quarterTurnsOf(placement.orientation));
+		const int doorRow = plan.cellIndexFromWorld(doorWorld.z);
+		const int doorCol = plan.cellIndexFromWorld(doorWorld.x);
+		const int terrainSurface = plan.surfaceY(plan.height.at(doorRow, doorCol));
+		EXPECT_EQ(doorWorld.y, terrainSurface) << "town door floor must be flush with terrain";
+		EXPECT_EQ(box.destination.y, terrainSurface + 1)
+			<< "town prefab pivot must remain one block above the terrain surface";
 		const int minRow = plan.cellIndexFromWorld(box.worldMin.z);
 		const int maxRow = plan.cellIndexFromWorld(box.worldMin.z + box.extents.z - 1);
 		const int minCol = plan.cellIndexFromWorld(box.worldMin.x);
@@ -369,7 +616,7 @@ TEST(WorldPlanValidation, SettlementsComposeTheirRequiredTownBuildings)
 	{
 		for (int col = 0; col < config.size; ++col)
 		{
-			if (plan.townRoad.at(row, col) != 0)
+			if (plan.townPath.at(row, col) != 0)
 			{
 				++pavedTownCells;
 				EXPECT_NE(plan.land.at(row, col), 0);
@@ -378,25 +625,81 @@ TEST(WorldPlanValidation, SettlementsComposeTheirRequiredTownBuildings)
 		}
 	}
 	EXPECT_GT(pavedTownCells, 0);
+	std::set<std::size_t> macroOwners;
+	for(const pg::PlanTownRecord &town:plan.towns)
+	{
+		EXPECT_TRUE(macroOwners.insert(town.macroEntityIndex).second);
+		for(const auto &[row,col]:town.pathCells) EXPECT_NE(plan.townPath.at(row,col),0);
+		if(town.kind==pg::PlanEntityKind::PortCity){EXPECT_TRUE(town.boardingEndpoint.has_value());for(std::size_t link:town.boatLinkIndices)EXPECT_LT(link,plan.boatLinks.size());}
+		int lamps = 0;
+		int benches = 0;
+		const std::set<std::pair<int, int>> townPathCells(town.pathCells.begin(), town.pathCells.end());
+		const auto isTownPathSurface = [&](int worldX, int worldZ) {
+			const int row = plan.cellIndexFromWorld(worldZ);
+			const int col = plan.cellIndexFromWorld(worldX);
+			if (!townPathCells.contains({row, col}))
+			{
+				return false;
+			}
+			const int localX = worldX - (plan.worldOffset() + col * config.blocksPerCell);
+			const int localZ = worldZ - (plan.worldOffset() + row * config.blocksPerCell);
+			return pg::isCenteredPathSurface(
+				config.blocksPerCell, localX, localZ,
+				townPathCells.contains({row - 1, col}), townPathCells.contains({row + 1, col}),
+				townPathCells.contains({row, col - 1}), townPathCells.contains({row, col + 1}));
+		};
+		for (const pg::PrefabPlacement &placement : plan.placements)
+		{
+			if (placement.prefabId != "town-light-pole" && placement.prefabId != "town-bench")
+			{
+				continue;
+			}
+			const std::pair<int, int> cell{
+				plan.cellIndexFromWorld(placement.anchor.z), plan.cellIndexFromWorld(placement.anchor.x)};
+			if (std::ranges::find(town.boundaryCells, cell) == town.boundaryCells.end())
+			{
+				continue;
+			}
+			lamps += placement.prefabId == "town-light-pole";
+			benches += placement.prefabId == "town-bench";
+			const pg::ResolvedPlacementBox decorBox =
+				pg::resolvePlacement(registries.prefabs().get(placement.prefabId).prefab, placement);
+			bool touchesPath = false;
+			for (int z = decorBox.worldMin.z; z < decorBox.worldMin.z + decorBox.extents.z; ++z)
+			{
+				for (int x = decorBox.worldMin.x; x < decorBox.worldMin.x + decorBox.extents.x; ++x)
+				{
+					EXPECT_FALSE(isTownPathSurface(x, z)) << placement.prefabId << " overlaps the town path";
+					touchesPath = touchesPath || isTownPathSurface(x - 1, z) || isTownPathSurface(x + 1, z) ||
+						isTownPathSurface(x, z - 1) || isTownPathSurface(x, z + 1);
+				}
+			}
+			EXPECT_TRUE(touchesPath) << placement.prefabId << " is not beside the rendered town path";
+		}
+		EXPECT_GE(lamps, 1) << "town " << town.macroEntityIndex << " (" << town.blueprintId << ") has no roadside lamp";
+		EXPECT_GE(benches, 1) << "town " << town.macroEntityIndex << " (" << town.blueprintId << ") has no roadside bench";
+	}
+	EXPECT_EQ(macroOwners.size(),plan.towns.size());
 }
 
 TEST(WorldPlanValidation, UsesRoadSwitchbackBeforePerpendicularFallback)
 {
 	const pg::Registries &registries = loadedRegistries();
 	Config config;
-	config.masterSeed = 9784;
+	config.masterSeed = 9788;
 	const pg::WorldPlan plan = pg::generateWorldPlan(
 		config,
 		pg::planBiomesFrom(registries.biomes()),
 		registries.placementRules(),
 		registries.prefabs(),
+		registries.townBlueprints(),
 		registries.interiors());
 
 	const auto switchback = std::ranges::find_if(plan.stairways, [](const pg::PlanStairway &p_stairway) {
 		return p_stairway.road && p_stairway.layout == pg::StairLayout::Switchback;
 	});
 	ASSERT_NE(switchback, plan.stairways.end());
-	EXPECT_EQ(switchback->steps, 4);
+	EXPECT_EQ(switchback->steps, 3);
 	EXPECT_GE(switchback->centerPath.size(), static_cast<std::size_t>(10));
 	// A switchback stamps two platforms per landing plus top/bottom: steps + 4
 	// contiguous placements, all recorded on the stairway itself.
@@ -432,6 +735,7 @@ TEST(WorldPlanValidation, RepresentativeMinimumConfigurationGenerates)
 			pg::planBiomesFrom(registries.biomes()),
 			registries.placementRules(),
 			registries.prefabs(),
+			registries.townBlueprints(),
 			registries.interiors());
 		EXPECT_EQ(plan.config.size, Config::MinimumPlanSize);
 		EXPECT_EQ(plan.land.size(), Config::MinimumPlanSize);
@@ -464,6 +768,7 @@ TEST(WorldPlanValidation, CoastalLandKeepsItsBiomeHeight)
 		{biome},
 		registries.placementRules(),
 		registries.prefabs(),
+		registries.townBlueprints(),
 		registries.interiors());
 
 	bool foundCoastalLand = false;

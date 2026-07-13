@@ -23,7 +23,7 @@
 			"candidateRatio": 1.0
 		},
 		"prefabs": {
-			"townScenery": [ { "prefab": "town-light-pole", "density": 0.08, "spacing": 5 }, { "prefab": "town-bench", "density": 0.05, "spacing": 4 } ],
+			"townScenery": [ { "prefab": "town-light-pole", "density": 0.50, "spacing": 4, "placement": "roadside" }, { "prefab": "town-bench", "density": 0.35, "spacing": 3, "placement": "roadside" } ],
 			"town": { "creatureCenter": "highland-creature-center", "shop": "highland-shop", "gym": "highland-gym", "port": "highland-port", "homes": ["highland-house", "highland-hut"] },
 			"scenery": [
 				{ "prefab": "pine-tree", "density": 0.12, "spacing": 6 },

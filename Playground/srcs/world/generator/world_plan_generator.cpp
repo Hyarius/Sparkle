@@ -2,6 +2,7 @@
 
 #include "world/biome_definition.hpp"
 #include "world/generator/placement_rules.hpp"
+#include "world/generator/town_planner.hpp"
 
 #include <algorithm>
 #include <sstream>
@@ -25,10 +26,12 @@ namespace pg::worldgen
 		const std::vector<PlanBiome> &p_biomes,
 		const PlanPlacementRules &p_placementRules,
 		const Registry<PrefabDefinition> &p_prefabs,
+		const TownBlueprintCatalog &p_townBlueprints,
 		const Registry<InteriorDefinition> &p_interiors) :
 		cfg(p_config),
 		placementRules(p_placementRules),
 		prefabs(p_prefabs),
+		townBlueprints(p_townBlueprints),
 		interiors(p_interiors),
 		size(p_config.size)
 	{
@@ -45,7 +48,7 @@ namespace pg::worldgen
 		plan.water = Mask(size, 0);
 		plan.lake = Mask(size, 0);
 		plan.road = Mask(size, 0);
-		plan.townRoad = Mask(size, 0);
+		plan.townPath = Mask(size, 0);
 		plan.bridge = Mask(size, 0);
 	}
 
@@ -118,13 +121,12 @@ namespace pg::worldgen
 		markBridges();
 		prefabPickRng = rngFor("world/prefab_picks");
 		placeStairways();
-		placeWildStairways();
 		placeBuildings();
-		placeTownStairways();
+		placeWildStairways();
 		placeTownScenery();
-		reserveTownAreas();
 		placeScenery();
 		computeStats();
+		validateWorldPlanTowns(plan);
 		return std::move(plan);
 	}
 }
@@ -163,7 +165,7 @@ namespace pg
 			}
 			for (const BiomeScenery &scenery : definition.worldgen->townScenery)
 			{
-				biome.townScenery.push_back({.prefabId = scenery.prefabId, .density = scenery.density, .spacing = scenery.spacing, .prefabSize = scenery.prefabSize});
+				biome.townScenery.push_back({.prefabId = scenery.prefabId, .density = scenery.density, .spacing = scenery.spacing, .prefabSize = scenery.prefabSize, .roadside = scenery.roadside});
 			}
 			for (const auto &[slot, pool] : definition.worldgen->prefabs)
 			{
@@ -265,11 +267,26 @@ namespace pg
 		const std::vector<PlanBiome> &p_biomes,
 		const PlanPlacementRules &p_placementRules,
 		const Registry<PrefabDefinition> &p_prefabs,
+		const TownBlueprintCatalog &p_townBlueprints,
 		const Registry<InteriorDefinition> &p_interiors)
 	{
 		// This is the public allocation boundary. Keep validation ahead of Generator's
 		// plan-grid construction and every arithmetic-heavy generation stage.
 		validateWorldGenConfig(p_config);
-		return worldgen::Generator(p_config, p_biomes, p_placementRules, p_prefabs, p_interiors).run();
+		for(int attempt=0;;++attempt)
+		{
+			WorldGenConfig resolved=p_config;
+			if(attempt>0)resolved.masterSeed=worldgen::deriveSeed(p_config.masterSeed,"world/town_retry/"+std::to_string(attempt));
+			try
+			{
+				WorldPlan plan=worldgen::Generator(resolved,p_biomes,p_placementRules,p_prefabs,p_townBlueprints,p_interiors).run();
+				if(attempt>0)plan.stats.warnings.push_back("requested seed "+std::to_string(p_config.masterSeed)+" required "+std::to_string(attempt)+" deterministic town-generation retry/retries; resolved seed="+std::to_string(resolved.masterSeed));
+				return plan;
+			}
+			catch(const TownPlanningError &)
+			{
+				if(attempt>=p_config.maxTownWorldRetries)throw;
+			}
+		}
 	}
 }

@@ -1,4 +1,5 @@
 #include "world/generator/world_plan_generator.hpp"
+#include "structures/voxel/spk_voxel_orientation.hpp"
 
 #include <algorithm>
 #include <optional>
@@ -67,17 +68,12 @@ namespace pg::worldgen
 
 		// The door cell is the floor block inside the doorway (anchored at local
 		// y = -1); the return portal drops the player one cell outside it, on the
-		// same flattened plateau. Buildings stamp with the identity orientation,
-		// so anchors resolve untransformed.
+		// same flattened plateau. Resolve the anchor and outward vector through the
+		// committed building rotation; town blueprints may use any quarter turn.
 		const spk::Vector3Int buildingPivot = building->prefab.pivot();
-		const spk::Vector3Int doorWorld = buildingBox->destination + door->position - buildingPivot;
-		const spk::Vector3Int minBoundsB = building->prefab.minBounds();
-		const spk::Vector3Int maxBoundsB = building->prefab.maxBounds();
-		const double doorOffsetX = door->position.x - (minBoundsB.x + maxBoundsB.x) / 2.0;
-		const double doorOffsetZ = door->position.z - (minBoundsB.z + maxBoundsB.z) / 2.0;
-		const spk::Vector3Int outward = std::abs(doorOffsetX) > std::abs(doorOffsetZ)
-											? spk::Vector3Int{doorOffsetX >= 0 ? 1 : -1, 0, 0}
-											: spk::Vector3Int{0, 0, doorOffsetZ >= 0 ? 1 : -1};
+		const int buildingTurns=spk::quarterTurnsOf(p_buildingPlacement.orientation);
+		const spk::Vector3Int doorWorld=buildingBox->destination+spk::rotateQuarterTurns(door->position-buildingPivot,buildingTurns);
+		const spk::Vector3Int outward=spk::rotateQuarterTurns({0,0,-1},buildingTurns);
 
 		// One square void slot per interior, along the +Z edge of the band. Rooms
 		// share the level-0 ground height so walk heights match the overworld.

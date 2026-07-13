@@ -5,6 +5,7 @@
 #include "structures/graphics/geometry/spk_color.hpp"
 #include "structures/math/spk_vector3.hpp"
 #include "structures/voxel/spk_voxel_enums.hpp"
+#include "world/generator/town_blueprint.hpp"
 
 #include <cstdint>
 #include <limits>
@@ -103,6 +104,7 @@ namespace pg
 		double density = 0.0; // expected instances per suitable world-plan cell
 		int spacing = 1;	  // minimum center distance in voxel columns
 		spk::Vector3Int prefabSize{};
+		bool roadside = false;
 	};
 
 	struct PlanTown
@@ -213,6 +215,13 @@ namespace pg
 		int maxZ = 0;
 	};
 
+	struct PlanClaim
+	{
+		spk::Vector3Int min{};
+		spk::Vector3Int max{};
+		friend bool operator==(const PlanClaim &, const PlanClaim &) = default;
+	};
+
 	// How a committed staircase crosses its cliff. Taller climbs try the layouts in
 	// this order; one-level climbs are always a single perpendicular ramp.
 	enum class StairLayout : std::uint8_t
@@ -257,6 +266,26 @@ namespace pg
 	{
 		spk::Vector3Int from{};
 		spk::Vector3Int to{};
+	};
+
+	// Resolved town ownership record. Consumers must use this rather than infer a
+	// settlement from the flat town-road mask or placement list.
+	struct PlanTownRecord
+	{
+		PlanEntityKind kind = PlanEntityKind::City;
+		std::size_t macroEntityIndex = 0;
+		std::string blueprintId;
+		int quarterTurns = 0;
+		int originRow = 0;
+		int originCol = 0;
+		std::pair<int, int> entranceCell{};
+		std::vector<std::pair<int, int>> boundaryCells;
+		std::vector<std::pair<int, int>> pathCells;
+		std::vector<std::pair<int, int>> decorationCells;
+		std::vector<std::pair<int, int>> dockCells;
+		std::vector<std::size_t> buildingPlacementIndices;
+		std::optional<spk::Vector3Int> boardingEndpoint;
+		std::vector<std::size_t> boatLinkIndices;
 	};
 
 	struct WorldGenConfig
@@ -329,6 +358,12 @@ namespace pg
 		int maxWildStairLevels = 3; // [1, maxComposedStairLevels]
 		int maxComposedStairLevels = 6; // [1, maxHeightLevel]
 
+		// Maximum deterministic relocation distance for a complete town blueprint.
+		int townSearchRadiusCells = 18;
+		// Whole-world retries after a typed atomic town-planning failure. Attempt zero
+		// always uses masterSeed; later attempts use stable derived seeds.
+		int maxTownWorldRetries = 8;
+
 		// Realization (voxel) parameters
 		int blocksPerCell = 8; // [4, MaximumBlocksPerCell]
 		int blocksPerLevel = 3; // [1, min(MaximumBlocksPerLevel, blocksPerCell)]
@@ -368,6 +403,7 @@ namespace pg
 		int interiorRoomPlacements = 0;	 // room prefabs stamped in the interior band
 		int placementConflicts = 0;		 // claimed-zone collisions resolved by nudging or overriding
 		int skippedPoiPlacements = 0;	 // POI prefabs dropped because no clear zone was found
+		int blueprintTownWriters = 0;
 		std::vector<std::string> warnings;
 	};
 
@@ -386,7 +422,9 @@ namespace pg
 		PlanGrid<std::uint8_t> road;
 		// Fine town streets reuse the regular road rendering, but are not part of
 		// the inter-settlement graph used for routing and boat links.
-		PlanGrid<std::uint8_t> townRoad;
+		// Derived realization cache populated only by commitTownCandidate; ownership,
+		// connectivity, and exclusion come from PlanTownRecord.
+		PlanGrid<std::uint8_t> townPath;
 		PlanGrid<std::uint8_t> bridge; // road over water
 
 		std::vector<PlanZone> zones;
@@ -396,6 +434,8 @@ namespace pg
 		std::vector<PrefabPlacement> placements;
 		std::vector<PlanStairway> stairways; // every committed staircase, road and wild
 		std::vector<PlanPortal> portals;
+		std::vector<PlanTownRecord> towns;
+		std::vector<PlanClaim> townClaims;
 
 		WorldPlanStats stats;
 
@@ -468,11 +508,13 @@ namespace pg
 	// Validates every field and derived allocation/coordinate bound. Throws
 	// std::invalid_argument with the offending field name before generation allocates.
 	void validateWorldGenConfig(const WorldGenConfig &p_config);
+	void validateWorldPlanTowns(const WorldPlan &p_plan);
 
 	[[nodiscard]] WorldPlan generateWorldPlan(
 		const WorldGenConfig &p_config,
 		const std::vector<PlanBiome> &p_biomes,
 		const PlanPlacementRules &p_placementRules,
 		const Registry<PrefabDefinition> &p_prefabs,
+		const TownBlueprintCatalog &p_townBlueprints,
 		const Registry<InteriorDefinition> &p_interiors);
 }

@@ -5,6 +5,7 @@
 #include "world/generator/placement_rules.hpp"
 
 #include <iostream>
+#include <set>
 #include <stdexcept>
 
 namespace pg
@@ -39,6 +40,22 @@ namespace pg
 			definition.id = p_id;
 			return definition;
 		});
+		std::set<std::string> townPrefabIds;
+		for (const std::string &biomeId : loadedBiomes.ids())
+		{
+			const BiomeDefinition &biome = loadedBiomes.get(biomeId);
+			if (!biome.worldgen || !biome.worldgen->town) continue;
+			const BiomeTown &town=*biome.worldgen->town;
+			townPrefabIds.insert(town.creatureCenter); townPrefabIds.insert(town.shop); townPrefabIds.insert(town.gym); townPrefabIds.insert(town.port); townPrefabIds.insert(town.homes.begin(),town.homes.end());
+		}
+		for (const std::string &prefabId : townPrefabIds)
+		{
+			if(!loadedPrefabs.contains(prefabId)) throw std::runtime_error("town content references unknown prefab '"+prefabId+"'");
+			PrefabDefinition *prefab=&loadedPrefabs.getMutable(prefabId);
+			const PrefabAnchor *door=prefab->tryAnchor("door");
+			if(door==nullptr || door->position.z!=0) throw std::runtime_error("town prefab '"+prefabId+"' needs a door anchor on its local -Z exterior");
+			if(!prefab->entrance) prefab->entrance=PrefabEntrance{.anchorName="door",.outwardFacing=spk::VoxelOrientation::NegativeZ,.clearApproach={.min={door->position.x,door->position.y,door->position.z-1},.max={door->position.x,door->position.y+1,door->position.z}}};
+		}
 		// Interiors reference room prefabs, so they load after prefabs; each prefab's
 		// own "interior" link is validated once both registries exist.
 		Registry<InteriorDefinition> loadedInteriors;
@@ -70,6 +87,12 @@ namespace pg
 		const spk::JSON::Value placementsJson = JsonLoader::parseFile(placementsFile);
 		JsonReader placementsReader(placementsJson, placementsFile);
 		PlanPlacementRules loadedPlacementRules = parsePlanPlacementRules(placementsReader, loadedPrefabs);
+		TownBlueprintCatalog loadedTownBlueprints;
+		spk::loadJsonDirectory(loadedTownBlueprints, p_dataDirectory / "worldgen" / "towns", [](std::string_view p_id, JsonReader &p_reader) {
+			TownBlueprint blueprint = parseTownBlueprint(p_reader);
+			blueprint.id = p_id;
+			return blueprint;
+		});
 
 		_gameRules = std::move(loadedGameRules);
 		_shapes = std::move(loadedShapes);
@@ -78,6 +101,7 @@ namespace pg
 		_prefabs = std::move(loadedPrefabs);
 		_interiors = std::move(loadedInteriors);
 		_placementRules = std::move(loadedPlacementRules);
+		_townBlueprints = std::move(loadedTownBlueprints);
 		std::cout << "Loaded " << _voxels.typeCount() << " voxel types containing "
 				  << _voxels.runtimeStateCount() << " runtime states, " << _biomes.size()
 				  << " biome definitions, " << _prefabs.size() << " prefabs, and " << _interiors.size()
@@ -91,4 +115,5 @@ namespace pg
 	const Registry<PrefabDefinition> &Registries::prefabs() const noexcept { return _prefabs; }
 	const Registry<InteriorDefinition> &Registries::interiors() const noexcept { return _interiors; }
 	const PlanPlacementRules &Registries::placementRules() const noexcept { return _placementRules; }
+	const TownBlueprintCatalog &Registries::townBlueprints() const noexcept { return _townBlueprints; }
 }

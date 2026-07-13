@@ -22,11 +22,22 @@ namespace pg
 		spk::Vector3Int max{};
 	};
 
+	// Town content uses this explicit, planner-facing entrance contract. Existing
+	// biome town bindings authoritatively bind their `door` anchor to local -Z;
+	// later content can serialize a different contract in the prefab itself.
+	struct PrefabEntrance
+	{
+		std::string anchorName = "door";
+		spk::VoxelOrientation outwardFacing = spk::VoxelOrientation::NegativeZ;
+		PrefabClearance clearApproach{};
+	};
+
 	struct PrefabDefinition
 	{
 		std::string id;
 		spk::Prefab prefab;
 		std::optional<PrefabClearance> clearance;
+		std::optional<PrefabEntrance> entrance;
 		// Interior definition composed and linked (through a door portal) when the world
 		// planner places this prefab; empty for scenery and doorless structures.
 		std::string interiorId;

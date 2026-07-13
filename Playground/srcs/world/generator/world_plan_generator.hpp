@@ -29,6 +29,7 @@ namespace pg::worldgen
 		const WorldGenConfig &cfg;
 		const PlanPlacementRules &placementRules;
 		const Registry<PrefabDefinition> &prefabs;
+		const TownBlueprintCatalog &townBlueprints;
 		const Registry<InteriorDefinition> &interiors;
 		WorldPlan plan;
 		int size;
@@ -44,6 +45,7 @@ namespace pg::worldgen
 			const std::vector<PlanBiome> &p_biomes,
 			const PlanPlacementRules &p_placementRules,
 			const Registry<PrefabDefinition> &p_prefabs,
+			const TownBlueprintCatalog &p_townBlueprints,
 			const Registry<InteriorDefinition> &p_interiors);
 
 		[[nodiscard]] Rng rngFor(const std::string &p_path) const
@@ -96,6 +98,7 @@ namespace pg::worldgen
 		[[nodiscard]] std::string stairPlatformPrefabFor(int p_zone, bool p_onRoad) const;
 		[[nodiscard]] const std::vector<std::string> *entityPrefabsFor(PlanEntityKind p_kind, int p_zone) const;
 		[[nodiscard]] const PlanTown *townFor(int p_zone) const;
+		void composeBlueprintTown(const PlanEntity &p_entity, std::size_t p_entityIndex);
 
 		// ---------------- Claimed zones (world_plan_stairways.cpp) ----------------
 		// Every structural placement (stairways first — they have priority — then
@@ -272,7 +275,6 @@ namespace pg::worldgen
 			bool p_onRoad,
 			std::optional<int> p_wildMaximumLevels = std::nullopt);
 		void placeStairways();
-		void placeTownStairways();
 		void placeWildStairways();
 
 		// ---------------- Interiors (world_plan_interiors.cpp) ----------------
@@ -283,8 +285,6 @@ namespace pg::worldgen
 
 		// ---------------- Buildings (world_plan_infrastructure.cpp) ----------------
 		void placeBuildings();
-		void composeTown(const PlanEntity &p_entity);
-		void reserveTownAreas();
 		void placeTownScenery();
 
 		// ---------------- Scenery (world_plan_scenery.cpp) ----------------

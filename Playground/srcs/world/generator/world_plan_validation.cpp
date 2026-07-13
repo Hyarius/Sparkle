@@ -4,6 +4,9 @@
 #include <cmath>
 #include <cstdint>
 #include <limits>
+#include <map>
+#include <ranges>
+#include <set>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -51,6 +54,23 @@ namespace
 
 namespace pg
 {
+	void validateWorldPlanTowns(const WorldPlan &p_plan)
+	{
+		std::set<std::size_t> owners;
+		for(const PlanTownRecord &town:p_plan.towns)
+		{
+			if(town.macroEntityIndex>=p_plan.entities.size() || !owners.insert(town.macroEntityIndex).second) throw std::logic_error("WorldPlan town has an invalid or duplicate macro owner");
+			const PlanEntity &entity=p_plan.entities[town.macroEntityIndex]; if(entity.kind!=town.kind) throw std::logic_error("WorldPlan town kind differs from its macro owner");
+			std::map<TownBuildingRole,int> roles; for(std::size_t index:town.buildingPlacementIndices) { if(index>=p_plan.placements.size()) throw std::logic_error("WorldPlan town building index is invalid"); ++roles[p_plan.placements[index].townRole]; }
+			if(roles[TownBuildingRole::CreatureCenter]!=1 || roles[TownBuildingRole::Shop]!=1 || roles[TownBuildingRole::Home]<(town.kind==PlanEntityKind::City?3:2) || (town.kind==PlanEntityKind::Gym && roles[TownBuildingRole::Gym]!=1) || (town.kind==PlanEntityKind::PortCity && roles[TownBuildingRole::Port]!=1)) throw std::logic_error("WorldPlan town is missing a required building role");
+			std::set<std::pair<int,int>> boundary(town.boundaryCells.begin(),town.boundaryCells.end()); for(const auto &cell:town.pathCells) if(!boundary.contains(cell)) throw std::logic_error("WorldPlan town path lies outside its boundary"); for(const auto &cell:town.decorationCells) if(!boundary.contains(cell)) throw std::logic_error("WorldPlan decoration zone lies outside its boundary");
+			if (!boundary.contains(town.entranceCell) || std::ranges::find(town.pathCells, town.entranceCell) == town.pathCells.end() || !p_plan.road.contains(town.entranceCell.first, town.entranceCell.second) || p_plan.road.at(town.entranceCell.first, town.entranceCell.second) == 0) throw std::logic_error("WorldPlan town entrance is disconnected from the global road graph");
+			if(town.kind==PlanEntityKind::PortCity && (!town.boardingEndpoint||town.dockCells.empty())) throw std::logic_error("WorldPlan port town has no dock or boarding endpoint");if(town.boardingEndpoint){const int row=p_plan.cellIndexFromWorld(town.boardingEndpoint->z),col=p_plan.cellIndexFromWorld(town.boardingEndpoint->x);if(!p_plan.land.contains(row,col)||(p_plan.land.at(row,col)!=0&&p_plan.water.at(row,col)==0)||std::ranges::find(town.dockCells,std::pair{row,col})==town.dockCells.end())throw std::logic_error("WorldPlan boarding endpoint is not on the water end of its dock");} for(std::size_t link:town.boatLinkIndices) if(link>=p_plan.boatLinks.size()) throw std::logic_error("WorldPlan port town has an invalid boat link");
+		}
+		const std::size_t settlements=static_cast<std::size_t>(std::ranges::count_if(p_plan.entities,[](const PlanEntity &entity){return entity.kind==PlanEntityKind::City||entity.kind==PlanEntityKind::Gym||entity.kind==PlanEntityKind::PortCity;}));
+		if(owners.size()!=settlements) throw std::logic_error("WorldPlan does not contain exactly one town per settlement");
+	}
+
 	void validateWorldGenConfig(const WorldGenConfig &p_config)
 	{
 		using Config = WorldGenConfig;
@@ -134,6 +154,11 @@ namespace pg
 				field,
 				"must be between 0 and MaximumPerZoneCount");
 		}
+
+		require(p_config.townSearchRadiusCells >= 0 && p_config.townSearchRadiusCells <= Config::MaximumPlanSize,
+			"townSearchRadiusCells", "must be between 0 and MaximumPlanSize");
+		require(p_config.maxTownWorldRetries >= 0 && p_config.maxTownWorldRetries <= 64,
+			"maxTownWorldRetries", "must be between 0 and 64");
 
 		const std::array radii = {
 			std::pair{"blockGym", p_config.blockGym},

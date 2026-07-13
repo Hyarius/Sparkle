@@ -387,6 +387,15 @@ namespace pg
 				canvas.fillRect(col * scale + scale / 2 - 2, titleBar + row * scale + scale / 2 - 2, 5, 5, color);
 			}
 		}
+		// Resolved town ownership: boundaries and authored streets come from the
+		// committed records, never from connected-component inference.
+		for (const PlanTownRecord &town : p_plan.towns)
+		{
+			for (const auto &[row,col] : town.boundaryCells) canvas.fillRect(col*scale+1,titleBar+row*scale+1,scale-2,scale-2,fromHex(0x7B4AA8));
+			for (const auto &[row,col] : town.pathCells) canvas.fillRect(col*scale+scale/2-2,titleBar+row*scale+scale/2-2,5,5,fromHex(0xD88A2D));
+			for(const auto &[row,col]:town.dockCells)canvas.fillRect(col*scale+2,titleBar+row*scale+2,scale-4,scale-4,fromHex(0x9A6A35));
+			if(town.boardingEndpoint) { const int col=p_plan.cellIndexFromWorld(town.boardingEndpoint->x), row=p_plan.cellIndexFromWorld(town.boardingEndpoint->z); canvas.fillDiamond(col*scale+scale/2,titleBar+row*scale+scale/2,4,fromHex(0x2BE3E3)); }
+		}
 
 		// Stairways repaint the road line where a climb detours it: every committed
 		// stair rectangle (flights, platforms, walkway lane) is drawn in road color at
