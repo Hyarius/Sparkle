@@ -227,10 +227,17 @@ namespace pg::worldgen
 			if (compatible == ids.end())
 				throw std::runtime_error("town site reservation failed: no compatible composition for settlement kind");
 			const TownComposition &composition = townCompositions.get(*compatible);
+			const PlanTown *biomeTown = townFor(entity.zone);
+			if (biomeTown == nullptr)
+				throw TownPlanningError(index, *compatible, {.category = TownRejectCategory::MissingContent, .componentId = *compatible, .message = "settlement biome has no town content"}, {}, "town site reservation cannot resolve biome town content");
+			TownRejection sizingFailure;
+			const std::optional<int> resolvedRadius = deriveTownRadius(composition, prefabs, *biomeTown, cfg.masterSeed, index, sizingFailure);
+			if (!resolvedRadius)
+				throw TownPlanningError(index, *compatible, sizingFailure, {{sizingFailure.componentId, 1}}, "town site reservation cannot derive a composition envelope: " + sizingFailure.message);
+			const int townRadius = *resolvedRadius;
 			// The entity becomes stable at reservation time, before roads are built.
-			// Move an initially sampled macro marker only when necessary to obtain the
-			// flat, dry foundation envelope required by voxel-scale town buildings.
-			const int envelope = (composition.layout.radiusColumns + cfg.blocksPerCell - 1) / cfg.blocksPerCell;
+			// The envelope is resolved from the seeded contents before roads are built.
+			const int envelope = (townRadius + cfg.blocksPerCell - 1) / cfg.blocksPerCell;
 			std::optional<Cell> reservedCenter;
 			// Keep normal towns close to their sampled marker and in-zone.  Tiny or
 			// fragmented maps may not contain a whole composition envelope there, so
@@ -277,13 +284,13 @@ namespace pg::worldgen
 			const int centerX = plan.worldOffset() + entity.col * cfg.blocksPerCell + cfg.blocksPerCell / 2;
 			const int centerZ = plan.worldOffset() + entity.row * cfg.blocksPerCell + cfg.blocksPerCell / 2;
 			const int worldMaximum = plan.worldOffset() + cfg.size * cfg.blocksPerCell - 1;
-			if (centerX - composition.layout.radiusColumns < plan.worldOffset() || centerX + composition.layout.radiusColumns > worldMaximum ||
-				centerZ - composition.layout.radiusColumns < plan.worldOffset() || centerZ + composition.layout.radiusColumns > worldMaximum ||
+			if (centerX - townRadius < plan.worldOffset() || centerX + townRadius > worldMaximum ||
+				centerZ - townRadius < plan.worldOffset() || centerZ + townRadius > worldMaximum ||
 				!isLand(entity.row, entity.col) || plan.water.at(entity.row, entity.col) != 0)
 			{
 				throw TownPlanningError(index, *compatible, {.category = TownRejectCategory::SiteOutOfBounds, .componentId = *compatible, .message = "settlement center cannot reserve the composition boundary"}, {}, "town site reservation is outside dry world bounds");
 			}
-			plan.townSites.push_back({.macroEntityIndex = index, .kind = entity.kind, .compositionId = *compatible, .centerRow = entity.row, .centerCol = entity.col, .radiusColumns = composition.layout.radiusColumns});
+			plan.townSites.push_back({.macroEntityIndex = index, .kind = entity.kind, .compositionId = *compatible, .centerRow = entity.row, .centerCol = entity.col, .radiusColumns = townRadius});
 		}
 	}
 

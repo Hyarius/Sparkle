@@ -254,21 +254,22 @@ namespace pg
 				p_rejection = {.category = TownRejectCategory::DoorClearance, .componentId = p_instance.id, .worldColumn = p_workspace.worldFromTown(connection), .message = "connection point is not routeable"};
 				return std::nullopt;
 			}
-			// Reserve one guaranteed three-column lane from this connection point to the
+			// Reserve one guaranteed configured-width lane from this connection point to the
 			// existing main spine.  It is a placement-time feasibility reservation, not
 			// an urban road: actual routes are still computed only after every building
 			// has been accepted.  Later buildings cannot consume the only viable lane.
 			std::vector<TownColumn> lane;
 			bool reachedMainRoad = false;
+			const int laneRadius = p_workspace.composition().layout.urbanRoadWidth / 2;
 			for (int step = 0; step < p_workspace.width() && !reachedMainRoad; ++step)
 			{
 				const TownColumn center{connection.x + outward.x * step, connection.z + outward.z * step};
-				for (int offset = -1; offset <= 1; ++offset)
+				for (int offset = -laneRadius; offset <= laneRadius; ++offset)
 				{
 					const TownColumn column{center.x - outward.z * offset, center.z + outward.x * offset};
 					if (!validSurface(p_workspace, column, surface) || p_workspace.has(column, TownWorkspaceLayer::BuildingSolid) || p_workspace.has(column, TownWorkspaceLayer::BuildingClearance) || p_workspace.has(column, TownWorkspaceLayer::DoorThreshold) || p_workspace.has(column, TownWorkspaceLayer::DoorApproach))
 					{
-						p_rejection = {.category = TownRejectCategory::DoorClearance, .componentId = p_instance.id, .worldColumn = p_workspace.contains(column) ? std::optional<WorldColumn>{p_workspace.worldFromTown(column)} : std::nullopt, .message = "connection has no clear three-column lane to the main road"};
+					p_rejection = {.category = TownRejectCategory::DoorClearance, .componentId = p_instance.id, .worldColumn = p_workspace.contains(column) ? std::optional<WorldColumn>{p_workspace.worldFromTown(column)} : std::nullopt, .message = "connection has no clear configured-width lane to the main road"};
 						return std::nullopt;
 					}
 					lane.push_back(column);
@@ -518,6 +519,97 @@ namespace pg
 	}
 
 	bool matchesTownMutationSnapshot(const WorldPlan &p_plan, TownMutationSnapshot p_snapshot) noexcept { return snapshotTownMutation(p_plan) == p_snapshot; }
+
+	std::optional<int> deriveTownRadius(
+		const TownComposition &p_composition,
+		const Registry<PrefabDefinition> &p_prefabs,
+		const PlanTown &p_biomeTown,
+		std::uint64_t p_worldSeed,
+		std::size_t p_macroEntityIndex,
+		TownRejection &p_rejection)
+	{
+		const std::optional<std::vector<BuildingInstance>> expanded =
+			expandInstances(p_composition, p_biomeTown, p_prefabs, p_worldSeed, p_macroEntityIndex, p_rejection);
+		if (!expanded)
+			return std::nullopt;
+
+		struct BuildingFootprint
+		{
+			int alongStreet = 0;
+			int awayFromStreet = 0;
+			int approach = 0;
+			int spacing = 0;
+		};
+		std::vector<BuildingFootprint> footprints;
+		for (const BuildingInstance &instance : *expanded)
+		{
+			const spk::Vector3Int localMin = instance.prefab->clearance ? instance.prefab->clearance->min : instance.prefab->prefab.minBounds();
+			const spk::Vector3Int localMax = instance.prefab->clearance ? instance.prefab->clearance->max : instance.prefab->prefab.maxBounds();
+			const PrefabEntrance &entrance = *instance.prefab->entrance;
+			const PrefabAnchor *door = instance.prefab->tryAnchor(entrance.anchorName);
+			int approach = 0;
+			switch (entrance.outwardFacing)
+			{
+			case spk::VoxelOrientation::PositiveX: approach = entrance.clearApproach.max.x - door->position.x; break;
+			case spk::VoxelOrientation::NegativeX: approach = door->position.x - entrance.clearApproach.min.x; break;
+			case spk::VoxelOrientation::PositiveZ: approach = entrance.clearApproach.max.z - door->position.z; break;
+			case spk::VoxelOrientation::NegativeZ: approach = door->position.z - entrance.clearApproach.min.z; break;
+			}
+			footprints.push_back({
+				.alongStreet = localMax.x - localMin.x + 1,
+				.awayFromStreet = localMax.z - localMin.z + 1,
+				.approach = std::max(0, approach),
+				.spacing = std::max(instance.spacing, p_composition.layout.minimumBuildingSpacing)});
+		}
+		std::sort(footprints.begin(), footprints.end(), [](const BuildingFootprint &p_left, const BuildingFootprint &p_right) {
+			return std::tie(p_left.alongStreet, p_left.awayFromStreet) > std::tie(p_right.alongStreet, p_right.awayFromStreet);
+		});
+		std::array<int, 2> streetLengths{};
+		int largestDepth = 0;
+		int largestApproach = 0;
+		for (const BuildingFootprint &footprint : footprints)
+		{
+			const int side = streetLengths[0] <= streetLengths[1] ? 0 : 1;
+			if (streetLengths[side] != 0)
+				streetLengths[side] += footprint.spacing;
+			streetLengths[side] += footprint.alongStreet;
+			largestDepth = std::max(largestDepth, footprint.awayFromStreet);
+			largestApproach = std::max(largestApproach, footprint.approach);
+		}
+
+		int sceneryArea = 0;
+		const auto addSceneryArea = [&](const std::vector<TownSceneryRequest> &p_requests, const std::string &p_channel) {
+			for (const TownSceneryRequest &request : p_requests)
+			{
+				const PrefabDefinition *prefab = p_prefabs.tryGet(request.prefabId);
+				if (prefab == nullptr)
+				{
+					p_rejection = {.category = TownRejectCategory::MissingContent, .componentId = request.id, .message = "composition references an unknown scenery prefab"};
+					return false;
+				}
+				worldgen::Rng rng(worldgen::deriveSeed(p_worldSeed, "town/" + std::to_string(p_macroEntityIndex) + "/" + p_channel + "/" + request.id + "/count"));
+				const int count = request.count.minimum + (request.count.maximum > request.count.minimum ? rng.below(request.count.maximum - request.count.minimum + 1) : 0);
+				const spk::Vector3Int localMin = prefab->clearance ? prefab->clearance->min : prefab->prefab.minBounds();
+				const spk::Vector3Int localMax = prefab->clearance ? prefab->clearance->max : prefab->prefab.maxBounds();
+				sceneryArea += count * (localMax.x - localMin.x + 1) * (localMax.z - localMin.z + 1);
+			}
+			return true;
+		};
+		if (!addSceneryArea(p_composition.roadScenery, "road-scenery") || !addSceneryArea(p_composition.groundScenery, "ground-scenery"))
+			return std::nullopt;
+
+		const int roadHalfWidth = (p_composition.layout.mainRoadWidth + 1) / 2;
+		const int laneHalfWidth = (p_composition.layout.urbanRoadWidth + 1) / 2;
+		const int streetHalfLength = (std::max(streetLengths[0], streetLengths[1]) + 1) / 2;
+		const int streetHalfDepth = roadHalfWidth + laneHalfWidth + largestApproach + largestDepth;
+		const int sceneryMargin = std::max(2, static_cast<int>(std::ceil(std::sqrt(static_cast<double>(sceneryArea)))) / 2);
+		// The planner needs room to choose among several road-facing addresses on
+		// uneven terrain, not just the mathematical rectangle of the footprints.
+		// Scale that search apron from the largest building so a larger composition
+		// naturally obtains a larger, still compact envelope.
+		const int structuralMargin = std::max(6, (largestDepth + 1) / 2) + 1;
+		return std::max(12, std::max(streetHalfLength, streetHalfDepth) + p_composition.layout.minimumBuildingSpacing + sceneryMargin + structuralMargin);
+	}
 
 	TownPlanResult planTown(const WorldPlan &p_plan, const PlanTownSite &p_site, const TownComposition &p_composition, const Registry<PrefabDefinition> &p_prefabs, const PlanTown &p_biomeTown, std::uint64_t p_worldSeed)
 	{

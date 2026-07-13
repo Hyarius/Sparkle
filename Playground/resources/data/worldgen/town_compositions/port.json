@@ -2,7 +2,6 @@
   "version": 1,
   "kind": "port",
   "layout": {
-    "radiusColumns": 26,
     "mainRoadWidth": 3,
     "urbanRoadWidth": 1,
     "minimumBuildingSpacing": 2,

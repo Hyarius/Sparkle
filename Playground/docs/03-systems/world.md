@@ -163,14 +163,16 @@ cross-chunk order dependence.
 
 Settlements use data-driven compositions from
 `resources/data/worldgen/town_compositions/` (`city`, `gym`, and `port`), not
-authored macro-grid blueprints. A composition declares role counts, compact
-layout limits, road width, and scenery requests; the biome binds those roles to
-its own prefabs.
+authored macro-grid blueprints. A composition declares role counts, layout
+rules, road width, and scenery requests; the biome binds those roles to its own
+prefabs. It does not author a town radius: generation resolves that envelope
+from the seeded role counts, prefab footprints and entrance approaches, spacing,
+road widths, and requested scenery.
 
 Generation reserves the settlement envelope before roads are built, continues
 the incoming macro road through its centre as the town spine, then plans in a
 transactional voxel-column workspace. Buildings are addressed beside that spine
-with a clear entrance approach and a protected three-column lane. Each entrance
+with a clear entrance approach and a protected configured-width lane. Each entrance
 is then connected by a cardinal A* route, expanded to the configured road width,
 and checked against every building, approach, claim, and prior town. A failed
 layout attempt is discarded wholesale.

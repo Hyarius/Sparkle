@@ -40,7 +40,6 @@ namespace pg
 
 	struct TownLayoutSettings
 	{
-		int radiusColumns = 48;
 		int mainRoadWidth = 3;
 		int urbanRoadWidth = 3;
 		int minimumBuildingSpacing = 4;

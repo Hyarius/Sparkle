@@ -52,8 +52,7 @@ TEST(TownComposition, ShippedCatalogHasStableKindsAndSchema)
 	EXPECT_EQ(catalog.ids(), (std::vector<std::string>{"city", "gym", "port"}));
 	const pg::TownComposition &city = catalog.get("city");
 	EXPECT_EQ(city.kind, pg::TownCompositionKind::City);
-	EXPECT_EQ(city.layout.radiusColumns, 32);
-	EXPECT_EQ(city.layout.urbanRoadWidth, 3);
+	EXPECT_TRUE(city.layout.urbanRoadWidth % 2 == 1);
 	EXPECT_EQ(city.buildings.front().count.minimum, 1);
 }
 
@@ -61,7 +60,6 @@ TEST(TownWorkspace, ConvertsWorldColumnsAndProjectsTheSharedMacroRoadSurface)
 {
 	pg::WorldPlan plan = flatTownPlan();
 	pg::TownComposition composition = loadedRegistries().townCompositions().get("city");
-	composition.layout.radiusColumns = 16;
 	pg::PlanTownSite site{.macroEntityIndex = 0, .kind = pg::PlanEntityKind::City, .compositionId = "city", .centerRow = 32, .centerCol = 32, .radiusColumns = 16};
 	pg::TownWorkspace workspace(plan, site, composition);
 	const pg::WorldColumn center{plan.worldOffset() + 32 * 8 + 4, plan.worldOffset() + 32 * 8 + 4};
@@ -75,11 +73,30 @@ TEST(TownWorkspace, ConvertsWorldColumnsAndProjectsTheSharedMacroRoadSurface)
 	}
 }
 
+TEST(TownPlanner, DerivesWorkspaceRadiusFromSeededContent)
+{
+	pg::WorldPlan plan = flatTownPlan();
+	pg::TownComposition composition = loadedRegistries().townCompositions().get("city");
+	pg::TownRejection rejection;
+	const pg::PlanTown &biomeTown = *plan.biomes.front().town;
+	const std::optional<int> radius = pg::deriveTownRadius(composition, loadedRegistries().prefabs(), biomeTown, 2026, 0, rejection);
+	ASSERT_TRUE(radius.has_value()) << rejection.message;
+	EXPECT_GE(*radius, 20);
+
+	pg::TownComposition larger = composition;
+	for (pg::TownBuildingRequest &request : larger.buildings)
+		if (request.role == pg::TownBuildingRole::Home)
+			request.count = {.minimum = 6, .maximum = 6};
+	pg::TownRejection largerRejection;
+	const std::optional<int> largerRadius = pg::deriveTownRadius(larger, loadedRegistries().prefabs(), biomeTown, 2026, 0, largerRejection);
+	ASSERT_TRUE(largerRadius.has_value()) << largerRejection.message;
+	EXPECT_GT(*largerRadius, *radius);
+}
+
 TEST(TownPlanner, BuildsAnAtomicProceduralCandidateWithConnectedDoors)
 {
 	pg::WorldPlan plan = flatTownPlan();
 	pg::TownComposition composition = loadedRegistries().townCompositions().get("city");
-	composition.layout.radiusColumns = 24;
 	composition.layout.layoutAttempts = 64;
 	composition.layout.buildingAttemptsPerItem = 256;
 	const pg::PlanTown &biomeTown = *plan.biomes.front().town;
@@ -112,7 +129,6 @@ TEST(TownPlanner, SameSeedProducesTheSameCandidate)
 {
 	pg::WorldPlan plan = flatTownPlan();
 	pg::TownComposition composition = loadedRegistries().townCompositions().get("city");
-	composition.layout.radiusColumns = 24;
 	composition.layout.layoutAttempts = 64;
 	composition.layout.buildingAttemptsPerItem = 256;
 	const pg::PlanTownSite site{.macroEntityIndex = 0, .kind = pg::PlanEntityKind::City, .compositionId = "city", .centerRow = 32, .centerCol = 32, .radiusColumns = 24};

@@ -9,7 +9,7 @@ namespace pg
 	namespace
 	{
 		constexpr int kMaximumCount = 64;
-		constexpr int kMaximumRadius = 128;
+		constexpr int kMaximumSpacing = 128;
 		constexpr int kMaximumAttempts = 512;
 
 		CountRange parseCount(const JsonReader &p_reader)
@@ -51,8 +51,6 @@ namespace pg
 
 		void validateLayout(const JsonReader &p_reader, const TownLayoutSettings &p_layout)
 		{
-			if (p_layout.radiusColumns < 4 || p_layout.radiusColumns > kMaximumRadius)
-				throw JsonError(p_reader.file(), p_reader.pathFor("radiusColumns"), "radiusColumns must be between 4 and 128");
 			for (const auto &[name, width] : std::array{
 					std::pair{"mainRoadWidth", p_layout.mainRoadWidth},
 					std::pair{"urbanRoadWidth", p_layout.urbanRoadWidth}})
@@ -60,9 +58,7 @@ namespace pg
 				if (width < 1 || width % 2 == 0 || width > 15)
 					throw JsonError(p_reader.file(), p_reader.pathFor(name), "road widths must be odd and between 1 and 15");
 			}
-			if (p_layout.radiusColumns < std::max(p_layout.mainRoadWidth, p_layout.urbanRoadWidth) + 2)
-				throw JsonError(p_reader.file(), p_reader.pathFor("radiusColumns"), "radiusColumns is too small for the road width");
-			if (p_layout.minimumBuildingSpacing < 0 || p_layout.minimumBuildingSpacing > kMaximumRadius)
+			if (p_layout.minimumBuildingSpacing < 0 || p_layout.minimumBuildingSpacing > kMaximumSpacing)
 				throw JsonError(p_reader.file(), p_reader.pathFor("minimumBuildingSpacing"), "minimumBuildingSpacing is outside supported bounds");
 			if (p_layout.buildingAttemptsPerItem < 1 || p_layout.buildingAttemptsPerItem > kMaximumAttempts ||
 				p_layout.layoutAttempts < 1 || p_layout.layoutAttempts > kMaximumAttempts)
@@ -119,9 +115,8 @@ namespace pg
 		TownComposition result;
 		result.kind = p_reader.requireEnum<TownCompositionKind>("kind", std::map<std::string, TownCompositionKind>{{"city", TownCompositionKind::City}, {"gym", TownCompositionKind::Gym}, {"port", TownCompositionKind::Port}});
 		JsonReader layout = p_reader.child("layout");
-		layout.forbidUnknown({"radiusColumns", "mainRoadWidth", "urbanRoadWidth", "minimumBuildingSpacing", "buildingAttemptsPerItem", "layoutAttempts", "routeTurnPenalty", "routeSlopePenalty"});
+		layout.forbidUnknown({"mainRoadWidth", "urbanRoadWidth", "minimumBuildingSpacing", "buildingAttemptsPerItem", "layoutAttempts", "routeTurnPenalty", "routeSlopePenalty"});
 		result.layout = {
-			.radiusColumns = layout.require<int>("radiusColumns"),
 			.mainRoadWidth = layout.require<int>("mainRoadWidth"),
 			.urbanRoadWidth = layout.require<int>("urbanRoadWidth"),
 			.minimumBuildingSpacing = layout.require<int>("minimumBuildingSpacing"),
@@ -145,7 +140,7 @@ namespace pg
 			if (request.id.empty() || !ids.insert(request.id).second)
 				throw JsonError(requestReader.file(), requestReader.pathFor("id"), "building request ids must be non-empty and unique");
 			validateCount(requestReader, request.count);
-			if (request.minimumSpacing < 0 || request.minimumSpacing > kMaximumRadius)
+			if (request.minimumSpacing < 0 || request.minimumSpacing > kMaximumSpacing)
 				throw JsonError(requestReader.file(), requestReader.pathFor("minimumSpacing"), "minimumSpacing is outside supported bounds");
 			if (request.required && request.count.minimum == 0)
 				throw JsonError(requestReader.file(), requestReader.pathFor("count"), "a required building request needs a positive minimum count");
@@ -163,7 +158,7 @@ namespace pg
 				if (request.id.empty() || request.prefabId.empty() || !ids.insert(request.id).second)
 					throw JsonError(requestReader.file(), requestReader.path(), "scenery request ids and prefab ids must be non-empty and globally unique");
 				validateCount(requestReader, request.count);
-				if (request.spacing < 1 || request.spacing > kMaximumRadius)
+				if (request.spacing < 1 || request.spacing > kMaximumSpacing)
 					throw JsonError(requestReader.file(), requestReader.pathFor("spacing"), "spacing must be between 1 and 128");
 				if (request.required && request.count.minimum == 0)
 					throw JsonError(requestReader.file(), requestReader.pathFor("count"), "required scenery needs a positive minimum count");

@@ -102,6 +102,15 @@ namespace pg
 
 	[[nodiscard]] TownMutationSnapshot snapshotTownMutation(const WorldPlan &p_plan) noexcept;
 	[[nodiscard]] bool matchesTownMutationSnapshot(const WorldPlan &p_plan, TownMutationSnapshot p_snapshot) noexcept;
+	// Resolves the smallest reliable workspace envelope from the actual seeded
+	// building/scenery request, rather than accepting an authored town size.
+	[[nodiscard]] std::optional<int> deriveTownRadius(
+		const TownComposition &p_composition,
+		const Registry<PrefabDefinition> &p_prefabs,
+		const PlanTown &p_biomeTown,
+		std::uint64_t p_worldSeed,
+		std::size_t p_macroEntityIndex,
+		TownRejection &p_rejection);
 	[[nodiscard]] TownPlanResult planTown(
 		const WorldPlan &p_plan,
 		const PlanTownSite &p_site,
