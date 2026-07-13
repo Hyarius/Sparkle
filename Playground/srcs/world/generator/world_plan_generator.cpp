@@ -5,6 +5,7 @@
 #include "world/generator/town_planner.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -42,6 +43,13 @@ namespace pg::worldgen
 		}
 		plan.config = cfg;
 		plan.biomes = p_biomes;
+		for (const PlanBiome &biome : plan.biomes)
+		{
+			if (!std::isfinite(biome.townDistanceCells) || biome.townDistanceCells <= 0.0)
+			{
+				throw std::invalid_argument("world generation biome '" + biome.id + "' needs a positive townDistanceCells");
+			}
+		}
 		plan.land = Mask(size, 0);
 		plan.zone = PlanGrid<std::int16_t>(size, -1);
 		plan.height = PlanGrid<std::int8_t>(size, -1);
@@ -171,6 +179,8 @@ namespace pg
 			biome.wildStairMaxLevels = definition.worldgen->wildStairs.maxLevels;
 			biome.wildStairSpacingCells = definition.worldgen->wildStairs.spacingCells;
 			biome.wildStairCandidateRatio = definition.worldgen->wildStairs.candidateRatio;
+			biome.townDistanceCells = definition.worldgen->towns.distanceCells;
+			biome.requiresPort = definition.worldgen->towns.requiresPort;
 			for (const BiomeScenery &scenery : definition.worldgen->scenery)
 			{
 				biome.scenery.push_back({.prefabId = scenery.prefabId, .density = scenery.density, .spacing = scenery.spacing, .prefabSize = scenery.prefabSize});
@@ -259,7 +269,7 @@ namespace pg
 			<< " POIs skipped)\n";
 		out << "prefab placements.... " << placements.size() << "\n";
 		out << "----------------------------------------------------------------\n";
-		out << "gym on coast......... " << stats.gymOnCoast << "  (MUST be 0)\n";
+		out << "gym on coast......... " << stats.gymOnCoast << "  (inland fallback only)\n";
 		out << "road diagonal steps.. " << stats.roadDiagonalSteps << "  (MUST be 0)\n";
 		out << "river diagonal steps. " << stats.riverDiagonalSteps << "  (MUST be 0)\n";
 		if (!stats.warnings.empty())

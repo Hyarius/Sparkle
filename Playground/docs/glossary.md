@@ -48,7 +48,7 @@ docs, use these exact names. Unity-reference names that differ are noted as *(Un
 | **Heal point** | Respawn location after a lost battle (Pokémon-style). |
 | **PC storage** | Overflow storage beyond the 6-slot active team. |
 | **Biome** | Region type anchored to a major city; owns encounter rules and voxel palette. |
-| **Macro world plan** | Seed-generated once per run: landmass, heights/rivers, 8 cities, biome regions, settlements, transport graph. Chunks query it during realization. |
+| **Macro world plan** | Seed-generated once per run: landmass, heights/rivers, biome regions, area-derived settlements, transport graph. Chunks query it during realization. |
 | **Structure** | Reusable authored voxel prefab (dungeon room, pond, building) stamped into the world. |
 | **Impressed** | State of a wild creature whose taming conditions are all fulfilled; it leaves the fight immediately. |
 

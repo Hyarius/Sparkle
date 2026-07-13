@@ -73,7 +73,6 @@ namespace pg::worldgen
 		// ------- Gateways, entities, ports, roads (world_plan_infrastructure.cpp) -------
 		void resolveGateways();
 		void placeEntities();
-		void assignPorts();
 		void reserveTownSites();
 
 		Rng roadRng{0};

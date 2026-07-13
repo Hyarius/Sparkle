@@ -183,6 +183,17 @@ paved columns, building entrances, routes, scenery placements, and claims.
 realization paints the exact paved columns. This keeps towns dense around their
 main street while preventing roads from cutting through buildings or doorways.
 
+### Biome settlement density
+
+Each worldgen biome declares `worldgen.towns.distanceCells`. For each biome zone,
+generation counts usable dry land cells and derives its settlement target as
+`ceil(area / distanceCells²)`. The target includes one gym, plus one port when
+`worldgen.towns.requiresPort` is true; any remaining target slots become ordinary
+cities. The gym prefers inland land but falls back to any dry cell so every
+placeable zone has one. A required port must reserve a waterfront town site; world
+generation reports an error rather than silently omitting it when the biome area has
+no viable coast.
+
 ## Dependencies
 
 Uses: voxel core, `spk::Perlin/PoissonDisk/CellularAutomata`, registries, EventCenter,
@@ -193,7 +204,7 @@ rendering layer. Used by: exploration mode, board derivation, encounter emission
 
 Headless: chunk addressing (world↔chunk↔local coords round-trip), cross-border cell access,
 map loading (fills/cells/markers), path driver cell events, provider determinism (same seed
-⇒ identical chunks), macro-plan invariants (8 cities on land, min spacing, all settlements
-connected, every edge classified). Visual: M1 testground composition; later, macro-plan
+⇒ identical chunks), macro-plan invariants (biome-area-derived settlements on land, configured
+spacing, mandatory gyms/ports, all settlements connected, every edge classified). Visual: M1 testground composition; later, macro-plan
 debug view (a top-down image dump of masks/biomes/roads — cheap and invaluable; build it with
 step 29).

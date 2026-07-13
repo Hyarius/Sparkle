@@ -5,6 +5,7 @@
 #include <deque>
 #include <queue>
 #include <set>
+#include <stdexcept>
 #include <tuple>
 #include <utility>
 #include <vector>
@@ -183,6 +184,40 @@ namespace pg::worldgen
 		enforceContiguousZones();
 		mapZoneContinents();
 		findBorders();
+
+		// A biome that requires a port must own a coastal zone. Biomes are initially
+		// shuffled before territory is known, so swap its assignment with a coastal
+		// non-port zone now that the landmass and zone boundaries are available.
+		std::vector<bool> coastalZone(plan.zones.size(), false);
+		for (int row = 0; row < size; ++row)
+		{
+			for (int col = 0; col < size; ++col)
+			{
+				const int zone = plan.zone.at(row, col);
+				if (zone >= 0 && distOcean.at(row, col) <= cfg.coastDistCells)
+				{
+					coastalZone[static_cast<std::size_t>(zone)] = true;
+				}
+			}
+		}
+		for (PlanZone &zone : plan.zones)
+		{
+			if (!plan.biomes[zone.biomeIndex].requiresPort || coastalZone[static_cast<std::size_t>(zone.id)])
+			{
+				continue;
+			}
+			const auto replacement = std::find_if(plan.zones.begin(), plan.zones.end(), [&](const PlanZone &candidate) {
+				return coastalZone[static_cast<std::size_t>(candidate.id)] &&
+					!plan.biomes[candidate.biomeIndex].requiresPort;
+			});
+			if (replacement == plan.zones.end())
+			{
+				throw std::runtime_error(
+					"world generation cannot assign port-required biome '" + plan.biomes[zone.biomeIndex].id +
+					"' to a coastal zone");
+			}
+			std::swap(zone.biomeIndex, replacement->biomeIndex);
+		}
 	}
 
 	// Reassign small disconnected fragments of a zone to a bordering zone so each

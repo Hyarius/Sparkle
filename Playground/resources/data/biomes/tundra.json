@@ -16,6 +16,7 @@
 		"heightShift": 0.6,
 		"peak": true,
 		"mapColor": "#CFE0E8",
+		"towns": { "distanceCells": 36, "requiresPort": false },
 		"wildStairs": {
 			"allowCrossZone": true,
 			"maxLevels": 6,

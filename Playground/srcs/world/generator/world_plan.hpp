@@ -121,6 +121,10 @@ namespace pg
 		// placement.
 		std::map<PlanEntityKind, std::vector<std::string>> entityPrefabs;
 		std::optional<PlanTown> town;
+		// Required per-biome settlement distribution.  The area divided by this
+		// spacing squared determines the total number of settlements in a zone.
+		double townDistanceCells = 0.0;
+		bool requiresPort = false;
 		// Decorative structures scattered on clear land in this biome. Unlike POIs these
 		// have no gameplay role and may be multi-voxel prefabs such as trees or plants.
 		std::vector<PlanScenery> scenery;
@@ -369,9 +373,8 @@ namespace pg
 		int lakeMinSize = 6; // [1, lakeMaxSize]
 		int lakeMaxSize = 40; // [lakeMinSize, size * size]
 
-		// Settlement quotas (per zone), each in [0, MaximumPerZoneCount].
-		int gymsPerZone = 1;
-		int citiesPerZone = 3;
+		// POI quotas (per zone), each in [0, MaximumPerZoneCount]. Settlement
+		// counts are instead derived from each biome's townDistanceCells.
 		int normalPoiPerZone = 5;
 		int uncommonPoiPerZone = 2;
 		int rarePoiPerZone = 2;
@@ -384,14 +387,11 @@ namespace pg
 		double blockUncommon = 3.5;
 		double blockNormal = 3.0;
 
-		// Spread spacing as a ratio of the zone radius, each finite in [0, 1].
-		double distRatioCity = 0.55;
-		double distRatioGym = 0.9;
+		// POI spread spacing as a ratio of the zone radius, finite in [0, 1].
 		double distRatioPoi = 0.35;
 
 		// Coast rules
 		double coastDistCells = 4.0; // finite [0, size]
-		int portsPerContinent = 1; // [0, MaximumPerZoneCount]
 
 		// Wild staircases: off-road ramps across strata cliffs, per zone, so the player
 		// can climb levels away from the road network.

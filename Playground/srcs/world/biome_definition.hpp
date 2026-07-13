@@ -71,6 +71,16 @@ namespace pg
 		std::vector<std::string> homes;
 	};
 
+	// Macro-settlement density is owned by the biome rather than by a global
+	// per-zone quota.  distanceCells is measured between settlement markers in
+	// macro plan cells; the generator derives the total settlement count from
+	// the biome area's usable land.
+	struct BiomeTownDistribution
+	{
+		double distanceCells = 0.0;
+		bool requiresPort = false;
+	};
+
 	// Optional per-biome knobs for the macro world generator. Biomes without this block
 	// (interiors such as caves) are never picked when zones are assigned.
 	struct BiomeWorldgenTraits
@@ -87,6 +97,7 @@ namespace pg
 		std::vector<BiomeScenery> scenery;
 		std::vector<BiomeScenery> townScenery;
 		std::optional<BiomeTown> town;
+		BiomeTownDistribution towns;
 		BiomeWildStairs wildStairs;
 		// Climb prefab ids synthesized at load from the palette's stair/slope voxels
 		// (see synthesizeClimbPrefabs). The flight pools carry several pre-mixed variants

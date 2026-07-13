@@ -129,7 +129,7 @@ namespace pg
 		if (p_reader.contains("worldgen"))
 		{
 			JsonReader worldgenReader = p_reader.child("worldgen");
-			worldgenReader.forbidUnknown({"heightShift", "peak", "mapColor", "prefabs", "wildStairs"});
+			worldgenReader.forbidUnknown({"heightShift", "peak", "mapColor", "prefabs", "towns", "wildStairs"});
 			BiomeWorldgenTraits traits;
 			if (worldgenReader.contains("heightShift"))
 			{
@@ -148,6 +148,20 @@ namespace pg
 				{
 					throw JsonError(p_reader.file(), worldgenReader.pathFor("mapColor"), exception.what());
 				}
+			}
+			if (!worldgenReader.contains("towns"))
+			{
+				throw JsonError(p_reader.file(), worldgenReader.pathFor("towns"), "worldgen biome needs town distribution settings");
+			}
+			{
+				JsonReader townsReader = worldgenReader.child("towns");
+				townsReader.forbidUnknown({"distanceCells", "requiresPort"});
+				traits.towns.distanceCells = requireFiniteDouble(townsReader, "distanceCells");
+				if (traits.towns.distanceCells <= 0.0)
+				{
+					throw JsonError(townsReader.file(), townsReader.pathFor("distanceCells"), "distanceCells must be greater than zero");
+				}
+				traits.towns.requiresPort = townsReader.optional<bool>("requiresPort", false);
 			}
 			if (worldgenReader.contains("prefabs"))
 			{

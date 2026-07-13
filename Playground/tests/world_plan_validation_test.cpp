@@ -56,6 +56,48 @@ TEST(TownComposition, ShippedCatalogHasStableKindsAndSchema)
 	EXPECT_EQ(city.buildings.front().count.minimum, 1);
 }
 
+TEST(BiomeTownDistribution, ShippedBiomesProvideSpacingAndTheCoastRequiresAPort)
+{
+	const std::vector<pg::PlanBiome> biomes = pg::planBiomesFrom(loadedRegistries().biomes());
+	ASSERT_FALSE(biomes.empty());
+	for (const pg::PlanBiome &biome : biomes)
+	{
+		EXPECT_GT(biome.townDistanceCells, 0.0) << biome.id;
+	}
+	const auto coast = std::find_if(biomes.begin(), biomes.end(), [](const pg::PlanBiome &biome) { return biome.id == "coast"; });
+	ASSERT_NE(coast, biomes.end());
+	EXPECT_TRUE(coast->requiresPort);
+}
+
+TEST(WorldGeneration, ReservesEveryGymAndConfiguredBiomePort)
+{
+	pg::WorldGenConfig config;
+	config.masterSeed = 1;
+	config.size = 128;
+	const pg::Registries &registries = loadedRegistries();
+	const pg::WorldPlan plan = pg::generateWorldPlan(
+		config,
+		pg::planBiomesFrom(registries.biomes()),
+		registries.placementRules(),
+		registries.prefabs(),
+		registries.townCompositions(),
+		registries.interiors());
+	for (const pg::PlanZone &zone : plan.zones)
+	{
+		const pg::PlanBiome &biome = plan.biomes[zone.biomeIndex];
+		int gyms = 0;
+		int ports = 0;
+		for (const pg::PlanEntity &entity : plan.entities)
+		{
+			if (entity.zone != zone.id) continue;
+			gyms += entity.kind == pg::PlanEntityKind::Gym ? 1 : 0;
+			ports += entity.kind == pg::PlanEntityKind::PortCity ? 1 : 0;
+		}
+		EXPECT_EQ(gyms, 1) << biome.id;
+		EXPECT_EQ(ports, biome.requiresPort ? 1 : 0) << biome.id;
+	}
+}
+
 TEST(TownWorkspace, ConvertsWorldColumnsAndProjectsTheSharedMacroRoadSurface)
 {
 	pg::WorldPlan plan = flatTownPlan();

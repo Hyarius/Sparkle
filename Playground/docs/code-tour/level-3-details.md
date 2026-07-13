@@ -158,15 +158,17 @@ Per zone-pair border: the cell nearest the border centroid becomes a primary
 gateway; borders > 8 cells have a 50% chance of a secondary gateway at the farthest
 cell.
 
-### 2.7 placeEntities + assignPorts
+### 2.7 placeEntities
 
-Per zone: candidate cells = in-zone, dry land. `sample(kind, count, block,
-distRatio, coastRule)` shuffles candidates and accepts cells respecting (a) blocking
-radius vs every placed entity, (b) settlement-to-settlement spacing
-`distRatio * zoneRadius`, (c) the coast rule. Gyms: inland only, spacing relaxed
-by halving until placed. Cities: inland first, then anywhere. POIs (rare/uncommon/
-normal): anywhere. `assignPorts` promotes each continent's most coastal cities
-(within `2*coastDistCells`) to port cities.
+Per zone: candidate cells = in-zone, dry land. The biome's required
+`worldgen.towns.distanceCells` turns usable land area into a settlement target:
+`ceil(placeableCells / distanceCells²)`. The target includes mandatory roles: every
+zone gets one gym, and a biome with `worldgen.towns.requiresPort` gets one waterfront
+port town. The remaining target slots are ordinary cities. Settlement markers honour
+the larger configured distance of the two biomes at a boundary; POIs still use their
+global blocking and spread rules. A gym prefers inland land, but falls back to any dry
+cell so a placeable zone never loses its gym. A required port is an error rather than a
+silently dropped quota when its area has no coastal site.
 
 ### 2.8 buildRoads + findPath + stepCost + removeRoadSquares
 
@@ -185,10 +187,10 @@ two outside neighbors are non-road, so connectivity is preserved through the L).
 
 ### 2.9 addBoatLinks
 
-Labels road components. Each component needs ≥1 port city — port-less components
-promote their most coastal city. Component #1 is the base; every other component
-links its nearest port pair to it (`boatLinks`), making the road graph logically
-one component (checked in `report()`).
+Labels road components. Port towns are selected during settlement placement from the
+biome configuration and are never promoted after town-site reservation. If two or more
+road components contain configured ports, component #1 links to each other component's
+nearest port pair through `boatLinks`.
 
 ### 2.10 markBridges
 

@@ -60,14 +60,16 @@ reshuffles earlier stages. The stages:
    basins become lakes; per-zone river sources walk the drainage tree to the sea.
 6. **resolveGateways** — for each zone border, the cell nearest the border centroid
    becomes the primary gateway (sometimes a secondary far one).
-7. **placeEntities** — per zone, samples gym/city/POI cells under blocking-radius and
-   spacing rules (gyms strictly inland); `assignPorts` promotes coastal cities.
+7. **placeEntities** — derives each zone's settlement target from its biome's usable
+   land area and `worldgen.towns.distanceCells`, always reserves a gym, and reserves a
+   waterfront port when `worldgen.towns.requiresPort` is set; POIs use their normal
+   blocking and spacing rules.
 8. **buildRoads** — per zone, A* (`findPath`) from the hub (the gym) to every other
    settlement and a few POIs, then across primary gateways. Step costs penalize
    water (bridges) and height steps; a "no 2×2 road square" invariant is enforced
    during search and by a final `removeRoadSquares` pass.
-9. **addBoatLinks** — labels road components; every component gets a port; nearest
-   port pairs become boat links so the world is logically connected.
+9. **addBoatLinks** — labels road components and joins components that already contain
+   configured ports through their nearest port pair.
 10. **markBridges** — road cells on water become bridge cells.
 11. **placeStairways / placeWildStairways** — wherever the road (or, for wild ones,
     a random in-zone cliff) crosses a height step, `emitStairChain` composes a

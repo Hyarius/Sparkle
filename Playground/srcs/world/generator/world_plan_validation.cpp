@@ -186,13 +186,10 @@ namespace pg
 			"must be ordered with lakeMinSize <= lakeMaxSize");
 
 		const std::array integerCounts = {
-			std::pair{"gymsPerZone", p_config.gymsPerZone},
-			std::pair{"citiesPerZone", p_config.citiesPerZone},
 			std::pair{"normalPoiPerZone", p_config.normalPoiPerZone},
 			std::pair{"uncommonPoiPerZone", p_config.uncommonPoiPerZone},
 			std::pair{"rarePoiPerZone", p_config.rarePoiPerZone},
 			std::pair{"poiRoadConnections", p_config.poiRoadConnections},
-			std::pair{"portsPerContinent", p_config.portsPerContinent},
 			std::pair{"wildStairsPerZone", p_config.wildStairsPerZone}};
 		for (const auto &[field, value] : integerCounts)
 		{
@@ -220,10 +217,7 @@ namespace pg
 			finiteRange(field, value, 0.0, static_cast<double>(p_config.size));
 		}
 
-		const std::array ratios = {
-			std::pair{"distRatioCity", p_config.distRatioCity},
-			std::pair{"distRatioGym", p_config.distRatioGym},
-			std::pair{"distRatioPoi", p_config.distRatioPoi}};
+		const std::array ratios = {std::pair{"distRatioPoi", p_config.distRatioPoi}};
 		for (const auto &[field, value] : ratios)
 		{
 			finiteRange(field, value, 0.0, 1.0);
@@ -288,8 +282,7 @@ namespace pg
 			"interiorRegionGap",
 			"places the interior region outside the int coordinate range");
 
-		const std::int64_t maximumEntitiesPerZone =
-			static_cast<std::int64_t>(p_config.gymsPerZone) + p_config.citiesPerZone +
+		const std::int64_t maximumEntitiesPerZone = static_cast<std::int64_t>(Config::MaximumPerZoneCount) +
 			p_config.normalPoiPerZone + p_config.uncommonPoiPerZone + p_config.rarePoiPerZone;
 		const std::int64_t maximumInteriorSpan =
 			static_cast<std::int64_t>(p_config.zoneCount) * maximumEntitiesPerZone *
