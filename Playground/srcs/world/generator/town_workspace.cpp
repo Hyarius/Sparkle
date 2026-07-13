@@ -34,6 +34,9 @@ namespace pg
 		_width = static_cast<int>(width);
 		_layers.assign(static_cast<std::size_t>(_width) * static_cast<std::size_t>(_width), townLayer(TownWorkspaceLayer::Inside));
 		_surfaceHeights.assign(_layers.size(), -1);
+		if (_site.macroEntityIndex >= _plan.entities.size())
+			throw std::out_of_range("town workspace references an invalid macro entity");
+		const int affiliatedZone = _plan.entities[_site.macroEntityIndex].zone;
 		for (int z = 0; z < _width; ++z)
 		{
 			for (int x = 0; x < _width; ++x)
@@ -50,6 +53,11 @@ namespace pg
 				if (_plan.water.at(cell.row, cell.col) != 0)
 				{
 					layer |= townLayer(TownWorkspaceLayer::Water) | townLayer(TownWorkspaceLayer::TerrainBlocked);
+					continue;
+				}
+				if (_plan.zone.at(cell.row, cell.col) != affiliatedZone)
+				{
+					layer |= townLayer(TownWorkspaceLayer::TerrainBlocked);
 					continue;
 				}
 				layer |= townLayer(TownWorkspaceLayer::Land);
@@ -72,6 +80,22 @@ namespace pg
 					const int surface = _surfaceHeights[_index(column)];
 					if (surface >= claim.min.y && surface <= claim.max.y) _layers[_index(column)] |= townLayer(TownWorkspaceLayer::TerrainBlocked);
 				}
+		}
+		// Road staircases are already reserved before town planning. Keep buildings,
+		// entrance approaches, and new urban routes off their stamped footprints
+		// while leaving the projected main road available on either side of a climb.
+		for (const PlanStairway &stairway : _plan.stairways)
+		{
+			for (const PlanStairRect &footprint : stairway.footprints)
+			{
+				const int minX = std::max(footprint.minX, _minimum.x);
+				const int maxX = std::min(footprint.maxX, _minimum.x + _width - 1);
+				const int minZ = std::max(footprint.minZ, _minimum.z);
+				const int maxZ = std::min(footprint.maxZ, _minimum.z + _width - 1);
+				for (int z = minZ; z <= maxZ; ++z)
+					for (int x = minX; x <= maxX; ++x)
+						add(townFromWorld({x, z}), TownWorkspaceLayer::Stair);
+			}
 		}
 		_projectMainRoad();
 	}

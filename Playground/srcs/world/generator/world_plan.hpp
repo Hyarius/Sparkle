@@ -415,9 +415,9 @@ namespace pg
 		int groundLevelTop = 3; // [-MaximumGroundMagnitude, MaximumGroundMagnitude]
 		// Broad, multi-octave voxel-scale relief. Samples above/below the threshold
 		// move a column by exactly one voxel; half-height slabs form the transition belt.
-		double terrainVariationFeatureBlocks = 96.0; // finite (0, 4096]
+		double terrainVariationFeatureBlocks = 64.0; // finite (0, 4096]
 		int terrainVariationOctaves = 3; // [1, 8]
-		double terrainVariationPersistence = 0.55; // finite (0, 1]
+		double terrainVariationPersistence = 0.40; // finite (0, 1]
 		double terrainVariationThreshold = 0.22; // finite [0, 1]; 1 disables variation
 		// The lower side of a one-voxel relief edge receives a noise-shaped apron of
 		// half slabs. One block is always enough to traverse it; extra width softens

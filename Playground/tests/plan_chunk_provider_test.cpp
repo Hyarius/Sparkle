@@ -1,12 +1,14 @@
 #include "core/paths.hpp"
 #include "core/registries.hpp"
 #include "world/generator/plan_chunk_provider.hpp"
+#include "world/prefab_placement_math.hpp"
 
 #include "structures/voxel/spk_voxel_chunk.hpp"
 
 #include <gtest/gtest.h>
 
 #include <cstdint>
+#include <cstdlib>
 #include <memory>
 
 namespace
@@ -115,4 +117,39 @@ TEST(PlanChunkProviderRelief, IsDeterministicBoundedAndUsesMaterialFamilySlabs)
 	EXPECT_LT(slabCount, plan.config.size * plan.config.size * plan.config.blocksPerCell * plan.config.blocksPerCell * 3 / 4);
 	EXPECT_GT(groundSlabCount, 0);
 	EXPECT_GT(roadSlabCount, 0);
+}
+
+TEST(PlanChunkProviderTownRelief, FadesPerlinFromTheConstructionFootprint)
+{
+	pg::WorldPlan plan = reliefPlan();
+	plan.config.terrainVariationFeatureBlocks = 16.0;
+	plan.config.terrainVariationOctaves = 1;
+	plan.config.terrainVariationThreshold = 0.1;
+	const int baseSurface = plan.surfaceY(2);
+	const int center = plan.worldOffset() + 8 * plan.config.blocksPerCell;
+	pg::PrefabPlacement placement{.prefabId = "town-house", .anchor = {center, baseSurface + 1, center}, .foundation = true};
+	const pg::PrefabDefinition &prefab = registries().prefabs().get(placement.prefabId);
+	const pg::ResolvedPlacementBox box = pg::resolvePlacement(prefab.prefab, placement);
+	plan.placements.push_back(placement);
+	pg::PlanTownRecord town;
+	town.buildingPlacementIndices.push_back(0);
+	plan.towns.push_back(std::move(town));
+
+	const pg::PlanChunkProvider provider(registries(), plan);
+	EXPECT_EQ(provider.surfaceHeight(box.worldMin.x - 1, box.worldMin.z + 2), baseSurface);
+
+	bool hasFullStrengthRelief = false;
+	for (int z = center - 40; z <= center + 40 && !hasFullStrengthRelief; ++z)
+	{
+		for (int x = center - 40; x <= center + 40; ++x)
+		{
+			if (std::abs(x - center) + std::abs(z - center) <= 16) continue;
+			if (provider.surfaceHeight(x, z) != baseSurface)
+			{
+				hasFullStrengthRelief = true;
+				break;
+			}
+		}
+	}
+	EXPECT_TRUE(hasFullStrengthRelief);
 }

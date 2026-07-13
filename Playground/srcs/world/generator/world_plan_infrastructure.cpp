@@ -246,7 +246,7 @@ namespace pg::worldgen
 				const int lastCol = plan.cellIndexFromWorld(centerX + p_radiusColumns);
 				for (int row = firstRow; row <= lastRow; ++row)
 					for (int col = firstCol; col <= lastCol; ++col)
-						if (!isLand(row, col) || plan.water.at(row, col) != 0) return false;
+						if (!isLand(row, col) || plan.water.at(row, col) != 0 || plan.zone.at(row, col) != entity.zone) return false;
 				return true;
 			};
 			const auto hasWaterfront = [&](int p_row, int p_col) {
@@ -265,10 +265,9 @@ namespace pg::worldgen
 			// The envelope is resolved from the seeded contents before roads are built.
 			const int envelope = (townRadius + cfg.blocksPerCell - 1) / cfg.blocksPerCell;
 			std::optional<Cell> reservedCenter;
-			// Keep normal towns close to their sampled marker and in-zone.  Tiny or
-			// fragmented maps may not contain a whole composition envelope there, so
-			// use a deterministic world-wide dry-land fallback instead of aborting
-			// generation before local voxel planning has a chance to solve it.
+			// Prefer the sampled marker, then search farther within the same affiliated
+			// biome. A town never relocates into a neighboring biome just because that
+			// biome has a more convenient dry envelope.
 			for (int pass = 0; pass < (entity.kind == PlanEntityKind::PortCity ? 1 : 2) && !reservedCenter; ++pass)
 			{
 				const int searchRadius = pass == 0 ? cfg.townSearchRadiusCells : size;
@@ -280,7 +279,7 @@ namespace pg::worldgen
 						{
 							if (std::max(std::abs(dr), std::abs(dc)) != radius) continue;
 							const int row = entity.row + dr, col = entity.col + dc;
-							if (row < 0 || col < 0 || row >= size || col >= size || row - envelope < 0 || col - envelope < 0 || row + envelope >= size || col + envelope >= size || (pass == 0 && plan.zone.at(row, col) != entity.zone)) continue;
+							if (row < 0 || col < 0 || row >= size || col >= size || row - envelope < 0 || col - envelope < 0 || row + envelope >= size || col + envelope >= size || plan.zone.at(row, col) != entity.zone) continue;
 							// Building foundations can safely terrace height changes at voxel scale,
 							// but no local layout can make a required building dry if its reservation
 							// already spans water. Normal towns therefore require a dry full envelope.
@@ -307,7 +306,7 @@ namespace pg::worldgen
 				}
 			}
 			if (!reservedCenter)
-				throw TownPlanningError(index, *compatible, {.category = TownRejectCategory::SiteTerrain, .componentId = *compatible, .message = entity.kind == PlanEntityKind::PortCity ? "no dry waterfront reservation envelope near settlement marker" : "no flat dry reservation envelope near settlement marker"}, {}, "town site reservation cannot find a flat foundation envelope");
+				throw TownPlanningError(index, *compatible, {.category = TownRejectCategory::SiteTerrain, .componentId = *compatible, .message = entity.kind == PlanEntityKind::PortCity ? "no dry waterfront reservation envelope in the affiliated biome" : "no dry affiliated-biome reservation envelope"}, {}, "town site reservation cannot find an affiliated-biome foundation envelope");
 			entity.row = reservedCenter->row;
 			entity.col = reservedCenter->col;
 			const int centerX = plan.worldOffset() + entity.col * cfg.blocksPerCell + cfg.blocksPerCell / 2;
@@ -916,6 +915,13 @@ namespace pg::worldgen
 			for (const PlanClaim &claim : candidate.buildingClaims) hardClaims.push_back({claim.min, claim.max});
 			for (const PlanClaim &claim : candidate.dockClaims) hardClaims.push_back({claim.min, claim.max});
 			for (const PlanClaim &claim : candidate.sceneryClaims) hardClaims.push_back({claim.min, claim.max});
+			// The exact town contents above are individual claims, but the whole town
+			// rectangle is reserved from later world dressing. Without this umbrella
+			// claim, an exterior tree or POI can fit in an intentionally open street.
+			const TownWorldBounds &bounds = candidate.bounds;
+			hardClaims.push_back(
+				{{bounds.minX, std::numeric_limits<int>::lowest(), bounds.minZ},
+				 {bounds.maxX, std::numeric_limits<int>::max(), bounds.maxZ}});
 			for (std::size_t placement : plan.towns.back().buildingPlacementIndices) composeInterior(plan.placements[placement]);
 		}
 	}

@@ -15,14 +15,33 @@ namespace pg
 	void DayTimeManagementLogic::_parseComponentForUpdate(const spk::UpdateContext &p_tick, spk::Light3D &light)
 	{
 		if (light.entity() != &_sunEntity) return;
-		_timeOfDayHours = std::fmod(_timeOfDayHours + static_cast<float>(p_tick.deltaTime.seconds()) * (24.0f / 60.0f), 24.0f);
-		// Daylight runs 08:00 -> 21:00 (13 h day, 11 h night): the clock is warped
-		// onto the symmetric solar curve so sunrise/sunset land on those hours while
-		// elevation and azimuth stay continuous across both transitions.
+		// Daylight runs 08:00 -> 21:00 (13 artistic hours) in 15 real minutes;
+		// the remaining 11 artistic hours take 5 real minutes. Advancing the two
+		// portions at separate rates makes their real durations exact.
 		constexpr float sunriseHour = 8.0f;
 		constexpr float sunsetHour = 21.0f;
 		constexpr float dayLengthHours = sunsetHour - sunriseHour;
 		constexpr float nightLengthHours = 24.0f - dayLengthHours;
+		constexpr float dayDurationSeconds = 15.0f * 60.0f;
+		constexpr float nightDurationSeconds = 5.0f * 60.0f;
+		float remainingSeconds = static_cast<float>(p_tick.deltaTime.seconds());
+		while (remainingSeconds > 0.0f)
+		{
+			const bool isDaytime = (_timeOfDayHours >= sunriseHour) && (_timeOfDayHours < sunsetHour);
+			const float hoursPerSecond = isDaytime ? dayLengthHours / dayDurationSeconds : nightLengthHours / nightDurationSeconds;
+			const float boundary = isDaytime ? sunsetHour : (_timeOfDayHours < sunriseHour ? sunriseHour : 24.0f + sunriseHour);
+			const float hoursToBoundary = boundary - _timeOfDayHours;
+			const float secondsToBoundary = hoursToBoundary / hoursPerSecond;
+			if (remainingSeconds < secondsToBoundary)
+			{
+				_timeOfDayHours += remainingSeconds * hoursPerSecond;
+				break;
+			}
+			_timeOfDayHours = std::fmod(boundary, 24.0f);
+			remainingSeconds -= secondsToBoundary;
+		}
+		// The clock is warped onto the symmetric solar curve so sunrise/sunset land
+		// on the selected artistic hours while elevation and azimuth stay continuous.
 		const bool isDaytime = (_timeOfDayHours >= sunriseHour) && (_timeOfDayHours < sunsetHour);
 		const float solarHours = isDaytime
 			? 6.0f + (_timeOfDayHours - sunriseHour) * (12.0f / dayLengthHours)

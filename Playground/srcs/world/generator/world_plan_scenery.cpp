@@ -27,8 +27,24 @@ namespace pg::worldgen
 			blockedCells.insert({cell.row, cell.col});
 		}
 		for (const PlanTownRecord &town : plan.towns)
+		{
 			for (const auto &[row, col] : town.boundaryCells)
 				blockedCells.insert({row, col});
+			// Town bounds are world-column coordinates. Block every overlapping macro
+			// cell as an early candidate filter; the hard town claim remains the exact
+			// prefab-footprint check below.
+			const int minRow = plan.cellIndexFromWorld(town.bounds.minZ);
+			const int maxRow = plan.cellIndexFromWorld(town.bounds.maxZ);
+			const int minCol = plan.cellIndexFromWorld(town.bounds.minX);
+			const int maxCol = plan.cellIndexFromWorld(town.bounds.maxX);
+			for (int row = minRow; row <= maxRow; ++row)
+			{
+				for (int col = minCol; col <= maxCol; ++col)
+				{
+					if (plan.zone.contains(row, col)) blockedCells.insert({row, col});
+				}
+			}
+		}
 
 		const int blocks = cfg.blocksPerCell;
 		const int offset = plan.worldOffset();

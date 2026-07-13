@@ -132,10 +132,13 @@ namespace pg::worldgen
 		requireTownSiteIds();
 		markBridges();
 		requireTownSiteIds();
+		// Roads already span the reserved town envelopes. Shape every height change
+		// into a staircase before local buildings and urban streets claim space.
+		placeStairways();
+		requireTownSiteIds();
 		prefabPickRng = rngFor("world/prefab_picks");
 		requireTownSiteIds();
 		planAndCommitTowns();
-		placeStairways();
 		placeBuildings();
 		placeWildStairways();
 		placeScenery();

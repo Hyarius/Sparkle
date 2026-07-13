@@ -79,10 +79,11 @@ namespace pg
 		spk::VoxelRuntimeId _stone{};
 		std::map<spk::VoxelRuntimeId, spk::VoxelRuntimeId> _slabByBase;
 		std::vector<ResolvedPlacement> _placements;
-		// Town buildings have a level door selected by the planner. Their complete
-		// content footprints are cut or filled to that level before prefab stamping,
-		// making foundation placement safe across macro-cell height boundaries.
-		std::map<std::pair<int, int>, int> _townBuildingGroundTop;
+		// Town buildings and streets own exact terrain pads at their individual
+		// planned elevations. Nearby Perlin relief is attenuated from these columns.
+		std::map<std::pair<int, int>, int> _townGroundTop;
+		std::set<std::pair<int, int>> _townPadCore;
+		std::map<std::pair<int, int>, int> _townPadDistance;
 		// Exact urban paving is indexed once when the immutable provider is built;
 		// chunk columns never scan every town record.
 		std::map<std::pair<int, int>, int> _urbanRoadSurfaceY;

@@ -168,7 +168,7 @@ namespace pg
 		[[nodiscard]] bool validSurface(const TownWorkspace &p_workspace, TownColumn p_column, int p_height)
 		{
 			return p_workspace.contains(p_column) && p_workspace.has(p_column, TownWorkspaceLayer::Land) &&
-				!p_workspace.has(p_column, TownWorkspaceLayer::TerrainBlocked) && p_workspace.surfaceHeight(p_column) == p_height;
+				!p_workspace.has(p_column, TownWorkspaceLayer::TerrainBlocked) && !p_workspace.has(p_column, TownWorkspaceLayer::Stair) && p_workspace.surfaceHeight(p_column) == p_height;
 		}
 
 		// Town building footprints are deterministically terraced by PlanChunkProvider
@@ -179,7 +179,7 @@ namespace pg
 		[[nodiscard]] bool validBuildingSurface(const TownWorkspace &p_workspace, TownColumn p_column)
 		{
 			return p_workspace.contains(p_column) && p_workspace.has(p_column, TownWorkspaceLayer::Land) &&
-				!p_workspace.has(p_column, TownWorkspaceLayer::TerrainBlocked);
+				!p_workspace.has(p_column, TownWorkspaceLayer::TerrainBlocked) && !p_workspace.has(p_column, TownWorkspaceLayer::Stair);
 		}
 
 		[[nodiscard]] std::optional<ResolvedTownEntrance> validateAndPlaceBuilding(
@@ -335,7 +335,7 @@ namespace pg
 				for (int direction = 0; direction < 4; ++direction)
 				{
 					const TownColumn next{column.x + directions[direction].x, column.z + directions[direction].z};
-					if (!p_workspace.contains(next) || p_workspace.surfaceHeight(next) != routeLevel || p_workspace.has(next, TownWorkspaceLayer::TerrainBlocked) || p_workspace.has(next, TownWorkspaceLayer::RouteBlocked) || p_workspace.has(next, TownWorkspaceLayer::BuildingSolid) || p_workspace.has(next, TownWorkspaceLayer::BuildingClearance) || p_workspace.has(next, TownWorkspaceLayer::DoorThreshold) || p_workspace.has(next, TownWorkspaceLayer::DoorApproach) || p_workspace.has(next, TownWorkspaceLayer::Dock)) continue;
+					if (!p_workspace.contains(next) || p_workspace.surfaceHeight(next) != routeLevel || p_workspace.has(next, TownWorkspaceLayer::TerrainBlocked) || p_workspace.has(next, TownWorkspaceLayer::Stair) || p_workspace.has(next, TownWorkspaceLayer::RouteBlocked) || p_workspace.has(next, TownWorkspaceLayer::BuildingSolid) || p_workspace.has(next, TownWorkspaceLayer::BuildingClearance) || p_workspace.has(next, TownWorkspaceLayer::DoorThreshold) || p_workspace.has(next, TownWorkspaceLayer::DoorApproach) || p_workspace.has(next, TownWorkspaceLayer::Dock)) continue;
 					const int nextState = state(next, direction);
 					const bool road = p_workspace.has(next, TownWorkspaceLayer::MainRoad) || p_workspace.has(next, TownWorkspaceLayer::UrbanRoadSurface);
 					const int nextCost = cost + (road ? 1 : 10) + (incoming != 4 && incoming != direction ? p_turnPenalty : 0);

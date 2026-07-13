@@ -14,6 +14,7 @@
 #include <cstdint>
 #include <iostream>
 #include <limits>
+#include <queue>
 #include <stdexcept>
 #include <utility>
 #include <vector>
@@ -28,6 +29,7 @@ namespace pg
 		constexpr std::uint64_t kSubsurfaceSalt = 0x58f0f1a32db7c2bdULL;
 		constexpr std::uint64_t kDeepSalt = 0xf4d3b9a05f19e8b7ULL;
 		constexpr std::uint64_t kRoadSalt = 0x314adbe6734a92d1ULL;
+		constexpr int kTownPerlinFadeColumns = 15;
 
 		// Deterministic per-column pick from a weighted pool. The final avalanche matters:
 		// without it, two variants can collapse into visible parity/checker patterns.
@@ -104,9 +106,37 @@ namespace pg
 		}
 		for (const PlanTownRecord &town : _plan.towns)
 		{
+			const auto addPadColumn = [&](int p_worldX, int p_worldZ, int p_surfaceY) {
+				const int row = _plan.cellIndexFromWorld(p_worldZ);
+				const int col = _plan.cellIndexFromWorld(p_worldX);
+				if (!_plan.land.contains(row, col) || _plan.land.at(row, col) == 0 ||
+					_plan.water.at(row, col) != 0 || _plan.lake.at(row, col) != 0)
+			{
+					return;
+				}
+				const auto [found, inserted] = _townGroundTop.emplace(std::pair{p_worldX, p_worldZ}, p_surfaceY);
+				if (!inserted && found->second != p_surfaceY)
+				{
+					throw std::logic_error("overlapping town construction pads disagree");
+				}
+				_townPadCore.emplace(p_worldX, p_worldZ);
+			};
+			for (const PlanPavedColumn &column : town.mainRoadSurface)
+			{
+				addPadColumn(column.worldX, column.worldZ, column.surfaceY);
+			}
 			for (const PlanPavedColumn &column : town.urbanRoadSurface)
 			{
+				addPadColumn(column.worldX, column.worldZ, column.surfaceY);
 				_urbanRoadSurfaceY.emplace(std::pair{column.worldX, column.worldZ}, column.surfaceY);
+			}
+			for (const ResolvedTownEntranceRecord &entrance : town.entrances)
+			{
+				addPadColumn(entrance.threshold.x, entrance.threshold.z, entrance.threshold.y);
+				for (const auto &[worldX, worldZ] : entrance.approachColumns)
+				{
+					addPadColumn(worldX, worldZ, entrance.threshold.y);
+				}
 			}
 			for (const std::size_t index : town.buildingPlacementIndices)
 			{
@@ -121,21 +151,48 @@ namespace pg
 					throw std::logic_error("town building references an unknown prefab during realization");
 				}
 				const ResolvedPlacementBox box = resolvePlacement(prefab->prefab, placement);
-				// Town doors are planned at the prefab's lowest authored layer. Flatten
-				// its full content rectangle to that layer so the later prefab stamp
-				// cannot leave a cliff through a room or a floating foundation.
-				const int groundTop = box.worldMin.y;
 				for (int dz = 0; dz < box.extents.z; ++dz)
 				{
 					for (int dx = 0; dx < box.extents.x; ++dx)
 					{
-						const auto [found, inserted] = _townBuildingGroundTop.emplace(std::pair{box.worldMin.x + dx, box.worldMin.z + dz}, groundTop);
-						if (!inserted && found->second != groundTop)
-						{
-							throw std::logic_error("overlapping town building terrain terraces disagree");
-						}
+						addPadColumn(box.worldMin.x + dx, box.worldMin.z + dz, box.worldMin.y);
 					}
 				}
+			}
+		}
+
+		// Perlin is disabled at the core and fades back in with distance.  Build this
+		// after town planning, while the exact building and road columns are known.
+		struct PadDistance
+		{
+			int worldX = 0;
+			int worldZ = 0;
+			int distance = 0;
+		};
+		std::queue<PadDistance> frontier;
+		for (const auto &[worldX, worldZ] : _townPadCore)
+		{
+			_townPadDistance.emplace(std::pair{worldX, worldZ}, 0);
+			frontier.push({.worldX = worldX, .worldZ = worldZ});
+		}
+		while (!frontier.empty())
+		{
+			const PadDistance current = frontier.front();
+			frontier.pop();
+			if (current.distance >= kTownPerlinFadeColumns)
+			{
+				continue;
+			}
+			for (const auto &[dx, dz] : {std::pair{1, 0}, {-1, 0}, {0, 1}, {0, -1}})
+			{
+				const PadDistance next{.worldX = current.worldX + dx, .worldZ = current.worldZ + dz, .distance = current.distance + 1};
+				const std::pair position{next.worldX, next.worldZ};
+				if (const auto found = _townPadDistance.find(position); found != _townPadDistance.end() && found->second <= next.distance)
+				{
+					continue;
+				}
+				_townPadDistance.insert_or_assign(position, next.distance);
+				frontier.push(next);
 			}
 		}
 
@@ -152,6 +209,10 @@ namespace pg
 		{
 			(void)unused;
 			blockVariation(position.first, position.first, position.second, position.second);
+		}
+		for (const auto &position : _townPadCore)
+		{
+			_terrainVariationBlocked.emplace(position);
 		}
 		for (const PlanStairway &stairway : _plan.stairways)
 		{
@@ -261,13 +322,19 @@ namespace pg
 		}
 		const std::uint64_t seed = _heightNoiseSeeds[static_cast<std::size_t>(level)];
 		const auto quantized = [&](int p_x, int p_z) {
-			const double noise = worldgen::fractalPerlinNoise(
+			double noise = worldgen::fractalPerlinNoise(
 				seed,
 				static_cast<double>(p_x),
 				static_cast<double>(p_z),
 				cfg.terrainVariationFeatureBlocks,
 				cfg.terrainVariationOctaves,
 				cfg.terrainVariationPersistence);
+			if (const auto nearestTown = _townPadDistance.find({p_x, p_z}); nearestTown != _townPadDistance.end())
+			{
+				const double t = static_cast<double>(nearestTown->second) / static_cast<double>(kTownPerlinFadeColumns);
+				const double fade = t * t * (3.0 - 2.0 * t);
+				noise *= fade;
+			}
 			if (noise > cfg.terrainVariationThreshold)
 			{
 				return 1;
@@ -346,9 +413,13 @@ namespace pg
 		const int level = _plan.height.at(row, col);
 		const int terrainOffset = _terrainOffset(p_worldX, p_worldZ);
 		int surface = _plan.surfaceY(level) + terrainOffset;
-		if (const auto terraced = _townBuildingGroundTop.find({p_worldX, p_worldZ}); terraced != _townBuildingGroundTop.end())
+		if (const auto townGround = _townGroundTop.find({p_worldX, p_worldZ}); townGround != _townGroundTop.end())
 		{
-			surface = terraced->second;
+			surface = std::max(surface, townGround->second);
+		}
+		if (const auto urbanRoad = _urbanRoadSurfaceY.find({p_worldX, p_worldZ}); urbanRoad != _urbanRoadSurfaceY.end())
+		{
+			surface = urbanRoad->second;
 		}
 		const int zone = _plan.zone.at(row, col);
 		const BiomeBlocks &blocksOfBiome =
