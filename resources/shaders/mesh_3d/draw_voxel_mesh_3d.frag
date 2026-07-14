@@ -65,7 +65,7 @@ float sampleShadowCascade(int cascade, vec3 normal, vec3 rayDirection)
 	vec3 projected = clip.xyz / clip.w * 0.5 + 0.5;
 	if (projected.x <= 0.0 || projected.x >= 1.0 || projected.y <= 0.0 || projected.y >= 1.0 || projected.z >= 1.0) return 1.0;
 	float bias = max(uShadowBiasDistanceTransition.x, uShadowBiasDistanceTransition.y * (1.0 - max(dot(normal, -normalize(rayDirection)), 0.0)));
-	int radius = int(uShadowControl.y);
+	int radius = int(min(uShadowControl.y, 4u));
 	vec2 texel = 1.0 / vec2(shadowSize(cascade));
 	float visible = 0.0; float samples = 0.0;
 	for (int y = -radius; y <= radius; ++y) for (int x = -radius; x <= radius; ++x) { visible += projected.z - bias > shadowDepth(cascade, projected.xy + vec2(x, y) * texel) ? 0.35 : 1.0; samples += 1.0; }
@@ -73,7 +73,7 @@ float sampleShadowCascade(int cascade, vec3 normal, vec3 rayDirection)
 }
 float shadowVisibility(vec3 normal, vec3 rayDirection)
 {
-	int count = int(uShadowControl.x);
+	int count = int(min(uShadowControl.x, 4u));
 	if (uShadowControl.z == 0u || count == 0) return 1.0;
 	float viewDepth = max(-(uView * vec4(vertexWorldPosition, 1.0)).z, 0.0);
 	if (viewDepth > uShadowBiasDistanceTransition.z) return 1.0;
@@ -92,16 +92,21 @@ void main()
 	vec4 sampled = texture(uTexture, vertexUV);
 	vec3 normal = normalize(vertexNormal);
 	vec3 lighting = uAmbientColorAndIntensity.rgb * uAmbientColorAndIntensity.a;
-	for (uint i = 0u; i < uDirectionalCount; ++i) {
+	// Counts are clamped to the MaxDirectional/Point/SpotLights limits of spk_scene_lighting_render_feature.hpp:
+	// if the LightingHeader UBO is ever left unbound, garbage counts would otherwise spin the GPU into a TDR reset.
+	uint directionalCount = min(uDirectionalCount, 4u);
+	uint pointCount = min(uPointCount, 128u);
+	uint spotCount = min(uSpotCount, 64u);
+	for (uint i = 0u; i < directionalCount; ++i) {
 		float visibility = int(i) == uShadowDirectionalIndex ? shadowVisibility(normal, uDirectionalLights[i].directionAndIntensity.xyz) : 1.0;
 		lighting += max(dot(normal, -normalize(uDirectionalLights[i].directionAndIntensity.xyz)), 0.0) * uDirectionalLights[i].color.rgb * uDirectionalLights[i].directionAndIntensity.w * visibility;
 	}
-	for (uint i = 0u; i < uPointCount; ++i) {
+	for (uint i = 0u; i < pointCount; ++i) {
 		vec3 offset = uPointLights[i].positionAndRange.xyz - vertexWorldPosition; float d2 = max(dot(offset, offset), 0.0001); float d = sqrt(d2); float nd = d / uPointLights[i].positionAndRange.w;
 		float fade = nd >= 1.0 ? 0.0 : pow(clamp(1.0 - pow(nd, 4.0), 0.0, 1.0), 2.0) / d2;
 		lighting += max(dot(normal, offset / d), 0.0) * uPointLights[i].colorAndIntensity.rgb * uPointLights[i].colorAndIntensity.w * fade;
 	}
-	for (uint i = 0u; i < uSpotCount; ++i) {
+	for (uint i = 0u; i < spotCount; ++i) {
 		vec3 offset = uSpotLights[i].positionAndRange.xyz - vertexWorldPosition; float d2 = max(dot(offset, offset), 0.0001); float d = sqrt(d2); float nd = d / uSpotLights[i].positionAndRange.w;
 		float fade = nd >= 1.0 ? 0.0 : pow(clamp(1.0 - pow(nd, 4.0), 0.0, 1.0), 2.0) / d2;
 		float cone = smoothstep(uSpotLights[i].outerCosineAndPadding.x, uSpotLights[i].directionAndInnerCosine.w, dot(normalize(uSpotLights[i].directionAndInnerCosine.xyz), normalize(vertexWorldPosition - uSpotLights[i].positionAndRange.xyz)));

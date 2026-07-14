@@ -7,6 +7,7 @@
 #include <ostream>
 #include <string>
 
+#include "structures/game_engine/rendering/spk_scene_lighting_render_feature.hpp"
 #include "utils/image_comparison_test_utils.hpp"
 #include "utils/test_resource_path_utils.hpp"
 
@@ -121,6 +122,14 @@ TEST_P(VoxelSceneVisualTest, SceneMatchesTheExpectedImage)
 	spk::GameEngine engine;
 	engine.add<spk::VoxelChunkRenderLogic>(voxelTexture);
 	engine.add<spk::VoxelChunkTransparentRenderLogic>(voxelTexture);
+
+	// This showcase pins shape silhouettes and texture slots, not shading. Full white ambient with
+	// no lights makes the shader's lighting term exactly 1, so the voxels keep their flat texture
+	// colors and the expected images stay stable when lighting defaults change.
+	spk::SceneLightingRenderFeature *lighting = engine.renderPipeline().findFeature<spk::SceneLightingRenderFeature>();
+	ASSERT_NE(lighting, nullptr) << "The game engine no longer installs a scene lighting feature by default";
+	lighting->setEnvironmentLighting({.ambientColor = spk::Color(1.0f, 1.0f, 1.0f, 1.0f), .ambientIntensity = 1.0f});
+
 	spk::VoxelMap map(
 		scene.registry,
 		[&scene](spk::VoxelChunk &p_chunk) {
@@ -160,9 +169,12 @@ TEST_P(VoxelSceneVisualTest, SceneMatchesTheExpectedImage)
 		glClearStencil(0);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-		spk::RenderUnitBuilder builder;
-		engine.logicRegistry().render(builder, engine.componentRegistry());
-		spk::RenderUnit renderUnit = builder.build();
+		// activeTarget keeps the plan from rebinding away from the offscreen target above, and an
+		// empty clear leaves the manual clear in place. Going through the pipeline (rather than the
+		// logic registry directly) is what binds the camera and lighting buffers the shaders read.
+		spk::RenderUnit renderUnit = engine.buildRenderUnit(
+			{.mainTarget = {.frameBuffer = nullptr, .viewport = spk::Viewport(captureRect), .activeTarget = true},
+			 .mainClear = {}});
 		renderUnit.execute(renderContext);
 		context.gpuRuntime().waitUntilWorkDone();
 
