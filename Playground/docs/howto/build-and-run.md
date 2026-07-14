@@ -5,9 +5,14 @@ All commands from the repo root (`c:\Users\User\source\repos\Sparkle`), PowerShe
 ## Configure (once per preset, or after CMakeLists/vcpkg changes)
 
 ```
-cmake --preset playground          # game + PlaygroundCore + PlaygroundTests + EreliaTools
-cmake --preset test                # spk:: library tests (SparkleTests)
+cmake --preset test                # Sparkle tests + Playground tests + SparklePlayground
+cmake --preset playground          # SparklePlayground only, Debug
+cmake --preset playground-release   # SparklePlayground only, Release
 ```
+
+`test` is the preset the plan steps use: it sets `SPARKLE_BUILD_TESTS=ON`, which builds
+`SparkleTests`, `PlaygroundCore`, `SparklePlayground` **and** `PlaygroundTests`. The
+`playground` presets build the game alone and have no test target.
 
 vcpkg runs through the preset toolchain automatically; adding a dependency = edit
 `vcpkg.json` + reconfigure.
@@ -16,13 +21,30 @@ vcpkg runs through the preset toolchain automatically; adding a dependency = edi
 
 | Tag | Command |
 |---|---|
-| `[build]` | `cmake --build build/playground --target SparklePlayground` |
-| `[run]` | `./build/playground/Playground/SparklePlayground.exe --resource-path Playground/resources` (path may vary by generator — check the build output; without `--resource-path`, resources resolve to `resources/` next to the exe; cwd doesn't matter for anything else) |
-| `[test]` | `cmake --build build/playground --target PlaygroundTests && ./build/playground/Playground/PlaygroundTests.exe` |
-| `[tools]` | `cmake --build build/playground --target EreliaTools && ./build/playground/Playground/EreliaTools.exe` |
+| `[build]` | `cmake --build build/test --target SparklePlayground` |
+| `[run]` | `./build/test/Playground/SparklePlayground.exe --resource-path Playground/resources` |
+| `[test]` | `cmake --build build/test --target PlaygroundTests SparklePlayground` then `ctest --test-dir build/test --output-on-failure -L playground` |
 | `[spk-test]` | `cmake --build build/test --target SparkleTests && ctest --test-dir build/test` (required green for promotion steps; run after any `spk::` change) |
 
-Before step 01 lands, only `[build]`/`[run]` exist (no Playground tests target).
+`ctest -L playground` is the canonical Playground test path: it runs the GTest cases **and**
+the CLI tests, which the raw executable does not. While debugging one case, running the
+binary directly is quicker:
+
+```
+./build/test/Playground/tests/PlaygroundTests.exe --gtest_filter=BattleTimeTest.*
+```
+
+Paths above are the Ninja layout of the `test` preset. Other generators nest binaries under
+a configuration folder — check the build output rather than assuming.
+
+## Resources are never copied
+
+`pg::resourceRoot()` resolves to the `--resource-path` override when one is given, else to a
+`resources` folder next to the executable. Nothing is copied at build time, so a run without
+`--resource-path` aborts with "resources not found" unless you deployed one yourself. Point
+it at the source tree (`--resource-path Playground/resources`) and data edits apply with no
+rebuild. `PlaygroundTests` pins its own lookup at the source tree through
+`PG_TEST_RESOURCE_DIR`, so tests need no flag.
 
 ## Smoke-run convention
 

@@ -1,7 +1,25 @@
 {
-  "version": 1,
+  "version": 2,
   "maxVerticalTraversalGap": 0.5,
+  "battle": {
+    "teamCapacity": 6,
+    "abilitySlotCapacity": 8,
+    "defaultBoardSize": [11, 11],
+    "deploymentDepth": 2,
+    "minimumStaminaSeconds": 0.1,
+    "mitigationScale": 100,
+    "maxCommandsPerActivation": 64,
+    "maxAiCommandsPerActivation": 32,
+    "maxEffectChainDepth": 32,
+    "maxConditionDepth": 8
+  },
   "overlayMasks": {
+    "deployment": [0, 0],
+    "movement": [1, 0],
+    "path": [2, 0],
+    "abilityRange": [3, 0],
+    "areaOfEffect": [0, 1],
+    "losBlocked": [1, 1],
     "hovered": [2, 1],
     "invalid": [3, 1]
   }

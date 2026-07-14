@@ -48,24 +48,33 @@ Save files are **not** definitions; they live in `Playground/saves/<slot>.json` 
 
 ---
 
-## 2. `config/game-rules.json`
+## 2. `config/game-rules.json` — schema version 2
 
 Global constants formerly scattered as magic numbers. Loaded first, into `pg::GameRules`.
 
+**Version 1 is not accepted.** The parser rejects every version but 2; the resource file was
+migrated in the same commit as the schema, so a stale file fails loudly instead of
+half-loading.
+
 ```jsonc
 {
-  "version": 1,
-  "teamMemberCount": 6,
-  "abilityBarSlots": 8,
-  "maxVerticalTraversalGap": 0.5,     // world units, walkable edge height difference
-  "defaultBoardSize": [11, 11],       // D13
-  "deploymentStripDepth": 2,          // D13
-  "minimumTurnBarDuration": 0.1,      // seconds; floor for stamina
-  "mitigationScaling": 10.0,          // armor/(armor+scaling) damage reduction
-  "timeEffectResistanceScaling": 10.0,
-  "overlayMasks": {                   // battle-overlay category → mask atlas cell (D31)
-    "deployment": [0, 0],
-    "movement":   [1, 0],
+  "version": 2,
+  "maxVerticalTraversalGap": 0.5,       // world units, walkable edge height difference
+  "battle": {
+    "teamCapacity": 6,                  // exactly 6: a serialized invariant, not a tunable
+    "abilitySlotCapacity": 8,           // exactly 8: sizes the loadout, AI enum and HUD
+    "defaultBoardSize": [11, 11],       // width, depth: odd, in [5, 31]           (D13)
+    "deploymentDepth": 2,               // >= 1; two strips must leave a neutral row (D13)
+    "minimumStaminaSeconds": 0.1,       // floor for stamina; exact ms, positive
+    "mitigationScale": 100,             // integer in [1, 1000000]
+    "maxCommandsPerActivation": 64,     // > 0
+    "maxAiCommandsPerActivation": 32,   // > 0, <= maxCommandsPerActivation
+    "maxEffectChainDepth": 32,          // 1..256
+    "maxConditionDepth": 8              // 1..32
+  },
+  "overlayMasks": {                     // battle-overlay category → mask atlas cell (D31)
+    "deployment": [0, 0],               // all eight keys required, no others accepted,
+    "movement":   [1, 0],               // each exactly two non-negative integers
     "path":       [2, 0],
     "abilityRange": [3, 0],
     "areaOfEffect": [0, 1],
@@ -75,6 +84,12 @@ Global constants formerly scattered as magic numbers. Loaded first, into `pg::Ga
   }
 }
 ```
+
+`minimumStaminaSeconds` parses into a `pg::BattleTime` (integer milliseconds) under the
+strict seconds rule — `0.0005` is rejected, not rounded. Unknown keys are refused at the
+root, `battle` and `overlayMasks` levels. The structural limits and the battle types are
+documented in [03-systems/battle-foundations.md](03-systems/battle-foundations.md); the
+systems that consume them do not exist yet.
 
 Structural constants are **not** config: chunk extent is a compile-time constant of the
 chunk type (`pg::Chunk::Size = {16,16,16}`, D29); world height is a property of each

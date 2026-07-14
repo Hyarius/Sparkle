@@ -34,6 +34,7 @@ foreach(INVALID_SIZE IN ITEMS -1 0 513)
 			${CMAKE_COMMAND}
 			-DPROGRAM=$<TARGET_FILE:SparklePlayground>
 			-DSIZE=${INVALID_SIZE}
+			-DRESOURCES=${PROJECT_SOURCE_DIR}/resources
 			-P "${CMAKE_CURRENT_SOURCE_DIR}/expect_cli_size_failure.cmake"
 	)
 	set_tests_properties(
