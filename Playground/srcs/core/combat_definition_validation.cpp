@@ -94,6 +94,54 @@ namespace pg
 		}
 	}
 
+	namespace
+	{
+		void validateReward(
+			const Registry<StatusDefinition> &p_statuses,
+			const Registry<AbilityDefinition> &p_abilities,
+			const std::string &p_owner,
+			const FeatRewardSpec &p_reward)
+		{
+			const auto fail = [&p_owner, &p_reward](const std::string &p_message) {
+				throw JsonError(
+					p_reward.source.file,
+					p_reward.source.jsonPath,
+					"board '" + p_owner + "' reward '" + p_reward.id + "' " + p_message);
+			};
+
+			if (const auto *unlock = std::get_if<UnlockAbilityRewardSpec>(&p_reward.payload))
+			{
+				if (!p_abilities.contains(unlock->ability))
+				{
+					fail("unlocks unknown ability '" + unlock->ability + "'");
+				}
+			}
+			else if (const auto *remove = std::get_if<RemoveAbilityRewardSpec>(&p_reward.payload))
+			{
+				if (!p_abilities.contains(remove->ability))
+				{
+					fail("removes unknown ability '" + remove->ability + "'");
+				}
+			}
+			else if (const auto *passive = std::get_if<UnlockPassiveRewardSpec>(&p_reward.payload))
+			{
+				const StatusDefinition *status = p_statuses.tryGet(passive->status);
+				if (status == nullptr)
+				{
+					fail("grants unknown passive status '" + passive->status + "'");
+				}
+				// A passive is an infinite status, and a permanently stunned creature never plays.
+				if (isStunStatus(*status))
+				{
+					fail("grants the stun status '" + passive->status + "' as a permanent passive");
+				}
+			}
+
+			// bonusStat references nothing, and changeForm is resolved in step 04 by the species
+			// that selects the board.
+		}
+	}
+
 	void validateCombatDefinitionGraph(
 		const Registry<StatusDefinition> &p_statuses,
 		const Registry<AbilityDefinition> &p_abilities,
@@ -118,6 +166,63 @@ namespace pg
 		for (const auto &[id, ability] : p_abilities)
 		{
 			validateEffects(p_statuses, p_battleObjects, id, ability.effects);
+		}
+	}
+
+	void validateConditionReferences(
+		const Registry<StatusDefinition> &p_statuses,
+		const Registry<AbilityDefinition> &p_abilities,
+		const std::vector<ConditionSpec> &p_conditions,
+		const std::string &p_owner)
+	{
+		ConditionReferences references;
+		collectConditionReferences(p_conditions, references);
+
+		for (const ConditionReference &reference : references.abilities)
+		{
+			if (!p_abilities.contains(reference.id))
+			{
+				throw JsonError(
+					reference.source.file,
+					reference.source.jsonPath,
+					"'" + p_owner + "' filters on unknown ability '" + reference.id + "'");
+			}
+		}
+		for (const ConditionReference &reference : references.statuses)
+		{
+			if (!p_statuses.contains(reference.id))
+			{
+				throw JsonError(
+					reference.source.file,
+					reference.source.jsonPath,
+					"'" + p_owner + "' filters on unknown status '" + reference.id + "'");
+			}
+		}
+
+		// Tag filters resolve against no registry on purpose: a tag that matches nothing today is
+		// legitimate, because later content may introduce it. Their grammar was checked at parse.
+	}
+
+	void validateFeatBoardGraph(
+		const Registry<StatusDefinition> &p_statuses,
+		const Registry<AbilityDefinition> &p_abilities,
+		const Registry<FeatBoardDefinition> &p_featBoards)
+	{
+		for (const auto &[id, board] : p_featBoards)
+		{
+			for (const FeatNodeDefinition &node : board.nodes)
+			{
+				validateConditionReferences(
+					p_statuses,
+					p_abilities,
+					node.requirements,
+					"board '" + id + "' node '" + node.id + "'");
+
+				for (const FeatRewardSpec &reward : node.rewards)
+				{
+					validateReward(p_statuses, p_abilities, id, reward);
+				}
+			}
 		}
 	}
 }

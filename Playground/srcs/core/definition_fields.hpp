@@ -5,6 +5,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <filesystem>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -19,6 +20,16 @@ namespace pg
 	// itself lives in resources/data/locales and is bounded there.
 	inline constexpr std::size_t MaxTranslationTextBytes = 512;
 	inline constexpr int MaxIconCoordinate = 4095;
+
+	// Where a nested value was authored. Cross-definition references are validated in a second
+	// phase, long after the reader that parsed them is gone, and their diagnostics must still
+	// name the exact file and JSON path. A Feat Board's form references are validated later
+	// still - in step 04, once a species selects the board - from this same record.
+	struct DefinitionSource
+	{
+		std::filesystem::path file;
+		std::string jsonPath;
+	};
 
 	[[nodiscard]] std::int64_t requireIntegerInRange(
 		const JsonReader &p_reader,

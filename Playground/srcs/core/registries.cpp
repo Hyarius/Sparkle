@@ -138,6 +138,19 @@ namespace pg
 		});
 		validateCombatDefinitionGraph(loadedStatuses, loadedAbilities, loadedBattleObjects);
 
+		// Feat Boards close the same transaction rather than opening a second one: their
+		// conditions and rewards reference the combat definitions above, and an unresolved
+		// reference must leave the combat registries as unpublished as the boards.
+		const ConditionLimits limits = conditionLimits(loadedGameRules);
+		Registry<FeatBoardDefinition> loadedFeatBoards;
+		spk::loadJsonDirectory(loadedFeatBoards, p_dataDirectory / "featboards", [&limits](std::string_view p_id, JsonReader &p_reader) {
+			requireContentId(p_id, p_reader.file(), p_reader.path(), "feat board id");
+			FeatBoardDefinition definition = parseFeatBoardDefinition(p_reader, limits);
+			definition.id = p_id;
+			return definition;
+		});
+		validateFeatBoardGraph(loadedStatuses, loadedAbilities, loadedFeatBoards);
+
 		_gameRules = std::move(loadedGameRules);
 		_shapes = std::move(loadedShapes);
 		_voxelFamilies = std::move(loadedVoxelFamilies);
@@ -150,12 +163,22 @@ namespace pg
 		_statuses = std::move(loadedStatuses);
 		_abilities = std::move(loadedAbilities);
 		_battleObjects = std::move(loadedBattleObjects);
+		_featBoards = std::move(loadedFeatBoards);
 		std::cout << "Loaded " << _voxels.typeCount() << " voxel types containing "
 				  << _voxels.runtimeStateCount() << " runtime states, " << _biomes.size()
 				  << " biome definitions, " << _prefabs.size() << " prefabs, and " << _interiors.size()
 				  << " interiors" << std::endl;
 		std::cout << "Loaded " << _statuses.size() << " statuses, " << _abilities.size() << " abilities, and "
 				  << _battleObjects.size() << " battle objects" << std::endl;
+
+		std::size_t featNodeCount = 0;
+		for (const auto &[boardId, board] : _featBoards)
+		{
+			(void)boardId;
+			featNodeCount += board.nodes.size();
+		}
+		std::cout << "Loaded " << _featBoards.size() << " feat boards containing " << featNodeCount << " nodes"
+				  << std::endl;
 	}
 
 	const GameRules &Registries::gameRules() const noexcept { return _gameRules; }
@@ -170,4 +193,5 @@ namespace pg
 	const Registry<StatusDefinition> &Registries::statuses() const noexcept { return _statuses; }
 	const Registry<AbilityDefinition> &Registries::abilities() const noexcept { return _abilities; }
 	const Registry<BattleObjectDefinition> &Registries::battleObjects() const noexcept { return _battleObjects; }
+	const Registry<FeatBoardDefinition> &Registries::featBoards() const noexcept { return _featBoards; }
 }

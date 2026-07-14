@@ -3,10 +3,10 @@
 #include "abilities/duration_spec.hpp"
 #include "battle/battle_time.hpp"
 #include "battle/battle_types.hpp"
+#include "core/definition_fields.hpp"
 #include "core/json.hpp"
 
 #include <cstdint>
-#include <filesystem>
 #include <map>
 #include <set>
 #include <string>
@@ -152,14 +152,9 @@ namespace pg
 		PlaceObjectEffectSpec,
 		RemoveObjectsEffectSpec>;
 
-	// Where the effect was authored. Cross-definition references are validated in a second
-	// phase, long after the reader that parsed them is gone, and their diagnostics must still
-	// name the exact file and JSON path.
-	struct EffectSource
-	{
-		std::filesystem::path file;
-		std::string jsonPath;
-	};
+	// Where the effect was authored, so the cross-validation phase can point at the line the
+	// author has to fix rather than at the registry.
+	using EffectSource = DefinitionSource;
 
 	// One authored effect. The id is a stable semantic identity for events and debugging, not
 	// an array index, and it is unique across its whole owning definition.

@@ -14,6 +14,16 @@
 		"battle-object.training-snare-object.name": "Snare",
 		"battle-object.training-snare-object.description": "Penalizes the next movement refill of an enemy entering its cell.",
 
+		"feat-board.training-board.name": "Training Board",
+		"feat.training-board.root.name": "Awakening",
+		"feat.training-board.root.description": "The creature's starting point.",
+		"feat.training-board.learn-guard.name": "Measured Guard",
+		"feat.training-board.learn-guard.description": "Learn to protect an ally.",
+		"feat.training-board.take-damage.description": "Take ten HP damage over the game.",
+		"feat.training-board.learn-snare.name": "Prepared Ground",
+		"feat.training-board.learn-snare.description": "Learn to place a snare.",
+		"feat.training-board.move-ten.description": "Move ten cells in one fight.",
+
 		"battle.log.ability-cast": "{0} casts {1}!",
 		"battle.log.damage-dealt": "{0} takes {1} damage.",
 

@@ -4,6 +4,7 @@
 #include "battle_objects/battle_object_definition.hpp"
 #include "core/game_rules.hpp"
 #include "core/registry.hpp"
+#include "feats/feat_board_definition.hpp"
 #include "statuses/status_definition.hpp"
 #include "voxel/shape_catalog.hpp"
 #include "voxel/voxel_family_definition.hpp"
@@ -33,6 +34,7 @@ namespace pg
 		Registry<StatusDefinition> _statuses;
 		Registry<AbilityDefinition> _abilities;
 		Registry<BattleObjectDefinition> _battleObjects;
+		Registry<FeatBoardDefinition> _featBoards;
 
 	public:
 		void loadAll(const std::filesystem::path &p_dataDirectory);
@@ -58,5 +60,9 @@ namespace pg
 		[[nodiscard]] const Registry<StatusDefinition> &statuses() const noexcept;
 		[[nodiscard]] const Registry<AbilityDefinition> &abilities() const noexcept;
 		[[nodiscard]] const Registry<BattleObjectDefinition> &battleObjects() const noexcept;
+		// The Feat Boards a species may select (resources/data/featboards). Their conditions and
+		// rewards are validated against the combat registries above; their form references wait
+		// for the species that selects the board. Nothing evaluates or progresses them yet.
+		[[nodiscard]] const Registry<FeatBoardDefinition> &featBoards() const noexcept;
 	};
 }

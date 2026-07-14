@@ -14,6 +14,16 @@
 		"battle-object.training-snare-object.name": "Piège",
 		"battle-object.training-snare-object.description": "Réduit la prochaine recharge de points de mouvement de l'ennemi qui entre sur sa case.",
 
+		"feat-board.training-board.name": "Plateau d'entraînement",
+		"feat.training-board.root.name": "Éveil",
+		"feat.training-board.root.description": "Le point de départ de la créature.",
+		"feat.training-board.learn-guard.name": "Garde mesurée",
+		"feat.training-board.learn-guard.description": "Apprendre à protéger un allié.",
+		"feat.training-board.take-damage.description": "Subir dix points de dégâts sur la partie.",
+		"feat.training-board.learn-snare.name": "Terrain préparé",
+		"feat.training-board.learn-snare.description": "Apprendre à poser un piège.",
+		"feat.training-board.move-ten.description": "Parcourir dix cases en un combat.",
+
 		"battle.log.ability-cast": "{1} : lancé par {0} !",
 		"battle.log.damage-dealt": "{0} subit {1} points de dégâts.",
 

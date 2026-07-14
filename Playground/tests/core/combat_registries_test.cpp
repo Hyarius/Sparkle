@@ -48,10 +48,13 @@ namespace
 				std::filesystem::copy_options::recursive | std::filesystem::copy_options::overwrite_existing);
 
 			// Empty combat directories are structurally allowed; the seeds only have to make
-			// the shipped tree non-empty.
+			// the shipped tree non-empty. The Feat Boards go with them: the shipped board
+			// references the shipped abilities, and a case that clears those would leave it
+			// dangling.
 			_clear("statuses");
 			_clear("abilities");
 			_clear("battle-objects");
+			_clear("featboards");
 		}
 
 		~CombatData()

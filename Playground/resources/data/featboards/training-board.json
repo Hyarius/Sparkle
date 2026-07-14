@@ -1,0 +1,80 @@
+{
+	"version": 1,
+	"displayNameKey": "feat-board.training-board.name",
+	"rootNode": "root",
+	"nodes": [
+		{
+			"id": "root",
+			"displayNameKey": "feat.training-board.root.name",
+			"descriptionKey": "feat.training-board.root.description",
+			"position": [0, 0],
+			"kind": "root",
+			"neighbours": ["learn-guard"],
+			"minimumCompletedNodes": 0,
+			"requirements": [],
+			"rewards": []
+		},
+		{
+			"id": "learn-guard",
+			"displayNameKey": "feat.training-board.learn-guard.name",
+			"descriptionKey": "feat.training-board.learn-guard.description",
+			"position": [1, 0],
+			"kind": "ability",
+			"neighbours": ["root", "learn-snare"],
+			"minimumCompletedNodes": 0,
+			"requirements": [
+				{
+					"id": "take-damage",
+					"type": "damage",
+					"descriptionKey": "feat.training-board.take-damage.description",
+					"window": "game",
+					"windowActor": "any",
+					"requiredWindowCount": 1,
+					"windowMode": "cumulative",
+					"actor": "subject",
+					"role": "target",
+					"counterpart": "opponentTeam",
+					"kind": "any",
+					"component": "health",
+					"targetHadShield": "any",
+					"sourceAbilities": [],
+					"aggregation": "sum",
+					"comparison": "atLeast",
+					"threshold": 10
+				}
+			],
+			"rewards": [
+				{ "id": "unlock-guard", "type": "unlockAbility", "ability": "training-guard" }
+			]
+		},
+		{
+			"id": "learn-snare",
+			"displayNameKey": "feat.training-board.learn-snare.name",
+			"descriptionKey": "feat.training-board.learn-snare.description",
+			"position": [2, 0],
+			"kind": "ability",
+			"neighbours": ["learn-guard"],
+			"minimumCompletedNodes": 1,
+			"requirements": [
+				{
+					"id": "move-ten",
+					"type": "movement",
+					"descriptionKey": "feat.training-board.move-ten.description",
+					"window": "fight",
+					"windowActor": "any",
+					"requiredWindowCount": 1,
+					"windowMode": "cumulative",
+					"actor": "subject",
+					"movement": "voluntary",
+					"direction": "any",
+					"aggregation": "sum",
+					"comparison": "atLeast",
+					"threshold": 10
+				}
+			],
+			"rewards": [
+				{ "id": "unlock-snare", "type": "unlockAbility", "ability": "training-snare" }
+			]
+		}
+	]
+}
