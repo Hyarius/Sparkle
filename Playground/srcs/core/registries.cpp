@@ -1,5 +1,7 @@
 #include "core/registries.hpp"
 
+#include "core/combat_definition_validation.hpp"
+#include "core/content_id.hpp"
 #include "core/json.hpp"
 #include "world/generator/climb_prefabs.hpp"
 #include "world/generator/placement_rules.hpp"
@@ -106,6 +108,36 @@ namespace pg
 			return composition;
 		});
 
+		// The combat domains parse in a fixed order for a stable load report, but never depend
+		// on it: each keeps its status/object references as string ids, and the whole graph is
+		// validated once below, after all three exist. That is what lets a status place an
+		// object whose trigger removes that same status.
+		Registry<StatusDefinition> loadedStatuses;
+		spk::loadJsonDirectory(loadedStatuses, p_dataDirectory / "statuses", [](std::string_view p_id, JsonReader &p_reader) {
+			requireContentId(p_id, p_reader.file(), p_reader.path(), "status id");
+			StatusDefinition definition = parseStatusDefinition(p_reader);
+			definition.id = p_id;
+			return definition;
+		});
+		Registry<BattleObjectDefinition> loadedBattleObjects;
+		spk::loadJsonDirectory(
+			loadedBattleObjects,
+			p_dataDirectory / "battle-objects",
+			[](std::string_view p_id, JsonReader &p_reader) {
+				requireContentId(p_id, p_reader.file(), p_reader.path(), "battle object id");
+				BattleObjectDefinition definition = parseBattleObjectDefinition(p_reader);
+				definition.id = p_id;
+				return definition;
+			});
+		Registry<AbilityDefinition> loadedAbilities;
+		spk::loadJsonDirectory(loadedAbilities, p_dataDirectory / "abilities", [](std::string_view p_id, JsonReader &p_reader) {
+			requireContentId(p_id, p_reader.file(), p_reader.path(), "ability id");
+			AbilityDefinition definition = parseAbilityDefinition(p_reader);
+			definition.id = p_id;
+			return definition;
+		});
+		validateCombatDefinitionGraph(loadedStatuses, loadedAbilities, loadedBattleObjects);
+
 		_gameRules = std::move(loadedGameRules);
 		_shapes = std::move(loadedShapes);
 		_voxelFamilies = std::move(loadedVoxelFamilies);
@@ -115,10 +147,15 @@ namespace pg
 		_interiors = std::move(loadedInteriors);
 		_placementRules = std::move(loadedPlacementRules);
 		_townCompositions = std::move(loadedTownCompositions);
+		_statuses = std::move(loadedStatuses);
+		_abilities = std::move(loadedAbilities);
+		_battleObjects = std::move(loadedBattleObjects);
 		std::cout << "Loaded " << _voxels.typeCount() << " voxel types containing "
 				  << _voxels.runtimeStateCount() << " runtime states, " << _biomes.size()
 				  << " biome definitions, " << _prefabs.size() << " prefabs, and " << _interiors.size()
 				  << " interiors" << std::endl;
+		std::cout << "Loaded " << _statuses.size() << " statuses, " << _abilities.size() << " abilities, and "
+				  << _battleObjects.size() << " battle objects" << std::endl;
 	}
 
 	const GameRules &Registries::gameRules() const noexcept { return _gameRules; }
@@ -130,4 +167,7 @@ namespace pg
 	const Registry<InteriorDefinition> &Registries::interiors() const noexcept { return _interiors; }
 	const PlanPlacementRules &Registries::placementRules() const noexcept { return _placementRules; }
 	const TownCompositionCatalog &Registries::townCompositions() const noexcept { return _townCompositions; }
+	const Registry<StatusDefinition> &Registries::statuses() const noexcept { return _statuses; }
+	const Registry<AbilityDefinition> &Registries::abilities() const noexcept { return _abilities; }
+	const Registry<BattleObjectDefinition> &Registries::battleObjects() const noexcept { return _battleObjects; }
 }

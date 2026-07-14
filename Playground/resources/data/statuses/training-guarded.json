@@ -1,0 +1,22 @@
+{
+	"version": 1,
+	"displayNameKey": "status.training-guarded.name",
+	"descriptionKey": "status.training-guarded.description",
+	"icon": [1, 0],
+	"tags": ["buff", "guard"],
+	"stacking": {
+		"maxStacks": 1,
+		"reapply": "replaceStacks",
+		"durationRefresh": "replace"
+	},
+	"modifiers": [
+		{
+			"id": "armor-bonus",
+			"stat": "armor",
+			"operation": "add",
+			"value": 3,
+			"perStack": false
+		}
+	],
+	"hooks": []
+}

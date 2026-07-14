@@ -12,6 +12,7 @@
 #include <string>
 #include <type_traits>
 
+#include "structures/container/spk_json_object.hpp"
 #include "structures/math/spk_approx_value.hpp"
 #include "type/spk_concepts.hpp"
 
@@ -432,6 +433,36 @@ namespace spk
 	using Vector2 = IVector2<float_t>;
 	using Vector2Int = IVector2<std::int32_t>;
 	using Vector2UInt = IVector2<std::uint32_t>;
+
+	// A vector is JSON as the pair authors already write by hand: [x, y]. Found by ADL, so
+	// spk::JSON::Value construction, Value::as<Vector2Int>() and JSON::Reader::require() all
+	// go through these two and no call site spells the layout again.
+	template <arithmetic_value TType>
+	[[nodiscard]] spk::JSON::Value toJSON(const IVector2<TType> &p_value)
+	{
+		spk::JSON::Value result = spk::JSON::Value::array();
+		result.pushBack(spk::JSON::Value(p_value.x));
+		result.pushBack(spk::JSON::Value(p_value.y));
+		return result;
+	}
+
+	template <arithmetic_value TType>
+	void fromJSON(const spk::JSON::Value &p_object, IVector2<TType> &p_value)
+	{
+		if (!p_object.isArray())
+		{
+			spk::JSON::detail::raise("Wrong JSON type requested: expected an array of two numbers");
+		}
+
+		const spk::JSON::Value::Array &array = p_object.asArray();
+		if (array.size() != 2)
+		{
+			spk::JSON::detail::raise("expected exactly 2 elements, got " + std::to_string(array.size()));
+		}
+
+		p_value.x = array[0].as<TType>();
+		p_value.y = array[1].as<TType>();
+	}
 }
 
 namespace std

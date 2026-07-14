@@ -1,0 +1,40 @@
+{
+	"version": 1,
+	"displayNameKey": "ability.training-strike.name",
+	"descriptionKey": "ability.training-strike.description",
+	"icon": [0, 0],
+	"cost": { "actionPoints": 2, "movementPoints": 0 },
+	"range": {
+		"shape": "diamond",
+		"minimum": 1,
+		"maximum": 1,
+		"requiresLineOfSight": true
+	},
+	"area": { "shape": "single", "radius": 0 },
+	"anchorFilter": {
+		"allowSelf": false,
+		"allowAllies": false,
+		"allowEnemies": true,
+		"allowDefeated": false,
+		"allowEmptyCell": false
+	},
+	"affectedFilter": {
+		"allowSelf": false,
+		"allowAllies": false,
+		"allowEnemies": true,
+		"allowDefeated": false,
+		"allowEmptyCell": false
+	},
+	"effects": [
+		{
+			"id": "impact",
+			"type": "damage",
+			"applyTo": "affectedUnits",
+			"requiresLivingSource": true,
+			"kind": "physical",
+			"base": 4,
+			"strengthRatioPermille": 1000,
+			"magicPowerRatioPermille": 0
+		}
+	]
+}

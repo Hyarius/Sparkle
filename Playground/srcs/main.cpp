@@ -9,6 +9,7 @@
 #include "core/paths.hpp"
 #include "core/random_seed.hpp"
 #include "core/registries.hpp"
+#include "core/translator.hpp"
 #include "game_scene_widget.hpp"
 #include "world/generator/plan_chunk_provider.hpp"
 #include "world/generator/world_map_image.hpp"
@@ -231,6 +232,13 @@ int main(int argc, char **argv)
 			requestedConfig.size = worldSize;
 			pg::validateWorldGenConfig(requestedConfig);
 		}
+
+		// main() owns the translator's lifetime: it is released when this scope ends, and a
+		// broken locale file fails here rather than at the first label that tries to draw.
+		const spk::Singleton<pg::Translator>::Instanciator translator;
+		translator->load(pg::resourceRoot() / "data" / "locales");
+		std::cout << "Loaded " << translator->languages().size() << " languages ("
+				  << translator->keyCount() << " keys), active: " << translator->language() << std::endl;
 
 		pg::Registries registries;
 		registries.loadAll(pg::resourceRoot() / "data");

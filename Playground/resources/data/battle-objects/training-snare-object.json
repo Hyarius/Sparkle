@@ -1,0 +1,34 @@
+{
+	"version": 1,
+	"displayNameKey": "battle-object.training-snare-object.name",
+	"descriptionKey": "battle-object.training-snare-object.description",
+	"icon": [2, 0],
+	"tags": ["trap", "snare"],
+	"blocksMovement": false,
+	"blocksLineOfSight": false,
+	"triggers": [
+		{
+			"id": "on-enter",
+			"when": "unitEnteredCell",
+			"targetFilter": {
+				"allowSelf": false,
+				"allowAllies": false,
+				"allowEnemies": true,
+				"allowDefeated": false,
+				"allowEmptyCell": false
+			},
+			"maxTriggers": 1,
+			"removeWhenExhausted": true,
+			"effects": [
+				{
+					"id": "movement-penalty",
+					"type": "applyNextActivationPenalty",
+					"applyTo": "primaryUnit",
+					"requiresLivingSource": false,
+					"resource": "movementPoints",
+					"amount": 1
+				}
+			]
+		}
+	]
+}

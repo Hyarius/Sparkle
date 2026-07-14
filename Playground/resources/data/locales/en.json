@@ -1,0 +1,23 @@
+{
+	"version": 1,
+	"entries": {
+		"ability.training-strike.name": "Training Strike",
+		"ability.training-strike.description": "A simple adjacent physical attack.",
+		"ability.training-guard.name": "Training Guard",
+		"ability.training-guard.description": "Steels the caster or a nearby ally, raising their Armor for two of their activations.",
+		"ability.training-snare.name": "Training Snare",
+		"ability.training-snare.description": "Sets a snare on an empty cell within reach, ready for the first enemy to step on it.",
+
+		"status.training-guarded.name": "Guarded",
+		"status.training-guarded.description": "Raises Armor while active.",
+
+		"battle-object.training-snare-object.name": "Snare",
+		"battle-object.training-snare-object.description": "Penalizes the next movement refill of an enemy entering its cell.",
+
+		"battle.log.ability-cast": "{0} casts {1}!",
+		"battle.log.damage-dealt": "{0} takes {1} damage.",
+
+		"language.en.name": "English",
+		"language.fr.name": "French"
+	}
+}

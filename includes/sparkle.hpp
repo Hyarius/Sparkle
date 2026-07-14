@@ -16,6 +16,7 @@
 #include "structures/design_pattern/spk_contract_provider.hpp"
 #include "structures/design_pattern/spk_inherence_trait.hpp"
 #include "structures/design_pattern/spk_priorizable_trait.hpp"
+#include "structures/design_pattern/spk_singleton.hpp"
 #include "structures/design_pattern/spk_synchronizable_trait.hpp"
 #include "structures/graphics/geometry/spk_color.hpp"
 #include "structures/system/thread/spk_thread_safe_contract.hpp"

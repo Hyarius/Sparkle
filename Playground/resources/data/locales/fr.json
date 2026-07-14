@@ -1,0 +1,23 @@
+{
+	"version": 1,
+	"entries": {
+		"ability.training-strike.name": "Frappe d'entraînement",
+		"ability.training-strike.description": "Une simple attaque physique au corps à corps.",
+		"ability.training-guard.name": "Garde d'entraînement",
+		"ability.training-guard.description": "Aguerrit le lanceur ou un allié proche, augmentant son Armure pendant deux de ses activations.",
+		"ability.training-snare.name": "Piège d'entraînement",
+		"ability.training-snare.description": "Pose un piège sur une case vide à portée, prêt pour le premier ennemi qui marchera dessus.",
+
+		"status.training-guarded.name": "Sur ses gardes",
+		"status.training-guarded.description": "Augmente l'Armure tant que l'effet est actif.",
+
+		"battle-object.training-snare-object.name": "Piège",
+		"battle-object.training-snare-object.description": "Réduit la prochaine recharge de points de mouvement de l'ennemi qui entre sur sa case.",
+
+		"battle.log.ability-cast": "{1} : lancé par {0} !",
+		"battle.log.damage-dealt": "{0} subit {1} points de dégâts.",
+
+		"language.en.name": "Anglais",
+		"language.fr.name": "Français"
+	}
+}

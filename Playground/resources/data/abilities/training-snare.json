@@ -1,0 +1,38 @@
+{
+	"version": 1,
+	"displayNameKey": "ability.training-snare.name",
+	"descriptionKey": "ability.training-snare.description",
+	"icon": [2, 0],
+	"cost": { "actionPoints": 3, "movementPoints": 0 },
+	"range": {
+		"shape": "diamond",
+		"minimum": 1,
+		"maximum": 4,
+		"requiresLineOfSight": true
+	},
+	"area": { "shape": "single", "radius": 0 },
+	"anchorFilter": {
+		"allowSelf": false,
+		"allowAllies": false,
+		"allowEnemies": false,
+		"allowDefeated": false,
+		"allowEmptyCell": true
+	},
+	"affectedFilter": {
+		"allowSelf": false,
+		"allowAllies": false,
+		"allowEnemies": false,
+		"allowDefeated": false,
+		"allowEmptyCell": true
+	},
+	"effects": [
+		{
+			"id": "place-snare",
+			"type": "placeObject",
+			"applyTo": "anchorCell",
+			"requiresLivingSource": true,
+			"object": "training-snare-object",
+			"duration": { "type": "ownerActivations", "count": 3 }
+		}
+	]
+}

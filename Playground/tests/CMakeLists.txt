@@ -17,6 +17,9 @@ target_compile_definitions(PlaygroundTests
 		PG_TEST_RESOURCE_DIR="${PROJECT_SOURCE_DIR}/resources"
 )
 
+# So a case can include shared fixtures as "support/<header>.hpp" from any subdirectory.
+target_include_directories(PlaygroundTests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
+
 target_link_libraries(PlaygroundTests
 	PRIVATE
 		PlaygroundCore

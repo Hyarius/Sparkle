@@ -1,0 +1,39 @@
+{
+	"version": 1,
+	"displayNameKey": "ability.training-guard.name",
+	"descriptionKey": "ability.training-guard.description",
+	"icon": [1, 0],
+	"cost": { "actionPoints": 2, "movementPoints": 0 },
+	"range": {
+		"shape": "diamond",
+		"minimum": 0,
+		"maximum": 3,
+		"requiresLineOfSight": true
+	},
+	"area": { "shape": "single", "radius": 0 },
+	"anchorFilter": {
+		"allowSelf": true,
+		"allowAllies": true,
+		"allowEnemies": false,
+		"allowDefeated": false,
+		"allowEmptyCell": false
+	},
+	"affectedFilter": {
+		"allowSelf": true,
+		"allowAllies": true,
+		"allowEnemies": false,
+		"allowDefeated": false,
+		"allowEmptyCell": false
+	},
+	"effects": [
+		{
+			"id": "grant-guard",
+			"type": "applyStatus",
+			"applyTo": "affectedUnits",
+			"requiresLivingSource": true,
+			"status": "training-guarded",
+			"stacks": 1,
+			"duration": { "type": "ownerActivations", "count": 2 }
+		}
+	]
+}
