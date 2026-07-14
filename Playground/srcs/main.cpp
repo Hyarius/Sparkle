@@ -11,6 +11,7 @@
 #include "core/registries.hpp"
 #include "core/translator.hpp"
 #include "game_scene_widget.hpp"
+#include "player/new_game_definition.hpp"
 #include "world/generator/plan_chunk_provider.hpp"
 #include "world/generator/world_map_image.hpp"
 #include "world/generator/world_plan.hpp"
@@ -282,6 +283,20 @@ int main(int argc, char **argv)
 			return 0;
 		}
 		pg::GameContext gameContext;
+		// The starter team is authored (config/new-game.json), not hard-coded here. Its serials are
+		// dealt out in order, so this line is the same on every machine and every run.
+		gameContext.player = pg::makeNewPlayerData(registries.newGame(), registries);
+		for (std::size_t slot = 0; slot < pg::PlayerRoster::TeamCapacity; ++slot)
+		{
+			const std::optional<pg::CreatureUnit> &member = gameContext.player.roster.team()[slot];
+			if (!member.has_value())
+			{
+				continue;
+			}
+			std::cout << "Starter roster [" << slot << "]: " << member->id.string() << " -> " << member->speciesId
+					  << " (" << member->derived.formId << ")" << std::endl;
+		}
+
 		spk::Application application;
 
 		spk::WindowHandle window = application.createWindow(

@@ -1,11 +1,15 @@
 #pragma once
 
 #include "abilities/ability_definition.hpp"
+#include "ai/ai_definition.hpp"
 #include "battle_objects/battle_object_definition.hpp"
 #include "conditions/condition_definition.hpp"
 #include "core/registry.hpp"
+#include "creatures/creature_state_derivation.hpp"
+#include "encounters/encounter_definition.hpp"
 #include "feats/feat_board_definition.hpp"
 #include "statuses/status_definition.hpp"
+#include "world/biome_definition.hpp"
 
 #include <string>
 #include <vector>
@@ -54,4 +58,39 @@ namespace pg
 		const Registry<AbilityDefinition> &p_abilities,
 		const std::vector<ConditionSpec> &p_conditions,
 		const std::string &p_owner);
+
+	// The same phase for an AI behaviour: its ability and status references resolve against the
+	// combat registries, and its status tags have to occur on at least one status in the graph
+	// being published - a misspelled tag is silently false at runtime forever, so it is caught here
+	// instead. A tag on an ordinary status filter stays unresolved on purpose (later content may
+	// introduce it); an AI tag is a query about the content that exists now.
+	void validateAIGraph(
+		const Registry<StatusDefinition> &p_statuses,
+		const Registry<AbilityDefinition> &p_abilities,
+		const Registry<AIBehaviourDefinition> &p_behaviours);
+
+	// Everything a species could not prove alone. p_context carries the game rules and the status,
+	// ability, Feat Board and species registries of the load being validated - locals during a load
+	// transaction, the published ones afterwards.
+	//
+	// It resolves the default abilities and passives, the Feat Board, the board's fromForm gates and
+	// changeForm rewards against this species' forms, and the inline taming profile's filters; it
+	// checks that no authorable set of completions can exceed the loadout slots or push an attribute
+	// out of its bounds; and it derives the fresh creature to prove the baseline itself is legal.
+	void validateSpeciesGraph(const DerivationContext &p_context);
+
+	// An encounter's spawns: species, AI and completed-node preset all resolve, the preset is a
+	// legal board state, and every ability the member's AI would cast is in the loadout that member
+	// actually derives - an enemy cannot be authored to cast a move it does not know.
+	void validateEncounterGraph(
+		const Registry<EncounterDefinition> &p_encounters,
+		const Registry<AIBehaviourDefinition> &p_behaviours,
+		const DerivationContext &p_context);
+
+	// Every biome the world generator can place needs somewhere for its Bushes to lead: a wild,
+	// repeatable encounter table. An interior-only biome has no worldgen block and therefore no
+	// link, and that is the whole rule - no encounter data is ever added to a voxel.
+	void validateBiomeEncounterLinks(
+		const Registry<BiomeDefinition> &p_biomes,
+		const Registry<EncounterDefinition> &p_encounters);
 }

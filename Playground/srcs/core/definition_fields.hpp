@@ -29,6 +29,10 @@ namespace pg
 	{
 		std::filesystem::path file;
 		std::string jsonPath;
+
+		// Definitions that carry a source are still ordinary comparable values: a copy of an
+		// encounter spawn or a starter entry has to equal the one it was copied from.
+		[[nodiscard]] bool operator==(const DefinitionSource &p_other) const = default;
 	};
 
 	[[nodiscard]] std::int64_t requireIntegerInRange(

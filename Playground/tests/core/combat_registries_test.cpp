@@ -12,21 +12,19 @@
 
 namespace
 {
-	// A scratch copy of the shipped data whose three combat directories start out empty, so a
-	// case authors exactly the graph it is about without touching the checkout.
+	// A scratch copy of the shipped data a case adds its own combat definitions to, without
+	// touching the checkout.
+	//
+	// It used to start with the combat directories emptied. It cannot any more, and the reason is
+	// the point of step 04: the shipped species selects the shipped board and knows the shipped
+	// ability, the shipped encounters field that species, the shipped biomes lead their Bushes to
+	// those encounters, and the new game starts with that species. A tree with no ability is
+	// therefore not a tree the loader accepts - so a case authors its graph on top of the seed, and
+	// counts read as "the seed plus what I wrote".
 	class CombatData
 	{
 	private:
 		std::filesystem::path _path;
-
-		void _clear(const std::filesystem::path &p_relative) const
-		{
-			const std::filesystem::path directory = _path / p_relative;
-			for (const std::filesystem::directory_entry &entry : std::filesystem::directory_iterator(directory))
-			{
-				std::filesystem::remove_all(entry.path());
-			}
-		}
 
 		void _write(const std::filesystem::path &p_relative, std::string_view p_content) const
 		{
@@ -46,16 +44,12 @@ namespace
 				pg::resourceRoot() / "data",
 				_path,
 				std::filesystem::copy_options::recursive | std::filesystem::copy_options::overwrite_existing);
-
-			// Empty combat directories are structurally allowed; the seeds only have to make
-			// the shipped tree non-empty. The Feat Boards go with them: the shipped board
-			// references the shipped abilities, and a case that clears those would leave it
-			// dangling.
-			_clear("statuses");
-			_clear("abilities");
-			_clear("battle-objects");
-			_clear("featboards");
 		}
+
+		// The shipped seed every count below is relative to.
+		static constexpr std::size_t SeedStatuses = 1;
+		static constexpr std::size_t SeedAbilities = 3;
+		static constexpr std::size_t SeedBattleObjects = 1;
 
 		~CombatData()
 		{
@@ -213,9 +207,12 @@ TEST(CombatRegistriesTest, ResolvesEveryKindOfCrossReference)
 	ASSERT_NO_THROW(registries.loadAll(data.path()))
 		<< "ability -> status, ability -> object and status -> status all resolve";
 
-	EXPECT_EQ(registries.statuses().size(), 2U);
-	EXPECT_EQ(registries.abilities().size(), 2U);
-	EXPECT_EQ(registries.battleObjects().size(), 1U);
+	EXPECT_EQ(registries.statuses().size(), CombatData::SeedStatuses + 2U);
+	EXPECT_EQ(registries.abilities().size(), CombatData::SeedAbilities + 2U);
+	EXPECT_EQ(registries.battleObjects().size(), CombatData::SeedBattleObjects + 1U);
+	EXPECT_TRUE(registries.statuses().contains("cascading"));
+	EXPECT_TRUE(registries.abilities().contains("trap"));
+	EXPECT_TRUE(registries.battleObjects().contains("snare"));
 }
 
 TEST(CombatRegistriesTest, AcceptsAStatusObjectStatusCycleWithoutRecursingAtLoad)
@@ -241,8 +238,8 @@ TEST(CombatRegistriesTest, AcceptsAStatusObjectStatusCycleWithoutRecursingAtLoad
 	ASSERT_NO_THROW(registries.loadAll(data.path()))
 		<< "references stay string ids, so a cycle needs no load order and no expansion";
 
-	EXPECT_EQ(registries.statuses().size(), 3U);
-	EXPECT_EQ(registries.battleObjects().size(), 1U);
+	EXPECT_EQ(registries.statuses().size(), CombatData::SeedStatuses + 3U);
+	EXPECT_EQ(registries.battleObjects().size(), CombatData::SeedBattleObjects + 1U);
 }
 
 TEST(CombatRegistriesTest, AMissingReferenceFailsAtTheOwningEffectPath)
@@ -317,7 +314,7 @@ TEST(CombatRegistriesTest, AStunMayOnlyBeAppliedForAFiniteTimelineDuration)
 		abilityFile(appliesStatus("apply", "guarded", R"({"type": "ownerActivations", "count": 2})")));
 	ordinary.ability("c", abilityFile(appliesStatus("apply", "guarded", R"({"type": "infinite"})")));
 	EXPECT_NO_THROW(registries.loadAll(ordinary.path()));
-	EXPECT_EQ(registries.abilities().size(), 3U);
+	EXPECT_EQ(registries.abilities().size(), CombatData::SeedAbilities + 3U);
 }
 
 TEST(CombatRegistriesTest, AFailedReloadLeavesThePreviouslyPublishedRegistriesUntouched)
@@ -359,9 +356,11 @@ TEST(CombatRegistriesTest, LoadsDeterministicallyWhateverTheFilesystemOrder)
 	pg::Registries registries;
 	ASSERT_NO_THROW(registries.loadAll(data.path()));
 
+	// Sorted, with the seed's own status in its lexical place: neither directory iteration nor
+	// creation order leaks into the registry.
 	EXPECT_EQ(
 		registries.statuses().ids(),
-		(std::vector<std::string>{"alpha", "delta", "mike", "zulu"}));
+		(std::vector<std::string>{"alpha", "delta", "mike", "training-guarded", "zulu"}));
 
 	pg::Registries reloaded;
 	ASSERT_NO_THROW(reloaded.loadAll(data.path()));

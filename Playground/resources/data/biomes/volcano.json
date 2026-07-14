@@ -1,5 +1,6 @@
 {
-	"version": 1,
+	"version": 2,
+	"wildEncounterTable": "training-wild",
 	"displayName": "Volcano",
 	"palette": {
 		"surface": "ash-block",

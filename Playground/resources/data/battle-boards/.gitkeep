@@ -1,0 +1,5 @@
+# Handcrafted arenas (Gym and Special encounters) land here.
+#
+# Deliberately empty at the step-04 checkpoint: both bootstrap encounters overlay the live
+# world, the loader and the schema are real and tested, and step 19 authors the first arena.
+# A fake unused board merely to make the count non-zero would be content lying about itself.

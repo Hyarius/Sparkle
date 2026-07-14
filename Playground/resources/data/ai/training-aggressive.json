@@ -1,0 +1,31 @@
+{
+	"version": 1,
+	"displayNameKey": "ai.training-aggressive.name",
+	"rules": [
+		{
+			"id": "strike-nearest",
+			"conditions": [
+				{ "type": "abilityAffordable", "ability": "training-strike" }
+			],
+			"decision": {
+				"type": "castAbility",
+				"ability": "training-strike",
+				"anchor": { "type": "unit", "selector": "nearestEnemy" }
+			}
+		},
+		{
+			"id": "approach",
+			"conditions": [],
+			"decision": {
+				"type": "moveToward",
+				"selector": "nearestEnemy",
+				"maximumMovementPoints": 0
+			}
+		},
+		{
+			"id": "finish",
+			"conditions": [],
+			"decision": { "type": "endTurn" }
+		}
+	]
+}

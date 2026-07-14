@@ -155,6 +155,13 @@ namespace pg
 		_context.world.world = std::move(_stagedWorld);
 		_context.world.navigation = std::move(_stagedNavigation);
 		_context.world.explorationActive = true;
+
+		// The world cell the run starts on, known only now: the new-game config deliberately
+		// hard-codes none. It is committed with the world, so a scene that failed to build leaves
+		// the player value on its origin rather than on a spawn that does not exist. Keeping it in
+		// step with the player's movement is step 12's, along with the mode it saves.
+		_context.player.playerCell = _player->cell;
+		_context.player.lastHealPoint = _player->cell;
 	}
 
 	GameSceneWidget::~GameSceneWidget()

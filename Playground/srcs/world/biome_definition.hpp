@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/definition_fields.hpp"
 #include "core/json.hpp"
 #include "core/registry.hpp"
 #include "core/weighted_pool.hpp"
@@ -116,7 +117,15 @@ namespace pg
 		std::string displayName;
 		BiomePalette palette;
 		std::optional<BiomeWorldgenTraits> worldgen;
+		// Which wild encounter table a Bush in this biome leads to. Required on every generated
+		// biome, absent on interior-only ones. The Bush itself is still detected through
+		// VoxelData::hasTag("Bush"): no encounter data ever enters a voxel definition, because the
+		// same grass block grows in two biomes that hold different creatures.
+		std::optional<std::string> wildEncounterTableId;
+		DefinitionSource source;
 	};
+
+	inline constexpr int BiomeSchemaVersion = 2;
 
 	[[nodiscard]] BiomeDefinition parseBiomeDefinition(
 		JsonReader &p_reader,

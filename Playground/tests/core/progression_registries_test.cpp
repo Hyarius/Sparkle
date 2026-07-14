@@ -12,15 +12,20 @@
 
 namespace
 {
-	// A scratch copy of the shipped data whose featboards directory starts out empty, so a case
-	// authors exactly the board it is about while keeping the real combat definitions to
-	// reference.
+	// A scratch copy of the shipped data a case adds its own Feat Boards to, while keeping the real
+	// combat definitions to reference.
+	//
+	// The shipped board stays: since step 04 the shipped species selects it, and a species whose
+	// board does not exist is not a species the loader accepts. So a case authors its board on top
+	// of the seed, and counts read as "the seed plus what I wrote".
 	class ProgressionData
 	{
 	private:
 		std::filesystem::path _path;
 
 	public:
+		static constexpr std::size_t SeedBoards = 1;
+
 		explicit ProgressionData(std::string_view p_name) :
 			_path(std::filesystem::temp_directory_path() / "sparkle-playground-progression" / p_name)
 		{
@@ -30,12 +35,6 @@ namespace
 				pg::resourceRoot() / "data",
 				_path,
 				std::filesystem::copy_options::recursive | std::filesystem::copy_options::overwrite_existing);
-
-			for (const std::filesystem::directory_entry &entry :
-				 std::filesystem::directory_iterator(_path / "featboards"))
-			{
-				std::filesystem::remove_all(entry.path());
-			}
 		}
 
 		~ProgressionData()
@@ -143,7 +142,8 @@ TEST(ProgressionRegistriesTest, ResolvesConditionAndRewardReferencesAgainstTheCo
 
 	pg::Registries registries;
 	ASSERT_NO_THROW(registries.loadAll(known.path()));
-	EXPECT_EQ(registries.featBoards().size(), 1U);
+	EXPECT_EQ(registries.featBoards().size(), ProgressionData::SeedBoards + 1U);
+	EXPECT_TRUE(registries.featBoards().contains("training"));
 
 	const ProgressionData unknownAbilityFilter("unknown-filter");
 	unknownAbilityFilter.featBoard("training", boardFile(requirement("hit", R"(["ghost-ability"])"), UnlockGuard));
@@ -263,17 +263,20 @@ TEST(ProgressionRegistriesTest, LoadsDeterministicallyWhateverTheFileOrder)
 
 	pg::Registries registries;
 	ASSERT_NO_THROW(registries.loadAll(data.path()));
-	EXPECT_EQ(registries.featBoards().ids(), (std::vector<std::string>{"alpha", "delta", "mike", "zulu"}));
+	// Sorted, with the seed's own board in its lexical place.
+	EXPECT_EQ(
+		registries.featBoards().ids(),
+		(std::vector<std::string>{"alpha", "delta", "mike", "training-board", "zulu"}));
 
 	pg::Registries reloaded;
 	ASSERT_NO_THROW(reloaded.loadAll(data.path()));
 	EXPECT_EQ(reloaded.featBoards().ids(), registries.featBoards().ids());
 
-	for (const std::string &id : reloaded.featBoards().ids())
+	for (const std::string_view id : {"alpha", "delta", "mike", "zulu"})
 	{
 		const pg::FeatBoardDefinition &board = reloaded.featBoards().get(id);
 		ASSERT_EQ(board.nodes.size(), 2U);
-		EXPECT_EQ(board.nodes[0].id, "root");
+		EXPECT_EQ(board.nodes[0].id, "root") << "node order is the authored one, whatever the file order";
 		EXPECT_EQ(board.nodes[1].id, "earned");
 	}
 }

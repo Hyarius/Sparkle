@@ -151,6 +151,74 @@ namespace pg
 		});
 		validateFeatBoardGraph(loadedStatuses, loadedAbilities, loadedFeatBoards);
 
+		// The rest of the definition graph. It all still parses into locals, for the same reason:
+		// an encounter that names a species that does not exist has to leave the species registry
+		// as unpublished as the encounter table.
+		Registry<AIBehaviourDefinition> loadedAiBehaviours;
+		spk::loadJsonDirectory(loadedAiBehaviours, p_dataDirectory / "ai", [](std::string_view p_id, JsonReader &p_reader) {
+			requireContentId(p_id, p_reader.file(), p_reader.path(), "AI behaviour id");
+			AIBehaviourDefinition definition = parseAIBehaviourDefinition(p_reader);
+			definition.id = p_id;
+			return definition;
+		});
+		validateAIGraph(loadedStatuses, loadedAbilities, loadedAiBehaviours);
+
+		Registry<CreatureSpeciesDefinition> loadedSpecies;
+		spk::loadJsonDirectory(
+			loadedSpecies,
+			p_dataDirectory / "creatures",
+			[&loadedGameRules, &limits](std::string_view p_id, JsonReader &p_reader) {
+				requireContentId(p_id, p_reader.file(), p_reader.path(), "species id");
+				CreatureSpeciesDefinition definition = parseCreatureSpeciesDefinition(p_reader, loadedGameRules, limits);
+				definition.id = p_id;
+				return definition;
+			});
+
+		// Everything a species could not prove alone - and the one context every later derivation
+		// reads, whether from these locals or from the published registries.
+		const DerivationContext context{
+			.gameRules = &loadedGameRules,
+			.statuses = &loadedStatuses,
+			.abilities = &loadedAbilities,
+			.featBoards = &loadedFeatBoards,
+			.species = &loadedSpecies};
+		validateSpeciesGraph(context);
+
+		// Battle boards need the prefabs above: their geometry is an ordinary prefab, validated at
+		// the identity transform step 05 will stamp it with.
+		Registry<HandcraftedBattleBoardDefinition> loadedBattleBoards;
+		spk::loadJsonDirectory(
+			loadedBattleBoards,
+			p_dataDirectory / "battle-boards",
+			[&loadedPrefabs](std::string_view p_id, JsonReader &p_reader) {
+				requireContentId(p_id, p_reader.file(), p_reader.path(), "battle board id");
+				HandcraftedBattleBoardDefinition definition = parseHandcraftedBattleBoardDefinition(p_reader, loadedPrefabs);
+				definition.id = p_id;
+				return definition;
+			});
+
+		Registry<EncounterDefinition> loadedEncounters;
+		spk::loadJsonDirectory(
+			loadedEncounters,
+			p_dataDirectory / "encounter-tables",
+			[&loadedBattleBoards](std::string_view p_id, JsonReader &p_reader) {
+				requireContentId(p_id, p_reader.file(), p_reader.path(), "encounter id");
+				EncounterDefinition definition = parseEncounterDefinition(p_reader, loadedBattleBoards);
+				definition.id = p_id;
+				return definition;
+			});
+		validateEncounterGraph(loadedEncounters, loadedAiBehaviours, context);
+		validateBiomeEncounterLinks(loadedBiomes, loadedEncounters);
+
+		// The starter team is content too, so it is validated here rather than trusted at boot: it
+		// is built once against the locals, and the value main() constructs is derived from the
+		// published registries by the exact same code.
+		const std::filesystem::path newGameFile = p_dataDirectory / "config" / "new-game.json";
+		const spk::JSON::Value newGameJson = JsonLoader::parseFile(newGameFile);
+		JsonReader newGameReader(newGameJson, newGameFile);
+		NewGameDefinition loadedNewGame = parseNewGameDefinition(newGameReader);
+		(void)makeNewPlayerData(loadedNewGame, context);
+
 		_gameRules = std::move(loadedGameRules);
 		_shapes = std::move(loadedShapes);
 		_voxelFamilies = std::move(loadedVoxelFamilies);
@@ -164,6 +232,11 @@ namespace pg
 		_abilities = std::move(loadedAbilities);
 		_battleObjects = std::move(loadedBattleObjects);
 		_featBoards = std::move(loadedFeatBoards);
+		_aiBehaviours = std::move(loadedAiBehaviours);
+		_species = std::move(loadedSpecies);
+		_battleBoards = std::move(loadedBattleBoards);
+		_encounters = std::move(loadedEncounters);
+		_newGame = std::move(loadedNewGame);
 		std::cout << "Loaded " << _voxels.typeCount() << " voxel types containing "
 				  << _voxels.runtimeStateCount() << " runtime states, " << _biomes.size()
 				  << " biome definitions, " << _prefabs.size() << " prefabs, and " << _interiors.size()
@@ -179,6 +252,19 @@ namespace pg
 		}
 		std::cout << "Loaded " << _featBoards.size() << " feat boards containing " << featNodeCount << " nodes"
 				  << std::endl;
+
+		std::size_t encounterTeamCount = 0;
+		for (const auto &[encounterId, encounter] : _encounters)
+		{
+			(void)encounterId;
+			for (const EncounterTierDefinition &tier : encounter.tiers)
+			{
+				encounterTeamCount += tier.teams.size();
+			}
+		}
+		std::cout << "Loaded " << _species.size() << " creature species, " << _aiBehaviours.size()
+				  << " AI behaviours, " << _battleBoards.size() << " handcrafted battle boards, and "
+				  << _encounters.size() << " encounter tables holding " << encounterTeamCount << " teams" << std::endl;
 	}
 
 	const GameRules &Registries::gameRules() const noexcept { return _gameRules; }
@@ -194,4 +280,9 @@ namespace pg
 	const Registry<AbilityDefinition> &Registries::abilities() const noexcept { return _abilities; }
 	const Registry<BattleObjectDefinition> &Registries::battleObjects() const noexcept { return _battleObjects; }
 	const Registry<FeatBoardDefinition> &Registries::featBoards() const noexcept { return _featBoards; }
+	const Registry<AIBehaviourDefinition> &Registries::aiBehaviours() const noexcept { return _aiBehaviours; }
+	const Registry<CreatureSpeciesDefinition> &Registries::species() const noexcept { return _species; }
+	const Registry<HandcraftedBattleBoardDefinition> &Registries::battleBoards() const noexcept { return _battleBoards; }
+	const Registry<EncounterDefinition> &Registries::encounters() const noexcept { return _encounters; }
+	const NewGameDefinition &Registries::newGame() const noexcept { return _newGame; }
 }

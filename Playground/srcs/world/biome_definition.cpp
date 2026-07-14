@@ -64,14 +64,28 @@ namespace pg
 		const VoxelRegistry &p_voxels,
 		const Registry<PrefabDefinition> &p_prefabs)
 	{
-		p_reader.forbidUnknown({"version", "displayName", "palette", "worldgen"});
-		if (p_reader.require<int>("version") != 1)
+		// Version 2 adds the wild encounter link. It is an intentional schema migration rather than
+		// an optional extension: a version-1 file is a biome nobody has decided what a Bush leads
+		// to in, so it fails the load instead of generating a world with no wild creatures.
+		p_reader.forbidUnknown({"version", "displayName", "palette", "worldgen", "wildEncounterTable"});
+		if (p_reader.require<int>("version") != BiomeSchemaVersion)
 		{
-			throw JsonError(p_reader.file(), p_reader.pathFor("version"), "unsupported biome version");
+			throw JsonError(
+				p_reader.file(),
+				p_reader.pathFor("version"),
+				"unsupported biome version (expected " + std::to_string(BiomeSchemaVersion) +
+					"; version 2 added the required wildEncounterTable on every generated biome)");
 		}
 
 		BiomeDefinition result;
 		result.displayName = requireNonEmptyString(p_reader, "displayName");
+		result.source = DefinitionSource{p_reader.file(), p_reader.path()};
+		if (p_reader.contains("wildEncounterTable"))
+		{
+			// Omission is the only spelling of "no table": an explicit null would be a second one,
+			// and the two would have to be kept meaning the same thing forever.
+			result.wildEncounterTableId = requireNonEmptyString(p_reader, "wildEncounterTable");
+		}
 		JsonReader paletteReader = p_reader.child("palette");
 		paletteReader.forbidUnknown({"surface", "subsurface", "deep", "road", "flora", "stair", "slope"});
 		// Palette entries are weighted voxel pools. Accepted shapes:
@@ -383,6 +397,25 @@ namespace pg
 				}
 			}
 			result.worldgen = std::move(traits);
+		}
+
+		// A biome the generator can place is a biome the player can walk into, and every Bush in it
+		// has to lead somewhere. An interior-only biome has no worldgen block, no Bush and therefore
+		// no table - which is why the field is required by the presence of worldgen rather than
+		// always. Which encounter it names is resolved once the encounter registry exists.
+		if (result.worldgen.has_value() && !result.wildEncounterTableId.has_value())
+		{
+			throw JsonError(
+				p_reader.file(),
+				p_reader.pathFor("wildEncounterTable"),
+				"a generated biome names the wild encounter table its Bushes lead to");
+		}
+		if (!result.worldgen.has_value() && result.wildEncounterTableId.has_value())
+		{
+			throw JsonError(
+				p_reader.file(),
+				p_reader.pathFor("wildEncounterTable"),
+				"this biome has no worldgen block, so nothing can trigger a wild encounter in it");
 		}
 		return result;
 	}

@@ -1,0 +1,38 @@
+{
+	"version": 1,
+	"displayNameKey": "encounter.debug-battle.name",
+	"kind": "debug",
+	"allowsTaming": false,
+	"repeatable": true,
+	"triggerChancePermille": 1000,
+	"board": {
+		"type": "liveWorld",
+		"size": [11, 11],
+		"deploymentDepth": 2,
+		"opponentPlacement": {
+			"type": "byLine",
+			"rowsFromEnemyEdge": 0,
+			"order": "centerOut"
+		}
+	},
+	"tiers": [
+		{
+			"tier": 0,
+			"teams": [
+				{
+					"id": "single-sprout",
+					"displayNameKey": "encounter.debug-battle.single-sprout.name",
+					"weight": 1,
+					"members": [
+						{
+							"id": "sprout-a",
+							"species": "training-sprout",
+							"ai": "training-aggressive",
+							"completedFeatNodes": []
+						}
+					]
+				}
+			]
+		}
+	]
+}

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/event_center.hpp"
+#include "player/player_data.hpp"
 
 #include <memory>
 
@@ -30,6 +31,12 @@ namespace pg
 	{
 		EventCenter events;
 		WorldContext world;
+		// The persistent player value, built from registries.newGame() before the scene exists. It
+		// is owned here, not by a global service: if scene construction throws, ordinary unwinding
+		// destroys it and nothing survives to be half-initialised.
+		//
+		// Its playerCell and lastHealPoint stay at the origin until the scene commits a spawn.
+		PlayerData player;
 
 		GameContext();
 		~GameContext();

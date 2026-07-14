@@ -24,6 +24,18 @@
 		"feat.training-board.learn-snare.description": "Apprendre à poser un piège.",
 		"feat.training-board.move-ten.description": "Parcourir dix cases en un combat.",
 
+		"creature.training-sprout.name": "Pousse d'entraînement",
+		"creature.training-sprout.description": "Une créature de développement, utilisée pour éprouver les systèmes de combat.",
+		"creature.training-sprout.form.base.name": "Pousse d'entraînement",
+		"taming.training-sprout.approach.description": "Terminer un déplacement juste à côté de cette créature.",
+
+		"ai.training-aggressive.name": "Agressif d'entraînement",
+
+		"encounter.training-wild.name": "Friches d'entraînement",
+		"encounter.training-wild.lone-sprout.name": "Pousse d'entraînement solitaire",
+		"encounter.debug-battle.name": "Combat de débogage",
+		"encounter.debug-battle.single-sprout.name": "Pousse d'entraînement unique",
+
 		"battle.log.ability-cast": "{1} : lancé par {0} !",
 		"battle.log.damage-dealt": "{0} subit {1} points de dégâts.",
 

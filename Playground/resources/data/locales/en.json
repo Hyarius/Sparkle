@@ -24,6 +24,18 @@
 		"feat.training-board.learn-snare.description": "Learn to place a snare.",
 		"feat.training-board.move-ten.description": "Move ten cells in one fight.",
 
+		"creature.training-sprout.name": "Training Sprout",
+		"creature.training-sprout.description": "A development creature used to exercise battle systems.",
+		"creature.training-sprout.form.base.name": "Training Sprout",
+		"taming.training-sprout.approach.description": "End a move next to this creature.",
+
+		"ai.training-aggressive.name": "Training Aggressive",
+
+		"encounter.training-wild.name": "Training Wilds",
+		"encounter.training-wild.lone-sprout.name": "Lone Training Sprout",
+		"encounter.debug-battle.name": "Debug Battle",
+		"encounter.debug-battle.single-sprout.name": "Single Training Sprout",
+
 		"battle.log.ability-cast": "{0} casts {1}!",
 		"battle.log.damage-dealt": "{0} takes {1} damage.",
 

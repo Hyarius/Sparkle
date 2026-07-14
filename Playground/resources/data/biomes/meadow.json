@@ -1,5 +1,6 @@
 {
-	"version": 1,
+	"version": 2,
+	"wildEncounterTable": "training-wild",
 	"displayName": "Meadow",
 	"palette": {
 		"surface": "meadow-block",
