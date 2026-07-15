@@ -62,6 +62,38 @@ namespace pg
 			}
 			return false;
 		}
+
+		class ObjectMovementBlockers final : public IBoardMovementBlockers
+		{
+		private:
+			const BattleContext &_context;
+
+		public:
+			explicit ObjectMovementBlockers(const BattleContext &p_context) :
+				_context(p_context)
+			{
+			}
+			[[nodiscard]] bool blocksMovement(const BoardCell &p_cell) const noexcept override
+			{
+				return _context.blocksMovement(p_cell);
+			}
+		};
+
+		class ObjectLineOfSightBlockers final : public IBoardLineOfSightExtraBlockers
+		{
+		private:
+			const BattleContext &_context;
+
+		public:
+			explicit ObjectLineOfSightBlockers(const BattleContext &p_context) :
+				_context(p_context)
+			{
+			}
+			[[nodiscard]] bool blocksVoxel(const spk::Vector3Int &p_voxel) const noexcept override
+			{
+				return _context.blocksLineOfSightVoxel(p_voxel);
+			}
+		};
 	}
 
 	std::expected<MovePlan, CommandRejection> BattleQueryService::planMove(BattleUnitId id, BoardCell destination) const
@@ -92,11 +124,12 @@ namespace pg
 		{
 			return std::unexpected(CommandRejection::UnknownBoardCell);
 		}
-		if (_context.board().occupancy().unitAt(destination).has_value())
+		if (_context.board().occupancy().unitAt(destination).has_value() || _context.blocksMovement(destination))
 		{
 			return std::unexpected(CommandRejection::DestinationBlocked);
 		}
-		const auto path = findWeightedPath(_context.board().navigation(), *origin, destination, unit->movementPoints(), boardMovementQuery(_context.board(), id));
+		const ObjectMovementBlockers blockers(_context);
+		const auto path = findWeightedPath(_context.board().navigation(), *origin, destination, unit->movementPoints(), boardMovementQuery(_context.board(), id, &blockers));
 		if (!path)
 		{
 			return std::unexpected(CommandRejection::DestinationUnreachable);
@@ -146,7 +179,8 @@ namespace pg
 		{
 			return std::unexpected(CommandRejection::AnchorOutOfRange);
 		}
-		if (ability->range.requiresLineOfSight && !BoardLineOfSight::trace(_context.board(), from, anchor).clear)
+		const ObjectLineOfSightBlockers blockers(_context);
+		if (ability->range.requiresLineOfSight && !BoardLineOfSight::trace(_context.board(), from, anchor, &blockers).clear)
 		{
 			return std::unexpected(CommandRejection::AnchorLineOfSightBlocked);
 		}

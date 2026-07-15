@@ -177,6 +177,62 @@ namespace pg
 		{
 			validateEffects(p_statuses, p_battleObjects, id, ability.effects);
 		}
+
+		// keepLonger and extend compare/add finite runtime values. A timeline deadline and an
+		// activation count have no meaningful ordering, so reject mixed authored applications at
+		// load time rather than inventing an implicit conversion in the resolver.
+		struct FiniteDurationReference
+		{
+			DurationKind kind = DurationKind::Timeline;
+			const EffectApplication *effect = nullptr;
+			std::string owner;
+		};
+		std::map<std::string, FiniteDurationReference> firstFinite;
+		const auto inspect = [&](const std::string &p_owner, const std::vector<EffectApplication> &p_effects) {
+			for (const EffectApplication &effect : p_effects)
+			{
+				const auto *apply = std::get_if<ApplyStatusEffectSpec>(&effect.payload);
+				if (apply == nullptr)
+				{
+					continue;
+				}
+				const StatusDefinition &status = p_statuses.get(apply->status);
+				if (status.durationRefreshPolicy == DurationRefreshPolicy::Replace || std::holds_alternative<InfiniteDurationSpec>(apply->duration))
+				{
+					continue;
+				}
+				const DurationKind kind = std::holds_alternative<TimelineDurationSpec>(apply->duration)
+											  ? DurationKind::Timeline
+											  : DurationKind::OwnerActivations;
+				const auto [found, inserted] = firstFinite.emplace(apply->status, FiniteDurationReference{kind, &effect, p_owner});
+				if (!inserted && found->second.kind != kind)
+				{
+					fail(
+						p_owner,
+						effect,
+						"uses a different finite duration kind from effect '" + found->second.effect->id + "' in definition '" + found->second.owner +
+							"' for the " + apply->status + " keepLonger/extend status");
+				}
+			}
+		};
+		for (const auto &[id, status] : p_statuses)
+		{
+			for (const StatusHookSpec &hook : status.hooks)
+			{
+				inspect(id, hook.effects);
+			}
+		}
+		for (const auto &[id, object] : p_battleObjects)
+		{
+			for (const BattleObjectTriggerSpec &trigger : object.triggers)
+			{
+				inspect(id, trigger.effects);
+			}
+		}
+		for (const auto &[id, ability] : p_abilities)
+		{
+			inspect(id, ability.effects);
+		}
 	}
 
 	void validateConditionReferences(

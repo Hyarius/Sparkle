@@ -7,6 +7,7 @@
 #include "battle/placement/placement_resolver.hpp"
 #include "battle/query/battle_query_service.hpp"
 #include "battle/scheduler/stamina_scheduler.hpp"
+#include "battle/status/status_hook_service.hpp"
 #include "core/registries.hpp"
 #include "creatures/creature_attributes.hpp"
 #include "creatures/creature_species_definition.hpp"
@@ -422,6 +423,9 @@ namespace pg
 			std::move(playerOrder),
 			std::move(enemyOrder),
 			BattleRng(descriptor.combatSeed));
+		// Passive modifiers take effect as soon as the battle-local unit exists. Their Applied hooks
+		// are deliberately delayed until both sides finish deployment.
+		context->projectPassiveStatuses();
 
 		const BattleSnapshot before = context->snapshot();
 		std::vector<StagedEvent> staged;
@@ -601,6 +605,7 @@ namespace pg
 		if (appliedSteps > 0)
 		{
 			EffectResolver::finishSpatialMove(context, staged, p_command.unit, actualFinal);
+			StatusHookService::dispatchStatusHook(context, staged, p_command.unit, StatusHook::AfterVoluntaryMove, p_command.unit);
 		}
 		context.setResolvedNonEndCommands(context.resolvedNonEndCommands() + 1);
 		const CommittedBattleBatch batch = context.commitOrdinaryBatch(BattleBatchKind::Command, before, staged);
@@ -686,6 +691,15 @@ namespace pg
 			context.setResolvedNonEndCommands(context.resolvedNonEndCommands() + 1);
 
 			const auto closeActivation = [&](ActivationEndReason p_reason) {
+				if (context.unit(p_command.unit).isActiveCombatant())
+				{
+					if (const std::optional<BoardCell> cell = context.board().occupancy().cellOf(p_command.unit); cell.has_value())
+					{
+						StatusHookService::dispatchObjectTrigger(context, staged, BattleObjectTrigger::UnitActivationEndedOnCell, p_command.unit, *cell);
+					}
+					StatusHookService::dispatchStatusHook(context, staged, p_command.unit, StatusHook::ActivationEnd);
+					context.expireCapturedOwnerActivationDurations(p_command.unit, staged);
+				}
 				const BattleUnit &active = context.unit(p_command.unit);
 				ActivationEnded ended;
 				ended.unit = p_command.unit;
@@ -934,6 +948,10 @@ namespace pg
 		std::vector<StagedEvent> staged{
 			StagedEvent{BattleEventCategory::Lifecycle, BattleEventOrigin{}, confirmed},
 			StagedEvent{BattleEventCategory::Lifecycle, BattleEventOrigin{}, completed}};
+		for (const BattleUnitId id : context.allUnitsInOrder())
+		{
+			StatusHookService::dispatchStatusHook(context, staged, id, StatusHook::Applied);
+		}
 
 		const CommittedBattleBatch batch = context.commitOrdinaryBatch(BattleBatchKind::Command, before, staged);
 		_assertAcceptedInvariants();
@@ -968,6 +986,13 @@ namespace pg
 		}
 
 		const BattleSnapshot before = context.snapshot();
+		std::vector<StagedEvent> staged;
+		if (const std::optional<BoardCell> cell = context.board().occupancy().cellOf(p_command.unit); cell.has_value())
+		{
+			StatusHookService::dispatchObjectTrigger(context, staged, BattleObjectTrigger::UnitActivationEndedOnCell, p_command.unit, *cell);
+		}
+		StatusHookService::dispatchStatusHook(context, staged, p_command.unit, StatusHook::ActivationEnd);
+		context.expireCapturedOwnerActivationDurations(p_command.unit, staged);
 		ActivationEnded ended;
 		ended.unit = p_command.unit;
 		ended.turn = *context.turn();
@@ -982,7 +1007,7 @@ namespace pg
 		context.setTurn(std::nullopt);
 		context.setResolvedNonEndCommands(0);
 		const BattleOutcome outcome = evaluateBattleOutcome(context);
-		std::vector<StagedEvent> staged{StagedEvent{BattleEventCategory::Lifecycle, BattleEventOrigin{.sourceUnit = p_command.unit}, ended}};
+		staged.push_back(StagedEvent{BattleEventCategory::Lifecycle, BattleEventOrigin{.sourceUnit = p_command.unit}, ended});
 		if (outcome == BattleOutcome::Undecided)
 		{
 			context.setPhase(BattlePhase::AwaitingActivation);

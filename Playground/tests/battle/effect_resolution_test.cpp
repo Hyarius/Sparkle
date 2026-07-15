@@ -127,16 +127,19 @@ namespace
 	}
 }
 
-TEST(EffectResolverRuntime, SupportsOnlyTheStepNineCatalog)
+TEST(EffectResolverRuntime, SupportsTheCompleteStepTenCatalog)
 {
 	EXPECT_TRUE(pg::EffectResolver::supports(pg::DamageEffectSpec{}));
 	EXPECT_TRUE(pg::EffectResolver::supports(pg::ApplyShieldEffectSpec{}));
 	EXPECT_TRUE(pg::EffectResolver::supports(pg::TeleportSourceEffectSpec{}));
-	EXPECT_FALSE(pg::EffectResolver::supports(pg::ApplyStatusEffectSpec{}));
-	EXPECT_FALSE(pg::EffectResolver::supports(pg::PlaceObjectEffectSpec{}));
+	EXPECT_TRUE(pg::EffectResolver::supports(pg::ApplyStatusEffectSpec{}));
+	EXPECT_TRUE(pg::EffectResolver::supports(pg::RemoveStatusEffectSpec{}));
+	EXPECT_TRUE(pg::EffectResolver::supports(pg::CleanseEffectSpec{}));
+	EXPECT_TRUE(pg::EffectResolver::supports(pg::PlaceObjectEffectSpec{}));
+	EXPECT_TRUE(pg::EffectResolver::supports(pg::RemoveObjectsEffectSpec{}));
 }
 
-TEST(EffectResolverRuntime, UnsupportedEffectDoesNotCommitACast)
+TEST(EffectResolverRuntime, ApplyStatusCommitsTheRuntimeInstance)
 {
 	RuntimeData data("unsupported-atomic");
 	data.ability("runtime-unsupported", ability(R"([{"id":"poison","type":"applyStatus","applyTo":"affectedUnits","requiresLivingSource":true,"status":"training-guarded","stacks":1,"duration":{"type":"ownerActivations","count":1}}])"));
@@ -144,17 +147,15 @@ TEST(EffectResolverRuntime, UnsupportedEffectDoesNotCommitACast)
 	ASSERT_NO_THROW(registries.loadAll(data.path()));
 	auto session = makeSession(registries, "runtime-unsupported");
 	ASSERT_NE(session, nullptr);
-	const pg::BattleSnapshot before = session->snapshot();
-	const std::uint64_t digest = session->gameplayProgressDigest();
-	const pg::BoardCell enemy = *before.units[1].cell;
+	const pg::BoardCell enemy = *session->snapshot().units[1].cell;
 	const pg::CommandResult result = session->submit(pg::CastAbilityCommand{pg::BattleUnitId{1}, "runtime-unsupported", enemy}, {pg::CommandController::Player});
-	ASSERT_TRUE(std::holds_alternative<pg::RejectedCommand>(result));
-	EXPECT_EQ(std::get<pg::RejectedCommand>(result).reason, pg::CommandRejection::EffectRuntimeUnavailable);
-	EXPECT_EQ(session->gameplayProgressDigest(), digest);
-	EXPECT_EQ(session->snapshot(), before);
+	ASSERT_TRUE(std::holds_alternative<pg::AcceptedCommand>(result));
+	const pg::BattleSnapshot after = session->snapshot();
+	ASSERT_EQ(after.units[1].transientStatuses.size(), 1U);
+	EXPECT_EQ(after.units[1].transientStatuses[0].definitionId, "training-guarded");
 }
 
-TEST(EffectResolverRuntime, EveryDeferredPayloadAndMixedPrefixRemainAtomicallyUnavailable)
+TEST(EffectResolverRuntime, EveryClosedPayloadCanEnterTheRuntime)
 {
 	struct DeferredCase
 	{
@@ -180,18 +181,13 @@ TEST(EffectResolverRuntime, EveryDeferredPayloadAndMixedPrefixRemainAtomicallyUn
 		auto session = makeSession(registries, "runtime-deferred");
 		ASSERT_NE(session, nullptr) << testCase.name;
 		const pg::BattleSnapshot before = session->snapshot();
-		const std::uint64_t digest = session->gameplayProgressDigest();
-		const std::size_t batches = session->archivedBatches().size();
 		const pg::BoardCell anchor = *before.units[1].cell;
 		EXPECT_FALSE(session->abilityAnchors(pg::BattleUnitId{1}, "runtime-deferred").empty()) << testCase.name;
 
 		const pg::CommandResult result = session->submit(
 			pg::CastAbilityCommand{pg::BattleUnitId{1}, "runtime-deferred", anchor}, {pg::CommandController::Player});
-		ASSERT_TRUE(std::holds_alternative<pg::RejectedCommand>(result)) << testCase.name;
-		EXPECT_EQ(std::get<pg::RejectedCommand>(result).reason, pg::CommandRejection::EffectRuntimeUnavailable) << testCase.name;
-		EXPECT_EQ(session->snapshot(), before) << testCase.name;
-		EXPECT_EQ(session->gameplayProgressDigest(), digest) << testCase.name;
-		EXPECT_EQ(session->archivedBatches().size(), batches) << testCase.name;
+		ASSERT_TRUE(std::holds_alternative<pg::AcceptedCommand>(result)) << testCase.name;
+		EXPECT_GT(session->archivedBatches().size(), 0U) << testCase.name;
 	}
 }
 

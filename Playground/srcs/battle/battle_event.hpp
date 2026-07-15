@@ -55,27 +55,28 @@ namespace pg
 
 	enum class ShieldRemovalReason
 	{
-		Expired,
-		Replaced,
-		Cleansed,
+		Depleted,
+		TimelineExpired,
+		OwnerActivationsExpired,
 		OwnerRemoved
 	};
 
 	enum class StatusRemovalReason
 	{
-		Expired,
-		Cleansed,
-		Replaced,
-		OwnerRemoved,
-		EffectRemoved
+		ExplicitEffect,
+		Cleanse,
+		TimelineExpired,
+		OwnerActivationsExpired,
+		UnitRemoved
 	};
 
 	enum class BattleObjectRemovalReason
 	{
-		Expired,
-		Triggered,
+		TimelineExpired,
+		OwnerActivationsExpired,
+		TriggerExhausted,
 		OwnerRemoved,
-		Cleared
+		ExplicitEffect
 	};
 
 	// Which units/ability/effect/status/object a transition is about. Every field optional so one
@@ -413,7 +414,7 @@ namespace pg
 		BattleUnitId target;
 		BattleShieldId shieldId;
 		DamageKind kind = DamageKind::Physical;
-		ShieldRemovalReason reason = ShieldRemovalReason::Expired;
+		ShieldRemovalReason reason = ShieldRemovalReason::TimelineExpired;
 		int remainingAmount = 0;
 		std::optional<BattleUnitId> shieldAppliedBy;
 		std::optional<std::string> shieldSourceAbilityId;
@@ -434,6 +435,9 @@ namespace pg
 		int resultingStacks = 0;
 		BattleTime resultingDuration;
 		std::vector<std::string> tags;
+		BattleStatusInstanceId instanceId;
+		DurationSnapshot duration;
+		BattleStatusOrigin origin = BattleStatusOrigin::TransientEffect;
 
 		[[nodiscard]] bool operator==(const StatusApplied &) const = default;
 	};
@@ -447,10 +451,21 @@ namespace pg
 		int requestedStacks = 0;
 		int removedStacks = 0;
 		int remainingStacks = 0;
-		StatusRemovalReason reason = StatusRemovalReason::Expired;
+		StatusRemovalReason reason = StatusRemovalReason::TimelineExpired;
 		std::vector<std::string> tags;
+		BattleStatusInstanceId instanceId;
 
 		[[nodiscard]] bool operator==(const StatusRemoved &) const = default;
+	};
+
+	struct EffectiveStatChanged
+	{
+		BattleUnitId unit;
+		CreatureStat stat = CreatureStat::MaxHealth;
+		std::int64_t before = 0;
+		std::int64_t after = 0;
+
+		[[nodiscard]] bool operator==(const EffectiveStatChanged &) const = default;
 	};
 
 	// ---- Battle objects (step 10) ----------------------------------------------------------------
@@ -470,7 +485,7 @@ namespace pg
 		BattleObjectId object;
 		std::string definitionId;
 		BoardCell cell;
-		BattleObjectRemovalReason reason = BattleObjectRemovalReason::Cleared;
+		BattleObjectRemovalReason reason = BattleObjectRemovalReason::ExplicitEffect;
 
 		[[nodiscard]] bool operator==(const BattleObjectRemoved &) const = default;
 	};
@@ -553,6 +568,7 @@ namespace pg
 		ShieldRemoved,
 		StatusApplied,
 		StatusRemoved,
+		EffectiveStatChanged,
 		BattleObjectPlaced,
 		BattleObjectRemoved,
 		BattleObjectTriggered,

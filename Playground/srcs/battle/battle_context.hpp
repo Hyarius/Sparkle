@@ -8,6 +8,8 @@
 #include "battle/battle_rng.hpp"
 #include "battle/battle_types.hpp"
 #include "battle/battle_unit.hpp"
+#include "battle/objects/battle_object.hpp"
+#include "battle/status/effective_stats.hpp"
 #include "board/board_data.hpp"
 
 #include "structures/math/spk_vector3.hpp"
@@ -21,6 +23,12 @@
 namespace pg
 {
 	class Registries;
+	enum class ReactionKind
+	{
+		None,
+		StatusHook,
+		BattleObjectTrigger
+	};
 
 	// Immutable result-facing provenance, copied once at construction and never guessed later. Every
 	// terminal result, transcript, diagnostic header and persistence notice copies boardSource from
@@ -82,6 +90,11 @@ namespace pg
 			bool enemyConfirmed = false;
 			BattleShieldIdAllocator shieldAllocator;
 			BattleObjectIdAllocator objectAllocator;
+			BattleStatusInstanceIdAllocator statusAllocator;
+			std::map<BattleObjectId, BattleObjectInstance> objects;
+			std::vector<BattleStatusInstanceId> capturedStatusDurations;
+			std::vector<BattleShieldId> capturedShieldDurations;
+			std::vector<BattleObjectId> capturedObjectDurations;
 			std::uint64_t nextAction = 1;
 			std::uint64_t nextBatch = 1;
 			std::uint64_t nextEvent = 1;
@@ -112,6 +125,12 @@ namespace pg
 		BattleEventLog _events;
 		BattleShieldIdAllocator _shieldAllocator;
 		BattleObjectIdAllocator _objectAllocator; // step 10 places the first object
+		BattleStatusInstanceIdAllocator _statusAllocator;
+		std::map<BattleObjectId, BattleObjectInstance> _objects;
+		std::vector<BattleStatusInstanceId> _capturedStatusDurations;
+		std::vector<BattleShieldId> _capturedShieldDurations;
+		std::vector<BattleObjectId> _capturedObjectDurations;
+		ReactionKind _reactionKind = ReactionKind::None;
 
 		// Checked runtime counters. 0 is the unallocated sentinel; each starts at 1.
 		std::uint64_t _nextAction = 1;
@@ -211,6 +230,35 @@ namespace pg
 
 		[[nodiscard]] const BattleUnit *tryUnit(BattleUnitId p_id) const noexcept;
 		[[nodiscard]] const BattleUnit &unit(BattleUnitId p_id) const;
+		[[nodiscard]] bool hasStatus(BattleUnitId p_id, std::string_view p_statusId) const;
+		[[nodiscard]] bool hasStatusTag(BattleUnitId p_id, std::string_view p_tag) const;
+		[[nodiscard]] bool isTurnBarPaused(BattleUnitId p_id) const;
+		[[nodiscard]] CreatureAttributes effectiveAttributes(BattleUnitId p_id) const;
+		[[nodiscard]] bool reactionActive() const noexcept
+		{
+			return _reactionKind != ReactionKind::None;
+		}
+		[[nodiscard]] bool beginReaction(ReactionKind p_kind) noexcept
+		{
+			if (reactionActive())
+			{
+				return false;
+			}
+			_reactionKind = p_kind;
+			return true;
+		}
+		void endReaction() noexcept
+		{
+			_reactionKind = ReactionKind::None;
+		}
+		[[nodiscard]] const std::map<BattleObjectId, BattleObjectInstance> &objects() const noexcept
+		{
+			return _objects;
+		}
+		[[nodiscard]] const BattleObjectInstance *tryObject(BattleObjectId p_id) const noexcept;
+		[[nodiscard]] BattleObjectInstance *objectMutable(BattleObjectId p_id) noexcept;
+		[[nodiscard]] bool blocksMovement(const BoardCell &p_cell) const;
+		[[nodiscard]] bool blocksLineOfSightVoxel(const spk::Vector3Int &p_voxel) const;
 		[[nodiscard]] bool sideConfirmed(BattleSide p_side) const noexcept;
 
 		[[nodiscard]] std::size_t rngDrawCount() const noexcept
@@ -233,15 +281,8 @@ namespace pg
 		// active / not-defeated counts for a BattleEnded payload.
 		[[nodiscard]] int activeCount(BattleSide p_side) const noexcept;
 		[[nodiscard]] int notDefeatedCount(BattleSide p_side) const noexcept;
-		// Step 10 supplies timeline status/shield/object deadlines. The empty runtime deliberately
-		// has no boundary rather than a polling interval.
-		[[nodiscard]] std::optional<BattleTime> timeUntilNextTimelineBoundary() const noexcept
-		{
-			return std::nullopt;
-		}
-		void advanceTimeline(BattleTime, std::vector<StagedEvent> &) noexcept
-		{
-		}
+		[[nodiscard]] std::optional<BattleTime> timeUntilNextTimelineBoundary() const noexcept;
+		void advanceTimeline(BattleTime, std::vector<StagedEvent> &);
 
 		// ---- Mutation surface (session / resolver only) ------------------------------------------
 		[[nodiscard]] BattleRng &rng() noexcept
@@ -293,6 +334,18 @@ namespace pg
 		{
 			return _shieldAllocator.allocate();
 		}
+		[[nodiscard]] BattleStatusInstanceId allocateStatusInstanceId()
+		{
+			return _statusAllocator.allocate();
+		}
+		// Construction projects passives before the first construction snapshot.  All later changes
+		// use reconcileEffectiveStats so every consumer sees one canonical effective value.
+		void projectPassiveStatuses();
+		void reconcileEffectiveStats(BattleUnitId p_unit, std::vector<StagedEvent> *p_staged = nullptr);
+		void captureOwnerActivationDurations(BattleUnitId p_owner);
+		void expireCapturedOwnerActivationDurations(BattleUnitId p_owner, std::vector<StagedEvent> &);
+		[[nodiscard]] bool placeObject(BattleObjectInstance p_object);
+		[[nodiscard]] bool removeObject(BattleObjectId p_object);
 
 		// Internal removal primitive (section 16). Emits UnitDefeated (only for Defeated) then
 		// UnitRemoved as staged events appended to p_staged; occupancy is cleared exactly once. Step

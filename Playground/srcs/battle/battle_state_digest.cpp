@@ -79,6 +79,19 @@ namespace pg
 					   p_duration);
 		}
 
+		void mixAttributes(StableHasher64 &p_hasher, const CreatureAttributes &p_attributes) noexcept
+		{
+			mixInt(p_hasher, p_attributes.maxHealth);
+			mixInt(p_hasher, p_attributes.strength);
+			mixInt(p_hasher, p_attributes.magicPower);
+			mixInt(p_hasher, p_attributes.armor);
+			mixInt(p_hasher, p_attributes.resistance);
+			mixInt(p_hasher, p_attributes.maxActionPoints);
+			mixInt(p_hasher, p_attributes.maxMovementPoints);
+			mixInt(p_hasher, p_attributes.stamina.ticks());
+			mixInt(p_hasher, p_attributes.range);
+		}
+
 		// The immutable board topology: extent + traversal bounds, every bounded source voxel in
 		// X/Y/Z order, the sorted navigation nodes/edges with movement costs, both ordered deployment
 		// zones, and the sorted border cells. It never reads a live revision or a pointer.
@@ -250,6 +263,8 @@ namespace pg
 			mixU64(hasher, unit.rosterOrder());
 			mixString(hasher, unit.speciesId());
 			mixString(hasher, unit.formId());
+			mixAttributes(hasher, unit.baselineAttributes());
+			mixAttributes(hasher, unit.effectiveAttributes());
 			mixInt(hasher, unit.health());
 			mixInt(hasher, unit.maxHealth());
 			mixInt(hasher, unit.actionPoints());
@@ -279,6 +294,48 @@ namespace pg
 				mixOptString(hasher, shield.sourceAbilityId);
 				mixOptString(hasher, shield.sourceEffectId);
 			}
+			const auto mixStatuses = [&hasher](const std::vector<BattleStatusInstance> &statuses) {
+				mixU64(hasher, statuses.size());
+				for (const BattleStatusInstance &status : statuses)
+				{
+					mixU64(hasher, status.id.value());
+					mixString(hasher, status.definitionId);
+					hasher.mix(static_cast<std::int32_t>(status.origin));
+					mixU64(hasher, status.stacks);
+					mixDuration(hasher, status.duration);
+					mixBool(hasher, status.appliedBy.has_value());
+					if (status.appliedBy)
+					{
+						mixU64(hasher, status.appliedBy->value());
+					}
+					mixOptString(hasher, status.sourceAbilityId);
+					mixOptString(hasher, status.sourceEffectId);
+				}
+			};
+			mixStatuses(unit.passiveStatuses());
+			mixStatuses(unit.transientStatuses());
+		}
+
+		mixU64(hasher, p_context.objects().size());
+		for (const auto &[id, object] : p_context.objects())
+		{
+			mixU64(hasher, id.value());
+			mixString(hasher, object.definitionId);
+			mixBool(hasher, object.creator.has_value());
+			if (object.creator)
+			{
+				mixU64(hasher, object.creator->value());
+			}
+			hasher.mix(static_cast<std::int32_t>(object.creatorSide));
+			mixVec3(hasher, object.cell);
+			mixDuration(hasher, object.duration);
+			for (const BattleObjectTriggerState &trigger : object.triggerStates)
+			{
+				mixString(hasher, trigger.triggerId);
+				mixU64(hasher, trigger.timesTriggered);
+			}
+			mixOptString(hasher, object.sourceAbilityId);
+			mixOptString(hasher, object.sourceEffectId);
 		}
 
 		// The RNG draw count is a material fact: two boards that spent different numbers of draws to

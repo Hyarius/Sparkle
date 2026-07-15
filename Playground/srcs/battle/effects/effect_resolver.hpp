@@ -22,6 +22,16 @@ namespace pg
 			BattleContext &, std::vector<StagedEvent> &, const CastPlan &, const EffectApplication &, BattleUnitId, const ApplyNextActivationPenaltyEffectSpec &);
 		static void _applyShield(
 			BattleContext &, std::vector<StagedEvent> &, const CastPlan &, const EffectApplication &, BattleUnitId, const ApplyShieldEffectSpec &);
+		static void _applyStatus(
+			BattleContext &, std::vector<StagedEvent> &, const CastPlan &, const EffectApplication &, BattleUnitId, const ApplyStatusEffectSpec &);
+		static void _removeStatus(
+			BattleContext &, std::vector<StagedEvent> &, const CastPlan &, const EffectApplication &, BattleUnitId, const RemoveStatusEffectSpec &);
+		static void _cleanse(
+			BattleContext &, std::vector<StagedEvent> &, const CastPlan &, const EffectApplication &, BattleUnitId, const CleanseEffectSpec &);
+		static void _placeObject(
+			BattleContext &, std::vector<StagedEvent> &, const CastPlan &, const EffectApplication &, BoardCell, const PlaceObjectEffectSpec &);
+		static void _removeObjects(
+			BattleContext &, std::vector<StagedEvent> &, const CastPlan &, const EffectApplication &, BoardCell, const RemoveObjectsEffectSpec &);
 		static void _applyTurnBarAdjustment(
 			BattleContext &, std::vector<StagedEvent> &, const CastPlan &, const EffectApplication &, BattleUnitId, const AdjustTurnBarEffectSpec &);
 		static void _applyDisplace(BattleContext &, std::vector<StagedEvent> &, const CastPlan &, const EffectApplication &, BattleUnitId, const DisplaceEffectSpec &);

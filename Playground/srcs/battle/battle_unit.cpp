@@ -1,5 +1,7 @@
 #include "battle/battle_unit.hpp"
 
+#include "statuses/status_definition.hpp"
+
 namespace pg
 {
 	std::string_view toString(RemovalReason p_reason) noexcept
@@ -64,5 +66,10 @@ namespace pg
 		// The support cell is preserved as lastOccupiedCell for events and result presentation; only
 		// the live "is on the board" flag drops.
 		_placed = false;
+	}
+
+	bool BattleUnit::isStunned() const noexcept
+	{
+		return _turnBarPaused;
 	}
 }

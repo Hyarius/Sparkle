@@ -2,6 +2,7 @@
 
 #include "battle/battle_context.hpp"
 #include "battle/battle_event.hpp"
+#include "battle/status/status_hook_service.hpp"
 
 #include <algorithm>
 #include <cstdlib>
@@ -160,8 +161,14 @@ namespace pg
 				p_context.setActiveUnit(*selected);
 				p_context.setTurn(p_context.allocateTurn());
 				p_context.setResolvedNonEndCommands(0);
+				p_context.captureOwnerActivationDurations(*selected);
 				std::vector<StagedEvent> events;
 				appendStart(p_context, *selected, events);
+				StatusHookService::dispatchStatusHook(p_context, events, *selected, StatusHook::ActivationStart);
+				if (const std::optional<BoardCell> cell = p_context.board().occupancy().cellOf(*selected); cell.has_value())
+				{
+					StatusHookService::dispatchObjectTrigger(p_context, events, BattleObjectTrigger::UnitActivationStartedOnCell, *selected, *cell);
+				}
 				const CommittedBattleBatch batch = p_context.commitOrdinaryBatch(BattleBatchKind::Timeline, before, events);
 				result.stop = SchedulerStop::ActivationReady;
 				result.activeUnit = selected;

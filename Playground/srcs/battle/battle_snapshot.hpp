@@ -7,8 +7,11 @@
 #include "battle/battle_types.hpp"
 #include "battle/battle_unit.hpp" // RemovalReason
 #include "battle/effects/duration_state.hpp"
+#include "battle/objects/battle_object.hpp"
+#include "battle/status/battle_status.hpp"
 #include "board/board_cell.hpp"
 #include "core/creature_instance_id.hpp"
+#include "creatures/creature_attributes.hpp"
 
 #include <cstdint>
 #include <optional>
@@ -49,11 +52,15 @@ namespace pg
 		BattleTime stamina;
 		BattleTime turnBarFill;
 		int range = 0;
+		CreatureAttributes baselineAttributes;
+		CreatureAttributes effectiveAttributes;
 		bool placed = false;
 		std::optional<BoardCell> cell; // present exactly while placed
 		std::optional<BoardCell> lastOccupiedCell;
 		RemovalReason removalReason = RemovalReason::None;
 		std::vector<BattleShieldSnapshot> shields;
+		std::vector<BattleStatusSnapshot> passiveStatuses;
+		std::vector<BattleStatusSnapshot> transientStatuses;
 
 		[[nodiscard]] bool operator==(const BattleUnitSnapshot &) const = default;
 	};
@@ -73,6 +80,7 @@ namespace pg
 		std::optional<BattleUnitId> activeUnit;
 		std::size_t resolvedNonEndCommands = 0;
 		std::vector<BattleUnitSnapshot> units;
+		std::vector<BattleObjectSnapshot> objects;
 
 		[[nodiscard]] bool operator==(const BattleSnapshot &) const = default;
 	};

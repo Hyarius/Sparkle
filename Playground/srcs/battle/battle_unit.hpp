@@ -4,6 +4,7 @@
 #include "battle/battle_time.hpp"
 #include "battle/battle_types.hpp"
 #include "battle/effects/battle_shield.hpp"
+#include "battle/status/battle_status.hpp"
 #include "board/board_cell.hpp"
 #include "core/creature_instance_id.hpp"
 #include "creatures/creature_attributes.hpp"
@@ -13,6 +14,7 @@
 #include <optional>
 #include <stdexcept>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace pg
@@ -92,13 +94,17 @@ namespace pg
 		int _movementPoints = 0;
 		NextActivationPenalty _nextActivationPenalty;
 		BattleTime _turnBarFill{};
+		bool _turnBarPaused = false;
 		std::vector<BattleShield> _shields; // ascending BattleShieldId allocation order
 
 		bool _placed = false;
 		std::optional<BoardCell> _lastOccupiedCell;
 		RemovalReason _removalReason = RemovalReason::None;
 
-		// Step 10 adds status/shield instance containers here; step 16 may add a taming tracker.
+		// Passive order is authored derived order.  Transients are allocated in increasing instance
+		// id order and retain that order across stack refreshes.
+		std::vector<BattleStatusInstance> _passiveStatuses;
+		std::vector<BattleStatusInstance> _transientStatuses;
 
 	public:
 		BattleUnit() = default;
@@ -185,6 +191,14 @@ namespace pg
 		{
 			return _shields;
 		}
+		[[nodiscard]] const std::vector<BattleStatusInstance> &passiveStatuses() const noexcept
+		{
+			return _passiveStatuses;
+		}
+		[[nodiscard]] const std::vector<BattleStatusInstance> &transientStatuses() const noexcept
+		{
+			return _transientStatuses;
+		}
 
 		[[nodiscard]] bool placed() const noexcept
 		{
@@ -220,12 +234,7 @@ namespace pg
 		//   placed and current health > 0 and removalReason == None.
 		// An undeployed, defeated or impressed unit is not active.
 		[[nodiscard]] bool isActiveCombatant() const noexcept;
-		// Step 10 replaces this final-purpose seam with the active-status tag query. There are no
-		// runtime statuses yet, so no Step 07 unit is stunned.
-		[[nodiscard]] bool isStunned() const noexcept
-		{
-			return false;
-		}
+		[[nodiscard]] bool isStunned() const noexcept;
 
 		// Mutation surface. These are reachable only through BattleContext, which is itself a private
 		// member of BattleSession, so nothing outside the command path can call them.
@@ -238,6 +247,10 @@ namespace pg
 		void setTurnBarFill(BattleTime p_fill) noexcept
 		{
 			_turnBarFill = p_fill;
+		}
+		void setTurnBarPaused(bool p_paused) noexcept
+		{
+			_turnBarPaused = p_paused;
 		}
 		void setActionPoints(int p_value) noexcept
 		{
@@ -269,6 +282,18 @@ namespace pg
 		[[nodiscard]] std::vector<BattleShield> &shieldsMutable() noexcept
 		{
 			return _shields;
+		}
+		[[nodiscard]] std::vector<BattleStatusInstance> &passiveStatusesMutable() noexcept
+		{
+			return _passiveStatuses;
+		}
+		[[nodiscard]] std::vector<BattleStatusInstance> &transientStatusesMutable() noexcept
+		{
+			return _transientStatuses;
+		}
+		void setEffectiveAttributes(CreatureAttributes p_attributes) noexcept
+		{
+			_effectiveAttributes = std::move(p_attributes);
 		}
 	};
 }

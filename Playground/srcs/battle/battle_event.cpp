@@ -124,6 +124,10 @@ namespace pg
 			{
 				return "statusRemoved";
 			}
+			std::string_view operator()(const EffectiveStatChanged &) const
+			{
+				return "effectiveStatChanged";
+			}
 			std::string_view operator()(const BattleObjectPlaced &) const
 			{
 				return "battleObjectPlaced";

@@ -19,8 +19,8 @@ headers that step actually landed. A stale ledger is worse than none, because th
 will trust it. (This is the one plan-doc file the step workflow does keep current; the
 per-step `docs/NN-*.md` system docs are still skipped.)
 
-Status: **steps 01–09 complete** on branch `BattleImplementation`.
-Next work: **step 10 — statuses, passives, and traps**.
+Status: **steps 01–10 complete** on branch `BattleImplementation`.
+Next work: **step 11 — battle AI**.
 
 ---
 
@@ -679,4 +679,37 @@ Verification: `cmake --build build/test --target PlaygroundTests SparklePlaygrou
 `PlaygroundTests.exe --gtest_filter=EffectResolverRuntime.*` (17 tests), and
 `ctest --test-dir build/test --output-on-failure -L playground` (347 tests) pass.
 
-## Next: Step 10 — statuses, passives, and traps
+## Step 10 — statuses, passives, and traps — complete
+
+Runtime state is in `battle/status/{battle_status,effective_stats,status_hook_service}.*` and
+`battle/objects/battle_object.hpp`. `BattleStatusInstanceId` is battle-local and monotonic;
+`BattleUnit` owns passive projections in derived order and transient instances in allocation order.
+`BattleContext::projectPassiveStatuses`, `hasStatus`, `hasStatusTag`, `isTurnBarPaused`,
+`effectiveAttributes`, `reconcileEffectiveStats`, duration capture/expiration, and object queries
+are the internal runtime surface. Passive modifiers take effect at construction and their Applied
+hooks run after deployment completion.
+
+`EffectiveStatsEvaluator` is the only modifier formula: passive then transient stream, additive
+pass before multiply-permille pass, per-stack semantics, checked arithmetic, and stat floors.
+Reconciliation emits `EffectiveStatChanged`, applies effective-maximum AP/MP clamps, and preserves
+existing HP/pools/fill on maximum increases. Stun is derived from active status tags and pauses the
+turn bar without discarding fill.
+
+`EffectResolver` now supports all closed effect payloads. Transient apply/reapply keeps identity,
+uses add/replace stacks and replace/keepLonger/extend duration refresh; explicit remove and cleanse
+touch transients only. `StatusHookService` dispatches the ten status hooks plus all five object
+triggers through the current staged transaction. A context-owned reaction guard suppresses nested
+hook/trigger dispatch from reaction effects. Timeline and captured owner-activation expiration
+remove statuses/shields/objects in stable order; unit cleanup removes owner-bound runtime state with
+hooks suppressed.
+
+Objects are stored by ID in `BattleContext`, indexed by `BoardOccupancy`, and copied into
+`BattleSnapshot::objects`; movement and LoS queries consult their immutable blocking definitions.
+Status/object state, baseline/effective attributes, and durations contribute to the material digest.
+Registry validation rejects mixed finite duration kinds for a `keepLonger`/`extend` status.
+
+Verification: `cmake --build build/test --target PlaygroundTests SparklePlayground -j 4`, focused
+`PlaygroundTests.exe --gtest_filter=EffectResolverRuntime.*` (17 tests), and
+`ctest --test-dir build/test --output-on-failure -L playground` (347 tests) pass.
+
+## Next: Step 11 — battle AI

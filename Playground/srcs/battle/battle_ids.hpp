@@ -54,6 +54,9 @@ namespace pg
 	using BattleUnitId = BattleNumericId<struct BattleUnitIdTag>;
 	using BattleObjectId = BattleNumericId<struct BattleObjectIdTag>;
 	using BattleShieldId = BattleNumericId<struct BattleShieldIdTag>;
+	// Statuses use their own battle-local sequence.  In particular, a transient that is removed
+	// and later reapplied must not inherit the old ordering position.
+	using BattleStatusInstanceId = BattleNumericId<struct BattleStatusInstanceIdTag>;
 
 	// Allocation is a value, owned by whoever owns the id space - step 06 gives one to the
 	// session - never a process-global counter, which would make a replay depend on how many
@@ -100,6 +103,7 @@ namespace pg
 	using BattleUnitIdAllocator = BattleNumericIdAllocator<BattleUnitIdTag>;
 	using BattleObjectIdAllocator = BattleNumericIdAllocator<BattleObjectIdTag>;
 	using BattleShieldIdAllocator = BattleNumericIdAllocator<BattleShieldIdTag>;
+	using BattleStatusInstanceIdAllocator = BattleNumericIdAllocator<BattleStatusInstanceIdTag>;
 
 	// The session id is not allocated from a counter: it is a pure function of the exact
 	// combat seed, so an archived battle keeps its id when it is replayed. Exposed as a seam
