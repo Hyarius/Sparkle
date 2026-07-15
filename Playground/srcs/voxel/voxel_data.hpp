@@ -10,10 +10,24 @@
 
 namespace pg
 {
+	// The authored bounds of a voxel's terrain movement cost. Optional, defaulting to 1, so every
+	// voxel file written before battle movement existed stays valid and stays free to walk on.
+	inline constexpr int MinimumVoxelMovementCost = 1;
+	inline constexpr int MaximumVoxelMovementCost = 1000000;
+
 	struct VoxelData
 	{
 		VoxelTraversal traversal = VoxelTraversal::Solid;
 		std::vector<std::string> tags;
+
+		// What entering the standable cell supported by this voxel costs a battle unit: mud is
+		// explicitly 2, a slope still costs whatever it was authored to cost. It is type-level, so
+		// every state and orientation of the voxel shares it, and it is never derived from a tag, a
+		// transparency, a slope height or a render shape.
+		//
+		// Only the solid support voxel is charged. A passable voxel (the air, the bush, the water a
+		// unit stands in) never contributes: the cost of a cell is the cost of the ground under it.
+		int movementCost = MinimumVoxelMovementCost;
 
 		[[nodiscard]] bool hasTag(std::string_view p_tag) const
 		{

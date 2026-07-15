@@ -5,6 +5,8 @@
 
 #include "structures/voxel/spk_voxel_grid.hpp"
 
+#include <memory>
+
 namespace pg
 {
 	class VoxelWorld;
@@ -20,14 +22,29 @@ namespace pg
 		[[nodiscard]] virtual const VoxelStateDefinition *tryState(const spk::VoxelCell &p_cell) const = 0;
 	};
 
+	// Reads an immutable voxel grid: a handcrafted arena materialised from a prefab, a synthetic
+	// test fixture, or a short-lived navigation query over a grid the caller keeps alive.
+	//
+	// Two ownerships, deliberately: the owning constructor SHARES the grid, which is what a battle
+	// board needs - the board outlives every construction temporary and must never point at a
+	// stack-local grid - while the borrowing one keeps the existing navigation callers working. The
+	// registry is always a borrow: Registries owns it and outlives every board built from it.
 	class GridCellSource final : public ICellSource
 	{
 	private:
+		std::shared_ptr<const spk::VoxelGrid> _ownedGrid;
 		const spk::VoxelGrid &_grid;
 		const VoxelRegistry &_registry;
 
 	public:
+		// Borrows the grid: it must outlive this source. BoardData never uses this constructor.
 		GridCellSource(const spk::VoxelGrid &p_grid, const VoxelRegistry &p_registry);
+		// Shares the grid, holding it for this source's whole lifetime. Throws std::invalid_argument
+		// on a null grid.
+		GridCellSource(std::shared_ptr<const spk::VoxelGrid> p_grid, const VoxelRegistry &p_registry);
+
+		[[nodiscard]] const spk::VoxelGrid &grid() const noexcept;
+
 		[[nodiscard]] const spk::VoxelCell &cell(const spk::Vector3Int &p_position) const override;
 		[[nodiscard]] const VoxelDefinition *tryDefinition(const spk::VoxelCell &p_cell) const override;
 		[[nodiscard]] const VoxelStateDefinition *tryState(const spk::VoxelCell &p_cell) const override;

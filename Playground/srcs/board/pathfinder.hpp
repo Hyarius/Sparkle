@@ -8,6 +8,13 @@
 
 namespace pg
 {
+	// Exploration's flat-cost navigation: what the walking actor logic asks for, in the float
+	// budget it has always used. It is now a thin skin over findWeightedPath with a uniform cost,
+	// so an exploration route obeys the same canonical tie-break as a battle route and no longer
+	// depends on where std::priority_queue happened to drop an equal-cost entry.
+	//
+	// Battle movement does not come through here: it pays per-cell terrain costs and treats
+	// occupancy as a blocker, which is board/weighted_path.hpp.
 	class Pathfinder
 	{
 	public:

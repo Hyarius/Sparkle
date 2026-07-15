@@ -3,18 +3,44 @@
 #include "world/voxel_world.hpp"
 
 #include <algorithm>
+#include <stdexcept>
+#include <utility>
 
 namespace
 {
 	const spk::VoxelCell EmptyCell{};
+
+	[[nodiscard]] const spk::VoxelGrid &requireGrid(const std::shared_ptr<const spk::VoxelGrid> &p_grid)
+	{
+		if (p_grid == nullptr)
+		{
+			throw std::invalid_argument("an owning cell source needs a grid to own");
+		}
+		return *p_grid;
+	}
 }
 
 namespace pg
 {
 	GridCellSource::GridCellSource(const spk::VoxelGrid &p_grid, const VoxelRegistry &p_registry) :
+		_ownedGrid(nullptr),
 		_grid(p_grid),
 		_registry(p_registry)
 	{
+	}
+
+	GridCellSource::GridCellSource(std::shared_ptr<const spk::VoxelGrid> p_grid, const VoxelRegistry &p_registry) :
+		_ownedGrid(std::move(p_grid)),
+		// _ownedGrid is declared first, so it is already initialised: the reference binds to the grid
+		// this source now co-owns, and the null case throws before anything is dereferenced.
+		_grid(requireGrid(_ownedGrid)),
+		_registry(p_registry)
+	{
+	}
+
+	const spk::VoxelGrid &GridCellSource::grid() const noexcept
+	{
+		return _grid;
 	}
 
 	const spk::VoxelCell &GridCellSource::cell(const spk::Vector3Int &p_position) const

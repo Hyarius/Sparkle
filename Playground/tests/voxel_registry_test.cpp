@@ -154,6 +154,41 @@ TEST(VoxelParsing, VersionTwoBecomesOneDefaultState)
 	EXPECT_EQ(voxel.data.traversal, pg::VoxelTraversal::Passable);
 }
 
+TEST(VoxelParsing, MovementCostDefaultsToOneAndIsSharedByTheType)
+{
+	// A voxel that authors no movement cost walks as free ground: the optional field defaults to 1,
+	// so every voxel file written before battle movement existed stays valid.
+	const pg::ParsedVoxel plain = parseFromText(R"({
+		"version": 2, "traversal": "solid", "tags": ["ground"], "shape": "cube",
+		"textures": {"top": [0, 0], "bottom": [0, 0], "side": [0, 0]}
+	})");
+	EXPECT_EQ(plain.data.movementCost, 1);
+
+	// When present it is authored data on the semantic type, shared by every state: mud costs 2.
+	const pg::ParsedVoxel mud = parseFromText(R"({
+		"version": 2, "traversal": "solid", "tags": ["ground"], "shape": "cube", "movementCost": 2,
+		"textures": {"top": [0, 0], "bottom": [0, 0], "side": [0, 0]}
+	})");
+	EXPECT_EQ(mud.data.movementCost, 2);
+}
+
+TEST(VoxelParsing, MovementCostRejectsZeroNegativeExcessiveAndNonInteger)
+{
+	const auto costed = [](std::string_view p_cost) {
+		return std::string(R"({"version": 2, "traversal": "solid", "tags": ["ground"], "shape": "cube", "movementCost": )") +
+			   std::string(p_cost) + R"(, "textures": {"top": [0, 0], "bottom": [0, 0], "side": [0, 0]}})";
+	};
+
+	EXPECT_NO_THROW((void)parseFromText(costed("1")));
+	EXPECT_NO_THROW((void)parseFromText(costed("1000000")));
+	// A 0 or a negative cost would make a cell free or paradoxical; over the ceiling is absurd; a
+	// fractional cost is not a movement point count. Each fails with its field, not a silent clamp.
+	EXPECT_THROW((void)parseFromText(costed("0")), pg::JsonError);
+	EXPECT_THROW((void)parseFromText(costed("-1")), pg::JsonError);
+	EXPECT_THROW((void)parseFromText(costed("1000001")), pg::JsonError);
+	EXPECT_THROW((void)parseFromText(costed("1.5")), pg::JsonError);
+}
+
 TEST(VoxelParsing, VersionTwoRejectsStates)
 {
 	EXPECT_THROW(

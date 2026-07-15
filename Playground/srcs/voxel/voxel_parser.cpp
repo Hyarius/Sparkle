@@ -1,5 +1,6 @@
 #include "voxel/voxel_definition.hpp"
 
+#include "core/definition_fields.hpp"
 #include "core/json.hpp"
 
 #include <algorithm>
@@ -338,7 +339,8 @@ namespace pg
 		const ShapeCatalog &p_shapes,
 		const VoxelFamilyCatalog &p_families)
 	{
-		p_reader.forbidUnknown({"version", "traversal", "tags", "transparency", "shape", "family", "textures", "states", "fluid", "light"});
+		p_reader.forbidUnknown(
+			{"version", "traversal", "tags", "transparency", "movementCost", "shape", "family", "textures", "states", "fluid", "light"});
 
 		const int version = p_reader.require<int>("version");
 		if (version != 2 && version != 3)
@@ -358,6 +360,14 @@ namespace pg
 		result.light = parseLight(p_reader);
 		result.data.traversal = p_reader.requireEnum<VoxelTraversal>("traversal", traversalValues);
 		result.data.tags = p_reader.require<std::vector<std::string>>("tags");
+		// Optional, so every voxel authored before battle movement existed keeps its default cost of
+		// 1. When present it is a strict integer in range: a 0, a -1, a 1.5 or a "2" is a content bug
+		// that fails with its file and field rather than quietly walking as free ground.
+		if (p_reader.contains("movementCost"))
+		{
+			result.data.movementCost = static_cast<int>(
+				requireIntegerInRange(p_reader, "movementCost", MinimumVoxelMovementCost, MaximumVoxelMovementCost));
+		}
 		const float transparency = p_reader.optional<float>("transparency", 0.0f);
 		if (transparency < 0.0f || transparency > 1.0f)
 		{
