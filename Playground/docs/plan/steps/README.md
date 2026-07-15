@@ -28,9 +28,11 @@ The Unity draft is not a porting target. Reuse its proven rules and test cases w
 fit; do not reproduce MonoBehaviour, ScriptableObject, service-locator, or editor-only
 architecture in C++.
 
-Before implementing a step, read this index, the complete step file, every prerequisite
-step's handoff report, and the live files named by the step. Treat paths and APIs in a step
-as a map, not as permission to ignore repository changes made by earlier steps.
+Before implementing a step, read this index, the complete step file, and
+[`../PROGRESS.md`](../PROGRESS.md) — the progress ledger, which carries the real public API
+surface of every completed step so you need not re-read all their headers. Then read the
+live files the step names. Treat paths and APIs in a step as a map, not as permission to
+ignore repository changes made by earlier steps.
 
 ---
 

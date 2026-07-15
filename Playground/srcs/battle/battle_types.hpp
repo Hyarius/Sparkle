@@ -39,6 +39,18 @@ namespace pg
 		MovementPoints
 	};
 
+	// The cause of a current AP/MP pool change. Conditions and battle events share this
+	// vocabulary so progression can filter the same transitions the log records.
+	enum class ResourceChangeReason
+	{
+		AbilityCost,
+		MovementCost,
+		Effect,
+		ActivationRefill,
+		NextActivationPenaltyConsumption,
+		EffectiveMaximumClamp
+	};
+
 	// The magical offense stat is magicPower - never ability, magic or spellPower. "Ability"
 	// stays the name of an authored command definition. Range is a bonus that extends an
 	// ability's maximum range and nothing else.

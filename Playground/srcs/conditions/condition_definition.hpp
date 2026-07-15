@@ -149,16 +149,6 @@ namespace pg
 
 	// Why a resource pool changed. The filter is required so that an authored "gain AP from an
 	// effect" requirement cannot be farmed by the ordinary activation refill.
-	enum class ResourceChangeReason
-	{
-		AbilityCost,
-		MovementCost,
-		Effect,
-		ActivationRefill,
-		NextActivationPenaltyConsumption,
-		EffectiveMaximumClamp
-	};
-
 	enum class PositionSample
 	{
 		TurnStart,
