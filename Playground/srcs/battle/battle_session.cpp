@@ -1,11 +1,12 @@
 #include "battle/battle_session.hpp"
 
 #include "battle/battle_ids.hpp"
-#include "battle/battle_state_digest.hpp"
 #include "battle/battle_outcome_rules.hpp"
+#include "battle/battle_state_digest.hpp"
+#include "battle/effects/effect_resolver.hpp"
 #include "battle/placement/placement_resolver.hpp"
-#include "battle/scheduler/stamina_scheduler.hpp"
 #include "battle/query/battle_query_service.hpp"
+#include "battle/scheduler/stamina_scheduler.hpp"
 #include "core/registries.hpp"
 #include "creatures/creature_attributes.hpp"
 #include "creatures/creature_species_definition.hpp"
@@ -40,11 +41,16 @@ namespace pg
 			}
 			switch (p_cause)
 			{
-			case EndTurnRequestCause::Explicit: return ActivationEndReason::Explicit;
-			case EndTurnRequestCause::AiRepeatedStateGuard: return ActivationEndReason::AiRepeatedStateGuard;
-			case EndTurnRequestCause::AiCommandCap: return ActivationEndReason::AiCommandCap;
-			case EndTurnRequestCause::AiInvalidPlannedCommand: return ActivationEndReason::AiInvalidPlannedCommand;
-			case EndTurnRequestCause::AiNoRuleProducedCommand: return ActivationEndReason::AiNoRuleProducedCommand;
+			case EndTurnRequestCause::Explicit:
+				return ActivationEndReason::Explicit;
+			case EndTurnRequestCause::AiRepeatedStateGuard:
+				return ActivationEndReason::AiRepeatedStateGuard;
+			case EndTurnRequestCause::AiCommandCap:
+				return ActivationEndReason::AiCommandCap;
+			case EndTurnRequestCause::AiInvalidPlannedCommand:
+				return ActivationEndReason::AiInvalidPlannedCommand;
+			case EndTurnRequestCause::AiNoRuleProducedCommand:
+				return ActivationEndReason::AiNoRuleProducedCommand;
 			}
 			return std::nullopt;
 		}
@@ -102,8 +108,15 @@ namespace pg
 			bool &_flag;
 
 		public:
-			explicit ResolutionGuard(bool &p_flag) noexcept : _flag(p_flag) { _flag = true; }
-			~ResolutionGuard() { _flag = false; }
+			explicit ResolutionGuard(bool &p_flag) noexcept :
+				_flag(p_flag)
+			{
+				_flag = true;
+			}
+			~ResolutionGuard()
+			{
+				_flag = false;
+			}
 			ResolutionGuard(const ResolutionGuard &) = delete;
 			ResolutionGuard &operator=(const ResolutionGuard &) = delete;
 		};
@@ -120,7 +133,10 @@ namespace pg
 		}
 	}
 
-	BattleConstructionResult::BattleConstructionResult(BattleConstructionError p_error) : error(std::move(p_error)) {}
+	BattleConstructionResult::BattleConstructionResult(BattleConstructionError p_error) :
+		error(std::move(p_error))
+	{
+	}
 
 	BattleConstructionResult::BattleConstructionResult(BattleConstructionResult &&) noexcept = default;
 	BattleConstructionResult &BattleConstructionResult::operator=(BattleConstructionResult &&) noexcept = default;
@@ -128,7 +144,10 @@ namespace pg
 
 	// ---- BattleSession --------------------------------------------------------------------------
 
-	BattleSession::BattleSession(std::unique_ptr<BattleContext> p_context) noexcept : _context(std::move(p_context)) {}
+	BattleSession::BattleSession(std::unique_ptr<BattleContext> p_context) noexcept :
+		_context(std::move(p_context))
+	{
+	}
 
 	BattleSession::~BattleSession() = default;
 
@@ -342,8 +361,7 @@ namespace pg
 			{
 				requireValidAttributes(
 					seed.attributes, p_registries.gameRules(), DefinitionSource{}, seed.speciesId);
-			}
-			catch (const std::exception &)
+			} catch (const std::exception &)
 			{
 				return fail(
 					BattleConstructionErrorCode::InvalidDerivedLoadout,
@@ -514,40 +532,134 @@ namespace pg
 	CommandResult BattleSession::_move(const MoveCommand &p_command, CommandIssuer p_issuer)
 	{
 		BattleContext &context = *_context;
-		if (context.phase() != BattlePhase::Activation) return RejectedCommand{CommandRejection::WrongPhase};
-		const BattleUnit *unit = context.tryUnit(p_command.unit);
-		if (unit == nullptr) return RejectedCommand{CommandRejection::UnknownUnit};
-		if (!context.activeUnit().has_value() || *context.activeUnit() != p_command.unit) return RejectedCommand{CommandRejection::NotActiveUnit};
-		if ((unit->side() == BattleSide::Player && !controllerControlsPlayer(p_issuer.controller)) || (unit->side() == BattleSide::Enemy && p_issuer.controller != CommandController::EnemyAi)) return RejectedCommand{CommandRejection::WrongController};
-		auto planned = BattleQueryService(context).planMove(p_command.unit, p_command.destination);
-		if (!planned) return RejectedCommand{planned.error()};
-		if (!context.hasOrdinaryCapacity(planned->steps.size() * 2 + 1, true)) return _abort(BattleAbortReason::InternalInvariantViolation);
-		const BattleSnapshot before = context.snapshot(); std::vector<StagedEvent> staged;
-		for (const PlannedPathStep &step : planned->steps) {
-			BattleUnit &moving = context.unitMutable(p_command.unit);
-			if (moving.movementPoints() < static_cast<int>(step.movementPointCost)) return _abort(BattleAbortReason::InternalInvariantViolation);
-			const int previous = moving.movementPoints(); moving.setMovementPoints(previous - static_cast<int>(step.movementPointCost));
-			ResourceSpent spent{p_command.unit, BattleResource::MovementPoints, static_cast<int>(step.movementPointCost), static_cast<int>(step.movementPointCost), previous, moving.movementPoints(), ResourceSpendReason::MovementCost};
-			staged.push_back({BattleEventCategory::Gameplay, BattleEventOrigin{.sourceUnit=p_command.unit}, spent});
-			if (!context.moveUnitOccupancy(p_command.unit, step.to)) return _abort(BattleAbortReason::InternalInvariantViolation);
-			staged.push_back({BattleEventCategory::Gameplay, BattleEventOrigin{.sourceUnit=p_command.unit}, UnitMovementStep{p_command.unit,step.from,step.to,static_cast<int>(step.movementPointCost),SpatialMoveCause::Voluntary}});
+		if (context.phase() != BattlePhase::Activation)
+		{
+			return RejectedCommand{CommandRejection::WrongPhase};
 		}
-		staged.push_back({BattleEventCategory::Gameplay, BattleEventOrigin{.sourceUnit=p_command.unit}, UnitMoved{p_command.unit,planned->origin,planned->destination,static_cast<int>(planned->steps.size()),static_cast<int>(planned->totalMovementPointCost),true}});
+		const BattleUnit *unit = context.tryUnit(p_command.unit);
+		if (unit == nullptr)
+		{
+			return RejectedCommand{CommandRejection::UnknownUnit};
+		}
+		if (!context.activeUnit().has_value() || *context.activeUnit() != p_command.unit)
+		{
+			return RejectedCommand{CommandRejection::NotActiveUnit};
+		}
+		if ((unit->side() == BattleSide::Player && !controllerControlsPlayer(p_issuer.controller)) || (unit->side() == BattleSide::Enemy && p_issuer.controller != CommandController::EnemyAi))
+		{
+			return RejectedCommand{CommandRejection::WrongController};
+		}
+		auto planned = BattleQueryService(context).planMove(p_command.unit, p_command.destination);
+		if (!planned)
+		{
+			return RejectedCommand{planned.error()};
+		}
+		if (!context.hasOrdinaryCapacity(planned->steps.size() * 2 + 1, true))
+		{
+			return _abort(BattleAbortReason::InternalInvariantViolation);
+		}
+		const BattleSnapshot before = context.snapshot();
+		std::vector<StagedEvent> staged;
+		for (const PlannedPathStep &step : planned->steps)
+		{
+			BattleUnit &moving = context.unitMutable(p_command.unit);
+			if (moving.movementPoints() < static_cast<int>(step.movementPointCost))
+			{
+				return _abort(BattleAbortReason::InternalInvariantViolation);
+			}
+			const int previous = moving.movementPoints();
+			moving.setMovementPoints(previous - static_cast<int>(step.movementPointCost));
+			ResourceSpent spent{p_command.unit, BattleResource::MovementPoints, static_cast<int>(step.movementPointCost), static_cast<int>(step.movementPointCost), previous, moving.movementPoints(), ResourceSpendReason::MovementCost};
+			staged.push_back({BattleEventCategory::Gameplay, BattleEventOrigin{.sourceUnit = p_command.unit}, spent});
+			if (!context.moveUnitOccupancy(p_command.unit, step.to))
+			{
+				return _abort(BattleAbortReason::InternalInvariantViolation);
+			}
+			staged.push_back({BattleEventCategory::Gameplay, BattleEventOrigin{.sourceUnit = p_command.unit}, UnitMovementStep{p_command.unit, step.from, step.to, static_cast<int>(step.movementPointCost), SpatialMoveCause::Voluntary}});
+		}
+		staged.push_back({BattleEventCategory::Gameplay, BattleEventOrigin{.sourceUnit = p_command.unit}, UnitMoved{p_command.unit, planned->origin, planned->destination, static_cast<int>(planned->steps.size()), static_cast<int>(planned->totalMovementPointCost), true}});
 		context.setResolvedNonEndCommands(context.resolvedNonEndCommands() + 1);
-		const CommittedBattleBatch batch=context.commitOrdinaryBatch(BattleBatchKind::Command,before,staged); _assertAcceptedInvariants(); return AcceptedCommand{*batch.action,batch.id,batch.events};
+		const CommittedBattleBatch batch = context.commitOrdinaryBatch(BattleBatchKind::Command, before, staged);
+		_assertAcceptedInvariants();
+		return AcceptedCommand{*batch.action, batch.id, batch.events};
 	}
 
 	CommandResult BattleSession::_cast(const CastAbilityCommand &p_command, CommandIssuer p_issuer)
 	{
 		BattleContext &context = *_context;
-		if (context.phase() != BattlePhase::Activation) return RejectedCommand{CommandRejection::WrongPhase};
-		const BattleUnit *unit=context.tryUnit(p_command.unit); if(!unit) return RejectedCommand{CommandRejection::UnknownUnit};
-		if(!context.activeUnit().has_value() || *context.activeUnit()!=p_command.unit) return RejectedCommand{CommandRejection::NotActiveUnit};
-		if ((unit->side()==BattleSide::Player && !controllerControlsPlayer(p_issuer.controller)) || (unit->side()==BattleSide::Enemy && p_issuer.controller!=CommandController::EnemyAi)) return RejectedCommand{CommandRejection::WrongController};
-		auto planned=BattleQueryService(context).planCast(p_command.unit,p_command.abilityId,p_command.anchor); if(!planned) return RejectedCommand{planned.error()};
-		// Step 09 installs core effect execution and step 10 completes it. Until then a valid preview
-		// is useful, but a command cannot allocate ids or spend resources for a no-op cast.
-		return RejectedCommand{CommandRejection::EffectRuntimeUnavailable};
+		if (context.phase() != BattlePhase::Activation)
+		{
+			return RejectedCommand{CommandRejection::WrongPhase};
+		}
+		const BattleUnit *unit = context.tryUnit(p_command.unit);
+		if (!unit)
+		{
+			return RejectedCommand{CommandRejection::UnknownUnit};
+		}
+		if (!context.activeUnit().has_value() || *context.activeUnit() != p_command.unit)
+		{
+			return RejectedCommand{CommandRejection::NotActiveUnit};
+		}
+		if ((unit->side() == BattleSide::Player && !controllerControlsPlayer(p_issuer.controller)) || (unit->side() == BattleSide::Enemy && p_issuer.controller != CommandController::EnemyAi))
+		{
+			return RejectedCommand{CommandRejection::WrongController};
+		}
+		auto planned = BattleQueryService(context).planCast(p_command.unit, p_command.abilityId, p_command.anchor);
+		if (!planned)
+		{
+			return RejectedCommand{planned.error()};
+		}
+		const AbilityDefinition *ability = context.registries().abilities().tryGet(p_command.abilityId);
+		if (!ability || !EffectResolver::supportsAll(*ability))
+		{
+			return RejectedCommand{CommandRejection::EffectRuntimeUnavailable};
+		}
+		const std::size_t eventCapacity = 3 + ability->effects.size() * (context.allUnitsInOrder().size() + 2);
+		if (!context.hasOrdinaryCapacity(eventCapacity, true))
+		{
+			return _abort(BattleAbortReason::InternalInvariantViolation);
+		}
+		const BattleSnapshot before = context.snapshot();
+		std::vector<StagedEvent> staged;
+		BattleUnit &caster = context.unitMutable(p_command.unit);
+		if (ability->cost.actionPoints > 0)
+		{
+			const int old = caster.actionPoints();
+			caster.setActionPoints(old - ability->cost.actionPoints);
+			staged.push_back({BattleEventCategory::Gameplay, BattleEventOrigin{.sourceUnit = p_command.unit, .abilityId = ability->id}, ResourceSpent{p_command.unit, BattleResource::ActionPoints, ability->cost.actionPoints, ability->cost.actionPoints, old, caster.actionPoints(), ResourceSpendReason::AbilityCost}});
+		}
+		if (ability->cost.movementPoints > 0)
+		{
+			const int old = caster.movementPoints();
+			caster.setMovementPoints(old - ability->cost.movementPoints);
+			staged.push_back({BattleEventCategory::Gameplay, BattleEventOrigin{.sourceUnit = p_command.unit, .abilityId = ability->id}, ResourceSpent{p_command.unit, BattleResource::MovementPoints, ability->cost.movementPoints, ability->cost.movementPoints, old, caster.movementPoints(), ResourceSpendReason::AbilityCost}});
+		}
+		AbilityCast cast;
+		cast.source = p_command.unit;
+		cast.abilityId = ability->id;
+		cast.sourceCell = planned->sourceCellAtCapture;
+		cast.anchorCell = planned->anchor;
+		cast.targetDistance = std::abs(planned->anchor.x - planned->sourceCellAtCapture.x) + std::abs(planned->anchor.z - planned->sourceCellAtCapture.z);
+		cast.affectedCells = planned->affectedCells;
+		cast.affectedUnits = planned->affectedUnits;
+		staged.push_back({BattleEventCategory::Gameplay, BattleEventOrigin{.sourceUnit = p_command.unit, .abilityId = ability->id}, cast});
+		EffectResolver::resolveAbility(context, staged, *planned, *ability);
+		context.setResolvedNonEndCommands(context.resolvedNonEndCommands() + 1);
+		const BattleOutcome outcome = evaluateBattleOutcome(context);
+		if (outcome != BattleOutcome::Undecided)
+		{
+			context.setTerminal(outcome);
+			BattleEnded ended;
+			ended.outcome = outcome;
+			ended.activePlayerCount = context.activeCount(BattleSide::Player);
+			ended.activeEnemyCount = context.activeCount(BattleSide::Enemy);
+			ended.notDefeatedPlayerCount = context.notDefeatedCount(BattleSide::Player);
+			ended.notDefeatedEnemyCount = context.notDefeatedCount(BattleSide::Enemy);
+			staged.push_back({BattleEventCategory::Lifecycle, {}, ended});
+		}
+		const CommittedBattleBatch batch = context.commitOrdinaryBatch(BattleBatchKind::Command, before, staged);
+		_assertAcceptedInvariants();
+		return AcceptedCommand{*batch.action, batch.id, batch.events};
 	}
 
 	CommandResult BattleSession::_placeUnit(const PlaceUnitCommand &p_command, CommandIssuer p_issuer)
@@ -628,9 +740,9 @@ namespace pg
 		const BattleSnapshot before = context.snapshot();
 		std::vector<StagedEvent> staged;
 		const auto deploymentEvent = [](BattleUnitId p_who,
-										 std::optional<BoardCell> p_previous,
-										 BoardCell p_new,
-										 std::optional<BattleUnitId> p_partner) {
+										std::optional<BoardCell> p_previous,
+										BoardCell p_new,
+										std::optional<BattleUnitId> p_partner) {
 			UnitDeploymentChanged payload;
 			payload.unit = p_who;
 			payload.previousCell = p_previous;
@@ -891,8 +1003,14 @@ namespace pg
 		return _context->terminalRecord();
 	}
 
-	std::vector<MovePlan> BattleSession::legalMoves(BattleUnitId p_unit) const { return BattleQueryService(*_context).legalMoves(p_unit); }
-	std::vector<AbilityAnchorPreview> BattleSession::abilityAnchors(BattleUnitId p_unit, std::string_view p_abilityId) const { return BattleQueryService(*_context).abilityAnchors(p_unit, p_abilityId); }
+	std::vector<MovePlan> BattleSession::legalMoves(BattleUnitId p_unit) const
+	{
+		return BattleQueryService(*_context).legalMoves(p_unit);
+	}
+	std::vector<AbilityAnchorPreview> BattleSession::abilityAnchors(BattleUnitId p_unit, std::string_view p_abilityId) const
+	{
+		return BattleQueryService(*_context).abilityAnchors(p_unit, p_abilityId);
+	}
 
 	void BattleSession::primeSequenceCountersForExhaustionTest(
 		std::uint64_t p_nextAction,

@@ -78,7 +78,7 @@ namespace pg
 		std::string _formId;
 		std::optional<std::string> _aiBehaviourId;
 
-		CreatureAttributes _baselineAttributes;  // the derived state at battle entry
+		CreatureAttributes _baselineAttributes;	 // the derived state at battle entry
 		CreatureAttributes _effectiveAttributes; // == baseline until step 10 recomputes from statuses
 		std::vector<std::string> _abilityIds;
 		std::vector<std::string> _passiveStatusIds;
@@ -103,9 +103,18 @@ namespace pg
 		// turn-bar fill and penalties all zero. No level and no random stat scaling occurs anywhere.
 		[[nodiscard]] static BattleUnit project(BattleUnitId p_id, const BattleParticipantSeed &p_seed);
 
-		[[nodiscard]] BattleUnitId id() const noexcept { return _id; }
-		[[nodiscard]] BattleSide side() const noexcept { return _side; }
-		[[nodiscard]] std::uint32_t rosterOrder() const noexcept { return _rosterOrder; }
+		[[nodiscard]] BattleUnitId id() const noexcept
+		{
+			return _id;
+		}
+		[[nodiscard]] BattleSide side() const noexcept
+		{
+			return _side;
+		}
+		[[nodiscard]] std::uint32_t rosterOrder() const noexcept
+		{
+			return _rosterOrder;
+		}
 		[[nodiscard]] const std::optional<CreatureInstanceId> &persistentCreatureId() const noexcept
 		{
 			return _persistentCreatureId;
@@ -114,33 +123,78 @@ namespace pg
 		{
 			return _encounterSpawnMemberId;
 		}
-		[[nodiscard]] const std::string &speciesId() const noexcept { return _speciesId; }
-		[[nodiscard]] const std::string &formId() const noexcept { return _formId; }
-		[[nodiscard]] const std::optional<std::string> &aiBehaviourId() const noexcept { return _aiBehaviourId; }
+		[[nodiscard]] const std::string &speciesId() const noexcept
+		{
+			return _speciesId;
+		}
+		[[nodiscard]] const std::string &formId() const noexcept
+		{
+			return _formId;
+		}
+		[[nodiscard]] const std::optional<std::string> &aiBehaviourId() const noexcept
+		{
+			return _aiBehaviourId;
+		}
 
-		[[nodiscard]] const CreatureAttributes &baselineAttributes() const noexcept { return _baselineAttributes; }
-		[[nodiscard]] const CreatureAttributes &effectiveAttributes() const noexcept { return _effectiveAttributes; }
-		[[nodiscard]] const std::vector<std::string> &abilityIds() const noexcept { return _abilityIds; }
-		[[nodiscard]] const std::vector<std::string> &passiveStatusIds() const noexcept { return _passiveStatusIds; }
+		[[nodiscard]] const CreatureAttributes &baselineAttributes() const noexcept
+		{
+			return _baselineAttributes;
+		}
+		[[nodiscard]] const CreatureAttributes &effectiveAttributes() const noexcept
+		{
+			return _effectiveAttributes;
+		}
+		[[nodiscard]] const std::vector<std::string> &abilityIds() const noexcept
+		{
+			return _abilityIds;
+		}
+		[[nodiscard]] const std::vector<std::string> &passiveStatusIds() const noexcept
+		{
+			return _passiveStatusIds;
+		}
 		[[nodiscard]] const std::vector<std::string> &inheritedCompletedFeatNodeIds() const noexcept
 		{
 			return _inheritedCompletedFeatNodeIds;
 		}
 
-		[[nodiscard]] int health() const noexcept { return _health; }
-		[[nodiscard]] int actionPoints() const noexcept { return _actionPoints; }
-		[[nodiscard]] int movementPoints() const noexcept { return _movementPoints; }
+		[[nodiscard]] int health() const noexcept
+		{
+			return _health;
+		}
+		[[nodiscard]] int actionPoints() const noexcept
+		{
+			return _actionPoints;
+		}
+		[[nodiscard]] int movementPoints() const noexcept
+		{
+			return _movementPoints;
+		}
 		[[nodiscard]] const NextActivationPenalty &nextActivationPenalty() const noexcept
 		{
 			return _nextActivationPenalty;
 		}
-		[[nodiscard]] BattleTime turnBarFill() const noexcept { return _turnBarFill; }
+		[[nodiscard]] BattleTime turnBarFill() const noexcept
+		{
+			return _turnBarFill;
+		}
 
-		[[nodiscard]] bool placed() const noexcept { return _placed; }
-		[[nodiscard]] const std::optional<BoardCell> &lastOccupiedCell() const noexcept { return _lastOccupiedCell; }
-		[[nodiscard]] RemovalReason removalReason() const noexcept { return _removalReason; }
+		[[nodiscard]] bool placed() const noexcept
+		{
+			return _placed;
+		}
+		[[nodiscard]] const std::optional<BoardCell> &lastOccupiedCell() const noexcept
+		{
+			return _lastOccupiedCell;
+		}
+		[[nodiscard]] RemovalReason removalReason() const noexcept
+		{
+			return _removalReason;
+		}
 
-		[[nodiscard]] int maxHealth() const noexcept { return static_cast<int>(_effectiveAttributes.maxHealth); }
+		[[nodiscard]] int maxHealth() const noexcept
+		{
+			return static_cast<int>(_effectiveAttributes.maxHealth);
+		}
 		[[nodiscard]] int maxActionPoints() const noexcept
 		{
 			return static_cast<int>(_effectiveAttributes.maxActionPoints);
@@ -149,7 +203,10 @@ namespace pg
 		{
 			return static_cast<int>(_effectiveAttributes.maxMovementPoints);
 		}
-		[[nodiscard]] int range() const noexcept { return static_cast<int>(_effectiveAttributes.range); }
+		[[nodiscard]] int range() const noexcept
+		{
+			return static_cast<int>(_effectiveAttributes.range);
+		}
 
 		// The one active-combatant predicate, and the only one every rule uses:
 		//   placed and current health > 0 and removalReason == None.
@@ -157,16 +214,49 @@ namespace pg
 		[[nodiscard]] bool isActiveCombatant() const noexcept;
 		// Step 10 replaces this final-purpose seam with the active-status tag query. There are no
 		// runtime statuses yet, so no Step 07 unit is stunned.
-		[[nodiscard]] bool isStunned() const noexcept { return false; }
+		[[nodiscard]] bool isStunned() const noexcept
+		{
+			return false;
+		}
 
 		// Mutation surface. These are reachable only through BattleContext, which is itself a private
 		// member of BattleSession, so nothing outside the command path can call them.
 		void markPlacedAt(const BoardCell &p_cell);
 		void clearPlacement();
-		void setRemovalReason(RemovalReason p_reason) noexcept { _removalReason = p_reason; }
-		void setTurnBarFill(BattleTime p_fill) noexcept { _turnBarFill = p_fill; }
-		void setActionPoints(int p_value) noexcept { _actionPoints = p_value; }
-		void setMovementPoints(int p_value) noexcept { _movementPoints = p_value; }
-		void clearNextActivationPenalty() noexcept { _nextActivationPenalty = {}; }
+		void setRemovalReason(RemovalReason p_reason) noexcept
+		{
+			_removalReason = p_reason;
+		}
+		void setTurnBarFill(BattleTime p_fill) noexcept
+		{
+			_turnBarFill = p_fill;
+		}
+		void setActionPoints(int p_value) noexcept
+		{
+			_actionPoints = p_value;
+		}
+		void setMovementPoints(int p_value) noexcept
+		{
+			_movementPoints = p_value;
+		}
+		void setHealth(int p_value) noexcept
+		{
+			_health = p_value;
+		}
+		void addNextActivationPenalty(BattleResource p_resource, int p_amount) noexcept
+		{
+			if (p_resource == BattleResource::ActionPoints)
+			{
+				_nextActivationPenalty.actionPoints += p_amount;
+			}
+			else
+			{
+				_nextActivationPenalty.movementPoints += p_amount;
+			}
+		}
+		void clearNextActivationPenalty() noexcept
+		{
+			_nextActivationPenalty = {};
+		}
 	};
 }
