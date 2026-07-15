@@ -8,6 +8,7 @@
 #include "battle/battle_event_log.hpp"
 #include "battle/battle_snapshot.hpp"
 #include "battle/battle_unit.hpp"
+#include "battle/query/battle_plans.hpp"
 #include "battle/scheduler/scheduler_result.hpp"
 #include "board/board_data.hpp"
 #include "encounters/encounter_definition.hpp" // OpponentPlacementPolicy
@@ -46,6 +47,8 @@ namespace pg
 		[[nodiscard]] CommandResult _placeUnit(const PlaceUnitCommand &p_command, CommandIssuer p_issuer);
 		[[nodiscard]] CommandResult _confirmDeployment(const ConfirmDeploymentCommand &p_command, CommandIssuer p_issuer);
 		[[nodiscard]] CommandResult _endTurn(const EndTurnCommand &p_command, CommandIssuer p_issuer);
+		[[nodiscard]] CommandResult _move(const MoveCommand &p_command, CommandIssuer p_issuer);
+		[[nodiscard]] CommandResult _cast(const CastAbilityCommand &p_command, CommandIssuer p_issuer);
 		[[nodiscard]] CommandResult _abort(BattleAbortReason p_reason);
 		void _assertAcceptedInvariants() const;
 
@@ -81,6 +84,8 @@ namespace pg
 		[[nodiscard]] BattlePhase phase() const noexcept;
 		[[nodiscard]] BattleOutcome outcome() const noexcept;
 		[[nodiscard]] const std::optional<BattleTerminalRecord> &terminalRecord() const noexcept;
+		[[nodiscard]] std::vector<MovePlan> legalMoves(BattleUnitId p_unit) const;
+		[[nodiscard]] std::vector<AbilityAnchorPreview> abilityAnchors(BattleUnitId p_unit, std::string_view p_abilityId) const;
 
 		// Test seam (section 18.5): drive the checked sequence counters near their maximum so the next
 		// ordinary command must roll back into the reserved TechnicalAbort batch. Not production.

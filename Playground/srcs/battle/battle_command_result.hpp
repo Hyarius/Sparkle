@@ -95,7 +95,20 @@ namespace pg
 		DestinationOccupied,
 		DeploymentIncomplete,
 		CommandUnavailable,
-		NoStateChange
+		NoStateChange,
+		UnitNotPlaced,
+		NotActiveUnit,
+		UnknownBoardCell,
+		UnknownAbility,
+		AbilityNotOwned,
+		InsufficientActionPoints,
+		InsufficientMovementPoints,
+		DestinationBlocked,
+		DestinationUnreachable,
+		AnchorOutOfRange,
+		AnchorLineOfSightBlocked,
+		AnchorFilterRejected,
+		EffectRuntimeUnavailable
 		// steps 07-08 append resource/range/path/target errors here
 	};
 

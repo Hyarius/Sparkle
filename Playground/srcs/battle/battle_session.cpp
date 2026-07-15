@@ -5,6 +5,7 @@
 #include "battle/battle_outcome_rules.hpp"
 #include "battle/placement/placement_resolver.hpp"
 #include "battle/scheduler/stamina_scheduler.hpp"
+#include "battle/query/battle_query_service.hpp"
 #include "core/registries.hpp"
 #include "creatures/creature_attributes.hpp"
 #include "creatures/creature_species_definition.hpp"
@@ -492,6 +493,14 @@ namespace pg
 				{
 					return _endTurn(p_specific, p_issuer);
 				}
+				else if constexpr (std::is_same_v<Command, MoveCommand>)
+				{
+					return _move(p_specific, p_issuer);
+				}
+				else if constexpr (std::is_same_v<Command, CastAbilityCommand>)
+				{
+					return _cast(p_specific, p_issuer);
+				}
 				else
 				{
 					// Move/Cast have no activation runtime yet; their shapes are final but they
@@ -500,6 +509,45 @@ namespace pg
 				}
 			},
 			p_command);
+	}
+
+	CommandResult BattleSession::_move(const MoveCommand &p_command, CommandIssuer p_issuer)
+	{
+		BattleContext &context = *_context;
+		if (context.phase() != BattlePhase::Activation) return RejectedCommand{CommandRejection::WrongPhase};
+		const BattleUnit *unit = context.tryUnit(p_command.unit);
+		if (unit == nullptr) return RejectedCommand{CommandRejection::UnknownUnit};
+		if (!context.activeUnit().has_value() || *context.activeUnit() != p_command.unit) return RejectedCommand{CommandRejection::NotActiveUnit};
+		if ((unit->side() == BattleSide::Player && !controllerControlsPlayer(p_issuer.controller)) || (unit->side() == BattleSide::Enemy && p_issuer.controller != CommandController::EnemyAi)) return RejectedCommand{CommandRejection::WrongController};
+		auto planned = BattleQueryService(context).planMove(p_command.unit, p_command.destination);
+		if (!planned) return RejectedCommand{planned.error()};
+		if (!context.hasOrdinaryCapacity(planned->steps.size() * 2 + 1, true)) return _abort(BattleAbortReason::InternalInvariantViolation);
+		const BattleSnapshot before = context.snapshot(); std::vector<StagedEvent> staged;
+		for (const PlannedPathStep &step : planned->steps) {
+			BattleUnit &moving = context.unitMutable(p_command.unit);
+			if (moving.movementPoints() < static_cast<int>(step.movementPointCost)) return _abort(BattleAbortReason::InternalInvariantViolation);
+			const int previous = moving.movementPoints(); moving.setMovementPoints(previous - static_cast<int>(step.movementPointCost));
+			ResourceSpent spent{p_command.unit, BattleResource::MovementPoints, static_cast<int>(step.movementPointCost), static_cast<int>(step.movementPointCost), previous, moving.movementPoints(), ResourceSpendReason::MovementCost};
+			staged.push_back({BattleEventCategory::Gameplay, BattleEventOrigin{.sourceUnit=p_command.unit}, spent});
+			if (!context.moveUnitOccupancy(p_command.unit, step.to)) return _abort(BattleAbortReason::InternalInvariantViolation);
+			staged.push_back({BattleEventCategory::Gameplay, BattleEventOrigin{.sourceUnit=p_command.unit}, UnitMovementStep{p_command.unit,step.from,step.to,static_cast<int>(step.movementPointCost),SpatialMoveCause::Voluntary}});
+		}
+		staged.push_back({BattleEventCategory::Gameplay, BattleEventOrigin{.sourceUnit=p_command.unit}, UnitMoved{p_command.unit,planned->origin,planned->destination,static_cast<int>(planned->steps.size()),static_cast<int>(planned->totalMovementPointCost),true}});
+		context.setResolvedNonEndCommands(context.resolvedNonEndCommands() + 1);
+		const CommittedBattleBatch batch=context.commitOrdinaryBatch(BattleBatchKind::Command,before,staged); _assertAcceptedInvariants(); return AcceptedCommand{*batch.action,batch.id,batch.events};
+	}
+
+	CommandResult BattleSession::_cast(const CastAbilityCommand &p_command, CommandIssuer p_issuer)
+	{
+		BattleContext &context = *_context;
+		if (context.phase() != BattlePhase::Activation) return RejectedCommand{CommandRejection::WrongPhase};
+		const BattleUnit *unit=context.tryUnit(p_command.unit); if(!unit) return RejectedCommand{CommandRejection::UnknownUnit};
+		if(!context.activeUnit().has_value() || *context.activeUnit()!=p_command.unit) return RejectedCommand{CommandRejection::NotActiveUnit};
+		if ((unit->side()==BattleSide::Player && !controllerControlsPlayer(p_issuer.controller)) || (unit->side()==BattleSide::Enemy && p_issuer.controller!=CommandController::EnemyAi)) return RejectedCommand{CommandRejection::WrongController};
+		auto planned=BattleQueryService(context).planCast(p_command.unit,p_command.abilityId,p_command.anchor); if(!planned) return RejectedCommand{planned.error()};
+		// Step 09 installs core effect execution and step 10 completes it. Until then a valid preview
+		// is useful, but a command cannot allocate ids or spend resources for a no-op cast.
+		return RejectedCommand{CommandRejection::EffectRuntimeUnavailable};
 	}
 
 	CommandResult BattleSession::_placeUnit(const PlaceUnitCommand &p_command, CommandIssuer p_issuer)
@@ -842,6 +890,9 @@ namespace pg
 	{
 		return _context->terminalRecord();
 	}
+
+	std::vector<MovePlan> BattleSession::legalMoves(BattleUnitId p_unit) const { return BattleQueryService(*_context).legalMoves(p_unit); }
+	std::vector<AbilityAnchorPreview> BattleSession::abilityAnchors(BattleUnitId p_unit, std::string_view p_abilityId) const { return BattleQueryService(*_context).abilityAnchors(p_unit, p_abilityId); }
 
 	void BattleSession::primeSequenceCountersForExhaustionTest(
 		std::uint64_t p_nextAction,

@@ -19,8 +19,8 @@ headers that step actually landed. A stale ledger is worse than none, because th
 will trust it. (This is the one plan-doc file the step workflow does keep current; the
 per-step `docs/NN-*.md` system docs are still skipped.)
 
-Status: **steps 01–07 complete** on branch `BattleImplementation`.
-Next unimplemented step: **08 — movement and targeting**.
+Status: **steps 01–08 complete** on branch `BattleImplementation`.
+Next unimplemented step: **09 — core effect resolution**.
 
 ---
 
@@ -590,9 +590,27 @@ seam currently has no runtime deadlines; no eligible filler/deadline produces th
 `TechnicalAbort{SchedulerNoFutureProgress}` batch, and a zero-time no-progress boundary uses
 `TimelineBoundaryMadeNoProgress`.
 
-## Next: step 08 — movement and targeting
+## Step 08 — Movement and targeting (`battle/query/`)
 
-[`steps/step-08-movement-and-targeting.md`](steps/step-08-movement-and-targeting.md): add the
-first accepted non-end commands to the active-turn gateway. Scheduler/activation ownership,
-resource pools, turn bars, phase transitions, command batches, and end-turn semantics above are
-the baseline; do not advance time while resolving movement or targeting.
+`BattleQueryService` is a short-lived const view over `BattleContext`. It exposes
+`planMove`, `planCast`, `legalMoves`, `abilityAnchors`, and `hasAnyLegalNonEndCommand`; plans
+are owned values (`MovePlan`, `PlannedPathStep`, `CastPlan`, `AbilityAnchorPreview`) and never
+provide a mutation route. `BattleSession::legalMoves` and `abilityAnchors` provide the public
+preview seam; `submit` re-plans from the current context.
+
+Movement uses the existing canonical weighted Dijkstra over `boardMovementQuery`: four directions,
+destination terrain costs, own origin allowed, and every other occupied cell blocked. A move
+debits MP and emits a `ResourceSpent` then `UnitMovementStep` for every applied step, followed by
+one `UnitMoved` aggregate, all in one action batch. `MoveCommand` accepts only unit/destination.
+
+Cast planning checks owned ability, AP/MP, a standable single anchor, x/z range (Range adds to
+the authored maximum only), optional 3D board LoS, and the independent anchor filter. AoE cells
+are generated from frozen standable nodes, canonicalized, then independently filtered into cells
+and unit ids. Line AoE chooses x on ties and yields exactly the anchor for a zero source-to-anchor
+direction. Until steps 09–10 install every effect resolver, a fully valid submitted cast returns
+`EffectRuntimeUnavailable` before state, ids, RNG, events, or resources change.
+
+`CommandRejection` gained the stable placement/active-unit/path/ability/cost/anchor/runtime
+errors used by the planners. Existing scheduler/end-turn behaviour remains unchanged.
+
+## Next: step 09 — core effect resolution
