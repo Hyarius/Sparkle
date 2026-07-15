@@ -56,7 +56,9 @@ namespace pg
 		std::optional<BattleAbortReason> abortReason;
 		BattleTime elapsed;
 		std::optional<TurnIndex> turn;
+		std::uint64_t nextTurn = 1;
 		std::optional<BattleUnitId> activeUnit;
+		std::size_t resolvedNonEndCommands = 0;
 		std::vector<BattleUnitSnapshot> units;
 
 		[[nodiscard]] bool operator==(const BattleSnapshot &) const = default;

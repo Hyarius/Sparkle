@@ -3,15 +3,18 @@
 #include "battle/battle_command.hpp"
 #include "battle/battle_command_result.hpp"
 #include "battle/battle_context.hpp"
+#include "battle/battle_outcome_rules.hpp"
 #include "battle/battle_event.hpp"
 #include "battle/battle_event_log.hpp"
 #include "battle/battle_snapshot.hpp"
 #include "battle/battle_unit.hpp"
+#include "battle/scheduler/scheduler_result.hpp"
 #include "board/board_data.hpp"
 #include "encounters/encounter_definition.hpp" // OpponentPlacementPolicy
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <vector>
 
 namespace pg
@@ -42,6 +45,7 @@ namespace pg
 
 		[[nodiscard]] CommandResult _placeUnit(const PlaceUnitCommand &p_command, CommandIssuer p_issuer);
 		[[nodiscard]] CommandResult _confirmDeployment(const ConfirmDeploymentCommand &p_command, CommandIssuer p_issuer);
+		[[nodiscard]] CommandResult _endTurn(const EndTurnCommand &p_command, CommandIssuer p_issuer);
 		[[nodiscard]] CommandResult _abort(BattleAbortReason p_reason);
 		void _assertAcceptedInvariants() const;
 
@@ -63,6 +67,7 @@ namespace pg
 		// batch; a pre-commit technical failure discards its scratch and commits one no-action
 		// TechnicalAbort batch instead.
 		[[nodiscard]] CommandResult submit(const BattleCommand &p_command, CommandIssuer p_issuer);
+		[[nodiscard]] SchedulerCallResult advanceUntilActivation();
 
 		[[nodiscard]] BattleSnapshot snapshot() const;
 		[[nodiscard]] std::vector<BattleEvent> copyEvents(EventRange p_range) const;
@@ -75,6 +80,7 @@ namespace pg
 		[[nodiscard]] BattleId battleId() const noexcept;
 		[[nodiscard]] BattlePhase phase() const noexcept;
 		[[nodiscard]] BattleOutcome outcome() const noexcept;
+		[[nodiscard]] const std::optional<BattleTerminalRecord> &terminalRecord() const noexcept;
 
 		// Test seam (section 18.5): drive the checked sequence counters near their maximum so the next
 		// ordinary command must roll back into the reserved TechnicalAbort batch. Not production.

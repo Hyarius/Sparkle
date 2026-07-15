@@ -2,13 +2,16 @@
 
 #include "battle/battle_ids.hpp"
 #include "battle/battle_state_digest.hpp"
+#include "battle/battle_outcome_rules.hpp"
 #include "battle/placement/placement_resolver.hpp"
+#include "battle/scheduler/stamina_scheduler.hpp"
 #include "core/registries.hpp"
 #include "creatures/creature_attributes.hpp"
 #include "creatures/creature_species_definition.hpp"
 #include "statuses/status_definition.hpp"
 
 #include <algorithm>
+#include <cstdlib>
 #include <exception>
 #include <set>
 #include <stdexcept>
@@ -22,6 +25,56 @@ namespace pg
 		[[nodiscard]] bool controllerControlsPlayer(CommandController p_controller) noexcept
 		{
 			return p_controller == CommandController::Player || p_controller == CommandController::DebugAutoplay;
+		}
+
+		[[nodiscard]] std::optional<ActivationEndReason> endReason(CommandController p_controller, EndTurnRequestCause p_cause)
+		{
+			if (p_controller == CommandController::Player && p_cause == EndTurnRequestCause::Explicit)
+			{
+				return ActivationEndReason::Explicit;
+			}
+			if (p_controller != CommandController::EnemyAi && p_controller != CommandController::DebugAutoplay)
+			{
+				return std::nullopt;
+			}
+			switch (p_cause)
+			{
+			case EndTurnRequestCause::Explicit: return ActivationEndReason::Explicit;
+			case EndTurnRequestCause::AiRepeatedStateGuard: return ActivationEndReason::AiRepeatedStateGuard;
+			case EndTurnRequestCause::AiCommandCap: return ActivationEndReason::AiCommandCap;
+			case EndTurnRequestCause::AiInvalidPlannedCommand: return ActivationEndReason::AiInvalidPlannedCommand;
+			case EndTurnRequestCause::AiNoRuleProducedCommand: return ActivationEndReason::AiNoRuleProducedCommand;
+			}
+			return std::nullopt;
+		}
+
+		[[nodiscard]] std::optional<int> closestDistance(const BattleContext &p_context, BattleUnitId p_source, bool p_allies)
+		{
+			const std::optional<BoardCell> sourceCell = p_context.board().occupancy().cellOf(p_source);
+			if (!sourceCell.has_value())
+			{
+				return std::nullopt;
+			}
+			const BattleSide side = p_context.unit(p_source).side();
+			std::optional<int> closest;
+			for (const BattleUnitId id : p_context.allUnitsInOrder())
+			{
+				if (id == p_source || (p_context.unit(id).side() == side) != p_allies || !p_context.unit(id).isActiveCombatant())
+				{
+					continue;
+				}
+				const std::optional<BoardCell> cell = p_context.board().occupancy().cellOf(id);
+				if (!cell.has_value())
+				{
+					continue;
+				}
+				const int distance = std::abs(sourceCell->x - cell->x) + std::abs(sourceCell->z - cell->z);
+				if (!closest.has_value() || distance < *closest)
+				{
+					closest = distance;
+				}
+			}
+			return closest;
 		}
 
 		[[nodiscard]] bool kindMatchesSource(EncounterKind p_kind, BoardSourceKind p_source) noexcept
@@ -435,9 +488,13 @@ namespace pg
 				{
 					return _confirmDeployment(p_specific, p_issuer);
 				}
+				else if constexpr (std::is_same_v<Command, EndTurnCommand>)
+				{
+					return _endTurn(p_specific, p_issuer);
+				}
 				else
 				{
-					// Move/Cast/EndTurn have no activation runtime yet; their shapes are final but they
+					// Move/Cast have no activation runtime yet; their shapes are final but they
 					// resolve to nothing in step 06.
 					return RejectedCommand{CommandRejection::CommandUnavailable};
 				}
@@ -610,23 +667,104 @@ namespace pg
 		{
 			return _abort(BattleAbortReason::RequiredTerrainChanged);
 		}
-		if (!context.hasOrdinaryCapacity(1, true))
+		if (!context.hasOrdinaryCapacity(2, true))
 		{
 			return _abort(BattleAbortReason::InternalInvariantViolation);
 		}
 
 		const BattleSnapshot before = context.snapshot();
 		context.setSideConfirmed(p_command.side, true);
-		// Step 07 appends the phase transition (and DeploymentCompleted) once both sides are confirmed;
-		// step 06 leaves the phase in Deployment.
+		context.setPhase(BattlePhase::AwaitingActivation);
 		DeploymentConfirmed confirmed;
 		confirmed.side = p_command.side;
 		confirmed.placedUnits = context.sideOrder(p_command.side);
-		std::vector<StagedEvent> staged{StagedEvent{BattleEventCategory::Lifecycle, BattleEventOrigin{}, confirmed}};
+		DeploymentCompleted completed;
+		completed.playerUnits = context.playerOrder();
+		completed.enemyUnits = context.enemyOrder();
+		std::vector<StagedEvent> staged{
+			StagedEvent{BattleEventCategory::Lifecycle, BattleEventOrigin{}, confirmed},
+			StagedEvent{BattleEventCategory::Lifecycle, BattleEventOrigin{}, completed}};
 
 		const CommittedBattleBatch batch = context.commitOrdinaryBatch(BattleBatchKind::Command, before, staged);
 		_assertAcceptedInvariants();
 		return AcceptedCommand{batch.action.value(), batch.id, batch.events};
+	}
+
+	CommandResult BattleSession::_endTurn(const EndTurnCommand &p_command, CommandIssuer p_issuer)
+	{
+		BattleContext &context = *_context;
+		if (context.phase() != BattlePhase::Activation)
+		{
+			return RejectedCommand{CommandRejection::WrongPhase};
+		}
+		const BattleUnit *unit = context.tryUnit(p_command.unit);
+		if (unit == nullptr || !context.activeUnit().has_value() || *context.activeUnit() != p_command.unit)
+		{
+			return RejectedCommand{CommandRejection::CommandUnavailable};
+		}
+		if ((unit->side() == BattleSide::Player && !controllerControlsPlayer(p_issuer.controller)) ||
+			(unit->side() == BattleSide::Enemy && p_issuer.controller != CommandController::EnemyAi))
+		{
+			return RejectedCommand{CommandRejection::WrongController};
+		}
+		const std::optional<ActivationEndReason> reason = endReason(p_issuer.controller, p_command.cause);
+		if (!reason.has_value() || !unit->isActiveCombatant())
+		{
+			return RejectedCommand{CommandRejection::CommandUnavailable};
+		}
+		if (!context.hasOrdinaryCapacity(2, true))
+		{
+			return _abort(BattleAbortReason::InternalInvariantViolation);
+		}
+
+		const BattleSnapshot before = context.snapshot();
+		ActivationEnded ended;
+		ended.unit = p_command.unit;
+		ended.turn = *context.turn();
+		ended.finalCell = context.board().occupancy().cellOf(p_command.unit);
+		ended.finalActionPoints = unit->actionPoints();
+		ended.finalMovementPoints = unit->movementPoints();
+		ended.closestAllyDistance = closestDistance(context, p_command.unit, true);
+		ended.closestEnemyDistance = closestDistance(context, p_command.unit, false);
+		ended.reason = *reason;
+		context.unitMutable(p_command.unit).setTurnBarFill(BattleTime{});
+		context.setActiveUnit(std::nullopt);
+		context.setTurn(std::nullopt);
+		context.setResolvedNonEndCommands(0);
+		const BattleOutcome outcome = evaluateBattleOutcome(context);
+		std::vector<StagedEvent> staged{StagedEvent{BattleEventCategory::Lifecycle, BattleEventOrigin{.sourceUnit = p_command.unit}, ended}};
+		if (outcome == BattleOutcome::Undecided)
+		{
+			context.setPhase(BattlePhase::AwaitingActivation);
+		}
+		else
+		{
+			context.setTerminal(outcome);
+			BattleEnded battleEnded;
+			battleEnded.outcome = outcome;
+			battleEnded.activePlayerCount = context.activeCount(BattleSide::Player);
+			battleEnded.activeEnemyCount = context.activeCount(BattleSide::Enemy);
+			battleEnded.notDefeatedPlayerCount = context.notDefeatedCount(BattleSide::Player);
+			battleEnded.notDefeatedEnemyCount = context.notDefeatedCount(BattleSide::Enemy);
+			staged.push_back(StagedEvent{BattleEventCategory::Lifecycle, {}, battleEnded});
+		}
+		const CommittedBattleBatch batch = context.commitOrdinaryBatch(BattleBatchKind::Command, before, staged);
+		_assertAcceptedInvariants();
+		return AcceptedCommand{*batch.action, batch.id, batch.events};
+	}
+
+	SchedulerCallResult BattleSession::advanceUntilActivation()
+	{
+		if (_resolving)
+		{
+			return RejectedSchedulerAdvance{SchedulerRejection::SessionBusy};
+		}
+		if (_context->phase() != BattlePhase::AwaitingActivation)
+		{
+			return RejectedSchedulerAdvance{SchedulerRejection::WrongPhase};
+		}
+		ResolutionGuard guard(_resolving);
+		return StaminaScheduler::advanceUntilActivation(*_context);
 	}
 
 	CommandResult BattleSession::_abort(BattleAbortReason p_reason)
@@ -698,6 +836,11 @@ namespace pg
 	BattleOutcome BattleSession::outcome() const noexcept
 	{
 		return _context->outcome();
+	}
+
+	const std::optional<BattleTerminalRecord> &BattleSession::terminalRecord() const noexcept
+	{
+		return _context->terminalRecord();
 	}
 
 	void BattleSession::primeSequenceCountersForExhaustionTest(

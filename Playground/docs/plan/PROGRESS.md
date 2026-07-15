@@ -19,8 +19,8 @@ headers that step actually landed. A stale ledger is worse than none, because th
 will trust it. (This is the one plan-doc file the step workflow does keep current; the
 per-step `docs/NN-*.md` system docs are still skipped.)
 
-Status: **steps 01–05 complete** on branch `BattleImplementation` (01–02 landed 2026-07-14).
-Next unimplemented step: **06 — battle session, units, placement, event log**.
+Status: **steps 01–07 complete** on branch `BattleImplementation`.
+Next unimplemented step: **08 — movement and targeting**.
 
 ---
 
@@ -553,10 +553,46 @@ reserve one batch and three event IDs for an abort tail; an exhausted preflight 
 commits a no-action `TechnicalAbort` batch. `ResourceChangeReason` now lives in shared
 `battle_types.hpp`, so condition filters and logged resource changes use the same enum.
 
-## Next: step 07 — stamina scheduler and phases
+## Step 07 — Stamina scheduler and phase machine (`battle/scheduler/`)
 
-[`steps/step-07-stamina-scheduler-and-phases.md`](steps/step-07-stamina-scheduler-and-phases.md):
-activate the already-declared timeline/turn command and event contracts. Step 06 ends after both
-deployment confirmations while still in `BattlePhase::Deployment`; it deliberately does not yet
-advance time, refill AP/MP, start/end activations, resolve movement/casts, or publish externally.
+`BattleSession::advanceUntilActivation()` is legal only in `AwaitingActivation`; it returns
+`SchedulerCallResult` (`SchedulerAdvanceResult` or `RejectedSchedulerAdvance`) and uses the
+same non-reentrant session guard as commands. `StaminaScheduler` jumps exact `BattleTime` by
+the minimum time-to-ready (or the future step-10 timeline-boundary seam), filling only active,
+non-stunned units and clamping at effective stamina. No scheduler path reads wall/render time
+or battle RNG.
+
+```cpp
+enum class SchedulerStop { ActivationReady, Terminal, Aborted };
+enum class SchedulerRejection { WrongPhase, SessionBusy };
+struct SchedulerAdvanceResult { SchedulerStop stop; optional<BattleUnitId> activeUnit;
+  vector<BattleBatchId> committedBatches; };
+using SchedulerCallResult = variant<SchedulerAdvanceResult, RejectedSchedulerAdvance>;
+SchedulerCallResult BattleSession::advanceUntilActivation();
+BattleOutcome evaluateBattleOutcome(const BattleContext&) noexcept;
+struct BattleTerminalRecord { BattleId battleId; BattleOutcome outcome;
+  optional<BattleAbortReason> abortReason; };
 ```
+
+Ready selection is explicitly `(Player before Enemy, rosterOrder, BattleUnitId)`. A selected
+unit enters `Activation` with monotonic `TurnIndex` (never max), receives AP then MP refill,
+then each one-shot penalty is subtracted and cleared, and finally emits `ActivationStarted`.
+Scheduler batches have no action id; `EndTurnCommand` uses the normal command action id,
+emits `ActivationEnded`, resets only the actor's bar, and returns to `AwaitingActivation`.
+Time stays frozen through activation. Player can explicitly end player turns; EnemyAi can end
+enemy turns; DebugAutoplay has the player-side autoplay end causes. Move/cast remain unavailable.
+
+Player confirmation now emits `DeploymentConfirmed` then `DeploymentCompleted` in one command
+batch and transitions to `AwaitingActivation` without pumping the scheduler. `BattleSnapshot`
+captures `nextTurn` and `resolvedNonEndCommands`; the latter is reserved for the later generic
+non-end command cap and intentionally remains outside `gameplayProgressDigest`. The timeline
+seam currently has no runtime deadlines; no eligible filler/deadline produces the terminal
+`TechnicalAbort{SchedulerNoFutureProgress}` batch, and a zero-time no-progress boundary uses
+`TimelineBoundaryMadeNoProgress`.
+
+## Next: step 08 — movement and targeting
+
+[`steps/step-08-movement-and-targeting.md`](steps/step-08-movement-and-targeting.md): add the
+first accepted non-end commands to the active-turn gateway. Scheduler/activation ownership,
+resource pools, turn bars, phase transitions, command batches, and end-turn semantics above are
+the baseline; do not advance time while resolving movement or targeting.

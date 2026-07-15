@@ -120,4 +120,29 @@ TEST(BattleSessionTest, ProjectsUnitsAndCommitsOnlyAcceptedDeploymentCommands)
 	EXPECT_EQ(session->archivedBatches().size(), 4U);
 	EXPECT_EQ(session->snapshot().units[0].cell, playerCells[0]);
 	EXPECT_EQ(session->snapshot().units[1].cell, playerCells[1]);
+	EXPECT_EQ(session->phase(), pg::BattlePhase::AwaitingActivation);
+
+	const pg::SchedulerCallResult scheduled = session->advanceUntilActivation();
+	ASSERT_TRUE(std::holds_alternative<pg::SchedulerAdvanceResult>(scheduled));
+	const pg::SchedulerAdvanceResult &ready = std::get<pg::SchedulerAdvanceResult>(scheduled);
+	EXPECT_EQ(ready.stop, pg::SchedulerStop::ActivationReady);
+	ASSERT_TRUE(ready.activeUnit.has_value());
+	EXPECT_EQ(ready.activeUnit->value(), 1U) << "player side wins the equal-stamina readiness tie";
+	EXPECT_EQ(session->snapshot().elapsed.ticks(), starter.derived.attributes.stamina.ticks());
+	EXPECT_EQ(session->snapshot().turn->value, 1U);
+	EXPECT_EQ(session->snapshot().units[0].actionPoints, starter.derived.attributes.maxActionPoints);
+	EXPECT_EQ(session->snapshot().units[0].movementPoints, starter.derived.attributes.maxMovementPoints);
+
+	const pg::CommandResult end = session->submit(
+		pg::EndTurnCommand{*ready.activeUnit, pg::EndTurnRequestCause::Explicit}, {pg::CommandController::Player});
+	ASSERT_TRUE(std::holds_alternative<pg::AcceptedCommand>(end));
+	EXPECT_EQ(std::get<pg::AcceptedCommand>(end).actionId.value, 4U);
+	EXPECT_EQ(session->phase(), pg::BattlePhase::AwaitingActivation);
+	EXPECT_EQ(session->snapshot().units[0].turnBarFill.ticks(), 0);
+	EXPECT_EQ(session->snapshot().units[1].turnBarFill.ticks(), starter.derived.attributes.stamina.ticks());
+
+	const pg::SchedulerCallResult tied = session->advanceUntilActivation();
+	ASSERT_TRUE(std::holds_alternative<pg::SchedulerAdvanceResult>(tied));
+	EXPECT_EQ(std::get<pg::SchedulerAdvanceResult>(tied).activeUnit->value(), 2U);
+	EXPECT_EQ(session->snapshot().elapsed.ticks(), starter.derived.attributes.stamina.ticks());
 }

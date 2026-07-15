@@ -155,11 +155,18 @@ namespace pg
 		//   placed and current health > 0 and removalReason == None.
 		// An undeployed, defeated or impressed unit is not active.
 		[[nodiscard]] bool isActiveCombatant() const noexcept;
+		// Step 10 replaces this final-purpose seam with the active-status tag query. There are no
+		// runtime statuses yet, so no Step 07 unit is stunned.
+		[[nodiscard]] bool isStunned() const noexcept { return false; }
 
 		// Mutation surface. These are reachable only through BattleContext, which is itself a private
 		// member of BattleSession, so nothing outside the command path can call them.
 		void markPlacedAt(const BoardCell &p_cell);
 		void clearPlacement();
 		void setRemovalReason(RemovalReason p_reason) noexcept { _removalReason = p_reason; }
+		void setTurnBarFill(BattleTime p_fill) noexcept { _turnBarFill = p_fill; }
+		void setActionPoints(int p_value) noexcept { _actionPoints = p_value; }
+		void setMovementPoints(int p_value) noexcept { _movementPoints = p_value; }
+		void clearNextActivationPenalty() noexcept { _nextActivationPenalty = {}; }
 	};
 }

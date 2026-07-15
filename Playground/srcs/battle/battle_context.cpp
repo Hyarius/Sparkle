@@ -82,6 +82,36 @@ namespace pg
 		(p_side == BattleSide::Player ? _playerConfirmed : _enemyConfirmed) = p_confirmed;
 	}
 
+	void BattleContext::setTerminal(BattleOutcome p_outcome, std::optional<BattleAbortReason> p_reason)
+	{
+		if (_terminalRecord.has_value())
+		{
+			throw std::logic_error("battle terminal record may only be constructed once");
+		}
+		if ((p_outcome == BattleOutcome::Aborted) != p_reason.has_value())
+		{
+			throw std::invalid_argument("an abort reason is present exactly for an aborted terminal outcome");
+		}
+		_outcome = p_outcome;
+		_abortReason = p_reason;
+		_phase = BattlePhase::Terminal;
+		_terminalRecord = BattleTerminalRecord{_descriptor.battleId, p_outcome, p_reason};
+	}
+
+	std::optional<TurnIndex> BattleContext::allocateTurn()
+	{
+		if (_nextTurn >= CounterMax)
+		{
+			return std::nullopt;
+		}
+		return TurnIndex{_nextTurn++};
+	}
+
+	bool BattleContext::canAllocateTurn() const noexcept
+	{
+		return _nextTurn < CounterMax;
+	}
+
 	int BattleContext::activeCount(BattleSide p_side) const noexcept
 	{
 		int count = 0;
@@ -215,7 +245,9 @@ namespace pg
 		snap.abortReason = _abortReason;
 		snap.elapsed = _elapsed;
 		snap.turn = _turn;
+		snap.nextTurn = _nextTurn;
 		snap.activeUnit = _activeUnit;
+		snap.resolvedNonEndCommands = _resolvedNonEndCommands;
 
 		const auto capture = [&](BattleUnitId p_id) {
 			const BattleUnit &u = unit(p_id);
@@ -346,9 +378,7 @@ namespace pg
 			throw std::logic_error("terminal-abort reserve was already consumed: battle state is corrupt");
 		}
 
-		_phase = BattlePhase::Terminal;
-		_outcome = BattleOutcome::Aborted;
-		_abortReason = p_reason;
+		setTerminal(BattleOutcome::Aborted, p_reason);
 		_activeUnit = std::nullopt;
 
 		std::vector<StagedEvent> staged;
