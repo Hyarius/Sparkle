@@ -1,6 +1,8 @@
 #include "core/mode_manager.hpp"
 
 #include "battle/battle_pump.hpp"
+#include "battle/presentation/battle_presentation_cell_source.hpp"
+#include "battle/presentation/battle_presentation_runtime.hpp"
 #include "battle/battle_session.hpp"
 #include "board/board_builder.hpp"
 #include "components/actor.hpp"
@@ -51,6 +53,9 @@ namespace pg
 		spk::Vector3Int _battleStreamerRange{};
 		std::vector<std::pair<spk::Vector3Int, bool>> _worldChunkStates;
 		std::unique_ptr<spk::Entity3D> _arenaEntity;
+		std::unique_ptr<BoardPresentationCellSource> _presentationCells;
+		std::unique_ptr<BattlePresentationBoardBinding> _presentationBinding;
+		std::unique_ptr<BattlePresentationRuntime> _presentation;
 		bool _shutdown = false;
 		BattlePump _pump;
 
@@ -162,6 +167,10 @@ namespace pg
 			VoxelWorld &p_world,
 			spk::GameEngine &p_engine,
 			const spk::Texture &p_voxelTexture,
+			spk::Camera3D &p_camera,
+			const spk::Texture &p_maskTexture,
+			std::function<spk::Vector2()> p_viewportSize,
+			const GameRules &p_rules,
 			const PrefabDefinition *p_handcraftedPrefab) :
 			_request(std::move(p_request)),
 			_session(std::move(p_session)),
@@ -181,28 +190,54 @@ namespace pg
 			_battleStreamerOrigin(p_battleStreamerOrigin),
 			_battleStreamerRange(p_battleStreamerRange)
 		{
-			if (_session == nullptr)
+			try
 			{
-				throw std::invalid_argument("battle runtime requires a session");
-			}
-			if (_request.debugAutoplayPlayerProfileId.has_value())
-			{
-				_pump.setDebugPlayerAutoplayBehaviour(_request.debugAutoplayPlayerProfileId);
-			}
-			const std::shared_ptr<spk::TextureMesh3D> clearedHover = std::make_shared<spk::TextureMesh3D>();
-			if (_session->board().sourceDescriptor().kind == BoardSourceKind::Handcrafted)
-			{
-				if (p_handcraftedPrefab == nullptr)
+				if (_session == nullptr)
 				{
-					throw std::invalid_argument("handcrafted battle runtime requires its geometry prefab");
+					throw std::invalid_argument("battle runtime requires a session");
 				}
-				_activateHandcraftedArena(*p_handcraftedPrefab);
+				if (_request.debugAutoplayPlayerProfileId.has_value())
+				{
+					_pump.setDebugPlayerAutoplayBehaviour(_request.debugAutoplayPlayerProfileId);
+				}
+				const std::shared_ptr<spk::TextureMesh3D> clearedHover = std::make_shared<spk::TextureMesh3D>();
+				if (_session->board().sourceDescriptor().kind == BoardSourceKind::Handcrafted)
+				{
+					if (p_handcraftedPrefab == nullptr)
+					{
+						throw std::invalid_argument("handcrafted battle runtime requires its geometry prefab");
+					}
+					_activateHandcraftedArena(*p_handcraftedPrefab);
+				}
+				// Fluid was paused before live-board construction.  Suspension owns the other visual
+				// state and leaves the player entity/streamer processable for the frozen world board.
+				_hoverRenderer.setMesh(clearedHover);
+				_hoverRenderer.deactivate();
+				_playerRenderer.deactivate();
+				_presentationCells = std::make_unique<BoardPresentationCellSource>(_session->board());
+				_presentationBinding = std::make_unique<BattlePresentationBoardBinding>(BattlePresentationBoardBinding{
+					.board = _session->board(),
+					.cells = *_presentationCells,
+					.bounds = presentationBounds(_session->board(), *_presentationCells),
+					.source = _session->board().sourceDescriptor()});
+				_presentation = std::make_unique<BattlePresentationRuntime>(
+					_engine,
+					p_camera,
+					*_session,
+					[this] { return _session->snapshot(); },
+					BattlePresentationCallbacks{},
+					std::move(p_viewportSize),
+					p_maskTexture,
+					p_rules);
+				_presentation->enter(*_presentationBinding);
 			}
-			// Fluid was paused before live-board construction.  Suspension owns the other visual
-			// state and leaves the player entity/streamer processable for the frozen world board.
-			_hoverRenderer.setMesh(clearedHover);
-			_hoverRenderer.deactivate();
-			_playerRenderer.deactivate();
+			catch (...)
+			{
+				// A failed presentation attach is an entry failure, not an orphaned arena, paused
+				// fluid simulator, or hidden exploration renderer.
+				shutdown();
+				throw;
+			}
 		}
 
 		~BattleModeRuntime()
@@ -219,7 +254,7 @@ namespace pg
 			return _request;
 		}
 
-		void update()
+		void update(const spk::UpdateContext &p_tick)
 		{
 			if (_session->phase() == BattlePhase::Deployment && _request.debugAutoplayPlayerProfileId.has_value())
 			{
@@ -236,14 +271,54 @@ namespace pg
 						if (!_session->board().occupancy().unitAt(cell).has_value())
 						{
 							(void)_session->submit(PlaceUnitCommand{unit.id, cell}, {CommandController::DebugAutoplay});
+							if (_presentation != nullptr)
+							{
+								_presentation->update(p_tick);
+							}
 							return; // one public command per update, preserving ordinary batch boundaries
 						}
 					}
 				}
 				(void)_session->submit(ConfirmDeploymentCommand{}, {CommandController::DebugAutoplay});
+				if (_presentation != nullptr)
+				{
+					_presentation->update(p_tick);
+				}
 				return;
 			}
 			(void)_pump.advanceUntilPlayerInput(*_session, 64);
+			if (_presentation != nullptr)
+			{
+				_presentation->update(p_tick);
+			}
+		}
+
+		[[nodiscard]] bool onMouseMoved(const spk::MouseMovedEvent &p_event)
+		{
+			return _presentation != nullptr && _presentation->onMouseMoved(p_event);
+		}
+		[[nodiscard]] bool onMousePressed(const spk::MouseButtonPressedEvent &p_event)
+		{
+			return _presentation != nullptr && _presentation->onMousePressed(p_event);
+		}
+		[[nodiscard]] bool onMouseReleased(const spk::MouseButtonReleasedEvent &p_event)
+		{
+			return _presentation != nullptr && _presentation->onMouseReleased(p_event);
+		}
+		[[nodiscard]] bool onMouseWheel(const spk::MouseWheelScrolledEvent &p_event)
+		{
+			return _presentation != nullptr && _presentation->onMouseWheel(p_event);
+		}
+		[[nodiscard]] bool onKeyPressed(const spk::KeyPressedEvent &p_event)
+		{
+			return _presentation != nullptr && _presentation->onKeyPressed(p_event);
+		}
+		void onMouseLeave() noexcept
+		{
+			if (_presentation != nullptr)
+			{
+				_presentation->onMouseLeave();
+			}
 		}
 
 		void shutdown() noexcept
@@ -253,6 +328,14 @@ namespace pg
 				return;
 			}
 			_shutdown = true;
+			if (_presentation != nullptr)
+			{
+				_presentation->beginExit();
+				_presentation->detach();
+				_presentation.reset();
+			}
+			_presentationBinding.reset();
+			_presentationCells.reset();
 			// The session owns BoardData and releases it before either source-specific presentation
 			// state (including an isolated arena) or fluid activity is restored.
 			_session.reset();
@@ -636,6 +719,10 @@ namespace pg
 					_dependencies.world,
 					_dependencies.engine,
 					_dependencies.voxelTexture,
+					_dependencies.camera,
+					_dependencies.maskTexture,
+					_dependencies.viewportSize,
+					_dependencies.registries.gameRules(),
 					handcraftedPrefab);
 			} catch (...)
 			{
@@ -738,13 +825,13 @@ namespace pg
 		}
 	}
 
-	void ModeManager::updateBattle()
+	void ModeManager::updateBattle(const spk::UpdateContext &p_tick)
 	{
 		if (_battle == nullptr || hasPendingTransition())
 		{
 			return;
 		}
-		_battle->update();
+		_battle->update(p_tick);
 		_publishBatches();
 		if (_battle->session().phase() == BattlePhase::Terminal && !_resultPublished)
 		{
@@ -757,6 +844,39 @@ namespace pg
 				 .encounterDefinitionId = _battle->request().encounter.encounterDefinitionId,
 				 .outcome = record.outcome});
 			(void)requestBattleExit(record);
+		}
+	}
+
+	bool ModeManager::onMouseMoved(const spk::MouseMovedEvent &p_event)
+	{
+		return _battle != nullptr && !hasPendingTransition() && _battle->onMouseMoved(p_event);
+	}
+
+	bool ModeManager::onMousePressed(const spk::MouseButtonPressedEvent &p_event)
+	{
+		return _battle != nullptr && !hasPendingTransition() && _battle->onMousePressed(p_event);
+	}
+
+	bool ModeManager::onMouseReleased(const spk::MouseButtonReleasedEvent &p_event)
+	{
+		return _battle != nullptr && !hasPendingTransition() && _battle->onMouseReleased(p_event);
+	}
+
+	bool ModeManager::onMouseWheel(const spk::MouseWheelScrolledEvent &p_event)
+	{
+		return _battle != nullptr && !hasPendingTransition() && _battle->onMouseWheel(p_event);
+	}
+
+	bool ModeManager::onKeyPressed(const spk::KeyPressedEvent &p_event)
+	{
+		return _battle != nullptr && !hasPendingTransition() && _battle->onKeyPressed(p_event);
+	}
+
+	void ModeManager::onMouseLeave() noexcept
+	{
+		if (_battle != nullptr)
+		{
+			_battle->onMouseLeave();
 		}
 	}
 

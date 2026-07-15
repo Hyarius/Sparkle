@@ -407,7 +407,12 @@ namespace pg
 			.battleStreamer = *_battleStreamer,
 			.fluidSimulator = *_fluidSimulator,
 			.engine = engine,
-			.voxelTexture = _texture});
+			.camera = *_camera,
+			.voxelTexture = _texture,
+			.maskTexture = _maskTexture,
+			.viewportSize = [this] {
+				return spk::Vector2(static_cast<float>(geometry().width()), static_cast<float>(geometry().height()));
+			}});
 		_playerMovedContract = _context.events.playerMoved.subscribe([this](spk::Vector3Int p_cell) {
 			if (_interactionResolver != nullptr && !_pendingInteraction.has_value() &&
 				(_modeManager == nullptr || !_modeManager->hasPendingTransition()))
@@ -536,7 +541,7 @@ namespace pg
 		if (_modeManager != nullptr)
 		{
 			_modeManager->processFrameBoundaryTransitions();
-			_modeManager->updateBattle();
+			_modeManager->updateBattle(p_tick);
 		}
 		_updateDurationNs.store(nowNs() - start, std::memory_order_relaxed);
 		invalidateRenderUnit();
@@ -729,6 +734,11 @@ namespace pg
 			p_event.consume();
 			return;
 		}
+		if (_modeManager != nullptr && _modeManager->onKeyPressed(p_event))
+		{
+			p_event.consume();
+			return;
+		}
 		if (p_event->key == spk::Keyboard::F8 && _context.isExplorationActive() && !_pendingInteraction.has_value() &&
 			_modeManager != nullptr && !_modeManager->hasPendingTransition())
 		{
@@ -754,6 +764,55 @@ namespace pg
 			return;
 		}
 		spk::GameEngineWidget::_onKeyPressedEvent(p_event);
+	}
+
+	void GameSceneWidget::_onMouseLeftEvent(spk::MouseLeftWindowEvent &p_event)
+	{
+		if (_modeManager != nullptr)
+		{
+			_modeManager->onMouseLeave();
+		}
+		spk::GameEngineWidget::_onMouseLeftEvent(p_event);
+	}
+
+	void GameSceneWidget::_onMouseMovedEvent(spk::MouseMovedEvent &p_event)
+	{
+		if (_modeManager != nullptr && _modeManager->onMouseMoved(p_event))
+		{
+			p_event.consume();
+			return;
+		}
+		spk::GameEngineWidget::_onMouseMovedEvent(p_event);
+	}
+
+	void GameSceneWidget::_onMouseWheelScrolledEvent(spk::MouseWheelScrolledEvent &p_event)
+	{
+		if (_modeManager != nullptr && _modeManager->onMouseWheel(p_event))
+		{
+			p_event.consume();
+			return;
+		}
+		spk::GameEngineWidget::_onMouseWheelScrolledEvent(p_event);
+	}
+
+	void GameSceneWidget::_onMouseButtonPressedEvent(spk::MouseButtonPressedEvent &p_event)
+	{
+		if (_modeManager != nullptr && _modeManager->onMousePressed(p_event))
+		{
+			p_event.consume();
+			return;
+		}
+		spk::GameEngineWidget::_onMouseButtonPressedEvent(p_event);
+	}
+
+	void GameSceneWidget::_onMouseButtonReleasedEvent(spk::MouseButtonReleasedEvent &p_event)
+	{
+		if (_modeManager != nullptr && _modeManager->onMouseReleased(p_event))
+		{
+			p_event.consume();
+			return;
+		}
+		spk::GameEngineWidget::_onMouseButtonReleasedEvent(p_event);
 	}
 
 	spk::RenderUnit GameSceneWidget::_buildRenderUnit() const

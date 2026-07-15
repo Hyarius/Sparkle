@@ -38,3 +38,13 @@ same engine. Its mesh is derived from the validated geometry prefab at the board
 transform; it is removed before the generated-world state is restored. The current content pack
 has no handcrafted definitions, but the branch is independent of WorldPlan, live chunks, and
 world seed.
+
+## Presentation attachment (step 13)
+
+The runtime attaches `BattlePresentationRuntime` after the source-specific environment is visible,
+and detaches it before `BattleSession`/`BoardData` or an arena entity is released. It borrows one
+`BoardPresentationCellSource` for the session: it maps only through `BoardData`'s presentation
+conversion and works for the live frozen source and immutable handcrafted source. The presentation
+owns the tactical camera controller, board picker, one overlay entity, and the interaction
+controller. Input is routed by `GameSceneWidget` before engine forwarding when battle handles it,
+while exploration component logics remain inactive under `ControlContext`.

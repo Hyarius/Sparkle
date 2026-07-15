@@ -20,6 +20,10 @@ namespace pg
 		[[nodiscard]] virtual const VoxelDefinition *tryDefinition(const spk::VoxelCell &p_cell) const = 0;
 		// State-level data (walk heights) of the cell's voxel state, or nullptr when empty.
 		[[nodiscard]] virtual const VoxelStateDefinition *tryState(const spk::VoxelCell &p_cell) const = 0;
+		// Rendering shape for this concrete voxel state.  The battle presentation is intentionally
+		// built over the same frozen source as navigation, so it never needs to recover a VoxelWorld
+		// from a live board or special-case an authored grid.
+		[[nodiscard]] virtual const spk::VoxelShape *tryRenderShape(const spk::VoxelCell &p_cell) const = 0;
 	};
 
 	// Reads an immutable voxel grid: a handcrafted arena materialised from a prefab, a synthetic
@@ -48,6 +52,7 @@ namespace pg
 		[[nodiscard]] const spk::VoxelCell &cell(const spk::Vector3Int &p_position) const override;
 		[[nodiscard]] const VoxelDefinition *tryDefinition(const spk::VoxelCell &p_cell) const override;
 		[[nodiscard]] const VoxelStateDefinition *tryState(const spk::VoxelCell &p_cell) const override;
+		[[nodiscard]] const spk::VoxelShape *tryRenderShape(const spk::VoxelCell &p_cell) const override;
 	};
 
 	class WorldCellSource final : public ICellSource
@@ -61,6 +66,7 @@ namespace pg
 		[[nodiscard]] const spk::VoxelCell &cell(const spk::Vector3Int &p_position) const override;
 		[[nodiscard]] const VoxelDefinition *tryDefinition(const spk::VoxelCell &p_cell) const override;
 		[[nodiscard]] const VoxelStateDefinition *tryState(const spk::VoxelCell &p_cell) const override;
+		[[nodiscard]] const spk::VoxelShape *tryRenderShape(const spk::VoxelCell &p_cell) const override;
 	};
 
 	[[nodiscard]] bool isSolid(const ICellSource &p_source, const spk::Vector3Int &p_position);

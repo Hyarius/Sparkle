@@ -1,7 +1,7 @@
 # Combat plan — progress ledger
 
-> **Current status (2026-07-15): steps 01 through 12 are complete. Next work is step 13:
-> battle presentation and tactical input.**
+> **Current status (2026-07-15): steps 01 through 13 are complete. Next work is step 14:
+> unit views and HUD.**
 
 The **state of what has actually been built**, step by step, as a compact API surface:
 enough to implement the next step without re-reading the headers of every earlier one.
@@ -24,6 +24,8 @@ per-step `docs/NN-*.md` system docs are still skipped.)
 
 Status: **steps 01–12 complete** on branch `BattleImplementation`.
 Next work: **step 13 — battle presentation and tactical input**.
+Current ledger status: **steps 01 through 13 complete**. Next work: **step 14 - unit views and HUD**.
+
 ---
 
 ## Conventions that hold across every step
@@ -770,4 +772,40 @@ New runtime modules are `core/mode_manager.*`, `core/game_mode.hpp`,
 `docs/03-systems/modes-encounters-lifecycle.md`. Focused tests cover portal precedence, stable
 named-debug seeds, invalid-profile ordinal preservation, and world-plan/mode lifetime publication.
 
-## Next: Step 13 - battle presentation and tactical input
+## Step 13 - battle presentation and tactical input - complete
+
+Presentation is source-agnostic and subordinate to `ModeManager::BattleModeRuntime`.
+`battle/presentation/battle_presentation_cell_source.*` provides
+`IBattlePresentationCellSource`, `BoardPresentationCellSource`, `PresentationAabb`, and the
+borrowed `BattlePresentationBoardBinding`; it maps `BoardData` support cells into the persistent
+scene without a `VoxelWorld` downcast. `presentationBounds()` scans actual transformed upward
+shape polygons and rejects an empty/non-finite attachment.
+
+`rendering/walk_surface_mask_mesh_builder.*` is the single cube/slope/stair overlay extractor,
+used by both exploration hover and battle. Its `WalkSurfaceMaskMeshBuilder::build/buildOne`
+accept the common source, preserve polygon-normal/UV/lift semantics, and validate the shared 4x4
+mask atlas. `BattleOverlayModelBuilder` resolves the eight fixed categories to one sorted mask per
+board cell with revision-on-effective-change. `BattleOverlayPresenter` owns one translucent,
+shadow-free entity and rebuilds its immutable mesh only when that revision changes.
+
+`BattleBoardPicker` DDA-casts presentation source solids and returns a cell only when the nearest
+hit is an exact frozen `BoardData` support coordinate; there is no downward navigation search.
+`TacticalCameraController` frames the presentation AABB and exclusively orbit/zooms the persistent
+camera while battle is active. `BattleInteractionController` holds transient selection only and
+exposes the shared button/keyboard seam: `selectPlacementCreature`, `selectPlacementRosterSlot`,
+`clickBoardCell`, `selectMove`, `selectAbility`, `cancel`, `confirmDeployment`, and `endTurn`.
+It uses `BattleSession::planPlacement`, `legalMoves`, `planMove`, `abilityAnchors`, and `planCast`
+for read-only previews, and submits only value commands through `BattleSession::submit`.
+
+`BattlePresentationRuntime` composes these layers. `GameSceneWidget` routes handled battle input
+before engine-component dispatch, passes current widget viewport dimensions to picking, and keeps
+F7/F8 behavior intact. `BattleModeRuntime::shutdown()` detaches the presentation entity before
+its source binding and session. System docs: `docs/03-systems/battle-presentation.md` plus updated
+UI/mode pages. Focused overlay model tests are in
+`tests/battle/presentation/battle_overlay_model_test.cpp`.
+
+Verification: `cmake --build build/test --target PlaygroundTests SparklePlayground -j 4` and
+`ctest --test-dir build/test --output-on-failure -L playground` (355 tests) pass. A GUI visual
+pass remains an interactive follow-up.
+
+## Next: Step 14 - unit views and HUD

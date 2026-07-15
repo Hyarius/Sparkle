@@ -1,6 +1,7 @@
 #pragma once
 
 #include "components/actor.hpp"
+#include "battle/presentation/battle_presentation_cell_source.hpp"
 #include "core/game_context.hpp"
 #include "structures/game_engine/spk_camera_3d.hpp"
 #include "structures/game_engine/spk_component_logic.hpp"
@@ -29,6 +30,7 @@ namespace pg
 		ViewportSize _viewportSize;
 		spk::AtlasCell _hoveredMask;
 		spk::AtlasCell _invalidMask;
+		VoxelWorldPresentationCellSource _presentationCells;
 		std::optional<spk::Vector3Int> _hovered;
 		float _invalidSeconds = 0;
 		spk::ContractProvider<spk::Vector3Int>::Contract _invalidContract;

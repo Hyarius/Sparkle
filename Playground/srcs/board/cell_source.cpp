@@ -58,6 +58,11 @@ namespace pg
 		return p_cell.isEmpty() ? nullptr : _registry.tryState(p_cell.id);
 	}
 
+	const spk::VoxelShape *GridCellSource::tryRenderShape(const spk::VoxelCell &p_cell) const
+	{
+		return p_cell.isEmpty() ? nullptr : &_registry.renderRegistry().shape(p_cell.id);
+	}
+
 	WorldCellSource::WorldCellSource(const VoxelWorld &p_world, spk::Vector3Int p_originOffset) :
 		_world(p_world),
 		_originOffset(p_originOffset)
@@ -77,6 +82,11 @@ namespace pg
 	const VoxelStateDefinition *WorldCellSource::tryState(const spk::VoxelCell &p_cell) const
 	{
 		return p_cell.isEmpty() ? nullptr : _world.registry().tryState(p_cell.id);
+	}
+
+	const spk::VoxelShape *WorldCellSource::tryRenderShape(const spk::VoxelCell &p_cell) const
+	{
+		return p_cell.isEmpty() ? nullptr : &_world.registry().renderRegistry().shape(p_cell.id);
 	}
 
 	bool isSolid(const ICellSource &p_source, const spk::Vector3Int &p_position)

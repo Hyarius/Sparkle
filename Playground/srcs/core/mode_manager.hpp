@@ -3,14 +3,19 @@
 #include "battle/battle_lifecycle.hpp"
 #include "battle/battle_outcome_rules.hpp"
 #include "core/game_mode.hpp"
+#include "structures/math/spk_vector2.hpp"
+#include "structures/system/event/spk_events.hpp"
+#include "structures/system/event/spk_update_context.hpp"
 
 #include <memory>
 #include <optional>
 #include <variant>
+#include <functional>
 
 namespace spk
 {
 	class GameEngine;
+	class Camera3D;
 	class Texture;
 	class TextureMeshRenderer3D;
 	class VoxelChunkStreamer;
@@ -46,7 +51,10 @@ namespace pg
 			spk::VoxelChunkStreamer &battleStreamer;
 			spk::VoxelFluidSimulator &fluidSimulator;
 			spk::GameEngine &engine;
+			spk::Camera3D &camera;
 			const spk::Texture &voxelTexture;
+			const spk::Texture &maskTexture;
+			std::function<spk::Vector2()> viewportSize;
 		};
 
 	private:
@@ -94,7 +102,13 @@ namespace pg
 		bool requestBattle(BattleStartRequest p_request);
 		bool requestBattleExit(BattleTerminalRecord p_record);
 		void processFrameBoundaryTransitions();
-		void updateBattle();
+		void updateBattle(const spk::UpdateContext &p_tick);
+		[[nodiscard]] bool onMouseMoved(const spk::MouseMovedEvent &p_event);
+		[[nodiscard]] bool onMousePressed(const spk::MouseButtonPressedEvent &p_event);
+		[[nodiscard]] bool onMouseReleased(const spk::MouseButtonReleasedEvent &p_event);
+		[[nodiscard]] bool onMouseWheel(const spk::MouseWheelScrolledEvent &p_event);
+		[[nodiscard]] bool onKeyPressed(const spk::KeyPressedEvent &p_event);
+		void onMouseLeave() noexcept;
 		void shutdown() noexcept;
 	};
 }

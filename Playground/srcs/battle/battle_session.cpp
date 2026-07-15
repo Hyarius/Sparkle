@@ -1133,6 +1133,60 @@ namespace pg
 		return _context->board();
 	}
 
+	std::expected<PlaceUnitCommand, CommandRejection> BattleSession::planPlacement(
+		BattleUnitId p_unit,
+		BoardCell p_destination) const
+	{
+		const BattleContext &context = *_context;
+		if (context.phase() != BattlePhase::Deployment)
+		{
+			return std::unexpected(CommandRejection::WrongPhase);
+		}
+		const BattleUnit *unit = context.tryUnit(p_unit);
+		if (unit == nullptr)
+		{
+			return std::unexpected(CommandRejection::UnknownUnit);
+		}
+		if (unit->side() != BattleSide::Player)
+		{
+			return std::unexpected(CommandRejection::WrongController);
+		}
+		if (unit->removalReason() != RemovalReason::None)
+		{
+			return std::unexpected(CommandRejection::UnitRemoved);
+		}
+		if (context.sideConfirmed(unit->side()))
+		{
+			return std::unexpected(CommandRejection::UnitAlreadyConfirmed);
+		}
+		const std::optional<BoardCell> current = context.board().occupancy().cellOf(p_unit);
+		if (current.has_value() && *current == p_destination)
+		{
+			return std::unexpected(CommandRejection::NoStateChange);
+		}
+		if (!context.board().isStandable(p_destination))
+		{
+			return std::unexpected(CommandRejection::DestinationNotStandable);
+		}
+		if (!context.board().deployment().contains(unit->side(), p_destination))
+		{
+			return std::unexpected(CommandRejection::UnitOutsideDeploymentZone);
+		}
+		if (const std::optional<BattleUnitId> occupant = context.board().occupancy().unitAt(p_destination))
+		{
+			const BattleUnit &other = context.unit(*occupant);
+			if (other.side() != unit->side() || other.removalReason() != RemovalReason::None || !current.has_value())
+			{
+				return std::unexpected(CommandRejection::DestinationOccupied);
+			}
+		}
+		if (!context.board().terrainIsCurrent())
+		{
+			return std::unexpected(CommandRejection::CommandUnavailable);
+		}
+		return PlaceUnitCommand{p_unit, p_destination};
+	}
+
 	std::expected<MovePlan, CommandRejection> BattleSession::planMove(BattleUnitId p_unit, BoardCell p_destination) const
 	{
 		return BattleQueryService(*_context).planMove(p_unit, p_destination);

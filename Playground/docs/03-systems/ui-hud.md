@@ -22,6 +22,10 @@ Plan: steps [21](../plan/steps/step-21-battle-hud-1.md),
   small `pg::ProgressBarWidget`).
 - M1 ships **no HUD** (debug overlay only, D05). Everything below lands in steps 21–24.
 
+Step 13 provides the controller seam later buttons reuse: placement selection, movement, ability
+selection, cancellation, deployment confirmation, and end turn all call
+`BattleInteractionController`; HUD widgets must not create a second command route.
+
 ## Battle HUD (wireframe: `BattleHUD.png`)
 
 ```

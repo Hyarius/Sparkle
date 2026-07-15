@@ -90,6 +90,12 @@ namespace pg
 		// Read-only presentation/lifecycle binding.  The session remains the sole owner of the
 		// mutable board occupancy; consumers receive no mutation surface.
 		[[nodiscard]] const BoardData &board() const noexcept;
+		// Read-only deployment preview used by tactical presentation.  It validates the same
+		// command value that submit() later revalidates atomically; it never allocates events or
+		// touches occupancy.
+		[[nodiscard]] std::expected<PlaceUnitCommand, CommandRejection> planPlacement(
+			BattleUnitId p_unit,
+			BoardCell p_destination) const;
 		[[nodiscard]] std::expected<MovePlan, CommandRejection> planMove(BattleUnitId p_unit, BoardCell p_destination) const;
 		[[nodiscard]] std::expected<CastPlan, CommandRejection> planCast(BattleUnitId p_unit, std::string_view p_abilityId, BoardCell p_anchor) const;
 		[[nodiscard]] std::vector<MovePlan> legalMoves(BattleUnitId p_unit) const;
