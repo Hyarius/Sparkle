@@ -14,6 +14,7 @@
 #include "components/actor.hpp"
 #include "core/game_context.hpp"
 #include "core/random_seed.hpp"
+#include "encounters/exploration_interaction_resolver.hpp"
 #include "structures/game_engine/spk_camera_3d.hpp"
 #include "structures/game_engine/spk_entity_3d.hpp"
 #include "structures/game_engine/spk_light_3d.hpp"
@@ -37,6 +38,7 @@ namespace pg
 	class ActorPathLogic;
 	class CameraControllerLogic;
 	class DayTimeManagementLogic;
+	class ModeManager;
 	class PlanChunkProvider;
 	class VoxelWorld;
 	class WorldNavigation;
@@ -55,7 +57,6 @@ namespace pg
 	{
 	private:
 		GameContext &_context;
-		bool _previousExplorationActive = false;
 		std::uint64_t _worldSeed = 0;
 		std::shared_ptr<const WorldPlan> _worldPlan;
 		std::unique_ptr<PlanChunkProvider> _terrainProvider;
@@ -72,8 +73,10 @@ namespace pg
 		std::shared_ptr<spk::TextureMesh3D> _playerMesh;
 		spk::Entity3D _playerEntity;
 		spk::Entity3D _hoverEntity;
+		spk::Entity3D _battleStreamerEntity;
 		Actor *_player = nullptr;
 		spk::VoxelChunkStreamer *_streamer = nullptr;
+		spk::VoxelChunkStreamer *_battleStreamer = nullptr;
 		spk::VoxelFluidSimulator *_fluidSimulator = nullptr;
 		ExplorationInputLogic *_inputLogic = nullptr;
 		ActorPathLogic *_pathLogic = nullptr;
@@ -81,12 +84,13 @@ namespace pg
 		DayTimeManagementLogic *_dayTimeLogic = nullptr;
 		spk::SceneLightingRenderFeature *_lighting = nullptr;
 
-		// Door/exit-pad cells mapped to their teleport destination (from the world
-		// plan's portals). Stepping on a key cell queues the teleport; it executes
-		// after the engine update so it never mutates the actor mid-advance.
+		// Arrival callbacks queue an immutable interaction.  The resolver owns precedence; this
+		// widget applies it only after engine component iteration is complete.
 		std::unordered_map<spk::Vector3Int, spk::Vector3Int> _portalTargets;
-		std::optional<spk::Vector3Int> _pendingTeleport;
+		std::unique_ptr<ExplorationInteractionResolver> _interactionResolver;
+		std::optional<ExplorationInteraction> _pendingInteraction;
 		spk::ContractProvider<spk::Vector3Int>::Contract _playerMovedContract;
+		std::unique_ptr<ModeManager> _modeManager;
 
 		spk::Entity3D _cameraEntity;
 		spk::Camera3D *_camera = nullptr;
@@ -108,6 +112,8 @@ namespace pg
 
 		void _buildScene(const Registries &p_registries, const GameSceneConstructionOptions &p_options);
 		void _executeTeleport(const spk::Vector3Int &p_target);
+		void _queueInteraction(ExplorationInteractionResolution p_resolution);
+		void _processExplorationInteraction();
 		void _syncVoxelLights();
 		void _configureOverlay();
 		[[nodiscard]] std::size_t _profilerSectionRowCount() const;

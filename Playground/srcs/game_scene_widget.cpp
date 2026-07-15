@@ -11,6 +11,7 @@
 #include <string>
 #include <unordered_set>
 
+#include "core/mode_manager.hpp"
 #include "core/paths.hpp"
 #include "core/registries.hpp"
 #include "logics/actor_path_logic.hpp"
@@ -139,7 +140,6 @@ namespace pg
 		const GameSceneConstructionOptions &p_options) :
 		spk::GameEngineWidget(p_name, p_parent),
 		_context(p_context),
-		_previousExplorationActive(p_context.world.explorationActive),
 		_worldSeed(p_options.worldSeed),
 		_overlay(p_name + "/DebugOverlay", this)
 	{
@@ -154,7 +154,8 @@ namespace pg
 		_context.world.world.reset();
 		_context.world.world = std::move(_stagedWorld);
 		_context.world.navigation = std::move(_stagedNavigation);
-		_context.world.explorationActive = true;
+		_context.worldSeed = _worldSeed;
+		_context.worldPlan = _worldPlan;
 
 		// The world cell the run starts on, known only now: the new-game config deliberately
 		// hard-codes none. It is committed with the world, so a scene that failed to build leaves
@@ -166,17 +167,26 @@ namespace pg
 
 	GameSceneWidget::~GameSceneWidget()
 	{
+		// Live battle boards borrow the world.  The mode manager must dismantle its session and
+		// release control suspension while the map and engine still exist.
+		if (_modeManager != nullptr)
+		{
+			_modeManager->shutdown();
+			_modeManager.reset();
+		}
+		_interactionResolver.reset();
 		for (auto &[position, entity] : _voxelLightEntities)
 		{
 			(void)position;
 			gameEngine().removeEntity(entity.get());
 		}
 		_voxelLightEntities.clear();
-		_context.world.explorationActive = _previousExplorationActive;
 		_context.world.navigation.reset();
 		// Destroys the VoxelWorld (and its spk::VoxelMap), unregistering every chunk entity
 		// from the engine while the engine is still alive.
 		_context.world.world.reset();
+		_context.worldPlan.reset();
+		_context.worldSeed = 0;
 		_terrainProvider.reset();
 	}
 
@@ -246,13 +256,6 @@ namespace pg
 		{
 			_portalTargets.emplace(portal.from, portal.to);
 		}
-		_playerMovedContract = _context.events.playerMoved.subscribe([this](spk::Vector3Int p_cell) {
-			const auto found = _portalTargets.find(p_cell);
-			if (found != _portalTargets.end())
-			{
-				_pendingTeleport = found->second;
-			}
-		});
 		_terrainProvider = std::make_unique<PlanChunkProvider>(p_registries, *_worldPlan);
 		_stagedWorld = std::make_unique<VoxelWorld>(
 			p_registries.voxels(),
@@ -325,6 +328,13 @@ namespace pg
 		_streamer = &_playerEntity.addComponent<spk::VoxelChunkStreamer>(_stagedWorld->map());
 		_streamer->setViewRange(StreamViewRange);
 		_streamer->setOriginPosition(spawnChunk);
+		// A battle-owned streamer pins a live-board window independently of the player source. It is
+		// intentionally idle during exploration and only ModeManager configures it at a safe boundary.
+		_battleStreamer = &_battleStreamerEntity.addComponent<spk::VoxelChunkStreamer>(_stagedWorld->map());
+		_battleStreamer->setViewRange({0, 0, 0});
+		_battleStreamer->setOriginPosition(spawnChunk);
+		_battleStreamer->deactivate();
+		engine.addEntity(&_battleStreamerEntity);
 		// The fluid simulator rides the player entity like the streamer: the update loop
 		// re-centers it on the player cell. The only Playground policy is the traversal
 		// mapping (passable voxels are replaceable by fluid, solid voxels are support);
@@ -358,7 +368,7 @@ namespace pg
 			*_stagedNavigation,
 			*_stagedWorld,
 			[this] {
-				return _context.world.explorationActive;
+				return _context.isExplorationActive();
 			});
 		_pathLogic->placeAtCell(*_player);
 		_cameraLogic = &engine.add<CameraControllerLogic>(_context, *_camera);
@@ -376,6 +386,38 @@ namespace pg
 			viewportSize,
 			spk::AtlasCell{hovered[0], hovered[1]},
 			spk::AtlasCell{invalid[0], invalid[1]});
+
+		_interactionResolver = std::make_unique<ExplorationInteractionResolver>(
+			p_registries,
+			*_stagedWorld,
+			*_worldPlan,
+			_portalTargets,
+			_context.player,
+			_worldSeed);
+		_modeManager = std::make_unique<ModeManager>(ModeManager::Dependencies{
+			.game = _context,
+			.registries = p_registries,
+			.world = *_stagedWorld,
+			.worldNavigation = *_stagedNavigation,
+			.playerActor = *_player,
+			.actorPath = *_pathLogic,
+			.playerRenderer = playerRenderer,
+			.explorationHoverRenderer = hoverRenderer,
+			.playerStreamer = *_streamer,
+			.battleStreamer = *_battleStreamer,
+			.fluidSimulator = *_fluidSimulator,
+			.engine = engine,
+			.voxelTexture = _texture});
+		_playerMovedContract = _context.events.playerMoved.subscribe([this](spk::Vector3Int p_cell) {
+			if (_interactionResolver != nullptr && !_pendingInteraction.has_value() &&
+				(_modeManager == nullptr || !_modeManager->hasPendingTransition()))
+			{
+				_queueInteraction(_interactionResolver->resolvePlayerArrival(
+					p_cell,
+					_player == nullptr ? VoxelOrientation::PositiveZ : _player->facing,
+					_context.player.encounterSerial));
+			}
+		});
 
 		_streamingFocus = spawnChunk;
 
@@ -490,11 +532,11 @@ namespace pg
 		}
 		spk::GameEngineWidget::_onUpdate(p_tick);
 		_syncVoxelLights();
-		if (_pendingTeleport.has_value())
+		_processExplorationInteraction();
+		if (_modeManager != nullptr)
 		{
-			const spk::Vector3Int target = *_pendingTeleport;
-			_pendingTeleport.reset();
-			_executeTeleport(target);
+			_modeManager->processFrameBoundaryTransitions();
+			_modeManager->updateBattle();
 		}
 		_updateDurationNs.store(nowNs() - start, std::memory_order_relaxed);
 		invalidateRenderUnit();
@@ -596,6 +638,47 @@ namespace pg
 		}
 	}
 
+	void GameSceneWidget::_queueInteraction(ExplorationInteractionResolution p_resolution)
+	{
+		if (p_resolution.consumesEncounterOrdinal)
+		{
+			if (_context.player.encounterSerial == std::numeric_limits<std::uint64_t>::max())
+			{
+				return;
+			}
+			++_context.player.encounterSerial;
+		}
+		if (!std::holds_alternative<std::monostate>(p_resolution.interaction) && !_pendingInteraction.has_value())
+		{
+			_pendingInteraction = std::move(p_resolution.interaction);
+		}
+	}
+
+	void GameSceneWidget::_processExplorationInteraction()
+	{
+		if (!_pendingInteraction.has_value())
+		{
+			return;
+		}
+		ExplorationInteraction interaction = std::move(*_pendingInteraction);
+		_pendingInteraction.reset();
+		if (const TeleportRequest *teleport = std::get_if<TeleportRequest>(&interaction))
+		{
+			_executeTeleport(teleport->destination);
+			return;
+		}
+		if (BattleStartRequest *battle = std::get_if<BattleStartRequest>(&interaction))
+		{
+			if (_modeManager != nullptr)
+			{
+				(void)_modeManager->requestBattle(std::move(*battle));
+			}
+			return;
+		}
+		// Scripted producers are introduced with the relevant NPC/progression systems.  The typed
+		// variant remains intentionally inert until then; it cannot accidentally compete with Bushes.
+	}
+
 	void GameSceneWidget::_executeTeleport(const spk::Vector3Int &p_target)
 	{
 		if (_player == nullptr || _context.world.world == nullptr)
@@ -644,6 +727,30 @@ namespace pg
 		{
 			_overlay.isActivated() ? _overlay.deactivate() : _overlay.activate();
 			p_event.consume();
+			return;
+		}
+		if (p_event->key == spk::Keyboard::F8 && _context.isExplorationActive() && !_pendingInteraction.has_value() &&
+			_modeManager != nullptr && !_modeManager->hasPendingTransition())
+		{
+			constexpr std::string_view DebugEncounterId = "debug-battle";
+			if (_interactionResolver != nullptr)
+			{
+				ExplorationInteractionResolution resolution = _interactionResolver->resolveNamedEncounter(
+					DebugEncounterId,
+					_player == nullptr ? spk::Vector3Int{} : _player->cell,
+					_player == nullptr ? VoxelOrientation::PositiveZ : _player->facing,
+					_context.player.encounterSerial);
+				if (resolution.consumesEncounterOrdinal ||
+					!std::holds_alternative<std::monostate>(resolution.interaction))
+				{
+					_queueInteraction(std::move(resolution));
+					p_event.consume();
+				}
+				else
+				{
+					std::cerr << "debug encounter '" << DebugEncounterId << "' is unavailable or already cleared" << std::endl;
+				}
+			}
 			return;
 		}
 		spk::GameEngineWidget::_onKeyPressedEvent(p_event);

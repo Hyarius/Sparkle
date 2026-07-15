@@ -161,7 +161,7 @@ namespace pg
 
 	void ExplorationInputLogic::_parseComponentForUpdate(const spk::UpdateContext &p_tick, Actor &p_actor)
 	{
-		if (!_context.world.explorationActive || !p_actor.player || _invalidSeconds <= 0)
+		if (!_context.isExplorationActive() || !p_actor.player || _invalidSeconds <= 0)
 		{
 			return;
 		}
@@ -174,7 +174,7 @@ namespace pg
 
 	void ExplorationInputLogic::_parseComponentForMouseMovedEvent(spk::MouseMovedEvent &p_event, Actor &p_actor)
 	{
-		if (!_context.world.explorationActive || !p_actor.player)
+		if (!_context.isExplorationActive() || !p_actor.player)
 		{
 			return;
 		}
@@ -185,7 +185,7 @@ namespace pg
 		spk::MouseButtonPressedEvent &p_event,
 		Actor &p_actor)
 	{
-		if (!_context.world.explorationActive || !p_actor.player || p_event->button != spk::Mouse::Left)
+		if (!_context.isExplorationActive() || !p_actor.player || p_event->button != spk::Mouse::Left)
 		{
 			return;
 		}

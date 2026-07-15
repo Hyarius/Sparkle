@@ -87,6 +87,9 @@ namespace pg
 		[[nodiscard]] BattleOutcome outcome() const noexcept;
 		[[nodiscard]] const std::optional<BattleTerminalRecord> &terminalRecord() const noexcept;
 		[[nodiscard]] const Registries &registries() const noexcept;
+		// Read-only presentation/lifecycle binding.  The session remains the sole owner of the
+		// mutable board occupancy; consumers receive no mutation surface.
+		[[nodiscard]] const BoardData &board() const noexcept;
 		[[nodiscard]] std::expected<MovePlan, CommandRejection> planMove(BattleUnitId p_unit, BoardCell p_destination) const;
 		[[nodiscard]] std::expected<CastPlan, CommandRejection> planCast(BattleUnitId p_unit, std::string_view p_abilityId, BoardCell p_anchor) const;
 		[[nodiscard]] std::vector<MovePlan> legalMoves(BattleUnitId p_unit) const;

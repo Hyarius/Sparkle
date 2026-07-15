@@ -311,7 +311,7 @@ int main(int argc, char **argv)
 		scene.activate();
 
 		std::cout << "Exploration: left-click to move, right-drag or AEZS to orbit, wheel to zoom. "
-					 "F7 toggles the overlay. Close the window to exit."
+					 "F7 toggles the overlay; F8 queues the configured debug encounter. Close the window to exit."
 				  << std::endl;
 		return application.run();
 	} catch (const std::exception &exception)

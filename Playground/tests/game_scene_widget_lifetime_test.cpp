@@ -48,7 +48,9 @@ TEST(GameSceneWidgetLifetimeTest, ConstructionFailureAfterChunkWarmupLeavesConte
 	EXPECT_TRUE(checkpointReached);
 	EXPECT_EQ(context.world.world, nullptr);
 	EXPECT_EQ(context.world.navigation, nullptr);
-	EXPECT_FALSE(context.world.explorationActive);
+	EXPECT_EQ(context.worldPlan, nullptr);
+	EXPECT_EQ(context.worldSeed, 0U);
+	EXPECT_TRUE(context.isExplorationActive());
 
 	// This is the original reproducer's dangerous final step. It must remain harmless
 	// after the failed widget (and therefore its engine) has finished unwinding.
@@ -73,11 +75,15 @@ TEST(GameSceneWidgetLifetimeTest, SuccessfulDestructionClearsLoadedWorldBeforeEn
 		EXPECT_TRUE(checkpointReached);
 		ASSERT_NE(context.world.world, nullptr);
 		ASSERT_NE(context.world.navigation, nullptr);
+		ASSERT_NE(context.worldPlan, nullptr);
+		EXPECT_EQ(context.worldSeed, 1U);
 		EXPECT_GT(context.world.world->loadedChunkCount(), 0u);
-		EXPECT_TRUE(context.world.explorationActive);
+		EXPECT_TRUE(context.isExplorationActive());
 	}
 
 	EXPECT_EQ(context.world.navigation, nullptr);
 	EXPECT_EQ(context.world.world, nullptr);
-	EXPECT_FALSE(context.world.explorationActive);
+	EXPECT_EQ(context.worldPlan, nullptr);
+	EXPECT_EQ(context.worldSeed, 0U);
+	EXPECT_TRUE(context.isExplorationActive());
 }

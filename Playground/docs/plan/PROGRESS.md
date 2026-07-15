@@ -1,7 +1,7 @@
 # Combat plan — progress ledger
 
-> **Current status (2026-07-15): steps 01 through 11 are complete. Next work is step 12:
-> modes, encounters, and lifecycle.**
+> **Current status (2026-07-15): steps 01 through 12 are complete. Next work is step 13:
+> battle presentation and tactical input.**
 
 The **state of what has actually been built**, step by step, as a compact API surface:
 enough to implement the next step without re-reading the headers of every earlier one.
@@ -22,8 +22,8 @@ headers that step actually landed. A stale ledger is worse than none, because th
 will trust it. (This is the one plan-doc file the step workflow does keep current; the
 per-step `docs/NN-*.md` system docs are still skipped.)
 
-Status: **steps 01–11 complete** on branch `BattleImplementation`.
-Next work: **step 12 — modes, encounters, and lifecycle**.
+Status: **steps 01–12 complete** on branch `BattleImplementation`.
+Next work: **step 13 — battle presentation and tactical input**.
 ---
 
 ## Conventions that hold across every step
@@ -739,4 +739,35 @@ enemy-command pump operations. Documentation: `docs/03-systems/battle-ai.md`.
 Verification: `cmake --build build/test --target PlaygroundTests -j 4` and
 `PlaygroundTests.exe --gtest_filter=BattleAI.*` (2 tests) pass.
 
-## Next: Step 12 - modes, encounters, and lifecycle
+## Step 12 - modes, encounters, and lifecycle - complete
+
+`GameContext::control.mode` is the one observable Exploration/Battle authority; the old
+`WorldContext::explorationActive` flag is gone. `GameSceneWidget` commits `worldSeed` and its
+shared immutable `worldPlan` with the live world, then clears mode/runtime before world teardown.
+The input, camera, and actor path logic use the semantic `isExplorationActive()` query.
+
+`ExplorationInteractionResolver` produces value interactions in portal > scripted-slot > Bush
+order. Bushes are inspected at support + Y by the normalized `Bush` voxel tag, resolve the
+biome table through `WorldPlan`, consume exactly one ordinal on every chance attempt, and derive
+separate resolution/combat seeds from a stable identity. F8 goes through the same named resolver
+for `debug-battle`; invalid autoplay profiles and already-cleared named content consume nothing.
+
+`ModeManager` owns the optional `BattleModeRuntime`, a one-value frame-boundary queue, and a
+process-local generation. It constructs a BoardData and BattleSession transactionally, publishes
+owned lifecycle/batch notices, pauses fluid and suspends exploration presentation only after
+construction succeeds, and runs the bounded `BattlePump`. Player deployment remains manual unless
+an explicit autoplay profile is carried in the request. Terminal results queue a later exit, which
+destroys session/arena state and restores captured streaming, chunk visibility, renderers, hover,
+and fluid state. The handcrafted branch materializes an isolated prefab-derived arena entity in
+the existing scene; it neither reads world terrain nor uses world seed geometry.
+Live boards additionally activate a dedicated battle streamer from the checked BoardBuilder pin
+window while the player streamer remains active; its prior origin/range/activation state is
+restored on entry failure and exit.
+
+New runtime modules are `core/mode_manager.*`, `core/game_mode.hpp`,
+`battle/battle_lifecycle.hpp`, and `encounters/exploration_interaction_resolver.*`.
+`BattleSession::board()` is read-only lifecycle/presentation access. Documentation:
+`docs/03-systems/modes-encounters-lifecycle.md`. Focused tests cover portal precedence, stable
+named-debug seeds, invalid-profile ordinal preservation, and world-plan/mode lifetime publication.
+
+## Next: Step 13 - battle presentation and tactical input

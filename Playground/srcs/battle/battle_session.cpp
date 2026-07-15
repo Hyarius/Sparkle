@@ -1128,6 +1128,11 @@ namespace pg
 		return _context->registries();
 	}
 
+	const BoardData &BattleSession::board() const noexcept
+	{
+		return _context->board();
+	}
+
 	std::expected<MovePlan, CommandRejection> BattleSession::planMove(BattleUnitId p_unit, BoardCell p_destination) const
 	{
 		return BattleQueryService(*_context).planMove(p_unit, p_destination);

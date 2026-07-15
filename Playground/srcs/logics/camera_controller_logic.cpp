@@ -30,7 +30,7 @@ namespace pg
 
 	void CameraControllerLogic::_parseComponentForUpdate(const spk::UpdateContext &p_tick, Actor &p_actor)
 	{
-		if (!_context.world.explorationActive || !p_actor.player)
+		if (!_context.isExplorationActive() || !p_actor.player)
 		{
 			_wasActive = false;
 			return;
@@ -94,7 +94,7 @@ namespace pg
 
 	void CameraControllerLogic::_parseComponentForMouseMovedEvent(spk::MouseMovedEvent &p_event, Actor &p_actor)
 	{
-		if (!_context.world.explorationActive || !p_actor.player ||
+		if (!_context.isExplorationActive() || !p_actor.player ||
 			p_event.device()[spk::Mouse::Right] != spk::InputState::Down)
 		{
 			return;
@@ -106,7 +106,7 @@ namespace pg
 
 	void CameraControllerLogic::_parseComponentForMouseWheelScrolledEvent(spk::MouseWheelScrolledEvent &p_event, Actor &p_actor)
 	{
-		if (!_context.world.explorationActive || !p_actor.player)
+		if (!_context.isExplorationActive() || !p_actor.player)
 		{
 			return;
 		}
