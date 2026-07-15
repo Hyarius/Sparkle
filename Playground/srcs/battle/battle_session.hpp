@@ -93,5 +93,7 @@ namespace pg
 			std::uint64_t p_nextAction,
 			std::uint64_t p_nextBatch,
 			std::uint64_t p_nextEvent);
+		// Test-only: forces the next shield allocation to overflow, exercising cast rollback.
+		void primeShieldIdsForExhaustionTest(std::uint32_t p_next);
 	};
 }

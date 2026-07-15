@@ -15,6 +15,7 @@
 #include <algorithm>
 #include <cstdlib>
 #include <exception>
+#include <limits>
 #include <set>
 #include <stdexcept>
 #include <utility>
@@ -560,6 +561,9 @@ namespace pg
 		}
 		const BattleSnapshot before = context.snapshot();
 		std::vector<StagedEvent> staged;
+		BoardCell actualFinal = planned->origin;
+		int appliedSteps = 0;
+		int totalMovementSpent = 0;
 		for (const PlannedPathStep &step : planned->steps)
 		{
 			BattleUnit &moving = context.unitMutable(p_command.unit);
@@ -571,13 +575,33 @@ namespace pg
 			moving.setMovementPoints(previous - static_cast<int>(step.movementPointCost));
 			ResourceSpent spent{p_command.unit, BattleResource::MovementPoints, static_cast<int>(step.movementPointCost), static_cast<int>(step.movementPointCost), previous, moving.movementPoints(), ResourceSpendReason::MovementCost};
 			staged.push_back({BattleEventCategory::Gameplay, BattleEventOrigin{.sourceUnit = p_command.unit}, spent});
-			if (!context.moveUnitOccupancy(p_command.unit, step.to))
+			if (!EffectResolver::applySpatialStep(
+					context,
+					staged,
+					p_command.unit,
+					step.from,
+					step.to,
+					static_cast<int>(step.movementPointCost),
+					SpatialMoveCause::Voluntary,
+					BattleEventOrigin{.sourceUnit = p_command.unit}))
 			{
 				return _abort(BattleAbortReason::InternalInvariantViolation);
 			}
-			staged.push_back({BattleEventCategory::Gameplay, BattleEventOrigin{.sourceUnit = p_command.unit}, UnitMovementStep{p_command.unit, step.from, step.to, static_cast<int>(step.movementPointCost), SpatialMoveCause::Voluntary}});
+			++appliedSteps;
+			totalMovementSpent += static_cast<int>(step.movementPointCost);
+			const std::optional<BoardCell> current = context.board().occupancy().cellOf(p_command.unit);
+			if (!context.unit(p_command.unit).isActiveCombatant() || !current.has_value() || *current != step.to)
+			{
+				actualFinal = current.value_or(step.to);
+				break;
+			}
+			actualFinal = *current;
 		}
-		staged.push_back({BattleEventCategory::Gameplay, BattleEventOrigin{.sourceUnit = p_command.unit}, UnitMoved{p_command.unit, planned->origin, planned->destination, static_cast<int>(planned->steps.size()), static_cast<int>(planned->totalMovementPointCost), true}});
+		staged.push_back({BattleEventCategory::Gameplay, BattleEventOrigin{.sourceUnit = p_command.unit}, UnitMoved{p_command.unit, planned->origin, actualFinal, appliedSteps, totalMovementSpent, true}});
+		if (appliedSteps > 0)
+		{
+			EffectResolver::finishSpatialMove(context, staged, p_command.unit, actualFinal);
+		}
 		context.setResolvedNonEndCommands(context.resolvedNonEndCommands() + 1);
 		const CommittedBattleBatch batch = context.commitOrdinaryBatch(BattleBatchKind::Command, before, staged);
 		_assertAcceptedInvariants();
@@ -614,52 +638,118 @@ namespace pg
 		{
 			return RejectedCommand{CommandRejection::EffectRuntimeUnavailable};
 		}
-		const std::size_t eventCapacity = 3 + ability->effects.size() * (context.allUnitsInOrder().size() + 2);
-		if (!context.hasOrdinaryCapacity(eventCapacity, true))
+		// The exact staged length is checked after resolution; this early check only guarantees that
+		// the command can enter a rollback-safe transaction without consuming the abort reserve.
+		if (!context.hasOrdinaryCapacity(0, true))
 		{
 			return _abort(BattleAbortReason::InternalInvariantViolation);
 		}
 		const BattleSnapshot before = context.snapshot();
-		std::vector<StagedEvent> staged;
-		BattleUnit &caster = context.unitMutable(p_command.unit);
-		if (ability->cost.actionPoints > 0)
+		const BattleContext::CommandRollbackState rollback = context.captureCommandRollbackState();
+		try
 		{
-			const int old = caster.actionPoints();
-			caster.setActionPoints(old - ability->cost.actionPoints);
-			staged.push_back({BattleEventCategory::Gameplay, BattleEventOrigin{.sourceUnit = p_command.unit, .abilityId = ability->id}, ResourceSpent{p_command.unit, BattleResource::ActionPoints, ability->cost.actionPoints, ability->cost.actionPoints, old, caster.actionPoints(), ResourceSpendReason::AbilityCost}});
-		}
-		if (ability->cost.movementPoints > 0)
+			std::vector<StagedEvent> staged;
+			BattleUnit &caster = context.unitMutable(p_command.unit);
+			if (ability->cost.actionPoints > 0)
+			{
+				const int old = caster.actionPoints();
+				caster.setActionPoints(old - ability->cost.actionPoints);
+				staged.push_back({BattleEventCategory::Gameplay, BattleEventOrigin{.sourceUnit = p_command.unit, .abilityId = ability->id}, ResourceSpent{p_command.unit, BattleResource::ActionPoints, ability->cost.actionPoints, ability->cost.actionPoints, old, caster.actionPoints(), ResourceSpendReason::AbilityCost}});
+			}
+			if (ability->cost.movementPoints > 0)
+			{
+				const int old = caster.movementPoints();
+				caster.setMovementPoints(old - ability->cost.movementPoints);
+				staged.push_back({BattleEventCategory::Gameplay, BattleEventOrigin{.sourceUnit = p_command.unit, .abilityId = ability->id}, ResourceSpent{p_command.unit, BattleResource::MovementPoints, ability->cost.movementPoints, ability->cost.movementPoints, old, caster.movementPoints(), ResourceSpendReason::AbilityCost}});
+			}
+			AbilityCast cast;
+			cast.source = p_command.unit;
+			cast.abilityId = ability->id;
+			cast.sourceCell = planned->sourceCellAtCapture;
+			cast.anchorCell = planned->anchor;
+			const std::int64_t dx = static_cast<std::int64_t>(planned->anchor.x) - planned->sourceCellAtCapture.x;
+			const std::int64_t dz = static_cast<std::int64_t>(planned->anchor.z) - planned->sourceCellAtCapture.z;
+			const std::int64_t distance = (dx < 0 ? -dx : dx) + (dz < 0 ? -dz : dz);
+			if (distance > std::numeric_limits<int>::max())
+			{
+				throw std::overflow_error("cast target distance does not fit an event");
+			}
+			cast.targetDistance = static_cast<int>(distance);
+			cast.affectedCells = planned->affectedCells;
+			cast.affectedUnits = planned->affectedUnits;
+			staged.push_back({BattleEventCategory::Gameplay, BattleEventOrigin{.sourceUnit = p_command.unit, .abilityId = ability->id}, cast});
+			EffectResolver::resolveAbility(context, staged, *planned, *ability);
+			if (context.resolvedNonEndCommands() == std::numeric_limits<std::size_t>::max())
+			{
+				throw std::overflow_error("resolved command counter overflow");
+			}
+			context.setResolvedNonEndCommands(context.resolvedNonEndCommands() + 1);
+
+			const auto closeActivation = [&](ActivationEndReason p_reason) {
+				const BattleUnit &active = context.unit(p_command.unit);
+				ActivationEnded ended;
+				ended.unit = p_command.unit;
+				ended.turn = *context.turn();
+				ended.finalCell = active.lastOccupiedCell();
+				ended.finalActionPoints = active.actionPoints();
+				ended.finalMovementPoints = active.movementPoints();
+				ended.closestAllyDistance = closestDistance(context, p_command.unit, true);
+				ended.closestEnemyDistance = closestDistance(context, p_command.unit, false);
+				ended.reason = p_reason;
+				context.unitMutable(p_command.unit).setTurnBarFill(BattleTime{});
+				context.setActiveUnit(std::nullopt);
+				context.setTurn(std::nullopt);
+				context.setResolvedNonEndCommands(0);
+				staged.push_back({BattleEventCategory::Lifecycle, BattleEventOrigin{.sourceUnit = p_command.unit}, ended});
+			};
+
+			// The resolver keeps all captured effects alive through a source defeat.  Only after its
+			// after-cast seam does the session perform this one structural close.
+			if (!context.unit(p_command.unit).isActiveCombatant())
+			{
+				closeActivation(ActivationEndReason::ActiveUnitDefeated);
+			}
+			const BattleOutcome outcome = evaluateBattleOutcome(context);
+			if (outcome != BattleOutcome::Undecided)
+			{
+				context.setTerminal(outcome);
+				BattleEnded ended;
+				ended.outcome = outcome;
+				ended.activePlayerCount = context.activeCount(BattleSide::Player);
+				ended.activeEnemyCount = context.activeCount(BattleSide::Enemy);
+				ended.notDefeatedPlayerCount = context.notDefeatedCount(BattleSide::Player);
+				ended.notDefeatedEnemyCount = context.notDefeatedCount(BattleSide::Enemy);
+				staged.push_back({BattleEventCategory::Lifecycle, {}, ended});
+			}
+			else if (context.activeUnit().has_value())
+			{
+				const bool commandCap = context.resolvedNonEndCommands() >= context.registries().gameRules().battle.maxCommandsPerActivation;
+				const bool noLegalCommand = !BattleQueryService(context).hasAnyLegalNonEndCommand(*context.activeUnit());
+				if (commandCap || noLegalCommand)
+				{
+					closeActivation(commandCap ? ActivationEndReason::CommandCap : ActivationEndReason::NoLegalCommands);
+					context.setPhase(BattlePhase::AwaitingActivation);
+				}
+			}
+			else
+			{
+				context.setPhase(BattlePhase::AwaitingActivation);
+			}
+			if (!context.hasOrdinaryCapacity(staged.size(), true))
+			{
+				throw std::overflow_error("resolved cast events exhaust the checked sequence space");
+			}
+
+			const CommittedBattleBatch batch = context.commitOrdinaryBatch(BattleBatchKind::Command, before, staged);
+			_assertAcceptedInvariants();
+			return AcceptedCommand{*batch.action, batch.id, batch.events};
+		} catch (const std::overflow_error &)
 		{
-			const int old = caster.movementPoints();
-			caster.setMovementPoints(old - ability->cost.movementPoints);
-			staged.push_back({BattleEventCategory::Gameplay, BattleEventOrigin{.sourceUnit = p_command.unit, .abilityId = ability->id}, ResourceSpent{p_command.unit, BattleResource::MovementPoints, ability->cost.movementPoints, ability->cost.movementPoints, old, caster.movementPoints(), ResourceSpendReason::AbilityCost}});
+			// No staged event or counter is committed before this point.  Roll back gameplay state,
+			// including shield allocation, then record the sole terminal TechnicalAbort batch.
+			context.restoreCommandRollbackState(rollback);
+			return _abort(BattleAbortReason::NumericInvariant);
 		}
-		AbilityCast cast;
-		cast.source = p_command.unit;
-		cast.abilityId = ability->id;
-		cast.sourceCell = planned->sourceCellAtCapture;
-		cast.anchorCell = planned->anchor;
-		cast.targetDistance = std::abs(planned->anchor.x - planned->sourceCellAtCapture.x) + std::abs(planned->anchor.z - planned->sourceCellAtCapture.z);
-		cast.affectedCells = planned->affectedCells;
-		cast.affectedUnits = planned->affectedUnits;
-		staged.push_back({BattleEventCategory::Gameplay, BattleEventOrigin{.sourceUnit = p_command.unit, .abilityId = ability->id}, cast});
-		EffectResolver::resolveAbility(context, staged, *planned, *ability);
-		context.setResolvedNonEndCommands(context.resolvedNonEndCommands() + 1);
-		const BattleOutcome outcome = evaluateBattleOutcome(context);
-		if (outcome != BattleOutcome::Undecided)
-		{
-			context.setTerminal(outcome);
-			BattleEnded ended;
-			ended.outcome = outcome;
-			ended.activePlayerCount = context.activeCount(BattleSide::Player);
-			ended.activeEnemyCount = context.activeCount(BattleSide::Enemy);
-			ended.notDefeatedPlayerCount = context.notDefeatedCount(BattleSide::Player);
-			ended.notDefeatedEnemyCount = context.notDefeatedCount(BattleSide::Enemy);
-			staged.push_back({BattleEventCategory::Lifecycle, {}, ended});
-		}
-		const CommittedBattleBatch batch = context.commitOrdinaryBatch(BattleBatchKind::Command, before, staged);
-		_assertAcceptedInvariants();
-		return AcceptedCommand{*batch.action, batch.id, batch.events};
 	}
 
 	CommandResult BattleSession::_placeUnit(const PlaceUnitCommand &p_command, CommandIssuer p_issuer)
@@ -1018,5 +1108,10 @@ namespace pg
 		std::uint64_t p_nextEvent)
 	{
 		_context->debugSetNextCounters(p_nextAction, p_nextBatch, p_nextEvent);
+	}
+
+	void BattleSession::primeShieldIdsForExhaustionTest(std::uint32_t p_next)
+	{
+		_context->debugSetNextShieldIdForExhaustionTest(p_next);
 	}
 }

@@ -273,6 +273,10 @@ namespace pg
 			us.cell = _board.occupancy().cellOf(p_id);
 			us.lastOccupiedCell = u.lastOccupiedCell();
 			us.removalReason = u.removalReason();
+			for (const BattleShield &shield : u.shields())
+			{
+				us.shields.push_back(BattleShieldSnapshot{shield.id, shield.kind, shield.remainingAmount, snapshotDuration(shield.duration), shield.source, shield.sourceAbilityId, shield.sourceEffectId});
+			}
 			snap.units.push_back(std::move(us));
 		};
 
@@ -287,9 +291,66 @@ namespace pg
 		return snap;
 	}
 
+	BattleContext::CommandRollbackState BattleContext::captureCommandRollbackState() const
+	{
+		CommandRollbackState state{
+			.board = _board,
+			.units = _units,
+			.rng = _rng,
+			.phase = _phase,
+			.outcome = _outcome,
+			.abortReason = _abortReason,
+			.terminalRecord = _terminalRecord,
+			.activeUnit = _activeUnit,
+			.turn = _turn,
+			.nextTurn = _nextTurn,
+			.resolvedNonEndCommands = _resolvedNonEndCommands,
+			.elapsed = _elapsed,
+			.playerConfirmed = _playerConfirmed,
+			.enemyConfirmed = _enemyConfirmed,
+			.shieldAllocator = _shieldAllocator,
+			.objectAllocator = _objectAllocator,
+			.nextAction = _nextAction,
+			.nextBatch = _nextBatch,
+			.nextEvent = _nextEvent,
+			.ordinaryAllocationExhausted = _ordinaryAllocationExhausted};
+		return state;
+	}
+
+	void BattleContext::restoreCommandRollbackState(CommandRollbackState p_state)
+	{
+		_board = std::move(p_state.board);
+		_units = std::move(p_state.units);
+		_rng = p_state.rng;
+		_phase = p_state.phase;
+		_outcome = p_state.outcome;
+		_abortReason = std::move(p_state.abortReason);
+		_terminalRecord = std::move(p_state.terminalRecord);
+		_activeUnit = p_state.activeUnit;
+		_turn = p_state.turn;
+		_nextTurn = p_state.nextTurn;
+		_resolvedNonEndCommands = p_state.resolvedNonEndCommands;
+		_elapsed = p_state.elapsed;
+		_playerConfirmed = p_state.playerConfirmed;
+		_enemyConfirmed = p_state.enemyConfirmed;
+		_shieldAllocator = p_state.shieldAllocator;
+		_objectAllocator = p_state.objectAllocator;
+		_nextAction = p_state.nextAction;
+		_nextBatch = p_state.nextBatch;
+		_nextEvent = p_state.nextEvent;
+		_ordinaryAllocationExhausted = p_state.ordinaryAllocationExhausted;
+	}
+
 	bool BattleContext::hasOrdinaryCapacity(std::size_t p_eventCount, bool p_needsAction) const noexcept
 	{
 		if (_ordinaryAllocationExhausted)
+		{
+			return false;
+		}
+		// Guard the conversion/subtraction below as well as the sequence itself.  A malformed
+		// resolver must never turn a huge staged vector into an unsigned underflow that appears
+		// to have capacity for an ordinary batch.
+		if (p_eventCount > static_cast<std::size_t>(CounterMax - ReservedEvents))
 		{
 			return false;
 		}
@@ -378,10 +439,25 @@ namespace pg
 			throw std::logic_error("terminal-abort reserve was already consumed: battle state is corrupt");
 		}
 
-		setTerminal(BattleOutcome::Aborted, p_reason);
-		_activeUnit = std::nullopt;
-
 		std::vector<StagedEvent> staged;
+		if (_activeUnit.has_value() && _turn.has_value())
+		{
+			const BattleUnitId active = *_activeUnit;
+			const BattleUnit &activeBattleUnit = unit(active);
+			ActivationEnded activationEnded;
+			activationEnded.unit = active;
+			activationEnded.turn = *_turn;
+			activationEnded.finalCell = _board.occupancy().cellOf(active);
+			activationEnded.finalActionPoints = activeBattleUnit.actionPoints();
+			activationEnded.finalMovementPoints = activeBattleUnit.movementPoints();
+			activationEnded.reason = ActivationEndReason::TechnicalAbort;
+			staged.push_back(StagedEvent{BattleEventCategory::Lifecycle, BattleEventOrigin{.sourceUnit = active}, activationEnded});
+			unitMutable(active).setTurnBarFill(BattleTime{});
+		}
+		_activeUnit = std::nullopt;
+		_turn = std::nullopt;
+		_resolvedNonEndCommands = 0;
+		setTerminal(BattleOutcome::Aborted, p_reason);
 		staged.push_back(StagedEvent{BattleEventCategory::Lifecycle, BattleEventOrigin{}, BattleAborted{p_reason}});
 
 		BattleEnded ended;
@@ -412,5 +488,10 @@ namespace pg
 		_nextAction = p_nextAction;
 		_nextBatch = p_nextBatch;
 		_nextEvent = p_nextEvent;
+	}
+
+	void BattleContext::debugSetNextShieldIdForExhaustionTest(std::uint32_t p_next) noexcept
+	{
+		_shieldAllocator.debugSetNextForExhaustionTest(p_next);
 	}
 }

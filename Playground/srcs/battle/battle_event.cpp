@@ -64,6 +64,10 @@ namespace pg
 			{
 				return "nextActivationPenaltyApplied";
 			}
+			std::string_view operator()(const TurnBarAdjusted &) const
+			{
+				return "turnBarAdjusted";
+			}
 			std::string_view operator()(const UnitMovementStep &) const
 			{
 				return "unitMovementStep";
@@ -131,6 +135,10 @@ namespace pg
 			std::string_view operator()(const BattleObjectTriggered &) const
 			{
 				return "battleObjectTriggered";
+			}
+			std::string_view operator()(const EffectApplicationSkipped &) const
+			{
+				return "effectApplicationSkipped";
 			}
 			std::string_view operator()(const UnitRemoved &) const
 			{

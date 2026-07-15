@@ -6,6 +6,7 @@
 #include "battle/battle_time.hpp"
 #include "battle/battle_types.hpp"
 #include "battle/battle_unit.hpp" // RemovalReason
+#include "battle/effects/duration_state.hpp"
 #include "board/board_cell.hpp"
 #include "core/creature_instance_id.hpp"
 
@@ -16,6 +17,17 @@
 
 namespace pg
 {
+	struct BattleShieldSnapshot
+	{
+		BattleShieldId id;
+		DamageKind kind = DamageKind::Physical;
+		std::int64_t remainingAmount = 0;
+		DurationSnapshot duration;
+		std::optional<BattleUnitId> source;
+		std::optional<std::string> abilityId;
+		std::optional<std::string> effectId;
+		[[nodiscard]] bool operator==(const BattleShieldSnapshot &) const = default;
+	};
 	// A deterministic value copy of one unit's observable state. It carries no pointer into the
 	// live BattleUnit, so it stays valid after later commands and after the session is destroyed.
 	struct BattleUnitSnapshot
@@ -41,6 +53,7 @@ namespace pg
 		std::optional<BoardCell> cell; // present exactly while placed
 		std::optional<BoardCell> lastOccupiedCell;
 		RemovalReason removalReason = RemovalReason::None;
+		std::vector<BattleShieldSnapshot> shields;
 
 		[[nodiscard]] bool operator==(const BattleUnitSnapshot &) const = default;
 	};

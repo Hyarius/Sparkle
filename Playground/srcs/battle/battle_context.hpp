@@ -60,6 +60,34 @@ namespace pg
 	// ever reachable through the session's single command path; nothing outside can hold one.
 	class BattleContext
 	{
+	public:
+		// A command owns this value while it resolves.  Staged events have not reached the log yet,
+		// so restoring it is enough to discard every mutation a numeric failure made before the
+		// TechnicalAbort tail is committed.
+		struct CommandRollbackState
+		{
+			BoardData board;
+			std::map<BattleUnitId, BattleUnit> units;
+			BattleRng rng{0};
+			BattlePhase phase = BattlePhase::Deployment;
+			BattleOutcome outcome = BattleOutcome::Undecided;
+			std::optional<BattleAbortReason> abortReason;
+			std::optional<BattleTerminalRecord> terminalRecord;
+			std::optional<BattleUnitId> activeUnit;
+			std::optional<TurnIndex> turn;
+			std::uint64_t nextTurn = 1;
+			std::size_t resolvedNonEndCommands = 0;
+			BattleTime elapsed{};
+			bool playerConfirmed = false;
+			bool enemyConfirmed = false;
+			BattleShieldIdAllocator shieldAllocator;
+			BattleObjectIdAllocator objectAllocator;
+			std::uint64_t nextAction = 1;
+			std::uint64_t nextBatch = 1;
+			std::uint64_t nextEvent = 1;
+			bool ordinaryAllocationExhausted = false;
+		};
+
 	private:
 		BattleDescriptor _descriptor;
 		const Registries *_registries = nullptr;
@@ -82,6 +110,7 @@ namespace pg
 		bool _enemyConfirmed = false;
 
 		BattleEventLog _events;
+		BattleShieldIdAllocator _shieldAllocator;
 		BattleObjectIdAllocator _objectAllocator; // step 10 places the first object
 
 		// Checked runtime counters. 0 is the unallocated sentinel; each starts at 1.
@@ -198,6 +227,8 @@ namespace pg
 		}
 
 		[[nodiscard]] BattleSnapshot snapshot() const;
+		[[nodiscard]] CommandRollbackState captureCommandRollbackState() const;
+		void restoreCommandRollbackState(CommandRollbackState p_state);
 
 		// active / not-defeated counts for a BattleEnded payload.
 		[[nodiscard]] int activeCount(BattleSide p_side) const noexcept;
@@ -258,6 +289,10 @@ namespace pg
 		{
 			return _objectAllocator.allocate();
 		}
+		[[nodiscard]] BattleShieldId allocateShieldId()
+		{
+			return _shieldAllocator.allocate();
+		}
 
 		// Internal removal primitive (section 16). Emits UnitDefeated (only for Defeated) then
 		// UnitRemoved as staged events appended to p_staged; occupancy is cleared exactly once. Step
@@ -289,5 +324,6 @@ namespace pg
 		// Test seam (section 18.5): drive the checked counters near their maximum so a following
 		// ordinary transaction must roll back into the reserved TechnicalAbort batch. Not production.
 		void debugSetNextCounters(std::uint64_t p_nextAction, std::uint64_t p_nextBatch, std::uint64_t p_nextEvent) noexcept;
+		void debugSetNextShieldIdForExhaustionTest(std::uint32_t p_next) noexcept;
 	};
 }

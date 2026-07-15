@@ -3,8 +3,11 @@
 #include "core/registries.hpp"
 
 #include <algorithm>
+#include <array>
 #include <limits>
 #include <stdexcept>
+#include <string>
+#include <type_traits>
 
 namespace pg
 {
@@ -16,10 +19,69 @@ namespace pg
 			return unit != nullptr && unit->isActiveCombatant();
 		}
 
+		[[nodiscard]] std::int64_t checkedAdd(std::int64_t p_left, std::int64_t p_right, const char *p_what)
+		{
+			if ((p_right > 0 && p_left > std::numeric_limits<std::int64_t>::max() - p_right) ||
+				(p_right < 0 && p_left < std::numeric_limits<std::int64_t>::min() - p_right))
+			{
+				throw std::overflow_error(p_what);
+			}
+			return p_left + p_right;
+		}
+
+		[[nodiscard]] std::int64_t checkedMultiply(std::int64_t p_left, std::int64_t p_right, const char *p_what)
+		{
+			// The resolver's authored/runtime inputs are non-negative.  Keep the full signed check
+			// nevertheless: it makes a corrupted runtime stat fail as a numeric invariant too.
+			if (p_left == 0 || p_right == 0)
+			{
+				return 0;
+			}
+			if (p_left == -1 && p_right == std::numeric_limits<std::int64_t>::min())
+			{
+				throw std::overflow_error(p_what);
+			}
+			if (p_right == -1 && p_left == std::numeric_limits<std::int64_t>::min())
+			{
+				throw std::overflow_error(p_what);
+			}
+			const bool positive = (p_left < 0) == (p_right < 0);
+			if ((positive && ((p_left > 0 && p_right > std::numeric_limits<std::int64_t>::max() / p_left) ||
+							  (p_left < 0 && p_right < std::numeric_limits<std::int64_t>::max() / p_left))) ||
+				(!positive && ((p_left > 0 && p_right < std::numeric_limits<std::int64_t>::min() / p_left) ||
+							   (p_left < 0 && p_right > std::numeric_limits<std::int64_t>::min() / p_left))))
+			{
+				throw std::overflow_error(p_what);
+			}
+			return p_left * p_right;
+		}
+
+		[[nodiscard]] int narrowInt(std::int64_t p_value, const char *p_what)
+		{
+			if (p_value < std::numeric_limits<int>::min() || p_value > std::numeric_limits<int>::max())
+			{
+				throw std::overflow_error(p_what);
+			}
+			return static_cast<int>(p_value);
+		}
+
+		[[nodiscard]] std::int64_t absoluteDifference(int p_left, int p_right) noexcept
+		{
+			const std::int64_t difference = static_cast<std::int64_t>(p_left) - static_cast<std::int64_t>(p_right);
+			return difference < 0 ? -difference : difference;
+		}
+
+		[[nodiscard]] int manhattanDistance(const BoardCell &p_left, const BoardCell &p_right)
+		{
+			return narrowInt(
+				checkedAdd(absoluteDifference(p_left.x, p_right.x), absoluteDifference(p_left.z, p_right.z), "board Manhattan distance overflow"),
+				"board Manhattan distance does not fit an event");
+		}
+
 		[[nodiscard]] BattleEventOrigin makeOrigin(
 			const CastPlan &p_plan,
 			const EffectApplication &p_effect,
-			BattleUnitId p_target)
+			std::optional<BattleUnitId> p_target = std::nullopt)
 		{
 			BattleEventOrigin result;
 			result.sourceUnit = p_plan.source;
@@ -37,21 +99,18 @@ namespace pg
 		{
 			const std::int64_t strength = p_source != nullptr ? p_source->effectiveAttributes().strength : 0;
 			const std::int64_t magic = p_source != nullptr ? p_source->effectiveAttributes().magicPower : 0;
-			const auto add = [](std::int64_t p_left, std::int64_t p_right) {
-				if (p_right > std::numeric_limits<std::int64_t>::max() - p_left)
-				{
-					throw std::overflow_error("effect offense overflow");
-				}
-				return p_left + p_right;
-			};
-			const auto multiply = [](std::int64_t p_left, std::int64_t p_right) {
-				if (p_left != 0 && p_right > std::numeric_limits<std::int64_t>::max() / p_left)
-				{
-					throw std::overflow_error("effect offense overflow");
-				}
-				return p_left * p_right;
-			};
-			return add(add(multiply(p_base, 1000), multiply(strength, p_strengthRatio)), multiply(magic, p_magicRatio)) / 1000;
+			if (p_base < 0 || strength < 0 || magic < 0 || p_strengthRatio < 0 || p_magicRatio < 0)
+			{
+				throw std::overflow_error("negative offense input");
+			}
+			return checkedAdd(
+					   checkedAdd(
+						   checkedMultiply(p_base, 1000, "effect offense overflow"),
+						   checkedMultiply(strength, p_strengthRatio, "effect offense overflow"),
+						   "effect offense overflow"),
+					   checkedMultiply(magic, p_magicRatio, "effect offense overflow"),
+					   "effect offense overflow") /
+				   1000;
 		}
 
 		[[nodiscard]] std::vector<BattleUnitId> unitScope(const CastPlan &p_plan, EffectApplyTo p_applyTo)
@@ -64,8 +123,100 @@ namespace pg
 				return p_plan.primaryUnit ? std::vector<BattleUnitId>{*p_plan.primaryUnit} : std::vector<BattleUnitId>{};
 			case EffectApplyTo::AffectedUnits:
 				return p_plan.affectedUnits;
-			default:
-				return {};
+			case EffectApplyTo::AnchorCell:
+			case EffectApplyTo::AffectedCells:
+				throw std::logic_error("unit payload has a cell execution scope");
+			}
+			throw std::logic_error("unknown effect scope");
+		}
+
+		[[nodiscard]] std::vector<BoardCell> cellScope(const CastPlan &p_plan, EffectApplyTo p_applyTo)
+		{
+			switch (p_applyTo)
+			{
+			case EffectApplyTo::AnchorCell:
+				return {p_plan.anchor};
+			case EffectApplyTo::AffectedCells:
+				return p_plan.affectedCells;
+			case EffectApplyTo::SourceUnit:
+			case EffectApplyTo::PrimaryUnit:
+			case EffectApplyTo::AffectedUnits:
+				throw std::logic_error("cell payload has a unit execution scope");
+			}
+			throw std::logic_error("unknown effect scope");
+		}
+
+		void skipped(
+			std::vector<StagedEvent> &p_events,
+			const CastPlan &p_plan,
+			const EffectApplication &p_effect,
+			std::optional<BattleUnitId> p_target,
+			std::optional<BoardCell> p_cell,
+			EffectSkipReason p_reason)
+		{
+			p_events.push_back({BattleEventCategory::Diagnostic, makeOrigin(p_plan, p_effect, p_target), EffectApplicationSkipped{p_effect.id, p_target, p_cell, p_reason}});
+		}
+
+		[[nodiscard]] DurationState materializeDuration(const DurationSpec &p_spec, BattleTime p_now)
+		{
+			return std::visit([p_now](const auto &value) -> DurationState {
+				using T = std::decay_t<decltype(value)>;
+				if constexpr (std::is_same_v<T, TimelineDurationSpec>)
+				{
+					return TimelineDurationState{p_now + value.duration};
+				}
+				else if constexpr (std::is_same_v<T, OwnerActivationsDurationSpec>)
+				{
+					return OwnerActivationDurationState{value.count};
+				}
+				else
+				{
+					return InfiniteDurationState{};
+				}
+			},
+							  p_spec);
+		}
+
+		struct LockedDisplacementDirection
+		{
+			std::size_t neighborIndex = 0;
+			int x = 0;
+			int z = 0;
+		};
+
+		[[nodiscard]] LockedDisplacementDirection displacementDirection(
+			const BoardCell &p_source,
+			const BoardCell &p_target,
+			DisplaceDirection p_direction)
+		{
+			const std::int64_t dx = static_cast<std::int64_t>(p_target.x) - static_cast<std::int64_t>(p_source.x);
+			const std::int64_t dz = static_cast<std::int64_t>(p_target.z) - static_cast<std::int64_t>(p_source.z);
+			if (dx == 0 && dz == 0)
+			{
+				throw std::invalid_argument("no displacement axis");
+			}
+			std::size_t result = 0;
+			if (absoluteDifference(p_target.x, p_source.x) >= absoluteDifference(p_target.z, p_source.z))
+			{
+				result = dx > 0 ? 0U : 1U; // traversal graph: +X, -X, +Z, -Z
+			}
+			else
+			{
+				result = dz > 0 ? 2U : 3U;
+			}
+			if (p_direction == DisplaceDirection::TowardSource)
+			{
+				result = result == 0U ? 1U : result == 1U ? 0U
+										 : result == 2U	  ? 3U
+														  : 2U;
+			}
+			switch (result)
+			{
+			case 0U: return {.neighborIndex = result, .x = 1, .z = 0};
+			case 1U: return {.neighborIndex = result, .x = -1, .z = 0};
+			case 2U: return {.neighborIndex = result, .x = 0, .z = 1};
+			case 3U: return {.neighborIndex = result, .x = 0, .z = -1};
+			default: throw std::logic_error("invalid traversal direction index");
 			}
 		}
 	}
@@ -73,9 +224,10 @@ namespace pg
 	bool EffectResolver::supports(const EffectPayload &p_payload) noexcept
 	{
 		return std::holds_alternative<DamageEffectSpec>(p_payload) || std::holds_alternative<HealEffectSpec>(p_payload) ||
-			   std::holds_alternative<ChangeResourceEffectSpec>(p_payload) ||
-			   std::holds_alternative<ApplyNextActivationPenaltyEffectSpec>(p_payload) ||
-			   std::holds_alternative<AdjustTurnBarEffectSpec>(p_payload);
+			   std::holds_alternative<ApplyShieldEffectSpec>(p_payload) || std::holds_alternative<ChangeResourceEffectSpec>(p_payload) ||
+			   std::holds_alternative<ApplyNextActivationPenaltyEffectSpec>(p_payload) || std::holds_alternative<AdjustTurnBarEffectSpec>(p_payload) ||
+			   std::holds_alternative<DisplaceEffectSpec>(p_payload) || std::holds_alternative<SwapWithSourceEffectSpec>(p_payload) ||
+			   std::holds_alternative<TeleportSourceEffectSpec>(p_payload);
 	}
 
 	bool EffectResolver::supportsAll(const AbilityDefinition &p_ability) noexcept
@@ -85,23 +237,98 @@ namespace pg
 		});
 	}
 
-	void EffectResolver::_applyDamage(BattleContext &p_context, std::vector<StagedEvent> &p_events, const CastPlan &p_plan, const EffectApplication &p_effect, BattleUnitId p_targetId, const DamageEffectSpec &p_spec)
+	bool EffectResolver::applySpatialStep(
+		BattleContext &p_context,
+		std::vector<StagedEvent> &p_events,
+		BattleUnitId p_unit,
+		BoardCell p_from,
+		BoardCell p_to,
+		int p_enteredCellCost,
+		SpatialMoveCause p_cause,
+		const BattleEventOrigin &p_origin)
+	{
+		if (!p_context.moveUnitOccupancy(p_unit, p_to))
+		{
+			return false;
+		}
+		p_events.push_back({BattleEventCategory::Gameplay, p_origin, UnitMovementStep{p_unit, p_from, p_to, p_enteredCellCost, p_cause}});
+		_unitLeftCellSeam(p_context, p_events, p_unit, p_from);
+		if (isActive(p_context, p_unit) && p_context.board().occupancy().cellOf(p_unit) == p_to)
+		{
+			_unitEnteredCellSeam(p_context, p_events, p_unit, p_to);
+		}
+		return true;
+	}
+
+	void EffectResolver::finishSpatialMove(BattleContext &p_context, std::vector<StagedEvent> &p_events, BattleUnitId p_unit, BoardCell p_finalCell)
+	{
+		if (isActive(p_context, p_unit) && p_context.board().occupancy().cellOf(p_unit) == p_finalCell)
+		{
+			_unitEndedMoveOnCellSeam(p_context, p_events, p_unit, p_finalCell);
+		}
+	}
+
+	void EffectResolver::_applyDamage(
+		BattleContext &p_context,
+		std::vector<StagedEvent> &p_events,
+		std::vector<BattleUnitId> &p_pendingDefeats,
+		const CastPlan &p_plan,
+		const EffectApplication &p_effect,
+		BattleUnitId p_targetId,
+		const DamageEffectSpec &p_spec)
 	{
 		BattleUnit &target = p_context.unitMutable(p_targetId);
 		const std::int64_t raw = offenseAmount(p_context.tryUnit(p_plan.source), p_spec.base, p_spec.strengthRatioPermille, p_spec.magicPowerRatioPermille);
 		const std::int64_t defense = p_spec.kind == DamageKind::Physical ? target.effectiveAttributes().armor : target.effectiveAttributes().resistance;
 		const std::int64_t scale = p_context.registries().gameRules().battle.mitigationScale;
-		if (raw != 0 && scale > std::numeric_limits<std::int64_t>::max() / raw)
+		if (defense < 0 || scale <= 0)
 		{
-			throw std::overflow_error("damage overflow");
+			throw std::overflow_error("invalid mitigation inputs");
 		}
-		const std::int64_t mitigated = raw * scale / (defense + scale);
-		if (mitigated > std::numeric_limits<int>::max())
-		{
-			throw std::overflow_error("damage overflow");
-		}
+		const std::int64_t mitigated = checkedMultiply(raw, scale, "damage mitigation overflow") /
+									   checkedAdd(defense, scale, "damage mitigation denominator overflow");
+		const int computed = narrowInt(mitigated, "computed damage does not fit an event");
 		const int before = target.health();
-		const int applied = std::min(before, static_cast<int>(mitigated));
+		if (before < 0)
+		{
+			throw std::overflow_error("negative battle health");
+		}
+		int remaining = computed;
+		int absorbed = 0;
+		bool anyShield = false;
+		bool matchingShield = false;
+		for (const BattleShield &shield : target.shields())
+		{
+			if (shield.remainingAmount > 0)
+			{
+				anyShield = true;
+				matchingShield = matchingShield || shield.kind == p_spec.kind;
+			}
+		}
+		for (auto it = target.shieldsMutable().begin(); it != target.shieldsMutable().end() && remaining > 0;)
+		{
+			if (it->kind != p_spec.kind || it->remainingAmount <= 0)
+			{
+				++it;
+				continue;
+			}
+			const int requested = remaining;
+			const int appliedShield = narrowInt(std::min<std::int64_t>(remaining, it->remainingAmount), "shield absorption does not fit an event");
+			it->remainingAmount -= appliedShield;
+			remaining -= appliedShield;
+			absorbed = narrowInt(checkedAdd(absorbed, appliedShield, "shield absorption total overflow"), "shield absorption total does not fit an event");
+			p_events.push_back({BattleEventCategory::Gameplay, makeOrigin(p_plan, p_effect, p_targetId), ShieldAbsorbed{p_plan.source, p_targetId, it->id, it->kind, requested, appliedShield, it->source, it->sourceAbilityId, it->sourceEffectId}});
+			if (it->remainingAmount == 0)
+			{
+				p_events.push_back({BattleEventCategory::Gameplay, makeOrigin(p_plan, p_effect, p_targetId), ShieldBroken{p_plan.source, p_targetId, it->id, it->kind, it->source, it->sourceAbilityId, it->sourceEffectId}});
+				it = target.shieldsMutable().erase(it);
+			}
+			else
+			{
+				++it;
+			}
+		}
+		const int applied = std::min(before, remaining);
 		target.setHealth(before - applied);
 
 		Damage event;
@@ -110,25 +337,45 @@ namespace pg
 		event.abilityId = p_plan.abilityId;
 		event.effectId = p_effect.id;
 		event.kind = p_spec.kind;
-		event.computedDamage = static_cast<int>(mitigated);
+		event.computedDamage = computed;
+		event.appliedToShield = absorbed;
+		event.targetHadAnyShield = anyShield;
+		event.targetHadMatchingShield = matchingShield;
 		event.appliedToHealth = applied;
 		event.healthBefore = before;
 		event.healthAfter = target.health();
-		const BattleEventOrigin origin = makeOrigin(p_plan, p_effect, p_targetId);
-		p_events.push_back({BattleEventCategory::Gameplay, origin, event});
+		p_events.push_back({BattleEventCategory::Gameplay, makeOrigin(p_plan, p_effect, p_targetId), event});
 		if (before > 0 && target.health() == 0)
 		{
-			p_context.removeUnit(p_targetId, RemovalReason::Defeated, origin, p_events);
+			p_pendingDefeats.push_back(p_targetId);
 		}
+		// The direct reaction order is explicit even while every seam is a no-op: dealt first,
+		// then taken.  Step 10 fills these without returning through public event publication.
+		_afterDamageDealtSeam(p_context, p_events, p_plan, p_effect, p_plan.source, p_targetId);
+		_afterDamageTakenSeam(p_context, p_events, p_plan, p_effect, p_plan.source, p_targetId);
+	}
+
+	void EffectResolver::_applyShield(BattleContext &p_context, std::vector<StagedEvent> &p_events, const CastPlan &p_plan, const EffectApplication &p_effect, BattleUnitId p_targetId, const ApplyShieldEffectSpec &p_spec)
+	{
+		const int amount = narrowInt(p_spec.amount, "shield amount does not fit an event");
+		if (amount <= 0)
+		{
+			throw std::overflow_error("non-positive shield amount");
+		}
+		BattleUnit &target = p_context.unitMutable(p_targetId);
+		const BattleShieldId id = p_context.allocateShieldId();
+		target.shieldsMutable().push_back(BattleShield{id, p_spec.kind, amount, materializeDuration(p_spec.duration, p_context.elapsed()), p_plan.source, p_plan.abilityId, p_effect.id});
+		p_events.push_back({BattleEventCategory::Gameplay, makeOrigin(p_plan, p_effect, p_targetId), ShieldApplied{p_plan.source, p_targetId, id, p_spec.kind, amount, amount, snapshotDuration(target.shields().back().duration), p_plan.abilityId, p_effect.id}});
 	}
 
 	void EffectResolver::_applyHealing(BattleContext &p_context, std::vector<StagedEvent> &p_events, const CastPlan &p_plan, const EffectApplication &p_effect, BattleUnitId p_targetId, const HealEffectSpec &p_spec)
 	{
 		BattleUnit &target = p_context.unitMutable(p_targetId);
-		const int requested = static_cast<int>(offenseAmount(p_context.tryUnit(p_plan.source), p_spec.base, p_spec.strengthRatioPermille, p_spec.magicPowerRatioPermille));
+		const int requested = narrowInt(offenseAmount(p_context.tryUnit(p_plan.source), p_spec.base, p_spec.strengthRatioPermille, p_spec.magicPowerRatioPermille), "requested healing does not fit an event");
 		const int before = target.health();
-		const int applied = std::min(requested, target.maxHealth() - before);
-		target.setHealth(before + applied);
+		const int missing = narrowInt(std::max<std::int64_t>(0, checkedAdd(target.maxHealth(), -static_cast<std::int64_t>(before), "healing maximum overflow")), "healing maximum does not fit an event");
+		const int applied = std::min(requested, missing);
+		target.setHealth(narrowInt(checkedAdd(before, applied, "healing health overflow"), "healing health does not fit an event"));
 		Healing event;
 		event.source = p_plan.source;
 		event.target = p_targetId;
@@ -139,14 +386,18 @@ namespace pg
 		event.healthBefore = before;
 		event.healthAfter = target.health();
 		p_events.push_back({BattleEventCategory::Gameplay, makeOrigin(p_plan, p_effect, p_targetId), event});
+		_afterHealingDoneSeam(p_context, p_events, p_plan, p_effect, p_plan.source, p_targetId);
+		_afterHealingReceivedSeam(p_context, p_events, p_plan, p_effect, p_plan.source, p_targetId);
 	}
 
 	void EffectResolver::_applyResourceChange(BattleContext &p_context, std::vector<StagedEvent> &p_events, const CastPlan &p_plan, const EffectApplication &p_effect, BattleUnitId p_targetId, const ChangeResourceEffectSpec &p_spec)
 	{
 		BattleUnit &target = p_context.unitMutable(p_targetId);
+		const int requested = narrowInt(p_spec.delta, "resource delta does not fit an event");
 		const int before = p_spec.resource == BattleResource::ActionPoints ? target.actionPoints() : target.movementPoints();
 		const int maximum = p_spec.resource == BattleResource::ActionPoints ? target.maxActionPoints() : target.maxMovementPoints();
-		const int after = static_cast<int>(std::clamp(static_cast<long long>(before) + p_spec.delta, 0LL, static_cast<long long>(maximum)));
+		const std::int64_t unclamped = checkedAdd(before, p_spec.delta, "resource change overflow");
+		const int after = narrowInt(std::clamp(unclamped, std::int64_t{0}, static_cast<std::int64_t>(maximum)), "resource result does not fit an event");
 		if (p_spec.resource == BattleResource::ActionPoints)
 		{
 			target.setActionPoints(after);
@@ -155,21 +406,235 @@ namespace pg
 		{
 			target.setMovementPoints(after);
 		}
-		p_events.push_back({BattleEventCategory::Gameplay, makeOrigin(p_plan, p_effect, p_targetId), ResourceChanged{p_targetId, p_spec.resource, static_cast<int>(p_spec.delta), after - before, before, after, ResourceChangeReason::Effect}});
+		const int applied = narrowInt(checkedAdd(after, -static_cast<std::int64_t>(before), "resource applied delta overflow"), "resource applied delta does not fit an event");
+		p_events.push_back({BattleEventCategory::Gameplay, makeOrigin(p_plan, p_effect, p_targetId), ResourceChanged{p_targetId, p_spec.resource, requested, applied, before, after, ResourceChangeReason::Effect}});
 	}
 
 	void EffectResolver::_applyNextActivationPenalty(BattleContext &p_context, std::vector<StagedEvent> &p_events, const CastPlan &p_plan, const EffectApplication &p_effect, BattleUnitId p_targetId, const ApplyNextActivationPenaltyEffectSpec &p_spec)
 	{
+		const int requested = narrowInt(p_spec.amount, "next-activation penalty does not fit an event");
+		if (requested < 0)
+		{
+			throw std::overflow_error("negative next-activation penalty");
+		}
 		BattleUnit &target = p_context.unitMutable(p_targetId);
 		const int before = p_spec.resource == BattleResource::ActionPoints ? target.nextActivationPenalty().actionPoints : target.nextActivationPenalty().movementPoints;
-		target.addNextActivationPenalty(p_spec.resource, static_cast<int>(p_spec.amount));
-		p_events.push_back({BattleEventCategory::Gameplay, makeOrigin(p_plan, p_effect, p_targetId), NextActivationPenaltyApplied{p_targetId, p_spec.resource, static_cast<int>(p_spec.amount), static_cast<int>(p_spec.amount), before, before + static_cast<int>(p_spec.amount)}});
+		const int after = narrowInt(checkedAdd(before, requested, "next-activation penalty overflow"), "next-activation penalty does not fit an event");
+		target.addNextActivationPenalty(p_spec.resource, requested);
+		p_events.push_back({BattleEventCategory::Gameplay, makeOrigin(p_plan, p_effect, p_targetId), NextActivationPenaltyApplied{p_targetId, p_spec.resource, requested, requested, before, after}});
 	}
 
-	void EffectResolver::_applyTurnBarAdjustment(BattleContext &p_context, const CastPlan &p_plan, BattleUnitId p_targetId, const AdjustTurnBarEffectSpec &p_spec)
+	void EffectResolver::_applyTurnBarAdjustment(BattleContext &p_context, std::vector<StagedEvent> &p_events, const CastPlan &p_plan, const EffectApplication &p_effect, BattleUnitId p_targetId, const AdjustTurnBarEffectSpec &p_spec)
 	{
 		BattleUnit &target = p_context.unitMutable(p_targetId);
-		target.setTurnBarFill(clamp(target.turnBarFill() + p_spec.delta, BattleTime{}, target.effectiveAttributes().stamina));
+		const BattleTime before = target.turnBarFill();
+		const BattleTime after = clamp(before + p_spec.delta, BattleTime{}, target.effectiveAttributes().stamina);
+		target.setTurnBarFill(after);
+		p_events.push_back({BattleEventCategory::Gameplay, makeOrigin(p_plan, p_effect, p_targetId), TurnBarAdjusted{p_targetId, p_spec.delta, after - before, before, after}});
+	}
+
+	void EffectResolver::_applyDisplace(BattleContext &p_context, std::vector<StagedEvent> &p_events, const CastPlan &p_plan, const EffectApplication &p_effect, BattleUnitId p_target, const DisplaceEffectSpec &p_spec)
+	{
+		const std::optional<BoardCell> source = p_context.board().occupancy().cellOf(p_plan.source);
+		const std::optional<BoardCell> initial = p_context.board().occupancy().cellOf(p_target);
+		if (!initial)
+		{
+			skipped(p_events, p_plan, p_effect, p_target, std::nullopt, EffectSkipReason::TargetNoLongerPlaced);
+			return;
+		}
+		if (!source)
+		{
+			skipped(p_events, p_plan, p_effect, p_plan.source, *initial, EffectSkipReason::SourceNotLiving);
+			return;
+		}
+
+		LockedDisplacementDirection direction;
+		try
+		{
+			direction = displacementDirection(*source, *initial, p_spec.direction);
+		} catch (const std::invalid_argument &)
+		{
+			p_events.push_back({BattleEventCategory::Gameplay, makeOrigin(p_plan, p_effect, p_target),
+				UnitDisplaced{p_plan.source,
+					p_target,
+					p_spec.direction == DisplaceDirection::AwayFromSource ? DisplacementDirection::Away : DisplacementDirection::Toward,
+					*initial,
+					*initial,
+					0,
+					0,
+					p_spec.distance,
+					0}});
+			skipped(p_events, p_plan, p_effect, p_target, *initial, EffectSkipReason::NoDirectionalAxis);
+			return;
+		}
+
+		BoardCell current = *initial;
+		int moved = 0;
+		for (; moved < p_spec.distance; ++moved)
+		{
+			const TraversalGraph::Node *node = p_context.board().navigation().tryGetNode(current);
+			if (node == nullptr || !node->neighbors[direction.neighborIndex].has_value())
+			{
+				break;
+			}
+			const BoardCell next = p_context.board().navigation().node(*node->neighbors[direction.neighborIndex]).position;
+			if (p_context.board().occupancy().unitAt(next).has_value())
+			{
+				break;
+			}
+			if (!applySpatialStep(
+					p_context,
+					p_events,
+					p_target,
+					current,
+					next,
+					0,
+					SpatialMoveCause::Displacement,
+					makeOrigin(p_plan, p_effect, p_target)))
+			{
+				throw std::logic_error("validated displacement transition was rejected by occupancy");
+			}
+			current = next;
+		}
+		p_events.push_back({BattleEventCategory::Gameplay, makeOrigin(p_plan, p_effect, p_target),
+			UnitDisplaced{p_plan.source,
+				p_target,
+				p_spec.direction == DisplaceDirection::AwayFromSource ? DisplacementDirection::Away : DisplacementDirection::Toward,
+				*initial,
+				current,
+				direction.x,
+				direction.z,
+				p_spec.distance,
+				moved}});
+		if (moved == 0)
+		{
+			skipped(p_events, p_plan, p_effect, p_target, current, EffectSkipReason::DestinationBlocked);
+		}
+		else
+		{
+			finishSpatialMove(p_context, p_events, p_target, current);
+		}
+	}
+
+	void EffectResolver::_applySwap(BattleContext &p_context, std::vector<StagedEvent> &p_events, const CastPlan &p_plan, const EffectApplication &p_effect)
+	{
+		if (p_effect.applyTo != EffectApplyTo::PrimaryUnit)
+		{
+			throw std::logic_error("swap payload was not validated with a primary-unit scope");
+		}
+		if (!p_plan.primaryUnit)
+		{
+			skipped(p_events, p_plan, p_effect, std::nullopt, std::nullopt, EffectSkipReason::MissingScopeValue);
+			return;
+		}
+		const BattleUnitId target = *p_plan.primaryUnit;
+		if (target == p_plan.source)
+		{
+			skipped(p_events, p_plan, p_effect, target, std::nullopt, EffectSkipReason::NoAppliedChange);
+			return;
+		}
+		if (!isActive(p_context, p_plan.source))
+		{
+			skipped(p_events, p_plan, p_effect, p_plan.source, std::nullopt, EffectSkipReason::SourceNotLiving);
+			return;
+		}
+		if (!isActive(p_context, target))
+		{
+			skipped(p_events, p_plan, p_effect, target, std::nullopt, EffectSkipReason::TargetNotLiving);
+			return;
+		}
+		const std::optional<BoardCell> source = p_context.board().occupancy().cellOf(p_plan.source);
+		const std::optional<BoardCell> targetCell = p_context.board().occupancy().cellOf(target);
+		if (!source || !targetCell)
+		{
+			skipped(p_events, p_plan, p_effect, target, targetCell, EffectSkipReason::TargetNoLongerPlaced);
+			return;
+		}
+		if (!p_context.swapUnitsOccupancy(p_plan.source, target))
+		{
+			throw std::logic_error("validated swap was rejected by occupancy");
+		}
+		p_events.push_back({BattleEventCategory::Gameplay, makeOrigin(p_plan, p_effect, target), UnitsSwapped{p_plan.source, target, *source, *targetCell, *targetCell, *source}});
+
+		struct Transition
+		{
+			BattleUnitId unit;
+			BoardCell from;
+			BoardCell to;
+		};
+		std::array<Transition, 2> transitions{{{p_plan.source, *source, *targetCell}, {target, *targetCell, *source}}};
+		std::ranges::sort(transitions, {}, &Transition::unit);
+		for (const Transition &transition : transitions)
+		{
+			p_events.push_back({BattleEventCategory::Gameplay, makeOrigin(p_plan, p_effect, transition.unit), UnitMovementStep{transition.unit, transition.from, transition.to, 0, SpatialMoveCause::Swap}});
+		}
+		for (const Transition &transition : transitions)
+		{
+			_unitLeftCellSeam(p_context, p_events, transition.unit, transition.from);
+		}
+		for (const Transition &transition : transitions)
+		{
+			if (isActive(p_context, transition.unit) && p_context.board().occupancy().cellOf(transition.unit) == transition.to)
+			{
+				_unitEnteredCellSeam(p_context, p_events, transition.unit, transition.to);
+			}
+		}
+		for (const Transition &transition : transitions)
+		{
+			if (isActive(p_context, transition.unit) && p_context.board().occupancy().cellOf(transition.unit) == transition.to)
+			{
+				_unitEndedMoveOnCellSeam(p_context, p_events, transition.unit, transition.to);
+			}
+		}
+	}
+
+	void EffectResolver::_applyTeleport(BattleContext &p_context, std::vector<StagedEvent> &p_events, const CastPlan &p_plan, const EffectApplication &p_effect)
+	{
+		if (p_effect.applyTo != EffectApplyTo::AnchorCell)
+		{
+			throw std::logic_error("teleport payload was not validated with an anchor-cell scope");
+		}
+		const BoardCell destination = cellScope(p_plan, p_effect.applyTo).front();
+		if (!isActive(p_context, p_plan.source))
+		{
+			skipped(p_events, p_plan, p_effect, p_plan.source, destination, EffectSkipReason::SourceNotLiving);
+			return;
+		}
+		const std::optional<BoardCell> source = p_context.board().occupancy().cellOf(p_plan.source);
+		if (!source)
+		{
+			skipped(p_events, p_plan, p_effect, p_plan.source, destination, EffectSkipReason::TargetNoLongerPlaced);
+			return;
+		}
+		if (!p_context.board().isStandable(destination))
+		{
+			skipped(p_events, p_plan, p_effect, p_plan.source, destination, EffectSkipReason::DestinationInvalid);
+			return;
+		}
+		if (*source == destination)
+		{
+			skipped(p_events, p_plan, p_effect, p_plan.source, destination, EffectSkipReason::NoAppliedChange);
+			return;
+		}
+		if (p_context.board().occupancy().unitAt(destination).has_value())
+		{
+			skipped(p_events, p_plan, p_effect, p_plan.source, destination, EffectSkipReason::DestinationBlocked);
+			return;
+		}
+		if (!applySpatialStep(
+				p_context,
+				p_events,
+				p_plan.source,
+				*source,
+				destination,
+				0,
+				SpatialMoveCause::Teleport,
+				makeOrigin(p_plan, p_effect, p_plan.source)))
+		{
+			throw std::logic_error("validated teleport was rejected by occupancy");
+		}
+		p_events.push_back({BattleEventCategory::Gameplay, makeOrigin(p_plan, p_effect, p_plan.source), UnitTeleported{p_plan.source, *source, destination, manhattanDistance(*source, destination)}});
+		finishSpatialMove(p_context, p_events, p_plan.source, destination);
 	}
 
 	void EffectResolver::resolveAbility(BattleContext &p_context, std::vector<StagedEvent> &p_events, const CastPlan &p_plan, const AbilityDefinition &p_ability)
@@ -178,39 +643,123 @@ namespace pg
 		{
 			if (effect.requiresLivingSource && !isActive(p_context, p_plan.source))
 			{
+				skipped(p_events, p_plan, effect, p_plan.source, std::nullopt, EffectSkipReason::SourceNotLiving);
 				continue;
 			}
-			for (const BattleUnitId target : unitScope(p_plan, effect.applyTo))
+
+			std::vector<BattleUnitId> pendingDefeats;
+			if (std::holds_alternative<SwapWithSourceEffectSpec>(effect.payload))
 			{
-				if (!isActive(p_context, target))
+				_applySwap(p_context, p_events, p_plan, effect);
+			}
+			else if (std::holds_alternative<TeleportSourceEffectSpec>(effect.payload))
+			{
+				_applyTeleport(p_context, p_events, p_plan, effect);
+			}
+			else
+			{
+				const std::vector<BattleUnitId> targets = unitScope(p_plan, effect.applyTo);
+				if (effect.applyTo == EffectApplyTo::PrimaryUnit && targets.empty())
 				{
-					continue;
+					skipped(p_events, p_plan, effect, std::nullopt, std::nullopt, EffectSkipReason::MissingScopeValue);
 				}
-				std::visit([&](const auto &payload) {
-					using Payload = std::decay_t<decltype(payload)>;
-					if constexpr (std::is_same_v<Payload, DamageEffectSpec>)
+				for (const BattleUnitId target : targets)
+				{
+					if (!isActive(p_context, target))
 					{
-						_applyDamage(p_context, p_events, p_plan, effect, target, payload);
+						skipped(p_events, p_plan, effect, target, std::nullopt, EffectSkipReason::TargetNotLiving);
+						continue;
 					}
-					else if constexpr (std::is_same_v<Payload, HealEffectSpec>)
-					{
-						_applyHealing(p_context, p_events, p_plan, effect, target, payload);
-					}
-					else if constexpr (std::is_same_v<Payload, ChangeResourceEffectSpec>)
-					{
-						_applyResourceChange(p_context, p_events, p_plan, effect, target, payload);
-					}
-					else if constexpr (std::is_same_v<Payload, ApplyNextActivationPenaltyEffectSpec>)
-					{
-						_applyNextActivationPenalty(p_context, p_events, p_plan, effect, target, payload);
-					}
-					else if constexpr (std::is_same_v<Payload, AdjustTurnBarEffectSpec>)
-					{
-						_applyTurnBarAdjustment(p_context, p_plan, target, payload);
-					}
-				},
-						   effect.payload);
+					std::visit([&](const auto &payload) {
+						using Payload = std::decay_t<decltype(payload)>;
+						if constexpr (std::is_same_v<Payload, DamageEffectSpec>)
+						{
+							_applyDamage(p_context, p_events, pendingDefeats, p_plan, effect, target, payload);
+						}
+						else if constexpr (std::is_same_v<Payload, HealEffectSpec>)
+						{
+							_applyHealing(p_context, p_events, p_plan, effect, target, payload);
+						}
+						else if constexpr (std::is_same_v<Payload, ApplyShieldEffectSpec>)
+						{
+							_applyShield(p_context, p_events, p_plan, effect, target, payload);
+						}
+						else if constexpr (std::is_same_v<Payload, ChangeResourceEffectSpec>)
+						{
+							_applyResourceChange(p_context, p_events, p_plan, effect, target, payload);
+						}
+						else if constexpr (std::is_same_v<Payload, ApplyNextActivationPenaltyEffectSpec>)
+						{
+							_applyNextActivationPenalty(p_context, p_events, p_plan, effect, target, payload);
+						}
+						else if constexpr (std::is_same_v<Payload, AdjustTurnBarEffectSpec>)
+						{
+							_applyTurnBarAdjustment(p_context, p_events, p_plan, effect, target, payload);
+						}
+						else if constexpr (std::is_same_v<Payload, DisplaceEffectSpec>)
+						{
+							_applyDisplace(p_context, p_events, p_plan, effect, target, payload);
+						}
+						else
+						{
+							throw std::logic_error("resolver received a payload outside its supported catalog");
+						}
+					},
+							   effect.payload);
+				}
+			}
+
+			// A complete authored application observes its captured order before any HP-zero unit is
+			// removed.  Final removal is canonical by session unit order, while the stored origin stays
+			// the effect that made the positive-to-zero transition.
+			for (const BattleUnitId id : p_context.allUnitsInOrder())
+			{
+				if (std::ranges::find(pendingDefeats, id) != pendingDefeats.end())
+				{
+					p_context.removeUnit(id, RemovalReason::Defeated, makeOrigin(p_plan, effect, id), p_events);
+				}
 			}
 		}
+		_afterAbilityCastReaction(p_context, p_events, p_plan, p_ability);
+	}
+
+	void EffectResolver::_afterDamageDealtSeam(BattleContext &, std::vector<StagedEvent> &, const CastPlan &, const EffectApplication &, BattleUnitId, BattleUnitId)
+	{
+		// Step 10: source afterDamageDealt hooks.
+	}
+
+	void EffectResolver::_afterDamageTakenSeam(BattleContext &, std::vector<StagedEvent> &, const CastPlan &, const EffectApplication &, BattleUnitId, BattleUnitId)
+	{
+		// Step 10: target afterDamageTaken hooks.
+	}
+
+	void EffectResolver::_afterHealingDoneSeam(BattleContext &, std::vector<StagedEvent> &, const CastPlan &, const EffectApplication &, BattleUnitId, BattleUnitId)
+	{
+		// Step 10: source afterHealingDone hooks.
+	}
+
+	void EffectResolver::_afterHealingReceivedSeam(BattleContext &, std::vector<StagedEvent> &, const CastPlan &, const EffectApplication &, BattleUnitId, BattleUnitId)
+	{
+		// Step 10: target afterHealingReceived hooks.
+	}
+
+	void EffectResolver::_afterAbilityCastReaction(BattleContext &, std::vector<StagedEvent> &, const CastPlan &, const AbilityDefinition &)
+	{
+		// Step 10: source afterAbilityCast hooks, once after the complete authored ability.
+	}
+
+	void EffectResolver::_unitLeftCellSeam(BattleContext &, std::vector<StagedEvent> &, BattleUnitId, BoardCell)
+	{
+		// Step 10: committed-state leave triggers.
+	}
+
+	void EffectResolver::_unitEnteredCellSeam(BattleContext &, std::vector<StagedEvent> &, BattleUnitId, BoardCell)
+	{
+		// Step 10: destination enter triggers.
+	}
+
+	void EffectResolver::_unitEndedMoveOnCellSeam(BattleContext &, std::vector<StagedEvent> &, BattleUnitId, BoardCell)
+	{
+		// Step 10: final-cell stay trigger.
 	}
 }

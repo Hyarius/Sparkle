@@ -19,8 +19,8 @@ headers that step actually landed. A stale ledger is worse than none, because th
 will trust it. (This is the one plan-doc file the step workflow does keep current; the
 per-step `docs/NN-*.md` system docs are still skipped.)
 
-Status: **steps 01–08 complete** on branch `BattleImplementation`.
-Next unimplemented step: **09 — core effect resolution**.
+Status: **steps 01–09 complete** on branch `BattleImplementation`.
+Next work: **step 10 — statuses, passives, and traps**.
 
 ---
 
@@ -613,4 +613,70 @@ direction. Until steps 09–10 install every effect resolver, a fully valid subm
 `CommandRejection` gained the stable placement/active-unit/path/ability/cost/anchor/runtime
 errors used by the planners. Existing scheduler/end-turn behaviour remains unchanged.
 
-## Next: step 09 — core effect resolution
+## Step 09 — Core effect resolution (`battle/effects/`) — complete
+
+`BattleSession::_cast` replans and validates an ability, rejects unsupported status/object payloads
+before costs or IDs, spends non-zero AP/MP, records `AbilityCast`, resolves authored effects in
+order, and appends one command batch before publication. `EffectResolver` supports `damage`,
+`heal`, `applyShield`, `changeResource`, `applyNextActivationPenalty`, `adjustTurnBar`,
+`displace`, `swapWithSource`, and `teleportSource`. The five remaining payloads are deliberately
+unavailable until Step 10; none is skipped into a successful cast.
+
+Scopes expand only from immutable `CastPlan`: source and primary once, affected units/cells in
+captured order, and anchor once. Unit effects defensively reject cell scopes; teleport consumes
+the captured anchor and swap consumes the captured primary. Missing/invalid captured values emit
+`EffectApplicationSkipped` with copied ability/effect/source/target identity. Source liveness is
+checked once per application; target liveness is checked per concrete entry. Positive-to-zero
+damage is removed only after its complete application in session-unit order, so a captured later
+effect with `requiresLivingSource == false` still executes from the retained source stats.
+
+Offense, mitigation, healing, accumulators, resource/penalty arithmetic, event narrowing,
+turn-bar values, and spatial distances use checked integer operations. A pre-command
+`BattleContext::CommandRollbackState` copies board, units, RNG, phase/turn, allocators, and
+counters. Resolver overflow restores it, discards staged facts, and appends one no-action
+`TechnicalAbort`: an open activation closes with `ActivationEnded{TechnicalAbort}`, followed by
+`BattleAborted{NumericInvariant}` and `BattleEnded{Aborted}`. The shield-ID exhaustion test seam
+exercises this path without allocating four billion instances.
+
+`BattleShield` is owned in ascending allocation order by `BattleUnit`; it carries a materialized
+`DurationState`, kind, amount, and copied source identifiers. Matching shields absorb in ascending
+ID order; each positive absorption immediately emits `ShieldAbsorbed` then `ShieldBroken` when
+depleted. Damage preserves pre-hit any/matching shield facts and stores computed, shield, HP, and
+before/after values. Shields/durations are in snapshots and the material digest; expiration is a
+Step-10 responsibility.
+
+Voluntary movement, displacement, and teleport share one committed spatial-step primitive:
+occupancy is changed, `UnitMovementStep` is staged, then leave and enter seams run. Displacement
+uses the traversal graph's exact cardinal neighbor (X wins axis ties), carries original/final cells
+and its locked vector in `UnitDisplaced`, and records a zero-axis aggregate plus
+`NoDirectionalAxis` diagnostic instead of inventing a direction. Teleport uses only the captured
+anchor; swap commits atomically. Step-10 seams are explicit no-ops: source/target after damage,
+source/target after healing, after cast, leave, enter, and ended-move. They stage no public event
+or nested command. Swap's reserved seam order is steps, all leaves, all enters, then all ended-move,
+each by unit ID.
+
+After outcome evaluation, a surviving active caster automatically closes on
+`maxCommandsPerActivation` (`CommandCap`) or no supported legal move/cast (`NoLegalCommands`).
+Active source defeat closes once at the cast boundary. The query ignores resolver-unsupported
+abilities.
+
+Files materially changed: `battle/{battle_context,battle_unit,battle_session,battle_ids}.*`,
+`battle/effects/effect_resolver.*`, `battle/query/battle_query_service.cpp`, event/snapshot/digest
+extensions, and `tests/battle/effect_resolution_test.cpp`. The focused suite covers offense/
+mitigation/healing tables; shield channel/break/spill order; resource/penalty/bar values; captured
+scope and failed spatial diagnostics; displace/swap/teleport order; deferred defeat/source death/
+draw; automatic cast-end; numeric rollback/batch tail; and deterministic headless completion.
+System contract: `docs/03-systems/battle-effect-resolution.md`.
+
+The Step-09 acceptance fixture now has 17 focused tests. Beyond formula/shield/resource/cast-end
+coverage, it proves every deferred status/object payload and mixed supported prefix are wholly
+unavailable, zero-axis displacement emits its aggregate before the diagnostic, and exact resolved
+event-capacity exhaustion rolls back into `TechnicalAbort` with no shield/cost mutation. The
+scripted headless checkpoint is deterministic while exercising shield spill, physical and magical
+damage, resource/bar clamping, displacement, teleport, and terminal defeat in one command.
+
+Verification: `cmake --build build/test --target PlaygroundTests SparklePlayground -j 4`, focused
+`PlaygroundTests.exe --gtest_filter=EffectResolverRuntime.*` (17 tests), and
+`ctest --test-dir build/test --output-on-failure -L playground` (347 tests) pass.
+
+## Next: Step 10 — statuses, passives, and traps

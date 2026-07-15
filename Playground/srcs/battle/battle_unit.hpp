@@ -3,12 +3,15 @@
 #include "battle/battle_ids.hpp"
 #include "battle/battle_time.hpp"
 #include "battle/battle_types.hpp"
+#include "battle/effects/battle_shield.hpp"
 #include "board/board_cell.hpp"
 #include "core/creature_instance_id.hpp"
 #include "creatures/creature_attributes.hpp"
 
 #include <cstdint>
+#include <limits>
 #include <optional>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -89,6 +92,7 @@ namespace pg
 		int _movementPoints = 0;
 		NextActivationPenalty _nextActivationPenalty;
 		BattleTime _turnBarFill{};
+		std::vector<BattleShield> _shields; // ascending BattleShieldId allocation order
 
 		bool _placed = false;
 		std::optional<BoardCell> _lastOccupiedCell;
@@ -177,6 +181,10 @@ namespace pg
 		{
 			return _turnBarFill;
 		}
+		[[nodiscard]] const std::vector<BattleShield> &shields() const noexcept
+		{
+			return _shields;
+		}
 
 		[[nodiscard]] bool placed() const noexcept
 		{
@@ -243,20 +251,24 @@ namespace pg
 		{
 			_health = p_value;
 		}
-		void addNextActivationPenalty(BattleResource p_resource, int p_amount) noexcept
+		void addNextActivationPenalty(BattleResource p_resource, int p_amount)
 		{
-			if (p_resource == BattleResource::ActionPoints)
+			int &penalty = p_resource == BattleResource::ActionPoints
+							   ? _nextActivationPenalty.actionPoints
+							   : _nextActivationPenalty.movementPoints;
+			if (p_amount > 0 && penalty > std::numeric_limits<int>::max() - p_amount)
 			{
-				_nextActivationPenalty.actionPoints += p_amount;
+				throw std::overflow_error("next-activation penalty overflow");
 			}
-			else
-			{
-				_nextActivationPenalty.movementPoints += p_amount;
-			}
+			penalty += p_amount;
 		}
 		void clearNextActivationPenalty() noexcept
 		{
 			_nextActivationPenalty = {};
+		}
+		[[nodiscard]] std::vector<BattleShield> &shieldsMutable() noexcept
+		{
+			return _shields;
 		}
 	};
 }

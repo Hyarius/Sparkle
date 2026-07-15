@@ -2,6 +2,7 @@
 
 #include "abilities/ability_definition.hpp"
 #include "battle/battle_context.hpp"
+#include "battle/effects/effect_resolver.hpp"
 #include "board/board_line_of_sight.hpp"
 #include "core/registries.hpp"
 
@@ -263,11 +264,16 @@ namespace pg
 		}
 		for (const auto &a : unit->abilityIds())
 		{
+			const AbilityDefinition *definition = _context.registries().abilities().tryGet(a);
+			if (definition == nullptr || !EffectResolver::supportsAll(*definition))
+			{
+				continue;
+			}
 			for (const auto &p : abilityAnchors(id, a))
 			{
 				if (p.legal)
 				{
-					return false;
+					return true;
 				}
 			}
 		}

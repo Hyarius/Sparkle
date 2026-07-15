@@ -53,6 +53,7 @@ namespace pg
 	using BattleId = BattleNumericId<struct BattleIdTag>;
 	using BattleUnitId = BattleNumericId<struct BattleUnitIdTag>;
 	using BattleObjectId = BattleNumericId<struct BattleObjectIdTag>;
+	using BattleShieldId = BattleNumericId<struct BattleShieldIdTag>;
 
 	// Allocation is a value, owned by whoever owns the id space - step 06 gives one to the
 	// session - never a process-global counter, which would make a replay depend on how many
@@ -87,10 +88,18 @@ namespace pg
 		{
 			return _next == 0U ? std::numeric_limits<std::uint32_t>::max() : _next - 1U;
 		}
+
+		// Test-only sequence exhaustion seam.  Runtime construction never calls this; it exists so
+		// a resolver overflow can be exercised without allocating four billion shield instances.
+		void debugSetNextForExhaustionTest(std::uint32_t p_next) noexcept
+		{
+			_next = p_next;
+		}
 	};
 
 	using BattleUnitIdAllocator = BattleNumericIdAllocator<BattleUnitIdTag>;
 	using BattleObjectIdAllocator = BattleNumericIdAllocator<BattleObjectIdTag>;
+	using BattleShieldIdAllocator = BattleNumericIdAllocator<BattleShieldIdTag>;
 
 	// The session id is not allocated from a counter: it is a pure function of the exact
 	// combat seed, so an archived battle keeps its id when it is replayed. Exposed as a seam

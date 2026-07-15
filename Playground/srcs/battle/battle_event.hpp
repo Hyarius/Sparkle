@@ -7,7 +7,8 @@
 #include "battle/battle_time.hpp"
 #include "battle/battle_types.hpp"
 #include "battle/battle_unit.hpp" // RemovalReason
-#include "board/board_cell.hpp"	  // BoardCell, BoardSourceDescriptor
+#include "battle/effects/duration_state.hpp"
+#include "board/board_cell.hpp" // BoardCell, BoardSourceDescriptor
 
 #include <optional>
 #include <string>
@@ -224,6 +225,36 @@ namespace pg
 		[[nodiscard]] bool operator==(const NextActivationPenaltyApplied &) const = default;
 	};
 
+	struct TurnBarAdjusted
+	{
+		BattleUnitId unit;
+		BattleTime requestedDelta;
+		BattleTime appliedDelta;
+		BattleTime before;
+		BattleTime after;
+		[[nodiscard]] bool operator==(const TurnBarAdjusted &) const = default;
+	};
+
+	enum class EffectSkipReason
+	{
+		MissingScopeValue,
+		SourceNotLiving,
+		TargetNotLiving,
+		TargetNoLongerPlaced,
+		DestinationInvalid,
+		DestinationBlocked,
+		NoDirectionalAxis,
+		NoAppliedChange
+	};
+	struct EffectApplicationSkipped
+	{
+		std::string effectId;
+		std::optional<BattleUnitId> targetUnit;
+		std::optional<BoardCell> targetCell;
+		EffectSkipReason reason = EffectSkipReason::NoAppliedChange;
+		[[nodiscard]] bool operator==(const EffectApplicationSkipped &) const = default;
+	};
+
 	// ---- Movement (step 08) ----------------------------------------------------------------------
 
 	struct UnitMovementStep
@@ -254,6 +285,11 @@ namespace pg
 		std::optional<BattleUnitId> source;
 		BattleUnitId target;
 		DisplacementDirection direction = DisplacementDirection::Away;
+		BoardCell originalCell;
+		BoardCell finalCell;
+		// One of (+/-1, 0) or (0, +/-1); (0, 0) records the no-axis application.
+		int lockedDirectionX = 0;
+		int lockedDirectionZ = 0;
 		int requestedDistance = 0;
 		int appliedDistance = 0;
 
@@ -333,11 +369,11 @@ namespace pg
 	{
 		std::optional<BattleUnitId> source;
 		BattleUnitId target;
-		std::string shieldId;
+		BattleShieldId shieldId;
 		DamageKind kind = DamageKind::Physical;
 		int requestedAmount = 0;
 		int appliedAmount = 0;
-		BattleTime duration;
+		DurationSnapshot duration;
 		std::optional<std::string> sourceAbilityId;
 		std::optional<std::string> sourceEffectId;
 
@@ -348,7 +384,7 @@ namespace pg
 	{
 		std::optional<BattleUnitId> source;
 		BattleUnitId target;
-		std::string shieldId;
+		BattleShieldId shieldId;
 		DamageKind kind = DamageKind::Physical;
 		int requestedAmount = 0;
 		int appliedAmount = 0;
@@ -363,7 +399,7 @@ namespace pg
 	{
 		std::optional<BattleUnitId> source;
 		BattleUnitId target;
-		std::string shieldId;
+		BattleShieldId shieldId;
 		DamageKind kind = DamageKind::Physical;
 		std::optional<BattleUnitId> shieldAppliedBy;
 		std::optional<std::string> shieldSourceAbilityId;
@@ -375,7 +411,7 @@ namespace pg
 	struct ShieldRemoved
 	{
 		BattleUnitId target;
-		std::string shieldId;
+		BattleShieldId shieldId;
 		DamageKind kind = DamageKind::Physical;
 		ShieldRemovalReason reason = ShieldRemovalReason::Expired;
 		int remainingAmount = 0;
@@ -502,6 +538,7 @@ namespace pg
 		ResourceSpent,
 		ResourceChanged,
 		NextActivationPenaltyApplied,
+		TurnBarAdjusted,
 		UnitMovementStep,
 		UnitMoved,
 		UnitDisplaced,
@@ -519,6 +556,7 @@ namespace pg
 		BattleObjectPlaced,
 		BattleObjectRemoved,
 		BattleObjectTriggered,
+		EffectApplicationSkipped,
 		UnitRemoved,
 		UnitDefeated,
 		BattleEnded,

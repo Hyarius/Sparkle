@@ -62,6 +62,23 @@ namespace pg
 			}
 		}
 
+		void mixDuration(StableHasher64 &p_hasher, const DurationState &p_duration) noexcept
+		{
+			p_hasher.mix(static_cast<std::int32_t>(p_duration.index()));
+			std::visit([&](const auto &value) {
+				using T = std::decay_t<decltype(value)>;
+				if constexpr (std::is_same_v<T, TimelineDurationState>)
+				{
+					mixInt(p_hasher, value.expiresAt.ticks());
+				}
+				else if constexpr (std::is_same_v<T, OwnerActivationDurationState>)
+				{
+					mixU64(p_hasher, value.remainingActivations);
+				}
+			},
+					   p_duration);
+		}
+
 		// The immutable board topology: extent + traversal bounds, every bounded source voxel in
 		// X/Y/Z order, the sorted navigation nodes/edges with movement costs, both ordered deployment
 		// zones, and the sorted border cells. It never reads a live revision or a pointer.
@@ -247,6 +264,21 @@ namespace pg
 			hasher.mix(static_cast<std::int32_t>(unit.removalReason()));
 			mixBool(hasher, unit.placed());
 			mixOptCell(hasher, p_context.board().occupancy().cellOf(id));
+			mixU64(hasher, unit.shields().size());
+			for (const BattleShield &shield : unit.shields())
+			{
+				mixU64(hasher, shield.id.value());
+				hasher.mix(static_cast<std::int32_t>(shield.kind));
+				mixInt(hasher, shield.remainingAmount);
+				mixDuration(hasher, shield.duration);
+				mixBool(hasher, shield.source.has_value());
+				if (shield.source)
+				{
+					mixU64(hasher, shield.source->value());
+				}
+				mixOptString(hasher, shield.sourceAbilityId);
+				mixOptString(hasher, shield.sourceEffectId);
+			}
 		}
 
 		// The RNG draw count is a material fact: two boards that spent different numbers of draws to
