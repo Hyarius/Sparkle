@@ -269,7 +269,11 @@ namespace pg
 		const spk::Vector3Int presentation = toPresentationCell(p_local);
 		return {
 			static_cast<float>(presentation.x) + 0.5f,
-			walkHeightAtCenter(*_cells, p_local),
+			// The source is intentionally queried in board-local space, but its resulting
+			// walk height must then receive the same presentation translation as X/Z.  A
+			// live board can be anchored above y=0; omitting this term put its views on a
+			// parallel, incorrect plane.
+			walkHeightAtCenter(*_cells, p_local) + static_cast<float>(_presentationOrigin.y),
 			static_cast<float>(presentation.z) + 0.5f};
 	}
 

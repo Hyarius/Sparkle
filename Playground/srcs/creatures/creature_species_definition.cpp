@@ -34,13 +34,14 @@ namespace pg
 
 		[[nodiscard]] CreatureFormDefinition parseForm(JsonReader &p_reader)
 		{
-			p_reader.forbidUnknown({"id", "displayNameKey", "tier", "presentation"});
+			p_reader.forbidUnknown({"id", "displayNameKey", "tier", "icon", "presentation"});
 
 			CreatureFormDefinition result;
 			result.id = p_reader.require<std::string>("id");
 			requireContentId(result.id, p_reader.file(), p_reader.pathFor("id"), "form id");
 			result.displayNameKey = requireDisplayNameKey(p_reader);
 			result.tier = static_cast<std::uint32_t>(requireIntegerInRange(p_reader, "tier", 0, MaximumFormTier));
+			result.icon = requireIcon(p_reader);
 
 			JsonReader presentation = p_reader.child("presentation");
 			result.presentation = parsePresentation(presentation);

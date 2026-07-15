@@ -23,6 +23,7 @@ namespace
 
 	constexpr std::string_view BaseForm = R"("forms": [
 		{"id": "base", "displayNameKey": "creature.fixture.form.base.name", "tier": 0,
+		 "icon": [0, 0],
 		 "presentation": {"tint": [90, 190, 105, 255], "scalePermille": 1000}}])";
 
 	// One species document with every part overridable, so a case changes exactly the field it is
@@ -82,6 +83,7 @@ TEST(CreatureSpeciesDefinitionTest, ParsesTheBaselineWithNoLevelAndNoRoll)
 	EXPECT_EQ(parsed.defaultFormId, "base");
 	ASSERT_EQ(parsed.forms.size(), 1U);
 	EXPECT_EQ(parsed.forms[0].tier, 0U);
+	EXPECT_EQ(parsed.forms[0].icon, spk::Vector2Int(0, 0));
 	EXPECT_EQ(parsed.forms[0].presentation.tint, (std::array<std::uint8_t, 4>{90, 190, 105, 255}));
 	EXPECT_EQ(parsed.forms[0].presentation.scalePermille, 1000);
 }
@@ -180,8 +182,10 @@ TEST(CreatureSpeciesDefinitionTest, EnforcesTheFormAndTierRules)
 {
 	constexpr std::string_view TwoForms = R"("forms": [
 		{"id": "base", "displayNameKey": "creature.fixture.form.base.name", "tier": 0,
+		 "icon": [0, 0],
 		 "presentation": {"tint": [1, 2, 3, 255], "scalePermille": 1000}},
 		{"id": "grown", "displayNameKey": "creature.fixture.form.grown.name", "tier": 1,
+		 "icon": [1, 0],
 		 "presentation": {"tint": [4, 5, 6, 255], "scalePermille": 1400}}])";
 
 	const pg::CreatureSpeciesDefinition parsed = parse(species(BaseAttributes, R"(["training-strike"])", "[]", "base", TwoForms));
@@ -206,8 +210,10 @@ TEST(CreatureSpeciesDefinitionTest, EnforcesTheFormAndTierRules)
 			"base",
 			R"("forms": [
 				{"id": "base", "displayNameKey": "creature.fixture.form.base.name", "tier": 0,
+				 "icon": [0, 0],
 				 "presentation": {"tint": [1, 2, 3, 255], "scalePermille": 1000}},
 				{"id": "twin", "displayNameKey": "creature.fixture.form.twin.name", "tier": 0,
+				 "icon": [1, 0],
 				 "presentation": {"tint": [1, 2, 3, 255], "scalePermille": 1000}}])")),
 		pg::JsonError)
 		<< "two tier-0 forms leave 'which one does a fresh creature wear' unanswered";
@@ -222,8 +228,10 @@ TEST(CreatureSpeciesDefinitionTest, EnforcesTheFormAndTierRules)
 			"base",
 			R"("forms": [
 				{"id": "base", "displayNameKey": "creature.fixture.form.base.name", "tier": 0,
+				 "icon": [0, 0],
 				 "presentation": {"tint": [1, 2, 3, 255], "scalePermille": 1000}},
 				{"id": "base", "displayNameKey": "creature.fixture.form.base.name", "tier": 1,
+				 "icon": [1, 0],
 				 "presentation": {"tint": [1, 2, 3, 255], "scalePermille": 1000}}])")),
 		pg::JsonError);
 }
@@ -237,7 +245,7 @@ TEST(CreatureSpeciesDefinitionTest, EnforcesThePlaceholderPresentationBounds)
 			"[]",
 			"base",
 			std::string(R"("forms": [{"id": "base", "displayNameKey": "creature.fixture.form.base.name",
-				"tier": 0, "presentation": )") +
+				"tier": 0, "icon": [0, 0], "presentation": )") +
 				std::string(p_presentation) + "}]");
 	};
 
@@ -263,6 +271,7 @@ TEST(CreatureSpeciesDefinitionTest, EnforcesThePlaceholderPresentationBounds)
 			"[]",
 			"base",
 			R"("forms": [{"id": "base", "displayNameKey": "creature.fixture.form.base.name", "tier": 101,
+				"icon": [0, 0],
 				"presentation": {"tint": [0, 0, 0, 0], "scalePermille": 1000}}])")),
 		pg::JsonError);
 }

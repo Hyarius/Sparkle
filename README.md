@@ -26,6 +26,13 @@ cmake --build --preset test
 ctest --output-on-failure --test-dir build/test
 ```
 
+## Playground battle controls
+
+The optional Playground battle prototype supports an 800×600 minimum window. During deployment,
+select a player card (or 1–6), click a highlighted support cell, then press Enter or Ready. During
+a player activation, use M for movement, 1–8 for abilities, Space for End Turn, and Escape or a
+short right-click to cancel targeting. Right-drag orbits the tactical camera; the wheel zooms.
+
 ## Install and Package
 
 The project installs the `Sparkle::Sparkle` target, public headers, generated resource header, and CMake package files:

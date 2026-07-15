@@ -1,5 +1,6 @@
 #pragma once
 
+#include "battle/battle_event_log.hpp"
 #include "battle/battle_snapshot.hpp"
 #include "battle/presentation/battle_interaction_controller.hpp"
 #include "battle/presentation/battle_presentation_cell_source.hpp"
@@ -21,9 +22,12 @@ namespace spk
 namespace pg
 {
 	class BattleBoardPicker;
+	class BattleObjectPresenter;
 	class BattleOverlayModelBuilder;
 	class BattleOverlayPresenter;
 	class BattleSession;
+	class BattleUnitPresenter;
+	class BattleHudWidget;
 	class TacticalCameraController;
 	struct GameRules;
 
@@ -45,9 +49,13 @@ namespace pg
 		BattlePresentationCallbacks _callbacks;
 		std::function<spk::Vector2()> _viewportSize;
 		const spk::Texture &_maskTexture;
+		const spk::Texture &_unitTexture;
 		const GameRules &_rules;
+		BattleHudWidget &_hud;
 		const BattlePresentationBoardBinding *_binding = nullptr;
 		std::unique_ptr<BattleOverlayPresenter> _presenter;
+		std::unique_ptr<BattleUnitPresenter> _unitPresenter;
+		std::unique_ptr<BattleObjectPresenter> _objectPresenter;
 		std::unique_ptr<BattleInteractionController> _interaction;
 		std::unique_ptr<BattleOverlayModelBuilder> _overlay;
 		std::unique_ptr<BattleBoardPicker> _picker;
@@ -59,6 +67,7 @@ namespace pg
 		spk::Vector2Int _rightPressPosition{};
 
 		void _refreshOverlay();
+		void _refreshHud();
 		[[nodiscard]] std::optional<BoardCell> _pick(const spk::Vector2Int &p_mouse) const;
 		[[nodiscard]] bool _handled(InputHandling p_result);
 
@@ -71,12 +80,15 @@ namespace pg
 			BattlePresentationCallbacks p_callbacks,
 			std::function<spk::Vector2()> p_viewportSize,
 			const spk::Texture &p_maskTexture,
-			const GameRules &p_rules);
+			const spk::Texture &p_unitTexture,
+			const GameRules &p_rules,
+			BattleHudWidget &p_hud);
 		~BattlePresentationRuntime();
 		BattlePresentationRuntime(const BattlePresentationRuntime &) = delete;
 		BattlePresentationRuntime &operator=(const BattlePresentationRuntime &) = delete;
 
 		void enter(const BattlePresentationBoardBinding &p_boardPresentation);
+		void onCommittedBatch(const CommittedBattleBatch &p_batch);
 		void update(const spk::UpdateContext &p_tick);
 		void beginExit();
 		void detach() noexcept;

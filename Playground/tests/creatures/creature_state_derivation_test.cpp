@@ -118,6 +118,7 @@ namespace
 
 	[[nodiscard]] std::string speciesDocument(
 		std::string_view p_forms = R"([{"id": "base", "displayNameKey": "creature.fixture.form.base.name", "tier": 0,
+			"icon": [0, 0],
 			"presentation": {"tint": [1, 2, 3, 255], "scalePermille": 1000}}])",
 		std::string_view p_abilities = R"(["training-strike"])",
 		std::string_view p_passives = "[]")
@@ -309,8 +310,10 @@ TEST(CreatureStateDerivationTest, ReplaysAnEvolutionAndRefusesAnIllegalPreset)
 		"sprout",
 		speciesDocument(
 			R"([{"id": "base", "displayNameKey": "creature.fixture.form.base.name", "tier": 0,
+				"icon": [0, 0],
 				"presentation": {"tint": [1, 2, 3, 255], "scalePermille": 1000}},
 			   {"id": "grown", "displayNameKey": "creature.fixture.form.grown.name", "tier": 1,
+				"icon": [1, 0],
 				"presentation": {"tint": [4, 5, 6, 255], "scalePermille": 1400}}])"));
 
 	const pg::CreatureSpeciesDefinition &species = graph.species.get("sprout");
@@ -365,10 +368,13 @@ TEST(CreatureStateDerivationTest, RefusesTwoBranchesOfOneExclusiveGroupAndRecord
 		"sprout",
 		speciesDocument(
 			R"([{"id": "base", "displayNameKey": "creature.fixture.form.base.name", "tier": 0,
+				"icon": [0, 0],
 				"presentation": {"tint": [1, 2, 3, 255], "scalePermille": 1000}},
 			   {"id": "leafy", "displayNameKey": "creature.fixture.form.leafy.name", "tier": 1,
+				"icon": [1, 0],
 				"presentation": {"tint": [4, 5, 6, 255], "scalePermille": 1200}},
 			   {"id": "thorny", "displayNameKey": "creature.fixture.form.thorny.name", "tier": 1,
+				"icon": [2, 0],
 				"presentation": {"tint": [7, 8, 9, 255], "scalePermille": 1200}}])"));
 
 	const pg::FeatBoardDefinition &featBoard = graph.featBoards.get("fixture-board");

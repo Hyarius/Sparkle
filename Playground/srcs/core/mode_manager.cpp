@@ -1,15 +1,16 @@
 #include "core/mode_manager.hpp"
 
 #include "battle/battle_pump.hpp"
+#include "battle/battle_session.hpp"
 #include "battle/presentation/battle_presentation_cell_source.hpp"
 #include "battle/presentation/battle_presentation_runtime.hpp"
-#include "battle/battle_session.hpp"
 #include "board/board_builder.hpp"
 #include "components/actor.hpp"
 #include "core/game_context.hpp"
 #include "core/registries.hpp"
 #include "creatures/creature_unit.hpp"
 #include "logics/actor_path_logic.hpp"
+#include "logics/day_time_management_logic.hpp"
 #include "structures/game_engine/spk_entity_3d.hpp"
 #include "structures/game_engine/spk_game_engine.hpp"
 #include "structures/game_engine/spk_texture_mesh_renderer_3d.hpp"
@@ -36,6 +37,7 @@ namespace pg
 		BattleStartRequest _request;
 		std::unique_ptr<BattleSession> _session;
 		spk::VoxelFluidSimulator &_fluid;
+		DayTimeManagementLogic &_dayTimeLogic;
 		spk::TextureMeshRenderer3D &_playerRenderer;
 		spk::TextureMeshRenderer3D &_hoverRenderer;
 		spk::VoxelChunkStreamer &_playerStreamer;
@@ -45,6 +47,7 @@ namespace pg
 		const spk::Texture &_voxelTexture;
 		std::shared_ptr<const spk::TextureMesh3D> _hoverMesh;
 		bool _fluidWasActive = false;
+		bool _dayTimeWasActive = false;
 		bool _playerRendererWasActive = false;
 		bool _hoverRendererWasActive = false;
 		bool _playerStreamerWasActive = false;
@@ -157,6 +160,7 @@ namespace pg
 			std::unique_ptr<BattleSession> p_session,
 			spk::VoxelFluidSimulator &p_fluid,
 			bool p_fluidWasActive,
+			DayTimeManagementLogic &p_dayTimeLogic,
 			spk::TextureMeshRenderer3D &p_playerRenderer,
 			spk::TextureMeshRenderer3D &p_hoverRenderer,
 			spk::VoxelChunkStreamer &p_playerStreamer,
@@ -169,12 +173,14 @@ namespace pg
 			const spk::Texture &p_voxelTexture,
 			spk::Camera3D &p_camera,
 			const spk::Texture &p_maskTexture,
+			BattleHudWidget &p_battleHud,
 			std::function<spk::Vector2()> p_viewportSize,
 			const GameRules &p_rules,
 			const PrefabDefinition *p_handcraftedPrefab) :
 			_request(std::move(p_request)),
 			_session(std::move(p_session)),
 			_fluid(p_fluid),
+			_dayTimeLogic(p_dayTimeLogic),
 			_playerRenderer(p_playerRenderer),
 			_hoverRenderer(p_hoverRenderer),
 			_playerStreamer(p_playerStreamer),
@@ -184,6 +190,7 @@ namespace pg
 			_voxelTexture(p_voxelTexture),
 			_hoverMesh(_hoverRenderer.mesh()),
 			_fluidWasActive(p_fluidWasActive),
+			_dayTimeWasActive(p_dayTimeLogic.isActivated()),
 			_playerRendererWasActive(p_playerRenderer.isActivated()),
 			_hoverRendererWasActive(p_hoverRenderer.isActivated()),
 			_battleStreamerWasActive(p_battleStreamerWasActive),
@@ -195,6 +202,12 @@ namespace pg
 				if (_session == nullptr)
 				{
 					throw std::invalid_argument("battle runtime requires a session");
+				}
+				// Battle owns a frozen tactical scene. Preserve the current sun/ambient state,
+				// but stop the real-time day cycle until the battle runtime is torn down.
+				if (_dayTimeWasActive)
+				{
+					_dayTimeLogic.deactivate();
 				}
 				if (_request.debugAutoplayPlayerProfileId.has_value())
 				{
@@ -224,14 +237,17 @@ namespace pg
 					_engine,
 					p_camera,
 					*_session,
-					[this] { return _session->snapshot(); },
+					[this] {
+						return _session->snapshot();
+					},
 					BattlePresentationCallbacks{},
 					std::move(p_viewportSize),
 					p_maskTexture,
-					p_rules);
+					p_voxelTexture,
+					p_rules,
+					p_battleHud);
 				_presentation->enter(*_presentationBinding);
-			}
-			catch (...)
+			} catch (...)
 			{
 				// A failed presentation attach is an entry failure, not an orphaned arena, paused
 				// fluid simulator, or hidden exploration renderer.
@@ -252,6 +268,14 @@ namespace pg
 		[[nodiscard]] const BattleStartRequest &request() const noexcept
 		{
 			return _request;
+		}
+
+		void presentCommittedBatch(const CommittedBattleBatch &p_batch)
+		{
+			if (_presentation != nullptr)
+			{
+				_presentation->onCommittedBatch(p_batch);
+			}
 		}
 
 		void update(const spk::UpdateContext &p_tick)
@@ -378,6 +402,14 @@ namespace pg
 			if (_fluidWasActive)
 			{
 				_fluid.activate();
+			}
+			if (_dayTimeWasActive)
+			{
+				_dayTimeLogic.activate();
+			}
+			else
+			{
+				_dayTimeLogic.deactivate();
 			}
 		}
 	};
@@ -579,6 +611,7 @@ namespace pg
 		BattleSession &session = _battle->session();
 		for (CommittedBattleBatch &batch : session.takeCommittedBatches())
 		{
+			_battle->presentCommittedBatch(batch);
 			_dependencies.game.events.battleBatchPublished.trigger(
 				{.generation = _activeGeneration, .battleId = session.battleId(), .batch = std::move(batch)});
 		}
@@ -709,6 +742,7 @@ namespace pg
 					std::move(result.session),
 					_dependencies.fluidSimulator,
 					fluidWasActive,
+					_dependencies.dayTimeLogic,
 					_dependencies.playerRenderer,
 					_dependencies.explorationHoverRenderer,
 					_dependencies.playerStreamer,
@@ -721,6 +755,7 @@ namespace pg
 					_dependencies.voxelTexture,
 					_dependencies.camera,
 					_dependencies.maskTexture,
+					_dependencies.battleHud,
 					_dependencies.viewportSize,
 					_dependencies.registries.gameRules(),
 					handcraftedPrefab);

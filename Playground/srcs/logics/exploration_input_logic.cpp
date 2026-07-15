@@ -57,8 +57,7 @@ namespace pg
 			return;
 		}
 		const spk::AtlasCell mask = _invalidSeconds > 0 ? _invalidMask : _hoveredMask;
-		_hoverRenderer.setMesh(std::make_shared<spk::TextureMesh3D>(
-			WalkSurfaceMaskMeshBuilder::buildOne(_presentationCells, *_hovered, mask)));
+		_hoverRenderer.setMesh(std::make_shared<spk::TextureMesh3D>(WalkSurfaceMaskMeshBuilder::buildOne(_presentationCells, *_hovered, mask)));
 	}
 
 	const std::optional<spk::Vector3Int> &ExplorationInputLogic::hoveredCell() const noexcept

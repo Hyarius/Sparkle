@@ -7,10 +7,10 @@
 #include "structures/system/event/spk_events.hpp"
 #include "structures/system/event/spk_update_context.hpp"
 
+#include <functional>
 #include <memory>
 #include <optional>
 #include <variant>
-#include <functional>
 
 namespace spk
 {
@@ -27,9 +27,11 @@ namespace pg
 	class Actor;
 	class ActorPathLogic;
 	class BattleSession;
+	class DayTimeManagementLogic;
 	class Registries;
 	class VoxelWorld;
 	class WorldNavigation;
+	class BattleHudWidget;
 	struct GameContext;
 
 	// Plain mode owner called only from GameSceneWidget's post-engine frame boundary.  It owns the
@@ -50,10 +52,12 @@ namespace pg
 			spk::VoxelChunkStreamer &playerStreamer;
 			spk::VoxelChunkStreamer &battleStreamer;
 			spk::VoxelFluidSimulator &fluidSimulator;
+			DayTimeManagementLogic &dayTimeLogic;
 			spk::GameEngine &engine;
 			spk::Camera3D &camera;
 			const spk::Texture &voxelTexture;
 			const spk::Texture &maskTexture;
+			BattleHudWidget &battleHud;
 			std::function<spk::Vector2()> viewportSize;
 		};
 

@@ -14,9 +14,9 @@ namespace pg
 		const float pitch = spk::degreeToRadian(_state.pitchDegrees);
 		const float horizontal = std::cos(pitch) * _state.distance;
 		return _state.target + spk::Vector3{
-			std::sin(yaw) * horizontal,
-			std::sin(pitch) * _state.distance,
-			std::cos(yaw) * horizontal};
+								   std::sin(yaw) * horizontal,
+								   std::sin(pitch) * _state.distance,
+								   std::cos(yaw) * horizontal};
 	}
 
 	void TacticalCameraController::_clamp() noexcept

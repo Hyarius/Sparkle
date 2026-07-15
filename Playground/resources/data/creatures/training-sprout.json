@@ -22,6 +22,7 @@
 			"id": "base",
 			"displayNameKey": "creature.training-sprout.form.base.name",
 			"tier": 0,
+			"icon": [0, 0],
 			"presentation": {
 				"tint": [90, 190, 105, 255],
 				"scalePermille": 1000

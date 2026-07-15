@@ -1,7 +1,6 @@
 # Combat plan — progress ledger
 
-> **Current status (2026-07-15): steps 01 through 13 are complete. Next work is step 14:
-> unit views and HUD.**
+> **Current status (2026-07-15): steps 01 through 14 are complete. Next work is step 15.**
 
 The **state of what has actually been built**, step by step, as a compact API surface:
 enough to implement the next step without re-reading the headers of every earlier one.
@@ -24,7 +23,7 @@ per-step `docs/NN-*.md` system docs are still skipped.)
 
 Status: **steps 01–12 complete** on branch `BattleImplementation`.
 Next work: **step 13 — battle presentation and tactical input**.
-Current ledger status: **steps 01 through 13 complete**. Next work: **step 14 - unit views and HUD**.
+Current ledger status: **steps 01 through 14 complete**. Next work: **step 15**.
 
 ---
 
@@ -808,4 +807,48 @@ Verification: `cmake --build build/test --target PlaygroundTests SparklePlaygrou
 `ctest --test-dir build/test --output-on-failure -L playground` (355 tests) pass. A GUI visual
 pass remains an interactive follow-up.
 
-## Next: Step 14 - unit views and HUD
+## Step 14 - unit views and HUD - complete
+
+`battle/presentation/battle_unit_position.*` converts `PlaceholderVisual` only at the rendering
+boundary (`toSpkColor`, `toWorldScale`, deterministic semantic-id fallback) and positions units
+from the frozen board-local walk height plus exactly one presentation translation. `BoardData`
+now applies that translation to Y as well as X/Z. `BattleUnitPresenter` and
+`BattleObjectPresenter` own engine entities keyed by their battle IDs, reconcile copied snapshots,
+consume committed batches, animate committed movement steps cosmetically, and remove entities
+before board/session teardown.
+
+`battle_hud_view_model.*` and its builder are copied, deterministic HUD projections. The
+`forecastActivations(snapshot, maximum)` helper simulates only copied readiness bars with the
+scheduler tie ordering; it changes no battle state or RNG. `AbilitySlotAvailability` and
+`deploymentReadyAvailability` expose controller/query-backed disabled reasons without letting a
+widget mutate rules. `ability_summary_formatter.*` is formula-free.
+
+`widgets/battle/` supplies the persistent `BattleHudWidget`, read-only resource bars, and eight
+guarded ability buttons. `TeamRosterWidget<TCard, Capacity>` owns the reusable vertical roster
+layout, selection, expansion reflow, and copied model linkage; `TeamRosterCard` is the visual /
+interaction contract implemented by `CreatureCardWidget` today and replaceable by a future battle
+card type. A selected card expands with core combat stats, while right-click opens a copied-detail
+window for attributes, initiative, abilities, and effects. Mouse controls call the same
+interaction-controller methods as keyboard controls; the HUD is bound after presentation attach
+and unbound before session release. `GameSceneWidget` owns the widget and forwards its geometry.
+
+During deployment, the overlay exposes all team deployment cells before any card is selected, then
+filters the same masks through `planPlacement` after selection. Battle entry suspends the world
+day/night cycle and restores its captured activation state after teardown. HUD text is white and
+the top-centre status has a dedicated contrast panel.
+
+Battle masks use the same voxel walk-surface mask builder and texture atlas as exploration hover,
+but render in the opaque pass at full alpha. A submitted placement clears the placement selection,
+which collapses its roster card and restores the roster's compact geometry. Forms now require an
+authored `[x, y]` icon coordinate; the copied card model uses the current form's icon beside its
+name, so an evolved form changes both card icon and label.
+
+The bottom action bar is a copied `ActionBarViewModel`: it follows the selected placement creature
+in deployment and the active creature during an activation. It lays out status icons in eight-wide
+rows, AP/HP/MP bars, and eight ability shortcuts. A left click selects an enabled ability through
+the interaction controller; right clicks open independent copied ability/status inspection
+windows. Its single contextual button confirms deployment when ready or ends an active player turn.
+
+Verification: `cmake --build build/test --target PlaygroundTests SparklePlayground -j 4`; focused
+`BattleHudProjection.*:BattleUnitVisualConversion.*` tests pass. Manual GUI visual validation
+remains appropriate for the final art/layout polish.

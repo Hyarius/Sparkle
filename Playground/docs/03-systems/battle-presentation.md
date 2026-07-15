@@ -45,6 +45,12 @@ The overlay model resolves exactly one mask per canonical board cell. The mask a
 movement. Its revision changes only when this effective sorted set changes, so the presenter swaps
 one immutable mesh only when necessary.
 
+Deployment cells are masked as soon as deployment begins, before a creature is selected. Once a
+player selects a roster creature, the same mask is narrowed to that creature's exact
+`planPlacement` result. The battle renderer uses the same walk-surface mask texture and mesh
+builder as exploration hover, but draws it in the opaque pass at full alpha so deployment cells
+remain unmistakable over the board materials.
+
 `WalkSurfaceMaskMeshBuilder` is shared with exploration hover. It masks every upward polygon of a
 cube, slope, or stair and lifts it 0.02 units. `BattleBoardPicker` ray-casts the presentation
 source’s solid cells and accepts only the nearest hit if it is an exact frozen board support cell;
@@ -54,3 +60,21 @@ The tactical camera frames the presentation AABB of those same upward support su
 camera logic is inactive in battle and resumes by smoothing from the current camera transform after
 tactical teardown. Fluid remains paused for the whole battle; live board streaming remains pinned,
 while a handcrafted arena remains an isolated immutable presentation source.
+
+## Unit and object views
+
+Step 14 adds source-agnostic `BattleUnitPresenter` and `BattleObjectPresenter`. Both consume
+committed event spans and reconcile to the copied batch-after snapshot; neither queries a
+`VoxelWorld`, maps a live-world cell, or holds mutable battle state. The presenter only uses
+`BoardData::toPresentationCell` through the shared board position helpers. Unit feet sample the
+board-local walk surface, receive the presentation translation once, then add half the rendered
+cube height and a small clearance. `Actor.cell` and battle positions are solid support cells.
+
+Unit cube tint and scale come from the current form's JSON `PlaceholderVisual`; missing legacy
+visuals use a deterministic semantic-id fallback. Movement animation follows the committed
+`UnitMovementStep` chain, never a recomputed path. Object markers are generic and keyed by
+`BattleObjectId`; their tint only distinguishes creator side. Cosmetic queues cannot mutate or
+delay rules, scheduler progression, event publication, or RNG.
+
+On teardown, the HUD unbinds and unit/object entities are removed from the game engine before the
+board binding, handcrafted arena, or `BattleSession` are destroyed.

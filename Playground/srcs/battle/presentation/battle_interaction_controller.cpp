@@ -43,7 +43,7 @@ namespace pg
 		}
 		for (const BattleUnitSnapshot &unit : _snapshot.units)
 		{
-			if (unit.side == BattleSide::Player && unit.persistentCreatureId == placement->selected && !removed(unit))
+			if (unit.side == BattleSide::Player && unit.persistentCreatureId == placement->selected && !removed(unit) && !unit.placed)
 			{
 				return unit.id;
 			}
@@ -109,16 +109,15 @@ namespace pg
 			}
 			_state = PlacementSelecting{.selected = retained};
 		}
-		else if (_snapshot.phase == BattlePhase::Activation && _snapshot.activeUnit.has_value() &&
-			_isPlayerActivation(*_snapshot.activeUnit))
+		else if (_snapshot.phase == BattlePhase::Activation && _snapshot.activeUnit.has_value() && _isPlayerActivation(*_snapshot.activeUnit))
 		{
 			const bool retainMove = std::holds_alternative<SelectingMovement>(_state) &&
-				std::get<SelectingMovement>(_state).unit == *_snapshot.activeUnit;
+									std::get<SelectingMovement>(_state).unit == *_snapshot.activeUnit;
 			const bool retainAbility = std::holds_alternative<SelectingAbility>(_state) &&
-				std::get<SelectingAbility>(_state).unit == *_snapshot.activeUnit;
+									   std::get<SelectingAbility>(_state).unit == *_snapshot.activeUnit;
 			if (!retainMove && !retainAbility)
 			{
-				_state = AwaitingAction{* _snapshot.activeUnit};
+				_state = AwaitingAction{*_snapshot.activeUnit};
 			}
 		}
 		else
@@ -163,11 +162,15 @@ namespace pg
 				cells.push_back({.cell = cell, .kind = kind});
 			}
 		};
-		if (const std::optional<BattleUnitId> selected = _selectedPlacementUnit(); selected.has_value())
+		const std::optional<BattleUnitId> selectedPlacementUnit = _selectedPlacementUnit();
+		if (_snapshot.phase == BattlePhase::Deployment)
 		{
 			for (const BoardCell &cell : _commands.board().deployment().cells(BattleSide::Player))
 			{
-				if (_commands.planPlacement(*selected, cell).has_value())
+				// Make the available deployment strip discoverable before a card is selected.
+				// Selection then applies the exact command preview, excluding cells unavailable to
+				// that creature without asking presentation code to duplicate battle rules.
+				if (!selectedPlacementUnit.has_value() || _commands.planPlacement(*selectedPlacementUnit, cell).has_value())
 				{
 					cells.push_back({.cell = cell, .kind = BattleMaskKind::Deployment});
 				}
@@ -236,14 +239,79 @@ namespace pg
 	{
 		return std::visit([](const auto &state) -> std::string_view {
 			using State = std::decay_t<decltype(state)>;
-			if constexpr (std::is_same_v<State, InteractionInactive>) return "inactive";
-			if constexpr (std::is_same_v<State, InteractionBusy>) return "busy";
-			if constexpr (std::is_same_v<State, PlacementSelecting>) return "placementSelecting";
-			if constexpr (std::is_same_v<State, PlacementReady>) return "placementReady";
-			if constexpr (std::is_same_v<State, AwaitingAction>) return "awaitingAction";
-			if constexpr (std::is_same_v<State, SelectingMovement>) return "selectingMovement";
+			if constexpr (std::is_same_v<State, InteractionInactive>)
+			{
+				return "inactive";
+			}
+			if constexpr (std::is_same_v<State, InteractionBusy>)
+			{
+				return "busy";
+			}
+			if constexpr (std::is_same_v<State, PlacementSelecting>)
+			{
+				return "placementSelecting";
+			}
+			if constexpr (std::is_same_v<State, PlacementReady>)
+			{
+				return "placementReady";
+			}
+			if constexpr (std::is_same_v<State, AwaitingAction>)
+			{
+				return "awaitingAction";
+			}
+			if constexpr (std::is_same_v<State, SelectingMovement>)
+			{
+				return "selectingMovement";
+			}
 			return "selectingAbility";
-		}, _state);
+		},
+						  _state);
+	}
+
+	AbilitySlotAvailability BattleInteractionController::abilityAvailability(std::size_t p_visibleSlot) const
+	{
+		const auto *awaiting = std::get_if<AwaitingAction>(&_state);
+		if (awaiting == nullptr || !_isPlayerActivation(awaiting->unit))
+		{
+			return {.enabled = false, .rejection = CommandRejection::WrongPhase};
+		}
+		const BattleUnitSnapshot *unit = _unit(awaiting->unit);
+		if (unit == nullptr || p_visibleSlot >= unit->abilityIds.size())
+		{
+			return {.enabled = false, .rejection = CommandRejection::UnknownAbility};
+		}
+		const std::vector<AbilityAnchorPreview> previews = _commands.abilityAnchors(unit->id, unit->abilityIds[p_visibleSlot]);
+		for (const AbilityAnchorPreview &preview : previews)
+		{
+			if (preview.legal)
+			{
+				return {.enabled = true};
+			}
+		}
+		for (const AbilityAnchorPreview &preview : previews)
+		{
+			if (!preview.reasons.empty())
+			{
+				return {.enabled = false, .rejection = preview.reasons.front()};
+			}
+		}
+		return {.enabled = false, .rejection = CommandRejection::CommandUnavailable};
+	}
+
+	AbilitySlotAvailability BattleInteractionController::deploymentReadyAvailability() const
+	{
+		if (!std::holds_alternative<PlacementSelecting>(_state))
+		{
+			return {.enabled = false, .rejection = CommandRejection::WrongPhase};
+		}
+		for (const BattleUnitSnapshot &unit : _snapshot.units)
+		{
+			if (unit.side == BattleSide::Player && unit.removalReason == RemovalReason::None && !unit.placed)
+			{
+				return {.enabled = false, .rejection = CommandRejection::DeploymentIncomplete};
+			}
+		}
+		return {.enabled = true};
 	}
 
 	InputHandling BattleInteractionController::selectPlacementCreature(CreatureInstanceId p_creature)
@@ -254,7 +322,7 @@ namespace pg
 		}
 		for (const BattleUnitSnapshot &unit : _snapshot.units)
 		{
-			if (unit.side == BattleSide::Player && unit.persistentCreatureId == p_creature && !removed(unit))
+			if (unit.side == BattleSide::Player && unit.persistentCreatureId == p_creature && !removed(unit) && !unit.placed)
 			{
 				std::get<PlacementSelecting>(_state).selected = p_creature;
 				_notify();
@@ -273,7 +341,7 @@ namespace pg
 		for (const BattleUnitSnapshot &unit : _snapshot.units)
 		{
 			if (unit.side == BattleSide::Player && unit.rosterOrder == p_rosterSlot &&
-				unit.persistentCreatureId.has_value() && !removed(unit))
+				unit.persistentCreatureId.has_value() && !removed(unit) && !unit.placed)
 			{
 				return selectPlacementCreature(*unit.persistentCreatureId);
 			}

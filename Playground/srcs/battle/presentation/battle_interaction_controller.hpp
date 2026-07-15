@@ -9,13 +9,32 @@
 
 namespace pg
 {
-	struct InteractionInactive {};
-	struct InteractionBusy {};
-	struct PlacementSelecting { std::optional<CreatureInstanceId> selected; };
-	struct PlacementReady {};
-	struct AwaitingAction { BattleUnitId unit; };
-	struct SelectingMovement { BattleUnitId unit; };
-	struct SelectingAbility { BattleUnitId unit; std::string abilityId; };
+	struct InteractionInactive
+	{
+	};
+	struct InteractionBusy
+	{
+	};
+	struct PlacementSelecting
+	{
+		std::optional<CreatureInstanceId> selected;
+	};
+	struct PlacementReady
+	{
+	};
+	struct AwaitingAction
+	{
+		BattleUnitId unit;
+	};
+	struct SelectingMovement
+	{
+		BattleUnitId unit;
+	};
+	struct SelectingAbility
+	{
+		BattleUnitId unit;
+		std::string abilityId;
+	};
 
 	using BattleInteractionState = std::variant<
 		InteractionInactive,
@@ -37,6 +56,12 @@ namespace pg
 	{
 		InputHandlingDisposition disposition = InputHandlingDisposition::Ignored;
 		std::optional<CommandResult> submission;
+	};
+
+	struct AbilitySlotAvailability
+	{
+		bool enabled = false;
+		std::optional<CommandRejection> rejection;
 	};
 
 	class BattleInteractionController
@@ -74,6 +99,8 @@ namespace pg
 		[[nodiscard]] const BattleInteractionState &state() const noexcept;
 		[[nodiscard]] const std::optional<BoardCell> &hoveredCell() const noexcept;
 		[[nodiscard]] std::string_view stateName() const noexcept;
+		[[nodiscard]] AbilitySlotAvailability abilityAvailability(std::size_t p_visibleSlot) const;
+		[[nodiscard]] AbilitySlotAvailability deploymentReadyAvailability() const;
 
 		InputHandling selectPlacementCreature(CreatureInstanceId p_creature);
 		InputHandling selectPlacementRosterSlot(std::size_t p_rosterSlot);

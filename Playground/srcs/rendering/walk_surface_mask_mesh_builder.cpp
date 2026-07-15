@@ -48,10 +48,7 @@ namespace
 			{
 				const float localU = span.x > 0.0f ? (vertex.data.x - minimum.x) / span.x : 0.0f;
 				const float localV = span.y > 0.0f ? (vertex.data.y - minimum.y) / span.y : 0.0f;
-				vertices.push_back({
-					vertex.position + p_offset,
-					polygon.normal(),
-					maskUV(p_layout, p_mask, localU, localV)});
+				vertices.push_back({vertex.position + p_offset, polygon.normal(), maskUV(p_layout, p_mask, localU, localV)});
 			}
 			p_builder.addShape(vertices);
 		}

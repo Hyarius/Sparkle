@@ -36,8 +36,11 @@ namespace pg
 		_entity = std::make_unique<spk::Entity3D>();
 		_renderer = &_entity->addComponent<spk::TextureMeshRenderer3D>();
 		_renderer->setTexture(&_texture);
-		_renderer->setTint({1.0f, 1.0f, 1.0f, 0.68f});
-		_renderer->setTranslucent(true);
+		// This is the same walk-surface mask mesh and mask texture used by exploration hover.
+		// Deployment is tactical guidance rather than a subtle hover affordance, so retain the
+		// atlas texture's authored pixels but draw the renderer fully opaque.
+		_renderer->setTint({1.0f, 1.0f, 1.0f, 1.0f});
+		_renderer->setTranslucent(false);
 		_renderer->setCastsShadows(false);
 		_renderer->setReceivesShadows(false);
 		_renderer->setMesh(std::make_shared<spk::TextureMesh3D>());

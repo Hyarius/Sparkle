@@ -141,9 +141,11 @@ namespace pg
 		spk::GameEngineWidget(p_name, p_parent),
 		_context(p_context),
 		_worldSeed(p_options.worldSeed),
-		_overlay(p_name + "/DebugOverlay", this)
+		_overlay(p_name + "/DebugOverlay", this),
+		_battleHud(p_name + "/BattleHud", this)
 	{
 		_buildScene(p_registries, p_options);
+		_battleHud.setGeometry({{0, 0}, geometry().width(), geometry().height()});
 		_configureOverlay();
 		_overlay.deactivate();
 		activate();
@@ -406,10 +408,12 @@ namespace pg
 			.playerStreamer = *_streamer,
 			.battleStreamer = *_battleStreamer,
 			.fluidSimulator = *_fluidSimulator,
+			.dayTimeLogic = *_dayTimeLogic,
 			.engine = engine,
 			.camera = *_camera,
 			.voxelTexture = _texture,
 			.maskTexture = _maskTexture,
+			.battleHud = _battleHud,
 			.viewportSize = [this] {
 				return spk::Vector2(static_cast<float>(geometry().width()), static_cast<float>(geometry().height()));
 			}});
@@ -512,6 +516,7 @@ namespace pg
 			_camera->setViewportSize(static_cast<float>(geometry().width()), static_cast<float>(geometry().height()));
 		}
 		_applyOverlayGeometry();
+		_battleHud.setGeometry({{0, 0}, geometry().width(), geometry().height()});
 	}
 
 	void GameSceneWidget::_onUpdate(const spk::UpdateContext &p_tick)

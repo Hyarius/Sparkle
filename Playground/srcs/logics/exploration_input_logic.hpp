@@ -1,7 +1,7 @@
 #pragma once
 
-#include "components/actor.hpp"
 #include "battle/presentation/battle_presentation_cell_source.hpp"
+#include "components/actor.hpp"
 #include "core/game_context.hpp"
 #include "structures/game_engine/spk_camera_3d.hpp"
 #include "structures/game_engine/spk_component_logic.hpp"

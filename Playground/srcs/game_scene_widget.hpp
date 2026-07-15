@@ -23,6 +23,7 @@
 #include "structures/math/spk_vector3.hpp"
 #include "structures/widget/spk_debug_overlay.hpp"
 #include "structures/widget/spk_game_engine_widget.hpp"
+#include "widgets/battle/battle_hud_widget.hpp"
 
 namespace spk
 {
@@ -102,6 +103,7 @@ namespace pg
 		std::unordered_map<spk::Vector3Int, std::uint64_t> _voxelLightChunkRevisions;
 		std::size_t _voxelLightRevision = std::numeric_limits<std::size_t>::max();
 		spk::DebugOverlay _overlay;
+		BattleHudWidget _battleHud;
 
 		mutable std::atomic<long long> _renderDurationNs{0};
 		std::atomic<long long> _updateDurationNs{0};

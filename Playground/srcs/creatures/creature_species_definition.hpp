@@ -35,6 +35,9 @@ namespace pg
 		// A translation key, not a sentence (see resources/data/locales).
 		std::string displayNameKey;
 		std::uint32_t tier = 0;
+		// The authored creature-icon atlas cell used by roster/front-end card renderers. It is
+		// form-local so an evolution updates its icon together with its display name and visual.
+		spk::Vector2Int icon;
 		PlaceholderVisual presentation;
 	};
 

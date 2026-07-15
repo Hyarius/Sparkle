@@ -7,13 +7,7 @@
 TEST(BattleOverlayModel, ResolvesPriorityAndCanonicalOrderWithoutLayering)
 {
 	pg::BattleOverlayModelBuilder builder;
-	ASSERT_TRUE(builder.update({
-		{{2, 0, 1}, pg::BattleMaskKind::Reachable},
-		{{2, 0, 1}, pg::BattleMaskKind::AreaPreview},
-		{{2, 0, 1}, pg::BattleMaskKind::LineOfSightBlocked},
-		{{2, 0, 1}, pg::BattleMaskKind::Hovered},
-		{{2, 0, 1}, pg::BattleMaskKind::Invalid},
-		{{0, 1, 0}, pg::BattleMaskKind::Path}}));
+	ASSERT_TRUE(builder.update({{{2, 0, 1}, pg::BattleMaskKind::Reachable}, {{2, 0, 1}, pg::BattleMaskKind::AreaPreview}, {{2, 0, 1}, pg::BattleMaskKind::LineOfSightBlocked}, {{2, 0, 1}, pg::BattleMaskKind::Hovered}, {{2, 0, 1}, pg::BattleMaskKind::Invalid}, {{0, 1, 0}, pg::BattleMaskKind::Path}}));
 
 	const pg::BattleOverlayModel &model = builder.model();
 	ASSERT_EQ(model.cells.size(), 2U);
@@ -26,9 +20,7 @@ TEST(BattleOverlayModel, ResolvesPriorityAndCanonicalOrderWithoutLayering)
 TEST(BattleOverlayModel, KeepsTheRevisionStableForTheSameEffectiveOutput)
 {
 	pg::BattleOverlayModelBuilder builder;
-	ASSERT_TRUE(builder.update({
-		{{1, 0, 1}, pg::BattleMaskKind::Reachable},
-		{{1, 0, 1}, pg::BattleMaskKind::Path}}));
+	ASSERT_TRUE(builder.update({{{1, 0, 1}, pg::BattleMaskKind::Reachable}, {{1, 0, 1}, pg::BattleMaskKind::Path}}));
 	const std::uint64_t revision = builder.model().revision;
 
 	EXPECT_FALSE(builder.update({{{1, 0, 1}, pg::BattleMaskKind::Path}}));
