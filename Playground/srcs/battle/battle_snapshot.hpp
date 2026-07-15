@@ -43,6 +43,10 @@ namespace pg
 		std::vector<std::string> inheritedCompletedFeatNodeIds;
 		std::string speciesId;
 		std::string formId;
+		// Immutable loadout/provenance copied for read-only planners.  Keeping these in the
+		// snapshot means an AI never needs a borrowed BattleUnit or mutable BattleContext.
+		std::vector<std::string> abilityIds;
+		std::optional<std::string> aiBehaviourId;
 		int health = 0;
 		int maxHealth = 0;
 		int actionPoints = 0;

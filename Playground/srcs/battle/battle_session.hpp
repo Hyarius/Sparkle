@@ -14,6 +14,7 @@
 #include "encounters/encounter_definition.hpp" // OpponentPlacementPolicy
 
 #include <cstdint>
+#include <expected>
 #include <memory>
 #include <optional>
 #include <vector>
@@ -79,11 +80,15 @@ namespace pg
 
 		// The deterministic material-state digest of the whole battle (section 15).
 		[[nodiscard]] std::uint64_t gameplayProgressDigest() const;
+		[[nodiscard]] std::uint64_t authoritativeBattleStateDigest() const;
 
 		[[nodiscard]] BattleId battleId() const noexcept;
 		[[nodiscard]] BattlePhase phase() const noexcept;
 		[[nodiscard]] BattleOutcome outcome() const noexcept;
 		[[nodiscard]] const std::optional<BattleTerminalRecord> &terminalRecord() const noexcept;
+		[[nodiscard]] const Registries &registries() const noexcept;
+		[[nodiscard]] std::expected<MovePlan, CommandRejection> planMove(BattleUnitId p_unit, BoardCell p_destination) const;
+		[[nodiscard]] std::expected<CastPlan, CommandRejection> planCast(BattleUnitId p_unit, std::string_view p_abilityId, BoardCell p_anchor) const;
 		[[nodiscard]] std::vector<MovePlan> legalMoves(BattleUnitId p_unit) const;
 		[[nodiscard]] std::vector<AbilityAnchorPreview> abilityAnchors(BattleUnitId p_unit, std::string_view p_abilityId) const;
 

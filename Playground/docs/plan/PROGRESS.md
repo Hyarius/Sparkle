@@ -1,5 +1,8 @@
 # Combat plan — progress ledger
 
+> **Current status (2026-07-15): steps 01 through 11 are complete. Next work is step 12:
+> modes, encounters, and lifecycle.**
+
 The **state of what has actually been built**, step by step, as a compact API surface:
 enough to implement the next step without re-reading the headers of every earlier one.
 The [step index](steps/README.md) says what *should* be done; this file says what *is*
@@ -19,9 +22,8 @@ headers that step actually landed. A stale ledger is worse than none, because th
 will trust it. (This is the one plan-doc file the step workflow does keep current; the
 per-step `docs/NN-*.md` system docs are still skipped.)
 
-Status: **steps 01–10 complete** on branch `BattleImplementation`.
-Next work: **step 11 — battle AI**.
-
+Status: **steps 01–11 complete** on branch `BattleImplementation`.
+Next work: **step 12 — modes, encounters, and lifecycle**.
 ---
 
 ## Conventions that hold across every step
@@ -712,4 +714,29 @@ Verification: `cmake --build build/test --target PlaygroundTests SparklePlaygrou
 `PlaygroundTests.exe --gtest_filter=EffectResolverRuntime.*` (17 tests), and
 `ctest --test-dir build/test --output-on-failure -L playground` (347 tests) pass.
 
-## Next: Step 11 — battle AI
+## Step 11 - rule-driven enemy AI - complete
+
+New headless modules are `battle/ai/{battle_ai_planner,battle_ai_driver}.*` and
+`battle/battle_pump.*`. `BattleAIPlanner::chooseNextCommand(const BattleSession &,
+BattleUnitId, const AIBehaviourDefinition &)` returns `AIPlanResult` without mutation or RNG.
+It evaluates active-only selectors (x/z Manhattan or checked health permille; roster/id ties),
+ordered AND conditions, shared legal cast plans, and shared legal move plans. Failed legal
+planning falls through; a fresh call starts again at rule zero.
+
+`BattleAIDriver::executeOne` submits only ordinary move/cast/end values with `EnemyAi` or an
+explicit `DebugAutoplay` issuer. Its activation guard tracks accepted non-end commands and
+ordered observed material digests, forcing ordinary ends for the AI cap, a repeated state, an
+invalid planned command, or a missing/no-rule profile. Rejections create external
+`AICommandDiagnostic` values, never gameplay events. Progress digest stays free of counters and
+guard scratch; `BattleSession::authoritativeBattleStateDigest` adds the generic command count
+and the driver's full digest adds its guard values.
+
+`BattlePump` performs bounded scheduler or one-AI-command operations and reports deployment,
+player wait, AI wait, progress, or terminal. It accepts no frame delta. Focused
+`tests/battle/battle_ai_test.cpp` proves legal-decision fallthrough and the separate scheduler /
+enemy-command pump operations. Documentation: `docs/03-systems/battle-ai.md`.
+
+Verification: `cmake --build build/test --target PlaygroundTests -j 4` and
+`PlaygroundTests.exe --gtest_filter=BattleAI.*` (2 tests) pass.
+
+## Next: Step 12 - modes, encounters, and lifecycle

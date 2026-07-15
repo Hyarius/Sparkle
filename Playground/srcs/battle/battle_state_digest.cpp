@@ -344,4 +344,15 @@ namespace pg
 
 		return hasher.value();
 	}
+
+	std::uint64_t authoritativeBattleStateDigest(const BattleContext &p_context)
+	{
+		// Keep the progress digest non-recursive: it remains the value the AI observes for
+		// no-progress cycles, while the generic resolved-command counter participates only in
+		// the replay/orchestration view.
+		StableHasher64 hasher;
+		mixU64(hasher, gameplayProgressDigest(p_context));
+		mixU64(hasher, p_context.resolvedNonEndCommands());
+		return hasher.value();
+	}
 }

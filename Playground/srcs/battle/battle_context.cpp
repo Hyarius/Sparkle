@@ -687,6 +687,8 @@ namespace pg
 			us.inheritedCompletedFeatNodeIds = u.inheritedCompletedFeatNodeIds();
 			us.speciesId = u.speciesId();
 			us.formId = u.formId();
+			us.abilityIds = u.abilityIds();
+			us.aiBehaviourId = u.aiBehaviourId();
 			us.health = u.health();
 			us.maxHealth = u.maxHealth();
 			us.actionPoints = u.actionPoints();

@@ -1098,6 +1098,11 @@ namespace pg
 		return pg::gameplayProgressDigest(*_context);
 	}
 
+	std::uint64_t BattleSession::authoritativeBattleStateDigest() const
+	{
+		return pg::authoritativeBattleStateDigest(*_context);
+	}
+
 	BattleId BattleSession::battleId() const noexcept
 	{
 		return _context->battleId();
@@ -1116,6 +1121,21 @@ namespace pg
 	const std::optional<BattleTerminalRecord> &BattleSession::terminalRecord() const noexcept
 	{
 		return _context->terminalRecord();
+	}
+
+	const Registries &BattleSession::registries() const noexcept
+	{
+		return _context->registries();
+	}
+
+	std::expected<MovePlan, CommandRejection> BattleSession::planMove(BattleUnitId p_unit, BoardCell p_destination) const
+	{
+		return BattleQueryService(*_context).planMove(p_unit, p_destination);
+	}
+
+	std::expected<CastPlan, CommandRejection> BattleSession::planCast(BattleUnitId p_unit, std::string_view p_abilityId, BoardCell p_anchor) const
+	{
+		return BattleQueryService(*_context).planCast(p_unit, p_abilityId, p_anchor);
 	}
 
 	std::vector<MovePlan> BattleSession::legalMoves(BattleUnitId p_unit) const
