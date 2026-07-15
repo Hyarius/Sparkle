@@ -29,12 +29,10 @@ namespace pg
 				JsonReader range(*value, p_reader.file(), p_reader.pathFor("count"));
 				range.forbidUnknown({"min", "max"});
 				return {range.require<int>("min"), range.require<int>("max")};
-			}
-			catch (const JsonError &)
+			} catch (const JsonError &)
 			{
 				throw;
-			}
-			catch (const std::exception &error)
+			} catch (const std::exception &error)
 			{
 				throw JsonError(p_reader.file(), p_reader.pathFor("count"), std::string("invalid count: ") + error.what());
 			}
@@ -52,19 +50,27 @@ namespace pg
 		void validateLayout(const JsonReader &p_reader, const TownLayoutSettings &p_layout)
 		{
 			for (const auto &[name, width] : std::array{
-					std::pair{"mainRoadWidth", p_layout.mainRoadWidth},
-					std::pair{"urbanRoadWidth", p_layout.urbanRoadWidth}})
+					 std::pair{"mainRoadWidth", p_layout.mainRoadWidth},
+					 std::pair{"urbanRoadWidth", p_layout.urbanRoadWidth}})
 			{
 				if (width < 1 || width % 2 == 0 || width > 15)
+				{
 					throw JsonError(p_reader.file(), p_reader.pathFor(name), "road widths must be odd and between 1 and 15");
+				}
 			}
 			if (p_layout.minimumBuildingSpacing < 0 || p_layout.minimumBuildingSpacing > kMaximumSpacing)
+			{
 				throw JsonError(p_reader.file(), p_reader.pathFor("minimumBuildingSpacing"), "minimumBuildingSpacing is outside supported bounds");
+			}
 			if (p_layout.buildingAttemptsPerItem < 1 || p_layout.buildingAttemptsPerItem > kMaximumAttempts ||
 				p_layout.layoutAttempts < 1 || p_layout.layoutAttempts > kMaximumAttempts)
+			{
 				throw JsonError(p_reader.file(), p_reader.path(), "buildingAttemptsPerItem and layoutAttempts must be between 1 and 512");
+			}
 			if (p_layout.routeTurnPenalty < 0 || p_layout.routeSlopePenalty < 0)
+			{
 				throw JsonError(p_reader.file(), p_reader.path(), "route penalties must be non-negative");
+			}
 		}
 
 		int requiredRoleCount(const TownComposition &p_composition, TownBuildingRole p_role)
@@ -85,9 +91,12 @@ namespace pg
 	{
 		switch (p_kind)
 		{
-		case TownCompositionKind::City: return "city";
-		case TownCompositionKind::Gym: return "gym";
-		case TownCompositionKind::Port: return "port";
+		case TownCompositionKind::City:
+			return "city";
+		case TownCompositionKind::Gym:
+			return "gym";
+		case TownCompositionKind::Port:
+			return "port";
 		}
 		return "unknown";
 	}
@@ -96,12 +105,18 @@ namespace pg
 	{
 		switch (p_role)
 		{
-		case TownBuildingRole::CreatureCenter: return "creatureCenter";
-		case TownBuildingRole::Shop: return "shop";
-		case TownBuildingRole::Gym: return "gym";
-		case TownBuildingRole::Port: return "port";
-		case TownBuildingRole::Home: return "home";
-		case TownBuildingRole::None: return "none";
+		case TownBuildingRole::CreatureCenter:
+			return "creatureCenter";
+		case TownBuildingRole::Shop:
+			return "shop";
+		case TownBuildingRole::Gym:
+			return "gym";
+		case TownBuildingRole::Port:
+			return "port";
+		case TownBuildingRole::Home:
+			return "home";
+		case TownBuildingRole::None:
+			return "none";
 		}
 		return "unknown";
 	}
@@ -110,7 +125,9 @@ namespace pg
 	{
 		p_reader.forbidUnknown({"version", "kind", "layout", "buildings", "roadScenery", "groundScenery"});
 		if (p_reader.require<int>("version") != 1)
+		{
 			throw JsonError(p_reader.file(), p_reader.pathFor("version"), "unsupported town composition version");
+		}
 
 		TownComposition result;
 		result.kind = p_reader.requireEnum<TownCompositionKind>("kind", std::map<std::string, TownCompositionKind>{{"city", TownCompositionKind::City}, {"gym", TownCompositionKind::Gym}, {"port", TownCompositionKind::Port}});
@@ -138,30 +155,47 @@ namespace pg
 				.minimumSpacing = requestReader.optional<int>("minimumSpacing", result.layout.minimumBuildingSpacing),
 				.placementPriority = requestReader.optional<int>("placementPriority", 0)};
 			if (request.id.empty() || !ids.insert(request.id).second)
+			{
 				throw JsonError(requestReader.file(), requestReader.pathFor("id"), "building request ids must be non-empty and unique");
+			}
 			validateCount(requestReader, request.count);
 			if (request.minimumSpacing < 0 || request.minimumSpacing > kMaximumSpacing)
+			{
 				throw JsonError(requestReader.file(), requestReader.pathFor("minimumSpacing"), "minimumSpacing is outside supported bounds");
+			}
 			if (request.required && request.count.minimum == 0)
+			{
 				throw JsonError(requestReader.file(), requestReader.pathFor("count"), "a required building request needs a positive minimum count");
+			}
 			result.buildings.push_back(std::move(request));
 		}
 		if (result.buildings.empty())
+		{
 			throw JsonError(p_reader.file(), p_reader.pathFor("buildings"), "a composition needs building requests");
+		}
 
 		const auto parseScenery = [&](const std::string &key, std::vector<TownSceneryRequest> &out) {
-			if (!p_reader.contains(key)) return;
+			if (!p_reader.contains(key))
+			{
+				return;
+			}
 			for (JsonReader requestReader : p_reader.childArray(key))
 			{
 				requestReader.forbidUnknown({"id", "prefab", "count", "spacing", "required"});
 				TownSceneryRequest request{.id = requestReader.require<std::string>("id"), .prefabId = requestReader.require<std::string>("prefab"), .count = parseCount(requestReader), .spacing = requestReader.require<int>("spacing"), .required = requestReader.optional<bool>("required", false)};
 				if (request.id.empty() || request.prefabId.empty() || !ids.insert(request.id).second)
+				{
 					throw JsonError(requestReader.file(), requestReader.path(), "scenery request ids and prefab ids must be non-empty and globally unique");
+				}
 				validateCount(requestReader, request.count);
 				if (request.spacing < 1 || request.spacing > kMaximumSpacing)
+				{
 					throw JsonError(requestReader.file(), requestReader.pathFor("spacing"), "spacing must be between 1 and 128");
+				}
 				if (request.required && request.count.minimum == 0)
+				{
 					throw JsonError(requestReader.file(), requestReader.pathFor("count"), "required scenery needs a positive minimum count");
+				}
 				out.push_back(std::move(request));
 			}
 		};
@@ -169,11 +203,17 @@ namespace pg
 		parseScenery("groundScenery", result.groundScenery);
 
 		if (requiredRoleCount(result, TownBuildingRole::CreatureCenter) != 1 || requiredRoleCount(result, TownBuildingRole::Shop) != 1)
+		{
 			throw JsonError(p_reader.file(), p_reader.pathFor("buildings"), "every town composition needs exactly one required creatureCenter and shop");
+		}
 		if (result.kind == TownCompositionKind::Gym && requiredRoleCount(result, TownBuildingRole::Gym) != 1)
+		{
 			throw JsonError(p_reader.file(), p_reader.pathFor("buildings"), "a gym composition needs exactly one required gym");
+		}
 		if (result.kind == TownCompositionKind::Port && requiredRoleCount(result, TownBuildingRole::Port) != 1)
+		{
 			throw JsonError(p_reader.file(), p_reader.pathFor("buildings"), "a port composition needs exactly one required port");
+		}
 		return result;
 	}
 }

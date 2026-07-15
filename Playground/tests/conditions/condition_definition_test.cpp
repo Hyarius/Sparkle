@@ -233,8 +233,9 @@ TEST(ConditionDefinitionTest, ComposesNestedAllOfAndAnyOf)
 		"type": "anyOf",
 		"descriptionKey": "c.description",
 		"children": [
-			)") + leaf("healing", HealingBody, FightWindow, "child-a") + "," +
-						 leaf("shield", ShieldBody, FightWindow, "child-b") + "]}";
+			)") + leaf("healing", HealingBody, FightWindow, "child-a") +
+							 "," +
+							 leaf("shield", ShieldBody, FightWindow, "child-b") + "]}";
 
 	const pg::ConditionSpec composite = parse(json);
 	const auto &anyOf = payloadOf<pg::AnyOfConditionSpec>(composite);
@@ -245,7 +246,8 @@ TEST(ConditionDefinitionTest, ComposesNestedAllOfAndAnyOf)
 
 	// A composite of one is the child itself; a composite of none completes on nothing.
 	const std::string tooFew = std::string(R"({"id": "solo", "type": "allOf", "descriptionKey": "c.description",
-		"children": [)") + leaf("healing", HealingBody, FightWindow, "only") + "]}";
+		"children": [)") + leaf("healing", HealingBody, FightWindow, "only") +
+							   "]}";
 	EXPECT_THROW(auto value = parse(tooFew), pg::JsonError);
 	EXPECT_THROW(
 		auto value = parse(R"({"id": "none", "type": "allOf", "descriptionKey": "c.description", "children": []})"),
@@ -299,14 +301,8 @@ TEST(ConditionDefinitionTest, EnforcesTheWindowAndCountContract)
 		pg::JsonError);
 
 	// An ability or turn window is opened by one actor's action, so it may filter on it.
-	EXPECT_NO_THROW(auto value = parse(leaf(
-		"healing",
-		HealingBody,
-		R"("window": "ability", "windowActor": "subjectTeam", "requiredWindowCount": 5, "windowMode": "consecutive")")));
-	EXPECT_NO_THROW(auto value = parse(leaf(
-		"healing",
-		HealingBody,
-		R"("window": "turn", "windowActor": "any", "requiredWindowCount": 3, "windowMode": "cumulative")")));
+	EXPECT_NO_THROW(auto value = parse(leaf("healing", HealingBody, R"("window": "ability", "windowActor": "subjectTeam", "requiredWindowCount": 5, "windowMode": "consecutive")")));
+	EXPECT_NO_THROW(auto value = parse(leaf("healing", HealingBody, R"("window": "turn", "windowActor": "any", "requiredWindowCount": 3, "windowMode": "cumulative")")));
 
 	// A game window is one continuous persisted window.
 	EXPECT_THROW(
@@ -392,9 +388,8 @@ TEST(ConditionDefinitionTest, EnforcesTheMetricContract)
 		pg::JsonError);
 
 	// A broken shield reports no amount, so only its occurrences can be counted.
-	EXPECT_NO_THROW(auto value = parse(leaf(
-		"shield",
-		R"("actor": "subject", "role": "target", "counterpart": "any", "action": "broken", "kind": "any",
+	EXPECT_NO_THROW(auto value = parse(leaf("shield",
+											R"("actor": "subject", "role": "target", "counterpart": "any", "action": "broken", "kind": "any",
 		   "aggregation": "count", "comparison": "atLeast", "threshold": 1)")));
 	EXPECT_THROW(
 		auto value = parse(leaf(
@@ -436,7 +431,9 @@ TEST(ConditionDefinitionTest, EnforcesEveryResourceActionReasonCombination)
 
 TEST(ConditionDefinitionTest, EnforcesTheAbilityCastFilters)
 {
-	const auto cast = [](std::string_view p_body) { return leaf("abilityCast", p_body); };
+	const auto cast = [](std::string_view p_body) {
+		return leaf("abilityCast", p_body);
+	};
 
 	// A filtered affected set with a zero minimum would accept a cast that affected nobody in it.
 	EXPECT_THROW(
@@ -515,7 +512,7 @@ TEST(ConditionDefinitionTest, EnforcesThePositionAndMovementContracts)
 
 	// A whole-window invariant needs a window that opens and closes.
 	EXPECT_NO_THROW(auto value = parse(position(
-		R"("sample": "throughoutWindow", "actor": "subject", "relativeTo": "opponentTeam", "comparison": "atLeast",
+						R"("sample": "throughoutWindow", "actor": "subject", "relativeTo": "opponentTeam", "comparison": "atLeast",
 		   "distance": 3)")));
 	EXPECT_THROW(
 		auto value = parse(position(
@@ -566,14 +563,12 @@ TEST(ConditionDefinitionTest, RejectsUnknownStructureAndDuplicateIds)
 		pg::JsonError)
 		<< "unknown enum literal";
 	EXPECT_THROW(
-		auto value = parse(std::string(R"({"id": "c", "type": "healing", "descriptionKey": "c.description", )") +
-			  std::string(FightWindow) + ", " + std::string(HealingBody) + R"(, "repeatLimit": 3})"),
+		auto value = parse(std::string(R"({"id": "c", "type": "healing", "descriptionKey": "c.description", )") + std::string(FightWindow) + ", " + std::string(HealingBody) + R"(, "repeatLimit": 3})"),
 		pg::JsonError)
 		<< "every condition object forbids unknown keys";
 	EXPECT_THROW(auto value = parse(leaf("healing", HealingBody, FightWindow, "Not An Id")), pg::JsonError);
 	EXPECT_THROW(
-		auto value = parse(std::string(R"({"type": "healing", "descriptionKey": "c.description", )") + std::string(FightWindow) +
-			  ", " + std::string(HealingBody) + "}"),
+		auto value = parse(std::string(R"({"type": "healing", "descriptionKey": "c.description", )") + std::string(FightWindow) + ", " + std::string(HealingBody) + "}"),
 		pg::JsonError)
 		<< "a condition without an id has no key for persisted progress";
 
@@ -593,11 +588,14 @@ TEST(ConditionDefinitionTest, RejectsUnknownStructureAndDuplicateIds)
 TEST(ConditionDefinitionTest, ReportsTheFileAndPathOfTheOffendingValue)
 {
 	const std::string json = std::string(R"({"id": "root", "type": "allOf", "descriptionKey": "c.description",
-		"children": [)") + leaf("healing", HealingBody, FightWindow, "child-a") + "," +
-						 leaf("shield", R"("actor": "subject", "role": "target", "counterpart": "any",
+		"children": [)") + leaf("healing", HealingBody, FightWindow, "child-a") +
+							 "," +
+							 leaf("shield", R"("actor": "subject", "role": "target", "counterpart": "any",
 							"action": "broken", "kind": "any", "aggregation": "sum", "comparison": "atLeast",
-							"threshold": 1)", FightWindow, "child-b") +
-						 "]}";
+							"threshold": 1)",
+								  FightWindow,
+								  "child-b") +
+							 "]}";
 
 	try
 	{
@@ -614,23 +612,23 @@ TEST(ConditionDefinitionTest, CollectsEveryCombatReferenceWithItsAuthoredPath)
 {
 	const std::string json = std::string(R"({"id": "root", "type": "allOf", "descriptionKey": "c.description",
 		"children": [)") +
-						 leaf(
-							 "damage",
-							 R"("actor": "subject", "role": "source", "counterpart": "any", "kind": "any",
+							 leaf(
+								 "damage",
+								 R"("actor": "subject", "role": "source", "counterpart": "any", "kind": "any",
 								"component": "total", "targetHadShield": "any",
 								"sourceAbilities": ["training-strike"], "aggregation": "sum",
 								"comparison": "atLeast", "threshold": 1)",
-							 FightWindow,
-							 "child-a") +
-						 "," +
-						 leaf(
-							 "status",
-							 R"("actor": "subject", "role": "target", "counterpart": "any", "action": "applied",
+								 FightWindow,
+								 "child-a") +
+							 "," +
+							 leaf(
+								 "status",
+								 R"("actor": "subject", "role": "target", "counterpart": "any", "action": "applied",
 								"statuses": ["training-guarded"], "tags": [], "aggregation": "count",
 								"comparison": "atLeast", "threshold": 1)",
-							 FightWindow,
-							 "child-b") +
-						 "]}";
+								 FightWindow,
+								 "child-b") +
+							 "]}";
 
 	pg::ConditionReferences references;
 	pg::collectConditionReferences(std::vector<pg::ConditionSpec>{parse(json)}, references);

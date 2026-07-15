@@ -239,9 +239,13 @@ namespace pg
 			approach.forbidUnknown({"min", "max"});
 			entrance.clearApproach = {.min = detail::parseVector3(approach, "min"), .max = detail::parseVector3(approach, "max")};
 			if (entrance.clearApproach.min.x > entrance.clearApproach.max.x || entrance.clearApproach.min.y > entrance.clearApproach.max.y || entrance.clearApproach.min.z > entrance.clearApproach.max.z)
+			{
 				throw JsonError(approach.file(), approach.pathFor("min"), "entrance approach minimum exceeds maximum");
+			}
 			if (result.tryAnchor(entrance.anchorName) == nullptr)
+			{
 				throw JsonError(entranceReader.file(), entranceReader.pathFor("anchor"), "entrance references a missing anchor");
+			}
 			result.entrance = std::move(entrance);
 		}
 		return result;

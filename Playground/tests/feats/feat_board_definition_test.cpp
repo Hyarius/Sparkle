@@ -51,7 +51,8 @@ namespace
 		[[nodiscard]] std::string json() const
 		{
 			std::string result = R"({"id": ")" + id + R"(", "displayNameKey": "feat.fixture.name",
-				"descriptionKey": "feat.fixture.description", "position": [0, 0], "kind": ")" + kind +
+				"descriptionKey": "feat.fixture.description", "position": [0, 0], "kind": ")" +
+								 kind +
 								 R"(", "neighbours": )" + neighbours + R"(, "minimumCompletedNodes": )" +
 								 std::to_string(minimumCompletedNodes);
 			if (!exclusiveGroup.empty())
@@ -320,19 +321,14 @@ TEST(FeatBoardDefinitionTest, EnforcesKindAndRewardCoherence)
 	EXPECT_THROW(auto value = parse(singleNodeBoard("stats", passive)), pg::JsonError);
 
 	EXPECT_NO_THROW(auto value = parse(singleNodeBoard("ability", "[" + unlockAbility("learn", "training-guard") + "]")));
-	EXPECT_NO_THROW(auto value = parse(singleNodeBoard(
-		"ability",
-		R"([{"id": "forget", "type": "removeAbility", "ability": "training-strike"}])")));
+	EXPECT_NO_THROW(auto value = parse(singleNodeBoard("ability", R"([{"id": "forget", "type": "removeAbility", "ability": "training-strike"}])")));
 	EXPECT_THROW(auto value = parse(singleNodeBoard("ability", bonusStat)), pg::JsonError);
 
 	EXPECT_NO_THROW(auto value = parse(singleNodeBoard("passive", passive)));
 	EXPECT_THROW(auto value = parse(singleNodeBoard("passive", bonusStat)), pg::JsonError);
 
 	// Extra compatible rewards stay legal: a meaningful node may grant more than one result.
-	EXPECT_NO_THROW(auto value = parse(singleNodeBoard(
-		"ability",
-		"[" + unlockAbility("learn", "training-guard") +
-			R"(, {"id": "tougher", "type": "bonusStat", "stat": "armor", "amount": 2}])")));
+	EXPECT_NO_THROW(auto value = parse(singleNodeBoard("ability", "[" + unlockAbility("learn", "training-guard") + R"(, {"id": "tougher", "type": "bonusStat", "stat": "armor", "amount": 2}])")));
 
 	// Only an evolution node changes form, and it changes it exactly once.
 	EXPECT_THROW(auto value = parse(singleNodeBoard("stats", "[" + changeForm("bloom", "bloom") + "]")), pg::JsonError);

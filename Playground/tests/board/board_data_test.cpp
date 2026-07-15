@@ -132,24 +132,22 @@ TEST(BoardDataTest, HandcraftedTerrainIsAlwaysCurrentAndKeepsItsGridAlive)
 
 TEST(BoardDataTest, WalkingHeightFollowsTheSupportVoxelShape)
 {
-	pgtest::BoardFixture fixture(pgtest::BoardFixture::Request{
-		.layers =
-			{"#_/s#\n"
-			 "#####\n"
-			 "#####\n"
-			 "#####\n"
-			 "#####",
-			 ".....\n"
-			 ".....\n"
-			 ".....\n"
-			 ".....\n"
-			 ".....",
-			 ".....\n"
-			 ".....\n"
-			 ".....\n"
-			 ".....\n"
-			 "....."},
-		.deploymentDepth = 1});
+	pgtest::BoardFixture fixture(pgtest::BoardFixture::Request{.layers = {"#_/s#\n"
+																		  "#####\n"
+																		  "#####\n"
+																		  "#####\n"
+																		  "#####",
+																		  ".....\n"
+																		  ".....\n"
+																		  ".....\n"
+																		  ".....\n"
+																		  ".....",
+																		  ".....\n"
+																		  ".....\n"
+																		  ".....\n"
+																		  ".....\n"
+																		  "....."},
+															   .deploymentDepth = 1});
 	const pg::BoardData &board = fixture.board();
 
 	// A unit's feet sit on the top walking height of its support voxel, and nothing adds a second +1

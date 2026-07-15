@@ -1,5 +1,5 @@
-#include "world/generator/world_plan_generator.hpp"
 #include "structures/voxel/spk_voxel_orientation.hpp"
+#include "world/generator/world_plan_generator.hpp"
 
 #include <algorithm>
 #include <optional>
@@ -71,9 +71,9 @@ namespace pg::worldgen
 		// same flattened plateau. Resolve the anchor and outward vector through the
 		// committed building rotation; town compositions may use any quarter turn.
 		const spk::Vector3Int buildingPivot = building->prefab.pivot();
-		const int buildingTurns=spk::quarterTurnsOf(p_buildingPlacement.orientation);
-		const spk::Vector3Int doorWorld=buildingBox->destination+spk::rotateQuarterTurns(door->position-buildingPivot,buildingTurns);
-		const spk::Vector3Int outward=spk::rotateQuarterTurns({0,0,-1},buildingTurns);
+		const int buildingTurns = spk::quarterTurnsOf(p_buildingPlacement.orientation);
+		const spk::Vector3Int doorWorld = buildingBox->destination + spk::rotateQuarterTurns(door->position - buildingPivot, buildingTurns);
+		const spk::Vector3Int outward = spk::rotateQuarterTurns({0, 0, -1}, buildingTurns);
 
 		// One square void slot per interior, along the +Z edge of the band. Rooms
 		// share the level-0 ground height so walk heights match the overworld.

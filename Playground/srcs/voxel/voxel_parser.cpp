@@ -5,10 +5,10 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <limits>
-#include <cmath>
 #include <map>
 #include <memory>
 #include <set>
@@ -20,7 +20,10 @@ namespace
 {
 	std::optional<pg::VoxelLightDefinition> parseLight(pg::JsonReader &reader)
 	{
-		if (!reader.contains("light")) return std::nullopt;
+		if (!reader.contains("light"))
+		{
+			return std::nullopt;
+		}
 		pg::JsonReader light = reader.child("light");
 		light.forbidUnknown({"type", "color", "power", "reach", "innerHalfAngleDegrees", "outerHalfAngleDegrees"});
 		static const std::map<std::string, pg::VoxelLightType> types{{"directional", pg::VoxelLightType::Directional}, {"point", pg::VoxelLightType::Point}, {"spot", pg::VoxelLightType::Spot}};
@@ -33,9 +36,13 @@ namespace
 		result.innerHalfAngleDegrees = light.optional<float>("innerHalfAngleDegrees", result.innerHalfAngleDegrees);
 		result.outerHalfAngleDegrees = light.optional<float>("outerHalfAngleDegrees", result.outerHalfAngleDegrees);
 		if (!std::isfinite(result.power) || result.power < 0.0f || !std::isfinite(result.reach) || result.reach <= 0.0f || !std::isfinite(result.color.r) || !std::isfinite(result.color.g) || !std::isfinite(result.color.b) || result.color.r < 0 || result.color.g < 0 || result.color.b < 0)
+		{
 			throw pg::JsonError(light.file(), light.path(), "light color must be non-negative and light power/reach must be finite positive values");
+		}
 		if (result.type == pg::VoxelLightType::Spot && (!std::isfinite(result.innerHalfAngleDegrees) || !std::isfinite(result.outerHalfAngleDegrees) || result.innerHalfAngleDegrees < 0 || result.outerHalfAngleDegrees < result.innerHalfAngleDegrees || result.outerHalfAngleDegrees >= 90.0f))
+		{
 			throw pg::JsonError(light.file(), light.path(), "spot light angles must satisfy 0 <= inner <= outer < 90");
+		}
 		return result;
 	}
 	constexpr int AtlasColumns = 8;

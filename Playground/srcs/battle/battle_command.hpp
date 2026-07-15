@@ -94,10 +94,10 @@ namespace pg
 	// unit's side before allocating any id or touching any state.
 	enum class CommandController
 	{
-		System,        // transactional setup / enemy deployment / internal lifecycle only
-		Player,        // normal battle UI; Player-side units only
-		EnemyAi,       // Enemy-side activation commands only
-		DebugAutoplay  // Player-side control in an explicitly configured development session
+		System,		  // transactional setup / enemy deployment / internal lifecycle only
+		Player,		  // normal battle UI; Player-side units only
+		EnemyAi,	  // Enemy-side activation commands only
+		DebugAutoplay // Player-side control in an explicitly configured development session
 	};
 
 	struct CommandIssuer

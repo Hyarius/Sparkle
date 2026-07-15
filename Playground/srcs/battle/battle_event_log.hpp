@@ -16,10 +16,10 @@ namespace pg
 	// from the categories of the events it contains.
 	enum class BattleBatchKind
 	{
-		Construction, // one at session creation: BattleStarted plus system enemy placement
-		Command,      // one per accepted public command; carries a non-null action id
-		Timeline,     // step 07 timeline transitions; no action id
-		TamingSystem, // step 16 post-condition removals; no action id
+		Construction,  // one at session creation: BattleStarted plus system enemy placement
+		Command,	   // one per accepted public command; carries a non-null action id
+		Timeline,	   // step 07 timeline transitions; no action id
+		TamingSystem,  // step 16 post-condition removals; no action id
 		TechnicalAbort // the reserved no-action abort tail
 	};
 

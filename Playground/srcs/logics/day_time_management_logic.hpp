@@ -4,7 +4,10 @@
 #include "structures/game_engine/spk_entity_3d.hpp"
 #include "structures/game_engine/spk_light_3d.hpp"
 
-namespace spk { class SceneLightingRenderFeature; }
+namespace spk
+{
+	class SceneLightingRenderFeature;
+}
 
 namespace pg
 {

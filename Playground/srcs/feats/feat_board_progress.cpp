@@ -168,7 +168,10 @@ namespace pg
 				fail(_board, "reported a blocked preset with nothing blocked");
 			}
 
-			[[nodiscard]] bool solved() const noexcept { return _remaining.empty(); }
+			[[nodiscard]] bool solved() const noexcept
+			{
+				return _remaining.empty();
+			}
 		};
 	}
 

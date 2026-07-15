@@ -39,7 +39,10 @@ namespace pgtest
 		ScratchData(const ScratchData &) = delete;
 		ScratchData &operator=(const ScratchData &) = delete;
 
-		[[nodiscard]] const std::filesystem::path &path() const noexcept { return _path; }
+		[[nodiscard]] const std::filesystem::path &path() const noexcept
+		{
+			return _path;
+		}
 
 		// Writes <directory>/<id>.json, replacing any shipped file of that name.
 		void write(std::string_view p_directory, std::string_view p_id, std::string_view p_content) const

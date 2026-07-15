@@ -63,20 +63,20 @@ TEST(CreatureInstanceIdTest, RejectsEveryNonCanonicalText)
 	const std::string cases[] = {
 		"",
 		"creature-",
-		"creature-1",                        // missing zero padding
-		"creature-00000000000000001",        // one digit too many
-		"creature-000000000000002A",         // upper case hex
-		"CREATURE-000000000000002a",         // upper case prefix
-		"creature-00000000000000-1",         // a sign is not a hex digit
-		"creature-+000000000000001",         // nor is a plus
-		"creature-00000000000000 1",         // nor is whitespace
-		" creature-0000000000000001",        // leading whitespace
-		"creature-0000000000000001 ",        // trailing whitespace
-		"creature-000000000000000g",         // invalid hex digit
-		"creature_0000000000000001",         // wrong separator
-		"beast-0000000000000001",            // wrong prefix
-		"creature-10000000000000000",        // would overflow uint64
-		"0000000000000001"};                 // no prefix at all
+		"creature-1",				  // missing zero padding
+		"creature-00000000000000001", // one digit too many
+		"creature-000000000000002A",  // upper case hex
+		"CREATURE-000000000000002a",  // upper case prefix
+		"creature-00000000000000-1",  // a sign is not a hex digit
+		"creature-+000000000000001",  // nor is a plus
+		"creature-00000000000000 1",  // nor is whitespace
+		" creature-0000000000000001", // leading whitespace
+		"creature-0000000000000001 ", // trailing whitespace
+		"creature-000000000000000g",  // invalid hex digit
+		"creature_0000000000000001",  // wrong separator
+		"beast-0000000000000001",	  // wrong prefix
+		"creature-10000000000000000", // would overflow uint64
+		"0000000000000001"};		  // no prefix at all
 
 	for (const std::string &text : cases)
 	{

@@ -141,7 +141,9 @@ TEST_F(TranslatorTest, AResignedSubscriberIsNoLongerNotified)
 	int notifications = 0;
 	{
 		const pg::Translator::Contract contract =
-			translator().subscribe([&notifications](const std::string &) { ++notifications; });
+			translator().subscribe([&notifications](const std::string &) {
+				++notifications;
+			});
 		translator().setLanguage("fr");
 		EXPECT_EQ(notifications, 1);
 	}

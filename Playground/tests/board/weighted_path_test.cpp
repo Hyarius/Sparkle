@@ -251,7 +251,9 @@ TEST(WeightedPathTest, CheckedCostArithmeticRefusesToWrap)
 	// A zero or negative enter cost would make a cycle free, so it is a broken query, not a fast one.
 	EXPECT_THROW(auto value = pg::uniformCostQuery(0), std::invalid_argument);
 	const pg::TraversalCostQuery negative{
-		.enterCost = [](const spk::Vector3Int &) { return std::optional<int>(-1); }};
+		.enterCost = [](const spk::Vector3Int &) {
+			return std::optional<int>(-1);
+		}};
 	EXPECT_THROW(auto value = pg::findWeightedPath(graph, {0, 0, 0}, {2, 0, 0}, 10, negative), std::invalid_argument);
 }
 

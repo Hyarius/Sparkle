@@ -145,7 +145,9 @@ TEST(PlayerRosterTest, EveryFailedOperationLeavesADeepEqualRoster)
 	};
 
 	// Unknown id, wrong collection, occupied target, index out of range.
-	expectRejected([](pg::PlayerRoster &p_roster) { (void)p_roster.remove(pg::CreatureInstanceId::fromSerial(99)); });
+	expectRejected([](pg::PlayerRoster &p_roster) {
+		(void)p_roster.remove(pg::CreatureInstanceId::fromSerial(99));
+	});
 	expectRejected([](pg::PlayerRoster &p_roster) {
 		(void)p_roster.moveTeamToStorage(pg::CreatureInstanceId::fromSerial(7));
 	});
@@ -158,7 +160,9 @@ TEST(PlayerRosterTest, EveryFailedOperationLeavesADeepEqualRoster)
 	expectRejected([](pg::PlayerRoster &p_roster) {
 		(void)p_roster.moveStorageToTeam(pg::CreatureInstanceId::fromSerial(7), 6);
 	});
-	expectRejected([](pg::PlayerRoster &p_roster) { p_roster.swapTeamSlots(0, 6); });
+	expectRejected([](pg::PlayerRoster &p_roster) {
+		p_roster.swapTeamSlots(0, 6);
+	});
 	expectRejected([](pg::PlayerRoster &p_roster) {
 		p_roster.swapTeamAndStorage(pg::CreatureInstanceId::fromSerial(7), pg::CreatureInstanceId::fromSerial(1));
 	});

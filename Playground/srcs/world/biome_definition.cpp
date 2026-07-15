@@ -177,8 +177,8 @@ namespace pg
 				const std::string densityKey = townsReader.contains("densityDistanceCells") ? "densityDistanceCells" : "distanceCells";
 				traits.towns.densityDistanceCells = requireFiniteDouble(townsReader, densityKey);
 				traits.towns.minimumDistanceCells = townsReader.contains("minimumDistanceCells")
-					? requireFiniteDouble(townsReader, "minimumDistanceCells")
-					: traits.towns.densityDistanceCells;
+														? requireFiniteDouble(townsReader, "minimumDistanceCells")
+														: traits.towns.densityDistanceCells;
 				if (traits.towns.densityDistanceCells <= 0.0)
 				{
 					throw JsonError(townsReader.file(), townsReader.pathFor(densityKey), "densityDistanceCells must be greater than zero");
@@ -234,7 +234,9 @@ namespace pg
 					{
 						const PrefabAnchor *door = p_prefabs.get(homeId).tryAnchor("door");
 						if (door == nullptr || door->position.z != 0)
+						{
 							throw JsonError(townReader.file(), townReader.pathFor("homes"), "town home prefab needs a local -Z 'door' anchor");
+						}
 					}
 					traits.town = std::move(town);
 				}
@@ -297,8 +299,7 @@ namespace pg
 						if (placement != "anywhere" && placement != "roadside")
 						{
 							throw JsonError(
-								p_reader.file(), sceneryReader.pathFor("placement"),
-								"town scenery placement must be 'anywhere' or 'roadside'");
+								p_reader.file(), sceneryReader.pathFor("placement"), "town scenery placement must be 'anywhere' or 'roadside'");
 						}
 						scenery.roadside = placement == "roadside";
 						const PrefabDefinition *prefab = p_prefabs.tryGet(scenery.prefabId);

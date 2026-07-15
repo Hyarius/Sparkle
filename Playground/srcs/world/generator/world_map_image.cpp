@@ -26,9 +26,7 @@ namespace
 
 	[[nodiscard]] Color fromHex(std::uint32_t p_rgb)
 	{
-		return {static_cast<std::uint8_t>((p_rgb >> 16) & 0xFF),
-				static_cast<std::uint8_t>((p_rgb >> 8) & 0xFF),
-				static_cast<std::uint8_t>(p_rgb & 0xFF)};
+		return {static_cast<std::uint8_t>((p_rgb >> 16) & 0xFF), static_cast<std::uint8_t>((p_rgb >> 8) & 0xFF), static_cast<std::uint8_t>(p_rgb & 0xFF)};
 	}
 
 	[[nodiscard]] Color fromSpk(const spk::Color &p_color)
@@ -53,7 +51,10 @@ namespace
 		int height = 0;
 		std::vector<std::uint8_t> pixels;
 
-		Canvas(int p_width, int p_height, const Color &p_fill) : width(p_width), height(p_height), pixels()
+		Canvas(int p_width, int p_height, const Color &p_fill) :
+			width(p_width),
+			height(p_height),
+			pixels()
 		{
 			pixels.resize(static_cast<std::size_t>(p_width) * p_height * 3);
 			for (int y = 0; y < p_height; ++y)
@@ -399,11 +400,29 @@ namespace pg
 		// committed records, never from connected-component inference.
 		for (const PlanTownRecord &town : p_plan.towns)
 		{
-			for (const auto &[row,col] : town.boundaryCells) canvas.fillRect(col*scale+1,titleBar+row*scale+1,scale-2,scale-2,fromHex(0x7B4AA8));
-			for (const PlanPavedColumn &road : town.mainRoadSurface) { const int row=p_plan.cellIndexFromWorld(road.worldZ), col=p_plan.cellIndexFromWorld(road.worldX); canvas.fillRect(col*scale+scale/2-2,titleBar+row*scale+scale/2-2,5,5,fromHex(0xD88A2D)); }
-			for (const PlanPavedColumn &road : town.urbanRoadSurface) { const int row=p_plan.cellIndexFromWorld(road.worldZ), col=p_plan.cellIndexFromWorld(road.worldX); canvas.fillRect(col*scale+scale/2-1,titleBar+row*scale+scale/2-1,3,3,fromHex(0xFFD166)); }
-			for(const auto &[row,col]:town.dockCells)canvas.fillRect(col*scale+2,titleBar+row*scale+2,scale-4,scale-4,fromHex(0x9A6A35));
-			if(town.boardingEndpoint) { const int col=p_plan.cellIndexFromWorld(town.boardingEndpoint->x), row=p_plan.cellIndexFromWorld(town.boardingEndpoint->z); canvas.fillDiamond(col*scale+scale/2,titleBar+row*scale+scale/2,4,fromHex(0x2BE3E3)); }
+			for (const auto &[row, col] : town.boundaryCells)
+			{
+				canvas.fillRect(col * scale + 1, titleBar + row * scale + 1, scale - 2, scale - 2, fromHex(0x7B4AA8));
+			}
+			for (const PlanPavedColumn &road : town.mainRoadSurface)
+			{
+				const int row = p_plan.cellIndexFromWorld(road.worldZ), col = p_plan.cellIndexFromWorld(road.worldX);
+				canvas.fillRect(col * scale + scale / 2 - 2, titleBar + row * scale + scale / 2 - 2, 5, 5, fromHex(0xD88A2D));
+			}
+			for (const PlanPavedColumn &road : town.urbanRoadSurface)
+			{
+				const int row = p_plan.cellIndexFromWorld(road.worldZ), col = p_plan.cellIndexFromWorld(road.worldX);
+				canvas.fillRect(col * scale + scale / 2 - 1, titleBar + row * scale + scale / 2 - 1, 3, 3, fromHex(0xFFD166));
+			}
+			for (const auto &[row, col] : town.dockCells)
+			{
+				canvas.fillRect(col * scale + 2, titleBar + row * scale + 2, scale - 4, scale - 4, fromHex(0x9A6A35));
+			}
+			if (town.boardingEndpoint)
+			{
+				const int col = p_plan.cellIndexFromWorld(town.boardingEndpoint->x), row = p_plan.cellIndexFromWorld(town.boardingEndpoint->z);
+				canvas.fillDiamond(col * scale + scale / 2, titleBar + row * scale + scale / 2, 4, fromHex(0x2BE3E3));
+			}
 		}
 
 		// Stairways repaint the road line where a climb detours it: every committed
@@ -531,8 +550,12 @@ namespace pg
 				const int cy = boxY + 12 + static_cast<int>(index) * entryHeight + entryHeight / 2 - 6;
 				switch (index)
 				{
-				case 0: canvas.fillRect(cx - 3, cy - 3, 6, 6, roadColor); break;
-				case 1: canvas.fillRect(cx - 3, cy - 3, 6, 6, bridgeColor); break;
+				case 0:
+					canvas.fillRect(cx - 3, cy - 3, 6, 6, roadColor);
+					break;
+				case 1:
+					canvas.fillRect(cx - 3, cy - 3, 6, 6, bridgeColor);
+					break;
 				case 2:
 					canvas.fillRect(cx - 3, cy - 3, 7, 7, {120, 120, 120});
 					canvas.fillRect(cx - 2, cy - 2, 5, 5, wildStairColor);
@@ -553,7 +576,9 @@ namespace pg
 					canvas.fillDiamond(cx, cy, 7, {250, 250, 250});
 					canvas.fillDiamond(cx, cy, 5, fromHex(0xE33030));
 					break;
-				default: canvas.strokeCross(cx, cy, 4, {60, 60, 60}); break;
+				default:
+					canvas.strokeCross(cx, cy, 4, {60, 60, 60});
+					break;
 				}
 				drawText(canvas, boxX + 34, cy - 7, labels[index], {20, 20, 20}, 2);
 			}

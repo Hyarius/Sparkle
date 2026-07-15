@@ -44,7 +44,7 @@ namespace pg
 	// A per-required-chunk content revision only moves when terrain the board actually read moves.
 	struct LiveBoardTerrainStamp
 	{
-		const VoxelWorld *world = nullptr;      // borrowed; the map lifetime token below guards it
+		const VoxelWorld *world = nullptr; // borrowed; the map lifetime token below guards it
 		std::weak_ptr<const void> mapLifetime;
 		std::vector<RequiredChunkStamp> requiredChunks; // coordinate sorted
 	};

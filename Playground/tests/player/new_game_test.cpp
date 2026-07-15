@@ -138,11 +138,7 @@ TEST(NewGameTest, AllocationRefusesToReuseOrOverflowASerial)
 	EXPECT_EQ(player.nextCreatureSerial, 2U);
 
 	// A counter that fell behind the roster must not hand out an id twice.
-	player.roster.add(pg::makeCreatureUnit(
-		pg::CreatureInstanceId::fromSerial(2),
-		"training-sprout",
-		std::vector<std::string>{},
-		registries()));
+	player.roster.add(pg::makeCreatureUnit(pg::CreatureInstanceId::fromSerial(2), "training-sprout", std::vector<std::string>{}, registries()));
 	EXPECT_THROW(auto value = player.allocateCreatureId(), std::invalid_argument);
 	EXPECT_EQ(player.nextCreatureSerial, 2U) << "a rejected allocation advances nothing";
 

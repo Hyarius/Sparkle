@@ -55,16 +55,32 @@ namespace pg
 		for (const std::string &biomeId : loadedBiomes.ids())
 		{
 			const BiomeDefinition &biome = loadedBiomes.get(biomeId);
-			if (!biome.worldgen || !biome.worldgen->town) continue;
-			const BiomeTown &town=*biome.worldgen->town;
-			townPrefabIds.insert(town.creatureCenter); townPrefabIds.insert(town.shop); townPrefabIds.insert(town.gym); townPrefabIds.insert(town.port); townPrefabIds.insert(town.homes.begin(),town.homes.end());
+			if (!biome.worldgen || !biome.worldgen->town)
+			{
+				continue;
+			}
+			const BiomeTown &town = *biome.worldgen->town;
+			townPrefabIds.insert(town.creatureCenter);
+			townPrefabIds.insert(town.shop);
+			townPrefabIds.insert(town.gym);
+			townPrefabIds.insert(town.port);
+			townPrefabIds.insert(town.homes.begin(), town.homes.end());
 		}
 		for (const std::string &prefabId : townPrefabIds)
 		{
-			if(!loadedPrefabs.contains(prefabId)) throw std::runtime_error("town content references unknown prefab '"+prefabId+"'");
-			const PrefabDefinition &prefab=loadedPrefabs.get(prefabId);
-			if(!prefab.entrance) throw std::runtime_error("town prefab '"+prefabId+"' needs an explicit entrance contract");
-			if(prefab.tryAnchor(prefab.entrance->anchorName)==nullptr) throw std::runtime_error("town prefab '"+prefabId+"' entrance references a missing anchor");
+			if (!loadedPrefabs.contains(prefabId))
+			{
+				throw std::runtime_error("town content references unknown prefab '" + prefabId + "'");
+			}
+			const PrefabDefinition &prefab = loadedPrefabs.get(prefabId);
+			if (!prefab.entrance)
+			{
+				throw std::runtime_error("town prefab '" + prefabId + "' needs an explicit entrance contract");
+			}
+			if (prefab.tryAnchor(prefab.entrance->anchorName) == nullptr)
+			{
+				throw std::runtime_error("town prefab '" + prefabId + "' entrance references a missing anchor");
+			}
 		}
 		// Interiors reference room prefabs, so they load after prefabs; each prefab's
 		// own "interior" link is validated once both registries exist.
@@ -102,9 +118,19 @@ namespace pg
 			TownComposition composition = parseTownComposition(p_reader);
 			composition.id = p_id;
 			for (const TownSceneryRequest &request : composition.roadScenery)
-				if (!loadedPrefabs.contains(request.prefabId)) throw JsonError(p_reader.file(), p_reader.pathFor("roadScenery"), "unknown scenery prefab id '" + request.prefabId + "'");
+			{
+				if (!loadedPrefabs.contains(request.prefabId))
+				{
+					throw JsonError(p_reader.file(), p_reader.pathFor("roadScenery"), "unknown scenery prefab id '" + request.prefabId + "'");
+				}
+			}
 			for (const TownSceneryRequest &request : composition.groundScenery)
-				if (!loadedPrefabs.contains(request.prefabId)) throw JsonError(p_reader.file(), p_reader.pathFor("groundScenery"), "unknown scenery prefab id '" + request.prefabId + "'");
+			{
+				if (!loadedPrefabs.contains(request.prefabId))
+				{
+					throw JsonError(p_reader.file(), p_reader.pathFor("groundScenery"), "unknown scenery prefab id '" + request.prefabId + "'");
+				}
+			}
 			return composition;
 		});
 
@@ -267,22 +293,76 @@ namespace pg
 				  << _encounters.size() << " encounter tables holding " << encounterTeamCount << " teams" << std::endl;
 	}
 
-	const GameRules &Registries::gameRules() const noexcept { return _gameRules; }
-	const ShapeCatalog &Registries::shapes() const noexcept { return _shapes; }
-	const VoxelFamilyCatalog &Registries::voxelFamilies() const noexcept { return _voxelFamilies; }
-	const VoxelRegistry &Registries::voxels() const noexcept { return _voxels; }
-	const Registry<BiomeDefinition> &Registries::biomes() const noexcept { return _biomes; }
-	const Registry<PrefabDefinition> &Registries::prefabs() const noexcept { return _prefabs; }
-	const Registry<InteriorDefinition> &Registries::interiors() const noexcept { return _interiors; }
-	const PlanPlacementRules &Registries::placementRules() const noexcept { return _placementRules; }
-	const TownCompositionCatalog &Registries::townCompositions() const noexcept { return _townCompositions; }
-	const Registry<StatusDefinition> &Registries::statuses() const noexcept { return _statuses; }
-	const Registry<AbilityDefinition> &Registries::abilities() const noexcept { return _abilities; }
-	const Registry<BattleObjectDefinition> &Registries::battleObjects() const noexcept { return _battleObjects; }
-	const Registry<FeatBoardDefinition> &Registries::featBoards() const noexcept { return _featBoards; }
-	const Registry<AIBehaviourDefinition> &Registries::aiBehaviours() const noexcept { return _aiBehaviours; }
-	const Registry<CreatureSpeciesDefinition> &Registries::species() const noexcept { return _species; }
-	const Registry<HandcraftedBattleBoardDefinition> &Registries::battleBoards() const noexcept { return _battleBoards; }
-	const Registry<EncounterDefinition> &Registries::encounters() const noexcept { return _encounters; }
-	const NewGameDefinition &Registries::newGame() const noexcept { return _newGame; }
+	const GameRules &Registries::gameRules() const noexcept
+	{
+		return _gameRules;
+	}
+	const ShapeCatalog &Registries::shapes() const noexcept
+	{
+		return _shapes;
+	}
+	const VoxelFamilyCatalog &Registries::voxelFamilies() const noexcept
+	{
+		return _voxelFamilies;
+	}
+	const VoxelRegistry &Registries::voxels() const noexcept
+	{
+		return _voxels;
+	}
+	const Registry<BiomeDefinition> &Registries::biomes() const noexcept
+	{
+		return _biomes;
+	}
+	const Registry<PrefabDefinition> &Registries::prefabs() const noexcept
+	{
+		return _prefabs;
+	}
+	const Registry<InteriorDefinition> &Registries::interiors() const noexcept
+	{
+		return _interiors;
+	}
+	const PlanPlacementRules &Registries::placementRules() const noexcept
+	{
+		return _placementRules;
+	}
+	const TownCompositionCatalog &Registries::townCompositions() const noexcept
+	{
+		return _townCompositions;
+	}
+	const Registry<StatusDefinition> &Registries::statuses() const noexcept
+	{
+		return _statuses;
+	}
+	const Registry<AbilityDefinition> &Registries::abilities() const noexcept
+	{
+		return _abilities;
+	}
+	const Registry<BattleObjectDefinition> &Registries::battleObjects() const noexcept
+	{
+		return _battleObjects;
+	}
+	const Registry<FeatBoardDefinition> &Registries::featBoards() const noexcept
+	{
+		return _featBoards;
+	}
+	const Registry<AIBehaviourDefinition> &Registries::aiBehaviours() const noexcept
+	{
+		return _aiBehaviours;
+	}
+	const Registry<CreatureSpeciesDefinition> &Registries::species() const noexcept
+	{
+		return _species;
+	}
+	const Registry<HandcraftedBattleBoardDefinition> &Registries::battleBoards() const noexcept
+	{
+		return _battleBoards;
+	}
+	const Registry<EncounterDefinition> &Registries::encounters() const noexcept
+	{
+		return _encounters;
+	}
+	const NewGameDefinition &Registries::newGame() const noexcept
+	{
+		return _newGame;
+	}
 }

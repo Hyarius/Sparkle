@@ -8,7 +8,9 @@ namespace pg
 {
 	void requireSnapshotInvariants(const BattleSnapshot &p_snapshot)
 	{
-		const auto fail = [](const std::string &p_why) { throw std::logic_error("battle snapshot invariant: " + p_why); };
+		const auto fail = [](const std::string &p_why) {
+			throw std::logic_error("battle snapshot invariant: " + p_why);
+		};
 
 		// Abort reason is present exactly when the outcome is Aborted.
 		if ((p_snapshot.outcome == BattleOutcome::Aborted) != p_snapshot.abortReason.has_value())

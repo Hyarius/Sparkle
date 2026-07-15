@@ -22,7 +22,10 @@ namespace pg
 		std::vector<BoardCell> cells;
 		std::optional<BattleConstructionError> error;
 
-		[[nodiscard]] bool ok() const noexcept { return !error.has_value(); }
+		[[nodiscard]] bool ok() const noexcept
+		{
+			return !error.has_value();
+		}
 	};
 
 	// A deployment destination is legal for a side when it is one of that side's standable strip

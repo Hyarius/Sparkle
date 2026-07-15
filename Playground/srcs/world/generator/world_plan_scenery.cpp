@@ -29,7 +29,9 @@ namespace pg::worldgen
 		for (const PlanTownRecord &town : plan.towns)
 		{
 			for (const auto &[row, col] : town.boundaryCells)
+			{
 				blockedCells.insert({row, col});
+			}
 			// Town bounds are world-column coordinates. Block every overlapping macro
 			// cell as an early candidate filter; the hard town claim remains the exact
 			// prefab-footprint check below.
@@ -41,7 +43,10 @@ namespace pg::worldgen
 			{
 				for (int col = minCol; col <= maxCol; ++col)
 				{
-					if (plan.zone.contains(row, col)) blockedCells.insert({row, col});
+					if (plan.zone.contains(row, col))
+					{
+						blockedCells.insert({row, col});
+					}
 				}
 			}
 		}

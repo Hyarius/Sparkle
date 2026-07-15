@@ -143,7 +143,10 @@ TEST(PlanChunkProviderTownRelief, FadesPerlinFromTheConstructionFootprint)
 	{
 		for (int x = center - 40; x <= center + 40; ++x)
 		{
-			if (std::abs(x - center) + std::abs(z - center) <= 16) continue;
+			if (std::abs(x - center) + std::abs(z - center) <= 16)
+			{
+				continue;
+			}
 			if (provider.surfaceHeight(x, z) != baseSurface)
 			{
 				hasFullStrengthRelief = true;

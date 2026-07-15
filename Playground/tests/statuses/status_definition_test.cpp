@@ -278,9 +278,7 @@ TEST(StatusDefinitionTest, RejectsMalformedTagsAndUnknownFields)
 
 TEST(StatusDefinitionTest, RecognizesTheReservedStunTag)
 {
-	const pg::StatusDefinition stun = parseStatus(guarded(R"(["debuff", "stun"])",
-		R"({"maxStacks": 1, "reapply": "replaceStacks", "durationRefresh": "replace"})",
-		"[]"));
+	const pg::StatusDefinition stun = parseStatus(guarded(R"(["debuff", "stun"])", R"({"maxStacks": 1, "reapply": "replaceStacks", "durationRefresh": "replace"})", "[]"));
 	EXPECT_TRUE(pg::isStunStatus(stun));
 	// The stun restriction itself is a property of every applyStatus reference to it, so it is
 	// enforced by the cross-validator once all statuses are known.

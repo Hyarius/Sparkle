@@ -19,6 +19,7 @@ namespace pg
 	{
 	public:
 		using ViewportSize = std::function<spk::Vector2()>;
+
 	private:
 		GameContext &_context;
 		VoxelWorld &_world;

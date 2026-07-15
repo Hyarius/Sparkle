@@ -75,8 +75,7 @@ TEST(FeatRewardDefinitionTest, RejectsRewardsThatGrantNothingOrTheWrongUnit)
 		auto value = parse(R"({"id": "huge", "type": "bonusStat", "stat": "armor", "amount": 1000001})"),
 		pg::JsonError);
 
-	EXPECT_TRUE(std::holds_alternative<pg::BonusStatRewardSpec>(
-		parse(R"({"id": "weaker", "type": "bonusStat", "stat": "armor", "amount": -3})").payload))
+	EXPECT_TRUE(std::holds_alternative<pg::BonusStatRewardSpec>(parse(R"({"id": "weaker", "type": "bonusStat", "stat": "armor", "amount": -3})").payload))
 		<< "a signed amount is legal: a node may trade one stat for another";
 }
 

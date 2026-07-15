@@ -363,7 +363,8 @@ namespace pg
 				last.source.file,
 				last.source.jsonPath,
 				"the last rule of a behaviour is its termination fallback: it takes no condition and its decision "
-				"is 'endTurn'; rule '" + last.id + "' is not");
+				"is 'endTurn'; rule '" +
+					last.id + "' is not");
 		}
 		return result;
 	}

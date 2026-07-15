@@ -118,16 +118,46 @@ namespace pg
 		std::ranges::sort(_borderCells, BoardCellLess{});
 	}
 
-	const BoardSourceDescriptor &BoardData::sourceDescriptor() const noexcept { return _source; }
-	const ICellSource &BoardData::cells() const noexcept { return *_cells; }
-	const TraversalGraph &BoardData::navigation() const noexcept { return _navigation; }
-	const BoardOccupancy &BoardData::occupancy() const noexcept { return _occupancy; }
-	const DeploymentLayout &BoardData::deployment() const noexcept { return _deployment; }
-	const BoardExtent &BoardData::extent() const noexcept { return _extent; }
-	const spk::Vector3Int &BoardData::presentationOrigin() const noexcept { return _presentationOrigin; }
-	const std::optional<spk::Vector3Int> &BoardData::liveWorldAnchor() const noexcept { return _liveWorldAnchor; }
-	const std::optional<LiveBoardTerrainStamp> &BoardData::liveTerrainStamp() const noexcept { return _liveTerrainStamp; }
-	const std::vector<BoardCell> &BoardData::borderCells() const noexcept { return _borderCells; }
+	const BoardSourceDescriptor &BoardData::sourceDescriptor() const noexcept
+	{
+		return _source;
+	}
+	const ICellSource &BoardData::cells() const noexcept
+	{
+		return *_cells;
+	}
+	const TraversalGraph &BoardData::navigation() const noexcept
+	{
+		return _navigation;
+	}
+	const BoardOccupancy &BoardData::occupancy() const noexcept
+	{
+		return _occupancy;
+	}
+	const DeploymentLayout &BoardData::deployment() const noexcept
+	{
+		return _deployment;
+	}
+	const BoardExtent &BoardData::extent() const noexcept
+	{
+		return _extent;
+	}
+	const spk::Vector3Int &BoardData::presentationOrigin() const noexcept
+	{
+		return _presentationOrigin;
+	}
+	const std::optional<spk::Vector3Int> &BoardData::liveWorldAnchor() const noexcept
+	{
+		return _liveWorldAnchor;
+	}
+	const std::optional<LiveBoardTerrainStamp> &BoardData::liveTerrainStamp() const noexcept
+	{
+		return _liveTerrainStamp;
+	}
+	const std::vector<BoardCell> &BoardData::borderCells() const noexcept
+	{
+		return _borderCells;
+	}
 
 	bool BoardData::isInsideColumn(int p_x, int p_z) const noexcept
 	{
@@ -153,9 +183,7 @@ namespace pg
 	std::string BoardData::_describe(const BoardCell &p_local) const
 	{
 		std::string description = "board " + describeSource(_source) + ", local " + p_local.toString() +
-								  ", presentation " + (tryAdd(p_local, _presentationOrigin).has_value()
-														   ? tryAdd(p_local, _presentationOrigin)->toString()
-														   : std::string("<overflow>"));
+								  ", presentation " + (tryAdd(p_local, _presentationOrigin).has_value() ? tryAdd(p_local, _presentationOrigin)->toString() : std::string("<overflow>"));
 		if (_liveWorldAnchor.has_value())
 		{
 			const std::optional<spk::Vector3Int> world = tryAdd(p_local, *_liveWorldAnchor);

@@ -6,7 +6,9 @@
 namespace pg
 {
 	WorldNavigation::WorldNavigation(VoxelWorld &p_world, TraversalBounds p_bounds, float p_maxVerticalGap) :
-		_world(p_world), _bounds(p_bounds), _maxVerticalGap(p_maxVerticalGap)
+		_world(p_world),
+		_bounds(p_bounds),
+		_maxVerticalGap(p_maxVerticalGap)
 	{
 	}
 
@@ -23,7 +25,10 @@ namespace pg
 
 	void WorldNavigation::refresh()
 	{
-		if (_builtRevision == _world.revision()) return;
+		if (_builtRevision == _world.revision())
+		{
+			return;
+		}
 		WorldCellSource source(_world);
 		_graph = TraversalGraphBuilder::build(source, _bounds, _maxVerticalGap);
 		_builtRevision = _world.revision();
@@ -41,10 +46,16 @@ namespace pg
 		for (int y = _bounds.maximum.y - 1; y >= _bounds.minimum.y; --y)
 		{
 			const spk::Vector3Int position{p_x, y, p_z};
-			if (_graph.tryGetNode(position) != nullptr) return position;
+			if (_graph.tryGetNode(position) != nullptr)
+			{
+				return position;
+			}
 		}
 		return std::nullopt;
 	}
 
-	const TraversalBounds &WorldNavigation::bounds() const noexcept { return _bounds; }
+	const TraversalBounds &WorldNavigation::bounds() const noexcept
+	{
+		return _bounds;
+	}
 }

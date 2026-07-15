@@ -38,7 +38,7 @@ namespace pg
 		BattleTime turnBarFill;
 		int range = 0;
 		bool placed = false;
-		std::optional<BoardCell> cell;           // present exactly while placed
+		std::optional<BoardCell> cell; // present exactly while placed
 		std::optional<BoardCell> lastOccupiedCell;
 		RemovalReason removalReason = RemovalReason::None;
 

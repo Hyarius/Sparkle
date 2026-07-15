@@ -63,7 +63,10 @@ namespace pg
 		BattleConstructionResult &operator=(BattleConstructionResult &&) noexcept;
 		~BattleConstructionResult();
 
-		[[nodiscard]] bool succeeded() const noexcept { return session != nullptr; }
+		[[nodiscard]] bool succeeded() const noexcept
+		{
+			return session != nullptr;
+		}
 	};
 
 	// ---- Command result --------------------------------------------------------------------------

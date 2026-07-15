@@ -13,8 +13,12 @@ namespace pg
 	{
 	private:
 		const BattleContext &_context;
+
 	public:
-		explicit BattleQueryService(const BattleContext &p_context) noexcept : _context(p_context) {}
+		explicit BattleQueryService(const BattleContext &p_context) noexcept :
+			_context(p_context)
+		{
+		}
 		[[nodiscard]] std::expected<MovePlan, CommandRejection> planMove(BattleUnitId, BoardCell) const;
 		[[nodiscard]] std::expected<CastPlan, CommandRejection> planCast(BattleUnitId, std::string_view, BoardCell) const;
 		[[nodiscard]] std::vector<MovePlan> legalMoves(BattleUnitId) const;

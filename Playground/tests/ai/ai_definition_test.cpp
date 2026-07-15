@@ -80,23 +80,16 @@ TEST(AIDefinitionTest, ParsesTheShippedBehaviourAsOrderedIntent)
 TEST(AIDefinitionTest, ParsesEveryConditionAlternative)
 {
 	EXPECT_NO_THROW(auto value = parse(withCondition(R"({"type": "always"})")));
-	EXPECT_NO_THROW(auto value = parse(withCondition(
-		R"({"type": "healthRatio", "selector": "self", "comparison": "atMost", "permille": 500})")));
-	EXPECT_NO_THROW(auto value = parse(withCondition(
-		R"({"type": "resourceAtLeast", "resource": "actionPoints", "amount": 2})")));
-	EXPECT_NO_THROW(auto value = parse(withCondition(
-		R"({"type": "distance", "selector": "nearestEnemy", "comparison": "atMost", "cells": 3})")));
-	EXPECT_NO_THROW(auto value = parse(withCondition(
-		R"({"type": "hasStatus", "selector": "self", "status": "training-guarded", "present": true})")));
-	EXPECT_NO_THROW(auto value = parse(withCondition(
-		R"({"type": "hasStatusTag", "selector": "nearestEnemy", "tag": "poison", "present": true})")));
-	EXPECT_NO_THROW(auto value = parse(withCondition(
-		R"({"type": "abilityAffordable", "ability": "training-strike"})")));
+	EXPECT_NO_THROW(auto value = parse(withCondition(R"({"type": "healthRatio", "selector": "self", "comparison": "atMost", "permille": 500})")));
+	EXPECT_NO_THROW(auto value = parse(withCondition(R"({"type": "resourceAtLeast", "resource": "actionPoints", "amount": 2})")));
+	EXPECT_NO_THROW(auto value = parse(withCondition(R"({"type": "distance", "selector": "nearestEnemy", "comparison": "atMost", "cells": 3})")));
+	EXPECT_NO_THROW(auto value = parse(withCondition(R"({"type": "hasStatus", "selector": "self", "status": "training-guarded", "present": true})")));
+	EXPECT_NO_THROW(auto value = parse(withCondition(R"({"type": "hasStatusTag", "selector": "nearestEnemy", "tag": "poison", "present": true})")));
+	EXPECT_NO_THROW(auto value = parse(withCondition(R"({"type": "abilityAffordable", "ability": "training-strike"})")));
 
 	// Every selector spells the same way everywhere.
 	for (const std::string_view selector :
-		 {"self", "nearestEnemy", "nearestAlly", "lowestHealthEnemy", "lowestHealthAlly", "highestHealthEnemy",
-		  "highestHealthAlly"})
+		 {"self", "nearestEnemy", "nearestAlly", "lowestHealthEnemy", "lowestHealthAlly", "highestHealthEnemy", "highestHealthAlly"})
 	{
 		EXPECT_NO_THROW(
 			auto value = parse(withCondition(
@@ -135,8 +128,7 @@ TEST(AIDefinitionTest, ParsesEveryAnchorAndDecisionAlternative)
 			<< anchor;
 	}
 
-	EXPECT_NO_THROW(auto value = parse(withDecision(
-		R"({"type": "moveAway", "selector": "nearestEnemy", "maximumMovementPoints": 3})")));
+	EXPECT_NO_THROW(auto value = parse(withDecision(R"({"type": "moveAway", "selector": "nearestEnemy", "maximumMovementPoints": 3})")));
 	EXPECT_NO_THROW(auto value = parse(withDecision(R"({"type": "endTurn"})")));
 
 	// Zero means "every point currently available"; the cap is otherwise a real number.
@@ -161,7 +153,8 @@ TEST(AIDefinitionTest, IsStrictAboutUnknownMissingAndOutOfRangeFields)
 	EXPECT_THROW(auto value = parse(behaviour("")), pg::JsonError) << "a behaviour has at least one rule";
 	EXPECT_THROW(
 		auto value = parse(std::string(R"({"version": 1, "displayNameKey": "ai.fixture.name", "mode": "aggressive",
-			"rules": [)") + std::string(Finish) + "]}"),
+			"rules": [)") + std::string(Finish) +
+						   "]}"),
 		pg::JsonError)
 		<< "there is no mode dictionary in v1";
 
@@ -234,8 +227,7 @@ TEST(AIDefinitionTest, RequiresUniqueRulesAnAloneAlwaysAndATerminationFallback)
 		<< "a conditional last rule is not a fallback";
 
 	// An explicit "always" endTurn is a fallback, and so is an empty-condition one.
-	EXPECT_NO_THROW(auto value = parse(behaviour(
-		R"({"id": "finish", "conditions": [{"type": "always"}], "decision": {"type": "endTurn"}})")));
+	EXPECT_NO_THROW(auto value = parse(behaviour(R"({"id": "finish", "conditions": [{"type": "always"}], "decision": {"type": "endTurn"}})")));
 }
 
 TEST(AIDefinitionTest, ResolvesAbilityStatusAndTagReferencesAgainstTheLoadedGraph)

@@ -28,7 +28,9 @@ namespace
 	public:
 		// Ground at world y = 0 wherever p_ground says so, air above it: a flat field with an
 		// optional cliff, and nothing else.
-		explicit TestWorld(std::function<bool(int, int)> p_ground = [](int, int) { return true; })
+		explicit TestWorld(std::function<bool(int, int)> p_ground = [](int, int) {
+			return true;
+		})
 		{
 			pgtest::loadFixtureVoxels(_shapes, _families, _voxels);
 			const spk::VoxelRuntimeId ground = _voxels.runtimeId("test-ground");
@@ -52,8 +54,14 @@ namespace
 				});
 		}
 
-		[[nodiscard]] pg::VoxelWorld &world() noexcept { return *_world; }
-		[[nodiscard]] const pg::VoxelRegistry &voxels() const noexcept { return _voxels; }
+		[[nodiscard]] pg::VoxelWorld &world() noexcept
+		{
+			return *_world;
+		}
+		[[nodiscard]] const pg::VoxelRegistry &voxels() const noexcept
+		{
+			return _voxels;
+		}
 
 		void load(const pg::WorldBoardPlan &p_plan)
 		{
@@ -226,7 +234,9 @@ TEST(BoardBuilderTest, ALiveBoardRoundTripsNegativeWorldCoordinates)
 TEST(BoardBuilderTest, TheFirstCandidateThatSeatsBothTeamsIsChosen)
 {
 	// A cliff: solid ground only from x = 0 eastward.
-	TestWorld live([](int p_x, int) { return p_x >= 0; });
+	TestWorld live([](int p_x, int) {
+		return p_x >= 0;
+	});
 	// Centred on x = 0, the primary anchor is (-2): its five-cell rows only hold three standable
 	// cells, so four creatures cannot deploy there. The next candidate, two cells east, can.
 	const pg::WorldBoardPlanResult planned = pg::BoardBuilder::planWorld(request({0, 0, 20}, {5, 5}, 4, 4));
@@ -243,7 +253,9 @@ TEST(BoardBuilderTest, TheFirstCandidateThatSeatsBothTeamsIsChosen)
 
 TEST(BoardBuilderTest, NoFeasibleAnchorIsATypedRefusalRatherThanAShrunkenBoard)
 {
-	TestWorld live([](int p_x, int) { return p_x >= 0; });
+	TestWorld live([](int p_x, int) {
+		return p_x >= 0;
+	});
 	// Six creatures need six standable cells in a five-cell row: no nudge can fix that.
 	const pg::WorldBoardPlanResult planned = pg::BoardBuilder::planWorld(request({0, 0, 20}, {5, 5}, 6, 1));
 	ASSERT_TRUE(planned.plan.has_value());

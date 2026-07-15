@@ -223,9 +223,9 @@ namespace pg
 	// this order; one-level climbs are always a single perpendicular ramp.
 	enum class StairLayout : std::uint8_t
 	{
-		OnePass,	   // one straight run descending along the cliff wall
-		Switchback,	   // two opposing parallel runs joined by a landing
-		Perpendicular  // straight flight crossing away from the cliff (fallback, and every one-level ramp)
+		OnePass,	  // one straight run descending along the cliff wall
+		Switchback,	  // two opposing parallel runs joined by a landing
+		Perpendicular // straight flight crossing away from the cliff (fallback, and every one-level ramp)
 	};
 
 	// One committed staircase (road or wild, one-level ramps included), with its
@@ -236,12 +236,12 @@ namespace pg
 	struct PlanStairway
 	{
 		StairLayout layout = StairLayout::Perpendicular;
-		spk::Vector3Int topAnchor{};	// top stand column, flush with the high plateau
-		spk::Vector3Int bottomAnchor{}; // bottom stand column on the low ground
-		spk::Vector3Int plateauCell{};  // high-ground cell immediately beyond the top exit
+		spk::Vector3Int topAnchor{};			 // top stand column, flush with the high plateau
+		spk::Vector3Int bottomAnchor{};			 // bottom stand column on the low ground
+		spk::Vector3Int plateauCell{};			 // high-ground cell immediately beyond the top exit
 		std::vector<spk::Vector3Int> centerPath; // ordered walk columns from top to bottom
-		std::size_t firstPlacement = 0; // start of this staircase's contiguous run in WorldPlan::placements
-		std::size_t placementCount = 0; // prefab placements stamped for this staircase
+		std::size_t firstPlacement = 0;			 // start of this staircase's contiguous run in WorldPlan::placements
+		std::size_t placementCount = 0;			 // prefab placements stamped for this staircase
 		// Every rectangle this staircase validated and reserved: the stamped pieces
 		// plus the checked walkway lane and the plateau exit. The preview map paints
 		// them in road color.
@@ -351,29 +351,29 @@ namespace pg
 		static constexpr int MinimumInteriorSlotBlocks = 8;
 		static constexpr int MaximumInteriorSlotBlocks = 4096;
 
-		int size = 248; // [MinimumPlanSize, MaximumPlanSize] plan cells per side
-		int zoneCount = 8; // [1, min(MaximumZoneCount, size * size)]
+		int size = 248;								  // [MinimumPlanSize, MaximumPlanSize] plan cells per side
+		int zoneCount = 8;							  // [1, min(MaximumZoneCount, size * size)]
 		std::uint64_t masterSeed = randomWorldSeed(); // the complete uint64_t domain is valid
 
 		// Territory / landmass
-		double landThreshold = 0.42; // finite, strictly between 0 and 1
-		double coastNoise = 0.55; // finite [0, 2]
-		double fragmentation = 0.0; // finite [0, 1]
+		double landThreshold = 0.42;   // finite, strictly between 0 and 1
+		double coastNoise = 0.55;	   // finite [0, 2]
+		double fragmentation = 0.0;	   // finite [0, 1]
 		double minZoneFraction = 0.03; // finite (0, 1]
 
 		// Heights (in strata levels)
-		int maxHeightLevel = 6; // [1, MaximumHeightLevel], fits PlanGrid<int8_t>
-		double cellsPerLevel = 10.0; // finite (0, 4096]
-		double coastTrendWeight = 0.5; // finite [0, 1]
-		double undulationLevels = 2.2; // finite [0, MaximumHeightLevel]
+		int maxHeightLevel = 6;			  // [1, MaximumHeightLevel], fits PlanGrid<int8_t>
+		double cellsPerLevel = 10.0;	  // finite (0, 4096]
+		double coastTrendWeight = 0.5;	  // finite [0, 1]
+		double undulationLevels = 2.2;	  // finite [0, MaximumHeightLevel]
 		double heightFeatureCells = 26.0; // finite (0, 4096]
 
 		// Rivers / lakes
 		bool enableRivers = true;
 		double riversPerZone = 0.5; // finite [0, MaximumPerZoneCount]
-		double lakeMinDepth = 0.9; // finite (0, MaximumHeightLevel]
-		int lakeMinSize = 6; // [1, lakeMaxSize]
-		int lakeMaxSize = 40; // [lakeMinSize, size * size]
+		double lakeMinDepth = 0.9;	// finite (0, MaximumHeightLevel]
+		int lakeMinSize = 6;		// [1, lakeMaxSize]
+		int lakeMaxSize = 40;		// [lakeMinSize, size * size]
 
 		// POI quotas (per zone), each in [0, MaximumPerZoneCount]. Settlement
 		// counts are instead derived from each biome's townDensityDistanceCells.
@@ -397,11 +397,11 @@ namespace pg
 
 		// Wild staircases: off-road ramps across strata cliffs, per zone, so the player
 		// can climb levels away from the road network.
-		int wildStairsPerZone = 4; // [0, MaximumPerZoneCount]
+		int wildStairsPerZone = 4;			// [0, MaximumPerZoneCount]
 		double wildStairSpacingCells = 4.0; // finite [0, size]
-		int maxRoadStairLevels = 6; // [1, maxComposedStairLevels], perpendicular fallback cap
-		int maxWildStairLevels = 3; // [1, maxComposedStairLevels]
-		int maxComposedStairLevels = 6; // [1, maxHeightLevel]
+		int maxRoadStairLevels = 6;			// [1, maxComposedStairLevels], perpendicular fallback cap
+		int maxWildStairLevels = 3;			// [1, maxComposedStairLevels]
+		int maxComposedStairLevels = 6;		// [1, maxHeightLevel]
 
 		// Maximum deterministic relocation distance for a town composition site.
 		int townSearchRadiusCells = 18;
@@ -410,15 +410,15 @@ namespace pg
 		int maxTownWorldRetries = 8;
 
 		// Realization (voxel) parameters
-		int blocksPerCell = 8; // [4, MaximumBlocksPerCell]
+		int blocksPerCell = 8;	// [4, MaximumBlocksPerCell]
 		int blocksPerLevel = 3; // [1, min(MaximumBlocksPerLevel, blocksPerCell)]
 		int groundLevelTop = 3; // [-MaximumGroundMagnitude, MaximumGroundMagnitude]
 		// Broad, multi-octave voxel-scale relief. Samples above/below the threshold
 		// move a column by exactly one voxel; half-height slabs form the transition belt.
 		double terrainVariationFeatureBlocks = 64.0; // finite (0, 4096]
-		int terrainVariationOctaves = 3; // [1, 8]
-		double terrainVariationPersistence = 0.40; // finite (0, 1]
-		double terrainVariationThreshold = 0.22; // finite [0, 1]; 1 disables variation
+		int terrainVariationOctaves = 3;			 // [1, 8]
+		double terrainVariationPersistence = 0.40;	 // finite (0, 1]
+		double terrainVariationThreshold = 0.22;	 // finite [0, 1]; 1 disables variation
 		// The lower side of a one-voxel relief edge receives a noise-shaped apron of
 		// half slabs. One block is always enough to traverse it; extra width softens
 		// the visual transition without altering the full-block elevation.
@@ -453,10 +453,10 @@ namespace pg
 		int composedStairPlacements = 0;
 		int rejectedStairways = 0;
 		int sceneryPlacements = 0;
-		int interiorCount = 0;			 // buildings that received a composed interior
-		int interiorRoomPlacements = 0;	 // room prefabs stamped in the interior band
-		int placementConflicts = 0;		 // claimed-zone collisions resolved by nudging or overriding
-		int skippedPoiPlacements = 0;	 // POI prefabs dropped because no clear zone was found
+		int interiorCount = 0;			// buildings that received a composed interior
+		int interiorRoomPlacements = 0; // room prefabs stamped in the interior band
+		int placementConflicts = 0;		// claimed-zone collisions resolved by nudging or overriding
+		int skippedPoiPlacements = 0;	// POI prefabs dropped because no clear zone was found
 		int townLayoutAttempts = 0;
 		int townBuildingCandidates = 0;
 		int townRouteExpansions = 0;
@@ -515,8 +515,8 @@ namespace pg
 			}
 			const std::int64_t shifted = static_cast<std::int64_t>(p_worldCoordinate) - worldOffset();
 			const std::int64_t result = shifted >= 0
-										? shifted / config.blocksPerCell
-										: (shifted - config.blocksPerCell + 1) / config.blocksPerCell;
+											? shifted / config.blocksPerCell
+											: (shifted - config.blocksPerCell + 1) / config.blocksPerCell;
 			if (result < std::numeric_limits<int>::min() || result > std::numeric_limits<int>::max())
 			{
 				throw std::overflow_error("WorldPlan cell index is outside the int coordinate range");
@@ -527,7 +527,7 @@ namespace pg
 		[[nodiscard]] int surfaceY(int p_level) const
 		{
 			const std::int64_t result = static_cast<std::int64_t>(config.groundLevelTop) +
-									static_cast<std::int64_t>(p_level) * config.blocksPerLevel;
+										static_cast<std::int64_t>(p_level) * config.blocksPerLevel;
 			if (result < std::numeric_limits<int>::min() || result > std::numeric_limits<int>::max())
 			{
 				throw std::overflow_error("WorldPlan surface height is outside the int coordinate range");

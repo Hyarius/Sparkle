@@ -1,5 +1,5 @@
-#include "world/generator/world_plan_generator.hpp"
 #include "world/generator/stair_planner.hpp"
+#include "world/generator/world_plan_generator.hpp"
 
 #include "structures/voxel/spk_voxel_orientation.hpp"
 
@@ -213,7 +213,9 @@ namespace pg::worldgen
 			pg::StairRequest{.placements = p_candidate.placements, .record = p_candidate.record},
 			pg::StairPlanningContext{.plan = plan, .prefabs = prefabs});
 		if (!planned.has_value())
+		{
 			return false;
+		}
 		// Straight ramps crossing on the road network must stay on road cells,
 		// composed road climbs may also use clear terrain beside the road, and
 		// wild stairways must not touch roads at all.
@@ -252,7 +254,9 @@ namespace pg::worldgen
 			const bool blocked =
 				std::ranges::any_of(
 					stairFootprints,
-					[&](const StairFootprint &p_placed) { return footprintsOverlap(reserved, p_placed); }) ||
+					[&](const StairFootprint &p_placed) {
+						return footprintsOverlap(reserved, p_placed);
+					}) ||
 				std::ranges::any_of(footprints, [&](const StairFootprint &p_placed) {
 					return footprintsOverlap(reserved, p_placed);
 				});

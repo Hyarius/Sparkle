@@ -15,7 +15,7 @@ namespace pg
 		[[nodiscard]] bool ready(const BattleUnit &p_unit) noexcept
 		{
 			return p_unit.isActiveCombatant() && !p_unit.isStunned() &&
-				p_unit.turnBarFill() >= p_unit.effectiveAttributes().stamina;
+				   p_unit.turnBarFill() >= p_unit.effectiveAttributes().stamina;
 		}
 
 		[[nodiscard]] std::optional<BattleUnitId> selectReady(const BattleContext &p_context)
@@ -107,7 +107,8 @@ namespace pg
 				changed.before = p_before;
 				changed.after = p_after;
 				changed.reason = p_reason;
-				BattleEventOrigin origin; origin.sourceUnit = p_id;
+				BattleEventOrigin origin;
+				origin.sourceUnit = p_id;
 				p_events.push_back({BattleEventCategory::Gameplay, std::move(origin), changed});
 			};
 
@@ -150,7 +151,9 @@ namespace pg
 				if (!p_context.canAllocateTurn() || !p_context.hasOrdinaryCapacity(5, false))
 				{
 					const CommittedBattleBatch aborted = p_context.commitAbortBatch(BattleAbortReason::NumericInvariant, p_context.snapshot());
-					result.stop = SchedulerStop::Aborted; result.committedBatches.push_back(aborted.id); return result;
+					result.stop = SchedulerStop::Aborted;
+					result.committedBatches.push_back(aborted.id);
+					return result;
 				}
 				const BattleSnapshot before = p_context.snapshot();
 				p_context.setPhase(BattlePhase::Activation);
@@ -160,27 +163,34 @@ namespace pg
 				std::vector<StagedEvent> events;
 				appendStart(p_context, *selected, events);
 				const CommittedBattleBatch batch = p_context.commitOrdinaryBatch(BattleBatchKind::Timeline, before, events);
-				result.stop = SchedulerStop::ActivationReady; result.activeUnit = selected; result.committedBatches.push_back(batch.id); return result;
+				result.stop = SchedulerStop::ActivationReady;
+				result.activeUnit = selected;
+				result.committedBatches.push_back(batch.id);
+				return result;
 			}
 
 			std::optional<BattleTime> delta = timeToReady(p_context);
 			if (const std::optional<BattleTime> timeline = p_context.timeUntilNextTimelineBoundary(); timeline.has_value() &&
-				(!delta.has_value() || *timeline < *delta))
+																									  (!delta.has_value() || *timeline < *delta))
 			{
 				delta = timeline;
 			}
 			if (!delta.has_value() || delta->isZero())
 			{
 				const BattleAbortReason reason = delta.has_value()
-					? BattleAbortReason::TimelineBoundaryMadeNoProgress
-					: BattleAbortReason::SchedulerNoFutureProgress;
+													 ? BattleAbortReason::TimelineBoundaryMadeNoProgress
+													 : BattleAbortReason::SchedulerNoFutureProgress;
 				const CommittedBattleBatch aborted = p_context.commitAbortBatch(reason, p_context.snapshot());
-				result.stop = SchedulerStop::Aborted; result.committedBatches.push_back(aborted.id); return result;
+				result.stop = SchedulerStop::Aborted;
+				result.committedBatches.push_back(aborted.id);
+				return result;
 			}
 			if (!p_context.hasOrdinaryCapacity(1, false))
 			{
 				const CommittedBattleBatch aborted = p_context.commitAbortBatch(BattleAbortReason::InternalInvariantViolation, p_context.snapshot());
-				result.stop = SchedulerStop::Aborted; result.committedBatches.push_back(aborted.id); return result;
+				result.stop = SchedulerStop::Aborted;
+				result.committedBatches.push_back(aborted.id);
+				return result;
 			}
 			const BattleSnapshot before = p_context.snapshot();
 			const BattleTime previous = p_context.elapsed();

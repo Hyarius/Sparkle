@@ -60,62 +60,127 @@ namespace pg
 		for (const PlanTownRecord &town : p_plan.towns)
 		{
 			if (town.macroEntityIndex >= p_plan.entities.size() || !owners.insert(town.macroEntityIndex).second)
+			{
 				throw std::logic_error("WorldPlan town has an invalid or duplicate macro owner");
+			}
 			const PlanEntity &entity = p_plan.entities[town.macroEntityIndex];
-			if (entity.kind != town.kind || town.compositionId.empty()) throw std::logic_error("WorldPlan town kind or composition differs from its macro owner");
+			if (entity.kind != town.kind || town.compositionId.empty())
+			{
+				throw std::logic_error("WorldPlan town kind or composition differs from its macro owner");
+			}
 			std::map<TownBuildingRole, int> roles;
 			for (std::size_t index : town.buildingPlacementIndices)
 			{
-				if (index >= p_plan.placements.size()) throw std::logic_error("WorldPlan town building index is invalid");
+				if (index >= p_plan.placements.size())
+				{
+					throw std::logic_error("WorldPlan town building index is invalid");
+				}
 				++roles[p_plan.placements[index].townRole];
 			}
 			if (roles[TownBuildingRole::CreatureCenter] != 1 || roles[TownBuildingRole::Shop] != 1 ||
 				roles[TownBuildingRole::Home] < (town.kind == PlanEntityKind::City ? 3 : 2) ||
 				(town.kind == PlanEntityKind::Gym && roles[TownBuildingRole::Gym] != 1) ||
 				(town.kind == PlanEntityKind::PortCity && roles[TownBuildingRole::Port] != 1))
+			{
 				throw std::logic_error("WorldPlan town is missing a required building role");
-			if (town.mainRoadSurface.empty()) throw std::logic_error("WorldPlan town has no projected main-road spine");
+			}
+			if (town.mainRoadSurface.empty())
+			{
+				throw std::logic_error("WorldPlan town has no projected main-road spine");
+			}
 			const bool mainTouchesCenter = std::ranges::any_of(town.mainRoadSurface, [&](const PlanPavedColumn &column) {
 				return p_plan.cellIndexFromWorld(column.worldZ) == town.centerRow && p_plan.cellIndexFromWorld(column.worldX) == town.centerCol;
 			});
-			if (!mainTouchesCenter) throw std::logic_error("WorldPlan main-road spine does not reach the settlement center");
+			if (!mainTouchesCenter)
+			{
+				throw std::logic_error("WorldPlan main-road spine does not reach the settlement center");
+			}
 
 			std::set<std::pair<int, int>> main;
 			std::set<std::pair<int, int>> network;
-			for (const PlanPavedColumn &column : town.mainRoadSurface) { main.emplace(column.worldX, column.worldZ); network.emplace(column.worldX, column.worldZ); }
+			for (const PlanPavedColumn &column : town.mainRoadSurface)
+			{
+				main.emplace(column.worldX, column.worldZ);
+				network.emplace(column.worldX, column.worldZ);
+			}
 			for (const PlanPavedColumn &column : town.urbanRoadSurface)
 			{
-				if (!network.insert({column.worldX, column.worldZ}).second) continue;
+				if (!network.insert({column.worldX, column.worldZ}).second)
+				{
+					continue;
+				}
 				for (const PlanClaim &claim : p_plan.townClaims)
+				{
 					if (column.worldX >= claim.min.x && column.worldX <= claim.max.x && column.worldZ >= claim.min.z && column.worldZ <= claim.max.z && column.surfaceY >= claim.min.y && column.surfaceY <= claim.max.y)
-						throw std::logic_error("WorldPlan urban road intersects a town claim at " + std::to_string(column.worldX) + "," + std::to_string(column.worldZ) + " y=" + std::to_string(column.surfaceY) +
-							" claim=" + std::to_string(claim.min.x) + "," + std::to_string(claim.min.y) + "," + std::to_string(claim.min.z) + ".." + std::to_string(claim.max.x) + "," + std::to_string(claim.max.y) + "," + std::to_string(claim.max.z));
+					{
+						throw std::logic_error("WorldPlan urban road intersects a town claim at " + std::to_string(column.worldX) + "," + std::to_string(column.worldZ) + " y=" + std::to_string(column.surfaceY) + " claim=" + std::to_string(claim.min.x) + "," + std::to_string(claim.min.y) + "," + std::to_string(claim.min.z) + ".." + std::to_string(claim.max.x) + "," + std::to_string(claim.max.y) + "," + std::to_string(claim.max.z));
+					}
+				}
 			}
 			for (const ResolvedTownEntranceRecord &entrance : town.entrances)
 			{
-				if (network.contains({entrance.threshold.x, entrance.threshold.z})) throw std::logic_error("WorldPlan paved a building-owned door threshold");
-				for (const auto &approach : entrance.approachColumns) if (network.contains(approach)) throw std::logic_error("WorldPlan paved a door approach");
-				if (!network.contains(entrance.connectionPoint)) throw std::logic_error("WorldPlan entrance connection point is not in the road network");
+				if (network.contains({entrance.threshold.x, entrance.threshold.z}))
+				{
+					throw std::logic_error("WorldPlan paved a building-owned door threshold");
+				}
+				for (const auto &approach : entrance.approachColumns)
+				{
+					if (network.contains(approach))
+					{
+						throw std::logic_error("WorldPlan paved a door approach");
+					}
+				}
+				if (!network.contains(entrance.connectionPoint))
+				{
+					throw std::logic_error("WorldPlan entrance connection point is not in the road network");
+				}
 				std::set<std::pair<int, int>> seen{entrance.connectionPoint};
 				std::vector<std::pair<int, int>> open{entrance.connectionPoint};
 				for (std::size_t cursor = 0; cursor < open.size(); ++cursor)
 				{
 					const auto [x, z] = open[cursor];
 					for (const auto [dx, dz] : std::array{std::pair{0, -1}, std::pair{1, 0}, std::pair{0, 1}, std::pair{-1, 0}})
-						if (const std::pair<int, int> next{x + dx, z + dz}; network.contains(next) && seen.insert(next).second) open.push_back(next);
+					{
+						if (const std::pair<int, int> next{x + dx, z + dz}; network.contains(next) && seen.insert(next).second)
+						{
+							open.push_back(next);
+						}
+					}
 				}
-				if (!std::ranges::any_of(seen, [&](const auto &column) { return main.contains(column); })) throw std::logic_error("WorldPlan entrance cannot reach the global main road");
+				if (!std::ranges::any_of(seen, [&](const auto &column) {
+						return main.contains(column);
+					}))
+				{
+					throw std::logic_error("WorldPlan entrance cannot reach the global main road");
+				}
 			}
-			if (town.kind == PlanEntityKind::PortCity && (!town.boardingEndpoint || town.dockCells.empty())) throw std::logic_error("WorldPlan port town has no dock or boarding endpoint");
+			if (town.kind == PlanEntityKind::PortCity && (!town.boardingEndpoint || town.dockCells.empty()))
+			{
+				throw std::logic_error("WorldPlan port town has no dock or boarding endpoint");
+			}
 			if (town.boardingEndpoint)
 			{
 				const int row = p_plan.cellIndexFromWorld(town.boardingEndpoint->z), col = p_plan.cellIndexFromWorld(town.boardingEndpoint->x);
-				if (!p_plan.land.contains(row, col) || (p_plan.land.at(row, col) != 0 && p_plan.water.at(row, col) == 0) || !std::ranges::contains(town.dockCells, std::pair{row, col})) throw std::logic_error("WorldPlan boarding endpoint is not on the water end of its dock");
+				if (!p_plan.land.contains(row, col) || (p_plan.land.at(row, col) != 0 && p_plan.water.at(row, col) == 0) || !std::ranges::contains(town.dockCells, std::pair{row, col}))
+				{
+					throw std::logic_error("WorldPlan boarding endpoint is not on the water end of its dock");
+				}
 			}
-			for (std::size_t link : town.boatLinkIndices) if (link >= p_plan.boatLinks.size()) throw std::logic_error("WorldPlan port town has an invalid boat link");
+			for (std::size_t link : town.boatLinkIndices)
+			{
+				if (link >= p_plan.boatLinks.size())
+				{
+					throw std::logic_error("WorldPlan port town has an invalid boat link");
+				}
+			}
 		}
-		const std::size_t settlements=static_cast<std::size_t>(std::ranges::count_if(p_plan.entities,[](const PlanEntity &entity){return entity.kind==PlanEntityKind::City||entity.kind==PlanEntityKind::Gym||entity.kind==PlanEntityKind::PortCity;}));
-		if(owners.size()!=settlements) throw std::logic_error("WorldPlan does not contain exactly one town per settlement");
+		const std::size_t settlements = static_cast<std::size_t>(std::ranges::count_if(p_plan.entities, [](const PlanEntity &entity) {
+			return entity.kind == PlanEntityKind::City || entity.kind == PlanEntityKind::Gym || entity.kind == PlanEntityKind::PortCity;
+		}));
+		if (owners.size() != settlements)
+		{
+			throw std::logic_error("WorldPlan does not contain exactly one town per settlement");
+		}
 	}
 
 	void validateWorldGenConfig(const WorldGenConfig &p_config)
@@ -199,10 +264,8 @@ namespace pg
 				"must be between 0 and MaximumPerZoneCount");
 		}
 
-		require(p_config.townSearchRadiusCells >= 0 && p_config.townSearchRadiusCells <= Config::MaximumPlanSize,
-			"townSearchRadiusCells", "must be between 0 and MaximumPlanSize");
-		require(p_config.maxTownWorldRetries >= 0 && p_config.maxTownWorldRetries <= 64,
-			"maxTownWorldRetries", "must be between 0 and 64");
+		require(p_config.townSearchRadiusCells >= 0 && p_config.townSearchRadiusCells <= Config::MaximumPlanSize, "townSearchRadiusCells", "must be between 0 and MaximumPlanSize");
+		require(p_config.maxTownWorldRetries >= 0 && p_config.maxTownWorldRetries <= 64, "maxTownWorldRetries", "must be between 0 and 64");
 
 		const std::array radii = {
 			std::pair{"blockGym", p_config.blockGym},
@@ -297,7 +360,7 @@ namespace pg
 			"size/blocksPerCell",
 			"produce a world extent outside the int coordinate range");
 		const std::int64_t maximumSurface = static_cast<std::int64_t>(p_config.groundLevelTop) +
-			static_cast<std::int64_t>(p_config.maxHeightLevel) * p_config.blocksPerLevel;
+											static_cast<std::int64_t>(p_config.maxHeightLevel) * p_config.blocksPerLevel;
 		require(
 			maximumSurface >= std::numeric_limits<int>::min() &&
 				maximumSurface <= std::numeric_limits<int>::max(),
@@ -310,7 +373,7 @@ namespace pg
 			"places the interior region outside the int coordinate range");
 
 		const std::int64_t maximumEntitiesPerZone = static_cast<std::int64_t>(Config::MaximumPerZoneCount) +
-			p_config.normalPoiPerZone + p_config.uncommonPoiPerZone + p_config.rarePoiPerZone;
+													p_config.normalPoiPerZone + p_config.uncommonPoiPerZone + p_config.rarePoiPerZone;
 		const std::int64_t maximumInteriorSpan =
 			static_cast<std::int64_t>(p_config.zoneCount) * maximumEntitiesPerZone *
 			p_config.interiorSlotBlocks;

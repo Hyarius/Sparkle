@@ -25,9 +25,9 @@ namespace pg
 	struct WorldBoardRequest
 	{
 		spk::Vector3Int encounterSupportCell{};
-		spk::Vector2Int size{};             // x, z extents (Vector2Int::y is the Z extent)
-		int minimumWorldY = 0;              // inclusive support-cell scan bound
-		int maximumWorldY = 0;              // exclusive
+		spk::Vector2Int size{};											  // x, z extents (Vector2Int::y is the Z extent)
+		int minimumWorldY = 0;											  // inclusive support-cell scan bound
+		int maximumWorldY = 0;											  // exclusive
 		VoxelOrientation approachDirection = VoxelOrientation::PositiveZ; // horizontal only
 		int deploymentDepth = 0;
 		std::size_t playerSeatCount = 0;

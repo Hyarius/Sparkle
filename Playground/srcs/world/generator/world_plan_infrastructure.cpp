@@ -1,15 +1,15 @@
-#include "world/generator/world_plan_generator.hpp"
 #include "world/generator/town_commit.hpp"
 #include "world/generator/town_planner.hpp"
+#include "world/generator/world_plan_generator.hpp"
 
 #include <algorithm>
 #include <array>
 #include <cmath>
 #include <limits>
 #include <map>
-#include <set>
 #include <optional>
 #include <queue>
+#include <set>
 #include <tuple>
 #include <utility>
 #include <vector>
@@ -75,7 +75,10 @@ namespace pg::worldgen
 		// spacing radius across a biome border.
 		std::vector<const PlanZone *> zoneOrder;
 		zoneOrder.reserve(plan.zones.size());
-		for (const PlanZone &zone : plan.zones) zoneOrder.push_back(&zone);
+		for (const PlanZone &zone : plan.zones)
+		{
+			zoneOrder.push_back(&zone);
+		}
 		std::stable_sort(zoneOrder.begin(), zoneOrder.end(), [&](const PlanZone *p_first, const PlanZone *p_second) {
 			return plan.biomes[p_first->biomeIndex].requiresPort && !plan.biomes[p_second->biomeIndex].requiresPort;
 		});
@@ -114,7 +117,7 @@ namespace pg::worldgen
 			const int townTarget = std::max(requiredTowns, static_cast<int>(derivedTownCount));
 			const auto isSettlement = [](PlanEntityKind p_kind) {
 				return p_kind == PlanEntityKind::Gym || p_kind == PlanEntityKind::City ||
-					p_kind == PlanEntityKind::PortCity;
+					   p_kind == PlanEntityKind::PortCity;
 			};
 			const auto settlementDistanceFor = [&](int p_zone) {
 				return plan.biomes[plan.zones[p_zone].biomeIndex].minimumTownDistanceCells;
@@ -168,8 +171,14 @@ namespace pg::worldgen
 					for (const Cell &candidate : order)
 					{
 						const double dCoast = distOcean.at(candidate.row, candidate.col);
-						if (p_rule == CoastRule::Coastal && dCoast > cfg.coastDistCells) continue;
-						if (!placementOk(candidate.row, candidate.col, p_kind, p_block, p_enforceTownDistance)) continue;
+						if (p_rule == CoastRule::Coastal && dCoast > cfg.coastDistCells)
+						{
+							continue;
+						}
+						if (!placementOk(candidate.row, candidate.col, p_kind, p_block, p_enforceTownDistance))
+						{
+							continue;
+						}
 						if (!isSettlement(p_kind))
 						{
 							selected = candidate;
@@ -182,7 +191,10 @@ namespace pg::worldgen
 							bestNearestSettlement = nearest;
 						}
 					}
-					if (!selected) break;
+					if (!selected)
+					{
+						break;
+					}
 					plan.entities.push_back({.kind = p_kind, .row = selected->row, .col = selected->col, .zone = zone.id, .continent = zoneContinent.contains(zone.id) ? zoneContinent[zone.id] : 1});
 					++got;
 				}
@@ -198,8 +210,14 @@ namespace pg::worldgen
 					" requires a port but has no coastal settlement site");
 			}
 			int gyms = sample(PlanEntityKind::Gym, 1, cfg.blockGym, CoastRule::Any);
-			if (gyms == 0) gyms = sample(PlanEntityKind::Gym, 1, 0.0, CoastRule::Any, false);
-			if (gyms != 1) throw std::logic_error("a placeable biome zone could not reserve its mandatory gym");
+			if (gyms == 0)
+			{
+				gyms = sample(PlanEntityKind::Gym, 1, 0.0, CoastRule::Any, false);
+			}
+			if (gyms != 1)
+			{
+				throw std::logic_error("a placeable biome zone could not reserve its mandatory gym");
+			}
 
 			const int requestedCities = townTarget - requiredTowns;
 			const int cities = sample(PlanEntityKind::City, requestedCities, cfg.blockCity, CoastRule::Any);
@@ -222,20 +240,31 @@ namespace pg::worldgen
 		{
 			PlanEntity &entity = plan.entities[index];
 			if (entity.kind != PlanEntityKind::City && entity.kind != PlanEntityKind::Gym && entity.kind != PlanEntityKind::PortCity)
+			{
 				continue;
-			const TownCompositionKind wanted = entity.kind == PlanEntityKind::Gym ? TownCompositionKind::Gym : entity.kind == PlanEntityKind::PortCity ? TownCompositionKind::Port : TownCompositionKind::City;
+			}
+			const TownCompositionKind wanted = entity.kind == PlanEntityKind::Gym ? TownCompositionKind::Gym : entity.kind == PlanEntityKind::PortCity ? TownCompositionKind::Port
+																																					   : TownCompositionKind::City;
 			const std::vector<std::string> ids = townCompositions.ids();
-			const auto compatible = std::find_if(ids.begin(), ids.end(), [&](const std::string &id) { return townCompositions.get(id).kind == wanted; });
+			const auto compatible = std::find_if(ids.begin(), ids.end(), [&](const std::string &id) {
+				return townCompositions.get(id).kind == wanted;
+			});
 			if (compatible == ids.end())
+			{
 				throw std::runtime_error("town site reservation failed: no compatible composition for settlement kind");
+			}
 			const TownComposition &composition = townCompositions.get(*compatible);
 			const PlanTown *biomeTown = townFor(entity.zone);
 			if (biomeTown == nullptr)
+			{
 				throw TownPlanningError(index, *compatible, {.category = TownRejectCategory::MissingContent, .componentId = *compatible, .message = "settlement biome has no town content"}, {}, "town site reservation cannot resolve biome town content");
+			}
 			TownRejection sizingFailure;
 			const std::optional<int> resolvedRadius = deriveTownRadius(composition, prefabs, *biomeTown, cfg.masterSeed, index, sizingFailure);
 			if (!resolvedRadius)
+			{
 				throw TownPlanningError(index, *compatible, sizingFailure, {{sizingFailure.componentId, 1}}, "town site reservation cannot derive a composition envelope: " + sizingFailure.message);
+			}
 			const int townRadius = *resolvedRadius;
 			const auto hasDryFootprint = [&](int p_row, int p_col, int p_radiusColumns) {
 				const int centerX = plan.worldOffset() + p_col * cfg.blocksPerCell + cfg.blocksPerCell / 2;
@@ -245,8 +274,15 @@ namespace pg::worldgen
 				const int firstCol = plan.cellIndexFromWorld(centerX - p_radiusColumns);
 				const int lastCol = plan.cellIndexFromWorld(centerX + p_radiusColumns);
 				for (int row = firstRow; row <= lastRow; ++row)
+				{
 					for (int col = firstCol; col <= lastCol; ++col)
-						if (!isLand(row, col) || plan.water.at(row, col) != 0 || plan.zone.at(row, col) != entity.zone) return false;
+					{
+						if (!isLand(row, col) || plan.water.at(row, col) != 0 || plan.zone.at(row, col) != entity.zone)
+						{
+							return false;
+						}
+					}
+				}
 				return true;
 			};
 			const auto hasWaterfront = [&](int p_row, int p_col) {
@@ -257,8 +293,15 @@ namespace pg::worldgen
 				const int firstCol = plan.cellIndexFromWorld(centerX - townRadius);
 				const int lastCol = plan.cellIndexFromWorld(centerX + townRadius);
 				for (int row = firstRow; row <= lastRow; ++row)
+				{
 					for (int col = firstCol; col <= lastCol; ++col)
-						if (!isLand(row, col) || plan.water.at(row, col) != 0) return true;
+					{
+						if (!isLand(row, col) || plan.water.at(row, col) != 0)
+						{
+							return true;
+						}
+					}
+				}
 				return false;
 			};
 			// The entity becomes stable at reservation time, before roads are built.
@@ -277,36 +320,63 @@ namespace pg::worldgen
 					{
 						for (int dc = -radius; dc <= radius; ++dc)
 						{
-							if (std::max(std::abs(dr), std::abs(dc)) != radius) continue;
+							if (std::max(std::abs(dr), std::abs(dc)) != radius)
+							{
+								continue;
+							}
 							const int row = entity.row + dr, col = entity.col + dc;
-							if (row < 0 || col < 0 || row >= size || col >= size || row - envelope < 0 || col - envelope < 0 || row + envelope >= size || col + envelope >= size || plan.zone.at(row, col) != entity.zone) continue;
+							if (row < 0 || col < 0 || row >= size || col >= size || row - envelope < 0 || col - envelope < 0 || row + envelope >= size || col + envelope >= size || plan.zone.at(row, col) != entity.zone)
+							{
+								continue;
+							}
 							// Building foundations can safely terrace height changes at voxel scale,
 							// but no local layout can make a required building dry if its reservation
 							// already spans water. Normal towns therefore require a dry full envelope.
 							// Ports retain one outer macro-cell ring for their dock while preserving a
 							// dry central construction core.
-							if (!isLand(row, col) || plan.water.at(row, col) != 0) continue;
+							if (!isLand(row, col) || plan.water.at(row, col) != 0)
+							{
+								continue;
+							}
 							const int dryRadius = entity.kind == PlanEntityKind::PortCity ? std::max(0, townRadius - cfg.blocksPerCell) : townRadius;
-							if (!hasDryFootprint(row, col, dryRadius)) continue;
-							if (entity.kind == PlanEntityKind::PortCity && !hasWaterfront(row, col)) continue;
+							if (!hasDryFootprint(row, col, dryRadius))
+							{
+								continue;
+							}
+							if (entity.kind == PlanEntityKind::PortCity && !hasWaterfront(row, col))
+							{
+								continue;
+							}
 							bool separated = true;
 							for (std::size_t otherIndex = 0; otherIndex < plan.entities.size(); ++otherIndex)
 							{
-								if (otherIndex == index) continue;
+								if (otherIndex == index)
+								{
+									continue;
+								}
 								const PlanEntity &other = plan.entities[otherIndex];
 								const bool otherSettlement = other.kind == PlanEntityKind::City || other.kind == PlanEntityKind::Gym || other.kind == PlanEntityKind::PortCity;
 								// Town workspaces are inclusive squares.  Manhattan distance permits
 								// diagonal overlap and a one-column seam at exactly two radii, so
 								// reserve a strictly disjoint Chebyshev envelope instead.
-								if (otherSettlement && std::max(std::abs(other.row - row), std::abs(other.col - col)) <= envelope * 2) { separated = false; break; }
+								if (otherSettlement && std::max(std::abs(other.row - row), std::abs(other.col - col)) <= envelope * 2)
+								{
+									separated = false;
+									break;
+								}
 							}
-							if (separated) reservedCenter = Cell{row, col};
+							if (separated)
+							{
+								reservedCenter = Cell{row, col};
+							}
 						}
 					}
 				}
 			}
 			if (!reservedCenter)
+			{
 				throw TownPlanningError(index, *compatible, {.category = TownRejectCategory::SiteTerrain, .componentId = *compatible, .message = entity.kind == PlanEntityKind::PortCity ? "no dry waterfront reservation envelope in the affiliated biome" : "no dry affiliated-biome reservation envelope"}, {}, "town site reservation cannot find an affiliated-biome foundation envelope");
+			}
 			entity.row = reservedCenter->row;
 			entity.col = reservedCenter->col;
 			const int centerX = plan.worldOffset() + entity.col * cfg.blocksPerCell + cfg.blocksPerCell / 2;
@@ -683,9 +753,15 @@ namespace pg::worldgen
 			{
 				const int row = site.centerRow + direction.row;
 				const int col = site.centerCol + direction.col;
-				if (plan.road.contains(row, col) && plan.road.at(row, col) != 0) arrivals.push_back(direction);
+				if (plan.road.contains(row, col) && plan.road.at(row, col) != 0)
+				{
+					arrivals.push_back(direction);
+				}
 			}
-			if (arrivals.empty()) arrivals.push_back({-1, 0});
+			if (arrivals.empty())
+			{
+				arrivals.push_back({-1, 0});
+			}
 			for (const Cell arrival : arrivals)
 			{
 				const Cell direction{-arrival.row, -arrival.col};
@@ -694,12 +770,17 @@ namespace pg::worldgen
 					const int row = site.centerRow + direction.row * step;
 					const int col = site.centerCol + direction.col * step;
 					if (!plan.road.contains(row, col) || !isLand(row, col) || plan.water.at(row, col) != 0 ||
-						(plan.road.at(row, col) == 0 && wouldFormRoadSquare(row, col))) break;
+						(plan.road.at(row, col) == 0 && wouldFormRoadSquare(row, col)))
+					{
+						break;
+					}
 					plan.road.at(row, col) = 1;
 				}
 			}
 			if (plan.road.at(site.centerRow, site.centerCol) != 0 || !wouldFormRoadSquare(site.centerRow, site.centerCol))
+			{
 				plan.road.at(site.centerRow, site.centerCol) = 1;
+			}
 		}
 		// Town spines are added after the primary road pass, so run the same
 		// square cleanup once more before the voxel-scale town planner projects it.
@@ -887,11 +968,20 @@ namespace pg::worldgen
 		const std::vector<PlanTownSite> sites = plan.townSites;
 		for (const PlanTownSite &site : sites)
 		{
-			if (site.macroEntityIndex >= plan.entities.size()) throw std::logic_error("town site has an invalid settlement owner");
-			if (site.compositionId.empty()) throw std::logic_error("town site has no selected composition id");
+			if (site.macroEntityIndex >= plan.entities.size())
+			{
+				throw std::logic_error("town site has an invalid settlement owner");
+			}
+			if (site.compositionId.empty())
+			{
+				throw std::logic_error("town site has no selected composition id");
+			}
 			const PlanEntity &entity = plan.entities[site.macroEntityIndex];
 			const PlanTown *town = townFor(entity.zone);
-			if (town == nullptr) throw std::runtime_error("town planning failed: settlement biome has no town content");
+			if (town == nullptr)
+			{
+				throw std::runtime_error("town planning failed: settlement biome has no town content");
+			}
 			const TownComposition &composition = townCompositions.get(site.compositionId);
 			TownPlanResult attempt = planTown(plan, site, composition, prefabs, *town, cfg.masterSeed);
 			plan.stats.townLayoutAttempts += attempt.layoutAttempts;
@@ -907,14 +997,28 @@ namespace pg::worldgen
 			{
 				for (std::size_t link = 0; link < plan.boatLinks.size(); ++link)
 				{
-					const auto matches = [&](const PlanEntity &other) { return other.kind == entity.kind && other.row == entity.row && other.col == entity.col; };
-					if (matches(plan.boatLinks[link].first) || matches(plan.boatLinks[link].second)) candidate.boatLinkIndices.push_back(link);
+					const auto matches = [&](const PlanEntity &other) {
+						return other.kind == entity.kind && other.row == entity.row && other.col == entity.col;
+					};
+					if (matches(plan.boatLinks[link].first) || matches(plan.boatLinks[link].second))
+					{
+						candidate.boatLinkIndices.push_back(link);
+					}
 				}
 			}
 			commitTownCandidate(plan, candidate);
-			for (const PlanClaim &claim : candidate.buildingClaims) hardClaims.push_back({claim.min, claim.max});
-			for (const PlanClaim &claim : candidate.dockClaims) hardClaims.push_back({claim.min, claim.max});
-			for (const PlanClaim &claim : candidate.sceneryClaims) hardClaims.push_back({claim.min, claim.max});
+			for (const PlanClaim &claim : candidate.buildingClaims)
+			{
+				hardClaims.push_back({claim.min, claim.max});
+			}
+			for (const PlanClaim &claim : candidate.dockClaims)
+			{
+				hardClaims.push_back({claim.min, claim.max});
+			}
+			for (const PlanClaim &claim : candidate.sceneryClaims)
+			{
+				hardClaims.push_back({claim.min, claim.max});
+			}
 			// The exact town contents above are individual claims, but the whole town
 			// rectangle is reserved from later world dressing. Without this umbrella
 			// claim, an exterior tree or POI can fit in an intentionally open street.
@@ -922,7 +1026,10 @@ namespace pg::worldgen
 			hardClaims.push_back(
 				{{bounds.minX, std::numeric_limits<int>::lowest(), bounds.minZ},
 				 {bounds.maxX, std::numeric_limits<int>::max(), bounds.maxZ}});
-			for (std::size_t placement : plan.towns.back().buildingPlacementIndices) composeInterior(plan.placements[placement]);
+			for (std::size_t placement : plan.towns.back().buildingPlacementIndices)
+			{
+				composeInterior(plan.placements[placement]);
+			}
 		}
 	}
 
@@ -930,9 +1037,9 @@ namespace pg::worldgen
 	{
 		const int blocks = cfg.blocksPerCell;
 		const int offset = plan.worldOffset();
-		for (std::size_t entityIndex=0; entityIndex<plan.entities.size(); ++entityIndex)
+		for (std::size_t entityIndex = 0; entityIndex < plan.entities.size(); ++entityIndex)
 		{
-			const PlanEntity &entity=plan.entities[entityIndex];
+			const PlanEntity &entity = plan.entities[entityIndex];
 			if (entity.kind == PlanEntityKind::Gym || entity.kind == PlanEntityKind::City ||
 				entity.kind == PlanEntityKind::PortCity)
 			{

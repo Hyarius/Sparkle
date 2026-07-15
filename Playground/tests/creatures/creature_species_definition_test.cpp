@@ -48,7 +48,8 @@ namespace
 			"featBoard": "training-board",
 			"defaultForm": ")" +
 			   std::string(p_defaultForm) + R"(",
-			)" + std::string(p_forms) + std::string(p_extra) + "}";
+			)" +
+			   std::string(p_forms) + std::string(p_extra) + "}";
 	}
 
 	[[nodiscard]] pg::CreatureSpeciesDefinition parse(const std::string &p_document)
@@ -104,26 +105,32 @@ TEST(CreatureSpeciesDefinitionTest, EnforcesEveryAttributeBoundary)
 	// Health, AP and MP are positive: a creature at zero of any of them could never take a turn.
 	EXPECT_THROW(auto value = parse(with(R"("attributes": {"maxHealth": 0, "strength": 6, "magicPower": 3,
 		"armor": 2, "resistance": 2, "maxActionPoints": 6, "maxMovementPoints": 4,
-		"staminaSeconds": 4.0, "range": 0})")), pg::JsonError);
+		"staminaSeconds": 4.0, "range": 0})")),
+				 pg::JsonError);
 	EXPECT_THROW(auto value = parse(with(R"("attributes": {"maxHealth": 24, "strength": 6, "magicPower": 3,
 		"armor": 2, "resistance": 2, "maxActionPoints": 0, "maxMovementPoints": 4,
-		"staminaSeconds": 4.0, "range": 0})")), pg::JsonError);
+		"staminaSeconds": 4.0, "range": 0})")),
+				 pg::JsonError);
 	EXPECT_THROW(auto value = parse(with(R"("attributes": {"maxHealth": 24, "strength": 6, "magicPower": 3,
 		"armor": 2, "resistance": 2, "maxActionPoints": 6, "maxMovementPoints": 0,
-		"staminaSeconds": 4.0, "range": 0})")), pg::JsonError);
+		"staminaSeconds": 4.0, "range": 0})")),
+				 pg::JsonError);
 
 	// The rest are non-negative, and all of them are capped.
 	EXPECT_THROW(auto value = parse(with(R"("attributes": {"maxHealth": 24, "strength": -1, "magicPower": 3,
 		"armor": 2, "resistance": 2, "maxActionPoints": 6, "maxMovementPoints": 4,
-		"staminaSeconds": 4.0, "range": 0})")), pg::JsonError);
+		"staminaSeconds": 4.0, "range": 0})")),
+				 pg::JsonError);
 	EXPECT_THROW(auto value = parse(with(R"("attributes": {"maxHealth": 1000001, "strength": 6, "magicPower": 3,
 		"armor": 2, "resistance": 2, "maxActionPoints": 6, "maxMovementPoints": 4,
-		"staminaSeconds": 4.0, "range": 0})")), pg::JsonError);
+		"staminaSeconds": 4.0, "range": 0})")),
+				 pg::JsonError);
 
 	// A missing attribute is not defaulted into existence.
 	EXPECT_THROW(auto value = parse(with(R"("attributes": {"maxHealth": 24, "strength": 6, "magicPower": 3,
 		"armor": 2, "resistance": 2, "maxActionPoints": 6, "maxMovementPoints": 4,
-		"staminaSeconds": 4.0})")), pg::JsonError);
+		"staminaSeconds": 4.0})")),
+				 pg::JsonError);
 }
 
 TEST(CreatureSpeciesDefinitionTest, ParsesStaminaExactlyAndRefusesToBeFasterThanTheRules)

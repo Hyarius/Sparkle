@@ -7,7 +7,7 @@
 #include "battle/battle_time.hpp"
 #include "battle/battle_types.hpp"
 #include "battle/battle_unit.hpp" // RemovalReason
-#include "board/board_cell.hpp"   // BoardCell, BoardSourceDescriptor
+#include "board/board_cell.hpp"	  // BoardCell, BoardSourceDescriptor
 
 #include <optional>
 #include <string>
@@ -404,7 +404,7 @@ namespace pg
 
 	struct StatusRemoved
 	{
-		std::optional<BattleUnitId> source;         // immediate cleanser / removing-effect
+		std::optional<BattleUnitId> source;			 // immediate cleanser / removing-effect
 		std::optional<BattleUnitId> originalApplier; // separate field, may differ from source
 		BattleUnitId target;
 		std::string statusId;

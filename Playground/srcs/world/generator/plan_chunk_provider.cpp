@@ -111,7 +111,7 @@ namespace pg
 				const int col = _plan.cellIndexFromWorld(p_worldX);
 				if (!_plan.land.contains(row, col) || _plan.land.at(row, col) == 0 ||
 					_plan.water.at(row, col) != 0 || _plan.lake.at(row, col) != 0)
-			{
+				{
 					return;
 				}
 				const auto [found, inserted] = _townGroundTop.emplace(std::pair{p_worldX, p_worldZ}, p_surfaceY);
@@ -305,8 +305,8 @@ namespace pg
 		const int localZ = p_worldZ - (_plan.worldOffset() + row * cfg.blocksPerCell);
 		const auto sharesHeightPlate = [&](int p_row, int p_col) {
 			return _plan.land.contains(p_row, p_col) && _plan.land.at(p_row, p_col) != 0 &&
-				_plan.height.at(p_row, p_col) == level && _plan.water.at(p_row, p_col) == 0 &&
-				_plan.lake.at(p_row, p_col) == 0;
+				   _plan.height.at(p_row, p_col) == level && _plan.water.at(p_row, p_col) == 0 &&
+				   _plan.lake.at(p_row, p_col) == 0;
 		};
 		if ((localX <= 1 && !sharesHeightPlate(row, col - 1)) ||
 			(localX >= cfg.blocksPerCell - 2 && !sharesHeightPlate(row, col + 1)) ||
@@ -511,8 +511,8 @@ namespace pg
 					cfg.terrainVariationPersistence);
 				const double normalized = std::clamp((noise + 1.0) * 0.5, 0.0, 1.0);
 				return 1 + std::min(
-					cfg.terrainVariationTransitionBlocks - 1,
-					static_cast<int>(normalized * static_cast<double>(cfg.terrainVariationTransitionBlocks)));
+							   cfg.terrainVariationTransitionBlocks - 1,
+							   static_cast<int>(normalized * static_cast<double>(cfg.terrainVariationTransitionBlocks)));
 			};
 			bool insideHigherApron = false;
 			for (const auto &[dx, dz] : {std::pair{1, 0}, {-1, 0}, {0, 1}, {0, -1}})

@@ -208,7 +208,7 @@ namespace pg::worldgen
 			}
 			const auto replacement = std::find_if(plan.zones.begin(), plan.zones.end(), [&](const PlanZone &candidate) {
 				return coastalZone[static_cast<std::size_t>(candidate.id)] &&
-					!plan.biomes[candidate.biomeIndex].requiresPort;
+					   !plan.biomes[candidate.biomeIndex].requiresPort;
 			});
 			if (replacement == plan.zones.end())
 			{

@@ -10,8 +10,21 @@ namespace pg
 {
 	// Structural roles are deliberately independent of prefab ids.  Biomes bind a
 	// role to their own art while a composition describes only the settlement shape.
-	enum class TownBuildingRole { None, CreatureCenter, Shop, Gym, Port, Home };
-	enum class TownCompositionKind { City, Gym, Port };
+	enum class TownBuildingRole
+	{
+		None,
+		CreatureCenter,
+		Shop,
+		Gym,
+		Port,
+		Home
+	};
+	enum class TownCompositionKind
+	{
+		City,
+		Gym,
+		Port
+	};
 
 	struct CountRange
 	{

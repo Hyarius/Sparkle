@@ -274,11 +274,7 @@ TEST(EncounterDefinitionTest, ValidatesEveryPlacementAlternativeAgainstTheEffect
 
 	// By line: the row offset lives inside the enemy zone, and the rows it can still reach have to
 	// hold the largest team.
-	EXPECT_NO_THROW(auto value = parse(encounter(
-		"wild",
-		"true",
-		"true",
-		liveWorld(R"({"type": "byLine", "rowsFromEnemyEdge": 1, "order": "leftToRight"})"))));
+	EXPECT_NO_THROW(auto value = parse(encounter("wild", "true", "true", liveWorld(R"({"type": "byLine", "rowsFromEnemyEdge": 1, "order": "leftToRight"})"))));
 	EXPECT_THROW(
 		auto value = parse(encounter(
 			"wild",
@@ -299,11 +295,7 @@ TEST(EncounterDefinitionTest, ValidatesEveryPlacementAlternativeAgainstTheEffect
 		pg::JsonError);
 
 	// Fixed: unique, inside the extent, and enough of them for the largest team.
-	EXPECT_NO_THROW(auto value = parse(encounter(
-		"wild",
-		"true",
-		"true",
-		liveWorld(R"({"type": "fixed", "cells": [[5, 10], [4, 10], [6, 10]]})"))));
+	EXPECT_NO_THROW(auto value = parse(encounter("wild", "true", "true", liveWorld(R"({"type": "fixed", "cells": [[5, 10], [4, 10], [6, 10]]})"))));
 	EXPECT_THROW(
 		auto value = parse(encounter(
 			"wild",
@@ -329,11 +321,7 @@ TEST(EncounterDefinitionTest, ValidatesEveryPlacementAlternativeAgainstTheEffect
 
 	// A handcrafted board knows its approach, so its fixed cells have to be in the enemy strip
 	// (z = 11 or z = 12) rather than merely on the board.
-	EXPECT_NO_THROW(auto value = parse(encounter(
-		"gym",
-		"false",
-		"false",
-		handcrafted(R"({"type": "fixed", "cells": [[6, 12], [5, 11]]})"))));
+	EXPECT_NO_THROW(auto value = parse(encounter("gym", "false", "false", handcrafted(R"({"type": "fixed", "cells": [[6, 12], [5, 11]]})"))));
 	EXPECT_THROW(
 		auto value = parse(encounter(
 			"gym",

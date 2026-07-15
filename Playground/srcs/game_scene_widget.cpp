@@ -513,10 +513,17 @@ namespace pg
 		_context.world.world->map().forEachLoadedChunk([&](const spk::VoxelChunk &chunk) {
 			loadedChunks.insert(chunk.coordinates());
 			const auto known = _voxelLightChunkRevisions.find(chunk.coordinates());
-			if (known != _voxelLightChunkRevisions.end() && known->second == chunk.contentRevision()) return;
+			if (known != _voxelLightChunkRevisions.end() && known->second == chunk.contentRevision())
+			{
+				return;
+			}
 			for (auto iterator = _voxelLightEntities.begin(); iterator != _voxelLightEntities.end();)
 			{
-				if (spk::VoxelChunk::coordinatesFromWorldCell(iterator->first) != chunk.coordinates()) { ++iterator; continue; }
+				if (spk::VoxelChunk::coordinatesFromWorldCell(iterator->first) != chunk.coordinates())
+				{
+					++iterator;
+					continue;
+				}
 				engine.removeEntity(iterator->second.get());
 				iterator = _voxelLightEntities.erase(iterator);
 			}
@@ -577,7 +584,11 @@ namespace pg
 			}
 			for (auto lights = _voxelLightEntities.begin(); lights != _voxelLightEntities.end();)
 			{
-				if (spk::VoxelChunk::coordinatesFromWorldCell(lights->first) != iterator->first) { ++lights; continue; }
+				if (spk::VoxelChunk::coordinatesFromWorldCell(lights->first) != iterator->first)
+				{
+					++lights;
+					continue;
+				}
 				engine.removeEntity(lights->second.get());
 				lights = _voxelLightEntities.erase(lights);
 			}

@@ -374,7 +374,9 @@ namespace pg
 			const Registry<HandcraftedBattleBoardDefinition> &p_boards)
 		{
 			const OpponentPlacementPolicy &placement = std::visit(
-				[](const auto &p_policy) -> const OpponentPlacementPolicy & { return p_policy.opponentPlacement; },
+				[](const auto &p_policy) -> const OpponentPlacementPolicy & {
+					return p_policy.opponentPlacement;
+				},
 				p_encounter.board);
 
 			const EnemyZone zone = enemyZoneOf(p_encounter.board, p_boards);
@@ -403,7 +405,8 @@ namespace pg
 				{
 					fail(
 						"the by-line placement exposes " + std::to_string(reachable) + " cells, and the largest team "
-						"fields " + std::to_string(largestTeam) + " creatures");
+																					   "fields " +
+						std::to_string(largestTeam) + " creatures");
 				}
 				return;
 			}

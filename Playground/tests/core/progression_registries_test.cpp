@@ -46,7 +46,10 @@ namespace
 		ProgressionData(const ProgressionData &) = delete;
 		ProgressionData &operator=(const ProgressionData &) = delete;
 
-		[[nodiscard]] const std::filesystem::path &path() const noexcept { return _path; }
+		[[nodiscard]] const std::filesystem::path &path() const noexcept
+		{
+			return _path;
+		}
 
 		void featBoard(std::string_view p_id, std::string_view p_content) const
 		{

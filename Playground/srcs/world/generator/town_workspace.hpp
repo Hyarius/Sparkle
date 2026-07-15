@@ -81,9 +81,18 @@ namespace pg
 	public:
 		TownWorkspace(const WorldPlan &p_plan, PlanTownSite p_site, TownComposition p_composition);
 
-		[[nodiscard]] const PlanTownSite &site() const noexcept { return _site; }
-		[[nodiscard]] const TownComposition &composition() const noexcept { return _composition; }
-		[[nodiscard]] int width() const noexcept { return _width; }
+		[[nodiscard]] const PlanTownSite &site() const noexcept
+		{
+			return _site;
+		}
+		[[nodiscard]] const TownComposition &composition() const noexcept
+		{
+			return _composition;
+		}
+		[[nodiscard]] int width() const noexcept
+		{
+			return _width;
+		}
 		[[nodiscard]] TownWorldBounds bounds() const noexcept;
 		[[nodiscard]] bool contains(TownColumn p_column) const noexcept;
 		[[nodiscard]] TownColumn townFromWorld(WorldColumn p_column) const;

@@ -94,13 +94,7 @@ TEST(BoardLineOfSightTest, AnElevatedWallDoesNotBlockAnEyeLevelLine)
 {
 	// The same wall, one layer higher: the eyes look under it. Elevation is part of the query, not an
 	// afterthought - which is exactly why range is x/z and sight is 3D.
-	pgtest::BoardFixture fixture(pgtest::BoardFixture::Request{
-		.layers =
-			{"#####\n#####\n#####",
-			 ".....\n.....\n.....",
-			 "..W..\n..W..\n..W..",
-			 ".....\n.....\n....."},
-		.deploymentDepth = 1});
+	pgtest::BoardFixture fixture(pgtest::BoardFixture::Request{.layers = {"#####\n#####\n#####", ".....\n.....\n.....", "..W..\n..W..\n..W..", ".....\n.....\n....."}, .deploymentDepth = 1});
 
 	EXPECT_TRUE(pg::BoardLineOfSight::trace(fixture.board(), {0, 0, 1}, {4, 0, 1}).clear);
 }
@@ -110,9 +104,7 @@ TEST(BoardLineOfSightTest, ADiagonalCannotLeakThroughACorner)
 	// Two walls meeting exactly on the diagonal. A naive DDA would slip between them at the corner
 	// point; the supercover traversal inspects both newly touched cells first, in canonical X/Y/Z
 	// order, so the shot is blocked and the answer is reproducible.
-	pgtest::BoardFixture fixture(pgtest::BoardFixture::Request{
-		.layers = {"###\n###\n###", ".W.\nW..\n...", "...\n...\n..."},
-		.deploymentDepth = 1});
+	pgtest::BoardFixture fixture(pgtest::BoardFixture::Request{.layers = {"###\n###\n###", ".W.\nW..\n...", "...\n...\n..."}, .deploymentDepth = 1});
 	const pg::BoardData &board = fixture.board();
 
 	const pg::LineOfSightResult diagonal = pg::BoardLineOfSight::trace(board, {0, 0, 0}, {2, 0, 2});
@@ -153,9 +145,7 @@ TEST(BoardLineOfSightTest, ASlopeAndAStairAreSightedFromTheirWalkingHeight)
 {
 	// The caster stands on a slope (walk height 0.5) and the target on a stair; both eyes sit above
 	// their own support, so neither is blinded by the shape it is standing on.
-	pgtest::BoardFixture fixture(pgtest::BoardFixture::Request{
-		.layers = {"/###s\n#####\n#####", ".....\n..W..\n.....", ".....\n.....\n....."},
-		.deploymentDepth = 1});
+	pgtest::BoardFixture fixture(pgtest::BoardFixture::Request{.layers = {"/###s\n#####\n#####", ".....\n..W..\n.....", ".....\n.....\n....."}, .deploymentDepth = 1});
 	const pg::BoardData &board = fixture.board();
 
 	EXPECT_TRUE(pg::BoardLineOfSight::trace(board, {0, 0, 0}, {4, 0, 0}).clear);

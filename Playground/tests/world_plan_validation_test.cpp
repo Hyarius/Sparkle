@@ -127,17 +127,27 @@ TEST(WorldGeneration, ReservesEveryGymAndConfiguredBiomePort)
 				const int firstCol = plan.cellIndexFromWorld(town.bounds.minX);
 				const int lastCol = plan.cellIndexFromWorld(town.bounds.maxX);
 				for (int row = firstRow; row <= lastRow; ++row)
+				{
 					for (int col = firstCol; col <= lastCol; ++col)
+					{
 						if (plan.land.at(row, col) != 0 && plan.water.at(row, col) == 0)
+						{
 							EXPECT_EQ(plan.zone.at(row, col), owner.zone) << town.compositionId << " seed " << seed;
+						}
+					}
+				}
 			}
 			std::set<std::size_t> townPlacementIndices;
 			townPlacementIndices.insert(town.buildingPlacementIndices.begin(), town.buildingPlacementIndices.end());
 			townPlacementIndices.insert(town.roadSceneryPlacementIndices.begin(), town.roadSceneryPlacementIndices.end());
 			townPlacementIndices.insert(town.groundSceneryPlacementIndices.begin(), town.groundSceneryPlacementIndices.end());
 			for (const pg::PlanStairway &stairway : plan.stairways)
+			{
 				for (std::size_t index = stairway.firstPlacement; index < stairway.firstPlacement + stairway.placementCount; ++index)
+				{
 					townPlacementIndices.insert(index);
+				}
+			}
 			for (std::size_t index = 0; index < plan.placements.size(); ++index)
 			{
 				if (townPlacementIndices.contains(index))

@@ -109,15 +109,7 @@ TEST(DeploymentLayoutTest, EveryStandableLevelOfAZoneColumnIsADeploymentCell)
 {
 	// A bridge over the western half of the player's front row: both levels of those columns are
 	// standable, so both are legal deployment cells - and the lower one is offered first.
-	pgtest::BoardFixture fixture(pgtest::BoardFixture::Request{
-		.layers =
-			{"#####\n#####\n#####\n#####\n#####",
-			 ".....\n.....\n.....\n.....\n.....",
-			 ".....\n.....\n.....\n.....\n.....",
-			 "##...\n.....\n.....\n.....\n.....",
-			 ".....\n.....\n.....\n.....\n.....",
-			 ".....\n.....\n.....\n.....\n....."},
-		.deploymentDepth = 1});
+	pgtest::BoardFixture fixture(pgtest::BoardFixture::Request{.layers = {"#####\n#####\n#####\n#####\n#####", ".....\n.....\n.....\n.....\n.....", ".....\n.....\n.....\n.....\n.....", "##...\n.....\n.....\n.....\n.....", ".....\n.....\n.....\n.....\n.....", ".....\n.....\n.....\n.....\n....."}, .deploymentDepth = 1});
 	const pg::BoardData &board = fixture.board();
 
 	EXPECT_TRUE(board.isStandable({0, 0, 0}));

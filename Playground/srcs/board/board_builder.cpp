@@ -260,11 +260,7 @@ namespace pg
 			const spk::VoxelChunk *chunk = map.tryChunk(coordinates);
 			if (chunk == nullptr || !chunk->isActivated())
 			{
-				return failed(BoardBuildError{
-					.code = BoardBuildErrorCode::RequiredChunkUnavailable,
-					.cell = coordinates,
-					.diagnosticDetail = chunk == nullptr ? "required chunk " + coordinates.toString() + " is not loaded"
-														 : "required chunk " + coordinates.toString() + " is inactive"});
+				return failed(BoardBuildError{.code = BoardBuildErrorCode::RequiredChunkUnavailable, .cell = coordinates, .diagnosticDetail = chunk == nullptr ? "required chunk " + coordinates.toString() + " is not loaded" : "required chunk " + coordinates.toString() + " is inactive"});
 			}
 			stamps.push_back({.coordinates = coordinates, .contentRevision = chunk->contentRevision()});
 		}
@@ -323,13 +319,7 @@ namespace pg
 		}
 
 		// No shrinking, no dropped creature, no fabricated ground: the encounter is declined instead.
-		return failed(BoardBuildError{
-			.code = BoardBuildErrorCode::NoFeasibleWorldAnchor,
-			.requiredPlayerSeats = request.playerSeatCount,
-			.availablePlayerSeats = bestPlayerSeats,
-			.requiredEnemySeats = request.enemySeatCount,
-			.availableEnemySeats = bestEnemySeats,
-			.diagnosticDetail = "no candidate anchor seats both teams (player/enemy per candidate: " + candidateReport + ")"});
+		return failed(BoardBuildError{.code = BoardBuildErrorCode::NoFeasibleWorldAnchor, .requiredPlayerSeats = request.playerSeatCount, .availablePlayerSeats = bestPlayerSeats, .requiredEnemySeats = request.enemySeatCount, .availableEnemySeats = bestEnemySeats, .diagnosticDetail = "no candidate anchor seats both teams (player/enemy per candidate: " + candidateReport + ")"});
 	}
 
 	BoardBuildResult BoardBuilder::buildHandcrafted(
@@ -341,11 +331,7 @@ namespace pg
 		double p_maxVerticalGap)
 	{
 		const auto invalidDefinition = [&p_definition, &p_geometry](std::string p_detail) {
-			return failed(BoardBuildError{
-				.code = BoardBuildErrorCode::InvalidHandcraftedDefinition,
-				.boardOrEncounterId = p_definition.id,
-				.prefabId = p_geometry.id,
-				.diagnosticDetail = std::move(p_detail)});
+			return failed(BoardBuildError{.code = BoardBuildErrorCode::InvalidHandcraftedDefinition, .boardOrEncounterId = p_definition.id, .prefabId = p_geometry.id, .diagnosticDetail = std::move(p_detail)});
 		};
 
 		// The registry already validated all of this. It is rechecked anyway, because the next thing
@@ -410,13 +396,7 @@ namespace pg
 								position.z >= 0 && position.z < size.z;
 			if (!inside)
 			{
-				return failed(BoardBuildError{
-					.code = BoardBuildErrorCode::PrefabVoxelOutOfBounds,
-					.boardOrEncounterId = p_definition.id,
-					.prefabId = p_geometry.id,
-					.cell = position,
-					.diagnosticDetail = "prefab '" + p_geometry.id + "' places a voxel at " + position.toString() +
-										", outside board '" + p_definition.id + "' and its [0, " + size.toString() + ") box"});
+				return failed(BoardBuildError{.code = BoardBuildErrorCode::PrefabVoxelOutOfBounds, .boardOrEncounterId = p_definition.id, .prefabId = p_geometry.id, .cell = position, .diagnosticDetail = "prefab '" + p_geometry.id + "' places a voxel at " + position.toString() + ", outside board '" + p_definition.id + "' and its [0, " + size.toString() + ") box"});
 			}
 		}
 
@@ -471,11 +451,7 @@ namespace pg
 		const int approachExtent = approachAxisIsZ(p_playerApproach) ? p_extent.size.y : p_extent.size.x;
 		if (p_deploymentDepth <= 0 || 2 * p_deploymentDepth > approachExtent)
 		{
-			return failed(BoardBuildError{
-				.code = BoardBuildErrorCode::InvalidRequest,
-				.boardOrEncounterId = boardId,
-				.diagnosticDetail = "deployment depth " + std::to_string(p_deploymentDepth) +
-									" does not fit twice in the " + std::to_string(approachExtent) + "-row approach axis"});
+			return failed(BoardBuildError{.code = BoardBuildErrorCode::InvalidRequest, .boardOrEncounterId = boardId, .diagnosticDetail = "deployment depth " + std::to_string(p_deploymentDepth) + " does not fit twice in the " + std::to_string(approachExtent) + "-row approach axis"});
 		}
 
 		// The one graph. Built here, once, from the frozen source - and never refreshed again for as
@@ -484,12 +460,7 @@ namespace pg
 			*p_cells, p_extent.traversalBounds, static_cast<float>(p_maxVerticalGap));
 		if (navigation.size() == 0)
 		{
-			return failed(BoardBuildError{
-				.code = BoardBuildErrorCode::TraversalBuildFailed,
-				.boardOrEncounterId = boardId,
-				.requiredPlayerSeats = p_playerSeatCount,
-				.requiredEnemySeats = p_enemySeatCount,
-				.diagnosticDetail = "no cell of this board can be stood on"});
+			return failed(BoardBuildError{.code = BoardBuildErrorCode::TraversalBuildFailed, .boardOrEncounterId = boardId, .requiredPlayerSeats = p_playerSeatCount, .requiredEnemySeats = p_enemySeatCount, .diagnosticDetail = "no cell of this board can be stood on"});
 		}
 
 		DeploymentLayout deployment =
@@ -497,14 +468,7 @@ namespace pg
 		if (deployment.playerCells.size() < p_playerSeatCount || deployment.enemyCells.size() < p_enemySeatCount)
 		{
 			// A pretty but unplayable arena is invalid. Nothing is dropped, overlapped or invented.
-			return failed(BoardBuildError{
-				.code = BoardBuildErrorCode::InsufficientDeploymentCapacity,
-				.boardOrEncounterId = boardId,
-				.requiredPlayerSeats = p_playerSeatCount,
-				.availablePlayerSeats = deployment.playerCells.size(),
-				.requiredEnemySeats = p_enemySeatCount,
-				.availableEnemySeats = deployment.enemyCells.size(),
-				.diagnosticDetail = "the deployment strips cannot seat both teams"});
+			return failed(BoardBuildError{.code = BoardBuildErrorCode::InsufficientDeploymentCapacity, .boardOrEncounterId = boardId, .requiredPlayerSeats = p_playerSeatCount, .availablePlayerSeats = deployment.playerCells.size(), .requiredEnemySeats = p_enemySeatCount, .availableEnemySeats = deployment.enemyCells.size(), .diagnosticDetail = "the deployment strips cannot seat both teams"});
 		}
 
 		std::vector<BoardCell> borders = collectBorderCells(navigation, p_extent.size);

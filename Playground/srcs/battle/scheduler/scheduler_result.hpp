@@ -9,8 +9,17 @@
 
 namespace pg
 {
-	enum class SchedulerStop { ActivationReady, Terminal, Aborted };
-	enum class SchedulerRejection { WrongPhase, SessionBusy };
+	enum class SchedulerStop
+	{
+		ActivationReady,
+		Terminal,
+		Aborted
+	};
+	enum class SchedulerRejection
+	{
+		WrongPhase,
+		SessionBusy
+	};
 
 	struct SchedulerAdvanceResult
 	{
@@ -18,6 +27,9 @@ namespace pg
 		std::optional<BattleUnitId> activeUnit;
 		std::vector<BattleBatchId> committedBatches;
 	};
-	struct RejectedSchedulerAdvance { SchedulerRejection reason = SchedulerRejection::WrongPhase; };
+	struct RejectedSchedulerAdvance
+	{
+		SchedulerRejection reason = SchedulerRejection::WrongPhase;
+	};
 	using SchedulerCallResult = std::variant<SchedulerAdvanceResult, RejectedSchedulerAdvance>;
 }

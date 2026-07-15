@@ -60,19 +60,32 @@ namespace pg
 			return "commandUnavailable";
 		case CommandRejection::NoStateChange:
 			return "noStateChange";
-		case CommandRejection::UnitNotPlaced: return "unitNotPlaced";
-		case CommandRejection::NotActiveUnit: return "notActiveUnit";
-		case CommandRejection::UnknownBoardCell: return "unknownBoardCell";
-		case CommandRejection::UnknownAbility: return "unknownAbility";
-		case CommandRejection::AbilityNotOwned: return "abilityNotOwned";
-		case CommandRejection::InsufficientActionPoints: return "insufficientActionPoints";
-		case CommandRejection::InsufficientMovementPoints: return "insufficientMovementPoints";
-		case CommandRejection::DestinationBlocked: return "destinationBlocked";
-		case CommandRejection::DestinationUnreachable: return "destinationUnreachable";
-		case CommandRejection::AnchorOutOfRange: return "anchorOutOfRange";
-		case CommandRejection::AnchorLineOfSightBlocked: return "anchorLineOfSightBlocked";
-		case CommandRejection::AnchorFilterRejected: return "anchorFilterRejected";
-		case CommandRejection::EffectRuntimeUnavailable: return "effectRuntimeUnavailable";
+		case CommandRejection::UnitNotPlaced:
+			return "unitNotPlaced";
+		case CommandRejection::NotActiveUnit:
+			return "notActiveUnit";
+		case CommandRejection::UnknownBoardCell:
+			return "unknownBoardCell";
+		case CommandRejection::UnknownAbility:
+			return "unknownAbility";
+		case CommandRejection::AbilityNotOwned:
+			return "abilityNotOwned";
+		case CommandRejection::InsufficientActionPoints:
+			return "insufficientActionPoints";
+		case CommandRejection::InsufficientMovementPoints:
+			return "insufficientMovementPoints";
+		case CommandRejection::DestinationBlocked:
+			return "destinationBlocked";
+		case CommandRejection::DestinationUnreachable:
+			return "destinationUnreachable";
+		case CommandRejection::AnchorOutOfRange:
+			return "anchorOutOfRange";
+		case CommandRejection::AnchorLineOfSightBlocked:
+			return "anchorLineOfSightBlocked";
+		case CommandRejection::AnchorFilterRejected:
+			return "anchorFilterRejected";
+		case CommandRejection::EffectRuntimeUnavailable:
+			return "effectRuntimeUnavailable";
 		}
 		return "commandUnavailable";
 	}

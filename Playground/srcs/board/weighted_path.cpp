@@ -157,7 +157,9 @@ namespace pg
 			throw std::invalid_argument("a uniform traversal cost must be strictly positive");
 		}
 		return TraversalCostQuery{
-			.enterCost = [p_cost](const spk::Vector3Int &) { return std::optional<int>(p_cost); }};
+			.enterCost = [p_cost](const spk::Vector3Int &) {
+				return std::optional<int>(p_cost);
+			}};
 	}
 
 	std::optional<WeightedPath> findWeightedPath(

@@ -15,7 +15,7 @@ namespace pg
 	struct WeightedPath
 	{
 		std::vector<BoardCell> cells; // includes source and destination
-		int totalCost = 0;            // excludes the source; sums the cells entered
+		int totalCost = 0;			  // excludes the source; sums the cells entered
 
 		[[nodiscard]] bool operator==(const WeightedPath &) const = default;
 	};

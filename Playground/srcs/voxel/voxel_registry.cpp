@@ -72,18 +72,10 @@ namespace pg
 
 				definition.typeId = family.type;
 				definition.states.reserve(family.levelCount() + 1);
-				definition.states.push_back(VoxelStateDefinition{
-					.id = family.sourceState,
-					.runtimeId = family.sourceRuntime,
-					.name = "source",
-					.heights = flatHeights(1.0f)});
+				definition.states.push_back(VoxelStateDefinition{.id = family.sourceState, .runtimeId = family.sourceRuntime, .name = "source", .heights = flatHeights(1.0f)});
 				for (const spk::VoxelFluidState &level : family.levels)
 				{
-					definition.states.push_back(VoxelStateDefinition{
-						.id = level.state,
-						.runtimeId = level.runtime,
-						.name = std::to_string(level.level),
-						.heights = flatHeights(level.height)});
+					definition.states.push_back(VoxelStateDefinition{.id = level.state, .runtimeId = level.runtime, .name = std::to_string(level.level), .heights = flatHeights(level.height)});
 				}
 			}
 			else
@@ -117,11 +109,7 @@ namespace pg
 				definition.states.reserve(registration.states.size());
 				for (std::size_t index = 0; index < registration.states.size(); ++index)
 				{
-					definition.states.push_back(VoxelStateDefinition{
-						.id = {static_cast<std::uint16_t>(index)},
-						.runtimeId = registration.states[index],
-						.name = std::move(stateNames[index]),
-						.heights = stateHeights[index]});
+					definition.states.push_back(VoxelStateDefinition{.id = {static_cast<std::uint16_t>(index)}, .runtimeId = registration.states[index], .name = std::move(stateNames[index]), .heights = stateHeights[index]});
 				}
 			}
 

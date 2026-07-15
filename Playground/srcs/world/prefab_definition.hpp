@@ -41,7 +41,10 @@ namespace pg
 		// planner places this prefab; empty for scenery and doorless structures.
 		std::string interiorId;
 
-		[[nodiscard]] spk::Vector3Int size() const noexcept { return prefab.size(); }
+		[[nodiscard]] spk::Vector3Int size() const noexcept
+		{
+			return prefab.size();
+		}
 		[[nodiscard]] const PrefabAnchor *tryAnchor(const std::string &p_name) const noexcept
 		{
 			return prefab.tryAnchor(p_name);

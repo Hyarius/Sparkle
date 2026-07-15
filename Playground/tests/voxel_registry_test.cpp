@@ -471,7 +471,8 @@ TEST(VoxelParsing, FluidRejectsInvalidSpread)
 				"traversal": "passable",
 				"tags": [],
 				"textures": { "top": [2, 1], "bottom": [2, 1], "side": [2, 1] },
-				"fluid": { "maxSpread": )") + spread + "} }"),
+				"fluid": { "maxSpread": )") +
+								spread + "} }"),
 			pg::JsonError)
 			<< spread;
 	}

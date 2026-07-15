@@ -13,17 +13,13 @@ namespace pg
 	{
 	private:
 		static void _applyDamage(
-			BattleContext &, std::vector<StagedEvent> &, const CastPlan &, const EffectApplication &,
-			BattleUnitId, const DamageEffectSpec &);
+			BattleContext &, std::vector<StagedEvent> &, const CastPlan &, const EffectApplication &, BattleUnitId, const DamageEffectSpec &);
 		static void _applyHealing(
-			BattleContext &, std::vector<StagedEvent> &, const CastPlan &, const EffectApplication &,
-			BattleUnitId, const HealEffectSpec &);
+			BattleContext &, std::vector<StagedEvent> &, const CastPlan &, const EffectApplication &, BattleUnitId, const HealEffectSpec &);
 		static void _applyResourceChange(
-			BattleContext &, std::vector<StagedEvent> &, const CastPlan &, const EffectApplication &,
-			BattleUnitId, const ChangeResourceEffectSpec &);
+			BattleContext &, std::vector<StagedEvent> &, const CastPlan &, const EffectApplication &, BattleUnitId, const ChangeResourceEffectSpec &);
 		static void _applyNextActivationPenalty(
-			BattleContext &, std::vector<StagedEvent> &, const CastPlan &, const EffectApplication &,
-			BattleUnitId, const ApplyNextActivationPenaltyEffectSpec &);
+			BattleContext &, std::vector<StagedEvent> &, const CastPlan &, const EffectApplication &, BattleUnitId, const ApplyNextActivationPenaltyEffectSpec &);
 		static void _applyTurnBarAdjustment(
 			BattleContext &, const CastPlan &, BattleUnitId, const AdjustTurnBarEffectSpec &);
 

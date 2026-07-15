@@ -6,7 +6,10 @@ namespace pg
 {
 	std::size_t TraversalGraph::addNode(const spk::Vector3Int &p_position)
 	{
-		if (const auto found = _index.find(p_position); found != _index.end()) return found->second;
+		if (const auto found = _index.find(p_position); found != _index.end())
+		{
+			return found->second;
+		}
 		const std::size_t index = _nodes.size();
 		_nodes.push_back({.position = p_position});
 		_index.emplace(p_position, index);
@@ -35,6 +38,12 @@ namespace pg
 		return found == _index.end() ? std::nullopt : std::optional<std::size_t>(found->second);
 	}
 
-	const std::vector<TraversalGraph::Node> &TraversalGraph::allNodes() const noexcept { return _nodes; }
-	std::size_t TraversalGraph::size() const noexcept { return _nodes.size(); }
+	const std::vector<TraversalGraph::Node> &TraversalGraph::allNodes() const noexcept
+	{
+		return _nodes;
+	}
+	std::size_t TraversalGraph::size() const noexcept
+	{
+		return _nodes.size();
+	}
 }

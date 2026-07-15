@@ -1,6 +1,6 @@
 #include "world/generator/stair_planner.hpp"
-#include "world/prefab_placement_math.hpp"
 #include "structures/voxel/spk_voxel_orientation.hpp"
+#include "world/prefab_placement_math.hpp"
 
 #include <algorithm>
 
@@ -12,7 +12,10 @@ namespace pg
 		for (const PrefabPlacement &placement : result.placements)
 		{
 			const PrefabDefinition *prefab = p_context.prefabs.tryGet(placement.prefabId);
-			if (prefab == nullptr) return std::nullopt;
+			if (prefab == nullptr)
+			{
+				return std::nullopt;
+			}
 			const ResolvedPlacementBox resolved = resolvePlacement(prefab->prefab, placement);
 			const spk::Vector3Int pivot = prefab->prefab.pivot();
 			const spk::Vector3Int localMin = prefab->clearance ? prefab->clearance->min : prefab->prefab.minBounds();
@@ -20,7 +23,7 @@ namespace pg
 			const int turns = spk::quarterTurnsOf(placement.orientation);
 			const spk::Vector3Int a = spk::rotateQuarterTurns(localMin - pivot, turns);
 			const spk::Vector3Int b = spk::rotateQuarterTurns(localMax - pivot, turns);
-			result.claims.push_back({resolved.destination + spk::Vector3Int{std::min(a.x,b.x),std::min(a.y,b.y),std::min(a.z,b.z)}, resolved.destination + spk::Vector3Int{std::max(a.x,b.x),std::max(a.y,b.y),std::max(a.z,b.z)}});
+			result.claims.push_back({resolved.destination + spk::Vector3Int{std::min(a.x, b.x), std::min(a.y, b.y), std::min(a.z, b.z)}, resolved.destination + spk::Vector3Int{std::max(a.x, b.x), std::max(a.y, b.y), std::max(a.z, b.z)}});
 		}
 		return result;
 	}

@@ -113,7 +113,12 @@ namespace pg::worldgen
 	{
 		const auto requireTownSiteIds = [&] {
 			for (const PlanTownSite &site : plan.townSites)
-				if (site.compositionId.empty()) throw std::logic_error("town site composition id was lost between generation stages");
+			{
+				if (site.compositionId.empty())
+				{
+					throw std::logic_error("town site composition id was lost between generation stages");
+				}
+			}
 		};
 		buildWorldGraph();
 		buildLandmass();
@@ -201,11 +206,7 @@ namespace pg
 			if (definition.worldgen->town.has_value())
 			{
 				const BiomeTown &town = *definition.worldgen->town;
-				biome.town = PlanTown{.creatureCenter = town.creatureCenter,
-					.shop = town.shop,
-					.gym = town.gym,
-					.port = town.port,
-					.homes = town.homes};
+				biome.town = PlanTown{.creatureCenter = town.creatureCenter, .shop = town.shop, .gym = town.gym, .port = town.port, .homes = town.homes};
 			}
 			result.push_back(std::move(biome));
 		}
@@ -253,7 +254,9 @@ namespace pg
 		out << "gateways (secondary). " << stats.secondaryGateways << "\n";
 		out << "stair prefabs........ " << stats.stairPlacements << "\n";
 		const auto wildStairwayCount =
-			std::ranges::count_if(stairways, [](const PlanStairway &p_stairway) { return !p_stairway.road; });
+			std::ranges::count_if(stairways, [](const PlanStairway &p_stairway) {
+				return !p_stairway.road;
+			});
 		out << "wild stair prefabs... " << stats.wildStairPlacements << " (" << wildStairwayCount << " stairways)\n";
 		out << "wild candidates...... " << stats.wildStairCandidates << "  (ratio skips "
 			<< stats.wildStairRatioSkips << ", spacing skips " << stats.wildStairSpacingSkips
@@ -292,19 +295,27 @@ namespace pg
 		// This is the public allocation boundary. Keep validation ahead of Generator's
 		// plan-grid construction and every arithmetic-heavy generation stage.
 		validateWorldGenConfig(p_config);
-		for(int attempt=0;;++attempt)
+		for (int attempt = 0;; ++attempt)
 		{
-			WorldGenConfig resolved=p_config;
-			if(attempt>0)resolved.masterSeed=worldgen::deriveSeed(p_config.masterSeed,"world/town_retry/"+std::to_string(attempt));
+			WorldGenConfig resolved = p_config;
+			if (attempt > 0)
+			{
+				resolved.masterSeed = worldgen::deriveSeed(p_config.masterSeed, "world/town_retry/" + std::to_string(attempt));
+			}
 			try
 			{
-				WorldPlan plan=worldgen::Generator(resolved,p_biomes,p_placementRules,p_prefabs,p_townCompositions,p_interiors).run();
-				if(attempt>0)plan.stats.warnings.push_back("requested seed "+std::to_string(p_config.masterSeed)+" required "+std::to_string(attempt)+" deterministic town-generation retry/retries; resolved seed="+std::to_string(resolved.masterSeed));
+				WorldPlan plan = worldgen::Generator(resolved, p_biomes, p_placementRules, p_prefabs, p_townCompositions, p_interiors).run();
+				if (attempt > 0)
+				{
+					plan.stats.warnings.push_back("requested seed " + std::to_string(p_config.masterSeed) + " required " + std::to_string(attempt) + " deterministic town-generation retry/retries; resolved seed=" + std::to_string(resolved.masterSeed));
+				}
 				return plan;
-			}
-			catch(const TownPlanningError &)
+			} catch (const TownPlanningError &)
 			{
-				if(attempt>=p_config.maxTownWorldRetries)throw;
+				if (attempt >= p_config.maxTownWorldRetries)
+				{
+					throw;
+				}
 			}
 		}
 	}

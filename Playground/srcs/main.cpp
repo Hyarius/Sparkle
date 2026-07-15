@@ -136,7 +136,7 @@ namespace
 					for (int x = band.minX; x <= band.maxX && bandClear; ++x)
 					{
 						bandClear = standAt({x, 0, z}) == lowStand &&
-								roadIds.contains(sampler.at({x, lowStand - 1, z}).id);
+									roadIds.contains(sampler.at({x, lowStand - 1, z}).id);
 					}
 				}
 			}
@@ -197,7 +197,8 @@ int main(int argc, char **argv)
 			parser.parse(argc, argv);
 		} catch (const spk::CommandLineParser::Error &error)
 		{
-			std::cerr << error.what() << "\n\n" << parser.usage();
+			std::cerr << error.what() << "\n\n"
+					  << parser.usage();
 			return 1;
 		}
 
