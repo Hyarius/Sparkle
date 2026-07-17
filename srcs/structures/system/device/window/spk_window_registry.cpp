@@ -2,7 +2,7 @@
 
 namespace spk
 {
-	spk::WindowHandle WindowRegistry::createWindow(const WindowID &p_id, std::shared_ptr<PlatformRuntime> p_platformRuntime, std::shared_ptr<GPUPlatformRuntime> p_gpuPlatformRuntime, spk::Window::Configuration p_configuration, spk::Profiler *p_profiler)
+	spk::WindowHandle WindowRegistry::createWindow(const WindowID &p_id, std::shared_ptr<PlatformRuntime> p_platformRuntime, spk::Window::Configuration p_configuration)
 	{
 		{
 			std::scoped_lock lock(_mutex);
@@ -12,7 +12,7 @@ namespace spk
 			}
 		}
 
-		std::shared_ptr<Window> newWindow = std::make_shared<Window>(std::move(p_platformRuntime), std::move(p_gpuPlatformRuntime), std::move(p_configuration), p_profiler);
+		std::shared_ptr<Window> newWindow = std::make_shared<Window>(std::move(p_platformRuntime), std::move(p_configuration));
 
 		std::scoped_lock lock(_mutex);
 		if (_windows.contains(p_id) == true)

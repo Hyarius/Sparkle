@@ -7,19 +7,11 @@
 #include "structures/system/time/spk_chronometer.hpp"
 #include "utils/spk_time_utils.hpp"
 
-#include "structures/system/device/runtime/spk_opengl_runtime.hpp"
-#include "structures/system/win32/spk_winapi_platform_runtime.hpp"
-
 namespace spk
 {
 	std::shared_ptr<PlatformRuntime> Application::_createDefaultPlatformRuntime()
 	{
 		return std::make_shared<spk::PlatformRuntime>();
-	}
-
-	std::shared_ptr<GPUPlatformRuntime> Application::_createDefaultGPUPlatformRuntime()
-	{
-		return std::make_shared<spk::GPUPlatformRuntime>();
 	}
 
 	void Application::_bindOrValidateOwnerThread(const char *p_operation)
@@ -60,32 +52,30 @@ namespace spk
 		}
 	}
 
-	void Application::_runRenderLoop()
+	void Application::_requestAllWindowsClosing()
 	{
-		while (_stopRequested.load() == false)
+		for (const std::weak_ptr<spk::Window> &windowHandle : _windowRegistry._windowVector())
+		{
+			if (std::shared_ptr<spk::Window> window = windowHandle.lock(); window != nullptr)
+			{
+				window->requestClosure();
+			}
+		}
+	}
+
+	void Application::_runRenderLoop(std::stop_token p_stopToken)
+	{
+		while (p_stopToken.stop_requested() == false && _windowRegistry.size() != 0)
 		{
 			spk::Chronometer chronometer;
 			chronometer.start();
 
 			std::vector<std::weak_ptr<spk::Window>> windows = _windowRegistry._windowVector();
 
-			if (windows.empty() == true)
-			{
-				if (_shutdownRequested.load() == true ||
-					_configuration.stopWhenNoWindows == true)
-				{
-					return;
-				}
-			}
-			else
+			if (windows.empty() == false)
 			{
 				for (const std::weak_ptr<spk::Window> &windowHandle : windows)
 				{
-					if (_stopRequested.load() == true)
-					{
-						return;
-					}
-
 					std::shared_ptr<spk::Window> window = windowHandle.lock();
 					if (window != nullptr)
 					{
@@ -104,32 +94,19 @@ namespace spk
 		}
 	}
 
-	void Application::_runUpdateLoop()
+	void Application::_runUpdateLoop(std::stop_token p_stopToken)
 	{
-		while (_stopRequested.load() == false)
+		while (p_stopToken.stop_requested() == false && _windowRegistry.size() != 0)
 		{
 			spk::Chronometer chronometer;
 			chronometer.start();
 
 			std::vector<std::weak_ptr<spk::Window>> windows = _windowRegistry._windowVector();
 
-			if (windows.empty() == true)
-			{
-				if (_shutdownRequested.load() == true ||
-					_configuration.stopWhenNoWindows == true)
-				{
-					return;
-				}
-			}
-			else
+			if (windows.empty() == false)
 			{
 				for (const std::weak_ptr<spk::Window> &windowHandle : windows)
 				{
-					if (_stopRequested.load() == true)
-					{
-						return;
-					}
-
 					std::shared_ptr<spk::Window> window = windowHandle.lock();
 					if (window != nullptr)
 					{
@@ -148,35 +125,10 @@ namespace spk
 		}
 	}
 
-	void Application::_runEventLoop()
+	void Application::_runEventLoop(std::stop_token p_stopToken)
 	{
-		while (_stopRequested.load() == false)
+		while (p_stopToken.stop_requested() == false && _windowRegistry.size() != 0)
 		{
-			if (_shutdownRequested.load() == true)
-			{
-				std::vector<std::weak_ptr<spk::Window>> windows = _windowRegistry._windowVector();
-				for (const std::weak_ptr<spk::Window> &windowHandle : windows)
-				{
-					std::shared_ptr<spk::Window> window = windowHandle.lock();
-					if (window != nullptr)
-					{
-						window->requestClosure();
-					}
-				}
-			}
-
-			if (_windowRegistry.size() == 0)
-			{
-				if (_shutdownRequested.load() == true ||
-					_configuration.stopWhenNoWindows == true)
-				{
-					return;
-				}
-
-				spk::TimeUtils::sleepFor(_configuration.eventPollingInterval);
-				continue;
-			}
-
 			_platformRuntime->pollEvents();
 
 			std::vector<std::weak_ptr<spk::Window>> windows = _windowRegistry._windowVector();
@@ -191,12 +143,6 @@ namespace spk
 
 			_windowRegistry.removeClosedWindows();
 
-			if (_windowRegistry.size() == 0 &&
-				(_shutdownRequested.load() == true || _configuration.stopWhenNoWindows == true))
-			{
-				return;
-			}
-
 			spk::TimeUtils::sleepFor(_configuration.eventPollingInterval);
 		}
 	}
@@ -209,7 +155,6 @@ namespace spk
 	Application::Application(Configuration p_configuration) :
 		_configuration(std::move(p_configuration)),
 		_platformRuntime(_configuration.platformRuntime),
-		_gpuPlatformRuntime(_configuration.gpuPlatformRuntime),
 		_ownerThreadID(std::this_thread::get_id())
 	{
 	}
@@ -223,22 +168,7 @@ namespace spk
 			_platformRuntime = _createDefaultPlatformRuntime();
 		}
 
-		if (_gpuPlatformRuntime == nullptr)
-		{
-			_gpuPlatformRuntime = _createDefaultGPUPlatformRuntime();
-		}
-
-		return _windowRegistry.createWindow(p_id, _platformRuntime, _gpuPlatformRuntime, std::move(p_configuration), &_profiler);
-	}
-
-	spk::Profiler &Application::profiler() noexcept
-	{
-		return _profiler;
-	}
-
-	const spk::Profiler &Application::profiler() const noexcept
-	{
-		return _profiler;
+		return _windowRegistry.createWindow(p_id, _platformRuntime, std::move(p_configuration));
 	}
 
 	spk::WindowHandle Application::window(const WindowID &p_id)
@@ -269,7 +199,7 @@ namespace spk
 	void Application::quit(int p_exitCode)
 	{
 		_exitCode.store(p_exitCode);
-		_shutdownRequested.store(true);
+		_requestAllWindowsClosing();
 	}
 
 	void Application::stop()
@@ -286,51 +216,49 @@ namespace spk
 			_platformRuntime = _createDefaultPlatformRuntime();
 		}
 
-		if (_gpuPlatformRuntime == nullptr && _windowRegistry.size() != 0)
-		{
-			_gpuPlatformRuntime = _createDefaultGPUPlatformRuntime();
-		}
-
 		bool expectedValue = false;
 		if (_isRunning.compare_exchange_strong(expectedValue, true) == false)
 		{
 			throw std::runtime_error("Application::run : Application is already running");
 		}
 
-		_stopRequested.store(false);
-		_shutdownRequested.store(false);
+		_stopSource = std::stop_source();
 		_exitCode.store(0);
 		_rethrowFailureIfAny();
+		const std::stop_token stopToken = _stopSource.get_token();
 
-		std::jthread renderThread([this]() {
+		std::jthread renderThread([this, stopToken](std::stop_token) {
 			try
 			{
-				_runRenderLoop();
+				_runRenderLoop(stopToken);
 			} catch (...)
 			{
 				_recordFailure(std::current_exception());
-				_stopRequested.store(true);
+				_stopSource.request_stop();
+				_requestAllWindowsClosing();
 			}
 		});
 
-		std::jthread updateThread([this]() {
+		std::jthread updateThread([this, stopToken](std::stop_token) {
 			try
 			{
-				_runUpdateLoop();
+				_runUpdateLoop(stopToken);
 			} catch (...)
 			{
 				_recordFailure(std::current_exception());
-				_stopRequested.store(true);
+				_stopSource.request_stop();
+				_requestAllWindowsClosing();
 			}
 		});
 
 		try
 		{
-			_runEventLoop();
+			_runEventLoop(stopToken);
 		} catch (...)
 		{
 			_recordFailure(std::current_exception());
-			_stopRequested.store(true);
+			_stopSource.request_stop();
+			_requestAllWindowsClosing();
 		}
 
 		renderThread.join();

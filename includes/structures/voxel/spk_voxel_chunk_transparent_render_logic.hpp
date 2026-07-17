@@ -2,7 +2,7 @@
 
 #include "structures/game_engine/spk_component_logic.hpp"
 #include "structures/game_engine/rendering/spk_scene_render_passes.hpp"
-#include "structures/graphics/rendering/pass/spk_render_pass_bucket_pack.hpp"
+#include "structures/graphics/rendering/pipeline/spk_render_pipeline.hpp"
 #include "structures/math/spk_matrix.hpp"
 #include "structures/voxel/spk_voxel_chunk_renderer.hpp"
 

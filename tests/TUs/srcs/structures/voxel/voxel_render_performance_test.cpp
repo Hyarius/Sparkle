@@ -9,7 +9,7 @@
 #include "structures/game_engine/spk_camera_3d.hpp"
 #include "structures/game_engine/spk_game_engine.hpp"
 #include "structures/game_engine/rendering/spk_scene_render_passes.hpp"
-#include "structures/graphics/rendering/pass/spk_render_pass_bucket_pack.hpp"
+#include "structures/graphics/rendering/pipeline/spk_render_pipeline.hpp"
 #include "structures/graphics/rendering/unit/spk_render_unit_builder.hpp"
 #include "structures/graphics/spk_texture.hpp"
 #include "structures/math/spk_perlin.hpp"
@@ -178,15 +178,14 @@ TEST(VoxelRenderPerformance, BakesAnEightByEightChunkSquareWithinBudget)
 		}
 	}
 
-	spk::RenderPassBucketPack passes;
+	spk::RenderPipeline passes;
 	spk::RenderFrameBuildContext frame{.passes = passes};
-	const spk::RenderPass::ScopeId scope{1};
 	const spk::Viewport viewport(spk::Rect2D(0, 0, 1, 1));
 	const spk::SceneRenderFrameRequest request{.mainTarget = {.frameBuffer = nullptr, .viewport = viewport}, .mainClear = {}};
-	auto &opaquePass = passes.emplacePass<spk::RenderPass>(
-		{.type = spk::SceneRenderPasses::MainOpaque, .scope = scope}, 1000, "MainOpaque",
-		{.debugName = "MainOpaque", .target = request.mainTarget, .clear = {}});
-	const spk::SceneRenderBuildContext renderContext{.frame = frame, .sceneScope = scope, .request = request, .components = engine.componentRegistry(), .mainCamera = &camera};
+	auto &opaquePass = passes.emplace<spk::RenderPass>(
+		std::string(spk::SceneRenderPasses::MainOpaque), 1000,
+		{.target = request.mainTarget, .clear = {}});
+	const spk::SceneRenderBuildContext renderContext{.frame = frame, .request = request, .components = engine.componentRegistry(), .mainCamera = &camera};
 	logic._onRenderStarted(renderContext, map.loadedChunkCount());
 	for (spk::Component *component : renderers)
 	{

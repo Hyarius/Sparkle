@@ -29,7 +29,6 @@ namespace spk
 		spk::ComponentRegistry _components{_id};
 		spk::ComponentLogicRegistry _logicRegistry;
 		spk::SceneRenderPipeline _renderPipeline;
-		spk::RenderPass::ScopeId _renderScope = spk::RenderPass::ScopeId::generate();
 		spk::Profiler *_profiler = nullptr;
 		std::size_t _frameIndex = 0;
 

@@ -2,7 +2,7 @@
 
 #include "structures/graphics/rendering/command/spk_viewport_render_command.hpp"
 #include "structures/graphics/rendering/command/spk_render_unit_render_command.hpp"
-#include "structures/graphics/rendering/pass/spk_render_pass_bucket_pack.hpp"
+#include "structures/graphics/rendering/pipeline/spk_render_pipeline.hpp"
 #include "structures/graphics/rendering/unit/spk_render_unit_builder.hpp"
 #include "structures/widget/rendering/spk_widget_render_passes.hpp"
 #include "structures/widget/rendering/spk_widget_render_priorities.hpp"
@@ -368,17 +368,15 @@ namespace spk
 				: spk::Rect2D(
 					  0, 0, static_cast<unsigned int>(std::max(_absoluteGeometry.right(), 1)), static_cast<unsigned int>(std::max(_absoluteGeometry.bottom(), 1)));
 
-		auto &overlay = p_context.frame.passes.require({.type = spk::WidgetRenderPasses::Overlay, .scope = p_context.widgetScope});
-		const std::size_t registrationOrder = (*p_context.nextRegistrationOrder)++;
-		auto commands = overlay.contribute(spk::RenderContributionPriorities::Default, registrationOrder);
+		auto &overlay = p_context.frame.passes.require(spk::WidgetRenderPasses::Overlay);
 		if (!frameGeometry.empty() && !_scissor.empty())
 		{
-			commands.emplace<spk::ViewportCommand>(spk::Viewport(frameGeometry, _scissor));
+			overlay.emplace<spk::ViewportCommand>(spk::Viewport(frameGeometry, _scissor));
 		}
 		std::shared_ptr<spk::RenderUnit> unit = renderUnit();
 		if (unit != nullptr && !unit->empty())
 		{
-			commands.emplace<spk::RenderUnitRenderCommand>(std::move(unit));
+			overlay.emplace<spk::RenderUnitRenderCommand>(std::move(unit));
 		}
 
 		for (const auto *child : children())
@@ -409,16 +407,13 @@ namespace spk
 
 	spk::RenderPlan Widget::buildRenderPlan(const spk::RenderTargetReference &p_target) const
 	{
-		spk::RenderPassBucketPack passes;
+		spk::RenderPipeline passes;
 		spk::RenderFrameBuildContext frame{.passes = passes};
-		passes.registerPassType(spk::WidgetRenderPasses::Overlay, "spk.widget.overlay");
-		passes.emplacePass<spk::RenderPass>(
-			{.type = spk::WidgetRenderPasses::Overlay, .scope = _renderScope},
+		passes.emplace<spk::RenderPass>(
+			std::string(spk::WidgetRenderPasses::Overlay),
 			spk::WidgetRenderPriorities::Overlay,
-			"WidgetOverlay",
-			{.debugName = "WidgetOverlay", .target = p_target, .clear = {.color = spk::Color(0, 0, 0, 0), .depth = 1.0f, .stencil = 0}});
-		std::size_t registrationOrder = 0;
-		const spk::WidgetRenderBuildContext context{.frame = frame, .widgetScope = _renderScope, .nextRegistrationOrder = &registrationOrder};
+			{.target = p_target, .clear = {.color = spk::Color(0, 0, 0, 0), .depth = 1.0f, .stencil = 0}});
+		const spk::WidgetRenderBuildContext context{.frame = frame};
 		_collectRenderPasses(context);
 		return passes.build();
 	}

@@ -237,17 +237,16 @@ namespace spk
 			assemblySample.emplace(*_renderAssemblyProbe);
 		}
 
-		auto &pass = p_context.frame.passes.require({.type = spk::SceneRenderPasses::MainOpaque, .scope = p_context.sceneScope});
-		auto commands = pass.contribute(renderPriority(spk::SceneRenderPasses::MainOpaque), p_context.contributorRegistrationOrder);
+		auto &pass = p_context.frame.passes.require(spk::SceneRenderPasses::MainOpaque);
 		for (const spk::VoxelChunkRenderer *renderer : _visibleChunks)
 		{
 			if (renderer->meshes().opaque.indexes().empty())
 			{
 				continue;
 			}
-			commands.add(std::make_unique<spk::DrawVoxelMesh3DRenderCommand>(renderer->sharedOpaqueMesh(), _cache.at(renderer).modelUBO, _sampler, false));
-			for (spk::ShadowRenderPass &shadow : p_context.frame.passes.passesOfType<spk::ShadowRenderPass>(spk::LightingRenderPasses::DirectionalShadow, p_context.sceneScope))
-				shadow.contribute(renderPriority(spk::LightingRenderPasses::DirectionalShadow), p_context.contributorRegistrationOrder).emplace<spk::DrawVoxelShadowRenderCommand>(renderer->sharedOpaqueMesh(), _cache.at(renderer).modelUBO, shadow.lightViewProjection());
+			pass.add(std::make_unique<spk::DrawVoxelMesh3DRenderCommand>(renderer->sharedOpaqueMesh(), _cache.at(renderer).modelUBO, _sampler, false));
+			for (spk::ShadowRenderPass &shadow : p_context.frame.passes.all<spk::ShadowRenderPass>())
+				shadow.emplace<spk::DrawVoxelShadowRenderCommand>(renderer->sharedOpaqueMesh(), _cache.at(renderer).modelUBO, shadow.lightViewProjection());
 		}
 
 		_pruneUnloadedChunks();

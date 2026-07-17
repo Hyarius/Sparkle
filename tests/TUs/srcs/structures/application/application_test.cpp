@@ -40,14 +40,14 @@ namespace
 		}
 	};
 
-	class ThrowingPresentGPUPlatformRuntime : public sparkle_test::TestGPUPlatformRuntime
+	class ThrowingPresentPlatformRuntime : public sparkle_test::TestPlatformRuntime
 	{
 	private:
 		std::barrier<>* _failureBarrier = nullptr;
 		std::atomic<bool>* _renderFailureReached = nullptr;
 
 	public:
-		ThrowingPresentGPUPlatformRuntime(
+		ThrowingPresentPlatformRuntime(
 			std::barrier<>* p_failureBarrier,
 			std::atomic<bool>* p_renderFailureReached) :
 			_failureBarrier(p_failureBarrier),
@@ -79,12 +79,11 @@ namespace
 TEST(ApplicationTest, CreateWindowAndLookupReturnTheManagedWindow)
 {
 	auto platformRuntime = std::make_shared<sparkle_test::TestPlatformRuntime>();
-	auto gpuPlatformRuntime = std::make_shared<sparkle_test::TestGPUPlatformRuntime>();
+	auto gpuPlatformRuntime = platformRuntime;
 	auto* platformRuntimePtr = platformRuntime.get();
 	spk::Application application(
 		spk::Application::Configuration{
-			.platformRuntime = platformRuntime,
-			.gpuPlatformRuntime = gpuPlatformRuntime
+			.platformRuntime = platformRuntime
 		});
 
 	spk::WindowHandle windowHandle = application.createWindow(
@@ -119,11 +118,10 @@ TEST(ApplicationTest, DefaultCreateWindowUsesNativeRuntimeWhenAvailable)
 TEST(ApplicationTest, ConstWindowLookupReturnsTheManagedWindow)
 {
 	auto platformRuntime = std::make_shared<sparkle_test::TestPlatformRuntime>();
-	auto gpuPlatformRuntime = std::make_shared<sparkle_test::TestGPUPlatformRuntime>();
+	auto gpuPlatformRuntime = platformRuntime;
 	spk::Application application(
 		spk::Application::Configuration{
-			.platformRuntime = platformRuntime,
-			.gpuPlatformRuntime = gpuPlatformRuntime
+			.platformRuntime = platformRuntime
 		});
 
 	application.createWindow(
@@ -141,12 +139,11 @@ TEST(ApplicationTest, ConstWindowLookupReturnsTheManagedWindow)
 TEST(ApplicationTest, RequestWindowClosingDelegatesToTheManagedWindow)
 {
 	auto platformRuntime = std::make_shared<sparkle_test::TestPlatformRuntime>();
-	auto gpuPlatformRuntime = std::make_shared<sparkle_test::TestGPUPlatformRuntime>();
+	auto gpuPlatformRuntime = platformRuntime;
 	auto* platformRuntimePtr = platformRuntime.get();
 	spk::Application application(
 		spk::Application::Configuration{
-			.platformRuntime = platformRuntime,
-			.gpuPlatformRuntime = gpuPlatformRuntime
+			.platformRuntime = platformRuntime
 		});
 
 	application.createWindow(
@@ -169,17 +166,15 @@ TEST(ApplicationTest, RunExecutesEventUpdateAndRenderLoops)
 {
 	const spk::Duration step(1.0L, spk::TimeUnit::Millisecond);
 	auto platformRuntime = std::make_shared<sparkle_test::TestPlatformRuntime>();
-	auto gpuPlatformRuntime = std::make_shared<sparkle_test::TestGPUPlatformRuntime>();
+	auto gpuPlatformRuntime = platformRuntime;
 	const std::thread::id ownerThreadID = std::this_thread::get_id();
 
 	spk::Application application(
 		spk::Application::Configuration{
 			.platformRuntime = platformRuntime,
-			.gpuPlatformRuntime = gpuPlatformRuntime,
 			.renderInterval = step,
 			.updateInterval = step,
-			.eventPollingInterval = step,
-			.stopWhenNoWindows = true
+			.eventPollingInterval = step
 		});
 
 	auto* platformRuntimePtr = platformRuntime.get();
@@ -244,7 +239,7 @@ TEST(ApplicationTest, RunExecutesDeferredFrameValidationOnTheOwnerThread)
 {
 	const spk::Duration step(1.0L, spk::TimeUnit::Millisecond);
 	auto platformRuntime = std::make_shared<sparkle_test::TestPlatformRuntime>();
-	auto gpuPlatformRuntime = std::make_shared<sparkle_test::TestGPUPlatformRuntime>();
+	auto gpuPlatformRuntime = platformRuntime;
 	auto* platformRuntimePtr = platformRuntime.get();
 	const std::thread::id ownerThreadID = std::this_thread::get_id();
 	std::atomic<bool> destroyQueued = false;
@@ -252,11 +247,9 @@ TEST(ApplicationTest, RunExecutesDeferredFrameValidationOnTheOwnerThread)
 	spk::Application application(
 		spk::Application::Configuration{
 			.platformRuntime = platformRuntime,
-			.gpuPlatformRuntime = gpuPlatformRuntime,
 			.renderInterval = step,
 			.updateInterval = step,
-			.eventPollingInterval = step,
-			.stopWhenNoWindows = true
+			.eventPollingInterval = step
 		});
 
 	application.createWindow(
@@ -289,16 +282,14 @@ TEST(ApplicationTest, RunRethrowsWorkerThreadFailuresOnTheCallerThread)
 {
 	const spk::Duration step(1.0L, spk::TimeUnit::Millisecond);
 	auto platformRuntime = std::make_shared<sparkle_test::TestPlatformRuntime>();
-	auto gpuPlatformRuntime = std::make_shared<sparkle_test::TestGPUPlatformRuntime>();
+	auto gpuPlatformRuntime = platformRuntime;
 
 	spk::Application application(
 		spk::Application::Configuration{
 			.platformRuntime = platformRuntime,
-			.gpuPlatformRuntime = gpuPlatformRuntime,
 			.renderInterval = step,
 			.updateInterval = step,
-			.eventPollingInterval = step,
-			.stopWhenNoWindows = false
+			.eventPollingInterval = step
 		});
 
 	spk::WindowHandle windowHandle = application.createWindow(
@@ -328,19 +319,16 @@ TEST(ApplicationTest, RunRethrowsOneWorkerFailureWhenRenderAndUpdateFailConcurre
 	std::barrier failureBarrier(2);
 	std::atomic<bool> updateFailureReached = false;
 	std::atomic<bool> renderFailureReached = false;
-	auto platformRuntime = std::make_shared<sparkle_test::TestPlatformRuntime>();
-	auto gpuPlatformRuntime = std::make_shared<ThrowingPresentGPUPlatformRuntime>(
+	auto gpuPlatformRuntime = std::make_shared<ThrowingPresentPlatformRuntime>(
 		&failureBarrier,
 		&renderFailureReached);
 
 	spk::Application application(
 		spk::Application::Configuration{
-			.platformRuntime = platformRuntime,
-			.gpuPlatformRuntime = gpuPlatformRuntime,
+			.platformRuntime = gpuPlatformRuntime,
 			.renderInterval = step,
 			.updateInterval = step,
-			.eventPollingInterval = step,
-			.stopWhenNoWindows = false
+			.eventPollingInterval = step
 		});
 
 	application.createWindow(
@@ -383,7 +371,7 @@ TEST(ApplicationTest, ExternalQuitGracefullyClosesWindows)
 {
 	const spk::Duration step(1.0L, spk::TimeUnit::Millisecond);
 	auto platformRuntime = std::make_shared<sparkle_test::TestPlatformRuntime>();
-	auto gpuPlatformRuntime = std::make_shared<sparkle_test::TestGPUPlatformRuntime>();
+	auto gpuPlatformRuntime = platformRuntime;
 	auto* platformRuntimePtr = platformRuntime.get();
 	std::atomic<bool> sawClosureRequest = false;
 	std::atomic<bool> destroyQueued = false;
@@ -391,11 +379,9 @@ TEST(ApplicationTest, ExternalQuitGracefullyClosesWindows)
 	spk::Application application(
 		spk::Application::Configuration{
 			.platformRuntime = platformRuntime,
-			.gpuPlatformRuntime = gpuPlatformRuntime,
 			.renderInterval = step,
 			.updateInterval = step,
-			.eventPollingInterval = step,
-			.stopWhenNoWindows = false
+			.eventPollingInterval = step
 		});
 
 	application.createWindow(
@@ -438,7 +424,7 @@ TEST(ApplicationTest, StopRequestsClosureAndWaitsForWindowDisposal)
 {
 	const spk::Duration step(1.0L, spk::TimeUnit::Millisecond);
 	auto platformRuntime = std::make_shared<sparkle_test::TestPlatformRuntime>();
-	auto gpuPlatformRuntime = std::make_shared<sparkle_test::TestGPUPlatformRuntime>();
+	auto gpuPlatformRuntime = platformRuntime;
 	auto* platformRuntimePtr = platformRuntime.get();
 	std::atomic<bool> stopIssued = false;
 	std::atomic<bool> sawClosureRequest = false;
@@ -447,11 +433,9 @@ TEST(ApplicationTest, StopRequestsClosureAndWaitsForWindowDisposal)
 	spk::Application application(
 		spk::Application::Configuration{
 			.platformRuntime = platformRuntime,
-			.gpuPlatformRuntime = gpuPlatformRuntime,
 			.renderInterval = step,
 			.updateInterval = step,
-			.eventPollingInterval = step,
-			.stopWhenNoWindows = false
+			.eventPollingInterval = step
 		});
 
 	application.createWindow(
@@ -491,7 +475,7 @@ TEST(ApplicationTest, QuitRequestsClosureAndReturnsTheProvidedExitCode)
 {
 	const spk::Duration step(1.0L, spk::TimeUnit::Millisecond);
 	auto platformRuntime = std::make_shared<sparkle_test::TestPlatformRuntime>();
-	auto gpuPlatformRuntime = std::make_shared<sparkle_test::TestGPUPlatformRuntime>();
+	auto gpuPlatformRuntime = platformRuntime;
 	auto* platformRuntimePtr = platformRuntime.get();
 	std::atomic<bool> quitIssued = false;
 	std::atomic<bool> sawClosureRequest = false;
@@ -500,11 +484,9 @@ TEST(ApplicationTest, QuitRequestsClosureAndReturnsTheProvidedExitCode)
 	spk::Application application(
 		spk::Application::Configuration{
 			.platformRuntime = platformRuntime,
-			.gpuPlatformRuntime = gpuPlatformRuntime,
 			.renderInterval = step,
 			.updateInterval = step,
-			.eventPollingInterval = step,
-			.stopWhenNoWindows = false
+			.eventPollingInterval = step
 		});
 
 	application.createWindow(
@@ -543,12 +525,11 @@ TEST(ApplicationTest, QuitRequestsClosureAndReturnsTheProvidedExitCode)
 TEST(ApplicationTest, RunStopsWhenTheLastWindowCloses)
 {
 	auto platformRuntime = std::make_shared<sparkle_test::TestPlatformRuntime>();
-	auto gpuPlatformRuntime = std::make_shared<sparkle_test::TestGPUPlatformRuntime>();
+	auto gpuPlatformRuntime = platformRuntime;
 	auto* platformRuntimePtr = platformRuntime.get();
 	spk::Application application(
 		spk::Application::Configuration{
-			.platformRuntime = platformRuntime,
-			.gpuPlatformRuntime = gpuPlatformRuntime
+			.platformRuntime = platformRuntime
 		});
 
 	application.createWindow(
@@ -566,12 +547,9 @@ TEST(ApplicationTest, RunStopsWhenTheLastWindowCloses)
 	EXPECT_GT(platformRuntimePtr->pollEventsCount, 0);
 }
 
-TEST(ApplicationTest, RunReturnsImmediatelyWhenNoWindowsAndConfiguredToStop)
+TEST(ApplicationTest, RunReturnsImmediatelyWhenNoWindows)
 {
-	spk::Application application(
-		spk::Application::Configuration{
-			.stopWhenNoWindows = true
-		});
+	spk::Application application;
 
 	EXPECT_EQ(application.run(), 0);
 
@@ -581,9 +559,7 @@ TEST(ApplicationTest, RunReturnsImmediatelyWhenNoWindowsAndConfiguredToStop)
 TEST(ApplicationTest, RunThrowsWhenApplicationIsAlreadyRunning)
 {
 	spk::Application application(
-		spk::Application::Configuration{
-			.stopWhenNoWindows = true
-		});
+		spk::Application::Configuration{});
 
 	application._isRunning.store(true);
 
@@ -595,11 +571,10 @@ TEST(ApplicationTest, RunThrowsWhenApplicationIsAlreadyRunning)
 TEST(ApplicationTest, RunThrowsWhenCalledFromDifferentThreadThanApplicationConstruction)
 {
 	auto platformRuntime = std::make_shared<sparkle_test::TestPlatformRuntime>();
-	auto gpuPlatformRuntime = std::make_shared<sparkle_test::TestGPUPlatformRuntime>();
+	auto gpuPlatformRuntime = platformRuntime;
 	spk::Application application(
 		spk::Application::Configuration{
-			.platformRuntime = platformRuntime,
-			.gpuPlatformRuntime = gpuPlatformRuntime
+			.platformRuntime = platformRuntime
 		});
 
 	application.createWindow(
@@ -630,11 +605,10 @@ TEST(ApplicationTest, RunThrowsWhenCalledFromDifferentThreadThanApplicationConst
 TEST(ApplicationTest, CreateWindowThrowsWhenCalledFromDifferentThreadThanApplicationConstruction)
 {
 	auto platformRuntime = std::make_shared<sparkle_test::TestPlatformRuntime>();
-	auto gpuPlatformRuntime = std::make_shared<sparkle_test::TestGPUPlatformRuntime>();
+	auto gpuPlatformRuntime = platformRuntime;
 	spk::Application application(
 		spk::Application::Configuration{
-			.platformRuntime = platformRuntime,
-			.gpuPlatformRuntime = gpuPlatformRuntime
+			.platformRuntime = platformRuntime
 		});
 
 	std::exception_ptr failure = nullptr;

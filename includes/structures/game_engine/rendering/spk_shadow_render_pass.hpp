@@ -1,13 +1,14 @@
 #pragma once
 
 #include <cstdint>
+#include <string_view>
 
 #include "structures/graphics/rendering/pass/spk_render_pass.hpp"
 #include "structures/math/spk_matrix.hpp"
 
 namespace spk::LightingRenderPasses
 {
-	inline constexpr auto DirectionalShadow = spk::makeRenderPassTypeId("spk.lighting.directional_shadow");
+	inline constexpr std::string_view DirectionalShadow = "spk.lighting.directional_shadow";
 }
 
 namespace spk
@@ -20,14 +21,12 @@ namespace spk
 
 	public:
 		ShadowRenderPass(
-			spk::RenderPass::Key p_key,
+			std::string p_id,
 			std::int32_t p_priority,
-			std::size_t p_declarationOrder,
-			std::string p_debugName,
 			spk::RenderPass::Description p_description,
 			std::uint32_t p_cascadeIndex,
 			spk::Matrix4x4 p_lightViewProjection) :
-			spk::RenderPass(p_key, p_priority, p_declarationOrder, std::move(p_debugName), std::move(p_description)),
+			spk::RenderPass(std::move(p_id), p_priority, std::move(p_description)),
 			_cascadeIndex(p_cascadeIndex),
 			_lightViewProjection(std::move(p_lightViewProjection))
 		{

@@ -91,12 +91,12 @@ namespace spk
 	void GameEngine::contributeRenderPasses(spk::RenderFrameBuildContext &p_frame, const spk::SceneRenderFrameRequest &p_request)
 	{
 		_renderPipeline.buildPasses(
-			p_frame, _renderScope, p_request, _logicRegistry, _components, _profiler, isActivated());
+			p_frame, p_request, _logicRegistry, _components, _profiler, isActivated());
 	}
 
 	spk::RenderPlan GameEngine::buildRenderPlan(const spk::SceneRenderFrameRequest &p_request)
 	{
-		spk::RenderPassBucketPack passes;
+		spk::RenderPipeline passes;
 		spk::RenderFrameBuildContext frame{.passes = passes, .frameIndex = _frameIndex};
 		contributeRenderPasses(frame, p_request);
 		return passes.build();

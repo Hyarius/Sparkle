@@ -37,33 +37,26 @@ namespace spk
 		}
 		for (const auto type : {spk::SceneRenderPasses::MainOpaque, spk::SceneRenderPasses::MainTransparent, spk::SceneRenderPasses::MainOverlay})
 		{
-			auto &pass = p_context.frame.passes.require({.type = type, .scope = p_context.sceneScope, .instance = 0});
-			auto setup = pass.contribute(spk::RenderContributionPriorities::PassSetup, 0);
-			setup.emplace<spk::CameraUpdateRenderCommand>(spk::SceneGpuBindings::Camera, p_context.mainCamera->viewProjectionMatrix(), p_context.mainCamera->viewMatrix());
+			auto &pass = p_context.frame.passes.require(type);
+			pass.emplace<spk::CameraUpdateRenderCommand>(spk::SceneGpuBindings::Camera, p_context.mainCamera->viewProjectionMatrix(), p_context.mainCamera->viewMatrix());
 		}
 	}
 
-	void SceneRenderPipeline::buildPasses(spk::RenderFrameBuildContext &p_frame, spk::RenderPass::ScopeId p_sceneScope, const spk::SceneRenderFrameRequest &p_request, spk::ComponentLogicRegistry &p_logics, spk::ComponentRegistry &p_components, spk::Profiler *p_profiler, bool p_dispatchRendering)
+	void SceneRenderPipeline::buildPasses(spk::RenderFrameBuildContext &p_frame, const spk::SceneRenderFrameRequest &p_request, spk::ComponentLogicRegistry &p_logics, spk::ComponentRegistry &p_components, spk::Profiler *p_profiler, bool p_dispatchRendering)
 	{
-		spk::SceneRenderBuildContext context{.frame = p_frame, .sceneScope = p_sceneScope, .request = p_request, .components = p_components, .mainCamera = spk::Camera3D::mainCamera(), .profiler = p_profiler};
-		p_frame.passes.registerPassType(spk::SceneRenderPasses::MainOpaque, "spk.scene.main_opaque");
-		p_frame.passes.registerPassType(spk::SceneRenderPasses::MainTransparent, "spk.scene.main_transparent");
-		p_frame.passes.registerPassType(spk::SceneRenderPasses::MainOverlay, "spk.scene.main_overlay");
-		p_frame.passes.emplacePass<spk::RenderPass>(
-			{.type = spk::SceneRenderPasses::MainOpaque, .scope = p_sceneScope, .instance = 0},
+		spk::SceneRenderBuildContext context{.frame = p_frame, .request = p_request, .components = p_components, .mainCamera = spk::Camera3D::mainCamera(), .profiler = p_profiler};
+		p_frame.passes.emplace<spk::RenderPass>(
+			std::string(spk::SceneRenderPasses::MainOpaque),
 			spk::SceneRenderPriorities::MainOpaque,
-			"MainOpaque",
-			{.debugName = "MainOpaque", .target = p_request.mainTarget, .clear = p_request.mainClear});
-		p_frame.passes.emplacePass<spk::RenderPass>(
-			{.type = spk::SceneRenderPasses::MainTransparent, .scope = p_sceneScope, .instance = 0},
+			{.target = p_request.mainTarget, .clear = p_request.mainClear});
+		p_frame.passes.emplace<spk::RenderPass>(
+			std::string(spk::SceneRenderPasses::MainTransparent),
 			spk::SceneRenderPriorities::MainTransparent,
-			"MainTransparent",
-			{.debugName = "MainTransparent", .target = p_request.mainTarget, .clear = {}});
-		p_frame.passes.emplacePass<spk::RenderPass>(
-			{.type = spk::SceneRenderPasses::MainOverlay, .scope = p_sceneScope, .instance = 0},
+			{.target = p_request.mainTarget, .clear = {}});
+		p_frame.passes.emplace<spk::RenderPass>(
+			std::string(spk::SceneRenderPasses::MainOverlay),
 			spk::SceneRenderPriorities::MainOverlay,
-			"MainOverlay",
-			{.debugName = "MainOverlay", .target = p_request.mainTarget, .clear = {}});
+			{.target = p_request.mainTarget, .clear = {}});
 
 		if (p_dispatchRendering)
 		{

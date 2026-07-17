@@ -15,7 +15,7 @@
 #include "structures/game_engine/spk_sprite_renderer_2d.hpp"
 #include "structures/game_engine/spk_transform_2d.hpp"
 #include "structures/game_engine/rendering/spk_scene_render_passes.hpp"
-#include "structures/graphics/rendering/pass/spk_render_pass_bucket_pack.hpp"
+#include "structures/graphics/rendering/pipeline/spk_render_pipeline.hpp"
 #include "structures/graphics/rendering/command/spk_camera_update_render_command.hpp"
 #include "structures/graphics/rendering/command/spk_instanced_sprite_render_command.hpp"
 #include "structures/math/spk_matrix.hpp"
@@ -113,12 +113,11 @@ namespace spk
 				return;
 			}
 
-			auto &pass = p_context.frame.passes.require({.type = spk::SceneRenderPasses::MainOverlay, .scope = p_context.sceneScope});
-			auto commands = pass.contribute(renderPriority(spk::SceneRenderPasses::MainOverlay), p_context.contributorRegistrationOrder);
-			commands.emplace<CameraUpdateRenderCommand>(CameraBinding, _cameraMatrix);
+			auto &pass = p_context.frame.passes.require(spk::SceneRenderPasses::MainOverlay);
+			pass.emplace<CameraUpdateRenderCommand>(CameraBinding, _cameraMatrix);
 			for (std::unique_ptr<InstancedSpriteRenderCommand> &command : _renderCommands)
 			{
-				commands.add(std::move(command));
+				pass.add(std::move(command));
 			}
 			_renderCommands.clear();
 		}

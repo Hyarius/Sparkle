@@ -11,18 +11,15 @@
 
 namespace spk
 {
+	class RenderPipeline;
 	struct RenderPassDiagnostics
 	{
-		spk::RenderPass::Key key;
-		std::string debugName;
-		std::string concreteType;
+		std::string id;
 		std::int32_t priority = 0;
-		std::size_t declarationOrder = 0;
 		bool defaultTarget = false;
 		bool activeTarget = false;
 		spk::Viewport viewport;
 		spk::RenderPassClear clear;
-		std::size_t contributorCount = 0;
 		std::size_t commandCount = 0;
 	};
 
@@ -35,7 +32,7 @@ namespace spk
 		bool _compiled = false;
 
 		explicit RenderPlan(std::vector<std::unique_ptr<spk::RenderPass>> p_passes);
-		friend class RenderPassBucketPack;
+		friend class RenderPipeline;
 
 	public:
 		RenderPlan() = default;

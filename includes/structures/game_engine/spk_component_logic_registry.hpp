@@ -6,7 +6,6 @@
 #include <stdexcept>
 #include <typeindex>
 #include <typeinfo>
-#include <tuple>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -19,7 +18,7 @@
 #include "structures/game_engine/spk_component_registry.hpp"
 #include "structures/graphics/rendering/command/spk_camera_update_render_command.hpp"
 #include "structures/graphics/rendering/command/spk_directional_light_update_render_command.hpp"
-#include "structures/graphics/rendering/pass/spk_render_pass_bucket_pack.hpp"
+#include "structures/graphics/rendering/pipeline/spk_render_pipeline.hpp"
 #include "structures/graphics/spk_directional_light.hpp"
 
 namespace spk
@@ -122,16 +121,14 @@ namespace spk
 			const spk::SceneRenderBuildContext &p_context,
 			spk::ComponentRegistry &p_registry)
 		{
-			for (std::size_t index = 0; index < _logics.size(); ++index)
+			_ensureUpdateEventSorted();
+			for (spk::IComponentLogic *logic : _updateEventOrder)
 			{
-				spk::IComponentLogic *logic = _logics[index].get();
 				if (logic == nullptr || !logic->isActivated())
 				{
 					continue;
 				}
-				spk::SceneRenderBuildContext logicContext = p_context;
-				logicContext.contributorRegistrationOrder = index;
-				logic->onRender(logicContext, p_registry);
+				logic->onRender(p_context, p_registry);
 			}
 		}
 
@@ -144,26 +141,20 @@ namespace spk
 			const spk::SceneRenderFrameRequest request{
 				.mainTarget = spk::RenderTargetReference{.frameBuffer = nullptr, .viewport = viewport, .activeTarget = true},
 				.mainClear = {}};
-			spk::RenderPassBucketPack passes;
+			spk::RenderPipeline passes;
 			spk::RenderFrameBuildContext frame{.passes = passes};
-			const spk::RenderPass::ScopeId scope = spk::RenderPass::ScopeId::generate();
-			for (const auto [type, priority, name] : {
-					 std::tuple{spk::SceneRenderPasses::MainOpaque, spk::SceneRenderPriorities::MainOpaque, "CompatibilityOpaque"},
-					 std::tuple{spk::SceneRenderPasses::MainTransparent, spk::SceneRenderPriorities::MainTransparent, "CompatibilityTransparent"},
-					 std::tuple{spk::SceneRenderPasses::MainOverlay, spk::SceneRenderPriorities::MainOverlay, "CompatibilityOverlay"}})
-			{
-				passes.emplacePass<spk::RenderPass>({.type = type, .scope = scope}, priority, name, {.debugName = name, .target = request.mainTarget, .clear = {}});
-			}
+			passes.emplace<spk::RenderPass>(std::string(spk::SceneRenderPasses::MainOpaque), spk::SceneRenderPriorities::MainOpaque, {.target = request.mainTarget, .clear = {}});
+			passes.emplace<spk::RenderPass>(std::string(spk::SceneRenderPasses::MainTransparent), spk::SceneRenderPriorities::MainTransparent, {.target = request.mainTarget, .clear = {}});
+			passes.emplace<spk::RenderPass>(std::string(spk::SceneRenderPasses::MainOverlay), spk::SceneRenderPriorities::MainOverlay, {.target = request.mainTarget, .clear = {}});
 			spk::Camera3D *mainCamera = spk::Camera3D::mainCamera();
 			if (mainCamera != nullptr)
 			{
 				for (const auto type : {spk::SceneRenderPasses::MainOpaque, spk::SceneRenderPasses::MainTransparent, spk::SceneRenderPasses::MainOverlay})
 				{
-					auto setup = passes.require({.type = type, .scope = scope}).contribute(spk::RenderContributionPriorities::PassSetup, 0);
-					setup.emplace<spk::CameraUpdateRenderCommand>(spk::SceneGpuBindings::Camera, mainCamera->viewProjectionMatrix(), mainCamera->viewMatrix());
+					passes.require(type).emplace<spk::CameraUpdateRenderCommand>(spk::SceneGpuBindings::Camera, mainCamera->viewProjectionMatrix(), mainCamera->viewMatrix());
 				}
 			}
-			spk::SceneRenderBuildContext context{.frame = frame, .sceneScope = scope, .request = request, .components = p_registry, .mainCamera = mainCamera};
+			spk::SceneRenderBuildContext context{.frame = frame, .request = request, .components = p_registry, .mainCamera = mainCamera};
 			render(context, p_registry);
 			spk::RenderUnit unit = passes.build().compile();
 			for (auto &command : unit.takeCommands())

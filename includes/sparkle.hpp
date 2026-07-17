@@ -59,14 +59,12 @@
 
 #include "structures/graphics/opengl/spk_opengl_render_context.hpp"
 #include "structures/graphics/rendering/context/spk_render_context.hpp"
-#include "structures/system/device/runtime/spk_opengl_runtime.hpp"
 #include "structures/system/device/runtime/spk_platform_runtime.hpp"
 #include "structures/system/device/window/spk_frame.hpp"
 #include "structures/system/device/window/spk_surface_state.hpp"
 #include "structures/system/win32/spk_winapi_class.hpp"
 #include "structures/system/win32/spk_winapi_cursor.hpp"
 #include "structures/system/win32/spk_winapi_frame.hpp"
-#include "structures/system/win32/spk_winapi_platform_runtime.hpp"
 #include "structures/system/win32/spk_winapi_window.hpp"
 
 #include "structures/application/module/spk_render_module.hpp"
@@ -106,7 +104,7 @@
 #include "structures/graphics/rendering/command/spk_use_framebuffer_render_command.hpp"
 #include "structures/graphics/rendering/command/spk_viewport_render_command.hpp"
 #include "structures/graphics/rendering/pass/spk_render_pass.hpp"
-#include "structures/graphics/rendering/pass/spk_render_pass_bucket_pack.hpp"
+#include "structures/graphics/rendering/pipeline/spk_render_pipeline.hpp"
 #include "structures/graphics/rendering/pass/spk_render_pass_clear.hpp"
 #include "structures/graphics/rendering/pass/spk_render_target_reference.hpp"
 #include "structures/graphics/rendering/spk_render_frame_build_context.hpp"

@@ -526,7 +526,7 @@ executable (`worldMapOutputPath()`).
 
 ### 9.3 Profiler & overlay
 
-`spk::Profiler` (app-owned, threaded through `UpdateContext`) aggregates named
+`spk::Profiler` (window-owned, threaded through `UpdateContext`) aggregates named
 probes (min/max/avg). `GameSceneWidget::_refreshOverlay` snapshots it every
 frame and syncs one overlay row per probe (rows rebuilt only when the probe set
 changes). Fixed rows: camera/player/hovered cell, loaded chunk count, update and

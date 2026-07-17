@@ -15,7 +15,6 @@
 #include "structures/application/spk_application.hpp"
 #include "structures/system/event/spk_events.hpp"
 #include "structures/system/device/window/spk_frame.hpp"
-#include "structures/system/device/runtime/spk_opengl_runtime.hpp"
 #include "structures/system/device/runtime/spk_platform_runtime.hpp"
 #include "structures/graphics/rendering/command/spk_render_command.hpp"
 #include "structures/graphics/rendering/context/spk_render_context.hpp"
@@ -289,6 +288,9 @@ namespace sparkle_test
 		}
 	};
 
+	struct TestRenderContextStats;
+	class TestRenderContext;
+
 	class TestPlatformRuntime : public spk::PlatformRuntime
 	{
 	private:
@@ -326,6 +328,13 @@ namespace sparkle_test
 		spk::Rect2D lastCreateRect;
 		std::string lastCreateTitle;
 		TestFrame* createdFrame = nullptr;
+		int createRenderContextCount = 0;
+		int waitUntilWorkDoneCount = 0;
+		bool returnNullContext = false;
+		std::shared_ptr<TestRenderContextStats> contextStats = nullptr;
+		spk::IFrame* lastFrame = nullptr;
+		TestRenderContext* createdContext = nullptr;
+		std::thread::id lastCreateRenderContextThreadID;
 
 	public:
 		std::unique_ptr<spk::IFrame> createFrame(const spk::Rect2D& p_rect, const std::string& p_title) override
@@ -374,6 +383,13 @@ namespace sparkle_test
 			{
 				onPollEvents(*this);
 			}
+		}
+
+		std::unique_ptr<spk::RenderContext> createRenderContext(spk::IFrame& p_frame) override;
+
+		void waitUntilWorkDone() override
+		{
+			++waitUntilWorkDoneCount;
 		}
 
 		template <typename TEventData>
@@ -547,44 +563,27 @@ namespace sparkle_test
 		}
 	};
 
-	class TestGPUPlatformRuntime : public spk::GPUPlatformRuntime
+
+	inline std::unique_ptr<spk::RenderContext> TestPlatformRuntime::createRenderContext(spk::IFrame& p_frame)
 	{
-	public:
-		int createRenderContextCount = 0;
-		int waitUntilWorkDoneCount = 0;
-		bool returnNullContext = false;
-		std::shared_ptr<TestRenderContextStats> contextStats = std::make_shared<TestRenderContextStats>();
-		spk::IFrame* lastFrame = nullptr;
-		TestRenderContext* createdContext = nullptr;
-		std::thread::id lastCreateRenderContextThreadID;
+		++createRenderContextCount;
+		lastFrame = &p_frame;
+		lastCreateRenderContextThreadID = std::this_thread::get_id();
 
-	public:
-		std::unique_ptr<spk::RenderContext> createRenderContext(spk::IFrame& p_frame) override
+		if (returnNullContext == true)
 		{
-			++createRenderContextCount;
-			lastFrame = &p_frame;
-			lastCreateRenderContextThreadID = std::this_thread::get_id();
-
-			if (returnNullContext == true)
-			{
-				createdContext = nullptr;
-				contextStats = std::make_shared<TestRenderContextStats>();
-				return nullptr;
-			}
-
+			createdContext = nullptr;
 			contextStats = std::make_shared<TestRenderContextStats>();
-			auto result = std::make_unique<TestRenderContext>(p_frame.surfaceState(), contextStats);
-			result->creationThreadID = std::this_thread::get_id();
-			contextStats->creationThreadID = result->creationThreadID;
-			createdContext = result.get();
-			return result;
+			return nullptr;
 		}
 
-		void waitUntilWorkDone() override
-		{
-			++waitUntilWorkDoneCount;
-		}
-	};
+		contextStats = std::make_shared<TestRenderContextStats>();
+		auto result = std::make_unique<TestRenderContext>(p_frame.surfaceState(), contextStats);
+		result->creationThreadID = std::this_thread::get_id();
+		contextStats->creationThreadID = result->creationThreadID;
+		createdContext = result.get();
+		return result;
+	}
 
 	class RecordingWidget : public spk::Widget
 	{
@@ -787,21 +786,20 @@ namespace sparkle_test
 	struct WindowHostBundle
 	{
 		std::shared_ptr<TestPlatformRuntime> platformRuntime = nullptr;
-		std::shared_ptr<TestGPUPlatformRuntime> gpuPlatformRuntime = nullptr;
+		std::shared_ptr<TestPlatformRuntime> gpuPlatformRuntime = nullptr;
 		std::unique_ptr<spk::WindowHost> windowHost = nullptr;
 	};
 
 	inline WindowHostBundle createWindowHostBundle(const spk::Rect2D& p_rect = defaultRect(), const std::string& p_title = "TestWindow")
 	{
 		auto platformRuntime = std::make_shared<TestPlatformRuntime>();
-		auto gpuPlatformRuntime = std::make_shared<TestGPUPlatformRuntime>();
 
 		WindowHostBundle result;
 		result.platformRuntime = platformRuntime;
-		result.gpuPlatformRuntime = gpuPlatformRuntime;
+		result.gpuPlatformRuntime = platformRuntime;
 		result.windowHost = std::make_unique<spk::WindowHost>(
 			platformRuntime->createFrame(p_rect, p_title),
-			std::move(gpuPlatformRuntime));
+			platformRuntime);
 
 		return result;
 	}
@@ -809,21 +807,19 @@ namespace sparkle_test
 	struct WindowBundle
 	{
 		std::shared_ptr<TestPlatformRuntime> platformRuntime = nullptr;
-		std::shared_ptr<TestGPUPlatformRuntime> gpuPlatformRuntime = nullptr;
+		std::shared_ptr<TestPlatformRuntime> gpuPlatformRuntime = nullptr;
 		std::unique_ptr<spk::Window> window = nullptr;
 	};
 
 	inline WindowBundle createWindowBundle(const spk::Rect2D& p_rect = defaultRect(), const std::string& p_title = "Window")
 	{
 		auto platformRuntime = std::make_shared<TestPlatformRuntime>();
-		auto gpuPlatformRuntime = std::make_shared<TestGPUPlatformRuntime>();
 
 		WindowBundle result;
 		result.platformRuntime = platformRuntime;
-		result.gpuPlatformRuntime = gpuPlatformRuntime;
+		result.gpuPlatformRuntime = platformRuntime;
 		result.window = std::make_unique<spk::Window>(
 			platformRuntime,
-			gpuPlatformRuntime,
 			spk::Window::Configuration{
 				.rect = p_rect,
 				.title = p_title

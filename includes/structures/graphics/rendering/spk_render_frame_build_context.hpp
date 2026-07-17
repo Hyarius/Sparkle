@@ -4,11 +4,11 @@
 
 namespace spk
 {
-	class RenderPassBucketPack;
+	class RenderPipeline;
 
 	struct RenderFrameBuildContext
 	{
-		spk::RenderPassBucketPack &passes;
+		spk::RenderPipeline &passes;
 		std::size_t frameIndex = 0;
 	};
 }

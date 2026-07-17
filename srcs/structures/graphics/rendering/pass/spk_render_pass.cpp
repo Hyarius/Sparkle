@@ -1,6 +1,5 @@
 #include "structures/graphics/rendering/pass/spk_render_pass.hpp"
 
-#include <algorithm>
 #include <cmath>
 #include <stdexcept>
 #include <utility>
@@ -10,13 +9,9 @@
 
 namespace spk
 {
-	void validateRenderPassDescription(const spk::RenderPass::Description &p_description)
+	void validateRenderPassDescription(const spk::RenderPass::Description &p_description, std::string_view p_passId)
 	{
-		const std::string &name = p_description.debugName;
-		if (name.empty())
-		{
-			throw std::invalid_argument("Render pass debug name cannot be empty");
-		}
+		const std::string name = p_passId.empty() ? "<unnamed>" : std::string(p_passId);
 		if (p_description.target.viewport.geometry().empty() || p_description.target.viewport.scissor().empty())
 		{
 			throw std::invalid_argument("Render pass '" + name + "': viewport and scissor must be non-empty");
@@ -54,34 +49,21 @@ namespace spk
 		}
 	}
 
-	RenderPass::RenderPass(
-		spk::RenderPass::Key p_key,
-		std::int32_t p_priority,
-		std::size_t p_declarationOrder,
-		std::string p_debugName,
-		spk::RenderPass::Description p_description) :
-		_key(p_key),
-		_debugName(std::move(p_debugName)),
-		_description(std::move(p_description)),
-		_priority(p_priority),
-		_declarationOrder(p_declarationOrder)
+	RenderPass::RenderPass(std::string p_id, Priority p_priority, Description p_description) :
+		PriorizableTrait(p_priority),
+		_id(std::move(p_id)),
+		_description(std::move(p_description))
 	{
-		if (_debugName.empty())
+		if (_id.empty())
 		{
-			throw std::invalid_argument("Render pass debug name cannot be empty");
+			throw std::invalid_argument("Render pass ID cannot be empty");
 		}
-		_description.debugName = _debugName;
-		validateRenderPassDescription(_description);
+		validateRenderPassDescription(_description, _id);
 	}
 
-	const spk::RenderPass::Key &RenderPass::key() const noexcept
+	const std::string &RenderPass::id() const noexcept
 	{
-		return _key;
-	}
-
-	const std::string &RenderPass::debugName() const noexcept
-	{
-		return _debugName;
+		return _id;
 	}
 
 	const spk::RenderPass::Description &RenderPass::description() const noexcept
@@ -89,87 +71,31 @@ namespace spk
 		return _description;
 	}
 
-	std::int32_t RenderPass::priority() const noexcept
-	{
-		return _priority;
-	}
-
-	void RenderPass::setPriority(std::int32_t p_priority)
-	{
-		(void)p_priority;
-		if (_sealed)
-		{
-			throw std::logic_error("Cannot change priority of sealed render pass '" + _debugName + "'");
-		}
-		throw std::logic_error("Render pass priority is fixed when '" + _debugName + "' is declared");
-	}
-
-	std::size_t RenderPass::declarationOrder() const noexcept
-	{
-		return _declarationOrder;
-	}
-
-	std::size_t RenderPass::contributorCount() const noexcept
-	{
-		return _contributions.size();
-	}
-
 	std::size_t RenderPass::commandCount() const noexcept
 	{
-		std::size_t result = 0;
-		for (const auto &contribution : _contributions)
-		{
-			result += contribution.commands.size();
-		}
-		return result;
+		return _commands.size();
 	}
 
-	spk::RenderContributionSink RenderPass::contribute(
-		std::int32_t p_contributorPriority,
-		std::size_t p_registrationOrder)
+	void RenderPass::_ensureMutable() const
 	{
 		if (_sealed)
 		{
-			throw std::logic_error("Cannot contribute to sealed render pass '" + _debugName + "'");
+			throw std::logic_error("Cannot modify sealed render pass '" + _id + "'");
 		}
-		const std::size_t index = _contributions.size();
-		_contributions.push_back(spk::RenderContribution{
-			.priority = p_contributorPriority,
-			.registrationOrder = p_registrationOrder,
-			.declarationOrder = index});
-		return spk::RenderContributionSink(*this, index);
 	}
 
-	void RenderPass::_add(std::size_t p_contribution, std::unique_ptr<spk::RenderCommand> p_command)
+	void RenderPass::add(std::unique_ptr<spk::RenderCommand> p_command)
 	{
-		if (_sealed || p_contribution >= _contributions.size())
-		{
-			throw std::logic_error("Cannot add commands to sealed render pass '" + _debugName + "'");
-		}
+		_ensureMutable();
 		if (p_command == nullptr)
 		{
-			throw std::invalid_argument("Cannot add a null command to render pass '" + _debugName + "'");
+			throw std::invalid_argument("Cannot add a null command to render pass '" + _id + "'");
 		}
-		_contributions[p_contribution].commands.push_back(std::move(p_command));
+		_commands.push_back(std::move(p_command));
 	}
 
-	void RenderPass::_seal()
+	void RenderPass::_seal() noexcept
 	{
-		if (_sealed)
-		{
-			return;
-		}
-		std::stable_sort(_contributions.begin(), _contributions.end(), [](const auto &p_lhs, const auto &p_rhs) {
-			if (p_lhs.priority != p_rhs.priority)
-			{
-				return p_lhs.priority < p_rhs.priority;
-			}
-			if (p_lhs.registrationOrder != p_rhs.registrationOrder)
-			{
-				return p_lhs.registrationOrder < p_rhs.registrationOrder;
-			}
-			return p_lhs.declarationOrder < p_rhs.declarationOrder;
-		});
 		_sealed = true;
 	}
 
@@ -177,37 +103,13 @@ namespace spk
 	{
 		if (_commandsTaken)
 		{
-			throw std::logic_error("RenderPass commands may only be taken once");
+			throw std::logic_error("Render pass commands may only be taken once");
 		}
 		if (!_sealed)
 		{
-			throw std::logic_error("RenderPass commands can only be taken after sealing");
+			throw std::logic_error("Render pass commands can only be taken after sealing");
 		}
 		_commandsTaken = true;
-		std::vector<std::unique_ptr<spk::RenderCommand>> commands;
-		commands.reserve(commandCount());
-		for (auto &contribution : _contributions)
-		{
-			for (auto &command : contribution.commands)
-			{
-				commands.push_back(std::move(command));
-			}
-		}
-		return commands;
-	}
-
-	RenderContributionSink::RenderContributionSink(spk::RenderPass &p_pass, std::size_t p_contribution) noexcept :
-		_pass(&p_pass),
-		_contribution(p_contribution)
-	{
-	}
-
-	void RenderContributionSink::add(std::unique_ptr<spk::RenderCommand> p_command)
-	{
-		if (_pass == nullptr)
-		{
-			throw std::logic_error("Invalid render contribution sink");
-		}
-		_pass->_add(_contribution, std::move(p_command));
+		return std::move(_commands);
 	}
 }

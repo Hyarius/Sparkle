@@ -61,7 +61,7 @@ namespace spk
 		[[nodiscard]] const spk::DirectionalShadowSettings &directionalShadowSettings() const noexcept;
 
 		void prepareFrame(const spk::SceneRenderBuildContext &p_context) override;
-		void declarePasses(const spk::SceneRenderBuildContext &p_context, spk::RenderPassBucketPack &p_passes) override;
+		void declarePasses(const spk::SceneRenderBuildContext &p_context, spk::RenderPipeline &p_passes) override;
 		void contribute(const spk::SceneRenderBuildContext &p_context) override;
 	};
 }

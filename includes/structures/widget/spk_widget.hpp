@@ -52,8 +52,6 @@ namespace spk
 		spk::Vector2 _sizeRatio{1.0f, 1.0f};
 
 		mutable std::unique_ptr<spk::Viewport> _viewport;
-		spk::RenderPass::ScopeId _renderScope = spk::RenderPass::ScopeId::generate();
-
 		void _updateAbsoluteGeometryAndScissor();
 		void _updateSelfGeometryAndScissor();
 		void _computeRatio();

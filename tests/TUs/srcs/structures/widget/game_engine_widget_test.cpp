@@ -185,16 +185,16 @@ TEST(GameEngineWidgetTest, SharedPlanOrdersScenePassesBeforeWidgetOverlay)
 		{.frameBuffer = nullptr, .viewport = widget.viewport(), .activeTarget = true});
 	const auto diagnostics = plan.diagnostics();
 	ASSERT_EQ(diagnostics.size(), 4u);
-	EXPECT_EQ(diagnostics[0].key.type, spk::SceneRenderPasses::MainOpaque);
-	EXPECT_EQ(diagnostics[1].key.type, spk::SceneRenderPasses::MainTransparent);
-	EXPECT_EQ(diagnostics[2].key.type, spk::SceneRenderPasses::MainOverlay);
-	EXPECT_EQ(diagnostics[3].key.type, spk::WidgetRenderPasses::Overlay);
+	EXPECT_EQ(diagnostics[0].id, spk::SceneRenderPasses::MainOpaque);
+	EXPECT_EQ(diagnostics[1].id, spk::SceneRenderPasses::MainTransparent);
+	EXPECT_EQ(diagnostics[2].id, spk::SceneRenderPasses::MainOverlay);
+	EXPECT_EQ(diagnostics[3].id, spk::WidgetRenderPasses::Overlay);
 	EXPECT_TRUE(diagnostics[0].clear.color.has_value());
 	EXPECT_FALSE(diagnostics[1].clear.color.has_value());
 	EXPECT_FALSE(diagnostics[2].clear.color.has_value());
 }
 
-TEST(WidgetOverlayPassTest, RootWidgetsOwnDistinctOverlayScopes)
+TEST(WidgetOverlayPassTest, RootWidgetsUseTheSameStableOverlayId)
 {
 	spk::Widget first("First");
 	spk::Widget second("Second");
@@ -204,8 +204,8 @@ TEST(WidgetOverlayPassTest, RootWidgetsOwnDistinctOverlayScopes)
 	spk::RenderPlan secondPlan = second.buildRenderPlan({.frameBuffer = nullptr, .viewport = second.viewport(), .activeTarget = true});
 	ASSERT_EQ(firstPlan.size(), 1u);
 	ASSERT_EQ(secondPlan.size(), 1u);
-	EXPECT_EQ(firstPlan.passes()[0]->key().type, spk::WidgetRenderPasses::Overlay);
-	EXPECT_NE(firstPlan.passes()[0]->key().scope, secondPlan.passes()[0]->key().scope);
+	EXPECT_EQ(firstPlan.passes()[0]->id(), spk::WidgetRenderPasses::Overlay);
+	EXPECT_EQ(secondPlan.passes()[0]->id(), spk::WidgetRenderPasses::Overlay);
 }
 
 TEST(GameEngineWidgetTest, UsesExplicitSampleableColorAndRenderbufferDepthTarget)

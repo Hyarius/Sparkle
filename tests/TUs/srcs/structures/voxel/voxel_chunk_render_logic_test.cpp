@@ -37,8 +37,6 @@ TEST(VoxelChunkRenderLogic, TransparentChunksRenderAfterOpaqueActors)
 
 	EXPECT_EQ(opaqueChunks.priority(), actors.priority());
 	EXPECT_EQ(actors.priority(), transparentChunks.priority());
-	EXPECT_EQ(opaqueChunks.renderPriority(spk::SceneRenderPasses::MainOpaque), actors.renderPriority(spk::SceneRenderPasses::MainOpaque));
-	EXPECT_EQ(actors.renderPriority(spk::SceneRenderPasses::MainTransparent), transparentChunks.renderPriority(spk::SceneRenderPasses::MainTransparent));
 
 	spk::VoxelMap map(
 		registry,

@@ -13,18 +13,16 @@
 #include "structures/application/module/spk_render_module.hpp"
 #include "structures/application/module/spk_update_module.hpp"
 #include "structures/design_pattern/spk_contract_provider.hpp"
-#include "structures/system/device/runtime/spk_opengl_runtime.hpp"
 #include "structures/system/device/runtime/spk_platform_runtime.hpp"
 #include "structures/system/device/window/spk_window_host.hpp"
 #include "structures/system/device/window/spk_window_snapshot_manager.hpp"
+#include "structures/system/spk_profiler.hpp"
 #include "structures/system/thread/spk_thread_safe_contract.hpp"
 #include "structures/system/thread/spk_thread_safe_deque.hpp"
 
 namespace spk
 {
 	class WindowHandle;
-	class Profiler;
-
 	class Window
 	{
 	public:
@@ -72,7 +70,7 @@ namespace spk
 	private:
 		spk::Widget _rootWidget;
 		spk::WindowHost _host;
-		spk::Profiler *_profiler = nullptr;
+		spk::Profiler _profiler;
 
 		FrameModule _frameModule;
 		MouseModule _mouseModule;
@@ -133,7 +131,7 @@ namespace spk
 		friend class spk::WindowHandle;
 
 	public:
-		Window(std::shared_ptr<PlatformRuntime> p_platformRuntime, std::shared_ptr<GPUPlatformRuntime> p_gpuPlatformRuntime, Configuration p_configuration, spk::Profiler *p_profiler = nullptr);
+		Window(std::shared_ptr<PlatformRuntime> p_platformRuntime, Configuration p_configuration);
 		~Window();
 
 		[[nodiscard]] spk::WindowHost &host();

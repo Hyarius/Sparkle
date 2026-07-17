@@ -1,8 +1,8 @@
 #pragma once
 
-#include "structures/graphics/rendering/pass/spk_render_pass.hpp"
+#include <string_view>
 
 namespace spk::WidgetRenderPasses
 {
-	inline constexpr auto Overlay = spk::makeRenderPassTypeId("spk.widget.overlay");
+	inline constexpr std::string_view Overlay = "spk.widget.overlay";
 }

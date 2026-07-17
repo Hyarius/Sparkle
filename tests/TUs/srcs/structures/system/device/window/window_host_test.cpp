@@ -9,7 +9,7 @@
 
 TEST(WindowHostTest, ConstructorRejectsMissingDependencies)
 {
-	auto gpuPlatformRuntime = std::make_shared<sparkle_test::TestGPUPlatformRuntime>();
+	auto gpuPlatformRuntime = std::make_shared<sparkle_test::TestPlatformRuntime>();
 	auto frame = std::make_unique<sparkle_test::TestFrame>(sparkle_test::defaultRect(), "Window");
 
 	EXPECT_THROW(spk::WindowHost(nullptr, gpuPlatformRuntime), std::runtime_error);

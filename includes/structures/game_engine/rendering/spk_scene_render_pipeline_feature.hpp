@@ -5,7 +5,7 @@
 namespace spk
 {
 	struct SceneRenderBuildContext;
-	class RenderPassBucketPack;
+	class RenderPipeline;
 
 	class ISceneRenderPipelineFeature
 	{
@@ -15,7 +15,7 @@ namespace spk
 		{
 			(void)p_context;
 		}
-		virtual void declarePasses(const spk::SceneRenderBuildContext &p_context, spk::RenderPassBucketPack &p_passes)
+		virtual void declarePasses(const spk::SceneRenderBuildContext &p_context, spk::RenderPipeline &p_passes)
 		{
 			(void)p_context;
 			(void)p_passes;

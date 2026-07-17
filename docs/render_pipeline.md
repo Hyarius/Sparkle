@@ -1,194 +1,65 @@
-# Priority-sorted render-pass bucket pack
+# Render pipeline
 
-Sparkle constructs every frame in one `RenderPassBucketPack`. Scene features,
-component logics, and widgets all contribute to that shared per-frame pack; the
-pack sorts physical passes and lowers directly to the generic `RenderPlan`.
-There is no intermediate scene plan or semantic phase hierarchy.
-
-```text
-frame construction
-  -> RenderPassBucketPack
-    -> RenderPlan (inspectable, polymorphic pass ownership)
-      -> RenderUnit (move-owned render-thread snapshot)
-```
-
-The generic `structures/graphics/rendering` layer knows only pass identities,
-targets, clears, command contributions, plans, and units. It does not depend on
-components, cameras, scenes, lighting semantics, or widgets. A CTest check
-enforces that dependency direction.
-
-## Identity and lifetime
-
-`RenderPass::TypeId` is a stable 64-bit FNV-1a hash made from a canonical literal.
-It identifies a pass family such as `spk.scene.main_opaque`. A complete
-`RenderPass::Key` also contains:
-
-- `scope`: the stable lifetime ID of one scene renderer, root window, or capture;
-- `instance`: a repeated pass within that family and scope, such as a shadow
-  cascade.
-
-Thus two windows can both have `WidgetOverlay[0]`, and one scene can have
-`DirectionalShadow[0..2]`, without collisions. Scope IDs come from a monotonic
-generator and never expose owner addresses.
-
-Persistent code may retain pass IDs, names, default priorities, and factories.
-The command-bearing `RenderPass` instances are always new for each frame. After
-`RenderPassBucketPack::build()`, the pack is sealed, pass ownership moves into
-the plan, and retained contribution sinks reject mutation. The next frame starts
-with an empty pack, so an executing `RenderUnit` cannot observe next-frame
-changes.
-
-Creation and lookup are deliberately separate. Pipelines and features use
-`emplacePass`; contributors use `require`, `find`, or `passesOfType`. Duplicate
-complete keys and missing required passes are configuration errors and throw.
-Optional features use `find`/`passesOfType`, not exceptions as control flow.
-Typed lookup uses `dynamic_cast` and reports a deterministic type mismatch.
-
-## Ordering
-
-Lower numeric pass priority executes first. Equal priorities retain declaration
-order. The reserved ranges are:
+Sparkle builds one `RenderPipeline` per frame. A pipeline owns passes by a
+string ID and keeps an ordered view of the same objects. `build()` seals the
+passes, sorts them by `PriorizableTrait::priority()` (lower values first), and
+moves them into an immutable `RenderPlan`.
 
 ```text
-0..999       scene pre-main and shadow-like feature passes
-1000..1999   main scene geometry and scene-space overlays
-2000..2999   scene post-processing
-3000..3999   screen-space widget/UI overlay
-4000+        final presentation, capture, or debug passes
+frame construction -> RenderPipeline -> RenderPlan -> RenderUnit
 ```
 
-The defaults are `MainOpaque=1000`, `MainTransparent=1100`,
-`MainOverlay=1200`, `PostProcessingBase=2000`, and `WidgetOverlay=3000`.
-Pass-wide camera/light state uses the reserved contributor priority
-`RenderContributionPriorities::PassSetup=-100000`.
+## Passes
 
-## Scene lighting bindings
-
-`SceneLightingRenderFeature` publishes an immutable snapshot before geometry is
-collected. Its C++ binding contract lives in
-`spk_scene_gpu_bindings.hpp`: camera UBO `1`, model UBO `2`, lighting-header
-UBO `3`, and directional/point/spot `std430` SSBOs `4`/`5`/`6`. Texture unit
-`0` remains the material texture. The two 3D mesh shader families declare the
-same values directly because GLSL cannot include C++ headers. Light directions
-always represent ray travel from the light into the scene; the Lambert vector
-toward a directional light is therefore the negated stored direction.
-
-Inside one pass, contributions sort by contributor priority ascending, then
-logic/widget registration order. Commands within one contribution retain
-insertion order. Logic priority still controls update/event ordering and is
-independent of pass priority and pass-specific render priority.
-
-## Default passes and widgets
-
-Each scene scope installs `MainOpaque`, `MainTransparent`, and `MainOverlay`.
-Only opaque clears the scene framebuffer; transparent and scene overlay rebind
-the target without clearing it. Features may add typed shadow or post-processing
-passes at priorities in their ranges.
-
-Each root widget traversal installs one `WidgetOverlay` for its window/capture
-scope. Ordinary widget viewport/scissor and cached draw units become ordered
-contributions in that pass. `MainOverlay` is a scene-target extension point;
-`WidgetOverlay` is screen-space UI and executes after all scene and post passes.
-
-`GameEngineWidget` declares its scene passes against its owned off-screen
-framebuffer. Its cached widget unit contains only the flipped framebuffer image,
-which is contributed later in normal widget hierarchy order to `WidgetOverlay`:
-
-```text
-DirectionalShadow[*] -> MainOpaque -> MainTransparent -> MainOverlay
-  -> scene post processing -> WidgetOverlay (GameEngineWidget image + UI)
-```
-
-The active-target flag on `RenderTargetReference` is reserved for explicit
-capture/compatibility callers that already selected a target. Normal window and
-scene paths identify their target directly.
-
-## Adding a typed custom pass
+Passes are created with an ID, a priority, and a target/clear description:
 
 ```cpp
-inline constexpr auto SelectionMask =
-    spk::makeRenderPassTypeId("game.selection_mask");
+auto &opaque = passes.emplace<spk::RenderPass>(
+    "scene.main.opaque",
+    1000,
+    {.target = sceneTarget, .clear = sceneClear});
 
-class SelectionMaskPass : public spk::RenderPass
-{
-    std::uint32_t _layer;
-public:
-    SelectionMaskPass(spk::RenderPass::Key key, std::int32_t priority,
-        std::size_t order, std::string name,
-        spk::RenderPass::Description description, std::uint32_t layer)
-        : RenderPass(key, priority, order, std::move(name),
-              std::move(description)), _layer(layer) {}
-    std::uint32_t layer() const noexcept { return _layer; }
-};
-
-// Feature declaration (post-processing range).
-p_context.frame.passes.emplacePass<SelectionMaskPass>(
-    {.type = SelectionMask, .scope = p_context.sceneScope, .instance = 0},
-    spk::SceneRenderPriorities::PostProcessingBase + 20,
-    "SelectionMask",
-    {.debugName = "SelectionMask", .target = maskTarget, .clear = {}},
-    3u);
-
-// One component logic may contribute to opaque and the custom typed pass.
-auto &opaque = p_context.frame.passes.require(
-    {.type = spk::SceneRenderPasses::MainOpaque,
-     .scope = p_context.sceneScope});
-opaque.contribute(renderPriority(spk::SceneRenderPasses::MainOpaque),
-    p_context.contributorRegistrationOrder).emplace<DrawObjectCommand>(object);
-
-if (auto *mask = p_context.frame.passes.find<SelectionMaskPass>(
-        {.type = SelectionMask, .scope = p_context.sceneScope}); mask != nullptr)
-{
-    mask->contribute(renderPriority(SelectionMask),
-        p_context.contributorRegistrationOrder)
-        .emplace<DrawSelectionCommand>(object, mask->layer());
-}
+opaque.emplace<DrawObjectCommand>(object);
 ```
 
-Diagnostics expose type/scope/instance, debug and concrete type names, priority,
-declaration order, target/viewport, typed clear, contributor count, and command
-count. In the example, `SelectionMask` appears after the three main scene passes
-but before `WidgetOverlay`, regardless of feature registration order.
+IDs are unique within one pipeline. Use `require("...")` when a pass is
+required, `find("...")` for an optional pass, and `all<T>()` when a feature
+needs every pass of one concrete type (for example, all shadow cascades).
+Custom passes only need to derive from `RenderPass` and accept the standard
+`(id, priority, description)` constructor arguments before their own state.
 
-## Voxel mesh baking
+The pass itself owns only its command list and render description. It becomes
+immutable when the pipeline is built. Commands are consumed once while the
+render plan is compiled, so a plan cannot be changed by the next frame.
 
-`VoxelChunkRenderLogic` collects dirty chunk renderers each update and pushes one
-`VoxelChunkRenderer::buildMesh` task per chunk on the `spk::WorkerPool`; each task
-runs `spk::VoxelMesher::buildRenderMesh` and the results are published to the
-render side (probes: `Voxel/Bake (batch)`, `Voxel/Bake (chunk)`,
-`Voxel/Render assembly`).
+Lower priorities run first. The current convention is:
 
-Because bakes run concurrently, every acceleration structure the mesher uses is
-either immutable or owned by a single bake:
+```text
+below 1000   feature setup and shadow passes
+1000-1999    scene geometry and scene overlays
+2000-2999    post-processing
+3000-3999    widgets and UI
+4000+        presentation and debug passes
+```
 
-- **`spk::VoxelWorldToLocalPlaneTable`** (`spk_voxel_orientation.hpp`): the
-  world-plane → local-plane mapping over its full `(orientation, flip, plane)`
-  domain — 48 entries built at compile time from `spk::mapWorldPlaneToLocal`,
-  which remains the single source of truth. Read-only, shared by all threads.
-- **`spk::VoxelFaceRemnantCache`** (`spk_voxel_mesher_occlusion.hpp`): memoizes
-  the partial-occlusion remnant polygons per distinct
-  `(source face, occluder face)` pointer pair. Both faces are precomputed
-  transform variants at fixed addresses inside their initialized `VoxelShape`,
-  so the identity is stable. One cache instance is created per bake inside
-  `_buildRenderMesh` and destroyed with it — no synchronization, no sharing.
-  Memory is bounded by the distinct adjacency pairs of one chunk (the full
-  registry-wide cross product would grow quadratically with the shape count,
-  fluids register many states, and most pairs never occur in a given chunk;
-  the per-bake cache was chosen for that reason).
-- **Neighbor snapshot**: in-bounds neighbor reads are flat-index reads; external
-  cells live in six per-face slabs sized to the face area (external cells are
-  only ever queried one step outside the grid along one axis). An absent
-  external cell reads as empty; without a world lookup all external cells are
-  empty. Per-bake, immutable after construction.
-- **Plan vectors**: visible polygons are planned as lightweight descriptors
-  (polygon pointer + offset + alpha) into vectors reserved from a per-shape
-  polygon-count estimate. Referenced polygons live in the shape's transform
-  variants or in the bake's remnant cache, both of which outlive emission.
+The default scene passes are `MainOpaque` (1000), `MainTransparent` (1100),
+and `MainOverlay` (1200). The default widget pass is `WidgetOverlay` (3000).
 
-Enclosure (`cellIsFullyEnclosed`) is only probed for shapes that actually own
-inner faces; full cubes skip it entirely.
+## Diagnostics
 
-None of this changes the emitted geometry, which `voxel_mesher_test.cpp`
-specifies (occlusion and enclosure behavior per shape class, plus the remnant
-cache agreeing with a fresh subtraction); `voxel_render_performance_test.cpp`
-guards the throughput (8×8 chunk square and single-chunk budgets).
+`RenderPipeline::diagnostics()` and `RenderPlan::diagnostics()` expose the ID,
+priority, target state, viewport, clear state, and command count. There is no
+separate type ID, scope ID, contribution sink, or contributor ordering layer.
+If a feature needs multiple instances, it gives each pass a distinct string
+ID, such as `scene.shadow.cascade.0`.
+
+## Render context
+
+`RenderContext` is the OpenGL lifetime and state bridge for a window. Its
+context ID and registry let OpenGL objects find the context that owns them;
+the thread-local `current()` identifies the context bound to the calling
+thread. The release queue defers destruction of GL objects until that context
+is current. The binding cache avoids redundant program, vertex-array, and
+uniform-buffer binds. These pieces are required by OpenGL resource lifetime
+and state tracking; the profiler is intentionally owned by `Window` and is
+not part of `RenderContext`.

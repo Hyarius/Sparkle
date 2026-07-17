@@ -4,7 +4,7 @@
 #include <stdexcept>
 
 #include "structures/system/device/window/spk_frame.hpp"
-#include "structures/system/device/runtime/spk_opengl_runtime.hpp"
+#include "structures/system/device/runtime/spk_platform_runtime.hpp"
 #include "structures/graphics/rendering/context/spk_render_context.hpp"
 #include "structures/system/device/window/spk_surface_state.hpp"
 
@@ -47,7 +47,7 @@ namespace
 		void notifyResize(const spk::Rect2D& p_rect) override { surfaceState()->setRect(p_rect); }
 	};
 
-	class FrameARuntime : public spk::GPUPlatformRuntime
+	class FrameARuntime : public spk::PlatformRuntime
 	{
 	public:
 		std::unique_ptr<spk::RenderContext> createRenderContext(spk::IFrame& p_frame) override
@@ -62,14 +62,14 @@ namespace
 	};
 }
 
-TEST(GPUPlatformRuntimeTest, RequireFrameDoesNotThrowOnMatchingType)
+TEST(PlatformRuntimeTest, RequireFrameDoesNotThrowOnMatchingType)
 {
 	FrameARuntime runtime;
 	FrameA frame;
 	EXPECT_NO_THROW(runtime.createRenderContext(frame));
 }
 
-TEST(GPUPlatformRuntimeTest, RequireFrameThrowsOnMismatchedType)
+TEST(PlatformRuntimeTest, RequireFrameThrowsOnMismatchedType)
 {
 	FrameARuntime runtime;
 	FrameB frame;

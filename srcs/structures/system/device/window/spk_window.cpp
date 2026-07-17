@@ -248,10 +248,9 @@ namespace spk
 		}
 	}
 
-	Window::Window(std::shared_ptr<PlatformRuntime> p_platformRuntime, std::shared_ptr<GPUPlatformRuntime> p_gpuPlatformRuntime, Configuration p_configuration, spk::Profiler *p_profiler) :
+	Window::Window(std::shared_ptr<PlatformRuntime> p_platformRuntime, Configuration p_configuration) :
 		_rootWidget(":/" + p_configuration.title + "/RootWidget", nullptr),
-		_host(createFrame(p_platformRuntime, p_configuration.rect, p_configuration.title), std::move(p_gpuPlatformRuntime)),
-		_profiler(p_profiler)
+		_host(createFrame(p_platformRuntime, p_configuration.rect, p_configuration.title), p_platformRuntime)
 	{
 		_rootWidget.setGeometry(p_configuration.rect.atOrigin());
 		_rootWidget.activate();
@@ -261,7 +260,7 @@ namespace spk
 		_keyboardModule.bind(&_rootWidget);
 		_updateModule.bind(&_rootWidget);
 		_updateModule.bindInputs(&_mouseModule.mouse(), &_keyboardModule.keyboard());
-		_updateModule.bindProfiler(_profiler);
+		_updateModule.bindProfiler(&_profiler);
 
 		_frameEventQueueContract = _host.subscribeToFrameEvents(
 			[this](const spk::FrameEventRecord &p_event) {
@@ -420,7 +419,6 @@ namespace spk
 		}
 
 		spk::RenderContext &renderContext = _host.renderContext();
-		renderContext.setProfiler(_profiler);
 		_renderModule.render(renderContext);
 
 		_host.present();

@@ -18,7 +18,7 @@
 #include "structures/graphics/rendering/command/spk_directional_shadow_update_render_command.hpp"
 #include "structures/graphics/rendering/spk_scene_gpu_bindings.hpp"
 #include "structures/graphics/rendering/spk_scene_lighting_gpu_data.hpp"
-#include "structures/graphics/rendering/pass/spk_render_pass_bucket_pack.hpp"
+#include "structures/graphics/rendering/pipeline/spk_render_pipeline.hpp"
 #include "structures/graphics/spk_shader_storage_buffer_object.hpp"
 #include "structures/graphics/spk_uniform_buffer_object.hpp"
 #include "structures/graphics/spk_framebuffer_object.hpp"
@@ -197,22 +197,21 @@ namespace spk
 		if (_frame == nullptr) return;
 		for (const auto type : {spk::SceneRenderPasses::MainOpaque, spk::SceneRenderPasses::MainTransparent, spk::SceneRenderPasses::MainOverlay})
 		{
-			auto &pass = context.frame.passes.require({.type = type, .scope = context.sceneScope, .instance = 0});
-			pass.contribute(spk::RenderContributionPriorities::PassSetup, 0).emplace<spk::SceneLightingUpdateRenderCommand>(_frame->header, _frame->directional, _frame->point, _frame->spot);
+			auto &pass = context.frame.passes.require(type);
+			pass.emplace<spk::SceneLightingUpdateRenderCommand>(_frame->header, _frame->directional, _frame->point, _frame->spot);
 			std::array<std::shared_ptr<const spk::FrameBufferObject>, 4> targets{};
 			for (std::size_t index = 0; index < _frame->shadowTargets.size() && index < targets.size(); ++index) targets[index] = _frame->shadowTargets[index];
-			pass.contribute(spk::RenderContributionPriorities::PassSetup, 0).emplace<spk::DirectionalShadowUpdateRenderCommand>(_frame->shadowBuffer, std::move(targets));
+			pass.emplace<spk::DirectionalShadowUpdateRenderCommand>(_frame->shadowBuffer, std::move(targets));
 		}
 	}
 
-	void SceneLightingRenderFeature::declarePasses(const spk::SceneRenderBuildContext &context, spk::RenderPassBucketPack &passes)
+	void SceneLightingRenderFeature::declarePasses(const spk::SceneRenderBuildContext &context, spk::RenderPipeline &passes)
 	{
 		if (_frame == nullptr || _frame->cascadeCount == 0) return;
-		passes.registerPassType(spk::LightingRenderPasses::DirectionalShadow, "spk.lighting.directional_shadow");
 		for (std::size_t index = 0; index < _frame->cascadeCount; ++index) {
 			const std::string name = "DirectionalShadow[" + std::to_string(index) + "]";
 			auto target = _frame->shadowTargets[index];
-			passes.emplacePass<spk::ShadowRenderPass>({.type = spk::LightingRenderPasses::DirectionalShadow, .scope = context.sceneScope, .instance = static_cast<std::uint32_t>(index)}, spk::SceneRenderPriorities::ShadowBase + static_cast<std::int32_t>(index), name, {.debugName = name, .target = {.ownedFrameBuffer = target, .frameBuffer = target.get(), .viewport = target->viewport()}, .clear = {.depth = 1.0f}}, static_cast<std::uint32_t>(index), _frame->shadow.lightViewProjection[index]);
+			passes.emplace<spk::ShadowRenderPass>(name, spk::SceneRenderPriorities::ShadowBase + static_cast<std::int32_t>(index), {.target = {.ownedFrameBuffer = target, .frameBuffer = target.get(), .viewport = target->viewport()}, .clear = {.depth = 1.0f}}, static_cast<std::uint32_t>(index), _frame->shadow.lightViewProjection[index]);
 		}
 	}
 }

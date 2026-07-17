@@ -77,8 +77,8 @@ TEST(TextureMeshRenderLogic, OneCollectionSeparatesOpaqueAndTranslucentQueues)
 	spk::FrameBufferObject target(spk::FrameBufferObject::colorTarget({16, 16}));
 	spk::RenderPlan plan = engine.buildRenderPlan(requestFor(target));
 	ASSERT_EQ(plan.size(), 3u);
-	EXPECT_EQ(plan.passes()[0]->key().type, spk::SceneRenderPasses::MainOpaque);
-	EXPECT_EQ(plan.passes()[1]->key().type, spk::SceneRenderPasses::MainTransparent);
+	EXPECT_EQ(plan.passes()[0]->id(), spk::SceneRenderPasses::MainOpaque);
+	EXPECT_EQ(plan.passes()[1]->id(), spk::SceneRenderPasses::MainTransparent);
 	EXPECT_EQ(meshDrawCount(*plan.passes()[0]), 1u);
 	EXPECT_EQ(meshDrawCount(*plan.passes()[1]), 1u);
 	EXPECT_EQ(spk::TextureMeshRenderLogic::lastMeshCount(), 2u);

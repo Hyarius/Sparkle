@@ -8,7 +8,7 @@
 
 #include "structures/graphics/rendering/context/spk_render_context.hpp"
 #include "structures/math/spk_rect_2d.hpp"
-#include "structures/system/device/runtime/spk_opengl_runtime.hpp"
+#include "structures/system/device/runtime/spk_platform_runtime.hpp"
 #include "structures/system/device/window/spk_frame.hpp"
 
 namespace spk
@@ -17,7 +17,7 @@ namespace spk
 	{
 	private:
 		std::unique_ptr<IFrame> _frame;
-		std::shared_ptr<GPUPlatformRuntime> _gpuPlatformRuntime;
+		std::shared_ptr<PlatformRuntime> _platformRuntime;
 		std::unique_ptr<RenderContext> _renderContext;
 		std::thread::id _platformThreadID;
 		mutable std::mutex _renderThreadMutex;
@@ -30,7 +30,7 @@ namespace spk
 		[[nodiscard]] bool _ensureRenderContextLocked();
 
 	public:
-		WindowHost(std::unique_ptr<IFrame> p_frame, std::shared_ptr<GPUPlatformRuntime> p_gpuPlatformRuntime);
+		WindowHost(std::unique_ptr<IFrame> p_frame, std::shared_ptr<PlatformRuntime> p_platformRuntime);
 		~WindowHost();
 
 		[[nodiscard]] bool isPlatformThread() const;

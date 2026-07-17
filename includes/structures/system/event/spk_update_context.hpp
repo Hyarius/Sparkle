@@ -12,7 +12,7 @@ namespace spk
 
 	// Per-tick context handed down the widget tree (and into every ComponentLogic)
 	// during the update pass. Carries the frame timing plus the shared input devices
-	// and a non-owning handle to the application-wide profiler, so any update-side
+	// and a non-owning handle to the owning window's profiler, so any update-side
 	// code can record timings without reaching for a global.
 	struct UpdateContext
 	{

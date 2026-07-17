@@ -205,16 +205,6 @@ namespace spk
 		return _id;
 	}
 
-	void RenderContext::setProfiler(spk::Profiler *p_profiler) noexcept
-	{
-		_profiler = p_profiler;
-	}
-
-	spk::Profiler *RenderContext::profiler() const noexcept
-	{
-		return _profiler;
-	}
-
 	void RenderContext::scheduleRelease(std::unique_ptr<spk::OpenGL::Object> p_object)
 	{
 		if (p_object == nullptr)

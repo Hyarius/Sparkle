@@ -7,7 +7,7 @@
 
 #include "structures/game_engine/rendering/spk_scene_render_build_context.hpp"
 #include "structures/game_engine/rendering/spk_scene_render_pipeline_feature.hpp"
-#include "structures/graphics/rendering/pass/spk_render_pass_bucket_pack.hpp"
+#include "structures/graphics/rendering/pipeline/spk_render_pipeline.hpp"
 
 namespace spk
 {
@@ -49,7 +49,6 @@ namespace spk
 		[[nodiscard]] std::size_t featureCount() const noexcept;
 		void buildPasses(
 			spk::RenderFrameBuildContext &p_frame,
-			spk::RenderPass::ScopeId p_sceneScope,
 			const spk::SceneRenderFrameRequest &p_request,
 			spk::ComponentLogicRegistry &p_logics,
 			spk::ComponentRegistry &p_components,

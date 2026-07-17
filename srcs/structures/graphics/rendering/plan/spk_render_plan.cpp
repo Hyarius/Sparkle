@@ -2,7 +2,6 @@
 
 #include <array>
 #include <stdexcept>
-#include <typeinfo>
 #include <utility>
 
 #include <GL/glew.h>
@@ -16,16 +15,12 @@ namespace spk
 	spk::RenderPassDiagnostics makeRenderPassDiagnostics(const spk::RenderPass &p_pass)
 	{
 		return {
-			.key = p_pass.key(),
-			.debugName = p_pass.debugName(),
-			.concreteType = typeid(p_pass).name(),
+			.id = p_pass.id(),
 			.priority = p_pass.priority(),
-			.declarationOrder = p_pass.declarationOrder(),
 			.defaultTarget = p_pass.description().target.frameBuffer == nullptr,
 			.activeTarget = p_pass.description().target.activeTarget,
 			.viewport = p_pass.description().target.viewport,
 			.clear = p_pass.description().clear,
-			.contributorCount = p_pass.contributorCount(),
 			.commandCount = p_pass.commandCount()};
 	}
 
@@ -84,7 +79,7 @@ namespace spk
 		}
 		for (const auto &pass : _passes)
 		{
-			validateRenderPassDescription(pass->description());
+			validateRenderPassDescription(pass->description(), pass->id());
 		}
 		_compiled = true;
 

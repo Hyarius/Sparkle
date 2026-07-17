@@ -23,7 +23,7 @@ namespace sparkle_test
 	{
 	private:
 		static inline spk::PlatformRuntime* s_platformRuntime = nullptr;
-		static inline spk::GPUPlatformRuntime* s_gpuRuntime = nullptr;
+		static inline spk::PlatformRuntime* s_gpuRuntime = nullptr;
 		static inline spk::IFrame* s_frame = nullptr;
 		static inline spk::RenderContext* s_renderContext = nullptr;
 
@@ -33,7 +33,7 @@ namespace sparkle_test
 			if (s_platformRuntime == nullptr)
 			{
 				s_platformRuntime = new spk::PlatformRuntime();
-				s_gpuRuntime = new spk::GPUPlatformRuntime();
+				s_gpuRuntime = new spk::PlatformRuntime();
 				s_frame = s_platformRuntime->createFrame(spk::Rect2D(0, 0, 1024, 1024), "Sparkle OpenGL wrapper test").release();
 				s_frame->hide();
 				s_renderContext = s_gpuRuntime->createRenderContext(*s_frame).release();
@@ -71,7 +71,7 @@ namespace sparkle_test
 			return *s_renderContext;
 		}
 
-		spk::GPUPlatformRuntime& gpuRuntime()
+		spk::PlatformRuntime& gpuRuntime()
 		{
 			return *s_gpuRuntime;
 		}

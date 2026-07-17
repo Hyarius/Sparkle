@@ -83,7 +83,7 @@ TEST(RenderContextTest, ConstructingWithSurfaceStateSharesValidityWithTheSurface
 
 TEST(GPUPlatformTest, CreateRenderContextReceivesFrameReference)
 {
-	sparkle_test::TestGPUPlatformRuntime gpuPlatformRuntime;
+	sparkle_test::TestPlatformRuntime gpuPlatformRuntime;
 	sparkle_test::TestFrame frame(sparkle_test::defaultRect(), "Frame");
 
 	std::unique_ptr<spk::RenderContext> context = gpuPlatformRuntime.createRenderContext(frame);
@@ -97,7 +97,7 @@ TEST(GPUPlatformTest, CreateRenderContextReceivesFrameReference)
 
 TEST(GPUPlatformTest, RuntimeCanBeConfiguredToReturnNullContext)
 {
-	sparkle_test::TestGPUPlatformRuntime gpuPlatformRuntime;
+	sparkle_test::TestPlatformRuntime gpuPlatformRuntime;
 	sparkle_test::TestFrame frame(sparkle_test::defaultRect(), "Frame");
 	gpuPlatformRuntime.returnNullContext = true;
 
@@ -111,7 +111,7 @@ TEST(GPUPlatformTest, RuntimeCanBeConfiguredToReturnNullContext)
 
 TEST(GPUPlatformTest, WaitUntilWorkDoneIsTrackedByTestRuntime)
 {
-	sparkle_test::TestGPUPlatformRuntime gpuPlatformRuntime;
+	sparkle_test::TestPlatformRuntime gpuPlatformRuntime;
 
 	gpuPlatformRuntime.waitUntilWorkDone();
 	gpuPlatformRuntime.waitUntilWorkDone();

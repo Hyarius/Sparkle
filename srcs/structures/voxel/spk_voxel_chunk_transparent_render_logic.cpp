@@ -98,11 +98,10 @@ namespace spk
 			return squaredDistance(p_left) > squaredDistance(p_right);
 		});
 
-		auto &pass = p_context.frame.passes.require({.type = spk::SceneRenderPasses::MainTransparent, .scope = p_context.sceneScope});
-		auto commands = pass.contribute(renderPriority(spk::SceneRenderPasses::MainTransparent), p_context.contributorRegistrationOrder);
+		auto &pass = p_context.frame.passes.require(spk::SceneRenderPasses::MainTransparent);
 		for (const spk::VoxelChunkRenderer *renderer : _visibleChunks)
 		{
-			commands.add(std::make_unique<spk::DrawVoxelMesh3DRenderCommand>(renderer->sharedTransparentMesh(), _cache.at(renderer).modelUBO, _sampler, true));
+			pass.add(std::make_unique<spk::DrawVoxelMesh3DRenderCommand>(renderer->sharedTransparentMesh(), _cache.at(renderer).modelUBO, _sampler, true));
 		}
 		_pruneUnloadedChunks();
 	}

@@ -16,7 +16,7 @@
 #include "structures/game_engine/spk_texture_mesh_renderer_3d.hpp"
 #include "structures/game_engine/spk_transform_3d.hpp"
 #include "structures/game_engine/rendering/spk_scene_render_passes.hpp"
-#include "structures/graphics/rendering/pass/spk_render_pass_bucket_pack.hpp"
+#include "structures/graphics/rendering/pipeline/spk_render_pipeline.hpp"
 #include "structures/graphics/rendering/command/spk_draw_texture_mesh_3d_render_command.hpp"
 #include "structures/graphics/rendering/command/spk_draw_texture_mesh_shadow_render_command.hpp"
 #include "structures/game_engine/rendering/spk_shadow_render_pass.hpp"
@@ -141,8 +141,8 @@ namespace spk
 			(p_renderer.translucent() ? _translucentCommands : _opaqueCommands).push_back(std::move(command));
 			if (!p_renderer.translucent() && p_renderer.castsShadows())
 			{
-				for (spk::ShadowRenderPass &shadow : p_context.frame.passes.passesOfType<spk::ShadowRenderPass>(spk::LightingRenderPasses::DirectionalShadow, p_context.sceneScope))
-					shadow.contribute(renderPriority(spk::LightingRenderPasses::DirectionalShadow), p_context.contributorRegistrationOrder).emplace<spk::DrawTextureMeshShadowRenderCommand>(p_renderer.mesh(), cached.modelUBO, shadow.lightViewProjection());
+				for (spk::ShadowRenderPass &shadow : p_context.frame.passes.all<spk::ShadowRenderPass>())
+					shadow.emplace<spk::DrawTextureMeshShadowRenderCommand>(p_renderer.mesh(), cached.modelUBO, shadow.lightViewProjection());
 			}
 		}
 
@@ -157,17 +157,15 @@ namespace spk
 				return;
 			}
 
-			auto &opaquePass = p_context.frame.passes.require({.type = spk::SceneRenderPasses::MainOpaque, .scope = p_context.sceneScope});
-			auto opaque = opaquePass.contribute(renderPriority(spk::SceneRenderPasses::MainOpaque), p_context.contributorRegistrationOrder);
+			auto &opaquePass = p_context.frame.passes.require(spk::SceneRenderPasses::MainOpaque);
 			for (auto &command : _opaqueCommands)
 			{
-				opaque.add(std::move(command));
+				opaquePass.add(std::move(command));
 			}
-			auto &transparentPass = p_context.frame.passes.require({.type = spk::SceneRenderPasses::MainTransparent, .scope = p_context.sceneScope});
-			auto transparent = transparentPass.contribute(renderPriority(spk::SceneRenderPasses::MainTransparent), p_context.contributorRegistrationOrder);
+			auto &transparentPass = p_context.frame.passes.require(spk::SceneRenderPasses::MainTransparent);
 			for (auto &command : _translucentCommands)
 			{
-				transparent.add(std::move(command));
+				transparentPass.add(std::move(command));
 			}
 			_opaqueCommands.clear();
 			_translucentCommands.clear();

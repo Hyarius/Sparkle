@@ -9,7 +9,7 @@
 
 #include <Windows.h>
 
-#include "structures/system/device/runtime/spk_opengl_runtime.hpp"
+#include "structures/system/device/runtime/spk_platform_runtime.hpp"
 #include "structures/system/win32/spk_winapi_platform_runtime.hpp"
 #include "structures/system/device/window/window_test_utils.hpp"
 
@@ -35,7 +35,7 @@ namespace
 
 TEST(OpenGLRuntimeTest, CreateRenderContextRejectsNonWinApiFrames)
 {
-	spk::GPUPlatformRuntime runtime;
+	spk::PlatformRuntime runtime;
 	sparkle_test::TestFrame frame(spk::Rect2D(0, 0, 32, 32), "NonWinApi");
 
 	EXPECT_THROW(runtime.createRenderContext(frame), std::runtime_error);
@@ -43,7 +43,7 @@ TEST(OpenGLRuntimeTest, CreateRenderContextRejectsNonWinApiFrames)
 
 TEST(OpenGLRuntimeTest, SaveScreenshotRejectsEmptyCaptureRects)
 {
-	spk::GPUPlatformRuntime runtime;
+	spk::PlatformRuntime runtime;
 	const std::filesystem::path outputPath = openglEdgeCaseResultDirectory() / "empty.png";
 
 	EXPECT_THROW(runtime.saveScreenshot(outputPath, spk::Rect2D(0, 0, 0, 1)), std::runtime_error);
@@ -54,7 +54,7 @@ TEST(OpenGLRuntimeTest, SaveScreenshotRejectsEmptyCaptureRects)
 TEST(OpenGLRuntimeTest, SaveScreenshotThrowsWhenPngCannotBeWritten)
 {
 	spk::PlatformRuntime platformRuntime;
-	spk::GPUPlatformRuntime gpuRuntime;
+	spk::PlatformRuntime gpuRuntime;
 	std::unique_ptr<spk::IFrame> frame = platformRuntime.createFrame(spk::Rect2D(300, 300, 16, 16), "ScreenshotFailure");
 	ASSERT_NE(frame, nullptr);
 
@@ -76,7 +76,7 @@ TEST(OpenGLRuntimeTest, SaveScreenshotThrowsWhenPngCannotBeWritten)
 TEST(OpenGLRuntimeTest, SaveScreenshotUsesCurrentViewportWhenNoRectIsProvided)
 {
 	spk::PlatformRuntime platformRuntime;
-	spk::GPUPlatformRuntime gpuRuntime;
+	spk::PlatformRuntime gpuRuntime;
 	std::unique_ptr<spk::IFrame> frame = platformRuntime.createFrame(spk::Rect2D(320, 320, 8, 6), "ViewportScreenshot");
 	ASSERT_NE(frame, nullptr);
 

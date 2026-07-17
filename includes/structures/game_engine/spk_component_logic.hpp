@@ -5,7 +5,6 @@
 #include <cstddef>
 #include <optional>
 #include <stdexcept>
-#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -16,7 +15,7 @@
 #include "structures/game_engine/spk_component.hpp"
 #include "structures/game_engine/spk_component_registry.hpp"
 #include "structures/graphics/rendering/unit/spk_render_unit_builder.hpp"
-#include "structures/graphics/rendering/pass/spk_render_pass_bucket_pack.hpp"
+#include "structures/graphics/rendering/pipeline/spk_render_pipeline.hpp"
 #include "structures/system/event/spk_events.hpp"
 #include "structures/system/event/spk_update_context.hpp"
 
@@ -56,9 +55,6 @@ namespace spk
 	protected:
 		IComponentLogic();
 
-	private:
-		std::unordered_map<spk::RenderPass::TypeId, spk::PriorizableTrait::Priority> _renderPriorities;
-
 	public:
 		~IComponentLogic() override;
 
@@ -68,16 +64,6 @@ namespace spk
 		IComponentLogic(IComponentLogic &&) noexcept = delete;
 		IComponentLogic &operator=(IComponentLogic &&) noexcept = delete;
 
-		void setRenderPriority(spk::RenderPass::TypeId p_passType, spk::PriorizableTrait::Priority p_priority)
-		{
-			_renderPriorities[p_passType] = p_priority;
-		}
-
-		[[nodiscard]] spk::PriorizableTrait::Priority renderPriority(spk::RenderPass::TypeId p_passType) const noexcept
-		{
-			auto iterator = _renderPriorities.find(p_passType);
-			return iterator == _renderPriorities.end() ? priority() : iterator->second;
-		}
 	};
 
 	template <typename TComponent>
@@ -309,11 +295,10 @@ namespace spk
 			{
 				return;
 			}
-			auto &pass = p_context.frame.passes.require({.type = spk::SceneRenderPasses::MainOpaque, .scope = p_context.sceneScope});
-			auto commands = pass.contribute(renderPriority(spk::SceneRenderPasses::MainOpaque), p_context.contributorRegistrationOrder);
+			auto &pass = p_context.frame.passes.require(spk::SceneRenderPasses::MainOpaque);
 			for (auto &command : unit.takeCommands())
 			{
-				commands.add(std::move(command));
+				pass.add(std::move(command));
 			}
 		}
 

@@ -4,9 +4,9 @@
 
 namespace spk
 {
-	WindowHost::WindowHost(std::unique_ptr<IFrame> p_frame, std::shared_ptr<GPUPlatformRuntime> p_gpuPlatformRuntime) :
+	WindowHost::WindowHost(std::unique_ptr<IFrame> p_frame, std::shared_ptr<PlatformRuntime> p_platformRuntime) :
 		_frame(std::move(p_frame)),
-		_gpuPlatformRuntime(std::move(p_gpuPlatformRuntime)),
+		_platformRuntime(std::move(p_platformRuntime)),
 		_platformThreadID(std::this_thread::get_id())
 	{
 		if (_frame == nullptr)
@@ -14,9 +14,9 @@ namespace spk
 			throw std::runtime_error("spk::WindowHost requires a valid spk::IFrame");
 		}
 
-		if (_gpuPlatformRuntime == nullptr)
+		if (_platformRuntime == nullptr)
 		{
-			throw std::runtime_error("spk::WindowHost requires a valid spk::GPUPlatformRuntime");
+			throw std::runtime_error("spk::WindowHost requires a valid spk::PlatformRuntime");
 		}
 	}
 
@@ -92,7 +92,7 @@ namespace spk
 			return false;
 		}
 
-		_renderContext = _gpuPlatformRuntime->createRenderContext(*_frame);
+		_renderContext = _platformRuntime->createRenderContext(*_frame);
 		if (_renderContext == nullptr)
 		{
 			throw std::runtime_error("spk::WindowHost failed to create its render context");

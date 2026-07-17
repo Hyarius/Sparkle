@@ -1,6 +1,8 @@
 #include <gtest/gtest.h>
 
 #include <memory>
+#include <string>
+#include <string_view>
 #include <vector>
 
 #include "structures/game_engine/rendering/spk_scene_render_pipeline.hpp"
@@ -8,12 +10,12 @@
 #include "structures/game_engine/rendering/spk_scene_render_priorities.hpp"
 #include "structures/game_engine/rendering/spk_shadow_render_pass.hpp"
 #include "structures/game_engine/spk_component_logic_registry.hpp"
-#include "structures/graphics/rendering/pass/spk_render_pass_bucket_pack.hpp"
+#include "structures/graphics/rendering/pipeline/spk_render_pipeline.hpp"
 #include "structures/graphics/spk_framebuffer_object.hpp"
 
 namespace
 {
-	inline constexpr auto PostPass = spk::makeRenderPassTypeId("spk.test.post");
+	inline constexpr std::string_view PostPass = "spk.test.post";
 
 	class MarkerCommand : public spk::RenderCommand
 	{
@@ -35,14 +37,12 @@ namespace
 		void _executeRender(const spk::SceneRenderBuildContext &p_context) override
 		{
 			++collections;
-			auto &opaque = p_context.frame.passes.require({.type = spk::SceneRenderPasses::MainOpaque, .scope = p_context.sceneScope});
-			opaque.contribute(renderPriority(spk::SceneRenderPasses::MainOpaque), p_context.contributorRegistrationOrder).emplace<MarkerCommand>(1000);
-			for (spk::ShadowRenderPass &shadow : p_context.frame.passes.passesOfType<spk::ShadowRenderPass>(
-					 spk::LightingRenderPasses::DirectionalShadow, p_context.sceneScope))
+			auto &opaque = p_context.frame.passes.require(spk::SceneRenderPasses::MainOpaque);
+			opaque.emplace<MarkerCommand>(1000);
+			for (spk::ShadowRenderPass &shadow : p_context.frame.passes.all<spk::ShadowRenderPass>())
 			{
 				cascades.push_back(shadow.cascadeIndex());
-				shadow.contribute(renderPriority(spk::LightingRenderPasses::DirectionalShadow), p_context.contributorRegistrationOrder)
-					.emplace<MarkerCommand>(static_cast<int>(shadow.cascadeIndex()));
+				shadow.emplace<MarkerCommand>(static_cast<int>(shadow.cascadeIndex()));
 			}
 		}
 	};
@@ -61,20 +61,20 @@ namespace
 			}
 		}
 
-		void declarePasses(const spk::SceneRenderBuildContext &p_context, spk::RenderPassBucketPack &p_passes) override
+		void declarePasses(const spk::SceneRenderBuildContext &p_context, spk::RenderPipeline &p_passes) override
 		{
 			for (std::uint32_t cascade = 0; cascade < _targets.size(); ++cascade)
 			{
 				const std::string name = "DirectionalShadow[" + std::to_string(cascade) + "]";
-				p_passes.emplacePass<spk::ShadowRenderPass>(
-					{.type = spk::LightingRenderPasses::DirectionalShadow, .scope = p_context.sceneScope, .instance = cascade},
-					spk::SceneRenderPriorities::ShadowBase + static_cast<int>(cascade), name,
-					{.debugName = name, .target = {.frameBuffer = _targets[cascade].get(), .viewport = _targets[cascade]->viewport()}, .clear = {.depth = 1.0f}},
+				p_passes.emplace<spk::ShadowRenderPass>(
+					name,
+					spk::SceneRenderPriorities::ShadowBase + static_cast<int>(cascade),
+					{.target = {.frameBuffer = _targets[cascade].get(), .viewport = _targets[cascade]->viewport()}, .clear = {.depth = 1.0f}},
 					cascade, spk::Matrix4x4::identity());
 			}
-			p_passes.emplacePass<spk::RenderPass>(
-				{.type = PostPass, .scope = p_context.sceneScope}, spk::SceneRenderPriorities::PostProcessingBase,
-				"Post", {.debugName = "Post", .target = p_context.request.mainTarget, .clear = {}});
+			p_passes.emplace<spk::RenderPass>(
+				std::string(PostPass), spk::SceneRenderPriorities::PostProcessingBase,
+				{.target = p_context.request.mainTarget, .clear = {}});
 		}
 	};
 
@@ -88,47 +88,45 @@ namespace
 TEST(SceneRenderPipelineTest, DefaultsAreDirectScopedPhysicalPasses)
 {
 	spk::FrameBufferObject target(spk::FrameBufferObject::colorTarget({8, 8}));
-	spk::RenderPassBucketPack passes;
+	spk::RenderPipeline passes;
 	spk::RenderFrameBuildContext frame{.passes = passes};
 	spk::ComponentLogicRegistry logics;
 	spk::ComponentRegistry components;
 	spk::SceneRenderPipeline pipeline;
-	const spk::RenderPass::ScopeId scope{9};
-	pipeline.buildPasses(frame, scope, requestFor(target), logics, components);
+	pipeline.buildPasses(frame, requestFor(target), logics, components);
 	ASSERT_EQ(passes.size(), 3u);
-	EXPECT_TRUE(passes.require({.type = spk::SceneRenderPasses::MainOpaque, .scope = scope}).description().clear.color.has_value());
-	EXPECT_FALSE(passes.require({.type = spk::SceneRenderPasses::MainTransparent, .scope = scope}).description().clear.color.has_value());
-	EXPECT_FALSE(passes.require({.type = spk::SceneRenderPasses::MainOverlay, .scope = scope}).description().clear.color.has_value());
+	EXPECT_TRUE(passes.require(spk::SceneRenderPasses::MainOpaque).description().clear.color.has_value());
+	EXPECT_FALSE(passes.require(spk::SceneRenderPasses::MainTransparent).description().clear.color.has_value());
+	EXPECT_FALSE(passes.require(spk::SceneRenderPasses::MainOverlay).description().clear.color.has_value());
 	spk::RenderPlan plan = passes.build();
-	EXPECT_EQ(plan.diagnostics()[0].debugName, "MainOpaque");
-	EXPECT_EQ(plan.diagnostics()[2].debugName, "MainOverlay");
+	EXPECT_EQ(plan.diagnostics()[0].id, spk::SceneRenderPasses::MainOpaque);
+	EXPECT_EQ(plan.diagnostics()[2].id, spk::SceneRenderPasses::MainOverlay);
 }
 
 TEST(SceneRenderPipelineTest, FeaturePriorityAndTypedRepeatedPassesProduceEndToEndOrder)
 {
 	spk::FrameBufferObject target(spk::FrameBufferObject::colorTarget({8, 8}));
-	spk::RenderPassBucketPack passes;
+	spk::RenderPipeline passes;
 	spk::RenderFrameBuildContext frame{.passes = passes};
 	spk::ComponentLogicRegistry logics;
 	auto &logic = logics.add<MultiPassLogic>();
 	spk::ComponentRegistry components;
 	spk::SceneRenderPipeline pipeline;
 	pipeline.emplaceFeature<ShadowAndPostFeature>(3);
-	const spk::RenderPass::ScopeId scope{11};
-	pipeline.buildPasses(frame, scope, requestFor(target), logics, components);
+	pipeline.buildPasses(frame, requestFor(target), logics, components);
 
 	EXPECT_EQ(logic.collections, 1);
 	EXPECT_EQ(logic.cascades, (std::vector<std::uint32_t>{0, 1, 2}));
 	spk::RenderPlan plan = passes.build();
 	const auto diagnostics = plan.diagnostics();
 	ASSERT_EQ(diagnostics.size(), 7u);
-	EXPECT_EQ(diagnostics[0].debugName, "DirectionalShadow[0]");
-	EXPECT_EQ(diagnostics[1].debugName, "DirectionalShadow[1]");
-	EXPECT_EQ(diagnostics[2].debugName, "DirectionalShadow[2]");
-	EXPECT_EQ(diagnostics[3].debugName, "MainOpaque");
-	EXPECT_EQ(diagnostics[4].debugName, "MainTransparent");
-	EXPECT_EQ(diagnostics[5].debugName, "MainOverlay");
-	EXPECT_EQ(diagnostics[6].debugName, "Post");
+	EXPECT_EQ(diagnostics[0].id, "DirectionalShadow[0]");
+	EXPECT_EQ(diagnostics[1].id, "DirectionalShadow[1]");
+	EXPECT_EQ(diagnostics[2].id, "DirectionalShadow[2]");
+	EXPECT_EQ(diagnostics[3].id, spk::SceneRenderPasses::MainOpaque);
+	EXPECT_EQ(diagnostics[4].id, spk::SceneRenderPasses::MainTransparent);
+	EXPECT_EQ(diagnostics[5].id, spk::SceneRenderPasses::MainOverlay);
+	EXPECT_EQ(diagnostics[6].id, PostPass);
 	EXPECT_TRUE(diagnostics[3].clear.color.has_value());
 	EXPECT_FALSE(diagnostics[4].clear.color.has_value());
 	EXPECT_FALSE(diagnostics[5].clear.color.has_value());
@@ -136,8 +134,8 @@ TEST(SceneRenderPipelineTest, FeaturePriorityAndTypedRepeatedPassesProduceEndToE
 
 TEST(SceneRenderPipelineTest, MissingRequiredPassAndOptionalAbsentShadowBehaveDifferently)
 {
-	spk::RenderPassBucketPack passes;
-	EXPECT_THROW((void)passes.require({.type = spk::SceneRenderPasses::MainOpaque, .scope = {1}}), std::invalid_argument);
-	EXPECT_EQ(passes.find({.type = spk::LightingRenderPasses::DirectionalShadow, .scope = {1}}), nullptr);
-	EXPECT_TRUE(passes.passesOfType<spk::ShadowRenderPass>(spk::LightingRenderPasses::DirectionalShadow, spk::RenderPass::ScopeId{1}).empty());
+	spk::RenderPipeline passes;
+	EXPECT_THROW((void)passes.require(spk::SceneRenderPasses::MainOpaque), std::invalid_argument);
+	EXPECT_EQ(passes.find("shadow[0]"), nullptr);
+	EXPECT_TRUE(passes.all<spk::ShadowRenderPass>().empty());
 }

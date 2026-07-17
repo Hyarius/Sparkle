@@ -5,7 +5,7 @@
 #include "structures/game_engine/rendering/spk_scene_render_pipeline.hpp"
 #include "structures/game_engine/rendering/spk_scene_render_passes.hpp"
 #include "structures/game_engine/spk_component_logic_registry.hpp"
-#include "structures/graphics/rendering/pass/spk_render_pass_bucket_pack.hpp"
+#include "structures/graphics/rendering/pipeline/spk_render_pipeline.hpp"
 
 namespace
 {
@@ -37,12 +37,12 @@ namespace
 		void _executeRender(const spk::SceneRenderBuildContext &p_context) override
 		{
 			++renderCalls;
-			auto &opaque = p_context.frame.passes.require({.type = spk::SceneRenderPasses::MainOpaque, .scope = p_context.sceneScope});
-			opaque.contribute(this->renderPriority(spk::SceneRenderPasses::MainOpaque), p_context.contributorRegistrationOrder).template emplace<MarkerCommand>(Id);
+			auto &opaque = p_context.frame.passes.require(spk::SceneRenderPasses::MainOpaque);
+			opaque.template emplace<MarkerCommand>(Id);
 			if constexpr (Transparent)
 			{
-				auto &transparent = p_context.frame.passes.require({.type = spk::SceneRenderPasses::MainTransparent, .scope = p_context.sceneScope});
-				transparent.contribute(this->renderPriority(spk::SceneRenderPasses::MainTransparent), p_context.contributorRegistrationOrder).template emplace<MarkerCommand>(Id * 10);
+				auto &transparent = p_context.frame.passes.require(spk::SceneRenderPasses::MainTransparent);
+				transparent.template emplace<MarkerCommand>(Id * 10);
 			}
 		}
 	};
@@ -50,12 +50,12 @@ namespace
 	std::vector<int> renderMarkers(spk::ComponentLogicRegistry &p_logics)
 	{
 		spk::ComponentRegistry components;
-		spk::RenderPassBucketPack passes;
+		spk::RenderPipeline passes;
 		spk::RenderFrameBuildContext frame{.passes = passes};
 		spk::SceneRenderPipeline pipeline;
 		const spk::Viewport viewport(spk::Rect2D(0, 0, 8, 8));
 		const spk::SceneRenderFrameRequest request{.mainTarget = {.frameBuffer = nullptr, .viewport = viewport}, .mainClear = {}};
-		pipeline.buildPasses(frame, {3}, request, p_logics, components);
+		pipeline.buildPasses(frame, request, p_logics, components);
 		spk::RenderUnit unit = passes.build().compile();
 		std::vector<int> result;
 		for (const auto &command : unit.commands())
@@ -77,16 +77,14 @@ TEST(RenderContributorTest, LogicIsCollectedOnceAndMayContributeToSeveralPasses)
 	EXPECT_EQ(logic.renderCalls, 1);
 }
 
-TEST(RenderContributorTest, PassSpecificPriorityIsAscendingAndKeepsRegistrationOrderOnTies)
+TEST(RenderContributorTest, ComponentPriorityControlsRenderOrder)
 {
 	spk::ComponentLogicRegistry logics;
 	auto &first = logics.add<PassLogic<1>>();
 	auto &second = logics.add<PassLogic<2>>();
 	EXPECT_EQ(renderMarkers(logics), (std::vector<int>{1, 2}));
-	second.setRenderPriority(spk::SceneRenderPasses::MainOpaque, -10);
+	second.setPriority(10);
 	EXPECT_EQ(renderMarkers(logics), (std::vector<int>{2, 1}));
-	first.setRenderPriority(spk::SceneRenderPasses::MainOpaque, -10);
-	EXPECT_EQ(renderMarkers(logics), (std::vector<int>{1, 2}));
 }
 
 TEST(RenderContributorTest, RenderPriorityDoesNotChangeUpdateOrderingAndInactiveLogicDoesNothing)
@@ -94,7 +92,7 @@ TEST(RenderContributorTest, RenderPriorityDoesNotChangeUpdateOrderingAndInactive
 	spk::ComponentLogicRegistry logics;
 	logics.add<PassLogic<1>>();
 	auto &second = logics.add<PassLogic<2>>();
-	second.setRenderPriority(spk::SceneRenderPasses::MainOpaque, -100);
+	second.setPriority(-100);
 	updates.clear();
 	spk::ComponentRegistry components;
 	logics.update({}, components);
