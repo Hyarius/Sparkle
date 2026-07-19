@@ -6,17 +6,10 @@
 #include <type_traits>
 #include <utility>
 
+#include "type/spk_concepts.hpp"
+
 namespace spk
 {
-	template <typename TEnumType>
-	concept enum_type =
-		std::is_enum_v<TEnumType>;
-
-	template <typename TType>
-	concept unsigned_storage =
-		std::is_unsigned_v<TType> &&
-		(sizeof(TType) == 1 || sizeof(TType) == 2 || sizeof(TType) == 4);
-
 	template <enum_type TFlagType, unsigned_storage TStorageType = std::uint32_t>
 	class alignas(TStorageType) Flags
 	{
