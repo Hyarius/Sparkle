@@ -2,7 +2,6 @@
 
 #include "structures/graphics/rendering/state/spk_viewport.hpp"
 
-
 namespace spk
 {
 	class SurfaceState;

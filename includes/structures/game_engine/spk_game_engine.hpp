@@ -11,8 +11,8 @@
 #include "structures/game_engine/spk_component_logic_registry.hpp"
 #include "structures/game_engine/spk_component_registry.hpp"
 #include "structures/game_engine/spk_entity.hpp"
-#include "structures/graphics/rendering/unit/spk_render_unit_builder.hpp"
 #include "structures/graphics/rendering/plan/spk_render_plan.hpp"
+#include "structures/graphics/rendering/unit/spk_render_unit_builder.hpp"
 
 namespace spk
 {

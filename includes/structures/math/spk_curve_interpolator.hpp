@@ -67,8 +67,7 @@ namespace spk
 			ConstIterator p_left,
 			ConstIterator p_right,
 			float p_leftTangent,
-			float p_rightTangent
-		) const;
+			float p_rightTangent) const;
 
 		[[nodiscard]] float _cubicInterpolate(float p_x, ConstIterator p_left, ConstIterator p_right) const;
 		[[nodiscard]] float _monotoneCubicHermiteInterpolate(float p_x, ConstIterator p_left, ConstIterator p_right) const;

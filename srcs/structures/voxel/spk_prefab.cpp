@@ -199,9 +199,7 @@ namespace spk
 			{
 				local.y = -local.y;
 			}
-			result._anchors.push_back({
-				.name = anchor.name,
-				.position = _pivot + spk::rotateQuarterTurns(local, turns)});
+			result._anchors.push_back({.name = anchor.name, .position = _pivot + spk::rotateQuarterTurns(local, turns)});
 		}
 		return result;
 	}

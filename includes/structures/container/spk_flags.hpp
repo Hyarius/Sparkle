@@ -2,7 +2,6 @@
 
 #include <cstdint>
 #include <initializer_list>
-#include <iostream>
 #include <type_traits>
 #include <utility>
 
@@ -60,32 +59,46 @@ namespace spk
 
 		constexpr void set(TFlagType p_value) noexcept
 		{
-			_bits |= _toMask(p_value);
+			_bits = _toMask(p_value);
 		}
 
 		constexpr void set(Flags p_other) noexcept
 		{
+			_bits = p_other._bits;
+		}
+
+		constexpr void set(std::initializer_list<TFlagType> p_values) noexcept
+		{
+			_bits = 0;
+			for (const TFlagType value : p_values)
+			{
+				_bits |= _toMask(value);
+			}
+		}
+
+		constexpr void setRaw(MaskType p_rawBits) noexcept
+		{
+			_bits = p_rawBits;
+		}
+
+		constexpr void add(TFlagType p_value) noexcept
+		{
+			_bits |= _toMask(p_value);
+		}
+
+		constexpr void add(Flags p_other) noexcept
+		{
 			_bits |= p_other._bits;
 		}
 
-		constexpr void unset(TFlagType p_value) noexcept
+		constexpr void remove(TFlagType p_value) noexcept
 		{
 			_bits &= static_cast<MaskType>(~_toMask(p_value));
 		}
 
-		constexpr void unset(Flags p_other) noexcept
+		constexpr void remove(Flags p_other) noexcept
 		{
 			_bits &= static_cast<MaskType>(~p_other._bits);
-		}
-
-		constexpr void reset(TFlagType p_value) noexcept
-		{
-			unset(p_value);
-		}
-
-		constexpr void reset(Flags p_other) noexcept
-		{
-			unset(p_other);
 		}
 
 		constexpr void toggle(TFlagType p_value) noexcept
@@ -98,23 +111,23 @@ namespace spk
 			_bits ^= p_other._bits;
 		}
 
-		[[nodiscard]] constexpr bool has(TFlagType p_value) const noexcept
+		[[nodiscard]] constexpr bool contains(TFlagType p_value) const noexcept
 		{
 			const MaskType mask = _toMask(p_value);
 			return (_bits & mask) == mask;
 		}
 
-		[[nodiscard]] constexpr bool has(Flags p_other) const noexcept
+		[[nodiscard]] constexpr bool containsAll(Flags p_other) const noexcept
 		{
 			return (_bits & p_other._bits) == p_other._bits;
 		}
 
-		[[nodiscard]] constexpr bool testAny(TFlagType p_value) const noexcept
+		[[nodiscard]] constexpr bool containsAny(TFlagType p_value) const noexcept
 		{
 			return (_bits & _toMask(p_value)) != 0;
 		}
 
-		[[nodiscard]] constexpr bool testAny(Flags p_other) const noexcept
+		[[nodiscard]] constexpr bool containsAny(Flags p_other) const noexcept
 		{
 			return (_bits & p_other._bits) != 0;
 		}
@@ -129,6 +142,11 @@ namespace spk
 			return _bits == 0;
 		}
 
+		[[nodiscard]] constexpr bool empty() const noexcept
+		{
+			return none();
+		}
+
 		[[nodiscard]] explicit constexpr operator bool() const noexcept
 		{
 			return any();
@@ -136,7 +154,7 @@ namespace spk
 
 		constexpr Flags &operator|=(TFlagType p_value) noexcept
 		{
-			set(p_value);
+			add(p_value);
 			return *this;
 		}
 
@@ -260,22 +278,7 @@ namespace spk
 
 	template <enum_type TFlagType>
 	using Flags32 = Flags<TFlagType, std::uint32_t>;
-}
 
-template <spk::enum_type TEnumType, spk::unsigned_storage TStorageType>
-std::ostream &operator<<(std::ostream &p_outputStream, const spk::Flags<TEnumType, TStorageType> &p_flags)
-{
-	const std::ios_base::fmtflags previousFlags = p_outputStream.flags();
-	p_outputStream << "0x" << std::hex << p_flags.raw();
-	p_outputStream.flags(previousFlags);
-	return p_outputStream;
-}
-
-template <spk::enum_type TEnumType, spk::unsigned_storage TStorageType>
-std::wostream &operator<<(std::wostream &p_outputStream, const spk::Flags<TEnumType, TStorageType> &p_flags)
-{
-	const std::ios_base::fmtflags previousFlags = p_outputStream.flags();
-	p_outputStream << L"0x" << std::hex << p_flags.raw();
-	p_outputStream.flags(previousFlags);
-	return p_outputStream;
+	template <enum_type TFlagType>
+	using Flags64 = Flags<TFlagType, std::uint64_t>;
 }

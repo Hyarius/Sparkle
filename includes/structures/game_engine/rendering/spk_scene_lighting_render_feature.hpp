@@ -1,8 +1,8 @@
 #pragma once
 
+#include <array>
 #include <cstddef>
 #include <memory>
-#include <array>
 #include <vector>
 
 #include "structures/game_engine/rendering/spk_scene_render_pipeline_feature.hpp"

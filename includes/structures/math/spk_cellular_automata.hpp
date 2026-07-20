@@ -179,7 +179,7 @@ namespace spk
 			Predicate p_isStateA,
 			const TType &p_stateA,
 			const TType &p_stateB)
-			
+
 		{
 			apply(p_grid, p_isStateA, p_stateA, p_stateB, CellularAutomata::Rule{});
 		}
@@ -203,7 +203,7 @@ namespace spk
 			Predicate p_isStateA,
 			const TType &p_stateA,
 			const TType &p_stateB)
-			
+
 		{
 			return (next(p_grid, p_isStateA, p_stateA, p_stateB, CellularAutomata::Rule{}));
 		}

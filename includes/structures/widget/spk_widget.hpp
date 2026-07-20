@@ -7,16 +7,16 @@
 
 #include "structures/design_pattern/spk_activable_trait.hpp"
 #include "structures/design_pattern/spk_inherence_trait.hpp"
-#include "structures/graphics/rendering/snapshot/spk_render_snapshot_builder.hpp"
 #include "structures/graphics/rendering/pass/spk_render_target_reference.hpp"
 #include "structures/graphics/rendering/plan/spk_render_plan.hpp"
+#include "structures/graphics/rendering/snapshot/spk_render_snapshot_builder.hpp"
 #include "structures/graphics/rendering/state/spk_viewport.hpp"
 #include "structures/graphics/rendering/unit/spk_render_unit_builder.hpp"
 #include "structures/math/spk_rect_2d.hpp"
 #include "structures/system/event/spk_events.hpp"
 #include "structures/system/event/spk_update_context.hpp"
-#include "structures/widget/spk_resizable_element.hpp"
 #include "structures/widget/rendering/spk_widget_render_build_context.hpp"
+#include "structures/widget/spk_resizable_element.hpp"
 
 namespace spk
 {
@@ -62,7 +62,7 @@ namespace spk
 		template <typename TEvent>
 		void _propagate(TEvent &p_event, void (spk::Widget::*p_handler)(TEvent &))
 		{
-			spk::HierarchyTrait<Widget>::HierarchyMutationGuard guard(this);
+			auto guard = guardChildrenTraversal();
 
 			if (isActivated() == false || p_event.isConsumed() == true)
 			{
@@ -89,7 +89,7 @@ namespace spk
 		void _dispatchKeyboardEvent(spk::KeyboardEventRecord &p_event, spk::Keyboard &p_keyboard);
 
 	protected:
-		void _onParentChanged(spk::Widget *p_oldParent, spk::Widget *p_newParent) override;
+		void _onParentChanged(spk::Widget *p_oldParent, spk::Widget *p_newParent) noexcept override;
 
 		[[nodiscard]] virtual spk::RenderUnit _buildRenderUnit() const;
 		virtual void _contributeAdditionalRenderPasses(const spk::WidgetRenderBuildContext &p_context) const;

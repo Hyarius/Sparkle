@@ -165,8 +165,8 @@ namespace spk
 			const auto accepted = [p_keepInside](float p_distance) {
 				const bool liesOnEdge = spk::ApproxValue(p_distance) == 0.0f;
 				return p_keepInside
-					? p_distance > 0.0f || liesOnEdge
-					: p_distance < 0.0f || liesOnEdge;
+						   ? p_distance > 0.0f || liesOnEdge
+						   : p_distance < 0.0f || liesOnEdge;
 			};
 
 			Vertex previous = p_vertices.back();
@@ -186,9 +186,8 @@ namespace spk
 						const float interpolation = previousDistance / denominator;
 						_appendDistinct(
 							result,
-							{
-								.position = previous.position + (current.position - previous.position) * interpolation,
-								.data = std::invoke(p_interpolateData, previous.data, current.data, interpolation)});
+							{.position = previous.position + (current.position - previous.position) * interpolation,
+							 .data = std::invoke(p_interpolateData, previous.data, current.data, interpolation)});
 					}
 				}
 

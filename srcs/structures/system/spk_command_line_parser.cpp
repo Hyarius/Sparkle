@@ -89,8 +89,7 @@ namespace spk
 		_registerEntry(p_longName, p_shortName, p_option, true, std::move(p_default));
 	}
 
-	void CommandLineParser::_registerEntry(std::string_view p_longName, std::string_view p_shortName,
-		const Option &p_option, bool p_hasDefault, spk::JSON::Value p_default)
+	void CommandLineParser::_registerEntry(std::string_view p_longName, std::string_view p_shortName, const Option &p_option, bool p_hasDefault, spk::JSON::Value p_default)
 	{
 		if (p_longName.empty() || p_longName.front() != '-')
 		{

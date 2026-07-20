@@ -8,16 +8,16 @@
 
 #include <GL/glew.h>
 
+#include "structures/game_engine/rendering/spk_scene_render_passes.hpp"
 #include "structures/game_engine/spk_camera_2d.hpp"
 #include "structures/game_engine/spk_component_logic.hpp"
 #include "structures/game_engine/spk_entity.hpp"
 #include "structures/game_engine/spk_entity_2d.hpp"
 #include "structures/game_engine/spk_sprite_renderer_2d.hpp"
 #include "structures/game_engine/spk_transform_2d.hpp"
-#include "structures/game_engine/rendering/spk_scene_render_passes.hpp"
-#include "structures/graphics/rendering/pipeline/spk_render_pipeline.hpp"
 #include "structures/graphics/rendering/command/spk_camera_update_render_command.hpp"
 #include "structures/graphics/rendering/command/spk_instanced_sprite_render_command.hpp"
+#include "structures/graphics/rendering/pipeline/spk_render_pipeline.hpp"
 #include "structures/math/spk_matrix.hpp"
 
 namespace spk

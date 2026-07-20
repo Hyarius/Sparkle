@@ -32,7 +32,7 @@ namespace spk
 			float coordinate;
 			spk::Polygon2D<TData> polygon;
 		};
-	
+
 		struct Vertex
 		{
 			spk::Vector3 position{};
@@ -246,9 +246,8 @@ namespace spk
 						const float interpolation = previousDistance / denominator;
 						_appendDistinct(
 							result,
-							{
-								.position = previous.position + (current.position - previous.position) * interpolation,
-								.data = std::invoke(p_interpolateData, previous.data, current.data, interpolation)},
+							{.position = previous.position + (current.position - previous.position) * interpolation,
+							 .data = std::invoke(p_interpolateData, previous.data, current.data, interpolation)},
 							p_epsilon);
 					}
 				}
@@ -309,8 +308,8 @@ namespace spk
 		{
 			const auto isAngularlyEqual = [](float p_value, float p_expected) {
 				return spk::ApproxValue(
-					p_value,
-					spk::Math::Constants::angularPrecision) == p_expected;
+						   p_value,
+						   spk::Math::Constants::angularPrecision) == p_expected;
 			};
 
 			if (_normal == spk::Vector3{0.0f, 0.0f, 1.0f} || _normal == spk::Vector3{0.0f, 0.0f, -1.0f})
@@ -359,9 +358,7 @@ namespace spk
 						return std::nullopt;
 					}
 
-					builder.addVertex({
-						.position = {vertex.position.x, vertex.position.y},
-						.data = vertex.data});
+					builder.addVertex({.position = {vertex.position.x, vertex.position.y}, .data = vertex.data});
 				}
 				break;
 
@@ -374,9 +371,7 @@ namespace spk
 						return std::nullopt;
 					}
 
-					builder.addVertex({
-						.position = {vertex.position.x, vertex.position.z},
-						.data = vertex.data});
+					builder.addVertex({.position = {vertex.position.x, vertex.position.z}, .data = vertex.data});
 				}
 				break;
 
@@ -389,9 +384,7 @@ namespace spk
 						return std::nullopt;
 					}
 
-					builder.addVertex({
-						.position = {vertex.position.y, vertex.position.z},
-						.data = vertex.data});
+					builder.addVertex({.position = {vertex.position.y, vertex.position.z}, .data = vertex.data});
 				}
 				break;
 			}

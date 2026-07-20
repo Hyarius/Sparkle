@@ -338,7 +338,7 @@ namespace spk
 			{
 				throw std::invalid_argument("spk::IVector4: cannot dehomogenize with a zero w component");
 			}
-			
+
 			return IVector3<float>(
 				static_cast<float>(x) / divisor,
 				static_cast<float>(y) / divisor,

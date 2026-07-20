@@ -37,8 +37,7 @@ namespace spk
 		[[nodiscard]] static float radiusForTargetCount(
 			Size p_size,
 			std::size_t p_targetCount,
-			float p_packingDensity = 0.70f
-		);
+			float p_packingDensity = 0.70f);
 
 		[[nodiscard]] static std::vector<Point> generateApproximateCount(
 			Size p_size,
@@ -46,16 +45,14 @@ namespace spk
 			float p_packingDensity = 0.70f,
 			int p_triesPerPoint = 30,
 			std::uint32_t p_seed = 0,
-			PointPredicate p_accept = nullptr
-		);
+			PointPredicate p_accept = nullptr);
 
 		template <typename TType, typename Predicate>
 		[[nodiscard]] PointPredicate makePredicate(
 			const Grid2D<TType> &p_grid,
 			Predicate p_acceptCell)
 		{
-			return [&p_grid, p_acceptCell = std::move(p_acceptCell)](const PoissonDisk::Point &p_point) -> bool
-			{
+			return [&p_grid, p_acceptCell = std::move(p_acceptCell)](const PoissonDisk::Point &p_point) -> bool {
 				if (p_point.x < 0.0f || p_point.y < 0.0f)
 				{
 					return false;

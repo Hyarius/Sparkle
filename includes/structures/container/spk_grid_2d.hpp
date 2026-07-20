@@ -47,12 +47,12 @@ namespace spk
 			resize(p_size, p_fill);
 		}
 
-		[[nodiscard]] Storage& data()
+		[[nodiscard]] Storage &data()
 		{
 			return _data;
 		}
 
-		[[nodiscard]] const Storage& data() const
+		[[nodiscard]] const Storage &data() const
 		{
 			return _data;
 		}

@@ -53,17 +53,23 @@ namespace spk
 
 	void ResizableElement::setMinimalSize(const spk::Vector2UInt &p_minimalValue)
 	{
-		_minimalSize.configure([p_minimalValue]() { return p_minimalValue; });
+		_minimalSize.configure([p_minimalValue]() {
+			return p_minimalValue;
+		});
 	}
 
 	void ResizableElement::setFixedSize(const spk::Vector2UInt &p_fixedValue)
 	{
-		_fixedSize.configure([p_fixedValue]() { return p_fixedValue; });
+		_fixedSize.configure([p_fixedValue]() {
+			return p_fixedValue;
+		});
 	}
 
 	void ResizableElement::setMaximalSize(const spk::Vector2UInt &p_maximalValue)
 	{
-		_maximalSize.configure([p_maximalValue]() { return p_maximalValue; });
+		_maximalSize.configure([p_maximalValue]() {
+			return p_maximalValue;
+		});
 	}
 
 	spk::Vector2UInt ResizableElement::minimalSize() const

@@ -1,7 +1,7 @@
 #include "structures/game_engine/spk_game_engine.hpp"
 
-#include "structures/game_engine/spk_component_store.hpp"
 #include "structures/game_engine/rendering/spk_scene_lighting_render_feature.hpp"
+#include "structures/game_engine/spk_component_store.hpp"
 
 namespace spk
 {

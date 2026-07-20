@@ -212,8 +212,7 @@ namespace spk
 		std::vector<float> upper(count, 0.0f);
 		std::vector<float> rhs(count, 0.0f);
 
-		const auto delta = [&](std::size_t p_index) -> float
-		{
+		const auto delta = [&](std::size_t p_index) -> float {
 			return (y[p_index + 1] - y[p_index]) / (x[p_index + 1] - x[p_index]);
 		};
 
@@ -265,8 +264,7 @@ namespace spk
 	float CurveInterpolator::_linearInterpolate(
 		float p_x,
 		ConstIterator p_left,
-		ConstIterator p_right
-	) const
+		ConstIterator p_right) const
 	{
 		const float t = _factor(p_x, p_left, p_right);
 
@@ -278,8 +276,7 @@ namespace spk
 		ConstIterator p_left,
 		ConstIterator p_right,
 		float p_leftTangent,
-		float p_rightTangent
-	) const
+		float p_rightTangent) const
 	{
 		const float x0 = p_left->first;
 		const float y0 = p_left->second;
@@ -304,38 +301,33 @@ namespace spk
 	float CurveInterpolator::_cubicInterpolate(
 		float p_x,
 		ConstIterator p_left,
-		ConstIterator p_right
-	) const
+		ConstIterator p_right) const
 	{
 		return _hermiteInterpolate(
 			p_x,
 			p_left,
 			p_right,
 			_naturalCubicTangentAt(p_left),
-			_naturalCubicTangentAt(p_right)
-		);
+			_naturalCubicTangentAt(p_right));
 	}
 
 	float CurveInterpolator::_monotoneCubicHermiteInterpolate(
 		float p_x,
 		ConstIterator p_left,
-		ConstIterator p_right
-	) const
+		ConstIterator p_right) const
 	{
 		return _hermiteInterpolate(
 			p_x,
 			p_left,
 			p_right,
 			_monotoneTangentAt(p_left),
-			_monotoneTangentAt(p_right)
-		);
+			_monotoneTangentAt(p_right));
 	}
 
 	float CurveInterpolator::_bezierInterpolate(
 		float p_x,
 		ConstIterator p_left,
-		ConstIterator p_right
-	) const
+		ConstIterator p_right) const
 	{
 		const float x0 = p_left->first;
 		const float y0 = p_left->second;
@@ -355,18 +347,16 @@ namespace spk
 		const float b2 = y1 - width * rightTangent / 3.0f;
 		const float b3 = y1;
 
-		return
-			u * u * u * b0 +
-			3.0f * u * u * t * b1 +
-			3.0f * u * t * t * b2 +
-			t * t * t * b3;
+		return u * u * u * b0 +
+			   3.0f * u * u * t * b1 +
+			   3.0f * u * t * t * b2 +
+			   t * t * t * b3;
 	}
 
 	float CurveInterpolator::_interpolate(
 		float p_x,
 		ConstIterator p_left,
-		ConstIterator p_right
-	) const
+		ConstIterator p_right) const
 	{
 		switch (_interpolation)
 		{

@@ -1,7 +1,7 @@
 #include "structures/widget/spk_widget.hpp"
 
-#include "structures/graphics/rendering/command/spk_viewport_render_command.hpp"
 #include "structures/graphics/rendering/command/spk_render_unit_render_command.hpp"
+#include "structures/graphics/rendering/command/spk_viewport_render_command.hpp"
 #include "structures/graphics/rendering/pipeline/spk_render_pipeline.hpp"
 #include "structures/graphics/rendering/unit/spk_render_unit_builder.hpp"
 #include "structures/widget/rendering/spk_widget_render_passes.hpp"
@@ -38,7 +38,7 @@ namespace spk
 	{
 	}
 
-	void Widget::_onParentChanged(spk::Widget *p_oldParent, spk::Widget *p_newParent)
+	void Widget::_onParentChanged(spk::Widget *p_oldParent, spk::Widget *p_newParent) noexcept
 	{
 		(void)p_oldParent;
 		(void)p_newParent;
@@ -201,7 +201,7 @@ namespace spk
 
 	void Widget::_onResize(const spk::Rect2D &p_geometry)
 	{
-		spk::HierarchyTrait<Widget>::HierarchyMutationGuard guard(this);
+		auto guard = guardChildrenTraversal();
 
 		_geometry = p_geometry;
 		_updateSelfGeometryAndScissor();
@@ -213,13 +213,7 @@ namespace spk
 				continue;
 			}
 
-			child->_onResize(spk::Rect2D(
-				spk::Vector2Int(
-					static_cast<int>(std::lround(static_cast<float>(_geometry.size.x) * child->_anchorRatio.x)),
-					static_cast<int>(std::lround(static_cast<float>(_geometry.size.y) * child->_anchorRatio.y))),
-				spk::Vector2UInt(
-					static_cast<unsigned int>(std::lround(static_cast<float>(_geometry.size.x) * child->_sizeRatio.x)),
-					static_cast<unsigned int>(std::lround(static_cast<float>(_geometry.size.y) * child->_sizeRatio.y)))));
+			child->_onResize(spk::Rect2D(spk::Vector2Int(static_cast<int>(std::lround(static_cast<float>(_geometry.size.x) * child->_anchorRatio.x)), static_cast<int>(std::lround(static_cast<float>(_geometry.size.y) * child->_anchorRatio.y))), spk::Vector2UInt(static_cast<unsigned int>(std::lround(static_cast<float>(_geometry.size.x) * child->_sizeRatio.x)), static_cast<unsigned int>(std::lround(static_cast<float>(_geometry.size.y) * child->_sizeRatio.y)))));
 		}
 
 		_onGeometryChange();
@@ -269,7 +263,7 @@ namespace spk
 
 	void Widget::_updateAbsoluteGeometryAndScissor()
 	{
-		spk::HierarchyTrait<Widget>::HierarchyMutationGuard guard(this);
+		auto guard = guardChildrenTraversal();
 
 		_updateSelfGeometryAndScissor();
 
@@ -287,7 +281,7 @@ namespace spk
 		_renderCommandsDirty = true;
 
 		releaseSizeCache();
-		for (Widget *ancestor = parent(); ancestor != nullptr; ancestor = ancestor->parent())
+		for (const Widget *ancestor = parent(); ancestor != nullptr; ancestor = ancestor->parent())
 		{
 			ancestor->releaseSizeCache();
 		}
@@ -295,7 +289,7 @@ namespace spk
 
 	void Widget::invalidateRenderUnitTree() const
 	{
-		spk::HierarchyTrait<Widget>::HierarchyMutationGuard guard(this);
+		auto guard = guardChildrenTraversal();
 
 		invalidateRenderUnit();
 
@@ -347,7 +341,7 @@ namespace spk
 
 	void Widget::_collectRenderPasses(const spk::WidgetRenderBuildContext &p_context) const
 	{
-		spk::HierarchyTrait<Widget>::HierarchyMutationGuard guard(this);
+		auto guard = guardChildrenTraversal();
 
 		if (isActivated() == false)
 		{
@@ -420,7 +414,7 @@ namespace spk
 
 	void Widget::update(const spk::UpdateContext &p_tick)
 	{
-		spk::HierarchyTrait<Widget>::HierarchyMutationGuard guard(this);
+		auto guard = guardChildrenTraversal();
 
 		if (isActivated() == false)
 		{

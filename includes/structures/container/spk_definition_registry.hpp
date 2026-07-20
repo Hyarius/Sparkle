@@ -73,9 +73,18 @@ namespace spk
 			return result;
 		}
 
-		[[nodiscard]] std::size_t size() const noexcept { return _definitions.size(); }
-		[[nodiscard]] auto begin() const noexcept { return _definitions.begin(); }
-		[[nodiscard]] auto end() const noexcept { return _definitions.end(); }
+		[[nodiscard]] std::size_t size() const noexcept
+		{
+			return _definitions.size();
+		}
+		[[nodiscard]] auto begin() const noexcept
+		{
+			return _definitions.begin();
+		}
+		[[nodiscard]] auto end() const noexcept
+		{
+			return _definitions.end();
+		}
 
 		void merge(DefinitionRegistry &&p_other)
 		{

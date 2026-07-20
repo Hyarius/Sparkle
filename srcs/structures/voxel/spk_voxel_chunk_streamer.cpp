@@ -26,10 +26,10 @@ namespace spk
 		}
 
 		const auto validateAxis = [](
-			std::int32_t p_origin,
-			std::int32_t p_range,
-			std::int32_t p_chunkSize,
-			const char *p_axis) {
+									  std::int32_t p_origin,
+									  std::int32_t p_range,
+									  std::int32_t p_chunkSize,
+									  const char *p_axis) {
 			const std::int64_t minimum = static_cast<std::int64_t>(p_origin) - p_range;
 			const std::int64_t maximum = static_cast<std::int64_t>(p_origin) + p_range;
 			const std::int64_t minimumChunk = std::numeric_limits<std::int32_t>::min() / p_chunkSize;

@@ -193,14 +193,16 @@ namespace spk
 		{
 			if (isBlocked())
 			{
-				if (isDelayBlocked())
-				{
-					_lastTriggerArguments.emplace(p_arguments...);
-					_deferUntilUnblocked([this]() {
+				_lastTriggerArguments.emplace(p_arguments...);
+				_executeOrBlock([this]() noexcept {
+					try
+					{
 						_triggerDeferred();
-					});
-				}
-
+					} catch (...)
+					{
+						std::terminate();
+					}
+				});
 				return;
 			}
 

@@ -143,7 +143,7 @@ namespace pg
 			{
 				try
 				{
-					traits.mapColor = spk::Color(worldgenReader.require<std::string>("mapColor"));
+					traits.mapColor = spk::Color::fromHex(worldgenReader.require<std::string>("mapColor"));
 				} catch (const std::invalid_argument &exception)
 				{
 					throw JsonError(p_reader.file(), worldgenReader.pathFor("mapColor"), exception.what());

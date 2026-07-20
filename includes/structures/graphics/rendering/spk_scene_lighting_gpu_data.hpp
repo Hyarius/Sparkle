@@ -17,8 +17,16 @@ namespace spk
 	};
 
 	// direction.xyz is the normalized ray-travel direction (emitter to scene).
-	struct alignas(16) DirectionalLightGpuData { spk::Vector4 directionAndIntensity; spk::Color color; };
-	struct alignas(16) PointLightGpuData { spk::Vector4 positionAndRange; spk::Vector4 colorAndIntensity; };
+	struct alignas(16) DirectionalLightGpuData
+	{
+		spk::Vector4 directionAndIntensity;
+		spk::Color color;
+	};
+	struct alignas(16) PointLightGpuData
+	{
+		spk::Vector4 positionAndRange;
+		spk::Vector4 colorAndIntensity;
+	};
 	struct alignas(16) SpotLightGpuData
 	{
 		spk::Vector4 positionAndRange;

@@ -1,8 +1,10 @@
 #pragma once
 
+#include <algorithm>
 #include <functional>
 #include <limits>
 #include <memory>
+#include <mutex>
 #include <stdexcept>
 #include <utility>
 #include <vector>
@@ -13,11 +15,25 @@ namespace spk
 	class ObjectPool
 	{
 	private:
-		struct Data;
+		struct Data
+		{
+			mutable std::mutex mutex;
+			const std::move_only_function<std::unique_ptr<TType>()> generator;
+			const std::move_only_function<void(TType &)> onObtain;
+			std::vector<std::unique_ptr<TType>> availableObjects;
+			std::size_t maximumCachedObjectCount = std::numeric_limits<std::size_t>::max();
+			bool closed = false;
+
+			Data(std::move_only_function<std::unique_ptr<TType>()> p_generator, std::move_only_function<void(TType &)> p_onObtain) :
+				generator(std::move(p_generator)),
+				onObtain(std::move(p_onObtain))
+			{
+			}
+		};
 
 	public:
-		using Generator = std::function<std::unique_ptr<TType>()>;
-		using OnObtain = std::function<void(TType &)>;
+		using Generator = std::move_only_function<std::unique_ptr<TType>()>;
+		using OnObtain = std::move_only_function<void(TType &)>;
 
 		class ReturnToPoolDeleter
 		{
@@ -26,213 +42,171 @@ namespace spk
 
 		public:
 			ReturnToPoolDeleter() = default;
-
-			explicit ReturnToPoolDeleter(const std::weak_ptr<Data> &p_data) :
-				_data(p_data)
+			explicit ReturnToPoolDeleter(std::weak_ptr<Data> p_data) noexcept :
+				_data(std::move(p_data))
 			{
 			}
 
-			void operator()(TType *p_ptr) const
+			void operator()(TType *p_ptr) const noexcept
 			{
-				if (p_ptr == nullptr)
+				std::unique_ptr<TType> object(p_ptr);
+				if (!object)
 				{
 					return;
 				}
-
-				std::shared_ptr<Data> data = _data.lock();
-				if (data == nullptr || data->closed == true)
+				const std::shared_ptr<Data> data = _data.lock();
+				if (!data)
 				{
-					data = nullptr;
-					delete p_ptr;
 					return;
 				}
-
-				if (data->availableObjects.size() >= data->maximumCachedObjectCount)
+				try
 				{
-					delete p_ptr;
-					return;
+					std::scoped_lock lock(data->mutex);
+					if (data->closed || data->availableObjects.size() >= data->maximumCachedObjectCount)
+					{
+						return;
+					}
+					data->availableObjects.emplace_back(std::move(object));
+				} catch (...)
+				{
+					// The local unique_ptr destroys the object when caching fails.
 				}
-
-				data->availableObjects.emplace_back(p_ptr);
 			}
 		};
 
 		using Handle = std::unique_ptr<TType, ReturnToPoolDeleter>;
 
 	private:
-		struct Data
-		{
-			Generator generator = nullptr;
-			OnObtain onObtain = nullptr;
-
-			std::vector<std::unique_ptr<TType>> availableObjects;
-			size_t maximumCachedObjectCount = std::numeric_limits<size_t>::max();
-
-			bool closed = false;
-		};
-
 		std::shared_ptr<Data> _data;
 
-		TType *_obtainRawPointer()
+		void _throwIfClosed(const Data &p_data) const
 		{
-			if (_data->closed == true)
+			if (p_data.closed)
 			{
-				throw std::runtime_error("Can't obtain an object from a closed ObjectPool");
+				throw std::runtime_error("spk::ObjectPool: pool is closed");
 			}
-
-			if (_data->generator == nullptr)
-			{
-				throw std::logic_error("spk::ObjectPool: generator not set");
-			}
-
-			TType *result = nullptr;
-
-			if (_data->availableObjects.empty() == true)
-			{
-				std::unique_ptr<TType> createdObject = _data->generator();
-				if (createdObject == nullptr)
-				{
-					throw std::logic_error("spk::ObjectPool: generator returned nullptr");
-				}
-
-				result = createdObject.release();
-			}
-			else
-			{
-				result = _data->availableObjects.back().release();
-				_data->availableObjects.pop_back();
-			}
-
-			if (_data->onObtain != nullptr)
-			{
-				_data->onObtain(*result);
-			}
-
-			return result;
 		}
 
 	public:
-		ObjectPool() :
-			_data(std::make_shared<Data>())
-		{
-		}
-
 		explicit ObjectPool(Generator p_generator, OnObtain p_onObtain = nullptr) :
-			_data(std::make_shared<Data>())
+			_data(std::make_shared<Data>(std::move(p_generator), std::move(p_onObtain)))
 		{
-			configure(std::move(p_generator), std::move(p_onObtain));
+			if (!_data->generator)
+			{
+				throw std::logic_error("spk::ObjectPool: generator not set");
+			}
 		}
 
 		~ObjectPool()
 		{
 			close();
 		}
-
 		ObjectPool(const ObjectPool &) = delete;
 		ObjectPool &operator=(const ObjectPool &) = delete;
-
 		ObjectPool(ObjectPool &&) = delete;
 		ObjectPool &operator=(ObjectPool &&) = delete;
 
-		void configure(Generator p_generator, OnObtain p_onObtain = nullptr)
+		[[nodiscard]] Handle acquire()
 		{
-			if (_data->closed == true)
+			std::unique_ptr<TType> object;
 			{
-				throw std::runtime_error("Can't configure a closed ObjectPool");
+				std::scoped_lock lock(_data->mutex);
+				_throwIfClosed(*_data);
+				if (!_data->availableObjects.empty())
+				{
+					object = std::move(_data->availableObjects.back());
+					_data->availableObjects.pop_back();
+				}
 			}
-
-			release();
-
-			_data->generator = std::move(p_generator);
-			_data->onObtain = std::move(p_onObtain);
+			if (!object)
+			{
+				object = _data->generator();
+				if (!object)
+				{
+					throw std::logic_error("spk::ObjectPool: generator returned nullptr");
+				}
+			}
+			if (_data->onObtain)
+			{
+				_data->onObtain(*object);
+			}
+			return Handle(object.release(), ReturnToPoolDeleter(_data));
 		}
 
-		void setMaximumCachedObjectCount(size_t p_count)
+		void preallocate(std::size_t p_count)
 		{
-			if (_data->closed == true)
+			std::size_t missing = 0;
 			{
-				throw std::runtime_error("Can't edit maximum cached object count of a closed ObjectPool");
+				std::scoped_lock lock(_data->mutex);
+				_throwIfClosed(*_data);
+				const std::size_t target = std::min(p_count, _data->maximumCachedObjectCount);
+				missing = target > _data->availableObjects.size() ? target - _data->availableObjects.size() : 0;
 			}
+			std::vector<std::unique_ptr<TType>> created;
+			created.reserve(missing);
+			for (std::size_t index = 0; index < missing; ++index)
+			{
+				std::unique_ptr<TType> object = _data->generator();
+				if (!object)
+				{
+					throw std::logic_error("spk::ObjectPool: generator returned nullptr");
+				}
+				created.emplace_back(std::move(object));
+			}
+			std::scoped_lock lock(_data->mutex);
+			_throwIfClosed(*_data);
+			while (!created.empty() && _data->availableObjects.size() < _data->maximumCachedObjectCount)
+			{
+				_data->availableObjects.emplace_back(std::move(created.back()));
+				created.pop_back();
+			}
+		}
 
+		void purge()
+		{
+			std::scoped_lock lock(_data->mutex);
+			_throwIfClosed(*_data);
+			_data->availableObjects.clear();
+		}
+
+		void setMaximumCachedObjectCount(std::size_t p_count)
+		{
+			std::scoped_lock lock(_data->mutex);
+			_throwIfClosed(*_data);
 			_data->maximumCachedObjectCount = p_count;
-
-			while (_data->availableObjects.size() > _data->maximumCachedObjectCount)
+			while (_data->availableObjects.size() > p_count)
 			{
 				_data->availableObjects.pop_back();
 			}
 		}
 
-		[[nodiscard]] size_t size() const noexcept
+		[[nodiscard]] std::size_t nbAvailableObject() const noexcept
 		{
+			std::scoped_lock lock(_data->mutex);
 			return _data->availableObjects.size();
 		}
 
 		[[nodiscard]] bool empty() const noexcept
 		{
-			return _data->availableObjects.empty();
+			return nbAvailableObject() == 0;
 		}
-
 		[[nodiscard]] bool isClosed() const noexcept
 		{
+			std::scoped_lock lock(_data->mutex);
 			return _data->closed;
-		}
-
-		[[nodiscard]] bool hasGenerator() const noexcept
-		{
-			return (_data->generator != nullptr);
-		}
-
-		[[nodiscard]] bool hasOnObtain() const noexcept
-		{
-			return (_data->onObtain != nullptr);
-		}
-
-		void reserve(size_t p_count)
-		{
-			if (_data->closed == true)
-			{
-				throw std::runtime_error("Can't reserve objects in a closed ObjectPool");
-			}
-
-			if (_data->generator == nullptr)
-			{
-				throw std::logic_error("spk::ObjectPool: generator not set");
-			}
-
-			while (_data->availableObjects.size() < p_count)
-			{
-				std::unique_ptr<TType> createdObject = _data->generator();
-				if (createdObject == nullptr)
-				{
-					throw std::logic_error("spk::ObjectPool: generator returned nullptr");
-				}
-
-				_data->availableObjects.emplace_back(std::move(createdObject));
-			}
-		}
-
-		Handle obtain()
-		{
-			return Handle(_obtainRawPointer(), ReturnToPoolDeleter(_data));
-		}
-
-		void release()
-		{
-			if (_data->closed == true)
-			{
-				throw std::runtime_error("Can't release a closed ObjectPool");
-			}
-
-			_data->availableObjects.clear();
 		}
 
 		void close() noexcept
 		{
-			if (_data == nullptr || _data->closed == true)
+			if (!_data)
 			{
 				return;
 			}
-
+			std::scoped_lock lock(_data->mutex);
+			if (_data->closed)
+			{
+				return;
+			}
 			_data->closed = true;
 			_data->availableObjects.clear();
 		}

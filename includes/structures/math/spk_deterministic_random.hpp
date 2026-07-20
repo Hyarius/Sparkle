@@ -18,7 +18,10 @@ namespace spk::deterministic
 
 	public:
 		StableHasher64() = default;
-		explicit StableHasher64(std::uint64_t p_initialValue) noexcept : _value(p_initialValue) {}
+		explicit StableHasher64(std::uint64_t p_initialValue) noexcept :
+			_value(p_initialValue)
+		{
+		}
 
 		void mix(std::string_view p_value) noexcept
 		{
@@ -37,7 +40,10 @@ namespace spk::deterministic
 			_value *= FnvPrime;
 		}
 
-		[[nodiscard]] std::uint64_t value() const noexcept { return _value; }
+		[[nodiscard]] std::uint64_t value() const noexcept
+		{
+			return _value;
+		}
 	};
 
 	inline void mix(std::uint64_t &p_hash, std::string_view p_value) noexcept

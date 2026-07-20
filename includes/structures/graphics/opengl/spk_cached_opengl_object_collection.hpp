@@ -130,9 +130,7 @@ namespace spk
 			std::uint64_t p_contentVersion,
 			TFactory &&p_factory)
 		{
-			_entries.push_back(Entry{
-				.contextId = p_contextId,
-				.object = _build(p_version, p_contentVersion, std::forward<TFactory>(p_factory))});
+			_entries.push_back(Entry{.contextId = p_contextId, .object = _build(p_version, p_contentVersion, std::forward<TFactory>(p_factory))});
 
 			return _entries.back();
 		}

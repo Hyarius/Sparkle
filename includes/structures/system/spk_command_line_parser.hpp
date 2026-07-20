@@ -66,8 +66,7 @@ namespace spk
 		std::string _applicationName;
 		bool _applicationNameExplicit = false;
 
-		void _registerEntry(std::string_view p_longName, std::string_view p_shortName, const Option &p_option,
-			bool p_hasDefault, spk::JSON::Value p_default);
+		void _registerEntry(std::string_view p_longName, std::string_view p_shortName, const Option &p_option, bool p_hasDefault, spk::JSON::Value p_default);
 		[[nodiscard]] const Entry *_lookup(std::string_view p_name) const;
 		[[nodiscard]] spk::JSON::Value _readValues(
 			const Entry &p_entry, int p_argc, const char *const *p_argv, int &p_index) const;

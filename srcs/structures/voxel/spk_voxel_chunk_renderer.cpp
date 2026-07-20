@@ -43,6 +43,7 @@ namespace spk
 		}
 		_meshes = std::move(p_mesh);
 		++_meshRevision;
+		_completeSynchronization();
 	}
 
 	void VoxelChunkRenderer::failMeshSynchronization() const noexcept

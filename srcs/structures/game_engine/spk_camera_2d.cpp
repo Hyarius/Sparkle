@@ -9,7 +9,9 @@ namespace spk
 	Camera2D *Camera2D::_mainCamera = nullptr;
 
 	Camera2D::Camera2D() :
-		_projectionMatrix([this]() { return _generateProjectionMatrix(); })
+		_projectionMatrix([this]() {
+			return _generateProjectionMatrix();
+		})
 	{
 	}
 

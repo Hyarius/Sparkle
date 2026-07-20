@@ -2,10 +2,10 @@
 
 #include <stdexcept>
 
-#include "structures/game_engine/spk_camera_3d.hpp"
-#include "structures/game_engine/spk_component_logic_registry.hpp"
 #include "structures/game_engine/rendering/spk_scene_render_passes.hpp"
 #include "structures/game_engine/rendering/spk_scene_render_priorities.hpp"
+#include "structures/game_engine/spk_camera_3d.hpp"
+#include "structures/game_engine/spk_component_logic_registry.hpp"
 #include "structures/graphics/rendering/command/spk_camera_update_render_command.hpp"
 #include "structures/graphics/rendering/spk_scene_gpu_bindings.hpp"
 #include "structures/system/spk_profiler.hpp"

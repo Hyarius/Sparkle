@@ -11,15 +11,15 @@
 #include <unordered_set>
 #include <vector>
 
+#include "structures/game_engine/rendering/spk_scene_render_passes.hpp"
+#include "structures/game_engine/rendering/spk_shadow_render_pass.hpp"
 #include "structures/game_engine/spk_camera_3d.hpp"
 #include "structures/game_engine/spk_component_logic.hpp"
 #include "structures/game_engine/spk_texture_mesh_renderer_3d.hpp"
 #include "structures/game_engine/spk_transform_3d.hpp"
-#include "structures/game_engine/rendering/spk_scene_render_passes.hpp"
-#include "structures/graphics/rendering/pipeline/spk_render_pipeline.hpp"
 #include "structures/graphics/rendering/command/spk_draw_texture_mesh_3d_render_command.hpp"
 #include "structures/graphics/rendering/command/spk_draw_texture_mesh_shadow_render_command.hpp"
-#include "structures/game_engine/rendering/spk_shadow_render_pass.hpp"
+#include "structures/graphics/rendering/pipeline/spk_render_pipeline.hpp"
 #include "structures/graphics/spk_sampler_object.hpp"
 #include "structures/graphics/spk_uniform_buffer_object.hpp"
 #include "structures/math/spk_matrix.hpp"
@@ -142,7 +142,9 @@ namespace spk
 			if (!p_renderer.translucent() && p_renderer.castsShadows())
 			{
 				for (spk::ShadowRenderPass &shadow : p_context.frame.passes.all<spk::ShadowRenderPass>())
+				{
 					shadow.emplace<spk::DrawTextureMeshShadowRenderCommand>(p_renderer.mesh(), cached.modelUBO, shadow.lightViewProjection());
+				}
 			}
 		}
 

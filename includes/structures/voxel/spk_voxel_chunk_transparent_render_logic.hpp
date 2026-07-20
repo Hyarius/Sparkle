@@ -1,7 +1,7 @@
 #pragma once
 
-#include "structures/game_engine/spk_component_logic.hpp"
 #include "structures/game_engine/rendering/spk_scene_render_passes.hpp"
+#include "structures/game_engine/spk_component_logic.hpp"
 #include "structures/graphics/rendering/pipeline/spk_render_pipeline.hpp"
 #include "structures/math/spk_matrix.hpp"
 #include "structures/voxel/spk_voxel_chunk_renderer.hpp"
@@ -40,6 +40,7 @@ namespace spk
 
 	public:
 		explicit VoxelChunkTransparentRenderLogic(const spk::Texture &p_texture);
+
 	protected:
 		void _onRenderStarted(const spk::SceneRenderBuildContext &p_context, std::size_t p_componentCount) override;
 		void _parseComponentForRender(

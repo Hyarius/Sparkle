@@ -100,13 +100,7 @@ namespace spk
 		result.reserve(_probes.size());
 		for (const auto &[name, probe] : _probes)
 		{
-			result.push_back(Snapshot{
-				.name = name,
-				.count = probe->count(),
-				.last = probe->last(),
-				.minimum = probe->minimum(),
-				.maximum = probe->maximum(),
-				.average = probe->average()});
+			result.push_back(Snapshot{.name = name, .count = probe->count(), .last = probe->last(), .minimum = probe->minimum(), .maximum = probe->maximum(), .average = probe->average()});
 		}
 		return result;
 	}

@@ -40,7 +40,9 @@ namespace spk
 			for (const auto &feature : _features)
 			{
 				if (auto *typed = dynamic_cast<TFeature *>(feature.get()); typed != nullptr)
+				{
 					return typed;
+				}
 			}
 			return nullptr;
 		}

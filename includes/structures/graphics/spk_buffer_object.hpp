@@ -52,7 +52,7 @@ namespace spk
 		Target _target = Target::Array;
 		Usage _usage = Usage::DynamicDraw;
 		std::vector<std::uint8_t> _cpuBuffer;
-		spk::BinaryField _field;
+		spk::BinaryLayout _layout{0};
 
 		std::uint64_t _structureVersion = 1;
 		std::uint64_t _contentVersion = 1;
@@ -60,7 +60,7 @@ namespace spk
 		mutable spk::CachedOpenGLObjectCollection<spk::OpenGL::Buffer> _gpu;
 
 	protected:
-		void _resetField();
+		void _resetLayout();
 		void _synchronize() const override;
 
 		virtual void _validateNewSize(std::size_t p_newSize) const;
@@ -103,8 +103,8 @@ namespace spk
 		[[nodiscard]] const std::uint8_t *data() const;
 		[[nodiscard]] std::span<std::uint8_t> bytes();
 		[[nodiscard]] std::span<const std::uint8_t> bytes() const;
-		[[nodiscard]] spk::BinaryField &field();
-		[[nodiscard]] const spk::BinaryField &field() const;
+		[[nodiscard]] spk::BinaryView view();
+		[[nodiscard]] spk::BinaryView view() const;
 		[[nodiscard]] bool empty() const;
 
 		virtual void activate(const spk::RenderContext &p_context) const;

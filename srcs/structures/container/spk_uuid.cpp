@@ -1,20 +1,14 @@
 #include "structures/container/spk_uuid.hpp"
 
-#include <algorithm>
 #include <iomanip>
+#include <optional>
 #include <ostream>
 #include <random>
 #include <sstream>
+#include <stdexcept>
 
 namespace spk
 {
-	UUID::UUID() = default;
-
-	UUID::UUID(const Storage &p_bytes) :
-		_bytes(p_bytes)
-	{
-	}
-
 	UUID UUID::generate()
 	{
 		static thread_local std::mt19937_64 generator(std::random_device{}());
@@ -32,21 +26,54 @@ namespace spk
 		return UUID(bytes);
 	}
 
-	UUID UUID::null()
+	std::optional<UUID> UUID::tryParse(std::string_view p_string) noexcept
 	{
-		return UUID();
+		if (p_string.size() != 36 || p_string[8] != '-' || p_string[13] != '-' || p_string[18] != '-' || p_string[23] != '-')
+		{
+			return std::nullopt;
+		}
+		auto hexValue = [](const char p_character) constexpr -> int {
+			if (p_character >= '0' && p_character <= '9')
+			{
+				return p_character - '0';
+			}
+			if (p_character >= 'a' && p_character <= 'f')
+			{
+				return 10 + p_character - 'a';
+			}
+			if (p_character >= 'A' && p_character <= 'F')
+			{
+				return 10 + p_character - 'A';
+			}
+			return -1;
+		};
+		Storage bytes{};
+		std::size_t output = 0;
+		for (std::size_t input = 0; input < p_string.size();)
+		{
+			if (p_string[input] == '-')
+			{
+				++input;
+				continue;
+			}
+			const int high = hexValue(p_string[input++]);
+			const int low = hexValue(p_string[input++]);
+			if (high < 0 || low < 0)
+			{
+				return std::nullopt;
+			}
+			bytes[output++] = static_cast<std::uint8_t>((high << 4) | low);
+		}
+		return UUID(bytes);
 	}
 
-	const UUID::Storage &UUID::bytes() const
+	UUID UUID::fromString(std::string_view p_string)
 	{
-		return _bytes;
-	}
-
-	bool UUID::isNull() const
-	{
-		return std::all_of(_bytes.begin(), _bytes.end(), [](std::uint8_t p_byte) {
-			return p_byte == 0u;
-		});
+		if (const std::optional<UUID> parsed = tryParse(p_string); parsed.has_value())
+		{
+			return *parsed;
+		}
+		throw std::invalid_argument("spk::UUID: invalid UUID string");
 	}
 
 	std::string UUID::toString() const
@@ -78,14 +105,21 @@ namespace std
 {
 	std::size_t hash<spk::UUID>::operator()(const spk::UUID &p_uuid) const noexcept
 	{
-		std::size_t result = 1469598103934665603ull;
+		std::uint64_t result = 14695981039346656037ull;
 
 		for (std::uint8_t byte : p_uuid.bytes())
 		{
-			result ^= static_cast<std::size_t>(byte);
+			result ^= static_cast<std::uint64_t>(byte);
 			result *= 1099511628211ull;
 		}
 
-		return result;
+		if constexpr (sizeof(std::size_t) >= sizeof(std::uint64_t))
+		{
+			return static_cast<std::size_t>(result);
+		}
+		else
+		{
+			return static_cast<std::size_t>(result ^ (result >> 32u));
+		}
 	}
 }

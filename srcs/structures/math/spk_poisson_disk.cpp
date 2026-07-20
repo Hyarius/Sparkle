@@ -102,28 +102,24 @@ namespace
 
 	[[nodiscard]] bool hasReachedMaxPointCount(
 		std::size_t p_currentCount,
-		std::size_t p_maxPointCount
-	) noexcept
+		std::size_t p_maxPointCount) noexcept
 	{
 		return p_maxPointCount != 0 && p_currentCount >= p_maxPointCount;
 	}
 
 	[[nodiscard]] bool isInside(
 		const spk::PoissonDisk::Point &p_point,
-		const spk::PoissonDisk::Size &p_size
-	) noexcept
+		const spk::PoissonDisk::Size &p_size) noexcept
 	{
-		return
-			p_point.x >= 0.0f &&
-			p_point.y >= 0.0f &&
-			p_point.x < p_size.x &&
-			p_point.y < p_size.y;
+		return p_point.x >= 0.0f &&
+			   p_point.y >= 0.0f &&
+			   p_point.x < p_size.x &&
+			   p_point.y < p_size.y;
 	}
 
 	[[nodiscard]] bool isAccepted(
 		const spk::PoissonDisk::Point &p_point,
-		const spk::PoissonDisk::Parameters &p_parameters
-	)
+		const spk::PoissonDisk::Parameters &p_parameters)
 	{
 		if (isInside(p_point, p_parameters.size) == false)
 		{
@@ -142,26 +138,22 @@ namespace
 		const spk::PoissonDisk::Point &p_point,
 		float p_cellSize,
 		std::size_t p_gridWidth,
-		std::size_t p_gridHeight
-	) noexcept
+		std::size_t p_gridHeight) noexcept
 	{
 		const std::size_t x = std::min(
 			static_cast<std::size_t>(p_point.x / p_cellSize),
-			p_gridWidth - 1
-		);
+			p_gridWidth - 1);
 
 		const std::size_t y = std::min(
 			static_cast<std::size_t>(p_point.y / p_cellSize),
-			p_gridHeight - 1
-		);
+			p_gridHeight - 1);
 
 		return Cell{x, y};
 	}
 
 	[[nodiscard]] std::size_t gridIndex(
 		Cell p_cell,
-		std::size_t p_gridWidth
-	) noexcept
+		std::size_t p_gridWidth) noexcept
 	{
 		return p_cell.y * p_gridWidth + p_cell.x;
 	}
@@ -173,8 +165,7 @@ namespace
 		std::size_t p_gridWidth,
 		std::size_t p_gridHeight,
 		float p_cellSize,
-		float p_radius
-	)
+		float p_radius)
 	{
 		const Cell candidateCell = cellOf(p_candidate, p_cellSize, p_gridWidth, p_gridHeight);
 
@@ -216,20 +207,17 @@ namespace
 
 	[[nodiscard]] spk::PoissonDisk::Point randomPoint(
 		const spk::PoissonDisk::Size &p_size,
-		RandomGenerator &p_random
-	) noexcept
+		RandomGenerator &p_random) noexcept
 	{
 		return {
 			p_random.range(0.0f, p_size.x),
-			p_random.range(0.0f, p_size.y)
-		};
+			p_random.range(0.0f, p_size.y)};
 	}
 
 	[[nodiscard]] bool findInitialPoint(
 		const spk::PoissonDisk::Parameters &p_parameters,
 		RandomGenerator &p_random,
-		spk::PoissonDisk::Point &p_result
-	)
+		spk::PoissonDisk::Point &p_result)
 	{
 		for (int i = 0; i < INITIAL_POINT_ATTEMPTS; ++i)
 		{
@@ -248,8 +236,7 @@ namespace
 	[[nodiscard]] spk::PoissonDisk::Point randomCandidateAround(
 		const spk::PoissonDisk::Point &p_center,
 		float p_radius,
-		RandomGenerator &p_random
-	) noexcept
+		RandomGenerator &p_random) noexcept
 	{
 		const float angle = p_random.range(0.0f, TWO_PI);
 
@@ -257,19 +244,16 @@ namespace
 		const float outerSquared = 4.0f * innerSquared;
 
 		const float distance = std::sqrt(
-			p_random.range(innerSquared, outerSquared)
-		);
+			p_random.range(innerSquared, outerSquared));
 
 		return {
 			p_center.x + std::cos(angle) * distance,
-			p_center.y + std::sin(angle) * distance
-		};
+			p_center.y + std::sin(angle) * distance};
 	}
 
 	[[nodiscard]] std::size_t checkedGridCellCount(
 		std::size_t p_gridWidth,
-		std::size_t p_gridHeight
-	)
+		std::size_t p_gridHeight)
 	{
 		if (p_gridHeight > std::numeric_limits<std::size_t>::max() / p_gridWidth)
 		{
@@ -289,12 +273,10 @@ namespace spk
 		const float cellSize = p_parameters.radius / std::sqrt(2.0f);
 
 		const std::size_t gridWidth = static_cast<std::size_t>(
-			std::ceil(p_parameters.size.x / cellSize)
-		);
+			std::ceil(p_parameters.size.x / cellSize));
 
 		const std::size_t gridHeight = static_cast<std::size_t>(
-			std::ceil(p_parameters.size.y / cellSize)
-		);
+			std::ceil(p_parameters.size.y / cellSize));
 
 		const std::size_t gridCellCount = checkedGridCellCount(gridWidth, gridHeight);
 
@@ -345,14 +327,13 @@ namespace spk
 				}
 
 				if (isFarEnough(
-					candidate,
-					points,
-					grid,
-					gridWidth,
-					gridHeight,
-					cellSize,
-					p_parameters.radius
-				) == false)
+						candidate,
+						points,
+						grid,
+						gridWidth,
+						gridHeight,
+						cellSize,
+						p_parameters.radius) == false)
 				{
 					continue;
 				}
@@ -382,8 +363,7 @@ namespace spk
 	float PoissonDisk::radiusForTargetCount(
 		Size p_size,
 		std::size_t p_targetCount,
-		float p_packingDensity
-	)
+		float p_packingDensity)
 	{
 		validateSize(p_size);
 		validatePackingDensity(p_packingDensity);
@@ -396,9 +376,8 @@ namespace spk
 		const float area = p_size.x * p_size.y;
 
 		return 2.0f * std::sqrt(
-			(area * p_packingDensity) /
-			(static_cast<float>(p_targetCount) * PI)
-		);
+						  (area * p_packingDensity) /
+						  (static_cast<float>(p_targetCount) * PI));
 	}
 
 	std::vector<PoissonDisk::Point> PoissonDisk::generateApproximateCount(
@@ -407,8 +386,7 @@ namespace spk
 		float p_packingDensity,
 		int p_triesPerPoint,
 		std::uint32_t p_seed,
-		PointPredicate p_accept
-	)
+		PointPredicate p_accept)
 	{
 		if (p_targetCount == 0)
 		{
@@ -417,13 +395,6 @@ namespace spk
 
 		const float radius = radiusForTargetCount(p_size, p_targetCount, p_packingDensity);
 
-		return generate({
-			.size = p_size,
-			.radius = radius,
-			.maxPointCount = p_targetCount,
-			.triesPerPoint = p_triesPerPoint,
-			.seed = p_seed,
-			.accept = std::move(p_accept)
-		});
+		return generate({.size = p_size, .radius = radius, .maxPointCount = p_targetCount, .triesPerPoint = p_triesPerPoint, .seed = p_seed, .accept = std::move(p_accept)});
 	}
 }

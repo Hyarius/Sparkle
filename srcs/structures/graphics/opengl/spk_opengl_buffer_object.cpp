@@ -13,7 +13,7 @@ namespace spk
 		_usage(p_usage),
 		_cpuBuffer(p_size)
 	{
-		_resetField();
+		_resetLayout();
 		requestSynchronization();
 	}
 
@@ -22,9 +22,9 @@ namespace spk
 		(void)p_newSize;
 	}
 
-	void BufferObject::_resetField()
+	void BufferObject::_resetLayout()
 	{
-		_field = spk::BinaryField(_cpuBuffer.data(), _cpuBuffer.size());
+		_layout = spk::BinaryLayout(_cpuBuffer.size());
 	}
 
 	void BufferObject::_synchronize() const
@@ -97,7 +97,7 @@ namespace spk
 
 		std::scoped_lock lock(_mutex);
 		_cpuBuffer.resize(p_size);
-		_resetField();
+		_resetLayout();
 		++_contentVersion;
 		requestSynchronization();
 	}
@@ -158,7 +158,7 @@ namespace spk
 		_validateNewSize(offset + p_size);
 
 		_cpuBuffer.resize(offset + p_size);
-		_resetField();
+		_resetLayout();
 		++_contentVersion;
 		requestSynchronization();
 
@@ -210,16 +210,16 @@ namespace spk
 		return std::span<const std::uint8_t>(_cpuBuffer.data(), _cpuBuffer.size());
 	}
 
-	spk::BinaryField &BufferObject::field()
+	spk::BinaryView BufferObject::view()
 	{
 		++_contentVersion;
 		requestSynchronization();
-		return _field;
+		return spk::BinaryView(std::span<std::byte>(reinterpret_cast<std::byte *>(_cpuBuffer.data()), _cpuBuffer.size()), _layout);
 	}
 
-	const spk::BinaryField &BufferObject::field() const
+	spk::BinaryView BufferObject::view() const
 	{
-		return _field;
+		return spk::BinaryView(std::span<const std::byte>(reinterpret_cast<const std::byte *>(_cpuBuffer.data()), _cpuBuffer.size()), _layout);
 	}
 
 	bool BufferObject::empty() const
@@ -231,7 +231,7 @@ namespace spk
 	{
 		if (needsSynchronization() == true)
 		{
-			synchronize();
+			(void)synchronize();
 		}
 
 		glBindBuffer(static_cast<GLenum>(_target), gpu(p_context).id());
@@ -246,7 +246,7 @@ namespace spk
 	{
 		if (needsSynchronization() == true)
 		{
-			synchronize();
+			(void)synchronize();
 		}
 
 		glBindBufferBase(static_cast<GLenum>(_target), p_bindingPoint, gpu(p_context).id());
@@ -256,7 +256,7 @@ namespace spk
 	{
 		if (needsSynchronization() == true)
 		{
-			synchronize();
+			(void)synchronize();
 		}
 
 		glBindBufferRange(static_cast<GLenum>(_target), p_bindingPoint, gpu(p_context).id(), p_offset, p_size);

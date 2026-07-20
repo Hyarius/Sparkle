@@ -1,7 +1,7 @@
 #pragma once
 
-#include "structures/game_engine/spk_component_logic.hpp"
 #include "structures/game_engine/rendering/spk_scene_render_passes.hpp"
+#include "structures/game_engine/spk_component_logic.hpp"
 #include "structures/graphics/rendering/pipeline/spk_render_pipeline.hpp"
 #include "structures/math/spk_matrix.hpp"
 #include "structures/system/spk_profiler.hpp"
@@ -68,6 +68,7 @@ namespace spk
 
 		[[nodiscard]] spk::WorkerPool &workerPool() noexcept;
 		[[nodiscard]] const spk::WorkerPool &workerPool() const noexcept;
+
 	protected:
 		void _onUpdateStarted(const spk::UpdateContext &p_tick) override;
 		void _parseComponentForUpdate(const spk::UpdateContext &p_tick, spk::VoxelChunkRenderer &p_renderer) override;

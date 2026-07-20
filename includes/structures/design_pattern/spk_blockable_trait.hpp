@@ -1,8 +1,12 @@
 #pragma once
 
 #include <cstddef>
+#include <deque>
 #include <functional>
+#include <limits>
 #include <memory>
+#include <mutex>
+#include <stdexcept>
 
 namespace spk
 {
@@ -12,53 +16,57 @@ namespace spk
 		enum class Mode
 		{
 			Ignore,
-			Delay
+			Defer
 		};
+
+	protected:
+		using Operation = std::move_only_function<void() noexcept>;
 
 	private:
 		struct State
 		{
-			size_t nbIgnoreBlocks = 0;
-			size_t nbDelayBlocks = 0;
-			std::function<void()> delayedOperation = nullptr;
+			mutable std::mutex mutex;
+			std::size_t nbIgnoreBlocks = 0;
+			std::size_t nbDeferBlocks = 0;
+			std::deque<Operation> deferredOperations;
 		};
-
 		std::shared_ptr<State> _state = std::make_shared<State>();
 
 	protected:
-		BlockableTrait();
-		virtual ~BlockableTrait();
+		BlockableTrait() = default;
+		virtual ~BlockableTrait() = default;
+		BlockableTrait(const BlockableTrait &) = delete;
+		BlockableTrait &operator=(const BlockableTrait &) = delete;
+		BlockableTrait(BlockableTrait &&) = delete;
+		BlockableTrait &operator=(BlockableTrait &&) = delete;
 
-		void _deferUntilUnblocked(std::function<void()> p_operation);
+		void _executeOrBlock(Operation p_operation);
 
 	public:
 		class Blocker
 		{
+			friend class BlockableTrait;
+
 		private:
 			std::weak_ptr<State> _state;
 			Mode _mode = Mode::Ignore;
-
-			void _tryRunDelayedOperation(State &p_state);
+			explicit Blocker(const std::shared_ptr<State> &p_state, Mode p_mode);
+			void _release(bool p_throwIfInvalid);
 
 		public:
 			Blocker() = default;
-			explicit Blocker(const std::shared_ptr<State> &p_state, Mode p_mode);
-			~Blocker();
-
+			~Blocker() noexcept;
 			Blocker(const Blocker &) = delete;
 			Blocker &operator=(const Blocker &) = delete;
-
 			Blocker(Blocker &&p_other) noexcept;
 			Blocker &operator=(Blocker &&p_other) noexcept;
-
 			void release();
-			bool isValid() const;
+			[[nodiscard]] bool isValid() const noexcept;
 		};
 
-		Blocker block(Mode p_mode = Mode::Ignore);
-
-		bool isBlocked() const;
-		bool isIgnoreBlocked() const;
-		bool isDelayBlocked() const;
+		[[nodiscard("The returned Blocker must remain alive")]] Blocker block(Mode p_mode = Mode::Ignore);
+		[[nodiscard]] bool isBlocked() const noexcept;
+		[[nodiscard]] bool isIgnoreBlocked() const noexcept;
+		[[nodiscard]] bool isDeferBlocked() const noexcept;
 	};
 }

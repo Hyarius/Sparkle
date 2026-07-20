@@ -90,9 +90,13 @@ namespace spk
 			if (!description.target.activeTarget)
 			{
 				if (description.target.ownedFrameBuffer != nullptr)
+				{
 					builder.emplace<spk::UseFrameBufferRenderCommand>(description.target.ownedFrameBuffer, description.target.viewport);
+				}
 				else
+				{
 					builder.emplace<spk::UseFrameBufferRenderCommand>(description.target.frameBuffer, description.target.viewport);
+				}
 			}
 
 			GLbitfield mask = 0;

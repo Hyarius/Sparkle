@@ -38,7 +38,7 @@ namespace spk
 		void _setEngineId(const spk::UUID &p_engineId);
 
 	protected:
-		void _onParentChanged(spk::Entity *p_oldParent, spk::Entity *p_newParent) override;
+		void _onParentChanged(spk::Entity *p_oldParent, spk::Entity *p_newParent) noexcept override;
 
 	public:
 		explicit Entity(spk::Entity *p_parent = nullptr);

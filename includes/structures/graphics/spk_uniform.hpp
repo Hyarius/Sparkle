@@ -48,7 +48,6 @@ namespace spk
 		}
 	};
 
-
 	template <typename TValue>
 	struct UniformStorageSpecification
 	{
@@ -307,7 +306,6 @@ namespace spk
 		}
 	};
 
-
 	template <typename TSpec>
 	class ScalarUniform : public UniformBase
 	{
@@ -347,7 +345,6 @@ namespace spk
 			return _value;
 		}
 	};
-
 
 	template <typename TSpec>
 	class ArrayUniform : public UniformBase
@@ -415,7 +412,6 @@ namespace spk
 			return *this;
 		}
 	};
-
 
 	using FloatUniform = ScalarUniform<FloatUniformSpecification>;
 	using BoolUniform = ScalarUniform<BoolUniformSpecification>;

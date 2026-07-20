@@ -217,7 +217,7 @@ namespace spk
 		[[nodiscard]] static IMatrix rotation(const spk::Quaternion &p_quaternion)
 		{
 			const spk::Quaternion q = p_quaternion.normalized();
-			
+
 			IMatrix result;
 			result[0][0] = 1.0f - 2.0f * (q.y * q.y + q.z * q.z);
 			result[0][1] = 2.0f * (q.x * q.y + q.w * q.z);

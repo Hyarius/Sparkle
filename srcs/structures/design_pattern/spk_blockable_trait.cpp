@@ -4,154 +4,121 @@
 
 namespace spk
 {
-	BlockableTrait::BlockableTrait()
+	void BlockableTrait::_executeOrBlock(Operation p_operation)
 	{
-	}
-
-	BlockableTrait::~BlockableTrait()
-	{
-		if (_state != nullptr)
+		if (!p_operation)
 		{
-			_state->delayedOperation = nullptr;
+			throw std::invalid_argument("spk::BlockableTrait: empty operation");
 		}
-	}
-
-	void BlockableTrait::_deferUntilUnblocked(std::function<void()> p_operation)
-	{
-		if (_state == nullptr)
 		{
-			return;
+			std::scoped_lock lock(_state->mutex);
+			if (_state->nbIgnoreBlocks != 0)
+			{
+				return;
+			}
+			if (_state->nbDeferBlocks != 0)
+			{
+				_state->deferredOperations.emplace_back(std::move(p_operation));
+				return;
+			}
 		}
-
-		if (_state->nbDelayBlocks > 0)
-		{
-			_state->delayedOperation = std::move(p_operation);
-		}
-	}
-
-	void BlockableTrait::Blocker::_tryRunDelayedOperation(State &p_state)
-	{
-		if (p_state.delayedOperation == nullptr)
-		{
-			return;
-		}
-
-		if (p_state.nbIgnoreBlocks > 0 || p_state.nbDelayBlocks > 0)
-		{
-			return;
-		}
-
-		std::function<void()> delayedOperation = std::move(p_state.delayedOperation);
-		p_state.delayedOperation = nullptr;
-		delayedOperation();
+		p_operation();
 	}
 
 	BlockableTrait::Blocker::Blocker(const std::shared_ptr<State> &p_state, Mode p_mode) :
 		_state(p_state),
 		_mode(p_mode)
 	{
-		std::shared_ptr<State> state = _state.lock();
-		if (state == nullptr)
-		{
-			return;
-		}
-
-		if (_mode == Mode::Delay)
-		{
-			++state->nbDelayBlocks;
-		}
-		else
-		{
-			++state->nbIgnoreBlocks;
-		}
 	}
-
-	BlockableTrait::Blocker::~Blocker()
+	BlockableTrait::Blocker::~Blocker() noexcept
 	{
-		release();
+		_release(false);
 	}
-
 	BlockableTrait::Blocker::Blocker(Blocker &&p_other) noexcept :
 		_state(std::move(p_other._state)),
 		_mode(p_other._mode)
 	{
 	}
-
 	BlockableTrait::Blocker &BlockableTrait::Blocker::operator=(Blocker &&p_other) noexcept
 	{
 		if (this != &p_other)
 		{
-			release();
+			_release(false);
 			_state = std::move(p_other._state);
 			_mode = p_other._mode;
 		}
-
 		return *this;
+	}
+
+	void BlockableTrait::Blocker::_release(bool p_throwIfInvalid)
+	{
+		const std::shared_ptr<State> state = _state.lock();
+		if (!state)
+		{
+			if (p_throwIfInvalid)
+			{
+				throw std::logic_error("spk::BlockableTrait: invalid blocker release");
+			}
+			return;
+		}
+		std::deque<Operation> operations;
+		{
+			std::scoped_lock lock(state->mutex);
+			std::size_t &count = _mode == Mode::Ignore ? state->nbIgnoreBlocks : state->nbDeferBlocks;
+			if (count == 0)
+			{
+				_state.reset();
+				if (p_throwIfInvalid)
+				{
+					throw std::logic_error("spk::BlockableTrait: invalid blocker release");
+				}
+				return;
+			}
+			--count;
+			_state.reset();
+			if (state->nbIgnoreBlocks == 0 && state->nbDeferBlocks == 0)
+			{
+				operations = std::move(state->deferredOperations);
+			}
+		}
+		for (Operation &operation : operations)
+		{
+			operation();
+		}
 	}
 
 	void BlockableTrait::Blocker::release()
 	{
-		std::shared_ptr<State> state = _state.lock();
-		if (state != nullptr)
-		{
-			if (_mode == Mode::Delay)
-			{
-				if (state->nbDelayBlocks > 0)
-				{
-					--state->nbDelayBlocks;
-				}
-			}
-			else
-			{
-				if (state->nbIgnoreBlocks > 0)
-				{
-					--state->nbIgnoreBlocks;
-				}
-			}
-
-			_tryRunDelayedOperation(*state);
-		}
-
-		_state.reset();
+		_release(true);
 	}
-
-	bool BlockableTrait::Blocker::isValid() const
+	bool BlockableTrait::Blocker::isValid() const noexcept
 	{
-		return (_state.expired() == false);
+		return !_state.expired();
 	}
 
 	BlockableTrait::Blocker BlockableTrait::block(Mode p_mode)
 	{
+		std::scoped_lock lock(_state->mutex);
+		std::size_t &count = p_mode == Mode::Ignore ? _state->nbIgnoreBlocks : _state->nbDeferBlocks;
+		if (count == std::numeric_limits<std::size_t>::max())
+		{
+			throw std::overflow_error("spk::BlockableTrait: blocker count overflow");
+		}
+		++count;
 		return Blocker(_state, p_mode);
 	}
-
-	bool BlockableTrait::isBlocked() const
+	bool BlockableTrait::isBlocked() const noexcept
 	{
-		if (_state == nullptr)
-		{
-			return false;
-		}
-
-		return (_state->nbIgnoreBlocks > 0 || _state->nbDelayBlocks > 0);
+		return isIgnoreBlocked() || isDeferBlocked();
 	}
-
-	bool BlockableTrait::isIgnoreBlocked() const
+	bool BlockableTrait::isIgnoreBlocked() const noexcept
 	{
-		if (_state == nullptr)
-		{
-			return false;
-		}
-
-		return (_state->nbIgnoreBlocks > 0);
+		std::scoped_lock lock(_state->mutex);
+		return _state->nbIgnoreBlocks != 0;
 	}
-
-	bool BlockableTrait::isDelayBlocked() const
+	bool BlockableTrait::isDeferBlocked() const noexcept
 	{
-		if (_state == nullptr)
-		{
-			return false;
-		}
-
-		return (_state->nbDelayBlocks > 0);
+		std::scoped_lock lock(_state->mutex);
+		return _state->nbDeferBlocks != 0;
 	}
 }

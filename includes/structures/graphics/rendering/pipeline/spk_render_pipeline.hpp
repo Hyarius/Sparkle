@@ -50,10 +50,10 @@ namespace spk
 			}
 
 			auto pass = std::make_unique<TPass>(
-			std::move(p_id),
-			p_priority,
-			std::move(p_description),
-			std::forward<TArguments>(p_arguments)...);
+				std::move(p_id),
+				p_priority,
+				std::move(p_description),
+				std::forward<TArguments>(p_arguments)...);
 			TPass &result = *pass;
 			_orderedPasses.push_back(pass.get());
 			_passes.emplace(result.id(), std::move(pass));

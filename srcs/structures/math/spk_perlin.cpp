@@ -10,9 +10,8 @@ namespace spk
 	Perlin::Perlin() :
 		Perlin(Parameters{})
 	{
-
 	}
-	
+
 	Perlin::Perlin(const Parameters &p_parameters)
 	{
 		setParameters(p_parameters);

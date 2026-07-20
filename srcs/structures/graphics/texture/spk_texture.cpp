@@ -237,19 +237,24 @@ namespace spk
 	}
 
 	Texture::Texture(Texture &&p_other) noexcept :
-		SynchronizableTrait(std::move(p_other)),
 		_state(std::move(p_other._state))
 	{
+		if (p_other.needsSynchronization())
+		{
+			requestSynchronization();
+		}
 	}
 
 	Texture &Texture::operator=(Texture &&p_other) noexcept
 	{
 		if (this != &p_other)
 		{
-			SynchronizableTrait::operator=(std::move(p_other));
 			_state = std::move(p_other._state);
+			if (p_other.needsSynchronization())
+			{
+				requestSynchronization();
+			}
 		}
-
 		return *this;
 	}
 

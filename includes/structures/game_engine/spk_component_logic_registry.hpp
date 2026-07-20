@@ -12,13 +12,13 @@
 
 #include "structures/game_engine/rendering/spk_scene_render_passes.hpp"
 #include "structures/game_engine/rendering/spk_scene_render_priorities.hpp"
-#include "structures/graphics/rendering/spk_scene_gpu_bindings.hpp"
 #include "structures/game_engine/spk_camera_3d.hpp"
 #include "structures/game_engine/spk_component_logic.hpp"
 #include "structures/game_engine/spk_component_registry.hpp"
 #include "structures/graphics/rendering/command/spk_camera_update_render_command.hpp"
 #include "structures/graphics/rendering/command/spk_directional_light_update_render_command.hpp"
 #include "structures/graphics/rendering/pipeline/spk_render_pipeline.hpp"
+#include "structures/graphics/rendering/spk_scene_gpu_bindings.hpp"
 #include "structures/graphics/spk_directional_light.hpp"
 
 namespace spk

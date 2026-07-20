@@ -14,8 +14,8 @@
 #include "structures/game_engine/rendering/spk_scene_render_passes.hpp"
 #include "structures/game_engine/spk_component.hpp"
 #include "structures/game_engine/spk_component_registry.hpp"
-#include "structures/graphics/rendering/unit/spk_render_unit_builder.hpp"
 #include "structures/graphics/rendering/pipeline/spk_render_pipeline.hpp"
+#include "structures/graphics/rendering/unit/spk_render_unit_builder.hpp"
 #include "structures/system/event/spk_events.hpp"
 #include "structures/system/event/spk_update_context.hpp"
 
@@ -63,7 +63,6 @@ namespace spk
 
 		IComponentLogic(IComponentLogic &&) noexcept = delete;
 		IComponentLogic &operator=(IComponentLogic &&) noexcept = delete;
-
 	};
 
 	template <typename TComponent>

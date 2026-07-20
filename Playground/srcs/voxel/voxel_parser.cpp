@@ -26,7 +26,7 @@ namespace
 		pg::VoxelLightDefinition result;
 		result.type = light.requireEnum<pg::VoxelLightType>("type", types);
 		// Reuse Sparkle's canonical #RRGGBB / #RRGGBBAA color representation.
-		result.color = spk::Color(light.require<std::string>("color"));
+		result.color = spk::Color::fromHex(light.require<std::string>("color"));
 		result.power = light.require<float>("power");
 		result.reach = light.optional<float>("reach", result.reach);
 		result.innerHalfAngleDegrees = light.optional<float>("innerHalfAngleDegrees", result.innerHalfAngleDegrees);

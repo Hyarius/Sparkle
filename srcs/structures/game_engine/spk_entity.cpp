@@ -20,8 +20,12 @@ namespace spk
 	{
 		_engineId = (parent() != nullptr ? parent()->_engineId : spk::UUID::null());
 
-		_activationContract = subscribeToActivation([this]() { _refreshGlobalActivated(); });
-		_deactivationContract = subscribeToDeactivation([this]() { _refreshGlobalActivated(); });
+		_activationContract = subscribeToActivation([this]() {
+			_refreshGlobalActivated();
+		});
+		_deactivationContract = subscribeToDeactivation([this]() {
+			_refreshGlobalActivated();
+		});
 
 		activate();
 	}
@@ -32,8 +36,12 @@ namespace spk
 	{
 		_engineId = (parent() != nullptr ? parent()->_engineId : spk::UUID::null());
 
-		_activationContract = subscribeToActivation([this]() { _refreshGlobalActivated(); });
-		_deactivationContract = subscribeToDeactivation([this]() { _refreshGlobalActivated(); });
+		_activationContract = subscribeToActivation([this]() {
+			_refreshGlobalActivated();
+		});
+		_deactivationContract = subscribeToDeactivation([this]() {
+			_refreshGlobalActivated();
+		});
 
 		activate();
 	}
@@ -110,7 +118,7 @@ namespace spk
 		}
 	}
 
-	void Entity::_onParentChanged(spk::Entity *p_oldParent, spk::Entity *p_newParent)
+	void Entity::_onParentChanged(spk::Entity *p_oldParent, spk::Entity *p_newParent) noexcept
 	{
 		(void)p_oldParent;
 
@@ -155,8 +163,7 @@ namespace spk
 			spk::ComponentStore::instance().remove(
 				_componentType(componentPtr),
 				_engineId,
-				componentPtr
-			);
+				componentPtr);
 		}
 
 		(*iterator)->_detach();

@@ -12,7 +12,7 @@ namespace spk
 		spk::Transform3D *_transform = nullptr;
 
 	protected:
-		void _onParentChanged(spk::Entity *p_oldParent, spk::Entity *p_newParent) override
+		void _onParentChanged(spk::Entity *p_oldParent, spk::Entity *p_newParent) noexcept override
 		{
 			spk::Entity::_onParentChanged(p_oldParent, p_newParent);
 			if (_transform != nullptr)

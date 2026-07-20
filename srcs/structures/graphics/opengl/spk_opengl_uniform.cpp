@@ -1,7 +1,7 @@
 #include "structures/graphics/opengl/spk_opengl_uniform.hpp"
 
-#include <stdexcept>
 #include <array>
+#include <stdexcept>
 
 namespace
 {

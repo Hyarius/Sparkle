@@ -3,8 +3,8 @@
 #include <GL/glew.h>
 
 #include "structures/graphics/rendering/command/spk_render_command.hpp"
-#include "structures/graphics/spk_uniform_buffer_object.hpp"
 #include "structures/graphics/rendering/spk_scene_lighting_gpu_data.hpp"
+#include "structures/graphics/spk_uniform_buffer_object.hpp"
 
 namespace spk
 {

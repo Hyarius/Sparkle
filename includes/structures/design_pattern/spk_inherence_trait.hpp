@@ -2,7 +2,11 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <deque>
+#include <limits>
 #include <memory>
+#include <span>
+#include <stdexcept>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -13,6 +17,11 @@ namespace spk
 	class HierarchyTrait
 	{
 	private:
+		// This non-owning hierarchy is single-threaded. Lifetime tokens only make
+		// deferred mutations safe when nodes are destroyed during a traversal.
+		struct LifetimeToken
+		{
+		};
 		enum class DeferredMutationType
 		{
 			SetParent,
@@ -23,24 +32,24 @@ namespace spk
 		{
 			DeferredMutationType type;
 			TType *node = nullptr;
-			std::weak_ptr<void> nodeAliveToken;
+			std::weak_ptr<LifetimeToken> nodeAliveToken;
 
 			TType *parent = nullptr;
-			std::weak_ptr<void> parentAliveToken;
-			bool hasParentAliveToken = false;
+			std::weak_ptr<LifetimeToken> parentAliveToken;
 		};
 
 		struct TraversalState
 		{
 			HierarchyTrait<TType> *owner = nullptr;
 			std::size_t nbBlocks = 0;
-			std::vector<DeferredMutation> deferredMutations;
+			bool requiresChildCompaction = false;
+			std::deque<DeferredMutation> deferredMutations;
 		};
 
 		TType *_parent = nullptr;
 		std::vector<TType *> _children;
 		std::shared_ptr<TraversalState> _traversalState = std::make_shared<TraversalState>();
-		std::shared_ptr<void> _aliveToken = std::make_shared<char>(0);
+		std::shared_ptr<LifetimeToken> _aliveToken = std::make_shared<LifetimeToken>();
 
 		[[nodiscard]] static HierarchyTrait<TType> *_trait(TType *p_node)
 		{
@@ -72,7 +81,6 @@ namespace spk
 			if (p_parent != nullptr)
 			{
 				result.parentAliveToken = _trait(p_parent)->_aliveToken;
-				result.hasParentAliveToken = true;
 			}
 
 			return result;
@@ -114,11 +122,6 @@ namespace spk
 				return true;
 			}
 
-			if (p_mutation.hasParentAliveToken == false)
-			{
-				return false;
-			}
-
 			return (p_mutation.parentAliveToken.expired() == false);
 		}
 
@@ -145,24 +148,12 @@ namespace spk
 				return;
 			}
 
-			if (p_mutation.type == DeferredMutationType::SetParent)
-			{
-				auto iterator = std::find_if(
-					_traversalState->deferredMutations.begin(),
-					_traversalState->deferredMutations.end(),
-					[&](const DeferredMutation &p_existingMutation) {
-						return p_existingMutation.type == DeferredMutationType::SetParent &&
-							   p_existingMutation.node == p_mutation.node;
-					});
-
-				if (iterator != _traversalState->deferredMutations.end())
-				{
-					*iterator = std::move(p_mutation);
-					return;
-				}
-			}
-
 			_traversalState->deferredMutations.push_back(std::move(p_mutation));
+		}
+
+		void _compactChildren() noexcept
+		{
+			_children.erase(std::remove(_children.begin(), _children.end(), nullptr), _children.end());
 		}
 
 		void _flushDeferredMutations()
@@ -174,7 +165,12 @@ namespace spk
 
 			while (_traversalState->deferredMutations.empty() == false)
 			{
-				std::vector<DeferredMutation> mutations = std::move(_traversalState->deferredMutations);
+				if (_traversalState->requiresChildCompaction)
+				{
+					_compactChildren();
+					_traversalState->requiresChildCompaction = false;
+				}
+				std::deque<DeferredMutation> mutations = std::move(_traversalState->deferredMutations);
 				_traversalState->deferredMutations.clear();
 
 				for (const DeferredMutation &mutation : mutations)
@@ -198,46 +194,48 @@ namespace spk
 			}
 		}
 
+		[[nodiscard]] bool _wouldCreateCycle(const TType *p_parent) const noexcept
+		{
+			for (const TType *current = p_parent; current != nullptr; current = current->parent())
+			{
+				if (current == static_cast<const TType *>(this))
+				{
+					return true;
+				}
+			}
+			return false;
+		}
+
 		void _setParentImmediate(TType *p_parent)
 		{
 			TType *self = static_cast<TType *>(this);
-
-			if (p_parent == self)
-			{
-				return;
-			}
-
 			if (_parent == p_parent)
 			{
 				return;
 			}
-
-			if (p_parent != nullptr && self->isAncestorOf(p_parent) == true)
-			{
-				return;
-			}
-
 			TType *oldParent = _parent;
-
-			if (_parent != nullptr)
-			{
-				auto oldIterator = std::find(_parent->_children.begin(), _parent->_children.end(), self);
-				if (oldIterator != _parent->_children.end())
-				{
-					_parent->_children.erase(oldIterator);
-					_trait(_parent)->_onChildRemoved(self);
-				}
-			}
-
-			_parent = nullptr;
-
 			if (p_parent != nullptr)
 			{
+				// Insert first: an allocation failure must leave the old relationship intact.
 				p_parent->_children.emplace_back(self);
-				_parent = p_parent;
+			}
+			if (oldParent != nullptr)
+			{
+				auto oldIterator = std::find(oldParent->_children.begin(), oldParent->_children.end(), self);
+				if (oldIterator != oldParent->_children.end())
+				{
+					oldParent->_children.erase(oldIterator);
+				}
+			}
+			_parent = p_parent;
+			if (oldParent != nullptr)
+			{
+				_trait(oldParent)->_onChildRemoved(self);
+			}
+			if (p_parent != nullptr)
+			{
 				_trait(p_parent)->_onChildAdded(self);
 			}
-
 			_onParentChanged(oldParent, _parent);
 		}
 
@@ -258,13 +256,13 @@ namespace spk
 		}
 
 	public:
-		class HierarchyMutationGuard
+		class ChildrenTraversalGuard
 		{
 		private:
 			std::weak_ptr<TraversalState> _state;
 
 		public:
-			explicit HierarchyMutationGuard(const HierarchyTrait<TType> *p_owner)
+			explicit ChildrenTraversalGuard(const HierarchyTrait<TType> *p_owner)
 			{
 				if (p_owner == nullptr || p_owner->_traversalState == nullptr)
 				{
@@ -272,25 +270,29 @@ namespace spk
 				}
 
 				_state = p_owner->_traversalState;
+				if (p_owner->_traversalState->nbBlocks == std::numeric_limits<std::size_t>::max())
+				{
+					throw std::overflow_error("spk::HierarchyTrait: traversal guard overflow");
+				}
 				++p_owner->_traversalState->nbBlocks;
 			}
 
-			HierarchyMutationGuard() = default;
+			ChildrenTraversalGuard() = default;
 
-			HierarchyMutationGuard(const HierarchyMutationGuard &) = delete;
-			HierarchyMutationGuard &operator=(const HierarchyMutationGuard &) = delete;
+			ChildrenTraversalGuard(const ChildrenTraversalGuard &) = delete;
+			ChildrenTraversalGuard &operator=(const ChildrenTraversalGuard &) = delete;
 
-			HierarchyMutationGuard(HierarchyMutationGuard &&p_other) noexcept :
+			ChildrenTraversalGuard(ChildrenTraversalGuard &&p_other) noexcept :
 				_state(std::move(p_other._state))
 			{
 				p_other._state.reset();
 			}
 
-			HierarchyMutationGuard &operator=(HierarchyMutationGuard &&p_other) noexcept
+			ChildrenTraversalGuard &operator=(ChildrenTraversalGuard &&p_other) noexcept
 			{
 				if (this != &p_other)
 				{
-					release();
+					_release(false);
 
 					_state = std::move(p_other._state);
 					p_other._state.reset();
@@ -299,31 +301,61 @@ namespace spk
 				return *this;
 			}
 
-			~HierarchyMutationGuard()
+			~ChildrenTraversalGuard() noexcept
 			{
-				release();
+				_release(false);
 			}
 
-			void release()
+			void _release(bool p_throwIfInvalid)
 			{
 				std::shared_ptr<TraversalState> state = _state.lock();
 				if (state == nullptr)
 				{
+					if (p_throwIfInvalid)
+					{
+						throw std::logic_error("spk::HierarchyTrait: invalid traversal guard release");
+					}
 					return;
 				}
 
-				if (state->nbBlocks != 0)
+				if (state->nbBlocks == 0)
 				{
-					--state->nbBlocks;
+					_state.reset();
+					if (p_throwIfInvalid)
+					{
+						throw std::logic_error("spk::HierarchyTrait: invalid traversal guard release");
+					}
+					return;
 				}
+				--state->nbBlocks;
 
 				HierarchyTrait<TType> *owner = state->owner;
 				if (state->nbBlocks == 0 && owner != nullptr)
 				{
-					owner->_flushDeferredMutations();
+					if (state->requiresChildCompaction)
+					{
+						owner->_compactChildren();
+						state->requiresChildCompaction = false;
+					}
+					try
+					{
+						owner->_flushDeferredMutations();
+					} catch (...)
+					{
+						if (p_throwIfInvalid)
+						{
+							throw;
+						}
+						std::terminate();
+					}
 				}
 
 				_state.reset();
+			}
+
+			void release()
+			{
+				_release(true);
 			}
 
 			[[nodiscard]] bool isValid() const
@@ -346,32 +378,49 @@ namespace spk
 			setParent(p_parent);
 		}
 
-		~HierarchyTrait()
+		~HierarchyTrait() noexcept
 		{
 			_aliveToken.reset();
-
 			if (_traversalState != nullptr)
 			{
 				_traversalState->owner = nullptr;
 				_traversalState->deferredMutations.clear();
 			}
-
-			_setParentImmediate(nullptr);
-			_clearChildrenImmediate();
-
-			if (_traversalState != nullptr)
+			if (_parent != nullptr)
 			{
-				_traversalState->owner = nullptr;
+				HierarchyTrait<TType> *parentTrait = _trait(_parent);
+				auto iterator = std::find(_parent->_children.begin(), _parent->_children.end(), static_cast<TType *>(this));
+				if (iterator != _parent->_children.end())
+				{
+					if (parentTrait->_isTraversalBlocked())
+					{
+						*iterator = nullptr;
+						parentTrait->_traversalState->requiresChildCompaction = true;
+					}
+					else
+					{
+						_parent->_children.erase(iterator);
+					}
+				}
+				_parent = nullptr;
 			}
+			for (TType *child : _children)
+			{
+				if (child != nullptr)
+				{
+					_trait(child)->_parent = nullptr;
+				}
+			}
+			_children.clear();
 		}
 
-		virtual void _onChildAdded(TType *p_child)
+		virtual void _onChildAdded(TType *p_child) noexcept
 		{
 		}
-		virtual void _onChildRemoved(TType *p_child)
+		virtual void _onChildRemoved(TType *p_child) noexcept
 		{
 		}
-		virtual void _onParentChanged(TType *p_oldParent, TType *p_newParent)
+		virtual void _onParentChanged(TType *p_oldParent, TType *p_newParent) noexcept
 		{
 		}
 
@@ -379,22 +428,28 @@ namespace spk
 		HierarchyTrait(const HierarchyTrait &) = delete;
 		HierarchyTrait &operator=(const HierarchyTrait &) = delete;
 
-		HierarchyTrait(HierarchyTrait &&) noexcept = delete;
-		HierarchyTrait &operator=(HierarchyTrait &&) noexcept = delete;
+		HierarchyTrait(HierarchyTrait &&) = delete;
+		HierarchyTrait &operator=(HierarchyTrait &&) = delete;
 
-		[[nodiscard]] bool isRoot() const
+		[[nodiscard("The returned guard must remain alive during traversal")]]
+		ChildrenTraversalGuard guardChildrenTraversal() const
+		{
+			return ChildrenTraversalGuard(this);
+		}
+
+		[[nodiscard]] bool isRoot() const noexcept
 		{
 			return (_parent == nullptr);
 		}
 
-		[[nodiscard]] bool isLeaf() const
+		[[nodiscard]] bool isLeaf() const noexcept
 		{
 			return (_children.empty() == true);
 		}
 
 		[[nodiscard]] bool isAncestorOf(const TType *p_node) const
 		{
-			const TType *current = p_node;
+			const TType *current = p_node == static_cast<const TType *>(this) ? nullptr : p_node;
 
 			while (current != nullptr)
 			{
@@ -421,6 +476,10 @@ namespace spk
 
 		void setParent(TType *p_parent)
 		{
+			if (p_parent == static_cast<TType *>(this) || _wouldCreateCycle(p_parent))
+			{
+				throw std::invalid_argument("spk::HierarchyTrait: parent would create a cycle");
+			}
 			HierarchyTrait<TType> *blockedOwner = _blockedChildListOwner(_parent);
 			if (blockedOwner == nullptr)
 			{
@@ -440,7 +499,7 @@ namespace spk
 		{
 			if (p_child == nullptr)
 			{
-				return;
+				throw std::invalid_argument("spk::HierarchyTrait: child cannot be null");
 			}
 
 			p_child->setParent(static_cast<TType *>(this));
@@ -450,7 +509,7 @@ namespace spk
 		{
 			if (p_child == nullptr)
 			{
-				return;
+				throw std::invalid_argument("spk::HierarchyTrait: child cannot be null");
 			}
 
 			if (p_child->_parent != static_cast<TType *>(this))
@@ -473,29 +532,65 @@ namespace spk
 			_clearChildrenImmediate();
 		}
 
-		[[nodiscard]] TType *parent() const
+		[[nodiscard]] TType *parent() noexcept
 		{
 			return _parent;
 		}
 
-		[[nodiscard]] bool hasParent() const
+		[[nodiscard]] const TType *parent() const noexcept
+		{
+			return _parent;
+		}
+
+		[[nodiscard]] bool hasParent() const noexcept
 		{
 			return (_parent != nullptr);
 		}
 
-		[[nodiscard]] bool hasChild(const TType *p_child) const
+		[[nodiscard]] bool hasChild(const TType *p_child) const noexcept
 		{
 			return (std::find(_children.begin(), _children.end(), p_child) != _children.end());
 		}
 
-		[[nodiscard]] std::size_t nbChildren() const
+		[[nodiscard]] std::size_t nbChildren() const noexcept
 		{
 			return _children.size();
 		}
 
-		[[nodiscard]] const std::vector<TType *> &children() const
+		[[nodiscard]] std::span<TType *const> children() noexcept
 		{
 			return _children;
+		}
+
+		[[nodiscard]] std::span<TType *const> children() const noexcept
+		{
+			return _children;
+		}
+
+		template <typename TCallback>
+		void forEachChild(TCallback &&p_callback)
+		{
+			auto guard = guardChildrenTraversal();
+			for (TType *child : _children)
+			{
+				if (child != nullptr)
+				{
+					p_callback(*child);
+				}
+			}
+		}
+
+		template <typename TCallback>
+		void forEachChild(TCallback &&p_callback) const
+		{
+			auto guard = guardChildrenTraversal();
+			for (TType *child : _children)
+			{
+				if (child != nullptr)
+				{
+					p_callback(*child);
+				}
+			}
 		}
 	};
 

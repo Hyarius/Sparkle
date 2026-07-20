@@ -12,7 +12,9 @@ namespace spk
 			spk::VoxelShapePolygon::Builder builder;
 			builder.reserve(p_polygon.size());
 			for (std::size_t index = p_polygon.size(); index > 0; --index)
+			{
 				builder.addVertex(p_polygon[index - 1]);
+			}
 			return std::move(builder).bake();
 		}
 	}

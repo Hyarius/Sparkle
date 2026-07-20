@@ -246,7 +246,9 @@ namespace spk
 			}
 			pass.add(std::make_unique<spk::DrawVoxelMesh3DRenderCommand>(renderer->sharedOpaqueMesh(), _cache.at(renderer).modelUBO, _sampler, false));
 			for (spk::ShadowRenderPass &shadow : p_context.frame.passes.all<spk::ShadowRenderPass>())
+			{
 				shadow.emplace<spk::DrawVoxelShadowRenderCommand>(renderer->sharedOpaqueMesh(), _cache.at(renderer).modelUBO, shadow.lightViewProjection());
+			}
 		}
 
 		_pruneUnloadedChunks();

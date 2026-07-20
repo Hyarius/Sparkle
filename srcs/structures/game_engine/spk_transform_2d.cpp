@@ -8,8 +8,12 @@
 namespace spk
 {
 	Transform2D::Transform2D() :
-		_modelTransform([this]() { return _generateModelTransform(); }),
-		_inverseModelTransform([this]() { return _generateInverseModelTransform(); })
+		_modelTransform([this]() {
+			return _generateModelTransform();
+		}),
+		_inverseModelTransform([this]() {
+			return _generateInverseModelTransform();
+		})
 	{
 	}
 

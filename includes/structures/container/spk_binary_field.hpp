@@ -1,8 +1,6 @@
 #pragma once
 
-#include <array>
 #include <cstddef>
-#include <cstdint>
 #include <cstring>
 #include <memory>
 #include <span>
@@ -14,132 +12,111 @@
 
 namespace spk
 {
-	class BinaryField
+	class BinaryLayout
 	{
-	private:
+	public:
 		enum class Kind
 		{
 			Value,
 			Object,
 			Array
 		};
-
-		static constexpr std::size_t invalidSectionID = static_cast<std::size_t>(-1);
-
-		struct Section
+		class Node
 		{
-			std::string name;
-			Kind kind = Kind::Value;
-
-			std::size_t size = 0;
-			std::size_t offset = 0;
-			std::size_t absoluteOffset = 0;
-
-			std::size_t elementSize = 0;
-			std::size_t count = 0;
-
-			std::size_t parent = invalidSectionID;
-			std::vector<std::size_t> children;
-		};
-
-		struct Layout
-		{
-			std::uint8_t *data = nullptr;
-			std::vector<Section> sections;
-		};
-
-		std::shared_ptr<Layout> _layout;
-		std::size_t _sectionID = invalidSectionID;
-
-		BinaryField(const std::shared_ptr<Layout> &p_layout, std::size_t p_sectionID);
-
-		Section &_section();
-		const Section &_section() const;
-
-		std::size_t _findChild(std::string_view p_name) const;
-		BinaryField _addSection(std::string_view p_name, std::size_t p_offset, std::size_t p_size, Kind p_kind);
-
-		template <typename TValueType>
-		void _writeExact(const TValueType &p_value)
-		{
-			static_assert(std::is_trivially_copyable_v<TValueType>);
-
-			Section &section = _section();
-			if (sizeof(TValueType) != section.size)
+			friend class BinaryLayout;
+			friend class BinaryView;
+			std::string _name;
+			Kind _kind = Kind::Value;
+			std::size_t _offset = 0;
+			std::size_t _size = 0;
+			std::size_t _elementSize = 0;
+			std::size_t _count = 0;
+			std::vector<std::unique_ptr<Node>> _children;
+			Node(std::string p_name, Kind p_kind, std::size_t p_offset, std::size_t p_size) :
+				_name(std::move(p_name)),
+				_kind(p_kind),
+				_offset(p_offset),
+				_size(p_size)
 			{
-				throw std::runtime_error("BinaryField assignment received a value with the wrong size.");
 			}
+			Node &_add(std::string_view p_name, std::size_t p_offset, std::size_t p_size, Kind p_kind);
 
-			std::memcpy(data(), &p_value, sizeof(TValueType));
-		}
+		public:
+			[[nodiscard]] std::string_view name() const noexcept
+			{
+				return _name;
+			}
+			[[nodiscard]] Kind kind() const noexcept
+			{
+				return _kind;
+			}
+			[[nodiscard]] std::size_t offset() const noexcept
+			{
+				return _offset;
+			}
+			[[nodiscard]] std::size_t size() const noexcept
+			{
+				return _size;
+			}
+			[[nodiscard]] std::size_t count() const noexcept
+			{
+				return _count;
+			}
+			[[nodiscard]] std::size_t elementSize() const noexcept
+			{
+				return _elementSize;
+			}
+			Node &addValue(std::string_view p_name, std::size_t p_offset, std::size_t p_size)
+			{
+				return _add(p_name, p_offset, p_size, Kind::Value);
+			}
+			Node &addObject(std::string_view p_name, std::size_t p_offset, std::size_t p_size)
+			{
+				return _add(p_name, p_offset, p_size, Kind::Object);
+			}
+			Node &addArray(std::string_view p_name, std::size_t p_offset, std::size_t p_count, std::size_t p_elementSize);
+			template <typename TValue>
+			Node &addValue(std::string_view p_name, std::size_t p_offset)
+			{
+				static_assert(std::is_trivially_copyable_v<TValue>);
+				return addValue(p_name, p_offset, sizeof(TValue));
+			}
+			template <typename TValue>
+			Node &addArray(std::string_view p_name, std::size_t p_offset, std::size_t p_count)
+			{
+				static_assert(std::is_trivially_copyable_v<TValue>);
+				return addArray(p_name, p_offset, p_count, sizeof(TValue));
+			}
+		};
+
+	private:
+		std::unique_ptr<Node> _root;
 
 	public:
-		BinaryField() = default;
-		BinaryField(std::uint8_t *p_data, std::size_t p_size);
-
-		bool isValid() const;
-
-		std::string_view name() const;
-		std::size_t size() const;
-		std::size_t offset() const;
-		std::size_t count() const;
-		std::size_t elementSize() const;
-		std::uint8_t *data();
-		const std::uint8_t *data() const;
-
-		BinaryField addValue(std::string_view p_name, std::size_t p_offset, std::size_t p_size);
-		BinaryField addObject(std::string_view p_name, std::size_t p_offset, std::size_t p_size);
-		BinaryField addArray(std::string_view p_name, std::size_t p_offset, std::size_t p_count, std::size_t p_elementSize);
-
-		BinaryField operator[](std::string_view p_name);
-		BinaryField operator[](std::size_t p_index);
-
-		template <typename TValueType>
-		BinaryField &operator=(const TValueType &p_value)
+		explicit BinaryLayout(std::size_t p_size);
+		[[nodiscard]] std::size_t size() const noexcept;
+		[[nodiscard]] const Node &root() const noexcept;
+		Node &addValue(std::string_view p_name, std::size_t p_offset, std::size_t p_size)
 		{
-			_writeExact(p_value);
-			return *this;
+			return _root->addValue(p_name, p_offset, p_size);
 		}
-
-		template <typename TValueType, std::size_t NSize>
-		BinaryField &operator=(const std::array<TValueType, NSize> &p_values)
+		Node &addObject(std::string_view p_name, std::size_t p_offset, std::size_t p_size)
 		{
-			static_assert(std::is_trivially_copyable_v<TValueType>);
-
-			Section &section = _section();
-			if (sizeof(TValueType) * NSize != section.size)
-			{
-				throw std::runtime_error("BinaryField array assignment received values with the wrong size.");
-			}
-
-			std::memcpy(data(), p_values.data(), sizeof(TValueType) * NSize);
-			return *this;
+			return _root->addObject(p_name, p_offset, p_size);
 		}
-
-		template <typename TValueType>
-		BinaryField &set(const TValueType &p_value)
+		Node &addArray(std::string_view p_name, std::size_t p_offset, std::size_t p_count, std::size_t p_elementSize)
 		{
-			_writeExact(p_value);
-			return *this;
+			return _root->addArray(p_name, p_offset, p_count, p_elementSize);
 		}
-
-		template <typename TValueType>
-		TValueType as() const
+		template <typename TValue>
+		Node &addValue(std::string_view p_name, std::size_t p_offset)
 		{
-			static_assert(std::is_trivially_copyable_v<TValueType>);
-
-			const Section &section = _section();
-			if (sizeof(TValueType) != section.size)
-			{
-				throw std::runtime_error("BinaryField::as received a type with the wrong size.");
-			}
-
-			TValueType result;
-			std::memcpy(&result, data(), sizeof(TValueType));
-			return result;
+			return _root->template addValue<TValue>(p_name, p_offset);
 		}
-
-		std::span<std::uint8_t> bytes();
-		std::span<const std::uint8_t> bytes() const;
+		template <typename TValue>
+		Node &addArray(std::string_view p_name, std::size_t p_offset, std::size_t p_count)
+		{
+			return _root->template addArray<TValue>(p_name, p_offset, p_count);
+		}
 	};
 }

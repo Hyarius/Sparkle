@@ -16,20 +16,19 @@ namespace spk
 			return;
 		}
 
-		if (isBlocked() == true)
-		{
-			if (isDelayBlocked() == true)
+		_executeOrBlock([this]() noexcept {
+			try
 			{
-				_deferUntilUnblocked([this]() {
-					activate();
-				});
+				if (_isActivated == false)
+				{
+					_isActivated = true;
+					_activationProvider.trigger();
+				}
+			} catch (...)
+			{
+				std::terminate();
 			}
-
-			return;
-		}
-
-		_isActivated = true;
-		_activationProvider.trigger();
+		});
 	}
 
 	void ActivableTrait::deactivate()
@@ -39,20 +38,19 @@ namespace spk
 			return;
 		}
 
-		if (isBlocked() == true)
-		{
-			if (isDelayBlocked() == true)
+		_executeOrBlock([this]() noexcept {
+			try
 			{
-				_deferUntilUnblocked([this]() {
-					deactivate();
-				});
+				if (_isActivated == true)
+				{
+					_isActivated = false;
+					_deactivationProvider.trigger();
+				}
+			} catch (...)
+			{
+				std::terminate();
 			}
-
-			return;
-		}
-
-		_isActivated = false;
-		_deactivationProvider.trigger();
+		});
 	}
 
 	ActivableTrait::Contract ActivableTrait::subscribeToActivation(Callback p_callback)

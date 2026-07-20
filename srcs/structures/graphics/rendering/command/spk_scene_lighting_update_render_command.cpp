@@ -12,10 +12,15 @@ namespace spk
 		std::shared_ptr<const spk::ShaderStorageBufferObject> p_directional,
 		std::shared_ptr<const spk::ShaderStorageBufferObject> p_point,
 		std::shared_ptr<const spk::ShaderStorageBufferObject> p_spot) :
-		_header(std::move(p_header)), _directional(std::move(p_directional)), _point(std::move(p_point)), _spot(std::move(p_spot))
+		_header(std::move(p_header)),
+		_directional(std::move(p_directional)),
+		_point(std::move(p_point)),
+		_spot(std::move(p_spot))
 	{
 		if (_header == nullptr || _directional == nullptr || _point == nullptr || _spot == nullptr)
+		{
 			throw std::invalid_argument("Scene lighting command requires every published buffer");
+		}
 	}
 
 	void SceneLightingUpdateRenderCommand::execute(spk::RenderContext &p_renderContext)
