@@ -45,22 +45,22 @@ namespace spk
 
 	void Window::_enqueuePlatformAction(PlatformAction p_action)
 	{
-		_pendingPlatformActions.pushBack(std::move(p_action));
+		_pendingPlatformActions.push(std::move(p_action));
 	}
 
 	void Window::_enqueueRenderAction(RenderAction p_action)
 	{
-		_pendingRenderActions.pushBack(std::move(p_action));
+		_pendingRenderActions.push(std::move(p_action));
 	}
 
-	std::vector<Window::PlatformAction> Window::_drainPendingPlatformActions()
+	std::deque<Window::PlatformAction> Window::_drainPendingPlatformActions()
 	{
 		return _pendingPlatformActions.drain();
 	}
 
-	std::vector<Window::RenderAction> Window::_drainPendingRenderActions()
+	std::deque<Window::RenderAction> Window::_drainPendingRenderActions()
 	{
-		std::vector<RenderAction> result = _pendingRenderActions.drain();
+		std::deque<RenderAction> result = _pendingRenderActions.drain();
 
 		std::optional<RenderAction> latestResizeAction;
 		std::optional<RenderAction> latestVSyncAction;
@@ -78,7 +78,7 @@ namespace spk
 			}
 		}
 
-		std::vector<RenderAction> coalescedActions;
+		std::deque<RenderAction> coalescedActions;
 		if (latestResizeAction.has_value() == true)
 		{
 			coalescedActions.push_back(std::move(latestResizeAction.value()));
@@ -371,7 +371,7 @@ namespace spk
 
 	void Window::executePendingPlatformActions()
 	{
-		std::vector<PlatformAction> actions = _drainPendingPlatformActions();
+		std::deque<PlatformAction> actions = _drainPendingPlatformActions();
 
 		for (const PlatformAction &action : actions)
 		{
@@ -406,7 +406,7 @@ namespace spk
 			return;
 		}
 
-		std::vector<RenderAction> renderActions = _drainPendingRenderActions();
+		std::deque<RenderAction> renderActions = _drainPendingRenderActions();
 
 		if (_host.makeCurrent() == false)
 		{

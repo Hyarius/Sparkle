@@ -2,7 +2,7 @@
 
 Each review has its own Markdown file. Follow [library_review_path.md](<../library_review_path.md>) for the dependency order.
 
-There are 437 review files:
+There are 436 review files:
 
 - [001 — includes/structures/container/spk_binary_field.hpp](<001_spk_binary_field.hpp.md>)
 - [002 — includes/structures/container/spk_cached_data.hpp](<002_spk_cached_data.hpp.md>)
@@ -25,7 +25,6 @@ There are 437 review files:
 - [019 — includes/structures/graphics/spk_primitive.hpp](<019_spk_primitive.hpp.md>)
 - [020 — includes/structures/math/spk_deterministic_random.hpp](<020_spk_deterministic_random.hpp.md>)
 - [021 — includes/structures/math/spk_perlin.hpp](<021_spk_perlin.hpp.md>)
-- [022 — includes/structures/system/thread/spk_thread_safe_deque.hpp](<022_spk_thread_safe_deque.hpp.md>)
 - [023 — includes/structures/system/thread/spk_worker_pool.hpp](<023_spk_worker_pool.hpp.md>)
 - [024 — includes/structures/system/win32/spk_winapi_class.hpp](<024_spk_winapi_class.hpp.md>)
 - [025 — includes/structures/system/win32/spk_winapi_cursor.hpp](<025_spk_winapi_cursor.hpp.md>)
@@ -443,4 +442,3 @@ There are 437 review files:
 - [437 — includes/sparkle](<437_sparkle.md>)
 
 Each note contains only the file link, a completion checkbox, and a place for remarks and requested changes.
-

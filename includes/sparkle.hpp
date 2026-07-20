@@ -19,7 +19,7 @@
 #include "structures/design_pattern/spk_synchronizable_trait.hpp"
 #include "structures/graphics/geometry/spk_color.hpp"
 #include "structures/system/thread/spk_thread_safe_contract.hpp"
-#include "structures/system/thread/spk_thread_safe_deque.hpp"
+#include "structures/system/thread/spk_thread_safe_queue.hpp"
 #include "structures/system/thread/spk_worker_pool.hpp"
 #include "type/spk_concepts.hpp"
 #include "type/spk_constants.hpp"

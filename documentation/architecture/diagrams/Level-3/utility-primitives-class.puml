@@ -15,7 +15,7 @@ namespace spk {
 	class ObservableValue<T>
 	class ContractProvider<T>
 	class ThreadSafeContract<T>
-	class ThreadSafeDeque<T>
+	class ThreadSafeQueue<T>
 	class BinaryField
 	class ActivableTrait
 	class BlockableTrait
@@ -25,7 +25,7 @@ namespace spk {
 
 spk.ObservableValue --> spk.ContractProvider : emits changes through
 spk.ThreadSafeContract --> spk.ContractProvider : synchronizes callbacks
-spk.ThreadSafeDeque ..> spk.SynchronizableTrait
+spk.ThreadSafeQueue ..> spk.SynchronizableTrait
 spk.ObjectPool ..> spk.CachedData : reusable cached ownership pattern
 spk.BinaryField ..> spk.Flags : structured option bytes when needed
 spk.ActivableTrait ..> spk.Widget : used by widgets

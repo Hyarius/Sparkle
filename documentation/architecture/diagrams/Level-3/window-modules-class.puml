@@ -11,7 +11,7 @@ namespace spk {
 	}
 
 	class FrameModule {
-		- ThreadSafeDeque<FrameEventRecord> _events
+		- ThreadSafeQueue<FrameEventRecord> _events
 		+ pushEvent(FrameEventRecord)
 		+ processEvents(callback)
 		- _treatEvent(FrameEventRecord)
@@ -19,7 +19,7 @@ namespace spk {
 
 	class MouseModule {
 		- Mouse _mouse
-		- ThreadSafeDeque<MouseEventRecord> _events
+		- ThreadSafeQueue<MouseEventRecord> _events
 		+ pushEvent(MouseEventRecord)
 		+ processEvents()
 		+ mouse() : Mouse&
@@ -28,7 +28,7 @@ namespace spk {
 
 	class KeyboardModule {
 		- Keyboard _keyboard
-		- ThreadSafeDeque<KeyboardEventRecord> _events
+		- ThreadSafeQueue<KeyboardEventRecord> _events
 		+ pushEvent(KeyboardEventRecord)
 		+ processEvents()
 		+ keyboard() : Keyboard&
@@ -51,16 +51,16 @@ namespace spk {
 		+ render(renderContext)
 	}
 
-	class "ThreadSafeDeque<T>" as ThreadSafeDeque {
+	class "ThreadSafeQueue<T>" as ThreadSafeQueue {
 		- deque<T> _values
 		- mutex _mutex
-		+ pushBack(value)
-		+ pushFront(value)
-		+ popFront(output) : bool
-		+ drain() : vector<T>
+		+ push(value)
+		+ emplace(arguments...)
+		+ tryPop() : optional<T>
+		+ drain() : deque<T>
 		+ clear()
 		+ empty() : bool
-		+ size() : size_t
+		+ size() : SizeType
 	}
 
 	class Window {
@@ -70,8 +70,8 @@ namespace spk {
 		- UpdateModule _updateModule
 		- RenderModule _renderModule
 		- WindowSnapshotManager _snapshotManager
-		- ThreadSafeDeque<PlatformAction> _pendingPlatformActions
-		- ThreadSafeDeque<RenderAction> _pendingRenderActions
+		- ThreadSafeQueue<PlatformAction> _pendingPlatformActions
+		- ThreadSafeQueue<RenderAction> _pendingRenderActions
 		+ update()
 		+ render()
 		+ executePendingPlatformActions()
@@ -110,10 +110,10 @@ spk.Window *-- spk.RenderModule
 spk.Window *-- spk.WindowSnapshotManager
 
 spk.IModule --> spk.Widget : bound root
-spk.FrameModule *-- spk.ThreadSafeDeque
-spk.MouseModule *-- spk.ThreadSafeDeque
-spk.KeyboardModule *-- spk.ThreadSafeDeque
-spk.Window *-- spk.ThreadSafeDeque : platform/render actions
+spk.FrameModule *-- spk.ThreadSafeQueue
+spk.MouseModule *-- spk.ThreadSafeQueue
+spk.KeyboardModule *-- spk.ThreadSafeQueue
+spk.Window *-- spk.ThreadSafeQueue : platform/render actions
 spk.UpdateModule --> spk.Mouse
 spk.UpdateModule --> spk.Keyboard
 spk.RenderModule o-- spk.RenderSnapshot

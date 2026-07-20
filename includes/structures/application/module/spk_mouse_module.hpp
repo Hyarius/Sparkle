@@ -3,7 +3,7 @@
 #include "structures/application/module/spk_module.hpp"
 #include "structures/system/device/input/spk_mouse.hpp"
 #include "structures/system/event/spk_events.hpp"
-#include "structures/system/thread/spk_thread_safe_deque.hpp"
+#include "structures/system/thread/spk_thread_safe_queue.hpp"
 
 namespace spk
 {
@@ -11,7 +11,7 @@ namespace spk
 	{
 	private:
 		spk::Mouse _mouse;
-		spk::ThreadSafeDeque<spk::MouseEventRecord> _events;
+		spk::ThreadSafeQueue<spk::MouseEventRecord> _events;
 
 	private:
 		void _treatEvent(spk::MouseEventRecord &p_event);

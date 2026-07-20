@@ -9,7 +9,7 @@ class CachedData
 class Flags
 class ObjectPool
 class BinaryField
-class ThreadSafeDeque
+class ThreadSafeQueue
 
 class "Event listeners" as Listeners
 class "Dirty render data" as DirtyData
@@ -23,7 +23,7 @@ CachedData --> DirtyData : rebuilds on demand
 Flags --> Options : stores named bits
 ObjectPool --> Objects : reuses allocations
 BinaryField --> Objects : exposes typed byte sections
-ThreadSafeDeque --> Queues : passes work between loops
+ThreadSafeQueue --> Queues : passes work between loops
 
 note bottom
 Utility types appear throughout Sparkle where a small,

@@ -54,7 +54,7 @@ When a `.cpp` does not have a same-named `.hpp`, treat its direct includes as it
 - [includes/structures/graphics/spk_primitive.hpp](<includes/structures/graphics/spk_primitive.hpp>)
 - [includes/structures/math/spk_deterministic_random.hpp](<includes/structures/math/spk_deterministic_random.hpp>)
 - [includes/structures/math/spk_perlin.hpp](<includes/structures/math/spk_perlin.hpp>)
-- [includes/structures/system/thread/spk_thread_safe_deque.hpp](<includes/structures/system/thread/spk_thread_safe_deque.hpp>)
+- [includes/structures/system/thread/spk_thread_safe_queue.hpp](<includes/structures/system/thread/spk_thread_safe_queue.hpp>)
 - [includes/structures/system/thread/spk_worker_pool.hpp](<includes/structures/system/thread/spk_worker_pool.hpp>)
 - [includes/structures/system/win32/spk_winapi_class.hpp](<includes/structures/system/win32/spk_winapi_class.hpp>)
 - [includes/structures/system/win32/spk_winapi_cursor.hpp](<includes/structures/system/win32/spk_winapi_cursor.hpp>)

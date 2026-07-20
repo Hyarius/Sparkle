@@ -5,8 +5,8 @@ skinparam classAttributeIconSize 0
 
 namespace spk {
 	class Window {
-		- ThreadSafeDeque<PlatformAction> _pendingPlatformActions
-		- ThreadSafeDeque<RenderAction> _pendingRenderActions
+		- ThreadSafeQueue<PlatformAction> _pendingPlatformActions
+		- ThreadSafeQueue<RenderAction> _pendingRenderActions
 		- atomic<bool> _isClosed
 		- atomic<bool> _closureRequested
 		- atomic<bool> _closureNotificationPending
@@ -21,8 +21,8 @@ namespace spk {
 		- _enqueueKeyboardEvent(event)
 		- _enqueuePlatformAction(action)
 		- _enqueueRenderAction(action)
-		- _drainPendingPlatformActions() : vector<PlatformAction>
-		- _drainPendingRenderActions() : vector<RenderAction>
+		- _drainPendingPlatformActions() : deque<PlatformAction>
+		- _drainPendingRenderActions() : deque<RenderAction>
 		- _treatProcessedFrameEvent(event, isConsumed)
 		- _executePlatformAction(action)
 		- _executeRenderAction(action)
@@ -67,11 +67,11 @@ namespace spk {
 	class RenderModule
 	class WindowSnapshotManager
 	class WindowHost
-	class "ThreadSafeDeque<T>" as ThreadSafeDeque
+	class "ThreadSafeQueue<T>" as ThreadSafeQueue
 	class ContractProvider
 }
 
-spk.Window *-- spk.ThreadSafeDeque : pending actions
+spk.Window *-- spk.ThreadSafeQueue : pending actions
 spk.Window *-- spk.PlatformAction
 spk.Window *-- spk.RenderAction
 spk.PlatformAction *-- spk.PlatformActionType

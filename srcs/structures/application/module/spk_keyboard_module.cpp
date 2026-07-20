@@ -31,16 +31,14 @@ namespace spk
 
 	void KeyboardModule::pushEvent(spk::KeyboardEventRecord p_event)
 	{
-		_events.pushBack(std::move(p_event));
+		_events.push(std::move(p_event));
 	}
 
 	void KeyboardModule::processEvents()
 	{
-		spk::KeyboardEventRecord event;
-
-		while (_events.popFront(event) == true)
+		while (std::optional<spk::KeyboardEventRecord> event = _events.tryPop())
 		{
-			_treatEvent(event);
+			_treatEvent(*event);
 		}
 	}
 

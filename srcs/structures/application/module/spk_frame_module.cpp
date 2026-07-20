@@ -24,20 +24,18 @@ namespace spk
 
 	void FrameModule::pushEvent(spk::FrameEventRecord p_event)
 	{
-		_events.pushBack(std::move(p_event));
+		_events.push(std::move(p_event));
 	}
 
 	void FrameModule::processEvents(const ProcessedEventCallback &p_processedEventCallback)
 	{
-		spk::FrameEventRecord event;
-
-		while (_events.popFront(event) == true)
+		while (std::optional<spk::FrameEventRecord> event = _events.tryPop())
 		{
-			const bool isConsumed = _treatEvent(event);
+			const bool isConsumed = _treatEvent(*event);
 
 			if (p_processedEventCallback != nullptr)
 			{
-				if (p_processedEventCallback(event, isConsumed) == false)
+				if (p_processedEventCallback(*event, isConsumed) == false)
 				{
 					return;
 				}

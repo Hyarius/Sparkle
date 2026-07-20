@@ -8,12 +8,13 @@ namespace spk {
 		- mutable mutex _mutex
 	}
 
-	class ThreadSafeDeque<T> {
+	class ThreadSafeQueue<T> {
 		- deque<T> _values
 		- mutex _mutex
-		+ pushBack(value)
-		+ popFront(output) : bool
-		+ drain() : vector<T>
+		+ push(value)
+		+ emplace(arguments...)
+		+ tryPop() : optional<T>
+		+ drain() : deque<T>
 	}
 
 	class ContractProvider<T> {
@@ -40,7 +41,7 @@ namespace spk {
 	}
 }
 
-spk.ThreadSafeDeque ..> spk.SynchronizableTrait : same locking pattern
+spk.ThreadSafeQueue ..> spk.SynchronizableTrait : same locking pattern
 spk.ThreadSafeContract --> spk.ContractProvider
 spk.ThreadSafeContract ..> spk.BlockableTrait : delayed flush behavior
 spk.ActivableTrait ..> spk.BlockableTrait : state gating concept

@@ -45,16 +45,14 @@ namespace spk
 
 	void MouseModule::pushEvent(spk::MouseEventRecord p_event)
 	{
-		_events.pushBack(std::move(p_event));
+		_events.push(std::move(p_event));
 	}
 
 	void MouseModule::processEvents()
 	{
-		spk::MouseEventRecord event;
-
-		while (_events.popFront(event) == true)
+		while (std::optional<spk::MouseEventRecord> event = _events.tryPop())
 		{
-			_treatEvent(event);
+			_treatEvent(*event);
 		}
 	}
 

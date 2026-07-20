@@ -9,7 +9,7 @@ package "Traits and utilities" {
 	class SynchronizableTrait
 	class BinaryField
 	class ContractProvider
-	class ThreadSafeDeque
+	class ThreadSafeQueue
 	class ObservableValue
 }
 

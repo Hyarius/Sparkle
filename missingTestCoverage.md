@@ -853,20 +853,6 @@ Uncovered branch outcomes:
 - [ ] `includes/structures/system/thread/spk_thread_safe_contract.hpp` - Line 114, cols 8-24 - Cover the true outcome and false outcome of `this != &p_other`.
 - [ ] `includes/structures/system/thread/spk_thread_safe_contract.hpp` - Line 172, cols 8-24 - Cover the true outcome of `mutex == nullptr`.
 
-### includes/structures/system/thread/spk_thread_safe_deque.hpp
-
-Coverage: lines 100.00% (45/45, missing 0); branches 100.00% (4/4, missing 0); functions 100.00% (8/8, missing 0); regions 100.00% (12/12, missing 0).
-
-Aggregate metrics are 100%, but the HTML detail contains the partially uncovered expansions listed below.
-
-Uncovered code regions:
-
-- [ ] `includes/structures/system/thread/spk_thread_safe_deque.hpp` - Lines 45-47 - Exercise this uncovered code path: `return false;`. This region is uncovered in 2 instrumented functions/instantiations.
-
-Uncovered branch outcomes:
-
-- [ ] `includes/structures/system/thread/spk_thread_safe_deque.hpp` - Line 44, cols 8-31 - Cover the true outcome in 2 instrumented instances of `_values.empty() == true`.
-
 ### includes/structures/widget/spk_grid_layout.hpp
 
 Coverage: lines 83.89% (380/453, missing 73); branches 78.41% (138/176, missing 38); functions 92.86% (26/28, missing 2); regions 88.75% (213/240, missing 27).

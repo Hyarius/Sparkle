@@ -1,11 +1,11 @@
 #pragma once
 
 #include <atomic>
+#include <deque>
 #include <memory>
 #include <mutex>
 #include <optional>
 #include <string>
-#include <vector>
 
 #include "structures/application/module/spk_frame_module.hpp"
 #include "structures/application/module/spk_keyboard_module.hpp"
@@ -18,7 +18,7 @@
 #include "structures/system/device/window/spk_window_snapshot_manager.hpp"
 #include "structures/system/spk_profiler.hpp"
 #include "structures/system/thread/spk_thread_safe_contract.hpp"
-#include "structures/system/thread/spk_thread_safe_deque.hpp"
+#include "structures/system/thread/spk_thread_safe_queue.hpp"
 
 namespace spk
 {
@@ -79,8 +79,8 @@ namespace spk
 		RenderModule _renderModule;
 		WindowSnapshotManager _snapshotManager;
 
-		spk::ThreadSafeDeque<PlatformAction> _pendingPlatformActions;
-		spk::ThreadSafeDeque<RenderAction> _pendingRenderActions;
+		spk::ThreadSafeQueue<PlatformAction> _pendingPlatformActions;
+		spk::ThreadSafeQueue<RenderAction> _pendingRenderActions;
 
 		std::string _appliedCursorShape = "Arrow";
 
@@ -104,8 +104,8 @@ namespace spk
 		void _enqueuePlatformAction(PlatformAction p_action);
 		void _enqueueRenderAction(RenderAction p_action);
 
-		[[nodiscard]] std::vector<PlatformAction> _drainPendingPlatformActions();
-		[[nodiscard]] std::vector<RenderAction> _drainPendingRenderActions();
+		[[nodiscard]] std::deque<PlatformAction> _drainPendingPlatformActions();
+		[[nodiscard]] std::deque<RenderAction> _drainPendingRenderActions();
 
 		void _treatProcessedFrameEvent(spk::FrameEventRecord &p_event, bool p_isConsumed);
 
