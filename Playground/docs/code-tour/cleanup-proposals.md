@@ -147,11 +147,11 @@ Four weighted-pool picks and three FNV/avalanche implementations exist:
 |---|---|
 | `world_plan_generator.cpp` | `deriveSeed` (FNV-1a), `pickWeightedRoom` |
 | `climb_prefabs.cpp` | `hashSeed` (FNV-1a, identical), `pickCell` |
-| `plan_chunk_provider.cpp` | `avalanche`, `unitInterval`, `pickVoxel` |
-| `voxel_content_parser.cpp` | `avalanche`, `unitInterval`, `pickCellFromPool` |
+| `plan_chunk_provider.cpp` | `splitMix64Finalize`, `toUnitInterval`, `pickVoxel` |
+| `voxel_content_parser.cpp` | `splitMix64Finalize`, `toUnitInterval`, `pickCellFromPool` |
 
-**Proposal**: `core/deterministic_random.hpp` with `fnv1a(string_view)`,
-`avalanche(u64)`, `unitInterval(u64)`, and a single
+**Implemented**: `core/deterministic_random.hpp` with `fnv1a64::hash(string_view)`,
+`splitMix64Finalize(u64)`, `toUnitInterval(u64)`, and a single
 `pickWeighted(span<pair<T,double>>, double roll)`. Every call site keeps its own
 seeding policy (that part is intentional), only the mechanics unify.
 

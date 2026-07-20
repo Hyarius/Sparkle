@@ -105,13 +105,13 @@ namespace pg
 			for (int index = 0; index < variants; ++index)
 			{
 				const std::string id = p_lengthPrefix + "#" + std::to_string(index);
-				std::mt19937_64 rng(deterministic::fnv1a(id));
+				std::mt19937_64 rng(deterministic::fnv1a64::hash(id));
 				PrefabDefinition definition = makeFlight(p_base, p_steps, rng);
 				definition.id = id;
 				p_prefabs.add(id, std::move(definition));
 				p_outLengths.push_back(id);
 			}
-			std::mt19937_64 platformRng(deterministic::fnv1a(p_platformId));
+			std::mt19937_64 platformRng(deterministic::fnv1a64::hash(p_platformId));
 			PrefabDefinition platform = makePlatform(p_base, platformRng);
 			platform.id = p_platformId;
 			p_prefabs.add(p_platformId, std::move(platform));

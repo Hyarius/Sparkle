@@ -85,8 +85,8 @@ namespace pg::worldgen
 				std::pair{diagonal, -diagonal},
 				std::pair{-diagonal, -diagonal}};
 			std::uint64_t hash = static_cast<std::uint64_t>(p_x);
-			hash ^= deterministic::avalanche(static_cast<std::uint64_t>(p_z) + 0x9e3779b97f4a7c15ULL);
-			hash = deterministic::avalanche(hash ^ p_seed);
+				hash ^= deterministic::splitMix64Finalize(static_cast<std::uint64_t>(p_z) + 0x9e3779b97f4a7c15ULL);
+				hash = deterministic::splitMix64Finalize(hash ^ p_seed);
 			const auto &[gx, gz] = gradients[hash & 7U];
 			return gx * p_dx + gz * p_dz;
 		};
@@ -124,7 +124,7 @@ namespace pg::worldgen
 		double featureSize = p_featureSize;
 		for (int octave = 0; octave < p_octaves; ++octave)
 		{
-			const std::uint64_t octaveSeed = deterministic::avalanche(
+			const std::uint64_t octaveSeed = deterministic::splitMix64Finalize(
 				p_seed + static_cast<std::uint64_t>(octave) * 0x9e3779b97f4a7c15ULL);
 			total += perlinNoise(octaveSeed, p_worldX, p_worldZ, featureSize) * amplitude;
 			amplitudeSum += amplitude;

@@ -21,7 +21,7 @@ namespace pg::worldgen
 		[[nodiscard]] bool operator==(const Cell &) const noexcept = default;
 	};
 
-	// FNV-1a over "<master>::<path>"; stable across platforms and runs.
+	// Versioned structured seed derivation; stable across platforms and runs.
 	[[nodiscard]] std::uint64_t deriveSeed(std::uint64_t p_master, const std::string &p_path);
 
 	struct Rng

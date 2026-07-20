@@ -47,8 +47,8 @@ namespace pg
 			std::uint64_t hash = static_cast<std::uint64_t>(static_cast<std::uint32_t>(p_worldX)) << 32U;
 			hash |= static_cast<std::uint32_t>(p_worldZ);
 			hash ^= p_seed + p_salt + 0x9e3779b97f4a7c15ULL;
-			hash = deterministic::avalanche(hash);
-			return p_pool.pick(deterministic::unitInterval(hash));
+			hash = deterministic::splitMix64Finalize(hash);
+			return p_pool.pick(deterministic::toUnitInterval(hash));
 		}
 	}
 

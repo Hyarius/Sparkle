@@ -17,14 +17,15 @@ namespace
 		const std::string &p_token,
 		const spk::Vector3Int &p_position)
 	{
-		std::uint64_t hash = pg::deterministic::FnvOffset;
-		pg::deterministic::mix(hash, p_reader.file().generic_string());
-		pg::deterministic::mix(hash, p_path);
-		pg::deterministic::mix(hash, p_token);
-		pg::deterministic::mix(hash, p_position.x);
-		pg::deterministic::mix(hash, p_position.y);
-		pg::deterministic::mix(hash, p_position.z);
-		return pg::deterministic::avalanche(hash);
+		pg::deterministic::StableHasher64 hasher;
+		hasher.mixDomain("pg.voxel-content-selection.v1");
+		hasher.mix(p_reader.file().generic_string());
+		hasher.mix(p_path);
+		hasher.mix(p_token);
+		hasher.mix(static_cast<std::int32_t>(p_position.x));
+		hasher.mix(static_cast<std::int32_t>(p_position.y));
+		hasher.mix(static_cast<std::int32_t>(p_position.z));
+		return pg::deterministic::splitMix64Finalize(hasher.value());
 	}
 
 	[[nodiscard]] spk::VoxelCell cellFromId(
@@ -62,7 +63,7 @@ namespace
 		{
 			throw pg::JsonError(p_reader.file(), p_path, "palette pool cannot be empty");
 		}
-		return p_pool.pick(pg::deterministic::unitInterval(p_seed));
+		return p_pool.pick(pg::deterministic::toUnitInterval(p_seed));
 	}
 
 	[[nodiscard]] pg::detail::VoxelCellPool parseCellPool(

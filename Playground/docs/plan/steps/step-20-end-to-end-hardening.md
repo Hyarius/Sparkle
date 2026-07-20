@@ -177,7 +177,7 @@ version 1 as a byte stream with:
 * fixed-point ticks and integer cell coordinates directly; no locale text or float.
 
 Hash the completed byte stream with the existing
-`pg::deterministic::fnv1a(std::string_view)` constants/algorithm and render the `uint64`
+`pg::deterministic::fnv1a64::hash(std::string_view)` algorithm and render the `uint64`
 result as exactly 16 lowercase hexadecimal digits. Do not add the avalanche step or silently
 change algorithms. Golden-test at least one hand-constructed byte stream. Any encoding,
 field-order, enum-code, or algorithm change increments the digest schema version.

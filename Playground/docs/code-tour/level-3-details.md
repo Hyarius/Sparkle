@@ -99,7 +99,7 @@ implementations are split over topic files (2026-07-11):
 
 ### 2.0 Shared helpers (`world_plan_math.{hpp,cpp}`)
 
-- `deriveSeed(master, path)` — FNV-1a over `"<master>::<path>"`.
+- `deriveSeed(master, path)` — a versioned, structured FNV-1a format finalized with SplitMix64.
 - `Rng` — mt19937_64 with `uniform()`, `below(n)`, `poisson(mean)`, `shuffle`.
 - `valueNoise(rng, size, scale)` — bilinear-smoothstep value noise in [0,1].
 - `distanceTo(mask)` — multi-source BFS distance.
