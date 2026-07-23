@@ -144,27 +144,55 @@ Do not allow a negative octave value to be converted silently into a very large 
 
 Create a new constructor, a method toJSON and fromJSON inside perlin, to save/load perlin from json data, using sparkle JSON classes.
 
-## Seed width
+## Seed type and interpretation
 
-The current seed is:
+Use the same canonical seed type as the shared deterministic generator.
 
-```cpp
-std::uint32_t seed = 0;
-```
-
-Inspect surrounding deterministic-random and procedural-generation APIs.
-
-If Sparkle uses 64-bit master and derived seeds, prefer:
+Prefer:
 
 ```cpp
 std::uint64_t seed = 0;
 ```
 
-to avoid discarding half of a derived seed.
+because Sparkle's master seeds and derived seeds are 64-bit values.
 
-Changing the seed width or permutation-generation algorithm changes deterministic output. Treat this as a procedural-format migration when existing content depends on it.
+This prevents truncation when a seed is obtained through:
 
-If a 32-bit seed is deliberately sufficient, keep it and document that conversion from a wider seed must be explicit.
+```cpp
+spk::deterministic::deriveSeed(...)
+```
+
+The Perlin constructor and `reseed()` method should therefore use:
+
+```cpp
+explicit Perlin(const Parameters &p_parameters);
+
+void reseed(std::uint64_t p_seed);
+```
+
+Permutation generation should conceptually begin with:
+
+```cpp
+spk::deterministic::Generator64 generator(p_seed);
+```
+
+The seed is not itself a random sample. It initializes the deterministic generator that constructs the permutation table.
+
+The same seed, deterministic-generator version, and Perlin algorithm version must always produce the same permutation and the same noise field under the project's documented floating-point assumptions.
+
+Changing any of the following changes the procedural format:
+
+* Seed width.
+* Generator transition.
+* Generator seed initialization.
+* Bounded-integer mapping.
+* Shuffle direction.
+* Gradient selection.
+* Permutation-table construction.
+
+Treat these changes as explicit deterministic-format migrations when existing generated content depends on them.
+
+If legacy Perlin output must remain reproducible, keep the old generator path under a versioned implementation rather than retaining a duplicate private `_splitMix64()` indefinitely.
 
 ## Parameter validation
 
@@ -198,16 +226,11 @@ lacunarity  >= 1
 
 These are common defaults, but values outside those conventional ranges can still be mathematically meaningful.
 
-Do not reject them arbitrarily. Either:
-
-* Permit all finite positive values and document the resulting behavior.
-* Restrict them because Sparkle intentionally defines a narrower terrain-noise model.
+Do not reject them arbitrarily. Permit all finite positive values and document the resulting behavior.
 
 Throw `std::invalid_argument` for invalid parameters.
 
 Do not silently clamp configuration values.
-
-Do not introduce an arbitrary maximum octave count without a documented performance or overflow reason. If a maximum is required, expose and test the limit clearly.
 
 ## Strong mutation guarantee
 
@@ -244,61 +267,11 @@ When the new seed equals the current seed, the method may return without rebuild
 
 When `setParameters()` changes only frequency, octave, persistence, lacunarity, or fade settings, do not rebuild the permutation table unnecessarily.
 
-## Thread-safety contract
+## Thread-safety contract - mutation removal
 
 Sampling methods are read-only and should be safe to call concurrently on the same object as long as no thread mutates that object.
 
-Document this explicitly:
-
-```text
-Concurrent calls to raw*() and sample*() are supported.
-Concurrent sampling and reseed()/setParameters() are not supported.
-The caller must externally synchronize mutation.
-```
-
-Do not add internal locking to every sample merely to make configuration mutation concurrent. Perlin sampling is commonly performance-sensitive, and immutable read access should remain inexpensive.
-
-If call-site analysis shows that runtime mutation is unnecessary, consider making the class immutable by removing mutation methods and constructing a new `Perlin` object for a new configuration. Do not make this change without checking existing usage.
-
-## Deterministic permutation generation
-
-Do not use:
-
-```cpp
-std::shuffle
-std::default_random_engine
-std::mt19937
-std::hash
-```
-
-when exact cross-platform permutation compatibility is required.
-
-The standard library does not define a persistent cross-implementation shuffle output contract.
-
-Use a fully specified deterministic generator and Fisher–Yates shuffle.
-
-The algorithm must document:
-
-* Initial generator state from the seed.
-* Exact SplitMix64 transition, if SplitMix64 is used.
-* Exact shuffle direction.
-* Exact inclusive bounds.
-* Exact conversion from random 64-bit values to bounded indices.
-* Final duplication of the first 256 entries.
-
-The base permutation must initially contain every value from `0` through `255` exactly once.
-
-The final table must satisfy:
-
-```cpp
-permutation[i + 256] == permutation[i]
-```
-
-for every `i` in `[0, 255]`.
-
-Do not duplicate a private SplitMix implementation when Sparkle already has a tested deterministic utility that provides the exact required operation. Reuse the common implementation where doing so preserves the intended deterministic contract.
-
-If this class requires a distinct generator transition, name and test it explicitly rather than relying on two copies remaining identical.
+As runtime mutation is unnecessary, consider making the class immutable by removing mutation methods and constructing a new `Perlin` object for a new configuration.
 
 ## Avoid modulo bias in permutation generation
 
@@ -313,8 +286,6 @@ introduces modulo bias unless the random range is an exact multiple of the bound
 For a 256-element permutation the practical bias may be small, but the corrected implementation should use unbiased bounded sampling when introducing a new deterministic format.
 
 Use rejection sampling or another precisely defined unbiased mapping.
-
-If compatibility requires preserving an existing modulo-based shuffle, retain it only in the legacy algorithm and cover it with golden tests.
 
 ## Permutation periodicity
 
@@ -331,18 +302,6 @@ and each octave introduces its own scaled repetition.
 This can become visible in large generated maps.
 
 Before retaining the current table-based design, inspect the intended sampling scale. Sparkle world generation may operate over maps substantially larger than 256 cells.
-
-Choose and document one of these designs:
-
-### Classic periodic Perlin noise
-
-Keep the permutation table and explicitly document the 256-cell lattice period.
-
-This is acceptable when:
-
-* Coordinates are scaled so repetition is not visible.
-* Tiling is useful.
-* Compatibility with classic Perlin behavior is desired.
 
 ### Coordinate-hashed Perlin noise
 
@@ -402,8 +361,6 @@ when `x0` may already be the maximum representable integer.
 
 A safe design can reduce or hash the lower lattice coordinate first and derive the neighboring wrapped index without overflowing the signed coordinate.
 
-For a periodic permutation table, convert the lattice coordinate to an unsigned fixed-width type before applying the mask.
-
 Do not rely on host-specific signed representation or signed overflow.
 
 ## Input validation
@@ -449,13 +406,7 @@ Check multiplication for non-finite results before sampling the next octave.
 
 ## Fractal amplitude normalization
 
-Define whether `raw1D()`, `raw2D()`, and `raw3D()` return:
-
-1. The unnormalized weighted sum.
-2. The weighted sum divided by the total amplitude.
-3. A dimension-specific normalized value intended to remain in `[-1, 1]`.
-
-Prefer a normalized result so changing the octave count does not drastically change output amplitude.
+Define that `raw1D()`, `raw2D()`, and `raw3D()` return the weighted sum divided by the total amplitude.
 
 A conventional accumulation is:
 
